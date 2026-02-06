@@ -190,8 +190,6 @@ const api = {
     deleteApiToken: ({ username, id }: DeleteApiTokenRequest) =>
       client.delete(`/user/${username}/api_token/${id}`),
     disableMfa: (username: string) => client.delete(`/user/${username}/mfa`),
-    disableSpecificMFA: (username: string, method: UserMfaMethodValue) =>
-      client.delete(`/user/${username}/${method}`),
     activeStateChange: async ({
       active,
       username,
@@ -235,7 +233,7 @@ const api = {
           client.post<MfaCompleteResponse>('/auth/totp/verify', {
             code,
           }),
-        disable: () => client.delete('/auth/totp'),
+        disable: (username: string) => client.delete(`/user/${username}/totp`),
       },
       email: {
         init: () => client.post('/auth/email/init'),
@@ -243,7 +241,7 @@ const api = {
           client.post<EnableMfaMethodResponse>('/auth/email', {
             code,
           }),
-        disable: () => client.delete('/auth/email'),
+        disable: (username: string) => client.delete(`/user/${username}/email`),
         resend: () => client.get('/auth/email'),
         verify: (code: string) =>
           client.post<MfaCompleteResponse>('/auth/email/verify', { code }),

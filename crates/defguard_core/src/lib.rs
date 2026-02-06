@@ -111,10 +111,10 @@ use crate::{
     handlers::{
         app_info::get_app_info,
         auth::{
-            authenticate, disable_specific_user_mfa_method, email_mfa_code, email_mfa_disable,
-            email_mfa_enable, email_mfa_init, logout, mfa_disable, mfa_enable, recovery_code,
-            request_email_mfa_code, totp_code, totp_disable, totp_enable, totp_secret,
-            webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
+            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
+            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
+            totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
+            webauthn_start,
         },
         component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
@@ -242,14 +242,12 @@ pub fn build_webapp(
             .route("/auth/webauthn/start", post(webauthn_start))
             .route("/auth/webauthn", post(webauthn_end))
             .route("/auth/totp/init", post(totp_secret))
-            .route("/auth/totp", post(totp_enable).delete(totp_disable))
+            .route("/auth/totp", post(totp_enable))
             .route("/auth/totp/verify", post(totp_code))
             .route("/auth/email/init", post(email_mfa_init))
             .route(
                 "/auth/email",
-                get(request_email_mfa_code)
-                    .post(email_mfa_enable)
-                    .delete(email_mfa_disable),
+                get(request_email_mfa_code).post(email_mfa_enable),
             )
             .route("/auth/email/verify", post(email_mfa_code))
             .route("/auth/recovery", post(recovery_code))
@@ -267,6 +265,9 @@ pub fn build_webapp(
             .route("/user/change_password", put(change_self_password))
             .route("/user/{username}/password", put(change_password))
             .route("/user/{username}/reset_password", post(reset_password))
+            // disable mfa
+            .route("/user/{username}/email", delete(email_mfa_disable))
+            .route("/user/{username}/totp", delete(totp_disable))
             // auth keys
             .route(
                 "/user/{username}/auth_key",
@@ -309,10 +310,6 @@ pub fn build_webapp(
                 delete(delete_authorized_app),
             )
             .route("/user/{username}/mfa", delete(disable_user_mfa))
-            .route(
-                "/user/{username}/{method}",
-                delete(disable_specific_user_mfa_method),
-            )
             // forward_auth
             .route("/forward_auth", get(forward_auth))
             // group

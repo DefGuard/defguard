@@ -68,12 +68,7 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: disableMfaMutation } = useMutation({
-    mutationFn: () => {
-      if (user.username !== authUsername) {
-        return api.user.disableMfa(user.username);
-      }
-      return api.auth.mfa.disable();
-    },
+    mutationFn: api.auth.mfa.disable,
     meta: invalidateAfterMfaChange,
   });
 
@@ -83,22 +78,12 @@ export const ProfileAuthCard = () => {
   });
 
   const { mutate: mutateDisableEmailMfa } = useMutation({
-    mutationFn: () => {
-      if (user.username !== authUsername) {
-        return api.user.disableSpecificMFA(user.username, UserMfaMethod.Email);
-      }
-      return api.auth.mfa.email.disable();
-    },
+    mutationFn: () => api.auth.mfa.email.disable(user.username),
     meta: invalidateAfterMfaChange,
   });
 
   const { mutate: mutateDisableTotp } = useMutation({
-    mutationFn: () => {
-      if (user.username !== authUsername) {
-        return api.user.disableSpecificMFA(user.username, UserMfaMethod.OneTimePassword);
-      }
-      return api.auth.mfa.totp.disable();
-    },
+    mutationFn: () => api.auth.mfa.totp.disable(user.username),
     meta: invalidateAfterMfaChange,
   });
 
