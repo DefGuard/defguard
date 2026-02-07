@@ -90,7 +90,7 @@ impl PasswordResetServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn request_password_reset(
+    pub(crate) async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
         req_device_info: Option<DeviceInfo>,
@@ -100,7 +100,7 @@ impl PasswordResetServer {
 
         let ip_address;
         let device_info;
-        if let Some(ref info) = req_device_info {
+        if let Some(info) = &req_device_info {
             ip_address = info.ip_address.clone();
             let agent = info.user_agent.clone().unwrap_or_default();
             device_info = get_device_info(&agent);

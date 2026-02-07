@@ -275,7 +275,7 @@ impl SessionManager {
                 device_network_info.is_authorized = false;
                 device_network_info.preshared_key = None;
                 device_network_info.update(&mut *transaction).await?;
-            };
+            }
             self.send_peer_disconnect_message(location, &device)?;
         }
 

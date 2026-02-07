@@ -94,9 +94,9 @@ impl ClientMfaServer {
             pool,
             mail_tx,
             wireguard_tx,
-            bidi_event_tx,
-            remote_mfa_responses,
             sessions,
+            remote_mfa_responses,
+            bidi_event_tx,
         }
     }
 
@@ -832,7 +832,7 @@ impl ClientMfaServer {
             );
             Status::internal("unexpected error")
         })?;
-        };
+        }
         let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");

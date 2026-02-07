@@ -2,8 +2,8 @@
 Requires context:
 code -> 6-digit zero-padded verification code
 #}
-{% extends "base.tera" %}
-{% import "macros.tera" as macros %}
+{% extends "base" %}
+{% import "macros" as macros %}
 {% block mail_content %}
 {% set section_content = [
   macros::title(content="Hello, " ~ name),

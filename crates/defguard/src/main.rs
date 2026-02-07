@@ -34,7 +34,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use defguard_mail::{Mail, run_mail_handler};
+use defguard_mail::mail_handler::MailHandler;
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use defguard_setup::setup::run_setup_web_server;
@@ -134,7 +134,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     // RX is discarded here since it can be derived from TX later on
     let (gateway_tx, _gateway_rx) = broadcast::channel::<GatewayEvent>(256);
-    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
+    let mail_handler = MailHandler::new();
+    let mail_tx = mail_handler.tx();
     let (event_logger_tx, event_logger_rx) = unbounded_channel::<EventLoggerMessage>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
 
@@ -213,7 +214,7 @@ async fn main() -> Result<(), anyhow::Error> {
             incompatible_components,
             proxy_control_tx
         ) => error!("Web server returned early: {res:?}"),
-        res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
+        res = mail_handler.run() => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
             config.stats_purge_frequency.into(),

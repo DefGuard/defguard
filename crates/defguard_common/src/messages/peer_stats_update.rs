@@ -21,6 +21,7 @@ pub struct PeerStatsUpdate {
 }
 
 impl PeerStatsUpdate {
+    #[must_use]
     pub fn new(
         location_id: Id,
         gateway_id: Id,

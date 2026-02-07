@@ -4,7 +4,10 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, User, WireguardNetwork, device::WireguardNetworkDevice},
+        models::{
+            Settings, User, WireguardNetwork, device::WireguardNetworkDevice, gateway::Gateway,
+            proxy::Proxy,
+        },
     },
 };
 use serde::Serialize;
@@ -22,7 +25,7 @@ fn unwrap_json<S: Serialize, D: Display>(result: Result<S, D>) -> Value {
 }
 
 /// Dumps all data that could be used for debugging.
-pub async fn dump_config(db: &PgPool) -> Value {
+pub(crate) async fn dump_config(db: &PgPool) -> Value {
     // App settings DB records
     let settings = match Settings::get(db).await {
         Ok(Some(mut settings)) => {
@@ -52,7 +55,7 @@ pub async fn dump_config(db: &PgPool) -> Value {
     };
     let users_diagnostic_data = unwrap_json(User::all_without_sensitive_data(db).await);
 
-    let proxies = match defguard_common::db::models::proxy::Proxy::<Id>::all(db).await {
+    let proxies = match Proxy::all(db).await {
         Ok(proxies) => json!(
             proxies
                 .iter()
@@ -68,7 +71,7 @@ pub async fn dump_config(db: &PgPool) -> Value {
         Err(err) => json!({"error": err.to_string()}),
     };
 
-    let gateways = match defguard_common::db::models::gateway::Gateway::<Id>::all(db).await {
+    let gateways = match Gateway::all(db).await {
         Ok(gateways) => json!(
             gateways
                 .iter()

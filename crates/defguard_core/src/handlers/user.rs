@@ -1106,21 +1106,18 @@ pub async fn reset_password(
         let settings = Settings::get_current_settings();
         let public_proxy_url = settings.proxy_public_url()?;
 
-        let mail = Mail {
-            to: user.email.clone(),
-            subject: EMAIL_PASSWORD_RESET_START_SUBJECT.into(),
-            content: templates::email_password_reset_mail(
+        let mail = Mail::new(
+            user.email.clone(),
+            EMAIL_PASSWORD_RESET_START_SUBJECT,
+            templates::email_password_reset_mail(
                 public_proxy_url,
                 enrollment.id.clone().as_str(),
                 None,
                 None,
             )?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
+        );
 
-        let to = mail.to.clone();
-
+        let to = &user.email;
         match &appstate.mail_tx.send(mail) {
             Ok(()) => {
                 info!("Password reset email for {username} sent to {to}");

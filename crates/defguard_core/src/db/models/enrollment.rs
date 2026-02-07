@@ -320,7 +320,7 @@ impl Token {
     /// - admin_last_name
     /// - admin_email
     /// - admin_phone
-    pub async fn get_welcome_message_context(
+    pub(crate) async fn get_welcome_message_context(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Context, TokenError> {
@@ -367,7 +367,7 @@ impl Token {
     }
 
     // Render welcome email content
-    pub async fn get_welcome_email_content(
+    pub(crate) async fn get_welcome_email_content(
         &self,
         transaction: &mut PgConnection,
         ip_address: &str,
@@ -400,18 +400,15 @@ impl Token {
         device_info: Option<&str>,
     ) -> Result<(), TokenError> {
         debug!("Sending welcome mail to {}", user.username);
-        let mail = Mail {
-            to: user.email.clone(),
-            subject: settings
+        let mail = Mail::new(
+            &user.email,
+            settings
                 .enrollment_welcome_email_subject
-                .clone()
-                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
-            content: self
-                .get_welcome_email_content(&mut *transaction, ip_address, device_info)
+                .as_deref()
+                .unwrap_or(WELCOME_EMAIL_SUBJECT),
+            self.get_welcome_email_content(&mut *transaction, ip_address, device_info)
                 .await?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
+        );
         match mail_tx.send(mail) {
             Ok(()) => {
                 info!("Sent enrollment welcome mail to {}", user.username);
@@ -436,18 +433,16 @@ impl Token {
             "Sending enrollment success notification for user {} to {}",
             user.username, admin.username
         );
-        let mail = Mail {
-            to: admin.email.clone(),
-            subject: "[defguard] User enrollment completed".into(),
-            content: templates::enrollment_admin_notification(
-                &user.clone().into(),
-                &admin.clone().into(),
+        let mail = Mail::new(
+            &admin.email,
+            "[defguard] User enrollment completed",
+            templates::enrollment_admin_notification(
+                &user.into(),
+                &admin.into(),
                 ip_address,
                 device_info,
             )?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
+        );
         match mail_tx.send(mail) {
             Ok(()) => {
                 info!(

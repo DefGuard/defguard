@@ -543,9 +543,9 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     // first email received is regarding admin login
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "admin@defguard");
+    assert_eq!(mail.to(), "admin@defguard");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "Defguard: new device logged in to your account"
     );
 
@@ -575,10 +575,10 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     // send email regarding new device being added
     // it does not contain session info
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
-    assert_eq!(mail.subject, "Defguard: new device added to your account");
-    assert!(!mail.content.contains("IP Address:</span>"));
-    assert!(!mail.content.contains("Device type:</span>"));
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject(), "Defguard: new device added to your account");
+    assert!(!mail.content().contains("IP Address:</span>"));
+    assert!(!mail.content().contains("Device type:</span>"));
 
     // add device for themselves
     let device_data = AddDevice {
@@ -600,11 +600,11 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
     // send email regarding new device being added
     // it should contain session info
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "admin@defguard");
-    assert_eq!(mail.subject, "Defguard: new device added to your account");
-    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert_eq!(mail.to(), "admin@defguard");
+    assert_eq!(mail.subject(), "Defguard: new device added to your account");
+    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
     assert!(
-        mail.content
+        mail.content()
             .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 
@@ -624,14 +624,14 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     // send email regarding user login
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "Defguard: new device logged in to your account"
     );
-    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
     assert!(
-        mail.content
+        mail.content()
             .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 
@@ -672,11 +672,11 @@ async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
 
     // send email regarding new device being added
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
-    assert_eq!(mail.subject, "Defguard: new device added to your account");
-    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.subject(), "Defguard: new device added to your account");
+    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
     assert!(
-        mail.content
+        mail.content()
             .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 

@@ -362,10 +362,9 @@ impl GatewayHandler {
                                             error!(
                                                 "Failed to send peers stats update to session manager: {err}"
                                             );
-                                            continue;
                                         }
                                     }
-                                };
+                                }
                             }
                             None => (),
                         }

@@ -79,10 +79,10 @@ pub async fn start_user_enrollment(
             let base_message_context = enrollment
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
-            let mail = Mail {
-                to: email.clone(),
-                subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
-                content: templates::enrollment_start_mail(
+            let mail = Mail::new(
+                &email,
+                ENROLLMENT_START_MAIL_SUBJECT,
+                templates::enrollment_start_mail(
                     base_message_context,
                     enrollment_service_url,
                     &enrollment.id,
@@ -95,9 +95,7 @@ pub async fn start_user_enrollment(
                     );
                     TokenError::NotificationError(err.to_string())
                 })?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
+            );
             match mail_tx.send(mail) {
                 Ok(()) => {
                     info!(
@@ -187,25 +185,22 @@ pub async fn start_desktop_configuration(
             let base_message_context = desktop_configuration
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
-            let mail = Mail {
-                to: email.clone(),
-                subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
-                content: templates::desktop_start_mail(
+            let mail = Mail::new(
+                &email,
+                DESKTOP_START_MAIL_SUBJECT,
+                templates::desktop_start_mail(
                     base_message_context,
                     &enrollment_service_url,
                     &desktop_configuration.id,
                 )
                 .map_err(|err| {
                     debug!(
-                        "Cannot send an email to the user {} due to the error {}.",
+                        "Cannot send an email to the user {} due to the error {err}.",
                         user.username,
-                        err.to_string()
                     );
                     TokenError::NotificationError(err.to_string())
                 })?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
+            );
             match mail_tx.send(mail) {
                 Ok(()) => {
                     info!(

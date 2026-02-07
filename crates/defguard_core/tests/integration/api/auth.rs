@@ -432,21 +432,23 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     // check email was sent
     let mail = mail_rx.try_recv().unwrap();
     assert_ok!(mail_rx.try_recv());
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "Defguard: new device logged in to your account"
     );
-    // assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
 
     // resend setup email
     let response = client.post("/api/v1/auth/email/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let mail = mail_rx.try_recv().unwrap();
     assert_err!(mail_rx.try_recv());
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
-    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
-    let code = extract_email_code(&mail.content);
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject(),
+        "Defguard: Multi-Factor Authentication activation"
+    );
+    let code = extract_email_code(mail.content());
 
     // finish setup
     let code = AuthCode::new(code);
@@ -456,9 +458,9 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     // check that confirmation email was sent
     let mail = mail_rx.try_recv().unwrap();
     assert_err!(mail_rx.try_recv());
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "MFA method Email has been activated on your account"
     );
 
@@ -498,10 +500,10 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     // check that code email was sent
     let mail = mail_rx.try_recv().unwrap();
     assert_ok!(mail_rx.try_recv());
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
-        "Defguard: new device logged in to your account" // "Your Multi-Factor Authentication Code for Login"
+        mail.subject(),
+        "Defguard: new device logged in to your account"
     );
 
     // resend code
@@ -509,12 +511,12 @@ async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let mail = mail_rx.try_recv().unwrap();
     assert_err!(mail_rx.try_recv());
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
-        "Your Multi-Factor Authentication Code for Login"
+        mail.subject(),
+        "Defguard: Multi-Factor Authentication code for login"
     );
-    let code = extract_email_code(&mail.content);
+    let code = extract_email_code(mail.content());
 
     // login
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -573,9 +575,12 @@ async fn dg25_15_test_email_mfa_brute_force(_: PgPoolOptions, options: PgConnect
     let response = client.post("/api/v1/auth/email/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
-    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
-    let code = extract_email_code(&mail.content);
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
+    assert_eq!(
+        mail.subject(),
+        "Defguard: Multi-Factor Authentication activation"
+    );
+    let code = extract_email_code(mail.content());
 
     // finish setup
     let code = AuthCode::new(code);
@@ -895,14 +900,14 @@ async fn test_mfa_method_totp_enabled_mail(_: PgPoolOptions, options: PgConnectO
 
     mail_rx.try_recv().unwrap();
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "MFA method TOTP has been activated on your account"
     );
-    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
     assert!(
-        mail.content
+        mail.content()
             .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 }
@@ -927,14 +932,14 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "Defguard: new device logged in to your account"
     );
-    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
     assert!(
-        mail.content
+        mail.content()
             .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari")
     );
 
@@ -965,12 +970,12 @@ async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mail = mail_rx.try_recv().unwrap();
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "Defguard: new device logged in to your account"
     );
-    assert!(mail.content.contains("IP Address:</span> 127.0.0.1"));
+    assert!(mail.content().contains("IP Address:</span> 127.0.0.1"));
     assert!(
-        mail.content
+        mail.content()
             .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView")
     );
 }
@@ -995,12 +1000,12 @@ async fn test_login_ip_headers(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     let mail = mail_rx.try_recv().unwrap();
-    assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
+    assert_eq!(mail.to(), "h.potter@hogwart.edu.uk");
     assert_eq!(
-        mail.subject,
+        mail.subject(),
         "Defguard: new device logged in to your account"
     );
-    assert!(mail.content.contains("IP Address:</span> 10.0.0.20"));
+    assert!(mail.content().contains("IP Address:</span> 10.0.0.20"));
 }
 
 #[sqlx::test]
