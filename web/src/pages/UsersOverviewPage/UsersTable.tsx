@@ -491,7 +491,7 @@ export const UsersTable = ({ users }: Props) => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {table.getIsSomeRowsSelected() && isPresent(groups) && (
+        {(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && isPresent(groups) && (
           <Button
             variant="outlined"
             text="Assign to a group"
