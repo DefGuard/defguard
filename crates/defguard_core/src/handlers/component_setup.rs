@@ -11,7 +11,12 @@ use defguard_common::{
     auth::claims::Claims,
     db::{
         Id,
-        models::{Settings, gateway::Gateway, proxy::Proxy},
+        models::{
+            Settings,
+            gateway::Gateway,
+            proxy::Proxy,
+            settings::{InitialSetupStep, update_current_settings},
+        },
     },
     types::proxy::ProxyControlMessage,
 };
@@ -560,6 +565,16 @@ pub async fn setup_proxy_tls_stream(
         }
 
         debug!("Edge proxy setup completed successfully");
+
+        let mut settings = Settings::get_current_settings();
+        if !settings.initial_setup_completed {
+            settings.initial_setup_step = InitialSetupStep::Confirmation;
+            if let Err(err) = update_current_settings(&pool, settings).await {
+                yield Ok(flow.error(&format!("Failed to update setup step in settings: {err}")));
+                return;
+            }
+            debug!("Initial setup step advanced to 'Finished'");
+        }
 
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));

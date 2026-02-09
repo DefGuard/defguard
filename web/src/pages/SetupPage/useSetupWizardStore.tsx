@@ -14,7 +14,7 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 };
 
 type StoreValues = {
-  showWelcome: boolean;
+  isOnWelcomePage: boolean;
   activeStep: SetupPageStepValue;
   // Admin config
   admin_first_name: string;
@@ -50,7 +50,7 @@ type StoreMethods = {
 };
 
 const defaults: StoreValues = {
-  showWelcome: true,
+  isOnWelcomePage: true,
   activeStep: SetupPageStep.AdminUser,
   // Admin config
   admin_first_name: '',
@@ -84,7 +84,7 @@ export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
       reset: () =>
         set({
           ...defaults,
-          showWelcome: true,
+          isOnWelcomePage: true,
         }),
       start: (initial) => {
         set({

@@ -18,11 +18,12 @@ import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 
 export const SetupPage = () => {
   const activeStep = useSetupWizardStore((s) => s.activeStep);
   const settingsEssentials = useApp((s) => s.settingsEssentials);
-  const showWelcome = useSetupWizardStore((s) => s.showWelcome);
+  const isOnWelcomePage = useSetupWizardStore((s) => s.isOnWelcomePage);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
@@ -88,7 +89,7 @@ export const SetupPage = () => {
 
   const handleStartWizard = () => {
     useSetupWizardStore.getState().setActiveStep(SetupPageStep.AdminUser);
-    useSetupWizardStore.setState({ showWelcome: false });
+    useSetupWizardStore.setState({ isOnWelcomePage: false });
   };
 
   const WelcomePageContent = () => (
@@ -104,10 +105,10 @@ export const SetupPage = () => {
   );
 
   useEffect(() => {
-    if (settingsEssentials.initial_setup_completed) {
+    if (isPresent(settingsEssentials) && settingsEssentials.initial_setup_completed) {
       navigate({ to: '/vpn-overview', replace: true });
     }
-  }, [settingsEssentials.initial_setup_completed, navigate]);
+  }, [settingsEssentials?.initial_setup_completed, navigate]);
 
   return (
     <WizardPage
@@ -116,7 +117,7 @@ export const SetupPage = () => {
       title={m.initial_setup_wizard_title()}
       steps={stepsConfig}
       id="setup-wizard"
-      showWelcome={showWelcome}
+      showWelcome={isOnWelcomePage}
       welcomePageConfig={{
         title: m.initial_setup_welcome_title(),
         subtitle: m.initial_setup_welcome_subtitle(),
