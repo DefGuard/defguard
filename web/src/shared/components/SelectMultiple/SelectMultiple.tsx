@@ -27,12 +27,6 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
     [options, selected],
   );
 
-  const handleSelectionCancel = useCallback(() => {
-    if (selected.size === 0) {
-      onToggleChange(true);
-    }
-  }, [onToggleChange, selected.size]);
-
   const handleSelectionSubmit = useCallback(
     (v: T[]) => {
       onSelectionChange(v);
@@ -49,7 +43,6 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
       selected: selected,
       //@ts-expect-error
       onSubmit: handleSelectionSubmit,
-      onCancel: handleSelectionCancel,
     });
   };
 
