@@ -4,7 +4,7 @@ use axum::{
 };
 use chrono::Utc;
 use defguard_common::{
-    db::models::proxy::Proxy,
+    db::models::{proxy::Proxy, revoked_certificate::RevokedCertificate},
     types::proxy::{ProxyControlMessage, ProxyInfo},
 };
 use reqwest::StatusCode;
@@ -184,7 +184,12 @@ pub(crate) async fn delete_proxy(
     // TODO
     // 1. Add proxy cert to CRL
     // 2. Remove cert files on deleted proxy
-    proxy.clone().delete(&appstate.pool).await?;
+
+	let mut transaction = appstate.pool.begin().await?;
+	let revocation = RevokedCertificate::from(proxy.clone());
+	revocation.save(&mut *transaction).await?;
+    proxy.clone().delete(&mut *transaction).await?;
+	transaction.commit().await?;
 
     info!("User {} deleted proxy {proxy_id}", session.user.username);
 
