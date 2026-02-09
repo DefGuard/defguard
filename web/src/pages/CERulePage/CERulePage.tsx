@@ -323,12 +323,12 @@ const Content = ({ rule: initialRule }: Props) => {
                 .length
             ) {
               ctx.addIssue({
-                path: ['allowed_devices'],
+                path: ['allowed_network_devices'],
                 code: 'custom',
                 message,
               });
               ctx.addIssue({
-                path: ['denied_devices'],
+                path: ['denied_network_devices'],
                 code: 'custom',
                 message,
               });
@@ -356,7 +356,7 @@ const Content = ({ rule: initialRule }: Props) => {
               message,
             });
             ctx.addIssue({
-              path: ['allowed_devices'],
+              path: ['allowed_network_devices'],
               code: 'custom',
               message,
             });
@@ -865,7 +865,11 @@ const Content = ({ rule: initialRule }: Props) => {
                 {(field) => <field.FormToggle label="Enable rule" />}
               </form.AppField>
               <div className="right">
-                <Button text={isEdit ? "Save changes" : "Create rule"} type="submit" loading={isSubmitting} />
+                <Button
+                  text={isEdit ? 'Save changes' : 'Create rule'}
+                  type="submit"
+                  loading={isSubmitting}
+                />
               </div>
             </Controls>
           )}
