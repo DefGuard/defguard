@@ -70,7 +70,11 @@ use tokio::{
     time::{interval, sleep},
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{Code, Streaming, transport::Endpoint};
+use tonic::{
+    Code, Request, Streaming,
+    service::interceptor::InterceptedService,
+    transport::{Channel, Endpoint},
+};
 use x509_parser::parse_x509_certificate;
 
 use crate::{enrollment::EnrollmentServer, password_reset::PasswordResetServer};
@@ -492,6 +496,7 @@ struct ProxyHandler {
     url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     proxy_id: Option<Id>,
+    client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
 
 impl ProxyHandler {
@@ -515,6 +520,7 @@ impl ProxyHandler {
             url,
             shutdown_signal,
             proxy_id,
+            client: None,
         }
     }
 
@@ -634,6 +640,7 @@ impl ProxyHandler {
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
             let channel = endpoint.connect_with_connector_lazy(connector);
             let mut client = ProxyClient::with_interceptor(channel, interceptor);
+            self.client = Some(client.clone());
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
@@ -718,6 +725,9 @@ impl ProxyHandler {
                             error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
                         } else {
                             info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
+                        }
+                        if let Some(client) = self.client.as_mut() {
+                            client.reset(Request::new(())).await?;
                         }
                         self.mark_disconnected().await?;
                         break;
