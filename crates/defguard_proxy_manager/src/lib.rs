@@ -1,12 +1,11 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
 };
 
 use axum_extra::extract::cookie::Key;
-use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     config::server_config,
@@ -44,8 +43,16 @@ use defguard_proto::proxy::{
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
 };
+use hyper_rustls::HttpsConnectorBuilder;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow, url};
 use reqwest::Url;
+use rustls::{
+    CertificateError, DistinguishedName, Error as RustlsError, RootCertStore, SignatureScheme,
+    client::WebPkiServerVerifier,
+    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    crypto,
+    pki_types::{CertificateDer, ServerName, UnixTime},
+};
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -62,10 +69,8 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{
-    Code, Streaming,
-    transport::{Certificate, ClientTlsConfig, Endpoint},
-};
+use tonic::{Code, Streaming, transport::Endpoint};
+use x509_parser::parse_x509_certificate;
 
 use crate::{enrollment::EnrollmentServer, password_reset::PasswordResetServer};
 
@@ -77,6 +82,7 @@ extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
+const REVOKED_CERT_SERIALS: &[&str] = &["00"];
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Scheme {
@@ -121,6 +127,119 @@ pub enum ProxyError {
     Transport(#[from] tonic::Status),
     #[error("Connection timeout: {0}")]
     ConnectionTimeout(String),
+    #[error("TLS config error: {0}")]
+    TlsConfigError(String),
+}
+
+#[derive(Debug)]
+struct CrlVerifier {
+    inner: Arc<dyn ServerCertVerifier>,
+    revoked_serials: Arc<HashSet<String>>,
+}
+
+impl CrlVerifier {
+    fn new(inner: Arc<dyn ServerCertVerifier>, revoked_serials: Arc<HashSet<String>>) -> Self {
+        Self {
+            inner,
+            revoked_serials,
+        }
+    }
+
+    fn check_revocation(&self, end_entity: &CertificateDer<'_>) -> Result<(), RustlsError> {
+        let (_, cert) = parse_x509_certificate(end_entity.as_ref())
+            .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
+        let serial = cert.tbs_certificate.raw_serial_as_string();
+        if self.revoked_serials.contains(&serial) {
+            warn!("Certificate revoked: serial={serial}");
+            return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
+        }
+        Ok(())
+    }
+}
+
+impl ServerCertVerifier for CrlVerifier {
+    fn verify_server_cert(
+        &self,
+        end_entity: &CertificateDer<'_>,
+        intermediates: &[CertificateDer<'_>],
+        server_name: &ServerName<'_>,
+        ocsp_response: &[u8],
+        now: UnixTime,
+    ) -> Result<ServerCertVerified, RustlsError> {
+        self.inner.verify_server_cert(
+            end_entity,
+            intermediates,
+            server_name,
+            ocsp_response,
+            now,
+        )?;
+        self.check_revocation(end_entity)?;
+        Ok(ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, RustlsError> {
+        self.inner.verify_tls12_signature(message, cert, dss)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, RustlsError> {
+        self.inner.verify_tls13_signature(message, cert, dss)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+        self.inner.supported_verify_schemes()
+    }
+
+    fn root_hint_subjects(&self) -> Option<&[DistinguishedName]> {
+        self.inner.root_hint_subjects()
+    }
+}
+
+fn revoked_serials() -> Arc<HashSet<String>> {
+    Arc::new(
+        REVOKED_CERT_SERIALS
+            .iter()
+            .map(|serial| serial.to_ascii_lowercase())
+            .collect(),
+    )
+}
+
+fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
+    let mut roots = RootCertStore::empty();
+    roots
+        .add(CertificateDer::from(ca_cert_der.to_vec()))
+        .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+    Ok(roots)
+}
+
+fn client_config_with_crl(ca_cert_der: &[u8]) -> Result<rustls::ClientConfig, ProxyError> {
+    let provider = Arc::new(crypto::aws_lc_rs::default_provider());
+    let roots = root_store_from_ca(ca_cert_der)?;
+    let verifier_roots = root_store_from_ca(ca_cert_der)?;
+    let verifier = WebPkiServerVerifier::builder_with_provider(
+        Arc::new(verifier_roots),
+        Arc::clone(&provider),
+    )
+    .build()
+    .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+    let builder = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+    let mut config = builder.with_root_certificates(roots).with_no_client_auth();
+    let verifier: Arc<dyn ServerCertVerifier> = verifier;
+    config
+        .dangerous()
+        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, revoked_serials())));
+    Ok(config)
 }
 
 /// Coordinates communication between the Core and multiple proxy instances.
@@ -407,22 +526,6 @@ impl ProxyHandler {
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
 
-        let endpoint = if scheme == Scheme::Https {
-            let settings = Settings::get_current_settings();
-            let Some(ca_cert_der) = settings.ca_cert_der else {
-                return Err(ProxyError::MissingConfiguration(
-                    "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
-                ));
-            };
-
-            let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
-            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
-
-            endpoint.tls_config(tls)?
-        } else {
-            endpoint
-        };
-
         Ok(endpoint)
     }
 
@@ -438,10 +541,23 @@ impl ProxyHandler {
     ) -> Result<(), ProxyError> {
         loop {
             let endpoint = self.endpoint(Scheme::Https)?;
+            let settings = Settings::get_current_settings();
+            let Some(ca_cert_der) = settings.ca_cert_der else {
+                return Err(ProxyError::MissingConfiguration(
+                    "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
+                ));
+            };
+            let tls_config = client_config_with_crl(&ca_cert_der)?;
+            let connector = HttpsConnectorBuilder::new()
+                .with_tls_config(tls_config)
+                .https_only()
+                .enable_http2()
+                .build();
 
             debug!("Connecting to proxy at {}", endpoint.uri());
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
-            let mut client = ProxyClient::with_interceptor(endpoint.connect_lazy(), interceptor);
+            let channel = endpoint.connect_with_connector_lazy(connector);
+            let mut client = ProxyClient::with_interceptor(channel, interceptor);
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
