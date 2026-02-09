@@ -35,12 +35,9 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
 
   const handleSelectionSubmit = useCallback(
     (v: T[]) => {
-      if (!v.length) {
-        onToggleChange(true);
-      }
       onSelectionChange(v);
     },
-    [onToggleChange, onSelectionChange],
+    [onSelectionChange],
   );
 
   const handleEdit = () => {
@@ -63,14 +60,11 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
           label={toggleText}
           active={toggleValue}
           onClick={() => {
-            if (selected.size === 0 && toggleValue && options.length) {
-              handleEdit();
-            }
             onToggleChange(!toggleValue);
           }}
         />
       )}
-      <Fold open={!toggleValue && selected.size > 0}>
+      <Fold open={!toggleValue}>
         {isPresent(toggleText) && <SizedBox height={ThemeSpacing.Xl} />}
         <div className="selected">
           {selectedOptions.map((o) => (

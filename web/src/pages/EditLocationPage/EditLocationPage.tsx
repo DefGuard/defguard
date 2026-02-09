@@ -3,7 +3,7 @@ import './style.scss';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -93,6 +93,10 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
+  const [allGroupsToggle, setAllGroupsToggle] = useState(
+    location.allowed_groups.length === 0,
+  );
+
   const navigate = useNavigate();
 
   const { data: groupsOptions } = useQuery({
@@ -362,8 +366,9 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   editText="Edit groups"
                   modalTitle="Select allowed groups"
                   toggleText="All groups have access"
-                  toggleValue={field.state.value.length === 0}
+                  toggleValue={allGroupsToggle}
                   onToggleChange={(value) => {
+                    setAllGroupsToggle(value);
                     if (value) {
                       field.handleChange([]);
                     }
