@@ -11,7 +11,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, proxy::Proxy},
+        models::{Settings, proxy::Proxy, revoked_certificate::RevokedCertificate},
     },
     types::proxy::ProxyControlMessage,
 };
@@ -43,8 +43,8 @@ use defguard_proto::proxy::{
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
 };
-use hyper_rustls::HttpsConnectorBuilder;
 use http::Uri;
+use hyper_rustls::HttpsConnectorBuilder;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow, url};
 use reqwest::Url;
 use rustls::{
@@ -64,10 +64,10 @@ use tokio::{
         Mutex,
         broadcast::Sender,
         mpsc::{self, Receiver, UnboundedSender},
-        oneshot,
+        oneshot, watch,
     },
     task::JoinSet,
-    time::sleep,
+    time::{interval, sleep},
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Code, Streaming, transport::Endpoint};
@@ -83,7 +83,6 @@ extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
-const REVOKED_CERT_SERIALS: &[&str] = &["00"];
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -136,14 +135,17 @@ pub enum ProxyError {
 #[derive(Debug)]
 struct CrlVerifier {
     inner: Arc<dyn ServerCertVerifier>,
-    revoked_serials: Arc<HashSet<String>>,
+    revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
 }
 
 impl CrlVerifier {
-    fn new(inner: Arc<dyn ServerCertVerifier>, revoked_serials: Arc<HashSet<String>>) -> Self {
+    fn new(
+        inner: Arc<dyn ServerCertVerifier>,
+        revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
+    ) -> Self {
         Self {
             inner,
-            revoked_serials,
+            revoked_serials_rx,
         }
     }
 
@@ -151,7 +153,8 @@ impl CrlVerifier {
         let (_, cert) = parse_x509_certificate(end_entity.as_ref())
             .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
         let serial = cert.tbs_certificate.raw_serial_as_string();
-        if self.revoked_serials.contains(&serial) {
+        let revoked_serials = self.revoked_serials_rx.borrow();
+        if revoked_serials.contains(&serial) {
             warn!("Certificate revoked: serial={serial}");
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         }
@@ -206,13 +209,19 @@ impl ServerCertVerifier for CrlVerifier {
     }
 }
 
-fn revoked_serials() -> Arc<HashSet<String>> {
-    Arc::new(
-        REVOKED_CERT_SERIALS
-            .iter()
-            .map(|serial| serial.to_ascii_lowercase())
-            .collect(),
-    )
+async fn refresh_revoked_serials(pool: &PgPool, tx: &watch::Sender<Arc<HashSet<String>>>) {
+    match RevokedCertificate::list(pool).await {
+        Ok(serials) => {
+            let normalized: HashSet<String> = serials
+                .into_iter()
+                .map(|serial| serial.to_ascii_lowercase())
+                .collect();
+            let _ = tx.send(Arc::new(normalized));
+        }
+        Err(err) => {
+            warn!("Failed to refresh revoked certificate list: {err}");
+        }
+    }
 }
 
 fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
@@ -223,7 +232,10 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
     Ok(roots)
 }
 
-fn client_config_with_crl(ca_cert_der: &[u8]) -> Result<rustls::ClientConfig, ProxyError> {
+fn client_config_with_crl(
+    ca_cert_der: &[u8],
+    revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
+) -> Result<rustls::ClientConfig, ProxyError> {
     let provider = Arc::new(crypto::aws_lc_rs::default_provider());
     let roots = root_store_from_ca(ca_cert_der)?;
     let verifier_roots = root_store_from_ca(ca_cert_der)?;
@@ -240,7 +252,7 @@ fn client_config_with_crl(ca_cert_der: &[u8]) -> Result<rustls::ClientConfig, Pr
     let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
-        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, revoked_serials())));
+        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, revoked_serials_rx)));
     Ok(config)
 }
 
@@ -324,6 +336,15 @@ impl ProxyManager {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();
         let sessions = Arc::default();
+        let (revoked_serials_tx, revoked_serials_rx) = watch::channel(Arc::new(HashSet::new()));
+        let refresh_pool = self.pool.clone();
+        tokio::spawn(async move {
+            let mut tick = interval(Duration::from_secs(10));
+            loop {
+                refresh_revoked_serials(&refresh_pool, &revoked_serials_tx).await;
+                tick.tick().await;
+            }
+        });
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
         let mut proxies = Proxy::all(&self.pool)
@@ -338,6 +359,7 @@ impl ProxyManager {
                     &self.tx,
                     Arc::clone(&remote_mfa_responses),
                     Arc::clone(&sessions),
+                    revoked_serials_rx.clone(),
                     Arc::new(Mutex::new(Some(shutdown_rx))),
                 )
             })
@@ -354,6 +376,7 @@ impl ProxyManager {
                 &self.tx,
                 Arc::clone(&remote_mfa_responses),
                 Arc::clone(&sessions),
+                revoked_serials_rx.clone(),
                 // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
                 // This should be removed when we do a proper import of old proxies
                 Arc::new(Mutex::new(None)),
@@ -394,6 +417,7 @@ impl ProxyManager {
                                     &self.tx,
                                     Arc::clone(&remote_mfa_responses),
                                     Arc::clone(&sessions),
+                                    revoked_serials_rx.clone(),
                                     Arc::new(Mutex::new(Some(shutdown_rx))),
                                 ) {
                                     Ok(proxy) => {
@@ -463,6 +487,7 @@ struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
+    revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
     /// Proxy server gRPC URL
     url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
@@ -476,6 +501,7 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
+        revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
         proxy_id: Option<Id>,
     ) -> Self {
@@ -485,6 +511,7 @@ impl ProxyHandler {
         Self {
             pool,
             services,
+            revoked_serials_rx,
             url,
             shutdown_signal,
             proxy_id,
@@ -497,6 +524,7 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
+        revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
@@ -507,6 +535,7 @@ impl ProxyHandler {
             tx,
             remote_mfa_responses,
             sessions,
+            revoked_serials_rx,
             shutdown_signal,
             Some(proxy_id),
         ))
@@ -593,7 +622,7 @@ impl ProxyHandler {
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config = client_config_with_crl(&ca_cert_der)?;
+            let tls_config = client_config_with_crl(&ca_cert_der, self.revoked_serials_rx.clone())?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()
