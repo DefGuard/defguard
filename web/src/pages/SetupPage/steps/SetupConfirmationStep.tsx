@@ -35,7 +35,7 @@ export const SetupConfirmationStep = () => {
         if (isPresent(response.data) && response.data.initial_setup_completed) {
           return;
         }
-      } catch (error) {
+      } catch (_error) {
         // Ignore errors while API restarts.
       }
 
@@ -79,7 +79,6 @@ export const SetupConfirmationStep = () => {
     }
   };
 
-
   const { mutateAsync: finishSetup } = useMutation({
     mutationKey: ['finish-setup'],
     mutationFn: api.initial_setup.finishSetup,
@@ -91,7 +90,6 @@ export const SetupConfirmationStep = () => {
       invalidate: ['settings_essentials'],
     },
   });
-
 
   return (
     <WizardCard>

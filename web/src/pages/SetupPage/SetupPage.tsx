@@ -7,6 +7,7 @@ import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useApp } from '../../shared/hooks/useApp';
 import worldMap from './assets/world-map.png';
 import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
@@ -18,7 +19,6 @@ import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 
 export const SetupPage = () => {
   const activeStep = useSetupWizardStore((s) => s.activeStep);
@@ -108,7 +108,7 @@ export const SetupPage = () => {
     if (isPresent(settingsEssentials) && settingsEssentials.initial_setup_completed) {
       navigate({ to: '/vpn-overview', replace: true });
     }
-  }, [settingsEssentials?.initial_setup_completed, navigate]);
+  }, [settingsEssentials?.initial_setup_completed, navigate, settingsEssentials]);
 
   return (
     <WizardPage
