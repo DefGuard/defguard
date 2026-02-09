@@ -55,7 +55,7 @@ type LocationFirewallValue = 'disabled' | 'allow' | 'deny';
 const locationToFirewall = (location: NetworkLocation): LocationFirewallValue => {
   if (!location.acl_enabled) return 'disabled';
   if (location.acl_default_allow) return 'allow';
-  return 'disabled';
+  return 'deny';
 };
 
 const formSchema = z.object({
