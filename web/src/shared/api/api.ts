@@ -203,6 +203,14 @@ const api = {
       });
     },
     deleteUser: (username: string) => client.delete(`/user/${username}`),
+    mfa: {
+      totp: {
+        disable: (username: string) => client.delete(`/user/${username}/totp`),
+      },
+      email: {
+        disable: (username: string) => client.delete(`/user/${username}/email`),
+      },
+    },
   },
   webhook: {
     addWebhook: (data: AddWebhookRequest) => client.post('/webhook', data),
@@ -233,7 +241,6 @@ const api = {
           client.post<MfaCompleteResponse>('/auth/totp/verify', {
             code,
           }),
-        disable: () => client.delete('/auth/totp'),
       },
       email: {
         init: () => client.post('/auth/email/init'),
@@ -241,7 +248,6 @@ const api = {
           client.post<EnableMfaMethodResponse>('/auth/email', {
             code,
           }),
-        disable: () => client.delete('/auth/email'),
         resend: () => client.get('/auth/email'),
         verify: (code: string) =>
           client.post<MfaCompleteResponse>('/auth/email/verify', { code }),
