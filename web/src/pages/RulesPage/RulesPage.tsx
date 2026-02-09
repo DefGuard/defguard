@@ -14,28 +14,7 @@ import { RulesPendingTab } from './tabs/RulesPendingTab';
 import { RulesPageTab, type RulesPageTabValue } from './types';
 
 export const RulesPage = () => {
-  const [activeTab, setActiveTab] = useState<RulesPageTabValue>(RulesPageTab.Deployed);
-
-  const tabs = useMemo(
-    (): TabsItem[] => [
-      {
-        title: 'Deployed',
-        active: activeTab === RulesPageTab.Deployed,
-        onClick: () => {
-          setActiveTab(RulesPageTab.Deployed);
-        },
-      },
-      {
-        title: 'Pending',
-        active: activeTab === RulesPageTab.Pending,
-        onClick: () => {
-          setActiveTab(RulesPageTab.Pending);
-        },
-      },
-    ],
-    [activeTab],
-  );
-
+  // FIXME: split into separate queries
   const { data: rules } = useQuery(getRulesQueryOptions);
 
   const deployed = useMemo(() => {
@@ -49,6 +28,32 @@ export const RulesPage = () => {
       return rules.filter((rule) => rule.state !== AclStatus.Applied);
     }
   }, [rules]);
+
+  const [activeTab, setActiveTab] = useState<RulesPageTabValue>(RulesPageTab.Deployed);
+
+  const pendingTabTitle = useMemo(
+    () => `Pending${pending?.length ? ` (${pending.length})` : ''}`,
+    [pending],
+  );
+  const tabs = useMemo(
+    (): TabsItem[] => [
+      {
+        title: 'Deployed',
+        active: activeTab === RulesPageTab.Deployed,
+        onClick: () => {
+          setActiveTab(RulesPageTab.Deployed);
+        },
+      },
+      {
+        title: pendingTabTitle,
+        active: activeTab === RulesPageTab.Pending,
+        onClick: () => {
+          setActiveTab(RulesPageTab.Pending);
+        },
+      },
+    ],
+    [activeTab, pendingTabTitle],
+  );
 
   return (
     <Page title="Rules" id="rules-page">
