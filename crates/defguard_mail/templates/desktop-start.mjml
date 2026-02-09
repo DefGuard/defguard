@@ -1,0 +1,48 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header(title="{{ header }}", subtitle="{{ action }}") }}
+
+<mj-section mj-class="s-4xl">
+  <mj-column css-class="s-2xl">
+    <mj-table css-class="dg-table no-pad">
+      <tr>
+        <td>
+          <mj-text>
+            URL
+          </mj-text>
+        </td>
+        <td>
+          https://ext.defguard.net/
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Token
+        </td>
+        <td>
+          zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc
+        </td>
+      </tr>
+    </mj-table>
+  </mj-column>
+</mj-section>
+<mj-section mj-class="s-2xl">
+  <mj-column>
+    <mj-button href="https://defguard.net" align="left" mj-class="dg-button">
+      Configure your desktop client
+    </mj-button>
+  </mj-column>
+</mj-section>
+<mj-section>
+  <mj-column>
+    <mj-text mj-class="s-xs t-body-xs-400" css-class="fg-muted-c">
+      Click the button or use link below
+    </mj-text>
+    {{ macros::action_link(href="https://defguard.net/download", text="https://defguard.net/download") }}
+  </mj-column>
+</mj-section>
+{{ macros::footer_divider() }}
+
+{% endblock content %}

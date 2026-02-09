@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::{
-    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
+    AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
     transport::smtp::authentication::Credentials,
 };
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
@@ -69,7 +69,7 @@ impl MailHandler {
 
             // Construct lettre Message
             let result_tx = mail.result_tx.clone();
-            let message: Message = match mail.into_message(&settings.sender) {
+            let message = match mail.into_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
                     error!("Failed to build message to: {to}, subject: {subject}, error: {err}");

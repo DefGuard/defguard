@@ -1,3 +1,9 @@
+//! Handle email messages.
+//!
+//! Refer to:
+//! - [RFC 2557](https://datatracker.ietf.org/doc/html/rfc2557)
+//! - [Meaning of mulitpart](https://www.codestudy.net/blog/mail-multipart-alternative-vs-multipart-mixed/)
+
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::transport::smtp::response::Response;
 
@@ -5,6 +11,7 @@ use crate::mail::MailError;
 pub use crate::mail::{Attachment, Mail};
 
 pub mod mail;
+pub(crate) mod mail_context;
 pub mod mail_handler;
 pub mod templates;
 

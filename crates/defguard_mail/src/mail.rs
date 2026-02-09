@@ -4,6 +4,8 @@ use lettre::{
     Message,
     message::{Mailbox, MultiPart, SinglePart, header::ContentType},
 };
+use serde::Serialize;
+use tera::Context;
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -35,6 +37,7 @@ pub struct Mail {
     pub(crate) to: String,
     pub(crate) subject: String,
     content: String,
+    context: Context,
     attachments: Vec<Attachment>,
     pub(crate) result_tx: Option<UnboundedSender<Confirmation>>,
 }
@@ -51,6 +54,7 @@ impl Mail {
             to: to.into(),
             subject: subject.into(),
             content,
+            context: Context::new(),
             attachments: Vec::new(),
             result_tx: None,
         }
@@ -72,6 +76,15 @@ impl Mail {
     #[must_use]
     pub fn content(&self) -> &str {
         &self.content
+    }
+
+    /// Add to context.
+    pub fn add_to_context<K, V>(&mut self, key: K, value: &V)
+    where
+        K: Into<String>,
+        V: Serialize + ?Sized,
+    {
+        self.context.insert(key.into(), value.into());
     }
 
     /// Setter for `attachments`.

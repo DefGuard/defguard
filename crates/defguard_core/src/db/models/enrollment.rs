@@ -337,7 +337,6 @@ impl Token {
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
         context.insert("defguard_url", &url);
-        context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {
             context.insert("admin_first_name", &admin.first_name);

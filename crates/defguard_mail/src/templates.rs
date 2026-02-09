@@ -15,15 +15,23 @@ use defguard_common::{
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::Value;
+use sqlx::PgConnection;
 use tera::{Context, Function, Tera};
 use thiserror::Error;
 use tracing::debug;
+
+use crate::mail_context::MailContext;
+
+static BASE_MJML: &str = include_str!("../templates/base.mjml");
+static MACROS_MJML: &str = include_str!("../templates/macros.mjml");
+
+static DESKTOP_START_MJML: &str = include_str!("../templates/desktop-start.mjml");
+static DESKTOP_START_TEXT: &str = include_str!("../templates/desktop-start.text");
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.mjml");
 static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tera");
-static MAIL_DESKTOP_START: &str = include_str!("../templates/mail_desktop_start.tera");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tera");
@@ -44,6 +52,8 @@ static MAIL_PASSWORD_RESET_START: &str =
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
+// Assets
+static ASSET_DEFGUARD_LOGO: &[u8] = include_bytes!("../assets/defguard.png");
 
 #[derive(Debug, Error)]
 pub enum TemplateError {
@@ -138,9 +148,41 @@ fn get_base_tera(
     Ok((tera, context))
 }
 
+fn get_base_tera_mjml(
+    mut context: Context,
+    session: Option<&SessionContext>,
+    ip_address: Option<&str>,
+    device_info: Option<&str>,
+) -> Result<(Tera, Context), TemplateError> {
+    let mut tera = safe_tera();
+    tera.add_raw_template("base", BASE_MJML)?;
+    tera.add_raw_template("macros", MACROS_MJML)?;
+    // Supply context for the base template.
+    context.insert("application_version", &VERSION);
+    let now = Utc::now();
+    context.insert("current_year", &now.year().to_string());
+    context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
+
+    if let Some(current_session) = session {
+        let device_info = &current_session.device_info;
+        context.insert("device_type", &device_info);
+        context.insert("ip_address", &current_session.ip_address);
+    }
+
+    if let Some(ip) = ip_address {
+        context.insert("ip_address", ip);
+    }
+
+    if let Some(device_info) = device_info {
+        context.insert("device_type", device_info);
+    }
+
+    Ok((tera, context))
+}
+
 // Sends test message when requested during SMTP configuration process.
 pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(Context::new(), session, None, None)?;
+    let (mut tera, context) = get_base_tera_mjml(Context::new(), session, None, None)?;
     tera.add_raw_template("mail_test", MAIL_TEST)?;
 
     let processed = tera.render("mail_test", &context)?;
@@ -185,20 +227,33 @@ pub fn enrollment_start_mail(
 }
 
 // Mail with link to enrollment service.
-pub fn desktop_start_mail(
+pub async fn desktop_start_mail(
+    transaction: &mut PgConnection,
     context: Context,
     enrollment_service_url: &Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
     debug!("Render a mail template for desktop activation.");
-    let (mut tera, mut context) = get_base_tera(context, None, None, None)?;
+    let (mut tera, mut context) = get_base_tera_mjml(context, None, None, None)?;
 
-    tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
+    let template = "desktop-start";
+    tera.add_raw_template(template, DESKTOP_START_MJML)?;
+    let db_context = MailContext::all_for_template(transaction, template, "en_US")
+        .await
+        .unwrap();
+    for c in db_context {
+        context.insert(c.section, &c.text);
+    }
 
     context.insert("url", &enrollment_service_url);
     context.insert("token", enrollment_token);
 
-    Ok(tera.render("mail_desktop_start", &context)?)
+    let processed = tera.render(template, &context)?;
+    let parsed = mrml::parse(processed)?;
+    let opts = mrml::prelude::render::RenderOptions::default();
+    let html = parsed.element.render(&opts)?;
+
+    Ok(html)
 }
 
 // Welcome message sent when activating an account through enrollment
@@ -491,10 +546,11 @@ mod test {
     async fn test_desktop_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
         init_config(&pool).await;
-        let external_context = get_welcome_context();
+        let context = get_welcome_context();
         let url = Url::parse("http://127.0.0.1:8080").unwrap();
         let token = "TestToken";
-        assert_ok!(desktop_start_mail(external_context, &url, token));
+        let mut tranaction = pool.begin().await.unwrap();
+        assert_ok!(desktop_start_mail(&mut tranaction, context, &url, token).await);
     }
 
     #[sqlx::test]

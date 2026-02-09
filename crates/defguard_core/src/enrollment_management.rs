@@ -189,10 +189,12 @@ pub async fn start_desktop_configuration(
                 &email,
                 DESKTOP_START_MAIL_SUBJECT,
                 templates::desktop_start_mail(
+                    &mut *transaction,
                     base_message_context,
                     &enrollment_service_url,
                     &desktop_configuration.id,
                 )
+                .await
                 .map_err(|err| {
                     debug!(
                         "Cannot send an email to the user {} due to the error {err}.",

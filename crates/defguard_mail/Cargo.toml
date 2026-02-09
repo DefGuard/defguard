@@ -9,6 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 defguard_common.workspace = true
+model_derive.workspace = true
 
 chrono.workspace = true
 lettre.workspace = true
