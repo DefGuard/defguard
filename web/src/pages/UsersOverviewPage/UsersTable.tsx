@@ -491,24 +491,25 @@ export const UsersTable = ({ users }: Props) => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && isPresent(groups) && (
-          <Button
-            variant="outlined"
-            text="Assign to a group"
-            iconLeft="add-group"
-            testId="bulk-assign"
-            onClick={() => {
-              const selected = table
-                .getSelectedRowModel()
-                .rows.map((row) => row.original.id);
-              openModal(ModalName.AssignGroupsToUsers, {
-                groups,
-                users: selected,
-              });
-              table.resetRowSelection();
-            }}
-          />
-        )}
+        {(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) &&
+          isPresent(groups) && (
+            <Button
+              variant="outlined"
+              text="Assign to a group"
+              iconLeft="add-group"
+              testId="bulk-assign"
+              onClick={() => {
+                const selected = table
+                  .getSelectedRowModel()
+                  .rows.map((row) => row.original.id);
+                openModal(ModalName.AssignGroupsToUsers, {
+                  groups,
+                  users: selected,
+                });
+                table.resetRowSelection();
+              }}
+            />
+          )}
         <Search
           placeholder={m.users_search_placeholder()}
           initialValue={search}
