@@ -516,6 +516,7 @@ pub async fn setup_proxy_tls_stream(
 
         let defguard_certs::CertificateInfo {
             not_after: expiry,
+			serial,
             ..
         } = match parse_certificate_info(cert.der()) {
             Ok(dt) => {
@@ -536,7 +537,7 @@ pub async fn setup_proxy_tls_stream(
             session.user.id,
         );
 
-        proxy.has_certificate = true;
+        proxy.certificate = Some(serial);
         proxy.certificate_expiry = Some(expiry);
 
 
