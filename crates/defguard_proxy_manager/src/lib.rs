@@ -44,6 +44,7 @@ use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
 };
 use hyper_rustls::HttpsConnectorBuilder;
+use http::Uri;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow, url};
 use reqwest::Url;
 use rustls::{
@@ -83,6 +84,7 @@ extern crate tracing;
 const TEN_SECS: Duration = Duration::from_secs(10);
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 const REVOKED_CERT_SERIALS: &[&str] = &["00"];
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum Scheme {
@@ -240,6 +242,50 @@ fn client_config_with_crl(ca_cert_der: &[u8]) -> Result<rustls::ClientConfig, Pr
         .dangerous()
         .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, revoked_serials())));
     Ok(config)
+}
+
+#[derive(Clone, Debug)]
+struct HttpsSchemeConnector<C> {
+    inner: C,
+}
+
+impl<C> HttpsSchemeConnector<C> {
+    const fn new(inner: C) -> Self {
+        Self { inner }
+    }
+}
+
+impl<C> tower_service::Service<Uri> for HttpsSchemeConnector<C>
+where
+    C: tower_service::Service<Uri, Error = BoxError> + Clone + Send + 'static,
+    C::Response: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+    C::Future: Send + 'static,
+{
+    type Response = C::Response;
+    type Error = BoxError;
+    type Future = std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
+    >;
+
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx).map_err(Into::into)
+    }
+
+    fn call(&mut self, uri: Uri) -> Self::Future {
+        let mut parts = uri.into_parts();
+        parts.scheme = Some(http::uri::Scheme::HTTPS);
+        let https_uri = match Uri::from_parts(parts) {
+            Ok(uri) => uri,
+            Err(err) => {
+                return Box::pin(async move { Err(err.into()) });
+            }
+        };
+        let mut inner = self.inner.clone();
+        Box::pin(async move { inner.call(https_uri).await })
+    }
 }
 
 /// Coordinates communication between the Core and multiple proxy instances.
@@ -540,7 +586,7 @@ impl ProxyHandler {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     ) -> Result<(), ProxyError> {
         loop {
-            let endpoint = self.endpoint(Scheme::Https)?;
+            let endpoint = self.endpoint(Scheme::Http)?;
             let settings = Settings::get_current_settings();
             let Some(ca_cert_der) = settings.ca_cert_der else {
                 return Err(ProxyError::MissingConfiguration(
@@ -553,6 +599,7 @@ impl ProxyHandler {
                 .https_only()
                 .enable_http2()
                 .build();
+            let connector = HttpsSchemeConnector::new(connector);
 
             debug!("Connecting to proxy at {}", endpoint.uri());
             let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);

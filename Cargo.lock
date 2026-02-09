@@ -1396,6 +1396,8 @@ dependencies = [
  "defguard_mail",
  "defguard_proto",
  "defguard_version",
+ "http",
+ "hyper",
  "hyper-rustls",
  "openidconnect",
  "reqwest",
@@ -1407,6 +1409,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tonic",
+ "tower-service",
  "tracing",
  "x509-parser 0.18.1",
 ]
