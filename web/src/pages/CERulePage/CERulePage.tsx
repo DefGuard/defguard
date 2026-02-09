@@ -140,6 +140,8 @@ export const CERulePage = ({ rule }: Props) => {
 const Content = ({ rule: initialRule }: Props) => {
   const router = useRouter();
 
+  const isEdit = isPresent(initialRule);
+
   const { mutateAsync: addRule } = useMutation({
     mutationFn: api.acl.rule.addRule,
     meta: {
@@ -863,7 +865,7 @@ const Content = ({ rule: initialRule }: Props) => {
                 {(field) => <field.FormToggle label="Enable rule" />}
               </form.AppField>
               <div className="right">
-                <Button text="Create rule" type="submit" loading={isSubmitting} />
+                <Button text={isEdit ? "Save changes" : "Create rule"} type="submit" loading={isSubmitting} />
               </div>
             </Controls>
           )}
