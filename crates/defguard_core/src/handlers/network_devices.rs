@@ -459,7 +459,6 @@ pub(crate) async fn start_network_device_setup(
         config.enrollment_token_timeout.as_secs(),
         settings.proxy_public_url()?.clone(),
         false,
-        appstate.mail_tx.clone(),
         Some(result.device.id),
     )
     .await?;
@@ -526,7 +525,6 @@ pub(crate) async fn start_network_device_setup_for_device(
         config.enrollment_token_timeout.as_secs(),
         settings.proxy_public_url()?,
         false,
-        appstate.mail_tx.clone(),
         Some(device.id),
     )
     .await?;
@@ -640,7 +638,6 @@ pub(crate) async fn add_network_device(
         &device.wireguard_pubkey,
         &template_locations,
         &user.email,
-        &appstate.mail_tx,
         Some(session.session.ip_address.as_str()),
         session.session.device_info.clone().as_deref(),
     )?;

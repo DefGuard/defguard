@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::{
-    AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     transport::smtp::authentication::Credentials,
 };
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};

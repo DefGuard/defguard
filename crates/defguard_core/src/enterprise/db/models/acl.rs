@@ -276,7 +276,7 @@ impl Default for AclRule {
     fn default() -> Self {
         Self {
             id: NoId,
-            parent_id: Default::default(),
+            parent_id: Option::default(),
             state: RuleState::New,
             name: "ACL rule".to_string(),
             allow_all_users: false,

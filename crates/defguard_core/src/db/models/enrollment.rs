@@ -1,6 +1,5 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
-    VERSION,
     db::{
         Id,
         models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
@@ -15,7 +14,6 @@ use defguard_mail::{
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
 use tera::Context;
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -392,7 +390,6 @@ impl Token {
     pub async fn send_welcome_email(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
-        mail_tx: &UnboundedSender<Mail>,
         user: &User<Id>,
         settings: &Settings,
         ip_address: &str,
@@ -408,7 +405,7 @@ impl Token {
             self.get_welcome_email_content(&mut *transaction, ip_address, device_info)
                 .await?,
         );
-        match mail_tx.send(mail) {
+        match mail.send().await {
             Ok(()) => {
                 info!("Sent enrollment welcome mail to {}", user.username);
                 Ok(())
@@ -421,8 +418,7 @@ impl Token {
     }
 
     // Notify admin that a user has completed enrollment
-    pub fn send_admin_notification(
-        mail_tx: &UnboundedSender<Mail>,
+    pub async fn send_admin_notification(
         admin: &User<Id>,
         user: &User<Id>,
         ip_address: &str,
@@ -442,7 +438,7 @@ impl Token {
                 device_info,
             )?,
         );
-        match mail_tx.send(mail) {
+        match mail.send().await {
             Ok(()) => {
                 info!(
                     "Sent enrollment success notification for user {} to {}",

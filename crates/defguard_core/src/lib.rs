@@ -32,7 +32,6 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
-use defguard_mail::Mail;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use events::ApiEvent;
@@ -210,7 +209,6 @@ pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -562,7 +560,6 @@ pub fn build_webapp(
             webhook_tx,
             webhook_rx,
             wireguard_tx,
-            mail_tx,
             failed_logins,
             event_tx,
             incompatible_components,
@@ -591,7 +588,6 @@ pub async fn run_web_server(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -602,7 +598,6 @@ pub async fn run_web_server(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
-        mail_tx,
         worker_state,
         pool,
         failed_logins,

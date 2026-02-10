@@ -5,14 +5,12 @@
 //! - [Meaning of mulitpart](https://www.codestudy.net/blog/mail-multipart-alternative-vs-multipart-mixed/)
 
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
-use lettre::transport::smtp::response::Response;
 
 use crate::mail::MailError;
 pub use crate::mail::{Attachment, Mail};
 
 pub mod mail;
 pub(crate) mod mail_context;
-pub mod mail_handler;
 pub mod templates;
 
 /// Subset of Settings representing SMTP configuration.
@@ -50,6 +48,3 @@ impl SmtpSettings {
         }
     }
 }
-
-/// Custom type used for MPSC channel.
-type Confirmation = Result<Response, MailError>;

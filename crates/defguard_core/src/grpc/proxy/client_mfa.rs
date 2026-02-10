@@ -18,7 +18,6 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::Mail;
 use defguard_proto::proxy::{
     self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse, ClientMfaFinishRequest,
     ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
@@ -73,7 +72,6 @@ pub struct ClientLoginSession {
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
     pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
@@ -84,7 +82,6 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
@@ -92,7 +89,6 @@ impl ClientMfaServer {
     ) -> Self {
         Self {
             pool,
-            mail_tx,
             wireguard_tx,
             sessions,
             remote_mfa_responses,
@@ -269,7 +265,7 @@ impl ClientMfaServer {
                     ));
                 }
                 // send email code
-                send_email_mfa_code_email(&user, &self.mail_tx, None).map_err(|err| {
+                send_email_mfa_code_email(&user, None).map_err(|err| {
                     error!(
                         "Failed to send email MFA code for user {}: {err}",
                         user.username

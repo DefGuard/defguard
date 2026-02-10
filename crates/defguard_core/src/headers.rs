@@ -5,12 +5,8 @@ use defguard_common::db::{
     Id,
     models::{DeviceLoginEvent, User},
 };
-use defguard_mail::{
-    Mail,
-    templates::{SessionContext, TemplateError},
-};
+use defguard_mail::templates::{SessionContext, TemplateError};
 use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::handlers::mail::send_new_device_login_email;
@@ -93,7 +89,6 @@ fn get_user_agent_device_login_data(
 
 pub(crate) async fn check_new_device_login(
     pool: &PgPool,
-    mail_tx: &UnboundedSender<Mail>,
     session: &SessionContext,
     user: &User<Id>,
     ip_address: String,
@@ -107,13 +102,7 @@ pub(crate) async fn check_new_device_login(
         .check_if_device_already_logged_in(pool)
         .await
     {
-        send_new_device_login_email(
-            &user.email,
-            mail_tx,
-            session,
-            created_device_login_event.created,
-        )
-        .await?;
+        send_new_device_login_email(&user.email, session, created_device_login_event.created)?;
     }
 
     Ok(())

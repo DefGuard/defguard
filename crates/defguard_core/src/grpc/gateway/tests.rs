@@ -94,19 +94,10 @@ async fn test_gateway(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
     let (events_tx, _events_rx) = broadcast::channel::<GatewayEvent>(16);
-    let (mail_tx, _mail_rx) = unbounded_channel::<Mail>();
     let (grpc_event_tx, _grpc_event_rx) = unbounded_channel::<GrpcEvent>();
 
-    let mut gateway_handler = GatewayHandler::new(
-        gateway,
-        None,
-        pool,
-        client_state,
-        events_tx,
-        mail_tx,
-        grpc_event_tx,
-    )
-    .unwrap();
+    let mut gateway_handler =
+        GatewayHandler::new(gateway, None, pool, client_state, events_tx, grpc_event_tx).unwrap();
     let handle = tokio::spawn(async move {
         gateway_handler.handle_connection().await;
     });

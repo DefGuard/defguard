@@ -36,7 +36,7 @@ use defguard_core::{
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
-use defguard_mail::Mail;
+
 use defguard_proto::proxy::{
     AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, InitialInfo,
     core_request, core_response, proxy_client::ProxyClient,
@@ -266,7 +266,6 @@ impl ProxyManager {
 #[derive(Clone)]
 pub struct ProxyTxSet {
     wireguard: Sender<GatewayEvent>,
-    mail: UnboundedSender<Mail>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -274,12 +273,10 @@ impl ProxyTxSet {
     #[must_use]
     pub const fn new(
         wireguard: Sender<GatewayEvent>,
-        mail: UnboundedSender<Mail>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             wireguard,
-            mail,
             bidi_events,
         }
     }
@@ -1033,17 +1030,11 @@ impl ProxyServices {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
-        let enrollment = EnrollmentServer::new(
-            pool.clone(),
-            tx.wireguard.clone(),
-            tx.mail.clone(),
-            tx.bidi_events.clone(),
-        );
-        let password_reset =
-            PasswordResetServer::new(pool.clone(), tx.mail.clone(), tx.bidi_events.clone());
+        let enrollment =
+            EnrollmentServer::new(pool.clone(), tx.wireguard.clone(), tx.bidi_events.clone());
+        let password_reset = PasswordResetServer::new(pool.clone(), tx.bidi_events.clone());
         let client_mfa = ClientMfaServer::new(
             pool.clone(),
-            tx.mail.clone(),
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
             remote_mfa_responses,

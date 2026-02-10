@@ -5,7 +5,6 @@ use axum_extra::extract::cookie::Key;
 use defguard_common::{
     config::server_config, db::models::Settings, types::proxy::ProxyControlMessage,
 };
-use defguard_mail::Mail;
 use reqwest::Client;
 use secrecy::ExposeSecret;
 use serde_json::json;
@@ -35,7 +34,6 @@ pub struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
     pub wireguard_tx: Sender<GatewayEvent>,
-    pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
@@ -115,7 +113,6 @@ impl AppState {
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,
-        mail_tx: UnboundedSender<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
@@ -145,7 +142,6 @@ impl AppState {
             pool,
             tx,
             wireguard_tx,
-            mail_tx,
             webauthn,
             failed_logins,
             key,

@@ -1,15 +1,19 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
+use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::{
-    Message,
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Mailbox, MultiPart, SinglePart, header::ContentType},
+    transport::smtp::authentication::Credentials,
 };
 use serde::Serialize;
 use tera::Context;
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
+use tracing::{debug, error, info, warn};
 
-use super::Confirmation;
+use super::SmtpSettings;
+
+const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -39,7 +43,6 @@ pub struct Mail {
     content: String,
     context: Context,
     attachments: Vec<Attachment>,
-    pub(crate) result_tx: Option<UnboundedSender<Confirmation>>,
 }
 
 impl Mail {
@@ -56,7 +59,6 @@ impl Mail {
             content,
             context: Context::new(),
             attachments: Vec::new(),
-            result_tx: None,
         }
     }
 
@@ -91,13 +93,6 @@ impl Mail {
     #[must_use]
     pub fn set_attachments(mut self, attachments: Vec<Attachment>) -> Self {
         self.attachments = attachments;
-        self
-    }
-
-    /// Setter for `result_tx`.
-    #[must_use]
-    pub fn set_result_tx(mut self, result_tx: UnboundedSender<Confirmation>) -> Self {
-        self.result_tx = Some(result_tx);
         self
     }
 }
@@ -147,5 +142,86 @@ impl Mail {
                 Ok(builder.multipart(multipart)?)
             }
         }
+    }
+
+    /// Sends email message using SMTP.
+    pub async fn send(self) -> Result<(), MailError> {
+        let (to, subject) = (self.to.clone(), self.subject.clone());
+        debug!("Sending mail to: {to}, subject: {subject}");
+
+        // fetch SMTP settings
+        let settings = Settings::get_current_settings();
+        let settings = match SmtpSettings::from_settings(settings) {
+            Ok(settings) => settings,
+            Err(err @ MailError::SmtpNotConfigured) => {
+                warn!("SMTP not configured, email sending skipped");
+                return Err(err);
+            }
+            Err(err) => {
+                error!("Error retrieving SMTP settings: {err}");
+                return Err(err);
+            }
+        };
+
+        // Construct lettre Message
+        let message = match self.into_message(&settings.sender) {
+            Ok(message) => message,
+            Err(err) => {
+                error!("Failed to build message to: {to}, subject: {subject}, error: {err}");
+                return Err(err);
+            }
+        };
+        // Build mailer and send the message
+        match Self::mailer(settings) {
+            Ok(mailer) => match mailer.send(message).await {
+                Ok(response) => {
+                    info!("Mail sent to: {to}, subject: {subject}, response: {response:?}");
+                    Ok(())
+                }
+                Err(err) => {
+                    error!("Failed to send mail to: {to}, subject: {subject}, error: {err}");
+                    Err(err.into())
+                }
+            },
+            Err(err @ MailError::SmtpNotConfigured) => {
+                warn!("Unable to send mail to {to}; SMTP not configured");
+                Err(err)
+            }
+            Err(err) => {
+                error!("Error building mailer: {err}");
+                Err(err)
+            }
+        }
+    }
+
+    pub fn send_and_forget(self) {
+        tokio::spawn(self.send());
+    }
+
+    /// Builds mailer object with specified configuration
+    fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+        let builder = match settings.encryption {
+            SmtpEncryption::None => {
+                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)
+            }
+            SmtpEncryption::StartTls => {
+                AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.server)?
+            }
+            SmtpEncryption::ImplicitTls => {
+                AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?
+            }
+        }
+        .port(settings.port)
+        .timeout(Some(SMTP_TIMEOUT));
+
+        // Skip credentials if any of them is empty
+        let builder = if settings.user.is_empty() || settings.password.is_empty() {
+            debug!("SMTP credentials were not provided, skipping username/password authentication");
+            builder
+        } else {
+            builder.credentials(Credentials::new(settings.user, settings.password))
+        };
+
+        Ok(builder.build())
     }
 }

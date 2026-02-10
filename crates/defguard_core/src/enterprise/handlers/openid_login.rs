@@ -574,14 +574,8 @@ pub(crate) async fn auth_callback(
     )
     .await?;
 
-    let (session, user_info, mfa_info) = create_session(
-        &appstate.pool,
-        &appstate.mail_tx,
-        insecure_ip,
-        user_agent.as_str(),
-        &mut user,
-    )
-    .await?;
+    let (session, user_info, mfa_info) =
+        create_session(&appstate.pool, insecure_ip, user_agent.as_str(), &mut user).await?;
 
     let max_age = Duration::seconds(config.auth_cookie_timeout.as_secs() as i64);
     let cookie_domain = config

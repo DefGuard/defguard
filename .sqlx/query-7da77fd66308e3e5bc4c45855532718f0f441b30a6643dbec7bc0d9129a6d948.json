@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT template, section, language_tag, text FROM mail_context WHERE template = $1 AND language_tag = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "template",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "section",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "language_tag",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "text",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7da77fd66308e3e5bc4c45855532718f0f441b30a6643dbec7bc0d9129a6d948"
+}

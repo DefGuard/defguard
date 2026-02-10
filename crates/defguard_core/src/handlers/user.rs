@@ -474,7 +474,6 @@ pub async fn start_enrollment(
         token_expiration_time_seconds,
         public_proxy_url.clone(),
         data.send_enrollment_notification,
-        appstate.mail_tx.clone(),
     )
     .await?;
 
@@ -579,7 +578,6 @@ pub async fn start_remote_desktop_configuration(
         config.enrollment_token_timeout.as_secs(),
         public_proxy_url.clone(),
         data.send_enrollment_notification,
-        appstate.mail_tx.clone(),
         None,
     )
     .await?;
@@ -1106,7 +1104,7 @@ pub async fn reset_password(
         let settings = Settings::get_current_settings();
         let public_proxy_url = settings.proxy_public_url()?;
 
-        let mail = Mail::new(
+        let result = Mail::new(
             user.email.clone(),
             EMAIL_PASSWORD_RESET_START_SUBJECT,
             templates::email_password_reset_mail(
@@ -1115,10 +1113,12 @@ pub async fn reset_password(
                 None,
                 None,
             )?,
-        );
+        )
+        .send()
+        .await;
 
         let to = &user.email;
-        match &appstate.mail_tx.send(mail) {
+        match result {
             Ok(()) => {
                 info!("Password reset email for {username} sent to {to}");
                 Ok(())

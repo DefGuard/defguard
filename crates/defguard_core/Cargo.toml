@@ -33,7 +33,6 @@ ipnetwork = { workspace = true }
 jsonwebkey = { workspace = true }
 jsonwebtoken = { workspace = true }
 ldap3 = { workspace = true }
-lettre = { workspace = true }
 md4 = { workspace = true }
 openidconnect.workspace = true
 parse_link_header = { workspace = true }

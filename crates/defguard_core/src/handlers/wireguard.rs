@@ -917,7 +917,6 @@ pub(crate) async fn add_device(
         &device.wireguard_pubkey,
         &template_locations,
         &user.email,
-        &appstate.mail_tx,
         session_ip,
         session_device_info.as_deref(),
     )?;
