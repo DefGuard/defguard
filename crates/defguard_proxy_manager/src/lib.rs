@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
@@ -11,7 +11,7 @@ use defguard_common::{
     config::server_config,
     db::{
         Id,
-        models::{Settings, proxy::Proxy, revoked_certificate::RevokedCertificate},
+        models::{Settings, proxy::Proxy},
     },
     types::proxy::ProxyControlMessage,
 };
@@ -139,17 +139,17 @@ pub enum ProxyError {
 #[derive(Debug)]
 struct CrlVerifier {
     inner: Arc<dyn ServerCertVerifier>,
-    revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
+    certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
 }
 
 impl CrlVerifier {
     fn new(
         inner: Arc<dyn ServerCertVerifier>,
-        revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Self {
         Self {
             inner,
-            revoked_serials_rx,
+            certs_rx: certs_rx,
         }
     }
 
@@ -157,9 +157,11 @@ impl CrlVerifier {
         let (_, cert) = parse_x509_certificate(end_entity.as_ref())
             .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
         let serial = cert.tbs_certificate.raw_serial_as_string();
-        let revoked_serials = self.revoked_serials_rx.borrow();
-        if revoked_serials.contains(&serial) {
-            warn!("Certificate revoked: serial={serial}");
+        let certs = self.certs_rx.borrow();
+        // TODO(jck) verify this specific proxy
+        let serials: Vec<_> = certs.values().collect();
+        if !serials.contains(&&serial) {
+            error!("Invalid certificate: {serial}");
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         }
         Ok(())
@@ -213,14 +215,17 @@ impl ServerCertVerifier for CrlVerifier {
     }
 }
 
-async fn refresh_revoked_serials(pool: &PgPool, tx: &watch::Sender<Arc<HashSet<String>>>) {
-    match RevokedCertificate::list(pool).await {
-        Ok(serials) => {
-            let normalized: HashSet<String> = serials
-                .into_iter()
-                .map(|serial| serial.to_ascii_lowercase())
-                .collect();
-            let _ = tx.send(Arc::new(normalized));
+async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<Id, String>>>) {
+    match Proxy::list(pool).await {
+        Ok(proxies) => {
+            let mut certs = HashMap::new();
+            for proxy in proxies {
+                let Some(cert) = proxy.certificate else {
+                    continue;
+                };
+                certs.insert(proxy.id, cert);
+            }
+            let _ = tx.send(Arc::new(certs));
         }
         Err(err) => {
             warn!("Failed to refresh revoked certificate list: {err}");
@@ -238,7 +243,7 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
 
 fn client_config_with_crl(
     ca_cert_der: &[u8],
-    revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
+    certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
 ) -> Result<rustls::ClientConfig, ProxyError> {
     let provider = Arc::new(crypto::aws_lc_rs::default_provider());
     let roots = root_store_from_ca(ca_cert_der)?;
@@ -256,7 +261,7 @@ fn client_config_with_crl(
     let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
-        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, revoked_serials_rx)));
+        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, certs_rx)));
     Ok(config)
 }
 
@@ -340,12 +345,12 @@ impl ProxyManager {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();
         let sessions = Arc::default();
-        let (revoked_serials_tx, revoked_serials_rx) = watch::channel(Arc::new(HashSet::new()));
+        let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let refresh_pool = self.pool.clone();
         tokio::spawn(async move {
             let mut tick = interval(Duration::from_secs(10));
             loop {
-                refresh_revoked_serials(&refresh_pool, &revoked_serials_tx).await;
+                refresh_certs(&refresh_pool, &certs_tx).await;
                 tick.tick().await;
             }
         });
@@ -363,7 +368,6 @@ impl ProxyManager {
                     &self.tx,
                     Arc::clone(&remote_mfa_responses),
                     Arc::clone(&sessions),
-                    revoked_serials_rx.clone(),
                     Arc::new(Mutex::new(Some(shutdown_rx))),
                 )
             })
@@ -380,7 +384,6 @@ impl ProxyManager {
                 &self.tx,
                 Arc::clone(&remote_mfa_responses),
                 Arc::clone(&sessions),
-                revoked_serials_rx.clone(),
                 // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
                 // This should be removed when we do a proper import of old proxies
                 Arc::new(Mutex::new(None)),
@@ -393,7 +396,11 @@ impl ProxyManager {
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
         for proxy in proxies {
             debug!("Spawning proxy task for proxy {}", proxy.url);
-            tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
+            tasks.spawn(proxy.run(
+                self.tx.clone(),
+                self.incompatible_components.clone(),
+                certs_rx.clone(),
+            ));
         }
 
         loop {
@@ -421,12 +428,11 @@ impl ProxyManager {
                                     &self.tx,
                                     Arc::clone(&remote_mfa_responses),
                                     Arc::clone(&sessions),
-                                    revoked_serials_rx.clone(),
                                     Arc::new(Mutex::new(Some(shutdown_rx))),
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);
-                                        tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone()));
+                                        tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone(), certs_rx.clone()));
                                     }
                                     Err(err) => error!("Failed to create proxy server: {err}"),
                                 }
@@ -491,7 +497,6 @@ struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
-    revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
     /// Proxy server gRPC URL
     url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
@@ -506,7 +511,6 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
-        revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
         proxy_id: Option<Id>,
     ) -> Self {
@@ -516,7 +520,6 @@ impl ProxyHandler {
         Self {
             pool,
             services,
-            revoked_serials_rx,
             url,
             shutdown_signal,
             proxy_id,
@@ -530,7 +533,6 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
-        revoked_serials_rx: watch::Receiver<Arc<HashSet<String>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
@@ -541,7 +543,6 @@ impl ProxyHandler {
             tx,
             remote_mfa_responses,
             sessions,
-            revoked_serials_rx,
             shutdown_signal,
             Some(proxy_id),
         ))
@@ -619,6 +620,7 @@ impl ProxyHandler {
         mut self,
         tx_set: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<(), ProxyError> {
         loop {
             let endpoint = self.endpoint(Scheme::Http)?;
@@ -628,7 +630,7 @@ impl ProxyHandler {
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config = client_config_with_crl(&ca_cert_der, self.revoked_serials_rx.clone())?;
+            let tls_config = client_config_with_crl(&ca_cert_der, certs_rx.clone())?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()
