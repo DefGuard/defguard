@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
+import { SetupLoginPage } from '../../pages/SetupPage/SetupLoginPage';
 import api from '../../shared/api/api';
 import type { InitialSetupStepValue } from '../../shared/api/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useApp } from '../../shared/hooks/useApp';
 import { getSettingsEssentialsQueryOptions } from '../../shared/query';
-import { SetupLoginPage } from '../../pages/SetupPage/SetupLoginPage';
 
 const requiresSetupAuth = (step: InitialSetupStepValue) =>
   step !== 'Welcome' && step !== 'AdminUser';

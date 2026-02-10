@@ -49,8 +49,7 @@ const handleWizardRedirect = async ({
 
   // Tries to access setup wizard but setup is already completed
   const setupCompletedButAccessingWizard =
-    settingsEssentials.initial_setup_completed &&
-    location.pathname.startsWith('/setup');
+    settingsEssentials.initial_setup_completed && location.pathname.startsWith('/setup');
 
   if (setupCompletedButAccessingWizard) {
     throw redirect({ to: '/auth/login', replace: true });
