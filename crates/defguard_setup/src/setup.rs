@@ -11,6 +11,7 @@ use axum::{
 };
 use defguard_common::VERSION;
 use defguard_core::{
+    auth::failed_login::FailedLoginMap,
     handle_404,
     handlers::{component_setup::setup_proxy_tls_stream, settings::get_settings_essentials},
     health_check,
@@ -27,6 +28,7 @@ use crate::handlers::{
 };
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
+    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     Router::<()>::new()
         .route("/", get(index))
         .route("/{*path}", get(index))
@@ -54,6 +56,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
         .fallback_service(get(handle_404))
         .layer(Extension(pool))
         .layer(Extension(version))
+        .layer(Extension(failed_logins))
         .layer(Extension(Arc::new(Mutex::new(Some(setup_shutdown_tx)))))
 }
 

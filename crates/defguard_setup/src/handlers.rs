@@ -17,7 +17,10 @@ use defguard_common::db::models::{
     settings::{InitialSetupStep, update_current_settings},
 };
 use defguard_core::{
-    auth::{AdminOrSetupRole, SessionInfo},
+    auth::{
+        AdminOrSetupRole, SessionInfo,
+        failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
+    },
     error::WebError,
     handlers::{ApiResponse, ApiResult, SESSION_COOKIE_NAME},
     headers::get_device_info,
@@ -124,6 +127,7 @@ pub async fn setup_login(
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     Extension(pool): Extension<PgPool>,
+    Extension(failed_logins): Extension<Arc<Mutex<FailedLoginMap>>>,
     Json(login): Json<SetupLogin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     let settings = Settings::get_current_settings();
@@ -136,13 +140,21 @@ pub async fn setup_login(
         .default_admin_id
         .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
 
-    let mut conn = pool.acquire().await?;
-    let user = User::find_by_username_or_email(&mut conn, &login.username)
-        .await?
-        .ok_or(WebError::Authentication)?;
+    check_failed_logins(&failed_logins, &login.username)?;
 
-    user.verify_password(&login.password)
-        .map_err(|_| WebError::Authentication)?;
+    let mut conn = pool.acquire().await?;
+    let user = match User::find_by_username_or_email(&mut conn, &login.username).await? {
+        Some(user) => user,
+        None => {
+            log_failed_login_attempt(&failed_logins, &login.username);
+            return Err(WebError::Authentication);
+        }
+    };
+
+    if user.verify_password(&login.password).is_err() {
+        log_failed_login_attempt(&failed_logins, &login.username);
+        return Err(WebError::Authentication);
+    }
 
     if !user.is_active {
         return Err(WebError::Authentication);

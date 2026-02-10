@@ -160,6 +160,53 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let payload = json!({
+        "username": "admin1",
+        "password": "WrongPass"
+    });
+
+    for _ in 0..5 {
+        let response = client
+            .post("/api/v1/initial_setup/login")
+            .json(&payload)
+            .send()
+            .await
+            .expect("Failed to login during setup");
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to login during setup");
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+}
+
+#[sqlx::test]
 async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
