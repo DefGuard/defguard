@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed FROM settings WHERE id = 1",
+  "query": "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, initial_setup_step \"initial_setup_step: InitialSetupStep\" FROM settings WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,27 @@
         "ordinal": 7,
         "name": "initial_setup_completed",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "initial_setup_step: InitialSetupStep",
+        "type_info": {
+          "Custom": {
+            "name": "initial_setup_step",
+            "kind": {
+              "Enum": [
+                "welcome",
+                "admin_user",
+                "general_configuration",
+                "ca",
+                "ca_summary",
+                "edge_component",
+                "confirmation",
+                "finished"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
@@ -55,8 +76,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "639d5cecd458667c0614ef3834be928a029fd8c53440eb01886e4c76c2367a0b"
+  "hash": "6a2e1f77762591e0e33cbd6d37b9a51923add9a6ab6761cbdf04ada091ce80d5"
 }
