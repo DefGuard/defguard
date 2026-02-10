@@ -87,7 +87,7 @@ export const ProfileAuthKeysTable = () => {
   const { mutate: deleteAuthKey } = useMutation({
     mutationFn: api.user.deleteAuthKey,
     meta: {
-      invalidate: ['user', username, 'auth_key'],
+      invalidate: [['user-overview'], ['user', username, 'auth_key']],
     },
   });
 

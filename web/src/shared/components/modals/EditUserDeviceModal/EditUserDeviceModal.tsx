@@ -75,7 +75,7 @@ const ModalContent = ({ device, reservedNames, username }: OpenEditDeviceModal) 
   const { mutateAsync } = useMutation({
     mutationFn: api.device.editDevice,
     meta: {
-      invalidate: ['user', username],
+      invalidate: [['user-overview'], ['user', username]],
     },
     onSuccess: () => {
       closeModal(modalName);

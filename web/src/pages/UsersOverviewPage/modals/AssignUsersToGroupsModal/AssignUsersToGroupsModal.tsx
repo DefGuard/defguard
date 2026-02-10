@@ -58,7 +58,7 @@ const ModalContent = ({ groups, users }: ModalData) => {
       closeModal(modalNameValue);
     },
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 

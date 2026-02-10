@@ -91,21 +91,21 @@ export const UsersTable = ({ users }: Props) => {
   const { mutate: deleteUser } = useMutation({
     mutationFn: api.user.deleteUser,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
   const { mutate: changeAccountActiveState } = useMutation({
     mutationFn: api.user.activeStateChange,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
