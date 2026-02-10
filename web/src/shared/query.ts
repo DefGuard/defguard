@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
-import type { UserProfile } from './api/types';
+import { AclDeploymentState, type UserProfile } from './api/types';
 import { updateServiceApi } from './api/update-service';
 
 export const getExternalProviderQueryOptions = queryOptions({
@@ -109,6 +109,14 @@ export const getUserApiTokensQueryOptions = (username: string, admin: boolean) =
   });
 
 export const getUsersQueryOptions = queryOptions({
+  queryFn: api.user.getUsers,
+  queryKey: ['user'],
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+  select: (resp) => resp.data,
+});
+
+export const getUsersOverviewQueryOptions = queryOptions({
   queryFn: api.getUsersOverview,
   queryKey: ['user'],
   refetchOnMount: true,
@@ -159,10 +167,24 @@ export const getAliasesQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getAppliedAliasesQueryOptions = queryOptions({
+  queryFn: api.acl.alias.getAliases,
+  queryKey: ['acl', 'alias'],
+  select: (resp) =>
+    resp.data.filter((alias) => alias.state === AclDeploymentState.Applied),
+});
+
 export const getDestinationsQueryOptions = queryOptions({
   queryFn: api.acl.destination.getDestinations,
   queryKey: ['acl', 'destination'],
   select: (resp) => resp.data,
+});
+
+export const getAppliedDestinationsQueryOptions = queryOptions({
+  queryFn: api.acl.destination.getDestinations,
+  queryKey: ['acl', 'destination'],
+  select: (resp) =>
+    resp.data.filter((destination) => destination.state === AclDeploymentState.Applied),
 });
 
 export const getLicenseInfoQueryOptions = queryOptions({

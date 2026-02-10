@@ -6,7 +6,7 @@ import { AddAuthKeyModal } from '../../shared/components/modals/AddAuthKeyModal/
 import { ChangePasswordModal } from '../../shared/components/modals/ChangePasswordModal/ChangePasswordModal';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
-import { getUsersQueryOptions } from '../../shared/query';
+import { getUsersOverviewQueryOptions } from '../../shared/query';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
 import { AssignUsersToGroupsModal } from './modals/AssignUsersToGroupsModal/AssignUsersToGroupsModal';
 import { EditUserModal } from './modals/EditUserModal/EditUserModal';
@@ -14,7 +14,7 @@ import { EnrollmentTokenModal } from './modals/EnrollmentTokenModal/EnrollmentTo
 import { UsersTable } from './UsersTable';
 
 export const UsersOverviewPage = () => {
-  const { data: users } = useQuery(getUsersQueryOptions);
+  const { data: users } = useQuery(getUsersOverviewQueryOptions);
   return (
     <>
       <Page title={m.users_title()} id="users-overview-page">
