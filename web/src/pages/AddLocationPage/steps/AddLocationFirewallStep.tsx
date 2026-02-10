@@ -21,7 +21,7 @@ import { useAddLocationStore } from '../useAddLocationStore';
 type Choice = 'disable' | 'enabled-allowed' | 'enabled-denied';
 
 export const AddLocationFirewallStep = () => {
-  const [showGateway, setShowGateway] = useState(false);
+  const [showGateway, setShowGateway] = useState(true);
   const [state, setState] = useState<Choice>('disable');
   const navigate = useNavigate();
 
@@ -33,7 +33,7 @@ export const AddLocationFirewallStep = () => {
     onSuccess: ({ data }) => {
       if (showGateway) {
         useGatewayWizardStore.getState().start({ network_id: data.id });
-        navigate({ to: '/gateway-wizard', replace: true }).then(() => {
+        navigate({ to: '/setup-gateway', replace: true }).then(() => {
           setTimeout(() => {
             useAddLocationStore.getState().reset();
           }, 100);

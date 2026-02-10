@@ -17,7 +17,7 @@ use defguard_common::db::models::{
     settings::{InitialSetupStep, update_current_settings},
 };
 use defguard_core::{
-    auth::AdminOrSetupRole,
+    auth::{AdminOrSetupRole, SessionInfo},
     error::WebError,
     handlers::{ApiResponse, ApiResult, SESSION_COOKIE_NAME},
     headers::get_device_info,
@@ -57,6 +57,12 @@ pub struct CreateAdmin {
     last_name: String,
     username: String,
     email: String,
+    password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct SetupLogin {
+    username: String,
     password: String,
 }
 
@@ -113,6 +119,75 @@ pub async fn create_admin(
     Ok((cookies, ApiResponse::with_status(StatusCode::CREATED)))
 }
 
+pub async fn setup_login(
+    cookies: CookieJar,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
+    Extension(pool): Extension<PgPool>,
+    Json(login): Json<SetupLogin>,
+) -> Result<(CookieJar, ApiResponse), WebError> {
+    let settings = Settings::get_current_settings();
+    if settings.initial_setup_completed {
+        return Err(WebError::Forbidden(
+            "Initial setup already completed".to_string(),
+        ));
+    }
+    let default_admin_id = settings
+        .default_admin_id
+        .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
+
+    let mut conn = pool.acquire().await?;
+    let user = User::find_by_username_or_email(&mut conn, &login.username)
+        .await?
+        .ok_or(WebError::Authentication)?;
+
+    user.verify_password(&login.password)
+        .map_err(|_| WebError::Authentication)?;
+
+    if !user.is_active {
+        return Err(WebError::Authentication);
+    }
+
+    if user.id != default_admin_id {
+        return Err(WebError::Forbidden("access denied".into()));
+    }
+
+    let device_info = get_device_info(user_agent.as_str());
+
+    Session::delete_expired(&pool).await?;
+    let session = Session::new(
+        user.id,
+        SessionState::PasswordVerified,
+        insecure_ip.to_string(),
+        Some(device_info),
+    );
+    session.save(&pool).await?;
+
+    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Lax);
+    let cookies = cookies.add(auth_cookie);
+
+    Ok((cookies, ApiResponse::with_status(StatusCode::OK)))
+}
+
+pub async fn setup_session(session: SessionInfo) -> ApiResult {
+    let settings = Settings::get_current_settings();
+    if settings.initial_setup_completed {
+        return Err(WebError::Forbidden(
+            "Initial setup already completed".to_string(),
+        ));
+    }
+    let default_admin_id = settings
+        .default_admin_id
+        .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
+    if session.user.id != default_admin_id {
+        return Err(WebError::Forbidden("access denied".into()));
+    }
+    Ok(ApiResponse::with_status(StatusCode::OK))
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GeneralConfig {
     defguard_url: String,
@@ -123,6 +198,7 @@ pub struct GeneralConfig {
 }
 
 pub async fn set_general_config(
+    _: AdminOrSetupRole,
     Extension(pool): Extension<PgPool>,
     Json(general_config): Json<GeneralConfig>,
 ) -> ApiResult {
@@ -200,6 +276,7 @@ pub struct CreateCA {
 }
 
 pub async fn create_ca(
+    _: AdminOrSetupRole,
     Extension(pool): Extension<PgPool>,
     Json(ca_info): Json<CreateCA>,
 ) -> ApiResult {

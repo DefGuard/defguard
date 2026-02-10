@@ -35,7 +35,7 @@ export const Route = createFileRoute('/auth')({
     }
     if (!settings.initial_setup_completed) {
       throw redirect({
-        to: '/setup-wizard',
+        to: '/setup',
         replace: true,
       });
     }

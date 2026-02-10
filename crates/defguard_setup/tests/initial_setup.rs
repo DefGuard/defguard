@@ -166,19 +166,21 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize settings");
 
-    let _admin = User::new(
-        "admin1",
-        Some("Passw0rd!"),
-        "Admin",
-        "Admin",
-        "admin1@example.com",
-        None,
-    )
-    .save(&pool)
-    .await
-    .expect("Failed to create admin user");
-
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
         "defguard_url": "https://example.com",
@@ -234,6 +236,20 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
     let payload = json!({
         "common_name": "Test CA",
         "email": "ca@example.com",
@@ -268,6 +284,20 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
     let ca = CertificateAuthority::new("CA", "ca@example.com", 365).expect("Failed to create CA");
     let cert_pem =
         der_to_pem(ca.cert_der(), PemLabel::Certificate).expect("Failed to convert cert to PEM");
@@ -299,6 +329,20 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize settings");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
         "common_name": "CA",
@@ -336,6 +380,20 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize settings");
 
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let response = client
         .post("/api/v1/initial_setup/finish")

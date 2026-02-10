@@ -216,7 +216,7 @@ const FloatingMenu = ({
         text="Add more gateways"
         onClick={() => {
           useGatewayWizardStore.getState().start({ network_id: networkId });
-          navigate({ to: '/gateway-wizard', replace: true });
+          navigate({ to: '/setup-gateway', replace: true });
         }}
       />
     </div>
