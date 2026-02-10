@@ -22,8 +22,8 @@ use tokio::{net::TcpListener, sync::oneshot::Sender};
 use tracing::{info, instrument};
 
 use crate::handlers::{
-    create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login,
-    setup_session, upload_ca,
+    create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login, setup_session,
+    upload_ca,
 };
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
