@@ -48,12 +48,12 @@ import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
-  getAliasesQueryOptions,
-  getDestinationsQueryOptions,
+  getAppliedAliasesQueryOptions,
+  getAppliedDestinationsQueryOptions,
   getGroupsInfoQueryOptions,
   getLocationsQueryOptions,
   getNetworkDevicesQueryOptions,
-  getUsersQueryOptions,
+  getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
@@ -140,6 +140,8 @@ export const CERulePage = ({ rule }: Props) => {
 const Content = ({ rule: initialRule }: Props) => {
   const router = useRouter();
 
+  const isEdit = isPresent(initialRule);
+
   const { mutateAsync: addRule } = useMutation({
     mutationFn: api.acl.rule.addRule,
     meta: {
@@ -162,7 +164,7 @@ const Content = ({ rule: initialRule }: Props) => {
     },
   });
 
-  const { data: users } = useQuery(getUsersQueryOptions);
+  const { data: users } = useQuery(getUsersOverviewQueryOptions);
 
   const usersOptions = useMemo(() => {
     if (isPresent(users)) {
@@ -178,7 +180,7 @@ const Content = ({ rule: initialRule }: Props) => {
     }
   }, [users]);
 
-  const { data: destinations } = useQuery(getDestinationsQueryOptions);
+  const { data: destinations } = useQuery(getAppliedDestinationsQueryOptions);
 
   const destinationsOptions = useMemo(() => {
     if (isPresent(destinations)) {
@@ -207,7 +209,7 @@ const Content = ({ rule: initialRule }: Props) => {
     return [];
   }, [locations]);
 
-  const { data: aliases } = useQuery(getAliasesQueryOptions);
+  const { data: aliases } = useQuery(getAppliedAliasesQueryOptions);
 
   const aliasesOptions = useMemo(() => {
     if (isPresent(aliases)) {
@@ -321,12 +323,12 @@ const Content = ({ rule: initialRule }: Props) => {
                 .length
             ) {
               ctx.addIssue({
-                path: ['allowed_devices'],
+                path: ['allowed_network_devices'],
                 code: 'custom',
                 message,
               });
               ctx.addIssue({
-                path: ['denied_devices'],
+                path: ['denied_network_devices'],
                 code: 'custom',
                 message,
               });
@@ -354,7 +356,7 @@ const Content = ({ rule: initialRule }: Props) => {
               message,
             });
             ctx.addIssue({
-              path: ['allowed_devices'],
+              path: ['allowed_network_devices'],
               code: 'custom',
               message,
             });
@@ -863,7 +865,11 @@ const Content = ({ rule: initialRule }: Props) => {
                 {(field) => <field.FormToggle label="Enable rule" />}
               </form.AppField>
               <div className="right">
-                <Button text="Create rule" type="submit" loading={isSubmitting} />
+                <Button
+                  text={isEdit ? 'Save changes' : 'Create rule'}
+                  type="submit"
+                  loading={isSubmitting}
+                />
               </div>
             </Controls>
           )}

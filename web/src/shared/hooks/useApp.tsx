@@ -4,7 +4,7 @@ import type { ApplicationInfo, SettingsEssentials } from '../api/types';
 type StoreValues = {
   navigationOpen: boolean;
   appInfo: ApplicationInfo;
-  settingsEssentials: SettingsEssentials;
+  settingsEssentials?: SettingsEssentials;
 };
 
 type Store = StoreValues;
@@ -31,9 +31,7 @@ const defaults: StoreValues = {
     smtp_enabled: false,
     version: '',
   },
-  settingsEssentials: {
-    initial_setup_completed: false,
-  },
+  settingsEssentials: undefined,
 };
 
 export const useApp = create<Store>(() => ({ ...defaults }));

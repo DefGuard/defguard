@@ -87,7 +87,7 @@ const ModalContent = ({ username }: { username: string }) => {
   const { mutateAsync: addKey } = useMutation({
     mutationFn: api.user.addAuthKey,
     meta: {
-      invalidate: [['user', username], ['user']],
+      invalidate: [['user'], ['user-overview']],
     },
     onSuccess: () => {
       closeModal(modalNameKey);

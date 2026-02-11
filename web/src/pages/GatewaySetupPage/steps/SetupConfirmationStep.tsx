@@ -13,7 +13,9 @@ export const SetupConfirmationStep = () => {
   const navigate = useNavigate();
 
   const handleBack = () => {
+    const networkId = useGatewayWizardStore.getState().network_id;
     useGatewayWizardStore.getState().reset();
+    useGatewayWizardStore.getState().start({ network_id: networkId });
   };
 
   const handleFinish = () => {

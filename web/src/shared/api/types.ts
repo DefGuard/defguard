@@ -630,8 +630,19 @@ export interface SettingsEnterprise {
   only_client_activation: boolean;
 }
 
+export type InitialSetupStepValue =
+  | 'Welcome'
+  | 'AdminUser'
+  | 'GeneralConfiguration'
+  | 'Ca'
+  | 'CaSummary'
+  | 'EdgeComponent'
+  | 'Confirmation'
+  | 'Finished';
+
 export interface SettingsEssentials {
   initial_setup_completed: boolean;
+  initial_setup_step: InitialSetupStepValue;
 }
 
 export const SmtpEncryption = {

@@ -30,7 +30,7 @@ export const ProfileApiTokensTable = () => {
   const { mutate: deleteApiToken } = useMutation({
     mutationFn: api.user.deleteApiToken,
     meta: {
-      invalidate: ['user', username, 'api_token'],
+      invalidate: [['user-overview'], ['user', username, 'api_token']],
     },
   });
 

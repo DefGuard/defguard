@@ -113,6 +113,8 @@ const api = {
     uploadCA: (data: UploadCARequest) => client.post('/initial_setup/ca/upload', data),
     createAdminUser: (data: CreateAdminRequest) =>
       client.post('/initial_setup/admin', data),
+    login: (data: LoginRequest) => client.post('/initial_setup/login', data),
+    session: () => client.get('/initial_setup/session'),
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post('/initial_setup/general_config', data),
     finishSetup: () => client.post('/initial_setup/finish'),

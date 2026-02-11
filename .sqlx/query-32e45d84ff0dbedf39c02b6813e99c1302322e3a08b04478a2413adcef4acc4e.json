@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"settings\" SET openid_enabled = $1, wireguard_enabled = $2, webhooks_enabled = $3, worker_enabled = $4, challenge_template = $5, instance_name = $6, main_logo_url = $7, nav_logo_url = $8, smtp_server = $9, smtp_port = $10, smtp_encryption = $11, smtp_user = $12, smtp_password = $13, smtp_sender = $14, enrollment_vpn_step_optional = $15, enrollment_welcome_message = $16, enrollment_welcome_email = $17, enrollment_welcome_email_subject = $18, enrollment_use_welcome_message_as_email = $19, uuid = $20, ldap_url = $21, ldap_bind_username = $22, ldap_bind_password  = $23, ldap_group_search_base = $24, ldap_user_search_base = $25, ldap_user_obj_class = $26, ldap_group_obj_class = $27, ldap_username_attr = $28, ldap_groupname_attr = $29, ldap_group_member_attr = $30, ldap_member_attr = $31, ldap_use_starttls = $32, ldap_tls_verify_cert = $33, openid_create_account = $34, license = $35, gateway_disconnect_notifications_enabled = $36, gateway_disconnect_notifications_inactivity_threshold = $37, gateway_disconnect_notifications_reconnect_notification_enabled = $38, ldap_sync_status = $39, ldap_enabled = $40, ldap_sync_enabled = $41, ldap_is_authoritative = $42, ldap_sync_interval = $43, ldap_user_auxiliary_obj_classes = $44, ldap_uses_ad = $45, ldap_user_rdn_attr = $46, ldap_sync_groups = $47, openid_username_handling = $48, ca_key_der = $49, ca_cert_der = $50, ca_expiry = $51, initial_setup_completed = $52, defguard_url = $53, default_admin_group_name = $54, authentication_period_days = $55, mfa_code_timeout_seconds = $56, public_proxy_url = $57, initial_setup_step = $58, default_admin_id = $59 WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        {
+          "Custom": {
+            "name": "smtp_encryption",
+            "kind": {
+              "Enum": [
+                "none",
+                "starttls",
+                "implicittls"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        {
+          "Custom": {
+            "name": "ldap_sync_status",
+            "kind": {
+              "Enum": [
+                "insync",
+                "outofsync"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Bool",
+        "Bool",
+        "Int4",
+        "TextArray",
+        "Bool",
+        "Text",
+        "TextArray",
+        {
+          "Custom": {
+            "name": "openid_username_handling",
+            "kind": {
+              "Enum": [
+                "remove_forbidden",
+                "replace_forbidden",
+                "prune_email_domain"
+              ]
+            }
+          }
+        },
+        "Bytea",
+        "Bytea",
+        "Timestamp",
+        "Bool",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Text",
+        {
+          "Custom": {
+            "name": "initial_setup_step",
+            "kind": {
+              "Enum": [
+                "welcome",
+                "admin_user",
+                "general_configuration",
+                "ca",
+                "ca_summary",
+                "edge_component",
+                "confirmation",
+                "finished"
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "32e45d84ff0dbedf39c02b6813e99c1302322e3a08b04478a2413adcef4acc4e"
+}

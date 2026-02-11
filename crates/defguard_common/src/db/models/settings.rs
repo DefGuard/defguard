@@ -10,7 +10,7 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{global_value, secret::SecretStringWrapper};
+use crate::{db::Id, global_value, secret::SecretStringWrapper};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -79,6 +79,22 @@ impl LdapSyncStatus {
     pub fn is_out_of_sync(&self) -> bool {
         matches!(self, LdapSyncStatus::OutOfSync)
     }
+}
+
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type, PartialOrd)]
+#[sqlx(type_name = "initial_setup_step", rename_all = "snake_case")]
+pub enum InitialSetupStep {
+    #[default]
+    Welcome,
+    AdminUser,
+    GeneralConfiguration,
+    Ca,
+    CaSummary,
+    // Adoption is not present, since the proxy is saved
+    // only after completing adoption step.
+    EdgeComponent,
+    Confirmation,
+    Finished,
 }
 
 #[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
@@ -156,6 +172,8 @@ pub struct Settings {
     pub authentication_period_days: i32,
     pub mfa_code_timeout_seconds: i32,
     pub public_proxy_url: String,
+    pub initial_setup_step: InitialSetupStep,
+    pub default_admin_id: Option<Id>,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -242,6 +260,9 @@ impl fmt::Debug for Settings {
                 &self.authentication_period_days,
             )
             .field("mfa_code_timeout_seconds", &self.mfa_code_timeout_seconds)
+            .field("public_proxy_url", &self.public_proxy_url)
+            .field("initial_setup_step", &self.initial_setup_step)
+            .field("default_admin_id", &self.default_admin_id)
             .finish_non_exhaustive()
     }
 }
@@ -274,7 +295,8 @@ impl Settings {
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, \
             defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url \
+            public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
+            default_admin_id \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -360,7 +382,9 @@ impl Settings {
             default_admin_group_name = $54, \
             authentication_period_days = $55, \
             mfa_code_timeout_seconds = $56, \
-            public_proxy_url = $57 \
+            public_proxy_url = $57, \
+            initial_setup_step = $58, \
+            default_admin_id = $59 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -418,7 +442,9 @@ impl Settings {
             self.default_admin_group_name,
             self.authentication_period_days,
             self.mfa_code_timeout_seconds,
-            self.public_proxy_url
+            self.public_proxy_url,
+            &self.initial_setup_step as &InitialSetupStep,
+            self.default_admin_id,
         )
         .execute(executor)
         .await?;
@@ -514,6 +540,7 @@ pub struct SettingsEssentials {
     pub worker_enabled: bool,
     pub openid_enabled: bool,
     pub initial_setup_completed: bool,
+    pub initial_setup_step: InitialSetupStep,
 }
 
 impl SettingsEssentials {
@@ -524,7 +551,7 @@ impl SettingsEssentials {
         query_as!(
             SettingsEssentials,
             "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
-            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed \
+            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, initial_setup_step \"initial_setup_step: InitialSetupStep\" \
             FROM settings WHERE id = 1"
         )
         .fetch_one(executor)
@@ -543,6 +570,7 @@ impl From<Settings> for SettingsEssentials {
             instance_name: settings.instance_name,
             main_logo_url: settings.main_logo_url,
             initial_setup_completed: settings.initial_setup_completed,
+            initial_setup_step: settings.initial_setup_step,
         }
     }
 }

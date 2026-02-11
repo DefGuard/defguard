@@ -8,7 +8,11 @@ use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};
 use defguard_common::{
     VERSION,
     db::{
-        models::{Session, Settings, User, group::Group, settings::initialize_current_settings},
+        models::{
+            Session, Settings, User,
+            group::Group,
+            settings::{InitialSetupStep, initialize_current_settings},
+        },
         setup_pool,
     },
 };
@@ -28,6 +32,17 @@ use tokio::{
 };
 
 const SESSION_COOKIE_NAME: &str = "defguard_session";
+
+async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
+    let settings = Settings::get(pool)
+        .await
+        .expect("Failed to fetch settings")
+        .expect("Settings not found");
+    assert_eq!(settings.initial_setup_step, expected);
+
+    let current_settings = Settings::get_current_settings();
+    assert_eq!(current_settings.initial_setup_step, expected);
+}
 
 struct TestClient {
     client: Client,
@@ -134,6 +149,61 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to fetch session")
         .expect("Session not created");
     assert_eq!(session.user_id, user.id);
+
+    let settings = Settings::get(&pool)
+        .await
+        .expect("Failed to fetch settings")
+        .expect("Settings not found");
+    assert_eq!(settings.default_admin_id, Some(user.id));
+
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
+async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let payload = json!({
+        "username": "admin1",
+        "password": "WrongPass"
+    });
+
+    for _ in 0..5 {
+        let response = client
+            .post("/api/v1/initial_setup/login")
+            .json(&payload)
+            .send()
+            .await
+            .expect("Failed to login during setup");
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    let response = client
+        .post("/api/v1/initial_setup/login")
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to login during setup");
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
 }
 
 #[sqlx::test]
@@ -143,19 +213,21 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize settings");
 
-    let _admin = User::new(
-        "admin1",
-        Some("Passw0rd!"),
-        "Admin",
-        "Admin",
-        "admin1@example.com",
-        None,
-    )
-    .save(&pool)
-    .await
-    .expect("Failed to create admin user");
-
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
         "defguard_url": "https://example.com",
@@ -198,6 +270,8 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch group membership");
     assert!(groups.contains(&"admins".to_string()));
+
+    assert_setup_step(&pool, InitialSetupStep::Ca).await;
 }
 
 #[sqlx::test]
@@ -208,6 +282,20 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize settings");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
         "common_name": "Test CA",
@@ -230,6 +318,8 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(settings.ca_cert_der.is_some());
     assert!(settings.ca_key_der.is_some());
     assert!(settings.ca_expiry.is_some());
+
+    assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 }
 
 #[sqlx::test]
@@ -240,6 +330,20 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize settings");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let ca = CertificateAuthority::new("CA", "ca@example.com", 365).expect("Failed to create CA");
     let cert_pem =
@@ -260,6 +364,8 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(settings.ca_cert_der.is_some());
     assert!(settings.ca_key_der.is_none());
     assert!(settings.ca_expiry.is_some());
+
+    assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 }
 
 #[sqlx::test]
@@ -270,6 +376,20 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize settings");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
         "common_name": "CA",
@@ -295,6 +415,8 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(body["subject_common_name"], "CA");
     let pem = body["ca_cert_pem"].as_str().expect("Missing ca_cert_pem");
     assert!(pem.contains("BEGIN CERTIFICATE"));
+
+    assert_setup_step(&pool, InitialSetupStep::EdgeComponent).await;
 }
 
 #[sqlx::test]
@@ -305,6 +427,20 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to initialize settings");
 
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&json!({
+            "first_name": "Admin",
+            "last_name": "Admin",
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "password": "Passw0rd!"
+        }))
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let response = client
         .post("/api/v1/initial_setup/finish")
@@ -318,6 +454,9 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to fetch settings")
         .expect("Settings not found");
     assert!(settings.initial_setup_completed);
+    assert_eq!(settings.initial_setup_step, InitialSetupStep::Finished);
+
+    assert_setup_step(&pool, InitialSetupStep::Finished).await;
 
     let shutdown_signal =
         tokio::time::timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
@@ -369,6 +508,8 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to build reqwest client");
     let base_url = format!("http://localhost:{port}");
 
+    assert_setup_step(&pool, InitialSetupStep::Welcome).await;
+
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/admin"))
         .json(&json!({
@@ -388,6 +529,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Session cookie not set")
         .value()
         .to_string();
+    assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
 
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/general_config"))
@@ -403,6 +545,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to set general config");
     assert_eq!(response.status(), StatusCode::CREATED);
+    assert_setup_step(&pool, InitialSetupStep::Ca).await;
 
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/ca"))
@@ -415,6 +558,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to create CA");
     assert_eq!(response.status(), StatusCode::CREATED);
+    assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/finish"))
@@ -422,6 +566,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to finish setup");
     assert_eq!(response.status(), StatusCode::OK);
+    assert_setup_step(&pool, InitialSetupStep::Finished).await;
 
     let settings = Settings::get(&pool)
         .await
@@ -435,6 +580,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(settings.ca_cert_der.is_some());
     assert!(settings.ca_key_der.is_some());
     assert!(settings.ca_expiry.is_some());
+    assert_eq!(settings.initial_setup_step, InitialSetupStep::Finished);
 
     let admin_group = Group::find_by_name(&pool, "admins")
         .await

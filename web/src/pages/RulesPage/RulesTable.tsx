@@ -9,14 +9,16 @@ import { flat } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type {
-  AclAlias,
-  AclRule,
-  GroupInfo,
-  NetworkDevice,
-  NetworkLocation,
-  ResourceById,
-  User,
+import {
+  type AclAlias,
+  type AclRule,
+  AclStatus,
+  type AclStatusValue,
+  type GroupInfo,
+  type NetworkDevice,
+  type NetworkLocation,
+  type ResourceById,
+  type User,
 } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
@@ -128,6 +130,37 @@ export const RulesTable = ({
     [users, devices, groups],
   );
 
+  const renderStatusCell = useCallback(
+    (ruleState: AclStatusValue, isEnabled: boolean) => {
+      // handle applied rules first
+      if (ruleState === AclStatus.Applied) {
+        return (
+          <TableCell>
+            {isEnabled ? (
+              <Badge variant={BadgeVariant.Success} text="Active" />
+            ) : (
+              <Badge variant={BadgeVariant.Critical} text="Disabled" />
+            )}
+          </TableCell>
+        );
+      } else if (ruleState === AclStatus.Deleted) {
+        return (
+          <TableCell>
+            <Badge variant={BadgeVariant.Critical} text="Deleted" />
+          </TableCell>
+        );
+      } else {
+        // handle remaining pending states
+        return (
+          <TableCell>
+            <Badge variant={BadgeVariant.Warning} text={ruleState} />
+          </TableCell>
+        );
+      }
+    },
+    [],
+  );
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -215,16 +248,12 @@ export const RulesTable = ({
           return <TableValuesListCell values={locationNames} />;
         },
       }),
-      columnHelper.accessor('enabled', {
+      columnHelper.display({
+        id: 'status',
         header: 'Status',
         cell: (info) => {
-          const value = info.getValue();
-          return (
-            <TableCell>
-              {!value && <Badge variant={BadgeVariant.Critical} text="Disabled" />}
-              {value && <Badge variant={BadgeVariant.Success} text="Active" />}
-            </TableCell>
-          );
+          const row = info.row.original;
+          return renderStatusCell(row.state, row.enabled);
         },
       }),
       columnHelper.display({
@@ -272,7 +301,7 @@ export const RulesTable = ({
         },
       }),
     ],
-    [aliases, renderPermissionCell, deleteRule, locations, navigate],
+    [aliases, renderPermissionCell, deleteRule, locations, navigate, renderStatusCell],
   );
 
   const visibleRules = useMemo(() => {
