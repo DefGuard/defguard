@@ -28,7 +28,8 @@ pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Erro
     Ok(())
 }
 
-/// Helper function which stores updated `Settings` in the DB and also updates the global `SETTINGS` struct
+/// Helper function which stores updated `Settings` in the database and also updates the global
+/// `SETTINGS` struct.
 pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     executor: E,
     new_settings: Settings,
@@ -272,8 +273,8 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, \
-            defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
+            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
+            default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url \
             FROM \"settings\" WHERE id = 1",
         )

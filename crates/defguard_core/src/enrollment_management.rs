@@ -6,7 +6,6 @@ use sqlx::{PgConnection, PgExecutor};
 use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError};
 
 static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
-static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 /// Start user enrollment process
 /// This creates a new enrollment token valid for 24h
@@ -184,25 +183,21 @@ pub async fn start_desktop_configuration(
             let base_message_context = desktop_configuration
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
-            Mail::new(
+            let _ = templates::desktop_start_mail(
                 &email,
-                DESKTOP_START_MAIL_SUBJECT,
-                templates::desktop_start_mail(
-                    &mut *transaction,
-                    base_message_context,
-                    &enrollment_service_url,
-                    &desktop_configuration.id,
-                )
-                .await
-                .map_err(|err| {
-                    debug!(
-                        "Cannot send an email to the user {} due to the error {err}.",
-                        user.username,
-                    );
-                    TokenError::NotificationError(err.to_string())
-                })?,
+                &mut *transaction,
+                base_message_context,
+                &enrollment_service_url,
+                &desktop_configuration.id,
             )
-            .send_and_forget();
+            .await
+            .map_err(|err| {
+                debug!(
+                    "Cannot send an email to the user {} due to the error {err}.",
+                    user.username,
+                );
+                TokenError::NotificationError(err.to_string())
+            });
         }
     }
     info!(

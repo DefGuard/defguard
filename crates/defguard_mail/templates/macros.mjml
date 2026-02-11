@@ -1,4 +1,4 @@
-{% macro email_header(title, subtitle="") %}
+{% macro email_header() %}
 <mj-section>
   <mj-column>
     {% if subtitle %}
@@ -18,8 +18,8 @@
 </mj-section>
 {% endmacro email_header %}
 
-{% macro action_link(text, href) %}
-<mj-text>
+{% macro action_link(text, href, css_class="", mj_class="") %}
+<mj-text css-class="{{ css_class }}" mj-class="{{ mj_class }}">
   <a mj-class="t-body-sm-400" css-class="fg-action-c link" href="{{ href }}" style="color: #3961DB; text-decoration: none; font-family: Geist; font-weight: 400; font-size: 14px;">
     {{ text }}
   </a>

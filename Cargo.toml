@@ -54,7 +54,7 @@ ipnetwork = "0.20"
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
 ldap3 = { version = "0.12", default-features = false, features = ["tls"] }
-lettre = { version = "0.11", features = ["tokio1-native-tls"] }
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
 matches = "0.1"
 md4 = "0.10"
 openidconnect = { version = "4.0", default-features = false, features = [

@@ -28,15 +28,13 @@ use defguard_core::{
         utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
     },
     handlers::{
-        mail::{
-            send_email_mfa_activation_email, send_mfa_configured_email, send_new_device_added_email,
-        },
+        mail::{send_email_mfa_activation_email, send_mfa_configured_email},
         user::check_password_strength,
     },
     headers::get_device_info,
     is_valid_phone_number,
 };
-use defguard_mail::templates::TemplateLocation;
+use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
@@ -794,14 +792,6 @@ impl EnrollmentServer {
             device.wireguard_pubkey, user.username, user.id,
         );
 
-        transaction.commit().await.map_err(|err| {
-            error!(
-                "Failed to commit transaction, device {} won't be created for user {}({:?}): {err}",
-                device.wireguard_pubkey, user.username, user.id,
-            );
-            Status::internal("unexpected error")
-        })?;
-
         // Don't send them service locations if they don't support it
         let configs = configs
             .into_iter()
@@ -824,15 +814,25 @@ impl EnrollmentServer {
             "Sending device created mail for device {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id
         );
-        send_new_device_added_email(
+        new_device_added_mail(
+            &user.email,
+            &mut transaction,
             &device.name,
             &device.wireguard_pubkey,
             &template_locations,
-            &user.email,
             Some(&ip_address),
             device_info.as_deref(),
         )
+        .await
         .map_err(|_| Status::internal("error rendering email template"))?;
+
+        transaction.commit().await.map_err(|err| {
+            error!(
+                "Failed to commit transaction, device {} won't be created for user {}({:?}): {err}",
+                device.wireguard_pubkey, user.username, user.id,
+            );
+            Status::internal("unexpected error")
+        })?;
 
         info!("Device {} remote configuration done.", device.name);
 

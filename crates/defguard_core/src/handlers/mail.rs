@@ -11,7 +11,7 @@ use defguard_common::db::{
 };
 use defguard_mail::{
     Attachment, Mail,
-    templates::{self, SessionContext, TemplateError, TemplateLocation, support_data_mail},
+    templates::{self, SessionContext, TemplateError, support_data_mail},
 };
 use reqwest::Url;
 use serde_json::json;
@@ -33,7 +33,6 @@ static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
 
-static NEW_DEVICE_ADDED_EMAIL_SUBJECT: &str = "Defguard: new device added to your account";
 static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
 static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str =
@@ -168,32 +167,6 @@ pub async fn send_support_data(
         }
         Err(err) => Ok(internal_error(to, subject, &err)),
     }
-}
-
-pub fn send_new_device_added_email(
-    device_name: &str,
-    public_key: &str,
-    template_locations: &[TemplateLocation],
-    user_email: &str,
-    ip_address: Option<&str>,
-    device_info: Option<&str>,
-) -> Result<(), TemplateError> {
-    debug!("User {user_email} new device added mail to {SUPPORT_EMAIL_ADDRESS}");
-
-    Mail::new(
-        user_email,
-        NEW_DEVICE_ADDED_EMAIL_SUBJECT,
-        templates::new_device_added_mail(
-            device_name,
-            public_key,
-            template_locations,
-            ip_address,
-            device_info,
-        )?,
-    )
-    .send_and_forget();
-
-    Ok(())
 }
 
 pub async fn send_gateway_disconnected_email(

@@ -2,10 +2,12 @@ use sqlx::{PgExecutor, query_as};
 
 pub(crate) struct MailContext {
     /// Template name.
+    #[allow(unused)]
     template: String,
     /// Section name in the template.
     pub(crate) section: String,
     /// Language tag, for example "en_US".
+    #[allow(unused)]
     language_tag: String,
     /// Text to be replaced.
     pub(crate) text: String,

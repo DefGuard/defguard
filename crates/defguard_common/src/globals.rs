@@ -15,11 +15,11 @@ macro_rules! global_value {
         static $name: RwLock<$type> = RwLock::new($init);
 
         pub fn $set_fn(value: $type) {
-            *$name.write().expect("Failed to acquire lock on the mutex.") = value;
+            *$name.write().expect("Failed to acquire RwLock for write") = value;
         }
 
         pub fn $get_fn() -> RwLockReadGuard<'static, $type> {
-            $name.read().expect("Failed to acquire lock on the mutex.")
+            $name.read().expect("Failed to acquire RwLock for read")
         }
     };
 }

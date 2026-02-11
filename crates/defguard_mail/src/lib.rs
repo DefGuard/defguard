@@ -12,6 +12,8 @@ pub use crate::mail::{Attachment, Mail};
 pub mod mail;
 pub(crate) mod mail_context;
 pub mod templates;
+#[cfg(test)]
+mod tests;
 
 /// Subset of Settings representing SMTP configuration.
 pub(crate) struct SmtpSettings {

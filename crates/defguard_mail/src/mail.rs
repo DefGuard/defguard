@@ -3,7 +3,7 @@ use std::{str::FromStr, time::Duration};
 use defguard_common::db::models::{Settings, settings::SmtpEncryption};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
-    message::{Mailbox, MultiPart, SinglePart, header::ContentType},
+    message::{Body, Mailbox, MultiPart, SinglePart, header::ContentType},
     transport::smtp::authentication::Credentials,
 };
 use serde::Serialize;
@@ -14,6 +14,11 @@ use tracing::{debug, error, info, warn};
 use super::SmtpSettings;
 
 const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
+// Template images.
+static DEFGUARD_LOGO: &[u8] = include_bytes!("../assets/defguard.png");
+static GITHUB_LOGO: &[u8] = include_bytes!("../assets/github.png");
+static MASTODON_LOGO: &[u8] = include_bytes!("../assets/mastodon.png");
+static X_LOGO: &[u8] = include_bytes!("../assets/x.png");
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -86,7 +91,7 @@ impl Mail {
         K: Into<String>,
         V: Serialize + ?Sized,
     {
-        self.context.insert(key.into(), value.into());
+        self.context.insert(key.into(), value);
     }
 
     /// Setter for `attachments`.
@@ -124,24 +129,54 @@ impl From<Attachment> for SinglePart {
 }
 
 impl Mail {
-    /// Converts Mail to lettre Message
+    /// Converts Mail to lettre Message.
+    /// Message structure should look like this:
+    /// - multipart mixed
+    ///   - multipart alternative
+    ///     - singlepart: plain text
+    ///     - multipart related
+    ///       - singlepart: HTML version
+    ///       - singlepart: image 1
+    ///       - singlepart: image 2
+    ///   - singlepart: attachments
     pub(crate) fn into_message(self, from: &str) -> Result<Message, MailError> {
         let builder = Message::builder()
             .from(Mailbox::from_str(from)?)
             .to(Mailbox::from_str(&self.to)?)
             .subject(self.subject);
-        match self.attachments {
-            attachments if attachments.is_empty() => Ok(builder
-                .header(ContentType::TEXT_HTML)
-                .body(self.content.clone())?),
-            attachments => {
-                let mut multipart = MultiPart::mixed().singlepart(SinglePart::html(self.content));
-                for attachment in attachments {
-                    multipart = multipart.singlepart(attachment.into());
-                }
-                Ok(builder.multipart(multipart)?)
-            }
+
+        let plain = SinglePart::plain("PLAIN IS NOT AVAILABLE AT THE MOMENT.".to_string());
+        let html = SinglePart::html(self.content);
+        let image_png = "image/png".parse::<ContentType>().unwrap();
+        let related = MultiPart::related()
+            .singlepart(html)
+            .singlepart(
+                lettre::message::Attachment::new_inline(String::from("defguard"))
+                    .body(Body::new(Vec::from(DEFGUARD_LOGO)), image_png.clone()),
+            )
+            .singlepart(
+                lettre::message::Attachment::new_inline(String::from("github"))
+                    .body(Body::new(Vec::from(GITHUB_LOGO)), image_png.clone()),
+            )
+            .singlepart(
+                lettre::message::Attachment::new_inline(String::from("mastodon"))
+                    .body(Body::new(Vec::from(MASTODON_LOGO)), image_png.clone()),
+            )
+            .singlepart(
+                lettre::message::Attachment::new_inline(String::from("x"))
+                    .body(Body::new(Vec::from(X_LOGO)), image_png),
+            );
+
+        let alternative = MultiPart::alternative()
+            .singlepart(plain)
+            .multipart(related);
+
+        let mut mixed = MultiPart::mixed().multipart(alternative);
+        for attachment in self.attachments {
+            mixed = mixed.singlepart(attachment.into());
         }
+
+        Ok(builder.multipart(mixed)?)
     }
 
     /// Sends email message using SMTP.
@@ -194,22 +229,19 @@ impl Mail {
         }
     }
 
+    /// Schedule sending email message.
     pub fn send_and_forget(self) {
         tokio::spawn(self.send());
     }
 
     /// Builds mailer object with specified configuration
     fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
+        type Builder = AsyncSmtpTransport<Tokio1Executor>;
+
         let builder = match settings.encryption {
-            SmtpEncryption::None => {
-                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(settings.server)
-            }
-            SmtpEncryption::StartTls => {
-                AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.server)?
-            }
-            SmtpEncryption::ImplicitTls => {
-                AsyncSmtpTransport::<Tokio1Executor>::relay(&settings.server)?
-            }
+            SmtpEncryption::None => Builder::builder_dangerous(&settings.server),
+            SmtpEncryption::StartTls => Builder::starttls_relay(&settings.server)?,
+            SmtpEncryption::ImplicitTls => Builder::relay(&settings.server)?,
         }
         .port(settings.port)
         .timeout(Some(SMTP_TIMEOUT));
