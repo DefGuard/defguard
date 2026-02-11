@@ -262,4 +262,20 @@ mod tests {
             Err(RustlsError::InvalidCertificate(CertificateError::Revoked))
         ));
     }
+
+    #[test]
+    fn verify_accepts_case_insensitive_serial() {
+        let (cert_der, serial) = make_cert_and_serial();
+        let expected_lower = serial.to_ascii_lowercase();
+        let (_tx, rx) = watch::channel(Arc::new(HashMap::from([(1, expected_lower)])));
+        let verifier = CertVerifier::new(Arc::new(NoopVerifier), rx, 1);
+        let result = verifier.verify(&cert_der);
+        assert!(result.is_ok());
+
+        let expected_upper = serial.to_ascii_uppercase();
+        let (_tx, rx) = watch::channel(Arc::new(HashMap::from([(1, expected_upper)])));
+        let verifier = CertVerifier::new(Arc::new(NoopVerifier), rx, 1);
+        let result = verifier.verify(&cert_der);
+        assert!(result.is_ok());
+    }
 }
