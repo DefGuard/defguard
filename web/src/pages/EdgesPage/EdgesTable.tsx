@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -8,6 +9,7 @@ import {
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
+import api from '../../shared/api/api';
 import type { EdgeInfo } from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
@@ -48,6 +50,12 @@ const displayModifiedBy = (edge: EdgeInfo) =>
 
 export const EdgesTable = ({ edges }: Props) => {
   const navigate = useNavigate();
+  const { mutate: deleteEdge } = useMutation({
+    mutationFn: api.edge.deleteEdge,
+    meta: {
+      invalidate: ['edge'],
+    },
+  });
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -192,6 +200,18 @@ export const EdgesTable = ({ edges }: Props) => {
                 },
               ],
             },
+            {
+              items: [
+                {
+                  text: m.controls_delete(),
+                  icon: 'delete',
+                  variant: 'danger',
+                  onClick: () => {
+                    deleteEdge(rowData.id);
+                  },
+                },
+              ],
+            },
           ];
 
           return (
@@ -202,7 +222,7 @@ export const EdgesTable = ({ edges }: Props) => {
         },
       }),
     ],
-    [navigate],
+    [deleteEdge, navigate],
   );
 
   const table = useReactTable({
