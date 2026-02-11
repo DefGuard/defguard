@@ -56,7 +56,7 @@ export const EdgesTable = ({ edges }: Props) => {
       iconLeft: 'globe',
       testId: 'add-edge',
       onClick: () => {
-        navigate({ to: '/edge-wizard' });
+        navigate({ to: '/setup-edge' });
       },
     }),
     [navigate],

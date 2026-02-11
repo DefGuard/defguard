@@ -1,6 +1,6 @@
 [package]
 name = "defguard_common"
-version = "1.6.1"
+version = "2.0.0"
 edition.workspace = true
 license-file.workspace = true
 homepage.workspace = true

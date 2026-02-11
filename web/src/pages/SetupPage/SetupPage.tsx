@@ -7,6 +7,7 @@ import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useApp } from '../../shared/hooks/useApp';
 import worldMap from './assets/world-map.png';
 import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
@@ -22,7 +23,7 @@ import { useSetupWizardStore } from './useSetupWizardStore';
 export const SetupPage = () => {
   const activeStep = useSetupWizardStore((s) => s.activeStep);
   const settingsEssentials = useApp((s) => s.settingsEssentials);
-  const showWelcome = useSetupWizardStore((s) => s.showWelcome);
+  const isOnWelcomePage = useSetupWizardStore((s) => s.isOnWelcomePage);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
@@ -88,7 +89,7 @@ export const SetupPage = () => {
 
   const handleStartWizard = () => {
     useSetupWizardStore.getState().setActiveStep(SetupPageStep.AdminUser);
-    useSetupWizardStore.setState({ showWelcome: false });
+    useSetupWizardStore.setState({ isOnWelcomePage: false });
   };
 
   const WelcomePageContent = () => (
@@ -104,10 +105,10 @@ export const SetupPage = () => {
   );
 
   useEffect(() => {
-    if (settingsEssentials.initial_setup_completed) {
+    if (isPresent(settingsEssentials) && settingsEssentials.initial_setup_completed) {
       navigate({ to: '/vpn-overview', replace: true });
     }
-  }, [settingsEssentials.initial_setup_completed, navigate]);
+  }, [settingsEssentials?.initial_setup_completed, navigate, settingsEssentials]);
 
   return (
     <WizardPage
@@ -116,7 +117,7 @@ export const SetupPage = () => {
       title={m.initial_setup_wizard_title()}
       steps={stepsConfig}
       id="setup-wizard"
-      showWelcome={showWelcome}
+      showWelcome={isOnWelcomePage}
       welcomePageConfig={{
         title: m.initial_setup_welcome_title(),
         subtitle: m.initial_setup_welcome_subtitle(),

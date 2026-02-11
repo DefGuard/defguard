@@ -1,7 +1,5 @@
-import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
@@ -9,7 +7,6 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
 import type { SetupEvent, SetupStep, SetupStepId } from '../../EdgeSetupPage/steps/types';
@@ -39,18 +36,6 @@ export const SetupEdgeAdoptionStep = () => {
     [setEdgeAdoptionState],
   );
 
-  const { mutateAsync: finishSetup } = useMutation({
-    mutationKey: ['finish-setup'],
-    mutationFn: api.initial_setup.finishSetup,
-    onError: (error) => {
-      console.error('Failed to finish setup:', error);
-      Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
-    },
-    meta: {
-      invalidate: ['settings-essentials'],
-    },
-  });
-
   const sse = useSSEController<SetupEvent>(
     '/api/v1/proxy/setup/stream',
     {
@@ -69,7 +54,6 @@ export const SetupEdgeAdoptionStep = () => {
   };
 
   const handleNext = async () => {
-    await finishSetup();
     setActiveStep(SetupPageStep.Confirmation);
   };
 

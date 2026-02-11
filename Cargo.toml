@@ -12,7 +12,7 @@ resolver = "2"
 
 [workspace.dependencies]
 # internal crates
-defguard_common = { path = "./crates/defguard_common", version = "1.5.2" }
+defguard_common = { path = "./crates/defguard_common", version = "2.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }

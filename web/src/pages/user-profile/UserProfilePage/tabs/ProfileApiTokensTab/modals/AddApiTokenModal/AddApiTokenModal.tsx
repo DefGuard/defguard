@@ -71,7 +71,7 @@ const ModalContent = ({ username }: OpenAddApiTokenModal) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.user.addApiToken,
     meta: {
-      invalidate: ['user', username, 'api_token'],
+      invalidate: [['user-overview'], ['user', username, 'api_token']],
     },
     onSuccess: (response) => {
       setToken(response.data.token);

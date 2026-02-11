@@ -11,6 +11,7 @@ use axum::{
 };
 use defguard_common::VERSION;
 use defguard_core::{
+    auth::failed_login::FailedLoginMap,
     handle_404,
     handlers::{component_setup::setup_proxy_tls_stream, settings::get_settings_essentials},
     health_check,
@@ -22,10 +23,12 @@ use tokio::{net::TcpListener, sync::oneshot::Sender};
 use tracing::{info, instrument};
 
 use crate::handlers::{
-    create_admin, create_ca, finish_setup, get_ca, set_general_config, upload_ca,
+    create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login, setup_session,
+    upload_ca,
 };
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
+    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     Router::<()>::new()
         .route("/", get(index))
         .route("/{*path}", get(index))
@@ -45,12 +48,15 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
                         .route("/ca/upload", post(upload_ca))
                         .route("/general_config", post(set_general_config))
                         .route("/admin", post(create_admin))
+                        .route("/login", post(setup_login))
+                        .route("/session", get(setup_session))
                         .route("/finish", post(finish_setup)),
                 ),
         )
         .fallback_service(get(handle_404))
         .layer(Extension(pool))
         .layer(Extension(version))
+        .layer(Extension(failed_logins))
         .layer(Extension(Arc::new(Mutex::new(Some(setup_shutdown_tx)))))
 }
 

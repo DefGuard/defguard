@@ -58,7 +58,7 @@ const ModalContent = ({ id, name, username }: OpenAuthKeyRenameModal) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.user.renameAuthKey,
     meta: {
-      invalidate: ['user', username, 'auth_key'],
+      invalidate: [['user-overview'], ['user', username, 'auth_key']],
     },
     onSuccess: () => {
       closeModal(modalNameKey);

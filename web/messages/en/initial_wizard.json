@@ -5,6 +5,7 @@
 	"initial_setup_welcome_title": "Welcome to Defguard initial configuration wizard.",
 	"initial_setup_welcome_subtitle": "This wizard walks you through the steps to configure your VPN connection with a simple and intuitive setup process.",
 	"initial_setup_welcome_button_configure": "Configure Defguard",
+  "initial_setup_login_subtitle": "Please enter your admin credentials to continue the setup wizard.",
 
 	"initial_setup_step_admin_user_label": "Create Admin User",
 	"initial_setup_step_admin_user_description": "Manage core details and connection parameters for your VPN location.",

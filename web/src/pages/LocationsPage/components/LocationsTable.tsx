@@ -204,7 +204,7 @@ export const LocationsTable = ({ locations }: Props) => {
                         onClick: async () => {
                           useGatewayWizardStore.getState().start({ network_id: row.id });
                           navigate({
-                            to: '/gateway-wizard',
+                            to: '/setup-gateway',
                           });
                         },
                       },

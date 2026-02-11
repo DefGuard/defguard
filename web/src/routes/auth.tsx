@@ -25,7 +25,7 @@ export const Route = createFileRoute('/auth')({
     // ensure that login is possible on the instance
     let settings = useApp.getState().settingsEssentials;
     // fill settings
-    if (!settings) {
+    if (!isPresent(settings)) {
       settings = (
         await context.queryClient.ensureQueryData(getSettingsEssentialsQueryOptions)
       ).data;
@@ -35,7 +35,7 @@ export const Route = createFileRoute('/auth')({
     }
     if (!settings.initial_setup_completed) {
       throw redirect({
-        to: '/setup-wizard',
+        to: '/setup',
         replace: true,
       });
     }

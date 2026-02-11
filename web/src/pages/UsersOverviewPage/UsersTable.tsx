@@ -91,21 +91,21 @@ export const UsersTable = ({ users }: Props) => {
   const { mutate: deleteUser } = useMutation({
     mutationFn: api.user.deleteUser,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
   const { mutate: changeAccountActiveState } = useMutation({
     mutationFn: api.user.activeStateChange,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
@@ -491,24 +491,25 @@ export const UsersTable = ({ users }: Props) => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {table.getIsSomeRowsSelected() && isPresent(groups) && (
-          <Button
-            variant="outlined"
-            text="Assign to a group"
-            iconLeft="add-group"
-            testId="bulk-assign"
-            onClick={() => {
-              const selected = table
-                .getSelectedRowModel()
-                .rows.map((row) => row.original.id);
-              openModal(ModalName.AssignGroupsToUsers, {
-                groups,
-                users: selected,
-              });
-              table.resetRowSelection();
-            }}
-          />
-        )}
+        {(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) &&
+          isPresent(groups) && (
+            <Button
+              variant="outlined"
+              text="Assign to a group"
+              iconLeft="add-group"
+              testId="bulk-assign"
+              onClick={() => {
+                const selected = table
+                  .getSelectedRowModel()
+                  .rows.map((row) => row.original.id);
+                openModal(ModalName.AssignGroupsToUsers, {
+                  groups,
+                  users: selected,
+                });
+                table.resetRowSelection();
+              }}
+            />
+          )}
         <Search
           placeholder={m.users_search_placeholder()}
           initialValue={search}

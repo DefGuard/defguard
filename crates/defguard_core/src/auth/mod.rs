@@ -17,6 +17,7 @@ use defguard_common::db::{
         OAuth2Token, Session, SessionState, Settings,
         group::{Group, Permission},
         oauth2client::OAuth2Client,
+        settings::InitialSetupStep,
         user::User,
     },
 };
@@ -220,8 +221,32 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let settings = Settings::get_current_settings();
         if !settings.initial_setup_completed {
-            return Ok(Self {});
+            // Allow unauthenticated access only up to the admin creation step.
+            if settings.initial_setup_step <= InitialSetupStep::AdminUser {
+                return Ok(Self {});
+            }
+            let session_info = SessionInfo::from_request_parts(parts, state).await?;
+            if !session_info.user.is_active {
+                return Err(WebError::Forbidden("user is disabled".into()));
+            }
+            if let Some(default_admin_id) = settings.default_admin_id {
+                if session_info.user.id == default_admin_id {
+                    return Ok(Self {});
+                }
+            }
+            let pool = extract_pool(parts, state).await?;
+            let groups_with_permission =
+                Group::find_by_permission(&pool, Permission::IsAdmin).await?;
+            let group_names = groups_with_permission
+                .iter()
+                .map(|group| group.name.as_str())
+                .collect::<Vec<_>>();
+            if session_info.contains_any_group(&group_names) {
+                return Ok(Self {});
+            }
+            return Err(WebError::Forbidden("access denied".into()));
         }
+
         let session_info = SessionInfo::from_request_parts(parts, state).await?;
         if !session_info.user.is_active {
             return Err(WebError::Forbidden("user is disabled".into()));

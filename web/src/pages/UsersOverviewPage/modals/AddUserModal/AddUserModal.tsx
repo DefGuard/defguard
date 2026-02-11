@@ -251,7 +251,7 @@ const AddUserModalForm = () => {
   const { mutateAsync: addUserMutation } = useMutation({
     mutationFn: api.user.addUser,
     meta: {
-      invalidate: ['user'],
+      invalidate: [['user-overview'], ['user']],
     },
   });
 
@@ -513,7 +513,7 @@ const AddUserGroupsSelectionStep = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: api.group.addUsersToGroups,
     meta: {
-      invalidate: [['group'], ['group-info'], ['users']],
+      invalidate: [['group'], ['group-info'], ['user'], ['user-overview']],
     },
     onSuccess: () => {
       if (enrollEnabled) {

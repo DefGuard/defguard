@@ -1,0 +1,45 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section>
+  <mj-column mj-class="s-3xl">
+    <mj-text>
+      <p class="fg-white-c t-titles-h1" style="background-color: #3961DB; padding: 16px;display: inline-block;margin:0;">
+        356659
+      </p>
+    </mj-text>
+  </mj-column>
+</mj-section>
+<mj-section mj-class="s-lg">
+  <mj-column width="20px">
+    <mj-image src="cid:otp" alt="One time passcode" width="20px" height="20px" />
+  </mj-column>
+  <mj-column width="12px">
+
+  </mj-column>
+  <mj-column width="568px">
+    <mj-text mj-class="t-body-sm-400" css-class="fg-muted-c">
+      {{ code_is_valid }}
+    </mj-text>
+  </mj-column>
+</mj-section>
+<mj-section>
+  <mj-column width="20px">
+    <mj-image src="cid:date" alt="Clock" width="20px" height="20px" />
+  </mj-column>
+  <mj-column width="12px">
+
+  </mj-column>
+  <mj-column width="568px">
+    <mj-text mj-class="t-body-sm-400" css-class="fg-muted-c">
+      {{ datetime }}
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}

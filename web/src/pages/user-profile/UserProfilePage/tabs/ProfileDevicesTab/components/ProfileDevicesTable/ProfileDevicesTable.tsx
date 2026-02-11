@@ -101,7 +101,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   const { mutate: deleteDevice } = useMutation({
     mutationFn: api.device.deleteDevice,
     meta: {
-      invalidate: ['user', username],
+      invalidate: [['user-overview'], ['user', username]],
     },
   });
 
