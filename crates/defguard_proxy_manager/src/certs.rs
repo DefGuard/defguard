@@ -17,13 +17,13 @@ use x509_parser::parse_x509_certificate;
 use crate::error::ProxyError;
 
 #[derive(Debug)]
-struct CrlVerifier {
+struct CertVerifier {
     inner: Arc<dyn ServerCertVerifier>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     proxy_id: Id,
 }
 
-impl CrlVerifier {
+impl CertVerifier {
     fn new(
         inner: Arc<dyn ServerCertVerifier>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -36,7 +36,7 @@ impl CrlVerifier {
         }
     }
 
-    fn check_revocation(&self, end_entity: &CertificateDer<'_>) -> Result<(), RustlsError> {
+    fn verify(&self, end_entity: &CertificateDer<'_>) -> Result<(), RustlsError> {
         let (_, cert) = parse_x509_certificate(end_entity.as_ref())
             .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
         let serial = cert.tbs_certificate.raw_serial_as_string();
@@ -56,7 +56,7 @@ impl CrlVerifier {
     }
 }
 
-impl ServerCertVerifier for CrlVerifier {
+impl ServerCertVerifier for CertVerifier {
     fn verify_server_cert(
         &self,
         end_entity: &CertificateDer<'_>,
@@ -72,7 +72,7 @@ impl ServerCertVerifier for CrlVerifier {
             ocsp_response,
             now,
         )?;
-        self.check_revocation(end_entity)?;
+        self.verify(end_entity)?;
         Ok(ServerCertVerified::assertion())
     }
 
@@ -129,7 +129,7 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
     Ok(roots)
 }
 
-pub(crate) fn client_config_with_crl(
+pub(crate) fn client_config(
     ca_cert_der: &[u8],
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     proxy_id: Id,
@@ -150,6 +150,6 @@ pub(crate) fn client_config_with_crl(
     let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
-        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, certs_rx, proxy_id)));
+        .set_certificate_verifier(Arc::new(CertVerifier::new(verifier, certs_rx, proxy_id)));
     Ok(config)
 }

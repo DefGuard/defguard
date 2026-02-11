@@ -65,9 +65,7 @@ use tonic::{
 };
 
 use crate::{
-    ProxyError, ProxyTxSet,
-    certs::client_config_with_crl,
-    servers::{enrollment::EnrollmentServer, password_reset::PasswordResetServer},
+    ProxyError, ProxyTxSet, certs::client_config, servers::{enrollment::EnrollmentServer, password_reset::PasswordResetServer}
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -266,7 +264,7 @@ impl ProxyHandler {
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config = client_config_with_crl(&ca_cert_der, certs_rx.clone(), self.proxy_id)?;
+            let tls_config = client_config(&ca_cert_der, certs_rx.clone(), self.proxy_id)?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()
