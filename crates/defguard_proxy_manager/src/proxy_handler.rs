@@ -73,23 +73,6 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum Scheme {
-    #[allow(dead_code)]
-    Http,
-    Https,
-}
-
-impl Scheme {
-    #[must_use]
-    pub const fn as_str(&self) -> &str {
-        match self {
-            Self::Http => "http",
-            Self::Https => "https",
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub(crate) struct HttpsSchemeConnector<C> {
     inner: C,
@@ -230,11 +213,11 @@ impl ProxyHandler {
         Ok(())
     }
 
-    fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, ProxyError> {
+    fn endpoint(&self) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
-        url.set_scheme(scheme.as_str()).map_err(|()| {
-            ProxyError::UrlError(format!("Failed to set {scheme:?} scheme on URL {url}"))
+        url.set_scheme("http").map_err(|()| {
+            ProxyError::UrlError(format!("Failed to set http scheme on URL {url}"))
         })?;
         let endpoint = Endpoint::from_shared(url.to_string())?;
         let endpoint = endpoint
@@ -257,7 +240,7 @@ impl ProxyHandler {
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<(), ProxyError> {
         loop {
-            let endpoint = self.endpoint(Scheme::Http)?;
+            let endpoint = self.endpoint()?;
             let settings = Settings::get_current_settings();
             let Some(ca_cert_der) = settings.ca_cert_der else {
                 return Err(ProxyError::MissingConfiguration(
