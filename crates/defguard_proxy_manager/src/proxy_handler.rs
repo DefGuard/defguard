@@ -152,7 +152,7 @@ pub(crate) struct ProxyHandler {
     /// Proxy server gRPC URL
     pub url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
-    proxy_id: Option<Id>,
+    proxy_id: Id,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
 
@@ -164,7 +164,7 @@ impl ProxyHandler {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
-        proxy_id: Option<Id>,
+        proxy_id: Id,
     ) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
@@ -196,20 +196,12 @@ impl ProxyHandler {
             remote_mfa_responses,
             sessions,
             shutdown_signal,
-            Some(proxy_id),
+            proxy_id,
         ))
     }
 
     async fn mark_connected(&self, version: &Version) -> Result<(), ProxyError> {
-        let Some(proxy_id) = self.proxy_id else {
-            warn!(
-                "Skipping marking connection time for proxy without id: {}",
-                self.url
-            );
-            return Ok(());
-        };
-
-        if let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? {
+        if let Some(mut proxy) = Proxy::find_by_id(&self.pool, self.proxy_id).await? {
             proxy
                 .mark_connected(&self.pool, &version.to_string())
                 .await?;
@@ -221,15 +213,7 @@ impl ProxyHandler {
     }
 
     async fn mark_disconnected(&self) -> Result<(), ProxyError> {
-        let Some(proxy_id) = self.proxy_id else {
-            warn!(
-                "Skipping marking connection time for proxy without id: {}",
-                self.url
-            );
-            return Ok(());
-        };
-
-        let Some(mut proxy) = Proxy::find_by_id(&self.pool, proxy_id).await? else {
+        let Some(mut proxy) = Proxy::find_by_id(&self.pool, self.proxy_id).await? else {
             warn!("Couldn't find proxy by id, URL: {}", self.url);
             return Ok(());
         };

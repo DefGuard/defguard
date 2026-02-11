@@ -20,14 +20,14 @@ use crate::error::ProxyError;
 struct CrlVerifier {
     inner: Arc<dyn ServerCertVerifier>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-    proxy_id: Option<Id>,
+    proxy_id: Id,
 }
 
 impl CrlVerifier {
     fn new(
         inner: Arc<dyn ServerCertVerifier>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-        proxy_id: Option<Id>,
+        proxy_id: Id,
     ) -> Self {
         Self {
             inner,
@@ -41,17 +41,14 @@ impl CrlVerifier {
             .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
         let serial = cert.tbs_certificate.raw_serial_as_string();
         let certs = self.certs_rx.borrow();
-        let Some(proxy_id) = self.proxy_id else {
-            error!("Missing proxy id for certificate verification");
-            return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
-        };
-        let Some(expected) = certs.get(&proxy_id) else {
-            error!("Missing expected certificate for proxy: {proxy_id}");
+        let Some(expected) = certs.get(&self.proxy_id) else {
+            error!("Missing expected certificate for proxy: {}", self.proxy_id);
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         };
         if !expected.eq_ignore_ascii_case(&serial) {
             error!(
-                "Invalid certificate for proxy {proxy_id}: expected={expected} got={serial}"
+                "Invalid certificate for proxy {}: expected={expected} got={serial}",
+                self.proxy_id
             );
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         }
@@ -135,7 +132,7 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
 pub(crate) fn client_config_with_crl(
     ca_cert_der: &[u8],
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-    proxy_id: Option<Id>,
+    proxy_id: Id,
 ) -> Result<rustls::ClientConfig, ProxyError> {
     let provider = Arc::new(crypto::aws_lc_rs::default_provider());
     let roots = root_store_from_ca(ca_cert_der)?;
@@ -153,8 +150,6 @@ pub(crate) fn client_config_with_crl(
     let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
-        .set_certificate_verifier(Arc::new(CrlVerifier::new(
-            verifier, certs_rx, proxy_id,
-        )));
+        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, certs_rx, proxy_id)));
     Ok(config)
 }
