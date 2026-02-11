@@ -1,18 +1,14 @@
 use std::{
     collections::HashMap,
-    str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
 };
 
-use defguard_common::{
-    config::server_config, db::models::proxy::Proxy, types::proxy::ProxyControlMessage,
-};
+use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use defguard_core::{
     events::BidiStreamEvent, grpc::gateway::events::GatewayEvent, version::IncompatibleComponents,
 };
 use defguard_mail::Mail;
-use reqwest::Url;
 use sqlx::PgPool;
 use tokio::{
     select,
@@ -83,7 +79,7 @@ impl ProxyManager {
         });
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
-        let mut proxies = Proxy::all(&self.pool)
+        let proxies = Proxy::all(&self.pool)
             .await?
             .iter()
             .map(|proxy| {
@@ -100,24 +96,6 @@ impl ProxyManager {
             })
             .collect::<Result<Vec<_>, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
-
-        // For backwards compatibility add the proxy specified in cli arg as well.
-        if let Some(ref url) = server_config().proxy_url {
-            debug!("Adding proxy from cli arg: {url}");
-            let url = Url::from_str(url)?;
-            let proxy = ProxyHandler::new(
-                self.pool.clone(),
-                url,
-                &self.tx,
-                Arc::clone(&remote_mfa_responses),
-                Arc::clone(&sessions),
-                // Currently we can't shutdown this proxy since it was started via CLI arguments (no ID in DB)
-                // This should be removed when we do a proper import of old proxies
-                Arc::new(Mutex::new(None)),
-                None,
-            );
-            proxies.push(proxy);
-        }
 
         // Connect to all proxies.
         let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
