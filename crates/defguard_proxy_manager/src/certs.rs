@@ -3,8 +3,10 @@ use std::{collections::HashMap, sync::Arc};
 use defguard_common::db::{Id, models::proxy::Proxy};
 use rustls::{
     CertificateError, DistinguishedName, Error as RustlsError, RootCertStore, SignatureScheme,
-    client::WebPkiServerVerifier,
-    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    client::{
+        WebPkiServerVerifier,
+        danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    },
     crypto,
     pki_types::{CertificateDer, ServerName, UnixTime},
 };
@@ -12,7 +14,7 @@ use sqlx::PgPool;
 use tokio::sync::watch;
 use x509_parser::parse_x509_certificate;
 
-use crate::ProxyError;
+use crate::error::ProxyError;
 
 #[derive(Debug)]
 struct CrlVerifier {
@@ -25,10 +27,7 @@ impl CrlVerifier {
         inner: Arc<dyn ServerCertVerifier>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Self {
-        Self {
-            inner,
-            certs_rx: certs_rx,
-        }
+        Self { inner, certs_rx }
     }
 
     fn check_revocation(&self, end_entity: &CertificateDer<'_>) -> Result<(), RustlsError> {

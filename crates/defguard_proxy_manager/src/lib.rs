@@ -9,14 +9,11 @@ use defguard_common::{
     config::server_config, db::models::proxy::Proxy, types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    db::models::enrollment::TokenError, events::BidiStreamEvent,
-    grpc::gateway::events::GatewayEvent, version::IncompatibleComponents,
+    events::BidiStreamEvent, grpc::gateway::events::GatewayEvent, version::IncompatibleComponents,
 };
 use defguard_mail::Mail;
-use openidconnect::url;
 use reqwest::Url;
 use sqlx::PgPool;
-use thiserror::Error;
 use tokio::{
     select,
     sync::{
@@ -29,44 +26,15 @@ use tokio::{
     time::interval,
 };
 
-use crate::{certs::refresh_certs, proxy_handler::ProxyHandler};
+use crate::{certs::refresh_certs, error::ProxyError, proxy_handler::ProxyHandler};
 
 mod certs;
+mod error;
 mod proxy_handler;
 pub(crate) mod servers;
 
 #[macro_use]
 extern crate tracing;
-
-#[derive(Error, Debug)]
-pub enum ProxyError {
-    #[error(transparent)]
-    InvalidUriError(#[from] axum::http::uri::InvalidUri),
-    #[error("Failed to read CA certificate: {0}")]
-    CaCertReadError(std::io::Error),
-    #[error(transparent)]
-    TonicError(#[from] tonic::transport::Error),
-    #[error(transparent)]
-    SemverError(#[from] semver::Error),
-    #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
-    #[error(transparent)]
-    TokenError(#[from] TokenError),
-    #[error(transparent)]
-    CertificateError(#[from] defguard_certs::CertificateError),
-    #[error(transparent)]
-    UrlParseError(#[from] url::ParseError),
-    #[error("Missing proxy configuration: {0}")]
-    MissingConfiguration(String),
-    #[error("URL error: {0}")]
-    UrlError(String),
-    #[error(transparent)]
-    Transport(#[from] tonic::Status),
-    #[error("Connection timeout: {0}")]
-    ConnectionTimeout(String),
-    #[error("TLS config error: {0}")]
-    TlsConfigError(String),
-}
 
 /// Coordinates communication between the Core and multiple proxy instances.
 ///
