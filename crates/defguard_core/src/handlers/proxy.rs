@@ -172,7 +172,7 @@ pub(crate) async fn delete_proxy(
     // Disconnect the proxy
     if let Err(err) = appstate
         .proxy_control_tx
-        .send(ProxyControlMessage::ShutdownConnection(proxy.id))
+        .send(ProxyControlMessage::Delete(proxy.id))
         .await
     {
         error!(

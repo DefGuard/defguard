@@ -375,13 +375,21 @@ impl ProxyHandler {
                         sleep(TEN_SECS).await;
                     }
                     res = shutdown_signal => {
-                        if let Err(err) = res {
-                            error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
-                        } else {
-                            info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
-                        }
-                        if let Some(client) = self.client.as_mut() {
-                            client.reset(Request::new(())).await?;
+                        match res {
+                            Err(err) => {
+                                error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
+                            }
+                            Ok(delete) => {
+                                info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
+                                if delete {
+                                    debug!("Sending reset request to proxy {}", endpoint.uri());
+                                    if let Some(client) = self.client.as_mut() {
+                                        if let Err(err) = client.reset(Request::new(())).await {
+                                            error!("Error sending reset request to proxy {}: {err}", endpoint.uri());
+                                        }
+                                    }
+                                }
+                            }
                         }
                         self.mark_disconnected().await?;
                         break;
