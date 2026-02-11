@@ -282,7 +282,11 @@ impl ProxyHandler {
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config = client_config_with_crl(&ca_cert_der, certs_rx.clone())?;
+            let tls_config = client_config_with_crl(
+                &ca_cert_der,
+                certs_rx.clone(),
+                self.proxy_id,
+            )?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()

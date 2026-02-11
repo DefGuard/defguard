@@ -20,14 +20,20 @@ use crate::error::ProxyError;
 struct CrlVerifier {
     inner: Arc<dyn ServerCertVerifier>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    proxy_id: Option<Id>,
 }
 
 impl CrlVerifier {
     fn new(
         inner: Arc<dyn ServerCertVerifier>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+        proxy_id: Option<Id>,
     ) -> Self {
-        Self { inner, certs_rx }
+        Self {
+            inner,
+            certs_rx,
+            proxy_id,
+        }
     }
 
     fn check_revocation(&self, end_entity: &CertificateDer<'_>) -> Result<(), RustlsError> {
@@ -35,10 +41,18 @@ impl CrlVerifier {
             .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
         let serial = cert.tbs_certificate.raw_serial_as_string();
         let certs = self.certs_rx.borrow();
-        // TODO(jck) verify this specific proxy
-        let serials: Vec<_> = certs.values().collect();
-        if !serials.contains(&&serial) {
-            error!("Invalid certificate: {serial}");
+        let Some(proxy_id) = self.proxy_id else {
+            error!("Missing proxy id for certificate verification");
+            return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
+        };
+        let Some(expected) = certs.get(&proxy_id) else {
+            error!("Missing expected certificate for proxy: {proxy_id}");
+            return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
+        };
+        if !expected.eq_ignore_ascii_case(&serial) {
+            error!(
+                "Invalid certificate for proxy {proxy_id}: expected={expected} got={serial}"
+            );
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         }
         Ok(())
@@ -121,6 +135,7 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
 pub(crate) fn client_config_with_crl(
     ca_cert_der: &[u8],
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    proxy_id: Option<Id>,
 ) -> Result<rustls::ClientConfig, ProxyError> {
     let provider = Arc::new(crypto::aws_lc_rs::default_provider());
     let roots = root_store_from_ca(ca_cert_der)?;
@@ -138,6 +153,8 @@ pub(crate) fn client_config_with_crl(
     let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
-        .set_certificate_verifier(Arc::new(CrlVerifier::new(verifier, certs_rx)));
+        .set_certificate_verifier(Arc::new(CrlVerifier::new(
+            verifier, certs_rx, proxy_id,
+        )));
     Ok(config)
 }
