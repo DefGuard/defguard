@@ -103,16 +103,20 @@ impl ServerCertVerifier for CertVerifier {
     }
 }
 
+fn collect_certs<I>(items: I) -> HashMap<Id, String>
+where
+    I: IntoIterator<Item = (Id, Option<String>)>,
+{
+    items
+        .into_iter()
+        .filter_map(|(id, cert)| cert.map(|cert| (id, cert)))
+        .collect()
+}
+
 pub(crate) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<Id, String>>>) {
     match Proxy::list(pool).await {
         Ok(proxies) => {
-            let mut certs = HashMap::new();
-            for proxy in proxies {
-                let Some(cert) = proxy.certificate else {
-                    continue;
-                };
-                certs.insert(proxy.id, cert);
-            }
+            let certs = collect_certs(proxies.into_iter().map(|proxy| (proxy.id, proxy.certificate)));
             let _ = tx.send(Arc::new(certs));
         }
         Err(err) => {
@@ -152,4 +156,110 @@ pub(crate) fn client_config(
         .dangerous()
         .set_certificate_verifier(Arc::new(CertVerifier::new(verifier, certs_rx, proxy_id)));
     Ok(config)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use defguard_certs::{CertificateAuthority, Csr, DnType, generate_key_pair};
+    use rustls::client::danger::HandshakeSignatureValid;
+
+    #[derive(Debug)]
+    struct NoopVerifier;
+
+    impl ServerCertVerifier for NoopVerifier {
+        fn verify_server_cert(
+            &self,
+            _end_entity: &CertificateDer<'_>,
+            _intermediates: &[CertificateDer<'_>],
+            _server_name: &ServerName<'_>,
+            _ocsp_response: &[u8],
+            _now: UnixTime,
+        ) -> Result<ServerCertVerified, RustlsError> {
+            Ok(ServerCertVerified::assertion())
+        }
+
+        fn verify_tls12_signature(
+            &self,
+            _message: &[u8],
+            _cert: &CertificateDer<'_>,
+            _dss: &rustls::DigitallySignedStruct,
+        ) -> Result<HandshakeSignatureValid, RustlsError> {
+            Ok(HandshakeSignatureValid::assertion())
+        }
+
+        fn verify_tls13_signature(
+            &self,
+            _message: &[u8],
+            _cert: &CertificateDer<'_>,
+            _dss: &rustls::DigitallySignedStruct,
+        ) -> Result<HandshakeSignatureValid, RustlsError> {
+            Ok(HandshakeSignatureValid::assertion())
+        }
+
+        fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+            Vec::new()
+        }
+
+        fn root_hint_subjects(&self) -> Option<&[DistinguishedName]> {
+            None
+        }
+    }
+
+    fn make_cert_and_serial() -> (CertificateDer<'static>, String) {
+        let ca = CertificateAuthority::new("Defguard CA", "test@example.com", 30).unwrap();
+        let key_pair = generate_key_pair().unwrap();
+        let csr = Csr::new(
+            &key_pair,
+            &["proxy.local".to_string()],
+            vec![(DnType::CommonName, "proxy.local")],
+        )
+        .unwrap();
+        let cert = ca.sign_csr(&csr).unwrap();
+        let cert_der = CertificateDer::from(cert.der().to_vec());
+        let (_, parsed) = parse_x509_certificate(cert_der.as_ref()).unwrap();
+        let serial = parsed.tbs_certificate.raw_serial_as_string();
+        (cert_der, serial)
+    }
+
+    #[test]
+    fn collect_certs_skips_missing() {
+        let certs = collect_certs(vec![(1, None), (2, Some("abc".to_string()))]);
+        assert_eq!(certs.len(), 1);
+        assert_eq!(certs.get(&2), Some(&"abc".to_string()));
+    }
+
+    #[test]
+    fn verify_accepts_expected_serial() {
+        let (cert_der, serial) = make_cert_and_serial();
+        let (_tx, rx) = watch::channel(Arc::new(HashMap::from([(1, serial.clone())])));
+        let verifier = CertVerifier::new(Arc::new(NoopVerifier), rx, 1);
+        let result = verifier.verify(&cert_der);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn verify_rejects_missing_expected_cert() {
+        let (cert_der, serial) = make_cert_and_serial();
+        let (_tx, rx) = watch::channel(Arc::new(HashMap::from([(2, serial)])));
+        let verifier = CertVerifier::new(Arc::new(NoopVerifier), rx, 1);
+        let result = verifier.verify(&cert_der);
+        assert!(matches!(
+            result,
+            Err(RustlsError::InvalidCertificate(CertificateError::Revoked))
+        ));
+    }
+
+    #[test]
+    fn verify_rejects_mismatched_serial() {
+        let (cert_der, _serial) = make_cert_and_serial();
+        let (_tx, rx) = watch::channel(Arc::new(HashMap::from([(1, "deadbeef".to_string())])));
+        let verifier = CertVerifier::new(Arc::new(NoopVerifier), rx, 1);
+        let result = verifier.verify(&cert_der);
+        assert!(matches!(
+            result,
+            Err(RustlsError::InvalidCertificate(CertificateError::Revoked))
+        ));
+    }
 }
