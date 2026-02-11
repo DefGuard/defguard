@@ -153,8 +153,8 @@ impl ProxyManager {
                                 warn!("No shutdown channel found for proxy ID: {id}");
                             }
                         }
-                        Some(ProxyControlMessage::Delete(id)) => {
-                            debug!("Deleting proxy with ID: {id}");
+                        Some(ProxyControlMessage::Purge(id)) => {
+                            debug!("Purging proxy with ID: {id}");
                             if let Some(shutdown_tx) = shutdown_channels.remove(&id) {
                                 let _ = shutdown_tx.send(true);
                             } else {

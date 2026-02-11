@@ -361,13 +361,13 @@ impl ProxyHandler {
                             Err(err) => {
                                 error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
                             }
-                            Ok(delete) => {
-                                info!("Shutdown signal received, stopping proxy connection to {}", endpoint.uri());
-                                if delete {
-                                    debug!("Sending reset request to proxy {}", endpoint.uri());
+                            Ok(purge) => {
+                                info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
+                                if purge {
+                                    debug!("Sending purge request to proxy {}", endpoint.uri());
                                     if let Some(client) = self.client.as_mut() {
-                                        if let Err(err) = client.reset(Request::new(())).await {
-                                            error!("Error sending reset request to proxy {}: {err}", endpoint.uri());
+                                        if let Err(err) = client.purge(Request::new(())).await {
+                                            error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
                                         }
                                     }
                                 }
