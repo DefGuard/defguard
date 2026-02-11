@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   core:
     image: ghcr.io/defguard/defguard:latest
@@ -7,11 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DEFGUARD_LDAP_URL: ldap://openldap:1389
-      DEFGUARD_LDAP_BIND_USERNAME: cn=user,ou=users,dc=example,dc=org
-      DEFGUARD_LDAP_BIND_PASSWORD: user
-      DEFGUARD_LDAP_USER_SEARCH_BASE: "ou=users,dc=example,dc=org"
-      DEFGUARD_LDAP_GROUP_SEARCH_BASE: "ou=groups,dc=example,dc=org"
+      DEFGUARD_COOKIE_INSECURE: "true"
+      DEFGUARD_SECRET_KEY: aa5a506b11d719dd7170f57f5d9947faf8eb0bc2be1325e42aa0237c3dcfd26456e73dff9eef3b12c7bcf8711b45e3e703d8e21ee1c08520f5e12e3f5772da94
       DEFGUARD_AUTH_SECRET: defguard-auth-secret
       DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret
       DEFGUARD_YUBIBRIDGE_SECRET: defguard-yubibridge-secret
@@ -20,7 +15,7 @@ services:
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
-      DEFGUARD_URL: http://localhost:3000
+      DEFGUARD_URL: http://localhost:8000
       RUST_BACKTRACE: 1
     ports:
       # rest api
@@ -46,7 +41,7 @@ services:
       - NET_ADMIN
 
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
@@ -58,27 +53,46 @@ services:
 
   device:
     build:
-      dockerfile: Dockerfile.device
       context: .
+      dockerfile: Dockerfile.device
     depends_on:
       - gateway
     cap_add:
       - NET_ADMIN
 
+  vector:
+    image: timberio/vector:latest-alpine
+    profiles:
+      - observability
+    container_name: vector
+    volumes:
+      - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
+      - ./configs/key.pem:/etc/vector/key.pem:ro
+      - ./configs/cert.pem:/etc/vector/cert.pem:ro
+    command: ["--config", "/etc/vector/vector.yaml"]
+    ports:
+      - "8686:8686"
+      - "8001:8001"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.14.0
+    profiles:
+      - observability
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+
   openldap:
-    image: bitnami/openldap:2.6
+    image: bitnamilegacy/openldap:2.6
     user: root
     restart: unless-stopped
     environment:
-      LDAP_EXTRA_SCHEMAS: "cosine,inetorgperson,nis,openssh-lpk_openldap,samba,gnupg-ldap-schema,orion"
+      LDAP_ADMIN_PASSWORD: "pass123"
     ports:
       - "389:1389"
     volumes:
-      - ./ldap-initdb.d:/docker-entrypoint-initdb.d:ro
-      - ./ldif/gnupg-ldap-schema.ldif:/opt/bitnami/openldap/etc/schema/gnupg-ldap-schema.ldif:ro
-      - ./ldif/openssh-lpk_openldap.ldif:/opt/bitnami/openldap/etc/schema/openssh-lpk_openldap.ldif:ro
-      - ./ldif/orion.ldif:/opt/bitnami/openldap/etc/schema/orion.ldif:ro
-      - ./ldif/samba.ldif:/opt/bitnami/openldap/etc/schema/samba.ldif:ro
-      - ./ldif/init.ldif:/ldifs/init.ldif:ro
-      - ./ldif/custom.ldif:/schema/custom.ldif:ro
-      - ./.volumes_ldap/openldap:/bitnami/openldap
+      - ./ldap/entrypoint:/docker-entrypoint-initdb.d:ro
+      - ./ldap/init.ldif:/ldifs/init.ldif:ro
+      - ./ldap/custom.ldif:/schema/custom.ldif:ro
+      - ./.volumes/openldap:/bitnami/openldap

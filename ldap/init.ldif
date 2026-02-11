@@ -1,0 +1,15 @@
+dn: dc=example,dc=org
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+dc: example
+o: Example Org
+
+dn: ou=users,dc=example,dc=org
+objectClass: organizationalUnit
+ou: users
+
+dn: ou=groups,dc=example,dc=org
+ou: groups
+objectClass: organizationalUnit
+objectClass: top
