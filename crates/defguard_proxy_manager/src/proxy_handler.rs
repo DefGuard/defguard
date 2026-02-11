@@ -216,7 +216,8 @@ impl ProxyHandler {
     fn endpoint(&self) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
-        url.set_scheme("http").map_err(|()| {
+        // Using http here because the connector upgrades to TLS internally.
+        url.set_scheme(&http::uri::Scheme::HTTP.to_string()).map_err(|()| {
             ProxyError::UrlError(format!("Failed to set http scheme on URL {url}"))
         })?;
         let endpoint = Endpoint::from_shared(url.to_string())?;
