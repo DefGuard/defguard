@@ -8,6 +8,7 @@ use crate::db::Id;
 pub enum ProxyControlMessage {
     StartConnection(Id),
     ShutdownConnection(Id),
+    Delete(Id),
 }
 
 #[derive(ToSchema, Serialize)]

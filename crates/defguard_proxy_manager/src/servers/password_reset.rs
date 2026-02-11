@@ -22,7 +22,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::{UnboundedSender, error::SendError};
 use tonic::Status;
 
-pub(super) struct PasswordResetServer {
+pub(crate) struct PasswordResetServer {
     pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
