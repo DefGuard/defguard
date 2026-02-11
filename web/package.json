@@ -61,7 +61,7 @@
     "@tanstack/react-virtual": "3.13.12",
     "@tanstack/virtual-core": "3.13.12",
     "@use-gesture/react": "^10.3.1",
-    "axios": "^1.13.4",
+    "axios": "^1.13.5",
     "byte-size": "^9.0.1",
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
