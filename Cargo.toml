@@ -48,6 +48,7 @@ chrono = { version = "0.4", default-features = false, features = [
 claims = "0.8"
 clap = { version = "4.5", features = ["derive", "env"] }
 futures = "0.3"
+http = "1.4"
 humantime = "2.1"
 # match version used by sqlx
 ipnetwork = "0.20"
@@ -67,9 +68,11 @@ prost = "0.14"
 pulldown-cmark = "0.13"
 # match version used by sqlx
 rand = "0.8"
+rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
 rust-ini = "0.21"
+rustls-pki-types = "1.13"
 semver = { version = "1.0", features = ["serde"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -126,8 +129,7 @@ webauthn-rs = { version = "0.5", features = [
 ] }
 webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
-rustls-pki-types = "1.13"
+x509-parser = "0.18"
 
 [profile.release]
 codegen-units = 1

@@ -15,4 +15,4 @@ rustls-pki-types.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 time.workspace = true
-x509-parser = "0.18"
+x509-parser.workspace = true
