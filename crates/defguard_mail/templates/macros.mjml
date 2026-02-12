@@ -7,7 +7,7 @@
     {% set title_spacing = "s-3xl" %}
     {% endif %}
     <mj-text mj-class="t-title-h3 {{ title_spacing }}" css-class="fg-default-c">
-      {{ title }}
+      {{ title }} {% if username %}{{ username }}{% endif %}
     </mj-text>
     {% if subtitle %}
     <mj-text mj-class="t-body-primary-400 s-3xl" css-class="fg-neutral-c">

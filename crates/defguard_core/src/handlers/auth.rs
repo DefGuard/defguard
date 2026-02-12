@@ -20,6 +20,7 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
+use defguard_mail::templates::mfa_code_mail;
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
 use uaparser::Parser;
@@ -41,9 +42,7 @@ use crate::{
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
         SIGN_IN_COOKIE_NAME,
-        mail::{
-            send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
-        },
+        mail::{send_email_mfa_activation_email, send_mfa_configured_email},
         user_for_admin_or_self,
     },
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
@@ -841,7 +840,16 @@ pub async fn request_email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!("Sending email MFA code for user {}", user.username);
         if user.email_mfa_enabled {
-            send_email_mfa_code_email(&user, Some(&session.into()))?;
+            let mut transaction = appstate.pool.begin().await?;
+            let code = user.generate_email_mfa_code()?;
+            mfa_code_mail(
+                &user.email,
+                &mut transaction,
+                &user.first_name,
+                &code,
+                Some(&session.into()),
+            )
+            .await?;
             info!("Sent email MFA code for user {}", user.username);
             Ok(ApiResponse::default())
         } else {

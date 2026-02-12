@@ -18,6 +18,7 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
+use defguard_mail::templates::mfa_code_mail;
 use defguard_proto::proxy::{
     self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse, ClientMfaFinishRequest,
     ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
@@ -40,7 +41,6 @@ use crate::{
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{gateway::events::GatewayEvent, utils::parse_client_ip_agent},
-    handlers::mail::send_email_mfa_code_email,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -264,14 +264,24 @@ impl ClientMfaServer {
                         "selected MFA method not available",
                     ));
                 }
-                // send email code
-                send_email_mfa_code_email(&user, None).map_err(|err| {
-                    error!(
-                        "Failed to send email MFA code for user {}: {err}",
-                        user.username
-                    );
-                    Status::internal("unexpected error")
+                // Generate the code and send it via email.
+                let code = user.generate_email_mfa_code().map_err(|err| {
+                    error!("Failed to generate email MFA code: {err}");
+                    Status::internal("MFA code")
                 })?;
+                let mut transaction = self.pool.begin().await.map_err(|err| {
+                    error!("Database error: {err}");
+                    Status::internal("database error")
+                })?;
+                mfa_code_mail(&user.email, &mut transaction, &user.first_name, &code, None)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to send email MFA code for user {}: {err}",
+                            user.username
+                        );
+                        Status::internal("unexpected error")
+                    })?;
             }
             MfaMethod::Oidc => {
                 if !is_business_license_active() {

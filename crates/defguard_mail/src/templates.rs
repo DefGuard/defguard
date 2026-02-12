@@ -35,6 +35,10 @@ static NEW_DEVICE_SUBJECT: &str = "Defguard: new device added to your account";
 static NEW_DEVICE_MJML: &str = include_str!("../templates/new-device.mjml");
 // static NEW_DEVICE_TEXT: &str = include_str!("../templates/new-device.text");
 
+static MFA_CODE_SUBJECT: &str = "Defguard: Multi-Factor Authentication code for login";
+static MFA_CODE_MJML: &str = include_str!("../templates/mfa-code.mjml");
+// static MFA_CODE_TEXT: &str = include_str!("../templates/mfa-code.text");
+
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.mjml");
@@ -52,7 +56,6 @@ static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
     include_str!("../templates/mail_new_device_ocid_login.tera");
 static MAIL_EMAIL_MFA_ACTIVATION: &str =
     include_str!("../templates/mail_email_mfa_activation.tera");
-static MAIL_EMAIL_MFA_CODE: &str = include_str!("../templates/mail_email_mfa_code.tera");
 static MAIL_PASSWORD_RESET_START: &str =
     include_str!("../templates/mail_password_reset_start.tera");
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
@@ -439,22 +442,44 @@ pub fn email_mfa_activation_mail(
     Ok(tera.render("mail_email_mfa_activation", &context)?)
 }
 
-pub fn email_mfa_code_mail(
-    user: &UserContext,
+pub async fn mfa_code_mail(
+    to: &str,
+    transaction: &mut PgConnection,
+    first_name: &str,
     code: &str,
     session: Option<&SessionContext>,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), session, None, None)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
     let settings = Settings::get_current_settings();
     let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
     ));
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
-    context.insert("name", &user.first_name);
-    tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
+    context.insert("username", first_name);
+    context.insert(
+        "datetime",
+        &Utc::now().format(MAIL_DATETIME_FORMAT).to_string(),
+    );
 
-    Ok(tera.render("mail_email_mfa_code", &context)?)
+    let template = "mfa-code";
+    tera.add_raw_template(template, MFA_CODE_MJML)?;
+    let db_context = MailContext::all_for_template(transaction, template, DEFAULT_LANG)
+        .await
+        .unwrap();
+    for c in db_context {
+        context.insert(c.section, &c.text);
+    }
+
+    // TODO: Move to Mail once every message is converted to MJML.
+    let processed = tera.render(template, &context)?;
+    let parsed = mrml::parse(processed)?;
+    let opts = mrml::prelude::render::RenderOptions::default();
+    let html = parsed.element.render(&opts)?;
+
+    Mail::new(to, MFA_CODE_SUBJECT, html).send_and_forget();
+
+    Ok(())
 }
 
 pub fn email_password_reset_mail(

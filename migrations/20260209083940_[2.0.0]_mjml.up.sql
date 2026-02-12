@@ -15,6 +15,6 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('new-device', 'title', 'en_US', 'A new device has been add to your account:'),
     ('new-device', 'label_device', 'en_US', 'Device name'),
     ('new-device', 'label_pubkey', 'en_US', 'Public key'),
-    ('mfa-code', 'title', 'en_US', 'Hello, {username}'),
+    ('mfa-code', 'title', 'en_US', 'Hello,'),
     ('mfa-code', 'subtitle', 'en_US', 'It seems like you are trying to login to Defguard. Here is the code you need to access your account.'),
     ('mfa-code', 'code_is_valid', 'en_US', 'The code is valid for 1 minute');
