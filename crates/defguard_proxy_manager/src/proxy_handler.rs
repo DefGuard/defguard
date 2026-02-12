@@ -64,7 +64,9 @@ use tonic::{
 };
 
 use crate::{
-    ProxyError, ProxyTxSet, TEN_SECS, certs::client_config, servers::{EnrollmentServer, PasswordResetServer}
+    ProxyError, ProxyTxSet, TEN_SECS,
+    certs::client_config,
+    servers::{EnrollmentServer, PasswordResetServer},
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);

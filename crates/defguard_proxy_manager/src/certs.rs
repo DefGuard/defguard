@@ -131,7 +131,11 @@ where
 pub(crate) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<Id, String>>>) {
     match Proxy::all(pool).await {
         Ok(proxies) => {
-            let certs = collect_certs(proxies.into_iter().map(|proxy| (proxy.id, proxy.certificate)));
+            let certs = collect_certs(
+                proxies
+                    .into_iter()
+                    .map(|proxy| (proxy.id, proxy.certificate)),
+            );
             let _ = tx.send(Arc::new(certs));
         }
         Err(err) => {
