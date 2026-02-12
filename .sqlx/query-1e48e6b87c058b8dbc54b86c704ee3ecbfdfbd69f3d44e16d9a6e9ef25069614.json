@@ -35,28 +35,28 @@
       },
       {
         "ordinal": 6,
-        "name": "has_certificate",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "version",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "modified_by",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "certificate",
+        "type_info": "Text"
       },
       {
         "ordinal": 11,
@@ -79,11 +79,11 @@
       false,
       true,
       true,
-      false,
       true,
       true,
       false,
       false,
+      true,
       false,
       false
     ]
