@@ -65,7 +65,8 @@ use tonic::{
 };
 
 use crate::{
-    ProxyError, ProxyTxSet, certs::client_config,
+    ProxyError, ProxyTxSet,
+    certs::client_config,
     servers::{EnrollmentServer, PasswordResetServer},
 };
 
@@ -122,10 +123,10 @@ where
 
 /// Represents a single Core - Proxy connection.
 ///
-/// A `Proxy` is responsible for establishing and maintaining a gRPC
+/// A `ProxyHandler` is responsible for establishing and maintaining a gRPC
 /// bidirectional stream to one proxy instance, handling incoming requests
 /// from that proxy, and forwarding responses back through the same stream.
-/// Each `Proxy` runs independently and is supervised by the
+/// Each `ProxyHandler` runs independently and is supervised by the
 /// `ProxyManager`.
 pub(super) struct ProxyHandler {
     pool: PgPool,
@@ -218,7 +219,7 @@ impl ProxyHandler {
         let mut url = self.url.clone();
 
         // Using http here because the connector upgrades to TLS internally.
-        url.set_scheme(&http::uri::Scheme::HTTP.to_string()).map_err(|()| {
+        url.set_scheme("http").map_err(|()| {
             ProxyError::UrlError(format!("Failed to set http scheme on URL {url}"))
         })?;
         let endpoint = Endpoint::from_shared(url.to_string())?;

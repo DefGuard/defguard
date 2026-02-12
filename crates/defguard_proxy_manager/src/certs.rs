@@ -1,3 +1,13 @@
+//! Custom TLS verification for proxy connections.
+//!
+//! Motivation:
+//! - tonic/rustls does not fetch or enforce CRL distribution points, so revocation
+//!   has to be enforced by the application.
+//! - We pin each proxy to its expected certificate serial and reject mismatches at
+//!   the TLS layer, before any gRPC requests are processed.
+//! - A lightweight in-memory cache (refreshed periodically) avoids database access
+//!   during the handshake and keeps verification synchronous.
+
 use std::{collections::HashMap, sync::Arc};
 
 use defguard_common::db::{Id, models::proxy::Proxy};
@@ -16,6 +26,7 @@ use x509_parser::parse_x509_certificate;
 
 use crate::error::ProxyError;
 
+/// Wraps WebPKI verification to enforce proxy-specific certificate serials.
 #[derive(Debug)]
 struct CertVerifier {
     inner: Arc<dyn ServerCertVerifier>,
@@ -36,6 +47,7 @@ impl CertVerifier {
         }
     }
 
+    /// Validate the peer certificate serial against the expected proxy serial.
     fn verify(&self, end_entity: &CertificateDer<'_>) -> Result<(), RustlsError> {
         let (_, cert) = parse_x509_certificate(end_entity.as_ref())
             .map_err(|_| RustlsError::InvalidCertificate(CertificateError::BadEncoding))?;
@@ -57,6 +69,7 @@ impl CertVerifier {
 }
 
 impl ServerCertVerifier for CertVerifier {
+    /// Delegate chain validation to WebPKI, then enforce the proxy-specific pin.
     fn verify_server_cert(
         &self,
         end_entity: &CertificateDer<'_>,
@@ -103,6 +116,7 @@ impl ServerCertVerifier for CertVerifier {
     }
 }
 
+/// Build a compact id->serial map, skipping proxies without a stored cert.
 fn collect_certs<I>(items: I) -> HashMap<Id, String>
 where
     I: IntoIterator<Item = (Id, Option<String>)>,
@@ -113,8 +127,9 @@ where
         .collect()
 }
 
+/// Refresh the cached cert serials for all proxies.
 pub(crate) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<Id, String>>>) {
-    match Proxy::list(pool).await {
+    match Proxy::all(pool).await {
         Ok(proxies) => {
             let certs = collect_certs(proxies.into_iter().map(|proxy| (proxy.id, proxy.certificate)));
             let _ = tx.send(Arc::new(certs));
@@ -125,6 +140,7 @@ pub(crate) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<
     }
 }
 
+/// Build a root store from the configured CA for WebPKI validation.
 fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
     let mut roots = RootCertStore::empty();
     roots
@@ -133,6 +149,7 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, ProxyError> {
     Ok(roots)
 }
 
+/// Create a rustls client config that enforces the pinned proxy certificate serial.
 pub(crate) fn client_config(
     ca_cert_der: &[u8],
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
