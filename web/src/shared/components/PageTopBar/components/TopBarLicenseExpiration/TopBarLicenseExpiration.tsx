@@ -67,7 +67,7 @@ const Content = () => {
             size={16}
           />
           <p>
-            <span className="critical">{`Action required:`}</span>
+            <span className="critical">{`Action required: `}</span>
             {`Your license expires `}
             <strong>{expiresDisplay}</strong>
             {`.`}
