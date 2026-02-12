@@ -22,6 +22,7 @@ use rustls::{
 };
 use thiserror::Error;
 use tokio::sync::watch;
+use tracing::error;
 use x509_parser::parse_x509_certificate;
 
 /// Errors that can occur while building a TLS config with a pinned verifier.
@@ -59,9 +60,17 @@ impl CertVerifier {
         let serial = cert.tbs_certificate.raw_serial_as_string();
         let certs = self.certs_rx.borrow();
         let Some(expected) = certs.get(&self.component_id) else {
+            error!(
+                "Missing expected certificate for component id={}, serial={}",
+                self.component_id, serial
+            );
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         };
         if !expected.eq_ignore_ascii_case(&serial) {
+            error!(
+                "Invalid certificate for component id={}: expected={} got={}.",
+                self.component_id, expected, serial
+            );
             return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
         }
         Ok(())
