@@ -75,6 +75,10 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
+/// Forces HTTPS for connectors while keeping the tonic endpoint scheme as http.
+///
+/// This is needed because tonic's endpoint expects an http scheme, while the
+/// custom connector performs the TLS handshake internally and requires https.
 #[derive(Clone, Debug)]
 struct HttpsSchemeConnector<C> {
     inner: C,
@@ -91,8 +95,7 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 impl<C> tower_service::Service<Uri> for HttpsSchemeConnector<C>
 where
     C: tower_service::Service<Uri, Error = BoxError> + Clone + Send + 'static,
-    C::Response: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
-    C::Future: Send + 'static,
+    C::Future: Send,
 {
     type Response = C::Response;
     type Error = BoxError;
