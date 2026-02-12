@@ -1,0 +1,118 @@
+#top-bar-license-info {
+  user-select: none;
+  cursor: pointer;
+
+  .license-compact-display {
+    min-height: 24px;
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-xl);
+  }
+
+  .open-source {
+    min-height: 24px;
+    display: flex;
+    flex-flow: row nowrap;
+    user-select: none;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+
+    p {
+      font: var(--t-body-xs-400);
+      color: var(--fg-muted);
+    }
+  }
+}
+
+.top-bar-license-progress {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-md);
+  user-select: none;
+
+  & > .top {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--spacing-sm);
+
+    span {
+      font: var(--t-body-xs-500);
+      color: var(--fg-neutral);
+
+      &.right {
+        margin-left: auto;
+      }
+
+      &.critical {
+        color: var(--fg-critical);
+      }
+    }
+  }
+}
+
+.top-bar-license-progress-compact {
+  user-select: none;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+
+  & > span {
+    font: var(--t-body-xxs-500);
+    color: var(--fg-faded);
+    display: block;
+    padding: 0 var(--spacing-sm) 0 var(--spacing-xs);
+    box-sizing: border-box;
+  }
+
+  .progression-bar {
+    width: 30px;
+  }
+}
+
+#top-bar-license-floating {
+  box-shadow: var(--menu-shadow);
+  border: var(--border-1) solid var(--border-disabled);
+  box-sizing: border-box;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-lg);
+  max-width: 270px;
+  width: 100%;
+  position: absolute;
+  border-radius: 12px;
+  background-color: var(--bg-default);
+  z-index: 2;
+
+  .limits {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+  }
+
+  p.warning {
+    font: var(--t-body-xs-400);
+    color: var(--fg-neutral);
+  }
+
+  p.critical {
+    font: var(--t-body-xs-400);
+    color: var(--fg-critical);
+  }
+
+  p.no-license {
+    font: var(--t-body-xs-400);
+    color: var(--fg-default);
+  }
+
+  & > a {
+    width: 100%;
+
+    .btn {
+      width: 100%;
+    }
+  }
+}

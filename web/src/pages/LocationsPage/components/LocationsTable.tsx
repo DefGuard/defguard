@@ -45,7 +45,7 @@ export const LocationsTable = ({ locations }: Props) => {
   const { mutate: deleteLocation } = useMutation({
     mutationFn: api.location.deleteLocation,
     meta: {
-      invalidate: ['network'],
+      invalidate: [['network'], ['enterprise_info']],
     },
   });
 

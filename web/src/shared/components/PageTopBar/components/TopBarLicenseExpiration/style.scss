@@ -1,0 +1,26 @@
+#top-bar-license-expiration-warning {
+  & > div {
+    display: flex;
+    flex-flow: row nowrap;
+    column-gap: var(--spacing-sm);
+    align-items: center;
+    justify-content: flex-end;
+    user-select: none;
+
+    p,
+    span,
+    a {
+      font: var(--t-body-xs-500);
+
+      strong {
+        font-weight: 600;
+      }
+    }
+
+    a {
+      color: var(--fg-action);
+      text-decoration: none;
+      cursor: pointer;
+    }
+  }
+}
