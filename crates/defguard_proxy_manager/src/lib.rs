@@ -70,6 +70,8 @@ impl ProxyManager {
         let remote_mfa_responses = Arc::default();
         let sessions = Arc::default();
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
+        // Prime the cache to avoid race with connection loop.
+        refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
         tokio::spawn(async move {
             loop {
