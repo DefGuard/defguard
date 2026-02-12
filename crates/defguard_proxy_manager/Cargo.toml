@@ -28,3 +28,9 @@ thiserror.workspace = true
 tokio.workspace = true
 tonic.workspace = true
 tracing.workspace = true
+hyper-rustls = { version = "0.27", features = ["http2"] }
+rustls = { version = "0.23", features = ["ring"] }
+x509-parser = "0.18"
+http = "1.1"
+hyper = "1.4"
+tower-service = "0.3"

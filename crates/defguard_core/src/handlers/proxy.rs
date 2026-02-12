@@ -169,10 +169,10 @@ pub(crate) async fn delete_proxy(
         return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
     };
 
-    // Disconnect the proxy
+    // Disconnect and purge the proxy
     if let Err(err) = appstate
         .proxy_control_tx
-        .send(ProxyControlMessage::ShutdownConnection(proxy.id))
+        .send(ProxyControlMessage::Purge(proxy.id))
         .await
     {
         error!(
@@ -181,9 +181,6 @@ pub(crate) async fn delete_proxy(
         );
     }
 
-    // TODO
-    // 1. Add proxy cert to CRL
-    // 2. Remove cert files on deleted proxy
     proxy.clone().delete(&appstate.pool).await?;
 
     info!("User {} deleted proxy {proxy_id}", session.user.username);

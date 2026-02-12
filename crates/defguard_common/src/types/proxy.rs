@@ -8,6 +8,7 @@ use crate::db::Id;
 pub enum ProxyControlMessage {
     StartConnection(Id),
     ShutdownConnection(Id),
+    Purge(Id),
 }
 
 #[derive(ToSchema, Serialize)]
@@ -19,7 +20,7 @@ pub struct ProxyInfo {
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub version: Option<String>,
-    pub has_certificate: bool,
+    pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
     pub modified_by: Id,

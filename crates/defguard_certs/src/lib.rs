@@ -146,6 +146,7 @@ pub struct CertificateInfo {
     pub subject_common_name: String,
     pub not_before: NaiveDateTime,
     pub not_after: NaiveDateTime,
+    pub serial: String,
 }
 
 pub fn parse_certificate_info(cert_der: &[u8]) -> Result<CertificateInfo, CertificateError> {
@@ -153,6 +154,7 @@ pub fn parse_certificate_info(cert_der: &[u8]) -> Result<CertificateInfo, Certif
         .map_err(|e| CertificateError::ParsingError(format!("Failed to parse certificate: {e}")))?;
 
     let subject = &parsed.tbs_certificate.subject;
+    let serial = parsed.raw_serial_as_string();
 
     let cn = subject
         .iter_common_name()
@@ -183,6 +185,7 @@ pub fn parse_certificate_info(cert_der: &[u8]) -> Result<CertificateInfo, Certif
                 ))
             })?
             .naive_utc(),
+        serial,
     })
 }
 

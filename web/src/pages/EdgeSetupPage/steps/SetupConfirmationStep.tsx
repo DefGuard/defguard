@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { m } from '../../../paraglide/messages';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
@@ -11,12 +12,14 @@ import { useEdgeWizardStore } from '../useEdgeWizardStore';
 
 export const SetupConfirmationStep = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleBack = () => {
     useEdgeWizardStore.getState().reset();
   };
 
   const handleFinish = () => {
+    queryClient.invalidateQueries({ queryKey: ['edge'] });
     navigate({ to: '/edges', replace: true }).then(() => {
       setTimeout(() => {
         useEdgeWizardStore.getState().reset();
