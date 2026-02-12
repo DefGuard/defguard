@@ -22,6 +22,7 @@ use super::templates::{
     TemplateLocation, desktop_start_mail, mfa_code_mail, new_device_added_mail,
 };
 
+/// Set SMTP settings from environment variables.
 async fn set_smtp_settings(pool: &PgPool) {
     let config = DefGuardConfig::new_test_config();
     let _ = SERVER_CONFIG.set(config);
