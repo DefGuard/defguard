@@ -27,7 +27,7 @@ use crate::{certs::refresh_certs, error::ProxyError, proxy_handler::ProxyHandler
 mod certs;
 mod error;
 mod proxy_handler;
-pub(crate) mod servers;
+mod servers;
 
 #[macro_use]
 extern crate tracing;

@@ -59,7 +59,7 @@ pub(crate) struct EnrollmentServer {
 
 impl EnrollmentServer {
     #[must_use]
-    pub fn new(
+    pub(crate) fn new(
         pool: PgPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
@@ -103,7 +103,7 @@ impl EnrollmentServer {
     }
 
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
-    pub fn send_wireguard_event(&self, event: GatewayEvent) {
+    pub(crate) fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
             error!("Error sending WireGuard event {err}");
         }
@@ -124,7 +124,7 @@ impl EnrollmentServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn start_enrollment(
+    pub(crate) async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
         info: Option<defguard_proto::proxy::DeviceInfo>,
@@ -305,7 +305,7 @@ impl EnrollmentServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn register_mobile_auth(
+    pub(crate) async fn register_mobile_auth(
         &self,
         request: RegisterMobileAuthRequest,
     ) -> Result<(), Status> {
@@ -358,7 +358,7 @@ impl EnrollmentServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn activate_user(
+    pub(crate) async fn activate_user(
         &self,
         request: ActivateUserRequest,
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
@@ -491,7 +491,7 @@ impl EnrollmentServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn create_device(
+    pub(crate) async fn create_device(
         &self,
         request: NewDevice,
         req_device_info: Option<defguard_proto::proxy::DeviceInfo>,
@@ -885,7 +885,7 @@ impl EnrollmentServer {
 
     /// Get all information needed to update instance information for desktop client
     #[instrument(skip_all)]
-    pub async fn get_network_info(
+    pub(crate) async fn get_network_info(
         &self,
         request: ExistingDevice,
         device_info: Option<defguard_proto::proxy::DeviceInfo>,

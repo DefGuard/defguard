@@ -65,7 +65,8 @@ use tonic::{
 };
 
 use crate::{
-    ProxyError, ProxyTxSet, certs::client_config, servers::{enrollment::EnrollmentServer, password_reset::PasswordResetServer}
+    ProxyError, ProxyTxSet, certs::client_config,
+    servers::{EnrollmentServer, PasswordResetServer},
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
@@ -74,12 +75,12 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
 #[derive(Clone, Debug)]
-pub(crate) struct HttpsSchemeConnector<C> {
+struct HttpsSchemeConnector<C> {
     inner: C,
 }
 
 impl<C> HttpsSchemeConnector<C> {
-    pub const fn new(inner: C) -> Self {
+    const fn new(inner: C) -> Self {
         Self { inner }
     }
 }
@@ -126,19 +127,19 @@ where
 /// from that proxy, and forwarding responses back through the same stream.
 /// Each `Proxy` runs independently and is supervised by the
 /// `ProxyManager`.
-pub(crate) struct ProxyHandler {
+pub(super) struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
     services: ProxyServices,
     /// Proxy server gRPC URL
-    pub url: Url,
+    pub(super) url: Url,
     shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
     proxy_id: Id,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
 
 impl ProxyHandler {
-    pub fn new(
+    pub(super) fn new(
         pool: PgPool,
         url: Url,
         tx: &ProxyTxSet,
@@ -160,7 +161,7 @@ impl ProxyHandler {
         }
     }
 
-    pub fn from_proxy(
+    pub(super) fn from_proxy(
         proxy: &Proxy<Id>,
         pool: PgPool,
         tx: &ProxyTxSet,
@@ -234,7 +235,7 @@ impl ProxyHandler {
     /// The proxy connection is retried on failure, compatibility is checked
     /// on each successful connection, and incoming messages are handled
     /// until the stream is closed.
-    pub(crate) async fn run(
+    pub(super) async fn run(
         mut self,
         tx_set: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,

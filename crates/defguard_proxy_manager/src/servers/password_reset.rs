@@ -30,7 +30,7 @@ pub(crate) struct PasswordResetServer {
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(
+    pub(crate) fn new(
         pool: PgPool,
         mail_tx: UnboundedSender<Mail>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -90,7 +90,7 @@ impl PasswordResetServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn request_password_reset(
+    pub(crate) async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
         req_device_info: Option<DeviceInfo>,
@@ -186,7 +186,7 @@ impl PasswordResetServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn start_password_reset(
+    pub(crate) async fn start_password_reset(
         &self,
         request: PasswordResetStartRequest,
         info: Option<DeviceInfo>,
@@ -253,7 +253,7 @@ impl PasswordResetServer {
     }
 
     #[instrument(skip_all)]
-    pub async fn reset_password(
+    pub(crate) async fn reset_password(
         &self,
         request: PasswordResetRequest,
         req_device_info: Option<DeviceInfo>,
