@@ -19,7 +19,6 @@ use tokio::{
         watch,
     },
     task::JoinSet,
-    time::interval,
 };
 
 use crate::{certs::refresh_certs, error::ProxyError, proxy_handler::ProxyHandler};
@@ -31,6 +30,8 @@ mod servers;
 
 #[macro_use]
 extern crate tracing;
+
+const TEN_SECS: Duration = Duration::from_secs(10);
 
 /// Coordinates communication between the Core and multiple proxy instances.
 ///
@@ -71,10 +72,9 @@ impl ProxyManager {
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let refresh_pool = self.pool.clone();
         tokio::spawn(async move {
-            let mut tick = interval(Duration::from_secs(10));
             loop {
                 refresh_certs(&refresh_pool, &certs_tx).await;
-                tick.tick().await;
+                tokio::time::sleep(TEN_SECS).await;
             }
         });
         // Retrieve proxies from DB.

@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     str::FromStr,
     sync::{Arc, RwLock},
-    time::Duration,
 };
 
 use axum_extra::extract::cookie::Key;
@@ -65,64 +64,12 @@ use tonic::{
 };
 
 use crate::{
-    ProxyError, ProxyTxSet,
-    certs::client_config,
-    servers::{EnrollmentServer, PasswordResetServer},
+    ProxyError, ProxyTxSet, TEN_SECS, certs::client_config, servers::{EnrollmentServer, PasswordResetServer}
 };
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
-const TEN_SECS: Duration = Duration::from_secs(10);
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
-
-/// Forces HTTPS for connectors while keeping the tonic endpoint scheme as http.
-///
-/// This is needed because tonic's endpoint expects an http scheme, while the
-/// custom connector performs the TLS handshake internally and requires https.
-#[derive(Clone, Debug)]
-struct HttpsSchemeConnector<C> {
-    inner: C,
-}
-
-impl<C> HttpsSchemeConnector<C> {
-    const fn new(inner: C) -> Self {
-        Self { inner }
-    }
-}
-
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
-
-impl<C> tower_service::Service<Uri> for HttpsSchemeConnector<C>
-where
-    C: tower_service::Service<Uri, Error = BoxError> + Clone + Send + 'static,
-    C::Future: Send,
-{
-    type Response = C::Response;
-    type Error = BoxError;
-    type Future = std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
-    >;
-
-    fn poll_ready(
-        &mut self,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx).map_err(Into::into)
-    }
-
-    fn call(&mut self, uri: Uri) -> Self::Future {
-        let mut parts = uri.into_parts();
-        parts.scheme = Some(http::uri::Scheme::HTTPS);
-        let https_uri = match Uri::from_parts(parts) {
-            Ok(uri) => uri,
-            Err(err) => {
-                return Box::pin(async move { Err(err.into()) });
-            }
-        };
-        let mut inner = self.inner.clone();
-        Box::pin(async move { inner.call(https_uri).await })
-    }
-}
 
 /// Represents a single Core - Proxy connection.
 ///
@@ -892,5 +839,54 @@ impl ProxyServices {
             client_mfa,
             polling,
         }
+    }
+}
+
+/// Rewrites the request URI scheme to https for the TLS connector.
+///
+/// Tonic expects an http URI for its endpoint, but our custom connector performs
+/// the TLS handshake and requires https to select the TLS path.
+#[derive(Clone, Debug)]
+struct HttpsSchemeConnector<C> {
+    inner: C,
+}
+
+impl<C> HttpsSchemeConnector<C> {
+    const fn new(inner: C) -> Self {
+        Self { inner }
+    }
+}
+
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
+
+impl<C> tower_service::Service<Uri> for HttpsSchemeConnector<C>
+where
+    C: tower_service::Service<Uri, Error = BoxError> + Clone + Send + 'static,
+    C::Future: Send,
+{
+    type Response = C::Response;
+    type Error = BoxError;
+    type Future = std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
+    >;
+
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx).map_err(Into::into)
+    }
+
+    fn call(&mut self, uri: Uri) -> Self::Future {
+        let mut parts = uri.into_parts();
+        parts.scheme = Some(http::uri::Scheme::HTTPS);
+        let https_uri = match Uri::from_parts(parts) {
+            Ok(uri) => uri,
+            Err(err) => {
+                return Box::pin(async move { Err(err.into()) });
+            }
+        };
+        let mut inner = self.inner.clone();
+        Box::pin(async move { inner.call(https_uri).await })
     }
 }
