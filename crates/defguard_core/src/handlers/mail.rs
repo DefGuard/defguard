@@ -229,7 +229,7 @@ pub fn send_new_device_login_email(
 
 pub fn send_new_device_ocid_login_email(
     user_email: &str,
-    oauth2client_name: String,
+    oauth2client_name: &str,
     session: &SessionContext,
 ) -> Result<(), TemplateError> {
     debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
@@ -237,7 +237,7 @@ pub fn send_new_device_ocid_login_email(
     Mail::new(
         user_email,
         format!("New login to {oauth2client_name} application with Defguard"),
-        templates::new_device_ocid_login_mail(session, &oauth2client_name)?,
+        templates::new_device_ocid_login_mail(session, oauth2client_name)?,
     )
     .send_and_forget();
 

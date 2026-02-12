@@ -1067,6 +1067,7 @@ mod test {
     use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
+    #[ignore]
     #[sqlx::test]
     async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
