@@ -8,8 +8,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-defguard_common.workspace = true
-
 chrono.workspace = true
 humantime.workspace = true
 sqlx.workspace = true

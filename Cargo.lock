@@ -1157,7 +1157,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "bytes",
- "defguard_certs",
  "defguard_common",
  "defguard_core",
  "defguard_event_logger",
@@ -1183,7 +1182,6 @@ dependencies = [
  "chrono",
  "rcgen",
  "rustls-pki-types",
- "serde",
  "sqlx",
  "thiserror 2.0.18",
  "time",
@@ -1291,7 +1289,6 @@ dependencies = [
  "tokio-util",
  "tonic",
  "tonic-health",
- "tonic-prost",
  "tonic-prost-build",
  "totp-lite",
  "tower",
@@ -1471,7 +1468,6 @@ name = "defguard_vpn_stats_purge"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "defguard_common",
  "humantime",
  "sqlx",
  "tokio",

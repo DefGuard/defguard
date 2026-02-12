@@ -66,7 +66,6 @@ tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 tonic = { workspace = true }
 tonic-health = { workspace = true }
-tonic-prost.workspace = true
 totp-lite = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }

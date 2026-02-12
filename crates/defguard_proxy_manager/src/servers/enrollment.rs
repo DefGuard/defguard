@@ -50,7 +50,7 @@ use tokio::sync::{
 };
 use tonic::Status;
 
-pub struct EnrollmentServer {
+pub(crate) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
