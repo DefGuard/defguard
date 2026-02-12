@@ -1350,6 +1350,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "defguard_grpc_tls"
+version = "0.0.0"
+dependencies = [
+ "defguard_common",
+ "http",
+ "rustls",
+ "thiserror 2.0.18",
+ "tokio",
+ "tower-service",
+ "x509-parser 0.18.1",
+]
+
+[[package]]
 name = "defguard_mail"
 version = "0.0.0"
 dependencies = [
@@ -1390,15 +1403,13 @@ dependencies = [
  "defguard_certs",
  "defguard_common",
  "defguard_core",
+ "defguard_grpc_tls",
  "defguard_mail",
  "defguard_proto",
  "defguard_version",
- "http",
- "hyper",
  "hyper-rustls",
  "openidconnect",
  "reqwest",
- "rustls",
  "secrecy",
  "semver",
  "sqlx",
@@ -1406,9 +1417,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tonic",
- "tower-service",
  "tracing",
- "x509-parser 0.18.1",
 ]
 
 [[package]]
