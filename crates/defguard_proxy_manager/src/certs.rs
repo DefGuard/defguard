@@ -155,7 +155,7 @@ pub(crate) fn client_config(
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     proxy_id: Id,
 ) -> Result<rustls::ClientConfig, ProxyError> {
-    let provider = Arc::new(crypto::aws_lc_rs::default_provider());
+    let provider = Arc::new(crypto::ring::default_provider());
     let roots = root_store_from_ca(ca_cert_der)?;
     let verifier_roots = root_store_from_ca(ca_cert_der)?;
     let verifier = WebPkiServerVerifier::builder_with_provider(
@@ -168,7 +168,6 @@ pub(crate) fn client_config(
         .with_safe_default_protocol_versions()
         .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
     let mut config = builder.with_root_certificates(roots).with_no_client_auth();
-    let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
         .set_certificate_verifier(Arc::new(CertVerifier::new(verifier, certs_rx, proxy_id)));
