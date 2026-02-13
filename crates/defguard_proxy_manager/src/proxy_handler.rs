@@ -86,7 +86,7 @@ pub(super) struct ProxyHandler {
     services: ProxyServices,
     /// Proxy server gRPC URL
     pub(super) url: Url,
-    shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+    shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
     proxy_id: Id,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
@@ -98,7 +98,7 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
-        shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+        shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
     ) -> Self {
         // Instantiate gRPC servers.
@@ -120,7 +120,7 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
-        shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+        shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -287,42 +287,37 @@ impl ProxyHandler {
                 payload: Some(core_response::Payload::InitialInfo(initial_info)),
             });
 
-            let shutdown_signal = self.shutdown_signal.lock().await.take();
-            if let Some(shutdown_signal) = shutdown_signal {
-                select! {
-                    res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
-                        if let Err(err) = res {
-                            error!("Proxy message loop ended with error: {err}, reconnecting in {TEN_SECS:?}",);
-                        } else {
-                            info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
-                        }
-                        self.mark_disconnected().await?;
-                        sleep(TEN_SECS).await;
+            let shutdown_signal = Arc::clone(&self.shutdown_signal);
+            select! {
+                res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
+                    if let Err(err) = res {
+                        error!("Proxy message loop ended with error: {err}, reconnecting in {TEN_SECS:?}",);
+                    } else {
+                        info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
                     }
-                    res = shutdown_signal => {
-                        match res {
-                            Err(err) => {
-                                error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
-                            }
-                            Ok(purge) => {
-                                info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
-                                if purge {
-                                    debug!("Sending purge request to proxy {}", endpoint.uri());
-                                    if let Some(client) = self.client.as_mut() {
-                                        if let Err(err) = client.purge(Request::new(())).await {
-                                            error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
-                                        }
+                    self.mark_disconnected().await?;
+                    sleep(TEN_SECS).await;
+                }
+                res = &mut *shutdown_signal.lock().await => {
+                    match res {
+                        Err(err) => {
+                            error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
+                        }
+                        Ok(purge) => {
+                            info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
+                            if purge {
+                                debug!("Sending purge request to proxy {}", endpoint.uri());
+                                if let Some(client) = self.client.as_mut() {
+                                    if let Err(err) = client.purge(Request::new(())).await {
+                                        error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
                                     }
                                 }
                             }
                         }
-                        self.mark_disconnected().await?;
-                        break;
                     }
+                    self.mark_disconnected().await?;
+                    break;
                 }
-            } else {
-                self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
-                    .await?;
             }
         }
 

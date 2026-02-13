@@ -93,7 +93,7 @@ impl ProxyManager {
                     &self.tx,
                     Arc::clone(&remote_mfa_responses),
                     Arc::clone(&sessions),
-                    Arc::new(Mutex::new(Some(shutdown_rx))),
+                    Arc::new(Mutex::new(shutdown_rx)),
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -135,7 +135,7 @@ impl ProxyManager {
                                     &self.tx,
                                     Arc::clone(&remote_mfa_responses),
                                     Arc::clone(&sessions),
-                                    Arc::new(Mutex::new(Some(shutdown_rx))),
+                                    Arc::new(Mutex::new(shutdown_rx)),
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);
