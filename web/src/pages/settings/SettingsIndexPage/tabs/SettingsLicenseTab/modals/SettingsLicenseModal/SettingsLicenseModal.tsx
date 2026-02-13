@@ -19,14 +19,14 @@ import {
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 
-const modalNameValue = ModalName.License;
+const modalNameValue = ModalName.SettingsLicense;
 
 type ModalData = {
   edit: boolean;
   license: string | null;
 };
 
-export const LicenseModal = () => {
+export const SettingsLicenseModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [modalData, setModalData] = useState<ModalData | null>(null);
 

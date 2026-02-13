@@ -36,7 +36,6 @@ export const PageTopBar = ({ title, navOpen }: Props) => {
         {isAdmin && (
           <>
             <TopBarLicenseExpiration />
-            <Divider orientation="vertical" />
             <TopBarLicense />
           </>
         )}

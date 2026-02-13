@@ -1,4 +1,4 @@
-.modal-upgrade-plan {
+.license-modal {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: var(--modal-size-md);
@@ -9,9 +9,17 @@
     grid-template-columns: 200px 1fr;
 
     & > .image-track {
-      background-size: cover;
-      background-position: left;
-      background-repeat: no-repeat;
+      position: relative;
+      background: linear-gradient(165deg, #e6e6ff -0.26%, #8cadff 99.24%);
+      overflow: hidden;
+
+      div {
+        background-size: cover;
+        background-position: left;
+        background-repeat: no-repeat;
+        position: absolute;
+        inset: 0;
+      }
     }
 
     & > .content-track {
@@ -21,6 +29,10 @@
       display: flex;
       flex-flow: column;
       background-color: var(--bg-default);
+
+      .controls {
+        margin-top: auto;
+      }
 
       ul {
         padding-top: var(--spacing-md);
@@ -33,10 +45,6 @@
           font: var(--t-body-sm-400);
           color: var(--fg-neutral);
         }
-      }
-
-      .controls {
-        margin-top: auto;
       }
     }
   }

@@ -1,7 +1,10 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayListModal';
+import { LicenseExpiredModal } from '../shared/components/modals/license/LicenseExpiredModal/LicenseExpiredModal';
+import { LimitReachedModal } from '../shared/components/modals/license/LimitReachedModal/LimitReachedModal';
+import { UpgradeBusinessModal } from '../shared/components/modals/license/UpgradeBusinessModal/UpgradeBusinessModal';
+import { UpgradeEnterpriseModal } from '../shared/components/modals/license/UpgradeEnterpriseModal/UpgradeEnterpriseModal';
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
-import { UpgradePlanModalManager } from '../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
 import { useAuth } from '../shared/hooks/useAuth';
 import { AppInfoProvider } from '../shared/providers/AppInfoProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
@@ -40,9 +43,12 @@ function RouteComponent() {
     <AppUserProvider>
       <AppInfoProvider>
         <Outlet />
+        <LimitReachedModal />
+        <UpgradeBusinessModal />
+        <UpgradeEnterpriseModal />
+        <LicenseExpiredModal />
         <DisplayListModal />
         <SelectionModal />
-        <UpgradePlanModalManager />
       </AppInfoProvider>
     </AppUserProvider>
   );

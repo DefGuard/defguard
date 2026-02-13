@@ -1,17 +1,20 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { Suspense } from 'react';
 import { Page } from '../../shared/components/Page/Page';
-import { getLocationsQueryOptions } from '../../shared/query';
 import { LocationsTable } from './components/LocationsTable';
 import { AddLocationModal } from './modals/AddLocationModal/AddLocationModal';
 import './style.scss';
+import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 
 export const LocationsPage = () => {
-  const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
-
   return (
     <>
       <Page title="Locations" id="locations-page">
-        <LocationsTable locations={locations} />
+        <Suspense fallback={<TableSkeleton />}>
+          <TablePageLayout>
+            <LocationsTable />
+          </TablePageLayout>
+        </Suspense>
       </Page>
       <AddLocationModal />
     </>

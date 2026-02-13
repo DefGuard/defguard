@@ -4,6 +4,7 @@ import { CodeCard } from '../../shared/defguard-ui/components/CodeCard/CodeCard'
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import './style.scss';
+import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
 import z from 'zod';
@@ -13,7 +14,6 @@ import { DestinationLabel } from '../../shared/components/DestinationLabel/Desti
 import { IpAssignmentCard } from '../../shared/components/IpAssignmentCard/IpAssignmentCard';
 import { IpAssignmentDeviceSection } from '../../shared/components/IpAssignmentDeviceSection/IpAssignmentDeviceSection';
 import { LoadingStep } from '../../shared/components/LoadingStep/LoadingStep';
-import { UpgradePlanModalManager } from '../../shared/components/modals/UpgradePlanModalManager/UpgradePlanModalManager';
 import { SelectionSection } from '../../shared/components/SelectionSection/SelectionSection';
 import type {
   SelectionOption,
@@ -43,13 +43,15 @@ import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { FoldableRadioSection } from '../FoldableRadioSection/FoldableRadioSection';
 import testIconSrc from './assets/actionable-test1.png';
 
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
-      <UpgradePlanModalManager />
+      <TestPlanUpgrade />
+      <Divider spacing={ThemeSpacing.Sm} />
       <Card>
         <CodeCard title="Code section title" value={m.test_placeholder_extreme()} />
       </Card>
@@ -175,27 +177,6 @@ export const PlaygroundPage = () => {
         </div>
       </Card>
       <Divider spacing={ThemeSpacing.Sm} />
-      <Card>
-        <ButtonsGroup>
-          <Button
-            text="Open business upgrade"
-            onClick={() => {
-              openModal(ModalName.UpgradeLicenseModal, {
-                variant: 'business',
-              });
-            }}
-          />
-          <Button
-            text="Open enterprise upgrade"
-            onClick={() => {
-              openModal(ModalName.UpgradeLicenseModal, {
-                variant: 'enterprise',
-              });
-            }}
-          />
-        </ButtonsGroup>
-      </Card>
-      <Divider spacing={ThemeSpacing.Sm} />
       <TestIpAssignmentSection />
       <Divider spacing={ThemeSpacing.Sm} />
       <Card>
@@ -206,6 +187,47 @@ export const PlaygroundPage = () => {
       <Divider spacing={ThemeSpacing.Sm} />
       <TestFileUpload />
     </div>
+  );
+};
+
+const TestPlanUpgrade = () => {
+  const { data: license, isLoading } = useQuery(getLicenseInfoQueryOptions);
+  return (
+    <Card>
+      <h3>{`Licensing modals`}</h3>
+      <SizedBox height={ThemeSpacing.Xl4} />
+      <ButtonsGroup>
+        <Button
+          text="Limits reached"
+          onClick={() => {
+            openModal(ModalName.LimitReached);
+          }}
+        />
+        <Button
+          text="Upgrade business"
+          onClick={() => {
+            openModal(ModalName.UpgradeBusiness);
+          }}
+        />
+        <Button
+          text="Upgrade Enterprise"
+          onClick={() => {
+            openModal(ModalName.UpgradeEnterprise);
+          }}
+        />
+        <Button
+          text="License Expired"
+          loading={isLoading}
+          onClick={() => {
+            if (license) {
+              openModal(ModalName.LicenseExpired, {
+                license: license,
+              });
+            }
+          }}
+        />
+      </ButtonsGroup>
+    </Card>
   );
 };
 
