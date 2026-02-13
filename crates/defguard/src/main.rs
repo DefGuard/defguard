@@ -23,9 +23,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent},
-    grpc::{
-        GatewayEvent, WorkerState
-    },
+    grpc::{GatewayEvent, WorkerState},
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,

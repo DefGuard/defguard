@@ -22,7 +22,9 @@ use defguard_core::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        GatewayEvent, InstanceInfo, client_version::ClientFeature, utils::{build_device_config_response, parse_client_ip_agent}
+        GatewayEvent, InstanceInfo,
+        client_version::ClientFeature,
+        utils::{build_device_config_response, parse_client_ip_agent},
     },
     handlers::{
         mail::{send_email_mfa_activation_email, send_mfa_configured_email},
@@ -1090,7 +1092,6 @@ pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<Str
 
     Ok(new_token.token)
 }
-
 
 #[cfg(test)]
 mod test {

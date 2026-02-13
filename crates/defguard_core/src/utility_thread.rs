@@ -19,7 +19,10 @@ use crate::{
         is_business_license_active,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
-    }, grpc::GatewayEvent, location_management::allowed_peers::get_location_allowed_peers, updates::do_new_version_check
+    },
+    grpc::GatewayEvent,
+    location_management::allowed_peers::get_location_allowed_peers,
+    updates::do_new_version_check,
 };
 
 // Times in seconds

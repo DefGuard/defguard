@@ -7,7 +7,14 @@ use std::{
 
 use defguard_common::{
     auth::claims::ClaimsType,
-    db::{Id, models::{Device, Settings, WireguardNetwork, device::{DeviceInfo, WireguardNetworkDevice}, wireguard::ServiceLocationMode}},
+    db::{
+        Id,
+        models::{
+            Device, Settings, WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            wireguard::ServiceLocationMode,
+        },
+    },
     types::UrlParseError,
 };
 use reqwest::Url;
@@ -16,7 +23,7 @@ use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
-use self::{interceptor::JwtInterceptor};
+use self::interceptor::JwtInterceptor;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
@@ -45,7 +52,8 @@ pub mod proto {
 }
 
 use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig, gateway::Peer, worker::worker_service_server::WorkerServiceServer
+    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig,
+    gateway::Peer, worker::worker_service_server::WorkerServiceServer,
 };
 
 // gRPC header for passing auth token from clients
@@ -151,12 +159,7 @@ impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
     NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(
-        Id,
-        WireguardNetwork<Id>,
-        Vec<Peer>,
-        Option<FirewallConfig>,
-    ),
+    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
     NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
@@ -186,7 +189,6 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
         send_wireguard_event(event, wg_tx);
     }
 }
-
 
 /// If this location is marked as a service location, checks if all requirements are met for it to
 /// function:

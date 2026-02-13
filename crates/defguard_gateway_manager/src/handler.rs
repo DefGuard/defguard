@@ -1,7 +1,10 @@
 use std::{
     collections::HashMap,
     str::FromStr,
-    sync::{Arc, atomic::{AtomicU64, Ordering}},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use defguard_common::{
@@ -12,19 +15,19 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
+use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
 use defguard_version::client::ClientVersionInterceptor;
-use defguard_grpc_tls::{
-    certs as tls_certs,
-    connector::HttpsSchemeConnector,
-};
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        Mutex, broadcast::Sender, mpsc::{self, UnboundedSender}, watch
+        Mutex,
+        broadcast::Sender,
+        mpsc::{self, UnboundedSender},
+        watch,
     },
     time::sleep,
 };
@@ -32,7 +35,9 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::transport::Endpoint;
 
 use defguard_core::{
-    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent, handlers::mail::send_gateway_disconnected_email, location_management::allowed_peers::get_location_allowed_peers
+    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent,
+    handlers::mail::send_gateway_disconnected_email,
+    location_management::allowed_peers::get_location_allowed_peers,
 };
 
 use crate::{GatewayError, TEN_SECS, try_protos_into_stats_message};
@@ -203,7 +208,7 @@ impl GatewayHandler {
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
         loop {
-			// TODO(jck) how does proxy do this? can this be moved to lib?
+            // TODO(jck) how does proxy do this? can this be moved to lib?
             #[cfg(not(test))]
             let channel = {
                 let settings = Settings::get_current_settings();
@@ -212,12 +217,9 @@ impl GatewayHandler {
                         "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
                     ));
                 };
-                let tls_config = tls_certs::client_config(
-                    &ca_cert_der,
-                    self.certs_rx.clone(),
-                    self.gateway.id,
-                )
-                .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
+                let tls_config =
+                    tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
+                        .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
                 let connector = HttpsConnectorBuilder::new()
                     .with_tls_config(tls_config)
                     .https_only()

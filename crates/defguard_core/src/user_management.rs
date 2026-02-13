@@ -8,7 +8,10 @@ use sqlx::PgConnection;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts}, error::WebError, grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event}, location_management::sync_allowed_devices_for_user
+    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
+    error::WebError,
+    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    location_management::sync_allowed_devices_for_user,
 };
 
 /// Deletes the user and cleans up his devices from gateways

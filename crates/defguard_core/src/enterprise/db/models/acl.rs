@@ -31,7 +31,8 @@ use crate::{
         handlers::acl::{
             ApiAclRule, EditAclRule, alias::EditAclAlias, destination::EditAclDestination,
         },
-    }, grpc::GatewayEvent,
+    },
+    grpc::GatewayEvent,
 };
 
 #[derive(Debug, Error)]

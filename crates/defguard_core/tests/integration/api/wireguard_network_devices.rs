@@ -5,7 +5,8 @@ use defguard_common::db::{
     models::{Device, WireguardNetwork},
 };
 use defguard_core::{
-    grpc::GatewayEvent, handlers::{Auth, network_devices::AddNetworkDevice}
+    grpc::GatewayEvent,
+    handlers::{Auth, network_devices::AddNetworkDevice},
 };
 use ipnetwork::IpNetwork;
 use matches::assert_matches;

@@ -1,19 +1,36 @@
-use std::{collections::HashMap, net::{IpAddr, Ipv4Addr, SocketAddr}, sync::{Arc, Mutex}, time::Duration};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use chrono::DateTime;
 use defguard_common::{
-    auth::claims::ClaimsType, config::server_config, db::{
+    auth::claims::ClaimsType,
+    config::server_config,
+    db::{
         ChangeNotification, Id, TriggerOperation,
         models::{
             WireguardNetwork,
             gateway::Gateway,
             wireguard::{DEFAULT_WIREGUARD_MTU, ServiceLocationMode},
         },
-    }, messages::peer_stats_update::PeerStatsUpdate
+    },
+    messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::{auth::failed_login::FailedLoginMap, grpc::{GatewayEvent, WorkerState, interceptor::JwtInterceptor, should_prevent_service_location_usage, worker::WorkerServer}};
+use defguard_core::{
+    auth::failed_login::FailedLoginMap,
+    grpc::{
+        GatewayEvent, WorkerState, interceptor::JwtInterceptor,
+        should_prevent_service_location_usage, worker::WorkerServer,
+    },
+};
 use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig, gateway::{Configuration, CoreResponse, Peer, PeerStats, Update, core_response, update}, worker::worker_service_server::WorkerServiceServer
+    auth::auth_service_server::AuthServiceServer,
+    enterprise::firewall::FirewallConfig,
+    gateway::{Configuration, CoreResponse, Peer, PeerStats, Update, core_response, update},
+    worker::worker_service_server::WorkerServiceServer,
 };
 use sqlx::{PgExecutor, PgPool, postgres::PgListener, query};
 use thiserror::Error;
@@ -24,7 +41,10 @@ use tokio::{
     },
     task::{AbortHandle, JoinSet},
 };
-use tonic::{Code, Status, transport::{Identity, Server, ServerTlsConfig, server::Router}};
+use tonic::{
+    Code, Status,
+    transport::{Identity, Server, ServerTlsConfig, server::Router},
+};
 
 use defguard_core::{
     enterprise::{firewall::FirewallError, is_enterprise_license_active},

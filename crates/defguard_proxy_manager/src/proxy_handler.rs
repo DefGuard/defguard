@@ -27,7 +27,8 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     grpc::{
-        GatewayEvent, proxy::client_mfa::{ClientLoginSession, ClientMfaServer}
+        GatewayEvent,
+        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -65,8 +66,7 @@ use crate::{
     ProxyError, ProxyTxSet, TEN_SECS,
     servers::{EnrollmentServer, PasswordResetServer},
 };
-use defguard_grpc_tls::connector::HttpsSchemeConnector;
-use defguard_grpc_tls::certs as tls_certs;
+use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
@@ -201,12 +201,9 @@ impl ProxyHandler {
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config = tls_certs::client_config(
-                &ca_cert_der,
-                certs_rx.clone(),
-                self.proxy_id,
-            )
-                .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+            let tls_config =
+                tls_certs::client_config(&ca_cert_der, certs_rx.clone(), self.proxy_id)
+                    .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()

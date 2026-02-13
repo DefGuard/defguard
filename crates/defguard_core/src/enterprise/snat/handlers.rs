@@ -13,10 +13,16 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    appstate::AppState, auth::{AdminRole, SessionInfo}, enterprise::{
+    appstate::AppState,
+    auth::{AdminRole, SessionInfo},
+    enterprise::{
         db::models::snat::UserSnatBinding, firewall::try_get_location_firewall_config,
         handlers::LicenseInfo, snat::error::UserSnatBindingError,
-    }, error::WebError, events::{ApiEvent, ApiEventType, ApiRequestContext}, grpc::GatewayEvent, handlers::{ApiResponse, ApiResult}
+    },
+    error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
+    grpc::GatewayEvent,
+    handlers::{ApiResponse, ApiResult},
 };
 
 /// List all SNAT bindings for a WireGuard location

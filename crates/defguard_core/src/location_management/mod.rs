@@ -18,7 +18,9 @@ use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::firewall::{FirewallError, try_get_location_firewall_config}, grpc::{GatewayEvent, send_multiple_wireguard_events}, wg_config::ImportedDevice
+    enterprise::firewall::{FirewallError, try_get_location_firewall_config},
+    grpc::{GatewayEvent, send_multiple_wireguard_events},
+    wg_config::ImportedDevice,
 };
 
 pub mod allowed_peers;

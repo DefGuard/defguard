@@ -19,7 +19,9 @@ use defguard_core::{
         },
         handlers::openid_providers::AddProviderData,
         license::{get_cached_license, set_cached_license},
-    }, grpc::GatewayEvent, handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData}
+    },
+    grpc::GatewayEvent,
+    handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;
 use matches::assert_matches;

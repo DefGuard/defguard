@@ -12,13 +12,13 @@ use std::{collections::HashMap, sync::Arc};
 
 use defguard_common::db::Id;
 use rustls::{
+    CertificateError, DistinguishedName, Error as RustlsError, RootCertStore, SignatureScheme,
     client::{
-        danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
         WebPkiServerVerifier,
+        danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
     },
     crypto,
     pki_types::{CertificateDer, ServerName, UnixTime},
-    CertificateError, DistinguishedName, Error as RustlsError, RootCertStore, SignatureScheme,
 };
 use thiserror::Error;
 use tokio::sync::watch;
