@@ -39,7 +39,7 @@ use defguard_core::{
     location_management::allowed_peers::get_location_allowed_peers,
 };
 
-use crate::{GatewayError, TEN_SECS, try_protos_into_stats_message};
+use crate::{TEN_SECS, error::GatewayError, try_protos_into_stats_message};
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 

@@ -35,7 +35,6 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 ///
 /// Responsibilities include:
 /// - instantiating and supervising proxy connections,
-/// - routing responses to the appropriate proxy based on correlation state,
 /// - providing shared infrastructure (database access, outbound channels),
 pub struct ProxyManager {
     pool: PgPool,
@@ -62,7 +61,6 @@ impl ProxyManager {
     /// Spawns and supervises asynchronous tasks for all configured proxies.
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
-    /// such as routing state and compatibility tracking.
     pub async fn run(mut self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();

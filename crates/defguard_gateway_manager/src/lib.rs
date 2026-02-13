@@ -35,11 +35,10 @@ use defguard_proto::{
     worker::worker_service_server::WorkerServiceServer,
 };
 use sqlx::{PgExecutor, PgPool, postgres::PgListener, query};
-use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{UnboundedSender, error::SendError},
+        mpsc::UnboundedSender,
     },
     task::{AbortHandle, JoinSet},
 };
@@ -48,7 +47,6 @@ use tonic::{
     transport::{Identity, Server, ServerTlsConfig, server::Router},
 };
 
-use defguard_core::{enterprise::firewall::FirewallError, events::GrpcEvent};
 
 use crate::{auth::AuthServer, handler::GatewayHandler};
 
@@ -57,6 +55,7 @@ extern crate tracing;
 
 mod auth;
 mod certs;
+mod error;
 pub(crate) mod handler;
 // #[cfg(test)]
 // mod tests;
@@ -90,40 +89,6 @@ fn try_protos_into_stats_message(
         proto_stats.download,
         latest_handshake,
     ))
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, Error)]
-pub enum GatewayError {
-    #[error("Failed to acquire lock on VPN client state map")]
-    ClientStateMutexError,
-    #[error("gRPC event channel error: {0}")]
-    GrpcEventChannelError(#[from] SendError<GrpcEvent>),
-    #[error("Endpoint error: {0}")]
-    EndpointError(String),
-    #[error("gRPC communication error: {0}")]
-    GrpcCommunicationError(#[from] tonic::Status),
-    #[error(transparent)]
-    CertificateError(#[from] defguard_certs::CertificateError),
-    #[error("Configuration error: {0}")]
-    ConfigurationError(String),
-    #[error("Conversion error: {0}")]
-    ConversionError(String),
-    #[error(transparent)]
-    SqlxError(#[from] sqlx::Error),
-    #[error("Not found: {0}")]
-    NotFound(String),
-    // mpsc channel send/receive error
-    #[error("Message channel error: {0}")]
-    MessageChannelError(String),
-    #[error(transparent)]
-    FirewallError(#[from] FirewallError),
-}
-
-impl From<GatewayError> for Status {
-    fn from(value: GatewayError) -> Self {
-        Self::new(Code::Internal, value.to_string())
-    }
 }
 
 /// Get a list of all allowed peers
