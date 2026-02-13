@@ -19,11 +19,11 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::{certs::refresh_certs, error::ProxyError, proxy_handler::ProxyHandler};
+use crate::{certs::refresh_certs, error::ProxyError, handler::ProxyHandler};
 
 mod certs;
 mod error;
-mod proxy_handler;
+mod handler;
 mod servers;
 
 #[macro_use]
