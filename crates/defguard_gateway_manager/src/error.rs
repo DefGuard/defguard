@@ -5,7 +5,7 @@ use tonic::{Code, Status};
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
-pub enum GatewayError {
+pub(crate) enum GatewayError {
     #[error("Failed to acquire lock on VPN client state map")]
     ClientStateMutexError,
     #[error("gRPC event channel error: {0}")]

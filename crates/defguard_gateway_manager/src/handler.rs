@@ -52,7 +52,7 @@ use crate::{TEN_SECS, error::GatewayError};
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
 /// One instance per connected Gateway.
-pub(crate) struct GatewayHandler {
+pub(super) struct GatewayHandler {
     // Gateway server endpoint URL.
     url: Url,
     gateway: Gateway<Id>,
@@ -64,7 +64,7 @@ pub(crate) struct GatewayHandler {
 }
 
 impl GatewayHandler {
-    pub(crate) fn new(
+    pub fn new(
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
@@ -211,7 +211,7 @@ impl GatewayHandler {
     }
 
     /// Connect to Gateway and handle its messages through gRPC.
-    pub(crate) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
+    pub(super) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
         loop {
@@ -382,7 +382,8 @@ struct GatewayUpdatesHandler {
 }
 
 impl GatewayUpdatesHandler {
-    pub fn new(
+    #[must_use]
+    fn new(
         network_id: Id,
         network: WireguardNetwork<Id>,
         gateway_hostname: String,
@@ -402,7 +403,7 @@ impl GatewayUpdatesHandler {
     ///
     /// Main gRPC server uses a shared channel for broadcasting all gateway events
     /// so the handler must determine if an event is relevant for the network being serviced
-    pub async fn run(&mut self) {
+    async fn run(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
             self.gateway_hostname, self.network

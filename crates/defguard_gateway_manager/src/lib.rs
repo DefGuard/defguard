@@ -36,12 +36,12 @@ extern crate tracing;
 mod auth;
 mod certs;
 mod error;
-pub(crate) mod handler;
+mod handler;
 // #[cfg(test)]
 // mod tests;
 
 #[cfg(test)]
-pub(crate) static TONIC_SOCKET: &str = "tonic.sock";
+static TONIC_SOCKET: &str = "tonic.sock";
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const TEN_SECS: Duration = Duration::from_secs(10);
@@ -179,7 +179,7 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-pub async fn build_grpc_service_router(
+pub(crate) async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,

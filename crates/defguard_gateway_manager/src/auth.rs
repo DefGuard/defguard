@@ -13,7 +13,7 @@ use defguard_core::auth::failed_login::{
     FailedLoginMap, check_failed_logins, log_failed_login_attempt,
 };
 
-pub struct AuthServer {
+pub(super) struct AuthServer {
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
