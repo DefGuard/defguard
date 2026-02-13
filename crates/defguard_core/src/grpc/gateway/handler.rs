@@ -1,9 +1,9 @@
 use std::{
+    collections::HashMap,
     str::FromStr,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{Arc, atomic::{AtomicU64, Ordering}},
 };
 
-use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     db::{
@@ -14,6 +14,11 @@ use defguard_common::{
 };
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
 use defguard_version::client::ClientVersionInterceptor;
+use defguard_grpc_tls::{
+    certs as tls_certs,
+    connector::HttpsSchemeConnector,
+};
+use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
 use semver::Version;
 use sqlx::PgPool;
@@ -21,11 +26,12 @@ use tokio::{
     sync::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
+        watch,
     },
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::transport::{Certificate, ClientTlsConfig, Endpoint};
+use tonic::transport::Endpoint;
 
 use crate::{
     enterprise::firewall::try_get_location_firewall_config,
@@ -37,23 +43,6 @@ use crate::{
     location_management::allowed_peers::get_location_allowed_peers,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Scheme {
-    #[allow(dead_code)]
-    Http,
-    Https,
-}
-
-impl Scheme {
-    #[must_use]
-    pub const fn as_str(&self) -> &str {
-        match self {
-            Self::Http => "http",
-            Self::Https => "https",
-        }
-    }
-}
-
 /// One instance per connected Gateway.
 pub(crate) struct GatewayHandler {
     // Gateway server endpoint URL.
@@ -63,6 +52,7 @@ pub(crate) struct GatewayHandler {
     pool: PgPool,
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+    certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
 }
 
 impl GatewayHandler {
@@ -71,6 +61,7 @@ impl GatewayHandler {
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Self, GatewayError> {
         let url = Url::from_str(&gateway.url).map_err(|err| {
             GatewayError::EndpointError(format!(
@@ -86,16 +77,16 @@ impl GatewayHandler {
             pool,
             events_tx,
             peer_stats_tx,
+            certs_rx,
         })
     }
 
-    fn endpoint(&self, scheme: Scheme) -> Result<Endpoint, GatewayError> {
+    fn endpoint(&self) -> Result<Endpoint, GatewayError> {
         let mut url = self.url.clone();
 
-        if let Err(()) = url.set_scheme(scheme.as_str()) {
+        if let Err(()) = url.set_scheme("http") {
             return Err(GatewayError::EndpointError(format!(
-                "Failed to set scheme {} for Gateway URL {:?}",
-                scheme.as_str(),
+                "Failed to set http scheme for Gateway URL {:?}",
                 self.url
             )));
         }
@@ -110,30 +101,7 @@ impl GatewayHandler {
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
 
-        if scheme == Scheme::Https {
-            let settings = Settings::get_current_settings();
-            let Some(ca_cert_der) = settings.ca_cert_der else {
-                return Err(GatewayError::EndpointError(
-                    "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
-                ));
-            };
-
-            let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
-                .map_err(|err| {
-                    GatewayError::EndpointError(format!(
-                        "Failed to convert CA certificate DER to PEM for Gateway URL {url:?}: {err}",
-                    ))
-                })?;
-            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
-
-            Ok(endpoint.tls_config(tls).map_err(|err| {
-                GatewayError::EndpointError(format!(
-                    "Failed to set TLS config for Gateway URL {url:?}: {err}",
-                ))
-            })?)
-        } else {
-            Ok(endpoint)
-        }
+        Ok(endpoint)
     }
 
     /// Send network and VPN configuration to Gateway.
@@ -236,11 +204,32 @@ impl GatewayHandler {
 
     /// Connect to Gateway and handle its messages through gRPC.
     pub(crate) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
-        let endpoint = self.endpoint(Scheme::Https)?;
+        let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
         loop {
+			// TODO(jck) how does proxy do this? can this be moved to lib?
             #[cfg(not(test))]
-            let channel = endpoint.connect_lazy();
+            let channel = {
+                let settings = Settings::get_current_settings();
+                let Some(ca_cert_der) = settings.ca_cert_der else {
+                    return Err(GatewayError::EndpointError(
+                        "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+                    ));
+                };
+                let tls_config = tls_certs::client_config(
+                    &ca_cert_der,
+                    self.certs_rx.clone(),
+                    self.gateway.id,
+                )
+                .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
+                let connector = HttpsConnectorBuilder::new()
+                    .with_tls_config(tls_config)
+                    .https_only()
+                    .enable_http2()
+                    .build();
+                let connector = HttpsSchemeConnector::new(connector);
+                endpoint.connect_with_connector_lazy(connector)
+            };
             #[cfg(test)]
             let channel = endpoint.connect_with_connector_lazy(tower::service_fn(
                 |_: tonic::transport::Uri| async {

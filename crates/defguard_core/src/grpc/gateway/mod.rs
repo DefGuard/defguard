@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::IpAddr, time::Duration};
+use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Duration};
 
 use chrono::DateTime;
 use defguard_common::{
@@ -33,6 +33,7 @@ use crate::{
     grpc::gateway::{events::GatewayEvent, handler::GatewayHandler},
 };
 
+mod certs;
 pub mod events;
 pub(crate) mod handler;
 // #[cfg(test)]
@@ -223,6 +224,15 @@ pub async fn run_grpc_gateway_stream(
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 ) -> Result<(), anyhow::Error> {
+    let (certs_tx, certs_rx) = tokio::sync::watch::channel(Arc::new(HashMap::new()));
+    certs::refresh_certs(&pool, &certs_tx).await;
+    let refresh_pool = pool.clone();
+    tokio::spawn(async move {
+        loop {
+            certs::refresh_certs(&refresh_pool, &certs_tx).await;
+            tokio::time::sleep(super::TEN_SECS).await;
+        }
+    });
     let mut abort_handles = HashMap::new();
 
     let mut tasks = JoinSet::new();
@@ -233,6 +243,7 @@ pub async fn run_grpc_gateway_stream(
             pool.clone(),
             events_tx.clone(),
             peer_stats_tx.clone(),
+            certs_rx.clone(),
         )?;
         let abort_handle = tasks.spawn(async move {
             loop {
