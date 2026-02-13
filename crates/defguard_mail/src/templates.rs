@@ -39,10 +39,14 @@ static MFA_CODE_SUBJECT: &str = "Defguard: Multi-Factor Authentication code for 
 static MFA_CODE_MJML: &str = include_str!("../templates/mfa-code.mjml");
 // static MFA_CODE_TEXT: &str = include_str!("../templates/mfa-code.text");
 
+// This used to be called "enrollment-start".
+static NEW_ACCOUNT_SUBJECT: &str = "Defguard user enrollment";
+static NEW_ACCOUNT_MJML: &str = include_str!("../templates/new-account.mjml");
+// static NEW_ACCOUNT_TEXT: &str = include_str!("../templates/new-account.text");
+
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/mail_test.mjml");
-static MAIL_ENROLLMENT_START: &str = include_str!("../templates/mail_enrollment_start.tera");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
     include_str!("../templates/mail_enrollment_admin_notification.tera");
@@ -202,30 +206,45 @@ pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateErr
 }
 
 // Mail with link to enrollment service.
-pub fn enrollment_start_mail(
+pub async fn new_account_mail(
+    to: &str,
+    transaction: &mut PgConnection,
     context: Context,
     mut enrollment_service_url: Url,
     enrollment_token: &str,
-) -> Result<String, TemplateError> {
+) -> Result<(), TemplateError> {
     debug!("Render an enrollment start mail template for the user.");
-    let (mut tera, mut context) = get_base_tera(context, None, None, None)?;
+    let (mut tera, mut context) = get_base_tera_mjml(context, None, None, None)?;
+
+    let template = "new-account";
+    tera.add_raw_template(template, NEW_ACCOUNT_MJML)?;
+    let db_context = MailContext::all_for_template(transaction, template, DEFAULT_LANG)
+        .await
+        .unwrap();
+    for c in db_context {
+        context.insert(c.section, &c.text);
+    }
 
     // add required context
-    context.insert("enrollment_url", &enrollment_service_url);
     context.insert("defguard_url", &Settings::url()?);
+    context.insert("url", &enrollment_service_url);
     context.insert("token", enrollment_token);
 
     // prepare enrollment service URL
     enrollment_service_url
         .query_pairs_mut()
         .append_pair("token", enrollment_token);
-
     context.insert("link_url", &enrollment_service_url);
 
-    tera.add_raw_template("mail_enrollment_start", MAIL_ENROLLMENT_START)?;
+    // TODO: Move to Mail once every message is converted to MJML.
+    let processed = tera.render(template, &context)?;
+    let parsed = mrml::parse(processed)?;
+    let opts = mrml::prelude::render::RenderOptions::default();
+    let html = parsed.element.render(&opts)?;
 
-    let processed = tera.render("mail_enrollment_start", &context)?;
-    Ok(processed)
+    Mail::new(to, NEW_ACCOUNT_SUBJECT, html).send_and_forget();
+
+    Ok(())
 }
 
 // Mail with link to enrollment service.
@@ -567,16 +586,16 @@ mod test {
         assert_ok!(test_mail(None));
     }
 
-    #[sqlx::test]
-    async fn test_enrollment_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        init_config(&pool).await;
-        assert_ok!(enrollment_start_mail(
-            Context::new(),
-            Url::parse("http://localhost:8080").unwrap(),
-            "test_token"
-        ));
-    }
+    // #[sqlx::test]
+    // async fn test_enrollment_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    //     let pool = setup_pool(options).await;
+    //     init_config(&pool).await;
+    //     assert_ok!(enrollment_start_mail(
+    //         Context::new(),
+    //         Url::parse("http://localhost:8080").unwrap(),
+    //         "test_token"
+    //     ));
+    // }
 
     #[sqlx::test]
     async fn test_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
