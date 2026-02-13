@@ -6,8 +6,6 @@ use tonic::{Code, Status};
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
 pub(crate) enum GatewayError {
-    #[error("Failed to acquire lock on VPN client state map")]
-    ClientStateMutexError,
     #[error("gRPC event channel error: {0}")]
     GrpcEventChannelError(#[from] SendError<GrpcEvent>),
     #[error("Endpoint error: {0}")]
@@ -16,10 +14,6 @@ pub(crate) enum GatewayError {
     GrpcCommunicationError(#[from] tonic::Status),
     #[error(transparent)]
     CertificateError(#[from] defguard_certs::CertificateError),
-    #[error("Configuration error: {0}")]
-    ConfigurationError(String),
-    #[error("Conversion error: {0}")]
-    ConversionError(String),
     #[error(transparent)]
     SqlxError(#[from] sqlx::Error),
     #[error("Not found: {0}")]
