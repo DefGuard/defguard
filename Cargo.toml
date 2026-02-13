@@ -16,6 +16,7 @@ defguard_common = { path = "./crates/defguard_common", version = "2.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
+defguard_gateway_manager = { path = "./crates/defguard_gateway_manager", version = "0.0.0" }
 defguard_mail = { path = "./crates/defguard_mail", version = "0.0.0" }
 defguard_proto = { path = "./crates/defguard_proto", version = "0.0.0" }
 defguard_proxy_manager = { path = "./crates/defguard_proxy_manager", version = "0.0.0" }
@@ -50,6 +51,7 @@ claims = "0.8"
 clap = { version = "4.5", features = ["derive", "env"] }
 futures = "0.3"
 http = "1.4"
+hyper-rustls = { version = "0.27", features = ["http2"] }
 humantime = "2.1"
 # match version used by sqlx
 ipnetwork = "0.20"
@@ -62,6 +64,7 @@ md4 = "0.10"
 openidconnect = { version = "4.0", default-features = false, features = [
     "reqwest",
 ] }
+os_info = "3.12"
 parse_link_header = "0.4"
 paste = "1.0"
 pgp = { version = "0.16", default-features = false }
@@ -73,6 +76,7 @@ rcgen = { version = "0.14", features = ["x509-parser", "pem"] }
 reqwest = { version = "0.12", features = ["json"] }
 rsa = "0.9"
 rust-ini = "0.21"
+rustls = { version = "0.23", features = ["ring"] }
 rustls-pki-types = "1.14"
 semver = { version = "1.0", features = ["serde"] }
 secrecy = { version = "0.10", features = ["serde"] }
@@ -116,7 +120,9 @@ tonic-health = "0.14"
 tonic-prost = "0.14"
 tonic-prost-build = "0.14"
 totp-lite = { version = "2.0" }
+tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "trace", "set-header"] }
+tower-service = "0.3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"

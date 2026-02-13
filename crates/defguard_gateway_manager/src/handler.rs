@@ -24,24 +24,20 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        broadcast::Sender,
-        mpsc::{self, UnboundedSender},
-        watch,
+        Mutex, broadcast::Sender, mpsc::{self, UnboundedSender}, watch
     },
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::transport::Endpoint;
 
-use crate::{
-    enterprise::firewall::try_get_location_firewall_config,
-    grpc::{
-        TEN_SECS,
-        gateway::{GatewayError, events::GatewayEvent, try_protos_into_stats_message},
-    },
-    handlers::mail::send_gateway_disconnected_email,
-    location_management::allowed_peers::get_location_allowed_peers,
+use defguard_core::{
+    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent, handlers::mail::send_gateway_disconnected_email, location_management::allowed_peers::get_location_allowed_peers
 };
+
+use crate::{GatewayError, TEN_SECS, try_protos_into_stats_message};
+
+type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
 /// One instance per connected Gateway.
 pub(crate) struct GatewayHandler {

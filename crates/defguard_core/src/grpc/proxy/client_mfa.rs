@@ -40,7 +40,7 @@ use tonic::{Code, Status};
 use crate::{
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{gateway::events::GatewayEvent, utils::parse_client_ip_agent},
+    grpc::{GatewayEvent, utils::parse_client_ip_agent},
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes

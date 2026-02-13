@@ -27,8 +27,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     grpc::{
-        gateway::events::GatewayEvent,
-        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
+        GatewayEvent, proxy::client_mfa::{ClientLoginSession, ClientMfaServer}
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };

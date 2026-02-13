@@ -108,7 +108,7 @@ use crate::{
             create_snat_binding, delete_snat_binding, list_snat_bindings, modify_snat_binding,
         },
     },
-    grpc::{WorkerState, gateway::events::GatewayEvent},
+    grpc::{GatewayEvent, WorkerState},
     handlers::{
         app_info::get_app_info,
         auth::{

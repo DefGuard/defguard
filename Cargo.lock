@@ -1161,6 +1161,7 @@ dependencies = [
  "defguard_core",
  "defguard_event_logger",
  "defguard_event_router",
+ "defguard_gateway_manager",
  "defguard_proxy_manager",
  "defguard_session_manager",
  "defguard_setup",
@@ -1250,7 +1251,6 @@ dependencies = [
  "futures",
  "humantime",
  "hyper-rustls",
- "hyper-util",
  "ipnetwork",
  "jsonwebkey",
  "jsonwebtoken",
@@ -1330,6 +1330,34 @@ dependencies = [
  "defguard_session_manager",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "defguard_gateway_manager"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "defguard_certs",
+ "defguard_common",
+ "defguard_core",
+ "defguard_grpc_tls",
+ "defguard_proto",
+ "defguard_version",
+ "hyper-rustls",
+ "hyper-util",
+ "jsonwebtoken",
+ "reqwest",
+ "semver",
+ "serde_json",
+ "sqlx",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tonic-health",
+ "tower",
  "tracing",
 ]
 

@@ -18,9 +18,7 @@ use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::firewall::{FirewallError, try_get_location_firewall_config},
-    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events},
-    wg_config::ImportedDevice,
+    enterprise::firewall::{FirewallError, try_get_location_firewall_config}, grpc::{GatewayEvent, send_multiple_wireguard_events}, wg_config::ImportedDevice
 };
 
 pub mod allowed_peers;
@@ -410,7 +408,6 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::grpc::gateway::events::GatewayEvent;
 
     #[sqlx::test]
     async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {

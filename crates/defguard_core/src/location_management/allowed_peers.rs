@@ -2,7 +2,7 @@ use defguard_common::db::{Id, models::WireguardNetwork};
 use defguard_proto::gateway::Peer;
 use sqlx::{Error as SqlxError, PgExecutor, query};
 
-use crate::grpc::gateway::should_prevent_service_location_usage;
+use crate::grpc::should_prevent_service_location_usage;
 
 /// Get a list of all allowed peers for a given location
 ///

@@ -24,9 +24,7 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent},
     grpc::{
-        WorkerState,
-        gateway::{events::GatewayEvent, run_grpc_gateway_stream},
-        run_grpc_server,
+        GatewayEvent, WorkerState
     },
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
@@ -34,6 +32,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
+use defguard_gateway_manager::{run_grpc_gateway_stream, run_grpc_server};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use defguard_setup::setup::run_setup_web_server;

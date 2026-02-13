@@ -10,11 +10,11 @@ rust-version.workspace = true
 [dependencies]
 axum.workspace = true
 http.workspace = true
-os_info = "3.12"
+os_info.workspace = true
 semver.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tonic.workspace = true
-tower = "0.5"
+tower.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

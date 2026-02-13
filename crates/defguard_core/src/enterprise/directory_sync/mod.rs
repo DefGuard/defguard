@@ -28,10 +28,7 @@ use crate::{
             model::ldap_sync_allowed_for_user,
             utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
         },
-    },
-    grpc::gateway::events::GatewayEvent,
-    handlers::user::check_username,
-    user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
+    }, grpc::GatewayEvent, handlers::user::check_username, user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices}
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
