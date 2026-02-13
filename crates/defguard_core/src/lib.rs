@@ -1,6 +1,4 @@
 #![allow(clippy::too_many_arguments)]
-// FIXME: actually refactor errors instead
-#![allow(clippy::result_large_err)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, LazyLock, Mutex, RwLock},
