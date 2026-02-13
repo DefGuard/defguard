@@ -7,9 +7,15 @@ use lettre::{
     transport::smtp::authentication::Credentials,
 };
 use serde::Serialize;
-use tera::Context;
+use sqlx::PgConnection;
+use tera::{Context, Tera};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
+
+use crate::{
+    mail_context::MailContext,
+    templates::{DEFAULT_LANG, TemplateError},
+};
 
 use super::SmtpSettings;
 
@@ -255,5 +261,124 @@ impl Mail {
         };
 
         Ok(builder.build())
+    }
+}
+
+/// Email messages.
+pub enum MailMessage {
+    /// Test email to check if SMTP configuration works correctly.
+    Test,
+    Welcome,
+    /// Information for Defguard support.
+    Support,
+    DesktopStart,
+    /// Information after starting an enrollment.
+    NewAccount,
+    NewDevice,
+    NewDeviceLogin,
+    NewDeviceOCIDLogin,
+    /// Gateway has disconnected.
+    GatewayDisconnect,
+    /// Gateway has reconnected.
+    GatewayReconnect,
+    MFAActivation,
+    MFAConfigured,
+    /// MFA code.
+    MFACode,
+    PasswordReset,
+    PasswordResetDone,
+}
+
+impl MailMessage {
+    /// Email subject.
+    pub(crate) const fn subject(&self) -> &'static str {
+        match self {
+            Self::Test => "Test message",
+            Self::Welcome => "Welcome message after enrollment",
+            Self::Support => "Support data",
+            Self::DesktopStart => "Defguard: Desktop client configuration",
+            Self::NewAccount => "Defguard: User enrollment",
+            Self::NewDevice => "Defguard: new device added to your account",
+            Self::NewDeviceLogin => "New device logged in to your account",
+            Self::NewDeviceOCIDLogin => "New login to OCID application",
+            Self::GatewayDisconnect => "Gateway disconnected",
+            Self::GatewayReconnect => "Gateway reconnected",
+            Self::MFAActivation => "Multi-Factor Authentication activation",
+            Self::MFAConfigured => "Multi-Factor Authentication {method} has been activated",
+            Self::MFACode => "Defguard: Multi-Factor Authentication code for login",
+            Self::PasswordReset => "Password reset",
+            Self::PasswordResetDone => "Password reset success",
+        }
+    }
+
+    pub(crate) const fn template_name(&self) -> &str {
+        match self {
+            Self::Test => "test",
+            Self::Welcome => "welcome",
+            Self::Support => "support",
+            Self::DesktopStart => "desktop-start",
+            Self::NewAccount => "new-account",
+            Self::NewDevice => "new-device",
+            Self::NewDeviceLogin => "new-device-loin",
+            Self::NewDeviceOCIDLogin => "new-device-login-ocid",
+            Self::GatewayDisconnect => "gateway-disconnect",
+            Self::GatewayReconnect => "gateway-reconnect",
+            Self::MFAActivation => "mfa-activation",
+            Self::MFAConfigured => "mfa-configure",
+            Self::MFACode => "mfa-code",
+            Self::PasswordReset => "password-reset",
+            Self::PasswordResetDone => "password-reset-done",
+        }
+    }
+
+    pub(crate) const fn mjml_template(&self) -> &str {
+        match self {
+            Self::Test => "",
+            Self::Welcome => "",
+            Self::Support => "",
+            Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
+            Self::NewAccount => include_str!("../templates/new-account.mjml"),
+            Self::NewDevice => include_str!("../templates/new-device.mjml"),
+            Self::NewDeviceLogin => "",
+            Self::NewDeviceOCIDLogin => "",
+            Self::GatewayDisconnect => "",
+            Self::GatewayReconnect => "",
+            Self::MFAActivation => "",
+            Self::MFAConfigured => "",
+            Self::MFACode => include_str!("../templates/mfa-code.mjml"),
+            Self::PasswordReset => "",
+            Self::PasswordResetDone => "",
+        }
+    }
+
+    /// Fill `Context` from database.
+    pub(crate) async fn fill_context(
+        &self,
+        conn: &mut PgConnection,
+        context: &mut Context,
+    ) -> Result<(), sqlx::Error> {
+        let db_context =
+            MailContext::all_for_template(conn, self.template_name(), DEFAULT_LANG).await?;
+        for row in db_context {
+            context.insert(row.section, &row.text);
+        }
+
+        Ok(())
+    }
+
+    /// Build `Mail`.
+    pub(crate) fn mail(
+        &self,
+        tera: &mut Tera,
+        context: &Context,
+        to: &str,
+    ) -> Result<Mail, TemplateError> {
+        tera.add_raw_template(self.template_name(), self.mjml_template())?;
+        let processed = tera.render(self.template_name(), context)?;
+        let parsed = mrml::parse(processed)?;
+        let opts = mrml::prelude::render::RenderOptions::default();
+        let html = parsed.element.render(&opts)?;
+
+        Ok(Mail::new(to, self.subject(), html))
     }
 }
