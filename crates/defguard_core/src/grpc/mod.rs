@@ -1,5 +1,15 @@
 use std::{collections::hash_map::HashMap, net::IpAddr, time::Instant};
 
+use crate::{
+    db::AppEvent,
+    enterprise::{
+        db::models::{
+            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            openid_provider::OpenIdProvider,
+        },
+        is_business_license_active, is_enterprise_license_active,
+    },
+};
 use defguard_common::{
     db::{
         Id,
@@ -14,16 +24,6 @@ use defguard_common::{
 use reqwest::Url;
 use serde::Serialize;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use crate::{
-    db::AppEvent,
-    enterprise::{
-        db::models::{
-            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-            openid_provider::OpenIdProvider,
-        },
-        is_business_license_active, is_enterprise_license_active,
-    },
-};
 
 pub mod client_version;
 pub mod interceptor;

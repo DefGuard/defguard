@@ -1,22 +1,23 @@
 use std::{
-    collections::HashMap,
-    str::FromStr,
-    sync::{
+    collections::HashMap, net::IpAddr, str::FromStr, sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
-    },
+    }
 };
 
+use chrono::DateTime;
 use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, WireguardNetwork, gateway::Gateway},
+        models::{Settings, WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
-use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
+use defguard_proto::{enterprise::firewall::FirewallConfig, gateway::{
+    Configuration, CoreResponse, Peer, PeerStats, Update, core_request, core_response, gateway_client, update
+}};
 use defguard_version::client::ClientVersionInterceptor;
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
@@ -24,14 +25,14 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        broadcast::Sender,
+        broadcast::{self, Sender},
         mpsc::{self, UnboundedSender},
         watch,
     },
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::transport::Endpoint;
+use tonic::{Code, Status, transport::Endpoint};
 
 use defguard_core::{
     enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent,
@@ -39,7 +40,7 @@ use defguard_core::{
     location_management::allowed_peers::get_location_allowed_peers,
 };
 
-use crate::{TEN_SECS, error::GatewayError, try_protos_into_stats_message};
+use crate::{TEN_SECS, error::GatewayError};
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
@@ -292,7 +293,7 @@ impl GatewayHandler {
                                             .gateway
                                             .touch_connected(&self.pool, config_request.hostname)
                                             .await;
-                                        let mut updates_handler = super::GatewayUpdatesHandler::new(
+                                        let mut updates_handler = GatewayUpdatesHandler::new(
                                             self.gateway.network_id,
                                             network,
                                             self.gateway
@@ -362,4 +363,418 @@ impl GatewayHandler {
             }
         }
     }
+}
+
+/// Helper struct for handling gateway events.
+struct GatewayUpdatesHandler {
+    network_id: Id,
+    network: WireguardNetwork<Id>,
+    gateway_hostname: String,
+    events_rx: broadcast::Receiver<GatewayEvent>,
+    tx: UnboundedSender<CoreResponse>,
+}
+
+impl GatewayUpdatesHandler {
+    pub fn new(
+        network_id: Id,
+        network: WireguardNetwork<Id>,
+        gateway_hostname: String,
+        events_rx: broadcast::Receiver<GatewayEvent>,
+        tx: UnboundedSender<CoreResponse>,
+    ) -> Self {
+        Self {
+            network_id,
+            network,
+            gateway_hostname,
+            events_rx,
+            tx,
+        }
+    }
+
+    /// Process incoming Gateway events
+    ///
+    /// Main gRPC server uses a shared channel for broadcasting all gateway events
+    /// so the handler must determine if an event is relevant for the network being serviced
+    pub async fn run(&mut self) {
+        info!(
+            "Starting update stream to gateway: {}, network {}",
+            self.gateway_hostname, self.network
+        );
+        while let Ok(update) = self.events_rx.recv().await {
+            debug!("Received WireGuard update: {update:?}");
+            let result = match update {
+                GatewayEvent::NetworkCreated(network_id, network) => {
+                    if network_id == self.network_id {
+                        self.send_network_update(&network, Vec::new(), None, 0)
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::NetworkModified(
+                    network_id,
+                    network,
+                    peers,
+                    maybe_firewall_config,
+                ) => {
+                    if network_id == self.network_id {
+                        let result =
+                            self.send_network_update(&network, peers, maybe_firewall_config, 1);
+                        // update stored network data
+                        self.network = network;
+                        result
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::NetworkDeleted(network_id, network_name) => {
+                    if network_id == self.network_id {
+                        self.send_network_delete(&network_name)
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::DeviceCreated(device) => {
+                    // check if a peer has to be added in the current network
+                    match device
+                        .network_info
+                        .iter()
+                        .find(|info| info.network_id == self.network_id)
+                    {
+                        Some(network_info) => {
+                            // FIXME: this shouldn't happen, since when the device is created
+                            // it's impossible for MFA authorization to already be completed
+                            if self.network.mfa_enabled() && !network_info.is_authorized {
+                                debug!(
+                                    "Created WireGuard device {} is not authorized to connect to \
+                                    MFA enabled location {}",
+                                    device.device.name, self.network.name
+                                );
+                                continue;
+                            }
+                            self.send_peer_update(
+                                Peer {
+                                    pubkey: device.device.wireguard_pubkey,
+                                    allowed_ips: network_info
+                                        .device_wireguard_ips
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect(),
+                                    preshared_key: network_info.preshared_key.clone(),
+                                    keepalive_interval: Some(
+                                        self.network.keepalive_interval as u32,
+                                    ),
+                                },
+                                0,
+                            )
+                        }
+                        None => Ok(()),
+                    }
+                }
+                GatewayEvent::DeviceModified(device) => {
+                    // check if a peer has to be updated in the current network
+                    match device
+                        .network_info
+                        .iter()
+                        .find(|info| info.network_id == self.network_id)
+                    {
+                        Some(network_info) => {
+                            if self.network.mfa_enabled() && !network_info.is_authorized {
+                                debug!(
+                                    "Modified WireGuard device {} is not authorized to connect to \
+                                    MFA enabled location {}",
+                                    device.device.name, self.network.name
+                                );
+                                continue;
+                            }
+                            self.send_peer_update(
+                                Peer {
+                                    pubkey: device.device.wireguard_pubkey,
+                                    allowed_ips: network_info
+                                        .device_wireguard_ips
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect(),
+                                    preshared_key: network_info.preshared_key.clone(),
+                                    keepalive_interval: Some(
+                                        self.network.keepalive_interval as u32,
+                                    ),
+                                },
+                                1,
+                            )
+                        }
+                        None => Ok(()),
+                    }
+                }
+                GatewayEvent::DeviceDeleted(device) => {
+                    // check if a peer has to be updated in the current network
+                    match device
+                        .network_info
+                        .iter()
+                        .find(|info| info.network_id == self.network_id)
+                    {
+                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey),
+                        None => Ok(()),
+                    }
+                }
+                GatewayEvent::FirewallConfigChanged(location_id, firewall_config) => {
+                    if location_id == self.network_id {
+                        self.send_firewall_update(firewall_config)
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::FirewallDisabled(location_id) => {
+                    if location_id == self.network_id {
+                        self.send_firewall_disable()
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::MfaSessionDisconnected(location_id, device) => {
+                    if location_id == self.network_id {
+                        self.send_peer_delete(&device.wireguard_pubkey)
+                    } else {
+                        Ok(())
+                    }
+                }
+                GatewayEvent::MfaSessionAuthorized(location_id, device, network_device) => {
+                    if location_id == self.network_id {
+                        // validate that network info is for the correct location
+                        if network_device.wireguard_network_id != location_id {
+                            error!(
+                                "Received MFA authorization success event for location {location_id} with invalid device config: {network_device:?}"
+                            );
+                            continue;
+                        }
+
+                        // FIXME: at this point the device authorization should already have been verified
+                        if self.network.mfa_enabled() && !network_device.is_authorized {
+                            debug!(
+                                "Created WireGuard device {} is not authorized to connect to \
+                                    MFA enabled location {}",
+                                device.name, self.network.name
+                            );
+                            continue;
+                        }
+
+                        self.send_peer_update(
+                            Peer {
+                                pubkey: device.wireguard_pubkey,
+                                allowed_ips: network_device
+                                    .wireguard_ips
+                                    .iter()
+                                    .map(IpAddr::to_string)
+                                    .collect(),
+                                preshared_key: network_device.preshared_key.clone(),
+                                keepalive_interval: Some(self.network.keepalive_interval as u32),
+                            },
+                            0,
+                        )
+                    } else {
+                        Ok(())
+                    }
+                }
+            };
+            if result.is_err() {
+                error!(
+                    "Closing update steam to gateway: {}, network {}",
+                    self.gateway_hostname, self.network
+                );
+                break;
+            }
+        }
+    }
+
+    /// Sends updated network configuration
+    fn send_network_update(
+        &self,
+        network: &WireguardNetwork<Id>,
+        peers: Vec<Peer>,
+        firewall_config: Option<FirewallConfig>,
+        update_type: i32,
+    ) -> Result<(), Status> {
+        debug!("Sending network update for network {network}");
+        if let Err(err) = self.tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::Update(Update {
+                update_type,
+                update: Some(update::Update::Network(Configuration {
+                    name: network.name.clone(),
+                    prvkey: network.prvkey.clone(),
+                    addresses: network.address.iter().map(ToString::to_string).collect(),
+                    port: network.port as u32,
+                    peers,
+                    firewall_config,
+                    mtu: network.mtu as u32,
+                    fwmark: network.fwmark as u32,
+                })),
+            })),
+        }) {
+            let msg = format!(
+                "Failed to send network update, network {network}, update type: {update_type} \
+                ({}), error: {err}",
+                if update_type == 0 { "CREATE" } else { "MODIFY" },
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Network update sent for network {network}");
+        Ok(())
+    }
+
+    /// Sends delete network command to gateway
+    fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
+        debug!(
+            "Sending network delete command for network {}",
+            self.network
+        );
+        if let Err(err) = self.tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::Update(Update {
+                update_type: 2,
+                update: Some(update::Update::Network(Configuration {
+                    name: network_name.to_string(),
+                    prvkey: String::new(),
+                    addresses: Vec::new(),
+                    port: 0,
+                    peers: Vec::new(),
+                    firewall_config: None,
+                    mtu: DEFAULT_WIREGUARD_MTU as u32,
+                    fwmark: 0,
+                })),
+            })),
+        }) {
+            let msg = format!(
+                "Failed to send network update, network {}, update type: 2 (DELETE), error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Network delete command sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send update peer command to gateway
+    fn send_peer_update(&self, peer: Peer, update_type: i32) -> Result<(), Status> {
+        debug!("Sending peer update for network {}", self.network);
+        if let Err(err) = self.tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::Update(Update {
+                update_type,
+                update: Some(update::Update::Peer(peer)),
+            })),
+        }) {
+            let msg = format!(
+                "Failed to send peer update for network {}, update type: {update_type} ({}), \
+                error: {err}",
+                self.network,
+                if update_type == 0 { "CREATE" } else { "MODIFY" },
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Peer update sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send delete peer command to gateway
+    fn send_peer_delete(&self, peer_pubkey: &str) -> Result<(), Status> {
+        debug!("Sending peer delete for network {}", self.network);
+        if let Err(err) = self.tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::Update(Update {
+                update_type: 2,
+                update: Some(update::Update::Peer(Peer {
+                    pubkey: peer_pubkey.into(),
+                    allowed_ips: Vec::new(),
+                    preshared_key: None,
+                    keepalive_interval: None,
+                })),
+            })),
+        }) {
+            let msg = format!(
+                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 \
+                (DELETE), error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Peer delete command sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send firewall config update command to gateway
+    fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
+        debug!(
+            "Sending firewall config update for network {} with config {firewall_config:?}",
+            self.network
+        );
+        if let Err(err) = self.tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::Update(Update {
+                update_type: 1,
+                update: Some(update::Update::FirewallConfig(firewall_config)),
+            })),
+        }) {
+            let msg = format!(
+                "Failed to send firewall config update for network {}, error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Firewall config update sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send firewall disable command to gateway
+    fn send_firewall_disable(&self) -> Result<(), Status> {
+        debug!(
+            "Sending firewall disable command for network {}",
+            self.network
+        );
+        if let Err(err) = self.tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::Update(Update {
+                update_type: 2,
+                update: Some(update::Update::DisableFirewall(())),
+            })),
+        }) {
+            let msg = format!(
+                "Failed to send firewall disable command for network {}, error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Firewall disable command sent for network {}", self.network);
+        Ok(())
+    }
+}
+
+/// Helper used to convert peer stats coming from gRPC client
+/// into an internal representation
+fn try_protos_into_stats_message(
+    proto_stats: PeerStats,
+    location_id: Id,
+    gateway_id: Id,
+) -> Option<PeerStatsUpdate> {
+    // try to parse endpoint
+    let endpoint = proto_stats.endpoint.parse().ok()?;
+
+    let latest_handshake = DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
+        .unwrap_or_default()
+        .naive_utc();
+
+    Some(PeerStatsUpdate::new(
+        location_id,
+        gateway_id,
+        proto_stats.public_key,
+        endpoint,
+        proto_stats.upload,
+        proto_stats.download,
+        latest_handshake,
+    ))
 }

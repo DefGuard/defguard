@@ -36,4 +36,3 @@ impl From<GatewayError> for Status {
         Self::new(Code::Internal, value.to_string())
     }
 }
-
