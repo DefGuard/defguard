@@ -19,12 +19,41 @@ use crate::{
 
 use super::SmtpSettings;
 
+#[derive(Debug)]
+pub struct Attachment {
+    filename: String,
+    content: Vec<u8>,
+}
+
+impl Attachment {
+    /// Create new [`Attachement`].
+    #[must_use]
+    pub fn new(filename: String, content: Vec<u8>) -> Self {
+        Self { filename, content }
+    }
+}
+
+impl From<Attachment> for SinglePart {
+    fn from(attachment: Attachment) -> Self {
+        lettre::message::Attachment::new(attachment.filename)
+            .body(attachment.content, ContentType::TEXT_PLAIN)
+    }
+}
+
 const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 // Template images.
 static DEFGUARD_LOGO: &[u8] = include_bytes!("../assets/defguard.png");
 static GITHUB_LOGO: &[u8] = include_bytes!("../assets/github.png");
 static MASTODON_LOGO: &[u8] = include_bytes!("../assets/mastodon.png");
 static X_LOGO: &[u8] = include_bytes!("../assets/x.png");
+// MFA code
+static DATE_ICON: &[u8] = include_bytes!("../assets/date.png");
+static OTP_ICON: &[u8] = include_bytes!("../assets/otp.png");
+// New account
+static NEW_ACCOUNT_1: &[u8] = include_bytes!("../assets/new_account_1.png");
+static NEW_ACCOUNT_2: &[u8] = include_bytes!("../assets/new_account_2.png");
+static GOOGLE_PLAY: &[u8] = include_bytes!("../assets/google_play.png");
+static APPLE: &[u8] = include_bytes!("../assets/apple.png");
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -53,7 +82,8 @@ pub struct Mail {
     pub(crate) subject: String,
     content: String,
     context: Context,
-    attachments: Vec<Attachment>,
+    attachments: Vec<Attachment>,   // text/plain
+    images: Vec<(String, Vec<u8>)>, // image/png
 }
 
 impl Mail {
@@ -64,12 +94,21 @@ impl Mail {
         T: Into<String>,
         S: Into<String>,
     {
+        // Append images used in all templates.
+        let images = vec![
+            (String::from("defguard"), Vec::from(DEFGUARD_LOGO)),
+            (String::from("github"), Vec::from(GITHUB_LOGO)),
+            (String::from("mastodon"), Vec::from(MASTODON_LOGO)),
+            (String::from("x"), Vec::from(X_LOGO)),
+        ];
+
         Self {
             to: to.into(),
             subject: subject.into(),
             content,
             context: Context::new(),
             attachments: Vec::new(),
+            images,
         }
     }
 
@@ -106,35 +145,14 @@ impl Mail {
         self.attachments = attachments;
         self
     }
-}
 
-#[derive(Debug)]
-pub struct Attachment {
-    filename: String,
-    content: Vec<u8>,
-    content_type: ContentType,
-}
-
-impl Attachment {
-    /// Create new [`Attachement`].
-    #[must_use]
-    pub fn new(filename: String, content: Vec<u8>) -> Self {
-        Self {
-            filename,
-            content,
-            content_type: ContentType::TEXT_PLAIN,
-        }
+    pub fn add_png_image<S>(&mut self, name: S, bytes: &[u8])
+    where
+        S: Into<String>,
+    {
+        self.images.push((name.into(), Vec::from(bytes)));
     }
-}
 
-impl From<Attachment> for SinglePart {
-    fn from(attachment: Attachment) -> Self {
-        lettre::message::Attachment::new(attachment.filename)
-            .body(attachment.content, attachment.content_type)
-    }
-}
-
-impl Mail {
     /// Converts Mail to lettre Message.
     /// Message structure should look like this:
     /// - multipart mixed
@@ -154,25 +172,13 @@ impl Mail {
         let plain = SinglePart::plain("PLAIN IS NOT AVAILABLE AT THE MOMENT.".to_string());
         let html = SinglePart::html(self.content);
         let image_png = "image/png".parse::<ContentType>().unwrap();
-        let related = MultiPart::related()
-            .singlepart(html)
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("defguard"))
-                    .body(Body::new(Vec::from(DEFGUARD_LOGO)), image_png.clone()),
-            )
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("github"))
-                    .body(Body::new(Vec::from(GITHUB_LOGO)), image_png.clone()),
-            )
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("mastodon"))
-                    .body(Body::new(Vec::from(MASTODON_LOGO)), image_png.clone()),
-            )
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("x"))
-                    .body(Body::new(Vec::from(X_LOGO)), image_png),
+        let mut related = MultiPart::related().singlepart(html);
+        for (name, bytes) in self.images {
+            related = related.singlepart(
+                lettre::message::Attachment::new_inline(name)
+                    .body(Body::new(bytes), image_png.clone()),
             );
-
+        }
         let alternative = MultiPart::alternative()
             .singlepart(plain)
             .multipart(related);
@@ -333,21 +339,22 @@ impl MailMessage {
 
     pub(crate) const fn mjml_template(&self) -> &str {
         match self {
-            Self::Test => "",
-            Self::Welcome => "",
-            Self::Support => "",
+            // Self::Test => "",
+            // Self::Welcome => "",
+            // Self::Support => "",
             Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
             Self::NewAccount => include_str!("../templates/new-account.mjml"),
             Self::NewDevice => include_str!("../templates/new-device.mjml"),
-            Self::NewDeviceLogin => "",
-            Self::NewDeviceOCIDLogin => "",
-            Self::GatewayDisconnect => "",
-            Self::GatewayReconnect => "",
-            Self::MFAActivation => "",
-            Self::MFAConfigured => "",
+            // Self::NewDeviceLogin => "",
+            // Self::NewDeviceOCIDLogin => "",
+            // Self::GatewayDisconnect => "",
+            // Self::GatewayReconnect => "",
+            // Self::MFAActivation => "",
+            // Self::MFAConfigured => "",
             Self::MFACode => include_str!("../templates/mfa-code.mjml"),
-            Self::PasswordReset => "",
-            Self::PasswordResetDone => "",
+            // Self::PasswordReset => "",
+            // Self::PasswordResetDone => "",
+            _ => "",
         }
     }
 
@@ -379,6 +386,22 @@ impl MailMessage {
         let opts = mrml::prelude::render::RenderOptions::default();
         let html = parsed.element.render(&opts)?;
 
-        Ok(Mail::new(to, self.subject(), html))
+        let mut mail = Mail::new(to, self.subject(), html);
+        // Add PNG images.
+        match self {
+            Self::NewAccount => {
+                mail.add_png_image("new_account_1", NEW_ACCOUNT_1);
+                mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
+                mail.add_png_image("google_play", GOOGLE_PLAY);
+                mail.add_png_image("apple", APPLE);
+            }
+            Self::MFACode => {
+                mail.add_png_image("date", DATE_ICON);
+                mail.add_png_image("otp", OTP_ICON);
+            }
+            _ => (),
+        }
+
+        Ok(mail)
     }
 }

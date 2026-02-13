@@ -193,7 +193,7 @@ pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateErr
 // Mail with link to enrollment service.
 pub async fn new_account_mail(
     to: &str,
-    mut conn: &mut PgConnection,
+    conn: &mut PgConnection,
     context: Context,
     mut enrollment_service_url: Url,
     enrollment_token: &str,
@@ -213,7 +213,7 @@ pub async fn new_account_mail(
     context.insert("link_url", &enrollment_service_url);
 
     let message = MailMessage::NewAccount;
-    message.fill_context(&mut conn, &mut context).await?;
+    message.fill_context(conn, &mut context).await?;
     message.mail(&mut tera, &context, to)?.send_and_forget();
 
     Ok(())
