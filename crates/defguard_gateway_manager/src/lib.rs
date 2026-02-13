@@ -14,7 +14,7 @@ use defguard_common::{
         models::{
             WireguardNetwork,
             gateway::Gateway,
-            wireguard::{DEFAULT_WIREGUARD_MTU, ServiceLocationMode},
+            wireguard::DEFAULT_WIREGUARD_MTU,
         },
     },
     messages::peer_stats_update::PeerStatsUpdate,
@@ -46,10 +46,7 @@ use tonic::{
     transport::{Identity, Server, ServerTlsConfig, server::Router},
 };
 
-use defguard_core::{
-    enterprise::{firewall::FirewallError, is_enterprise_license_active},
-    events::GrpcEvent,
-};
+use defguard_core::{enterprise::firewall::FirewallError, events::GrpcEvent};
 
 use crate::{auth::AuthServer, handler::GatewayHandler};
 

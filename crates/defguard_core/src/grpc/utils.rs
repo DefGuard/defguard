@@ -7,7 +7,6 @@ use defguard_common::{
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
             device::WireguardNetworkDevice,
-            polling_token::PollingToken,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },

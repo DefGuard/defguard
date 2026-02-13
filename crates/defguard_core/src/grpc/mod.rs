@@ -1,12 +1,6 @@
-use std::{
-    collections::hash_map::HashMap,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
-};
+use std::{collections::hash_map::HashMap, net::IpAddr, time::Instant};
 
 use defguard_common::{
-    auth::claims::ClaimsType,
     db::{
         Id,
         models::{
@@ -19,13 +13,8 @@ use defguard_common::{
 };
 use reqwest::Url;
 use serde::Serialize;
-use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
-
-use self::interceptor::JwtInterceptor;
 use crate::{
-    auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
         db::models::{
@@ -34,7 +23,6 @@ use crate::{
         },
         is_business_license_active, is_enterprise_license_active,
     },
-    server_config,
 };
 
 pub mod client_version;
@@ -51,10 +39,7 @@ pub mod proto {
     }
 }
 
-use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig,
-    gateway::Peer, worker::worker_service_server::WorkerServiceServer,
-};
+use defguard_proto::{enterprise::firewall::FirewallConfig, gateway::Peer};
 
 // gRPC header for passing auth token from clients
 pub static AUTHORIZATION_HEADER: &str = "authorization";

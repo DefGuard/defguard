@@ -24,7 +24,6 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        Mutex,
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
         watch,
