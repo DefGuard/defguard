@@ -1,5 +1,5 @@
-{% extends "base.tera" %}
-{% import "macros.tera" as macros %}
+{% extends "base" %}
+{% import "macros" as macros %}
 {% block mail_content %}
 {% set section_content = [
 macros::paragraph(content="You're receiving this email to configure a new desktop client."),

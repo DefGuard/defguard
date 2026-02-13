@@ -26,6 +26,7 @@ pub struct VpnSessionStats<I = NoId> {
 
 impl VpnSessionStats {
     #![allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         session_id: Id,
         gateway_id: Id,
@@ -79,6 +80,7 @@ impl VpnSessionStats<Id> {
     /// Remove port part from `endpoint`.
     /// IPv4: a.b.c.d:p -> a.b.c.d
     /// IPv6: [x::y:z]:p -> x::y:z
+    #[must_use]
     pub fn endpoint_without_port(&self) -> Option<String> {
         // Remove port part
         let mut addr = self.endpoint.rsplit_once(':')?.0;

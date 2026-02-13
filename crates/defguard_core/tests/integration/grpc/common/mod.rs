@@ -124,7 +124,6 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     let (app_event_tx, _app_event_rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(app_event_tx.clone())));
     let (wg_tx, _wg_rx) = broadcast::channel::<GatewayEvent>(16);
-    let (mail_tx, _mail_rx) = unbounded_channel::<Mail>();
     let (peer_stats_tx, peer_stats_rx) = unbounded_channel::<PeerStatsUpdate>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let client_state = Arc::new(Mutex::new(ClientMap::new()));
@@ -151,10 +150,9 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     set_cached_license(Some(license));
     let server = Server::builder();
 
-    let grpc_router =
-        build_grpc_service_router(server, pool.clone(), worker_state, mail_tx, failed_logins)
-            .await
-            .unwrap();
+    let grpc_router = build_grpc_service_router(server, pool.clone(), worker_state, failed_logins)
+        .await
+        .unwrap();
 
     TestGrpcServer::new(
         server_stream,

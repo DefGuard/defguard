@@ -13,7 +13,6 @@ use defguard_core::{
     },
     headers::get_device_info,
 };
-use defguard_mail::Mail;
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,
@@ -24,22 +23,16 @@ use tonic::Status;
 
 pub(crate) struct PasswordResetServer {
     pool: PgPool,
-    mail_tx: UnboundedSender<Mail>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub(crate) fn new(
-        pool: PgPool,
-        mail_tx: UnboundedSender<Mail>,
-        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
-    ) -> Self {
+    pub fn new(pool: PgPool, bidi_event_tx: UnboundedSender<BidiStreamEvent>) -> Self {
         // FIXME: check if LDAP feature is enabled
         // let ldap_feature_active = true;
         Self {
             pool,
-            mail_tx,
             bidi_event_tx,
             // ldap_feature_active,
         }
@@ -100,7 +93,7 @@ impl PasswordResetServer {
 
         let ip_address;
         let device_info;
-        if let Some(ref info) = req_device_info {
+        if let Some(info) = &req_device_info {
             ip_address = info.ip_address.clone();
             let agent = info.user_agent.clone().unwrap_or_default();
             device_info = get_device_info(&agent);
@@ -162,7 +155,6 @@ impl PasswordResetServer {
 
         send_password_reset_email(
             &user,
-            &self.mail_tx,
             public_proxy_url,
             &enrollment.id,
             Some(&ip_address),
@@ -306,12 +298,7 @@ impl PasswordResetServer {
 
         ldap_change_password(&mut user, &request.password, &self.pool).await;
 
-        send_password_reset_success_email(
-            &user,
-            &self.mail_tx,
-            Some(&ip_address),
-            Some(&device_info),
-        )?;
+        send_password_reset_success_email(&user, Some(&ip_address), Some(&device_info))?;
 
         // Prepare event context and push the event
         let (ip, user_agent) = parse_client_ip_agent(&req_device_info).map_err(Status::internal)?;

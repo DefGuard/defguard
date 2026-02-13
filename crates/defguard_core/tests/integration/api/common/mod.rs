@@ -23,7 +23,6 @@ use defguard_core::{
     grpc::{WorkerState, gateway::events::GatewayEvent},
     handlers::{Auth, user::UserDetails},
 };
-use defguard_mail::Mail;
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
 use serde_json::json;
@@ -32,7 +31,7 @@ use tokio::{
     net::TcpListener,
     sync::{
         broadcast::{self, Receiver},
-        mpsc::{UnboundedReceiver, channel, unbounded_channel},
+        mpsc::{channel, unbounded_channel},
     },
 };
 
@@ -53,7 +52,6 @@ pub(crate) struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
-    pub mail_rx: UnboundedReceiver<Mail>,
     pub test_user: User<Id>,
     pub config: DefGuardConfig,
 }
@@ -63,7 +61,6 @@ impl ClientState {
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
         wireguard_rx: Receiver<GatewayEvent>,
-        mail_rx: UnboundedReceiver<Mail>,
         test_user: User<Id>,
         config: DefGuardConfig,
     ) -> Self {
@@ -71,7 +68,6 @@ impl ClientState {
             pool,
             worker_state,
             wireguard_rx,
-            mail_rx,
             test_user,
             config,
         }
@@ -87,7 +83,6 @@ pub(crate) async fn make_base_client(
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
-    let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -108,7 +103,6 @@ pub(crate) async fn make_base_client(
         pool.clone(),
         worker_state.clone(),
         wg_rx,
-        mail_rx,
         User::find_by_username(&pool, "hpotter")
             .await
             .unwrap()
@@ -133,7 +127,6 @@ pub(crate) async fn make_base_client(
         tx,
         rx,
         wg_tx,
-        mail_tx,
         worker_state,
         pool,
         failed_logins,

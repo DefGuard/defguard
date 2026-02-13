@@ -1,0 +1,16 @@
+#top-bar-profile {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 24px;
+  cursor: pointer;
+  user-select: none;
+
+  & > p {
+    font: var(--t-body-sm-400);
+    color: var(--fg-neutral);
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-xs);
+  }
+}

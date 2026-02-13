@@ -91,7 +91,7 @@ export const UsersTable = ({ users }: Props) => {
   const { mutate: deleteUser } = useMutation({
     mutationFn: api.user.deleteUser,
     meta: {
-      invalidate: [['user-overview'], ['user']],
+      invalidate: [['user-overview'], ['user'], ['enterprise_info']],
     },
   });
 

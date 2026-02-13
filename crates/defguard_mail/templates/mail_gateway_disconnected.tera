@@ -4,8 +4,8 @@ gateway_name ->  name of gateway
 gateway_ip -> gateway adress
 network_name ->  name of network
 #}
-{% extends "base.tera" %}
-{% import "macros.tera" as macros %}
+{% extends "base" %}
+{% import "macros" as macros %}
 {% block mail_content %}
 {% set section_content = [
 macros::paragraph(content="Your gateway: " ~ gateway_name ~ " (IP: " ~ gateway_ip ~ ") for VPN Location: " ~ network_name ~ " has just disconnected."),

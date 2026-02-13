@@ -1,0 +1,42 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section>
+  <mj-column>
+    <mj-table css-class="dg-table">
+      <tr>
+        <td>
+          {{ label_device }}
+        </td>
+        <td>
+          {{ device_name }}
+        </td>
+      </tr>
+      <tr>
+        <td>
+          {{ label_pubkey }}
+        </td>
+        <td>
+          {{ public_key }}
+        </td>
+      </tr>
+      {% for location in locations %}
+      <tr>
+        <td>
+          {{ location.name }}
+        </td>
+        <td>
+          {{ location.assigned_ips }}
+        </td>
+      </tr>
+      {% endfor %}
+    </mj-table>
+  </mj-column>
+</mj-section>
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}

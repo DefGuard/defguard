@@ -1,6 +1,5 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
-    VERSION,
     db::{
         Id,
         models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
@@ -15,7 +14,6 @@ use defguard_mail::{
 use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
 use tera::Context;
 use thiserror::Error;
-use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -320,7 +318,7 @@ impl Token {
     /// - admin_last_name
     /// - admin_email
     /// - admin_phone
-    pub async fn get_welcome_message_context(
+    pub(crate) async fn get_welcome_message_context(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Context, TokenError> {
@@ -337,7 +335,6 @@ impl Token {
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
         context.insert("defguard_url", &url);
-        context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {
             context.insert("admin_first_name", &admin.first_name);
@@ -367,7 +364,7 @@ impl Token {
     }
 
     // Render welcome email content
-    pub async fn get_welcome_email_content(
+    pub(crate) async fn get_welcome_email_content(
         &self,
         transaction: &mut PgConnection,
         ip_address: &str,
@@ -393,26 +390,22 @@ impl Token {
     pub async fn send_welcome_email(
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
-        mail_tx: &UnboundedSender<Mail>,
         user: &User<Id>,
         settings: &Settings,
         ip_address: &str,
         device_info: Option<&str>,
     ) -> Result<(), TokenError> {
         debug!("Sending welcome mail to {}", user.username);
-        let mail = Mail {
-            to: user.email.clone(),
-            subject: settings
+        let mail = Mail::new(
+            &user.email,
+            settings
                 .enrollment_welcome_email_subject
-                .clone()
-                .unwrap_or_else(|| WELCOME_EMAIL_SUBJECT.to_string()),
-            content: self
-                .get_welcome_email_content(&mut *transaction, ip_address, device_info)
+                .as_deref()
+                .unwrap_or(WELCOME_EMAIL_SUBJECT),
+            self.get_welcome_email_content(&mut *transaction, ip_address, device_info)
                 .await?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
-        match mail_tx.send(mail) {
+        );
+        match mail.send().await {
             Ok(()) => {
                 info!("Sent enrollment welcome mail to {}", user.username);
                 Ok(())
@@ -425,8 +418,7 @@ impl Token {
     }
 
     // Notify admin that a user has completed enrollment
-    pub fn send_admin_notification(
-        mail_tx: &UnboundedSender<Mail>,
+    pub async fn send_admin_notification(
         admin: &User<Id>,
         user: &User<Id>,
         ip_address: &str,
@@ -436,19 +428,17 @@ impl Token {
             "Sending enrollment success notification for user {} to {}",
             user.username, admin.username
         );
-        let mail = Mail {
-            to: admin.email.clone(),
-            subject: "[defguard] User enrollment completed".into(),
-            content: templates::enrollment_admin_notification(
-                &user.clone().into(),
-                &admin.clone().into(),
+        let mail = Mail::new(
+            &admin.email,
+            "[defguard] User enrollment completed",
+            templates::enrollment_admin_notification(
+                &user.into(),
+                &admin.into(),
                 ip_address,
                 device_info,
             )?,
-            attachments: Vec::new(),
-            result_tx: None,
-        };
-        match mail_tx.send(mail) {
+        );
+        match mail.send().await {
             Ok(()) => {
                 info!(
                     "Sent enrollment success notification for user {} to {}",

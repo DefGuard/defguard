@@ -19,7 +19,7 @@ use defguard_common::{
         },
     },
 };
-use defguard_mail::templates::TemplateLocation;
+use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
 use serde_json::json;
 use sqlx::PgConnection;
@@ -32,7 +32,6 @@ use crate::{
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::events::GatewayEvent,
-    handlers::mail::send_new_device_added_email,
     server_config,
 };
 
@@ -459,7 +458,6 @@ pub(crate) async fn start_network_device_setup(
         config.enrollment_token_timeout.as_secs(),
         settings.proxy_public_url()?.clone(),
         false,
-        appstate.mail_tx.clone(),
         Some(result.device.id),
     )
     .await?;
@@ -526,7 +524,6 @@ pub(crate) async fn start_network_device_setup_for_device(
         config.enrollment_token_timeout.as_secs(),
         settings.proxy_public_url()?,
         false,
-        appstate.mail_tx.clone(),
         Some(device.id),
     )
     .await?;
@@ -635,15 +632,16 @@ pub(crate) async fn add_network_device(
         assigned_ips: config.address.as_csv(),
     }];
 
-    send_new_device_added_email(
+    new_device_added_mail(
+        &user.email,
+        &mut transaction,
         &device.name,
         &device.wireguard_pubkey,
         &template_locations,
-        &user.email,
-        &appstate.mail_tx,
         Some(session.session.ip_address.as_str()),
         session.session.device_info.clone().as_deref(),
-    )?;
+    )
+    .await?;
 
     let result = AddNetworkDeviceResult {
         config,

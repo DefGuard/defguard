@@ -109,7 +109,7 @@ pub async fn generate_firewall_rules_from_acls(
             // append generated rules to output
             allow_rules.extend(manual_destination_allow_rules);
             deny_rules.extend(manual_destination_deny_rules);
-        };
+        }
 
         // process destination aliases by creating a dedicated set of rules for each of them
         if !destinations.is_empty() {

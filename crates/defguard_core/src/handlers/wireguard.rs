@@ -25,7 +25,7 @@ use defguard_common::{
     },
     utils::{parse_address_list, parse_network_address_list},
 };
-use defguard_mail::templates::TemplateLocation;
+use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -44,7 +44,6 @@ use crate::{
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::events::GatewayEvent,
-    handlers::mail::send_new_device_added_email,
     location_management::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
@@ -893,15 +892,13 @@ pub(crate) async fn add_device(
 
     appstate.send_multiple_wireguard_events(events);
 
-    transaction.commit().await?;
-
-    let template_locations: Vec<TemplateLocation> = configs
+    let template_locations = configs
         .iter()
         .map(|c| TemplateLocation {
             name: c.network_name.clone(),
             assigned_ips: c.address.as_csv(),
         })
-        .collect();
+        .collect::<Vec<_>>();
 
     // hide session info if triggered by admin for other user
     let (session_ip, session_device_info) = if session.is_admin && session.user != user {
@@ -912,15 +909,18 @@ pub(crate) async fn add_device(
             session.session.device_info.clone(),
         )
     };
-    send_new_device_added_email(
+    new_device_added_mail(
+        &user.email,
+        &mut transaction,
         &device.name,
         &device.wireguard_pubkey,
         &template_locations,
-        &user.email,
-        &appstate.mail_tx,
         session_ip,
         session_device_info.as_deref(),
-    )?;
+    )
+    .await?;
+
+    transaction.commit().await?;
 
     info!(
         "User {} added device {device_name} for user {username}",

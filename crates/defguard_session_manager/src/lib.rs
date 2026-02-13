@@ -138,7 +138,7 @@ impl SessionManager {
 
         // check if a session exists already for a given peer
         // and attempt to add one if necessary
-        let maybe_session = match active_sessions
+        let maybe_session = if let Some(session) = active_sessions
             .try_get_peer_session(
                 transaction,
                 message.location_id,
@@ -146,21 +146,20 @@ impl SessionManager {
             )
             .await?
         {
-            Some(session) => Some(session),
-            None => {
-                debug!(
-                    "No active session found for device with pubkey {} in location {}. Creating a new session",
-                    message.device_pubkey, message.location_id
-                );
-                active_sessions
-                    .try_add_new_session(
-                        transaction,
-                        &message,
-                        &message.device_pubkey,
-                        &self.session_manager_event_tx,
-                    )
-                    .await?
-            }
+            Some(session)
+        } else {
+            debug!(
+                "No active session found for device with pubkey {} in location {}. Creating a new session",
+                message.device_pubkey, message.location_id
+            );
+            active_sessions
+                .try_add_new_session(
+                    transaction,
+                    &message,
+                    &message.device_pubkey,
+                    &self.session_manager_event_tx,
+                )
+                .await?
         };
 
         if let Some(session) = maybe_session {
@@ -275,7 +274,7 @@ impl SessionManager {
                 device_network_info.is_authorized = false;
                 device_network_info.preshared_key = None;
                 device_network_info.update(&mut *transaction).await?;
-            };
+            }
             self.send_peer_disconnect_message(location, &device)?;
         }
 

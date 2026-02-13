@@ -554,7 +554,7 @@ impl WireguardNetwork<Id> {
                 device_config
                     .wireguard_ips
                     .iter()
-                    .map(|ip| ip.to_string())
+                    .map(ToString::to_string)
                     .collect()
             } else {
                 Vec::new()

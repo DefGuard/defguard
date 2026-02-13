@@ -1,0 +1,46 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section mj-class="s-4xl">
+  <mj-column css-class="s-2xl">
+    <mj-table css-class="dg-table">
+      <tr>
+        <td>
+          {{ label_url }}
+        </td>
+        <td>
+          {{ url }}
+        </td>
+      </tr>
+      <tr>
+        <td>
+          {{ label_token }}
+        </td>
+        <td>
+          {{ token }}
+        </td>
+      </tr>
+    </mj-table>
+  </mj-column>
+</mj-section>
+<mj-section mj-class="s-2xl">
+  <mj-column>
+    <mj-button href="https://defguard.net" align="left" mj-class="dg-button">
+      {{ configure }}
+    </mj-button>
+  </mj-column>
+</mj-section>
+<mj-section>
+  <mj-column>
+    <mj-text mj-class="s-xs t-body-xs-400" css-class="fg-muted-c">
+      {{ click }}
+    </mj-text>
+    {{ macros::action_link(href="https://defguard.net/download", text="https://defguard.net/download") }}
+  </mj-column>
+</mj-section>
+{{ macros::footer_divider() }}
+
+{% endblock content %}

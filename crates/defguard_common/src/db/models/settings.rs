@@ -28,7 +28,8 @@ pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Erro
     Ok(())
 }
 
-/// Helper function which stores updated `Settings` in the DB and also updates the global `SETTINGS` struct
+/// Helper function which stores updated `Settings` in the database and also updates the global
+/// `SETTINGS` struct.
 pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     executor: E,
     new_settings: Settings,
@@ -293,8 +294,8 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, \
-            defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
+            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
+            default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
             default_admin_id \
             FROM \"settings\" WHERE id = 1",
@@ -551,7 +552,8 @@ impl SettingsEssentials {
         query_as!(
             SettingsEssentials,
             "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
-            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, initial_setup_step \"initial_setup_step: InitialSetupStep\" \
+            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, \
+            initial_setup_step \"initial_setup_step: InitialSetupStep\" \
             FROM settings WHERE id = 1"
         )
         .fetch_one(executor)
@@ -586,7 +588,7 @@ Your login to all systems is: {{ username }}
 
 Here are the most important company systems:
 
-- defguard: {{ defguard_url }} - where you can change your password and manage your VPN devices
+- Defguard: {{ defguard_url }} - where you can change your password and manage your VPN devices
 - our chat system: https://chat.example.com - join our default room #TownHall
 - knowledge base: https://example.com ...
 - our JIRA: https://example.atlassian.net...
@@ -607,7 +609,7 @@ email: {{ admin_email }}
 mobile: {{ admin_phone }}
 
 --
-Sent by defguard {{ defguard_version }}
+Sent by Defguard {{ defguard_version }}
 Star us on GitHub! https://github.com/defguard/defguard\
 ";
 

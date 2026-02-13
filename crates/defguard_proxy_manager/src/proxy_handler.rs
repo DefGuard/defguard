@@ -822,17 +822,11 @@ impl ProxyServices {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     ) -> Self {
-        let enrollment = EnrollmentServer::new(
-            pool.clone(),
-            tx.wireguard.clone(),
-            tx.mail.clone(),
-            tx.bidi_events.clone(),
-        );
-        let password_reset =
-            PasswordResetServer::new(pool.clone(), tx.mail.clone(), tx.bidi_events.clone());
+        let enrollment =
+            EnrollmentServer::new(pool.clone(), tx.wireguard.clone(), tx.bidi_events.clone());
+        let password_reset = PasswordResetServer::new(pool.clone(), tx.bidi_events.clone());
         let client_mfa = ClientMfaServer::new(
             pool.clone(),
-            tx.mail.clone(),
             tx.wireguard.clone(),
             tx.bidi_events.clone(),
             remote_mfa_responses,

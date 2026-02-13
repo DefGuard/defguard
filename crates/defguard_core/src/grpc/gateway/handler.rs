@@ -12,7 +12,6 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_mail::Mail;
 use defguard_proto::gateway::{CoreResponse, core_request, core_response, gateway_client};
 use defguard_version::client::ClientVersionInterceptor;
 use reqwest::Url;
@@ -63,7 +62,6 @@ pub(crate) struct GatewayHandler {
     message_id: AtomicU64,
     pool: PgPool,
     events_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 }
 
@@ -72,7 +70,6 @@ impl GatewayHandler {
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
-        mail_tx: UnboundedSender<Mail>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     ) -> Result<Self, GatewayError> {
         let url = Url::from_str(&gateway.url).map_err(|err| {
@@ -88,7 +85,6 @@ impl GatewayHandler {
             message_id: AtomicU64::new(0),
             pool,
             events_tx,
-            mail_tx,
             peer_stats_tx,
         })
     }
@@ -197,7 +193,6 @@ impl GatewayHandler {
     async fn send_disconnect_notification(&self) {
         debug!("Sending gateway disconnect email notification");
         let hostname = self.gateway.hostname.clone();
-        let mail_tx = self.mail_tx.clone();
         let pool = self.pool.clone();
         let url = self.gateway.url.clone();
 
@@ -224,8 +219,7 @@ impl GatewayHandler {
             // To return result instead of logging
             tokio::spawn(async move {
                 if let Err(err) =
-                    send_gateway_disconnected_email(hostname, network.name, &url, &mail_tx, &pool)
-                        .await
+                    send_gateway_disconnected_email(hostname, network.name, &url, &pool).await
                 {
                     error!("Failed to send gateway disconnect notification: {err}");
                 } else {
@@ -362,10 +356,9 @@ impl GatewayHandler {
                                             error!(
                                                 "Failed to send peers stats update to session manager: {err}"
                                             );
-                                            continue;
                                         }
                                     }
-                                };
+                                }
                             }
                             None => (),
                         }

@@ -4,8 +4,8 @@ link_url -> URL of the enrollment service with the token query param included
 defguard_url -> URL of defguard core Web UI
 token -> enrollment token
 #}
-{% extends "base.tera" %}
-{% import "macros.tera" as macros %}
+{% extends "base" %}
+{% import "macros" as macros %}
 {% block mail_content %}
 {% set client_docs_url="https://docs.defguard.net/help/desktop-client" %}
 {% set client_docs_link=macros::link(content=client_docs_url, href=client_docs_url) %}

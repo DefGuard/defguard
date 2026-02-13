@@ -8,7 +8,7 @@ use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessag
 use defguard_core::{
     events::BidiStreamEvent, grpc::gateway::events::GatewayEvent, version::IncompatibleComponents,
 };
-use defguard_mail::Mail;
+
 use sqlx::PgPool;
 use tokio::{
     select,
@@ -180,7 +180,6 @@ impl ProxyManager {
 #[derive(Clone)]
 pub struct ProxyTxSet {
     wireguard: Sender<GatewayEvent>,
-    mail: UnboundedSender<Mail>,
     bidi_events: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -188,12 +187,10 @@ impl ProxyTxSet {
     #[must_use]
     pub const fn new(
         wireguard: Sender<GatewayEvent>,
-        mail: UnboundedSender<Mail>,
         bidi_events: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             wireguard,
-            mail,
             bidi_events,
         }
     }

@@ -143,12 +143,9 @@ pub async fn setup_login(
     check_failed_logins(&failed_logins, &login.username)?;
 
     let mut conn = pool.acquire().await?;
-    let user = match User::find_by_username_or_email(&mut conn, &login.username).await? {
-        Some(user) => user,
-        None => {
-            log_failed_login_attempt(&failed_logins, &login.username);
-            return Err(WebError::Authentication);
-        }
+    let Some(user) = User::find_by_username_or_email(&mut conn, &login.username).await? else {
+        log_failed_login_attempt(&failed_logins, &login.username);
+        return Err(WebError::Authentication);
     };
 
     if user.verify_password(&login.password).is_err() {

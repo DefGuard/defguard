@@ -18,7 +18,7 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::Mail;
+use defguard_mail::templates::mfa_code_mail;
 use defguard_proto::proxy::{
     self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse, ClientMfaFinishRequest,
     ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
@@ -41,7 +41,6 @@ use crate::{
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{gateway::events::GatewayEvent, utils::parse_client_ip_agent},
-    handlers::mail::send_email_mfa_code_email,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -73,7 +72,6 @@ pub struct ClientLoginSession {
 
 pub struct ClientMfaServer {
     pub(crate) pool: PgPool,
-    mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
     pub(crate) sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
     remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
@@ -84,7 +82,6 @@ impl ClientMfaServer {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
         bidi_event_tx: UnboundedSender<BidiStreamEvent>,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
@@ -92,11 +89,10 @@ impl ClientMfaServer {
     ) -> Self {
         Self {
             pool,
-            mail_tx,
             wireguard_tx,
-            bidi_event_tx,
-            remote_mfa_responses,
             sessions,
+            remote_mfa_responses,
+            bidi_event_tx,
         }
     }
 
@@ -268,14 +264,24 @@ impl ClientMfaServer {
                         "selected MFA method not available",
                     ));
                 }
-                // send email code
-                send_email_mfa_code_email(&user, &self.mail_tx, None).map_err(|err| {
-                    error!(
-                        "Failed to send email MFA code for user {}: {err}",
-                        user.username
-                    );
-                    Status::internal("unexpected error")
+                // Generate the code and send it via email.
+                let code = user.generate_email_mfa_code().map_err(|err| {
+                    error!("Failed to generate email MFA code: {err}");
+                    Status::internal("MFA code")
                 })?;
+                let mut transaction = self.pool.begin().await.map_err(|err| {
+                    error!("Database error: {err}");
+                    Status::internal("database error")
+                })?;
+                mfa_code_mail(&user.email, &mut transaction, &user.first_name, &code, None)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to send email MFA code for user {}: {err}",
+                            user.username
+                        );
+                        Status::internal("unexpected error")
+                    })?;
             }
             MfaMethod::Oidc => {
                 if !is_business_license_active() {
@@ -832,7 +838,7 @@ impl ClientMfaServer {
             );
             Status::internal("unexpected error")
         })?;
-        };
+        }
         let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");

@@ -24,7 +24,6 @@ use defguard_core::{
     grpc::gateway::events::GatewayEvent,
 };
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
-use defguard_mail::Mail;
 use defguard_session_manager::events::SessionManagerEvent;
 use error::EventRouterError;
 use events::Event;
@@ -65,7 +64,6 @@ struct EventRouter {
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     activity_log_stream_reload_notify: Arc<Notify>,
 }
 
@@ -92,14 +90,12 @@ impl EventRouter {
         receivers: RouterReceiverSet,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
-        mail_tx: UnboundedSender<Mail>,
         activity_log_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
             receivers,
             event_logger_tx,
             wireguard_tx,
-            mail_tx,
             activity_log_stream_reload_notify,
         }
     }
@@ -145,7 +141,6 @@ pub async fn run_event_router(
     receivers: RouterReceiverSet,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     activity_log_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
@@ -154,7 +149,6 @@ pub async fn run_event_router(
         receivers,
         event_logger_tx,
         wireguard_tx,
-        mail_tx,
         activity_log_stream_reload_notify,
     );
 

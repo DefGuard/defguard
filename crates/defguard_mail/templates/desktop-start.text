@@ -1,0 +1,5 @@
+{{ header }}
+{{ subtitle }}
+
+{{ label_url }}: {{ url }}
+{{ label_token }}: {{ token }}

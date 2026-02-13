@@ -28,7 +28,7 @@ export const AddLocationFirewallStep = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: api.location.addLocation,
     meta: {
-      invalidate: ['network'],
+      invalidate: [['network'], ['enterprise_info']],
     },
     onSuccess: ({ data }) => {
       if (showGateway) {

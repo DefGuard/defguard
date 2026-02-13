@@ -1,0 +1,192 @@
+<mjml>
+  <mj-head>
+    <mj-font name="Geist" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=IBM+Plex+Mono&display=swaphttps://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" />
+    <mj-attributes>
+      <mj-all padding="0" />
+      <mj-class name="t-title-h1" font-size="32px" font-weight="600" line-height="44px" font-family="Geist" color="inherit" />
+      <mj-class name="t-title-h3" font-size="24px" font-weight="600" line-height="32px" font-family="Geist" color="inherit" />
+      <mj-class name="t-body-primary-600" font-size="16px" font-weight="600" line-height="24px" font-family="Geist" color="inherit" />
+      <mj-class name="t-body-primary-400" font-size="16px" font-weight="400" line-height="24px" font-family="Geist" color="inherit" />
+      <mj-class name="t-body-sm-400" font-size="14px" font-weight="400" line-height="20px" font-family="Geist" color="inherit" />
+      <mj-class name="t-body-sm-500" font-size="14px" font-weight="500" line-height="20px" font-family="Geist" color="inherit" />
+      <mj-class name="t-body-xs-400" font-size="12px" font-weight="400" line-height="16px" font-family="Geist" color="inherit" />
+      <mj-class name="t-body-xs-500" font-size="12px" font-weight="500" line-height="16px" font-family="Geist" color="inherit" />
+      <mj-class name="divider" border-width="1px" border-style="solid" border-color="#DFE3E9" />
+      <mj-class name="s-5xl" padding="0px 0px 48px 0px" />
+      <mj-class name="s-4xl" padding="0px 0px 40px 0px" />
+      <mj-class name="s-3xl" padding="0px 0px 32px 0px" />
+      <mj-class name="s-2xl" padding="0px 0px 24px 0px" />
+      <mj-class name="s-xl" padding="0px 0px 20px 0px" />
+      <mj-class name="s-lg" padding="0px 0px 16px 0px" />
+      <mj-class name="s-md" padding="0px 0px 12px 0px" />
+      <mj-class name="s-sm" padding="0px 0px 8px 0px" />
+      <mj-class name="s-xs" padding="0px 0px 4px 0px" />
+      <mj-class name="dg-button" border="1px solid #3961DB" padding="0" margin="0" inner-padding="13px 15px" background-color="#3961DB" border-radius="8px" color="#ffffff" font-family="Geist" font-size="14px" font-weight="400" />
+      <mj-class name="dg-button-outlined" border="1px solid #3961DB" padding="0" margin="0" inner-padding="13px 15px" background-color="#fff" border-radius="8px" color="#3961DB" font-family="Geist" font-size="14px" font-weight="400" />
+      {% block attributes %}
+      {% endblock attributes %}
+    </mj-attributes>
+    <mj-style inline="inline">
+      a:-webkit-any-link {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .t-titles-h1 {
+        font-family: Geist;
+        font-size: 32px;
+        line-height: 44px;
+        font-weight: 600;
+      }
+
+      .link {
+        text-decoration: none !important;
+      }
+
+      .s-5xl {
+        padding: 0 0 48px 0;
+      }
+
+      .s-4xl {
+        padding: 0 0 40px 0;
+      }
+
+      .s-3xl {
+        padding: 0 0 32px 0;
+      }
+
+      .s-xl {
+        padding: 0 0 20px 0;
+      }
+
+      .s-sm {
+        padding: 0 0 8px 0;
+      }
+
+      .s-xs {
+        padding: 0 0 4px 0;
+      }
+
+      .fg-critical-c {
+        color: #CC3C3C;
+      }
+
+      .fg-critical-b {
+        color: #CC3C3C;
+      }
+
+      .fg-default-c {
+        color: #141517;
+      }
+
+      .fg-default-b {
+        background-color: #141517;
+      }
+
+      .fg-neutral-c {
+        color: #4A5059;
+      }
+
+      .fg-neutral-b {
+        background-color: #4A5059;
+      }
+
+      .fg-muted-c {
+        color: #7E8794;
+      }
+
+      .fg-muted-b {
+        background-color: #7E8794;
+      }
+
+      .fg-white-c {
+        color: #ffffff;
+      }
+
+      .fg-white-b {
+        background-color: #ffffff;
+      }
+
+      .fg-muted-c {
+        color: #7E8794;
+      }
+
+      .fg-muted-b {
+        background-color: #7E8794;
+      }
+
+      .fg-action-c {
+        color: #3961DB;
+      }
+
+      .fg-action-b {
+        background-color: #3961DB;
+      }
+
+      .fg-faded-c {
+        color: #3D434B;
+      }
+
+      .fg-faded-b {
+        background-color: #3D434B;
+      }
+
+      .dg-table {
+        border-collapse: collapse;
+      }
+
+      .dg-table td {
+        border-color: #DFE3E9;
+        border-style: solid;
+        padding: 10px 20px;
+        border-width: 1px;
+      }
+
+      .dg-table tr {
+        border-width: 0;
+      }
+
+      .dg-table td:not(:first-child) {
+        font-family: Geist;
+        font-size: 14px;
+        font-weight: 500;
+        color: #141517;
+      }
+
+      .dg-table td:first-child {
+        font-family: Geist;
+        font-size: 14px;
+        line-height: 20px;
+        font-weight: 400;
+        color: #4A5059;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#fff">
+    <mj-section padding="40px 0 48px 0">
+      <mj-column>
+        <mj-image src="cid:defguard" alt="Defguard logo" width="129px" height="32px" align="left" />
+      </mj-column>
+    </mj-section>
+    {% block content %}
+    {% endblock content %}
+    <mj-section>
+      <mj-group>
+        <mj-column vertical-align="middle">
+          <mj-text mj-class="t-body-xs-400" css-class="fg-faded-c">
+            Copyright © 2026 <a style="text-decoration: none; color: inherit" mj-class="t-body-xs-400" css-class="fg-action-c link" href="https://defguard.net">Defguard</a>
+          </mj-text>
+        </mj-column>
+        <mj-column vertical-align="middle">
+          <mj-social mode="horizontal" align="right" icon-size="18px" inner-padding="16px">
+            <mj-social-element src="cid:github" alt="GitHub logo" href="https://github.com/DefGuard" />
+            <mj-social-element src="cid:mastodon" alt="Mastodon logo" href="https://floss.social/@defguard" />
+            <mj-social-element src="cid:x" alt="X logo" href="https://x.com/defguard_net" />
+          </mj-social>
+        </mj-column>
+      </mj-group>
+    </mj-section>
+    <mj-section padding="0 0 132px 0">
+    </mj-section>
+  </mj-body>
+</mjml>

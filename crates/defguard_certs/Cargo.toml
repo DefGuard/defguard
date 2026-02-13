@@ -9,10 +9,10 @@ rust-version.workspace = true
 
 [dependencies]
 base64.workspace = true
+chrono.workspace = true
 rcgen.workspace = true
+rustls-pki-types.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
-rustls-pki-types.workspace = true
-chrono.workspace = true
-time = "0.3"
-x509-parser = "0.18"
+time.workspace = true
+x509-parser.workspace = true

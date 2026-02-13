@@ -1,0 +1,35 @@
+{% macro email_header() %}
+<mj-section>
+  <mj-column>
+    {% if subtitle %}
+    {% set title_spacing = "s-xs" %}
+    {% else %}
+    {% set title_spacing = "s-3xl" %}
+    {% endif %}
+    <mj-text mj-class="t-title-h3 {{ title_spacing }}" css-class="fg-default-c">
+      {{ title }} {% if username %}{{ username }}{% endif %}
+    </mj-text>
+    {% if subtitle %}
+    <mj-text mj-class="t-body-primary-400 s-3xl" css-class="fg-neutral-c">
+      {{ subtitle }}
+    </mj-text>
+    {% endif %}
+  </mj-column>
+</mj-section>
+{% endmacro email_header %}
+
+{% macro action_link(text, href, css_class="", mj_class="") %}
+<mj-text css-class="{{ css_class }}" mj-class="{{ mj_class }}">
+  <a mj-class="t-body-sm-400" css-class="fg-action-c link" href="{{ href }}" style="color: #3961DB; text-decoration: none; font-family: Geist; font-weight: 400; font-size: 14px;">
+    {{ text }}
+  </a>
+</mj-text>
+{% endmacro action_link %}
+
+{% macro footer_divider() %}
+<mj-section>
+  <mj-column>
+    <mj-divider mj-class="divider" padding="32px 0" />
+  </mj-column>
+</mj-section>
+{% endmacro footer_divider %}

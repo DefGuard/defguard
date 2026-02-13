@@ -2,12 +2,10 @@ use defguard_common::db::{Id, models::user::User};
 use defguard_mail::{Mail, templates};
 use reqwest::Url;
 use sqlx::{PgConnection, PgExecutor};
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError};
 
 static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
-static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
 
 /// Start user enrollment process
 /// This creates a new enrollment token valid for 24h
@@ -20,7 +18,6 @@ pub async fn start_user_enrollment(
     token_timeout_seconds: u64,
     enrollment_service_url: Url,
     send_user_notification: bool,
-    mail_tx: UnboundedSender<Mail>,
 ) -> Result<String, TokenError> {
     info!(
         "User {} started a new enrollment process for user {}.",
@@ -79,10 +76,10 @@ pub async fn start_user_enrollment(
             let base_message_context = enrollment
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
-            let mail = Mail {
-                to: email.clone(),
-                subject: ENROLLMENT_START_MAIL_SUBJECT.to_string(),
-                content: templates::enrollment_start_mail(
+            let result = Mail::new(
+                &email,
+                ENROLLMENT_START_MAIL_SUBJECT,
+                templates::enrollment_start_mail(
                     base_message_context,
                     enrollment_service_url,
                     &enrollment.id,
@@ -95,10 +92,10 @@ pub async fn start_user_enrollment(
                     );
                     TokenError::NotificationError(err.to_string())
                 })?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
-            match mail_tx.send(mail) {
+            )
+            .send()
+            .await;
+            match result {
                 Ok(()) => {
                     info!(
                         "Sent enrollment start mail for user {} to {email}",
@@ -131,7 +128,6 @@ pub async fn start_desktop_configuration(
     token_timeout_seconds: u64,
     enrollment_service_url: Url,
     send_user_notification: bool,
-    mail_tx: UnboundedSender<Mail>,
     // Whether to attach some device to the token. It allows for a partial initialization of
     // the device before the desktop configuration has taken place.
     device_id: Option<Id>,
@@ -187,36 +183,21 @@ pub async fn start_desktop_configuration(
             let base_message_context = desktop_configuration
                 .get_welcome_message_context(&mut *transaction)
                 .await?;
-            let mail = Mail {
-                to: email.clone(),
-                subject: DESKTOP_START_MAIL_SUBJECT.to_string(),
-                content: templates::desktop_start_mail(
-                    base_message_context,
-                    &enrollment_service_url,
-                    &desktop_configuration.id,
-                )
-                .map_err(|err| {
-                    debug!(
-                        "Cannot send an email to the user {} due to the error {}.",
-                        user.username,
-                        err.to_string()
-                    );
-                    TokenError::NotificationError(err.to_string())
-                })?,
-                attachments: Vec::new(),
-                result_tx: None,
-            };
-            match mail_tx.send(mail) {
-                Ok(()) => {
-                    info!(
-                        "Sent desktop configuration start mail for user {} to {email}",
-                        user.username
-                    );
-                }
-                Err(err) => {
-                    error!("Error sending mail: {err}");
-                }
-            }
+            let _ = templates::desktop_start_mail(
+                &email,
+                &mut *transaction,
+                base_message_context,
+                &enrollment_service_url,
+                &desktop_configuration.id,
+            )
+            .await
+            .map_err(|err| {
+                debug!(
+                    "Cannot send an email to the user {} due to the error {err}.",
+                    user.username,
+                );
+                TokenError::NotificationError(err.to_string())
+            });
         }
     }
     info!(
