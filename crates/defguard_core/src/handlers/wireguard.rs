@@ -40,7 +40,8 @@ use crate::{
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
         is_business_license_active,
-        limits::update_counts,
+        license::get_cached_license,
+        limits::{get_counts, update_counts},
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::gateway::events::GatewayEvent,
@@ -222,6 +223,18 @@ pub(crate) async fn create_network(
         "User {} creating WireGuard network {network_name}",
         session.user.username
     );
+
+    // check if adding new network will go over license limits
+    let location_count = get_counts().location();
+
+    if get_cached_license()
+        .as_ref()
+        .and_then(|l| l.limits.as_ref())
+        .is_some_and(|l| l.locations == location_count)
+    {
+        error!("Adding location {network_name} blocked! License limit reached.");
+        return Ok(WebError::Forbidden("License limit reached.".into()).into());
+    }
 
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
