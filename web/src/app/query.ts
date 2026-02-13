@@ -27,12 +27,12 @@ queryClient = new QueryClient({
   mutationCache,
   defaultOptions: {
     queries: {
-      staleTime: Infinity,
+      staleTime: 30_000,
+      gcTime: 10 * 60_000,
       refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
       retry: false,
-      // @ts-expect-error
-      placeholderData: (perv) => perv,
     },
   },
 });

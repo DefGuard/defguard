@@ -2,7 +2,7 @@ import type {
   AvailableLocationIpResponse,
   Device,
   GroupInfo,
-  LicenseInfo,
+  LicenseTierValue,
   NetworkDevice,
   NetworkLocation,
   OpenIdClient,
@@ -100,5 +100,5 @@ export interface OpenSettingsLicenseModal {
 }
 
 export interface OpenLicenseExpiredModal {
-  license: LicenseInfo;
+  licenseTier: LicenseTierValue;
 }

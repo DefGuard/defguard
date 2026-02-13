@@ -217,11 +217,12 @@ const TestPlanUpgrade = () => {
         />
         <Button
           text="License Expired"
+          disabled={!isPresent(license)}
           loading={isLoading}
           onClick={() => {
             if (license) {
               openModal(ModalName.LicenseExpired, {
-                license: license,
+                licenseTier: license.tier,
               });
             }
           }}

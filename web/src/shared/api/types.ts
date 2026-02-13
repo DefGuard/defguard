@@ -252,6 +252,7 @@ export interface LicenseLimitsInfo {
 }
 
 export const LicenseTier = {
+  Starter: 'Starter',
   Business: 'Business',
   Enterprise: 'Enterprise',
 } as const;
