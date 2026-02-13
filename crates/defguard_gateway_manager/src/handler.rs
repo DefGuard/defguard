@@ -1,8 +1,11 @@
 use std::{
-    collections::HashMap, net::IpAddr, str::FromStr, sync::{
+    collections::HashMap,
+    net::IpAddr,
+    str::FromStr,
+    sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
-    }
+    },
 };
 
 use chrono::DateTime;
@@ -15,9 +18,13 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
-use defguard_proto::{enterprise::firewall::FirewallConfig, gateway::{
-    Configuration, CoreResponse, Peer, PeerStats, Update, core_request, core_response, gateway_client, update
-}};
+use defguard_proto::{
+    enterprise::firewall::FirewallConfig,
+    gateway::{
+        Configuration, CoreResponse, Peer, PeerStats, Update, core_request, core_response,
+        gateway_client, update,
+    },
+};
 use defguard_version::client::ClientVersionInterceptor;
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
@@ -135,7 +142,7 @@ impl GatewayHandler {
         let peers = get_location_allowed_peers(&network, &self.pool).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
-        let payload = Some(core_response::Payload::Config(super::gen_config(
+        let payload = Some(core_response::Payload::Config(gen_config(
             &network,
             peers,
             maybe_firewall_config,
@@ -777,4 +784,21 @@ fn try_protos_into_stats_message(
         proto_stats.download,
         latest_handshake,
     ))
+}
+
+fn gen_config(
+    network: &WireguardNetwork<Id>,
+    peers: Vec<Peer>,
+    maybe_firewall_config: Option<FirewallConfig>,
+) -> Configuration {
+    Configuration {
+        name: network.name.clone(),
+        port: network.port as u32,
+        prvkey: network.prvkey.clone(),
+        addresses: network.address.iter().map(ToString::to_string).collect(),
+        peers,
+        firewall_config: maybe_firewall_config,
+        mtu: network.mtu as u32,
+        fwmark: network.fwmark as u32,
+    }
 }

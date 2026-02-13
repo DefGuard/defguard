@@ -10,26 +10,18 @@ use std::{
 use defguard_common::{
     auth::claims::ClaimsType,
     config::server_config,
-    db::{
-        ChangeNotification, Id, TriggerOperation,
-        models::{WireguardNetwork, gateway::Gateway},
-    },
+    db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    grpc::{
-        GatewayEvent, WorkerState, interceptor::JwtInterceptor,
-        should_prevent_service_location_usage, worker::WorkerServer,
-    },
+    grpc::{GatewayEvent, WorkerState, interceptor::JwtInterceptor, worker::WorkerServer},
 };
 use defguard_proto::{
     auth::auth_service_server::AuthServiceServer,
-    enterprise::firewall::FirewallConfig,
-    gateway::{Configuration, Peer},
     worker::worker_service_server::WorkerServiceServer,
 };
-use sqlx::{PgExecutor, PgPool, postgres::PgListener, query};
+use sqlx::{PgPool, postgres::PgListener};
 use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender},
     task::{AbortHandle, JoinSet},
@@ -53,91 +45,6 @@ pub(crate) static TONIC_SOCKET: &str = "tonic.sock";
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const TEN_SECS: Duration = Duration::from_secs(10);
-
-/// Get a list of all allowed peers
-///
-/// Each device is marked as allowed or not allowed in a given network,
-/// which enables enforcing peer disconnect in MFA-protected networks.
-///
-/// If the location is a service location, only returns peers if enterprise features are enabled.
-///
-/// XXX: should be implemented in defguard_core::db::models::wireguard::WireguardNetwork.
-pub async fn get_peers<'e, E>(
-    location: &WireguardNetwork<Id>,
-    executor: E,
-) -> Result<Vec<Peer>, sqlx::Error>
-where
-    E: PgExecutor<'e>,
-{
-    debug!("Fetching all peers for network {}", location.id);
-
-    if should_prevent_service_location_usage(location) {
-        warn!(
-            "Tried to use service location {} with disabled enterprise features. No clients \
-            will be allowed to connect.",
-            location.name
-        );
-        return Ok(Vec::new());
-    }
-
-    // TODO: possible to not use ARRAY-unnest here?
-    let rows = query!(
-        "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-            ARRAY(
-                SELECT host(ip)
-                FROM unnest(wnd.wireguard_ips) AS ip
-            ) \"allowed_ips!: Vec<String>\" \
-        FROM wireguard_network_device wnd \
-        JOIN device d ON wnd.device_id = d.id \
-        JOIN \"user\" u ON d.user_id = u.id \
-        WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
-        AND d.configured = true \
-        AND u.is_active = true \
-        ORDER BY d.id ASC",
-        location.id,
-        location.mfa_enabled()
-    )
-    .fetch_all(executor)
-    .await?;
-
-    // keepalive has to be added manually because Postgres
-    // doesn't support unsigned integers
-    let result = rows
-        .into_iter()
-        .map(|row| Peer {
-            pubkey: row.pubkey,
-            allowed_ips: row.allowed_ips,
-            // Don't send preshared key if MFA is not enabled, it can't be used and may
-            // cause issues with clients connecting if they expect no preshared key
-            // e.g. when you disable MFA on a location
-            preshared_key: if location.mfa_enabled() {
-                row.preshared_key
-            } else {
-                None
-            },
-            keepalive_interval: Some(location.keepalive_interval as u32),
-        })
-        .collect();
-
-    Ok(result)
-}
-
-fn gen_config(
-    network: &WireguardNetwork<Id>,
-    peers: Vec<Peer>,
-    maybe_firewall_config: Option<FirewallConfig>,
-) -> Configuration {
-    Configuration {
-        name: network.name.clone(),
-        port: network.port as u32,
-        prvkey: network.prvkey.clone(),
-        addresses: network.address.iter().map(ToString::to_string).collect(),
-        peers,
-        firewall_config: maybe_firewall_config,
-        mtu: network.mtu as u32,
-        fwmark: network.fwmark as u32,
-    }
-}
 
 /// Bi-directional gRPC stream for communication with Defguard Gateway.
 pub async fn run_grpc_gateway_stream(
