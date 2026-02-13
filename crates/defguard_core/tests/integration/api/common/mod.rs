@@ -20,7 +20,7 @@ use defguard_core::{
     db::AppEvent,
     enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
-    grpc::{WorkerState, gateway::events::GatewayEvent},
+    grpc::{GatewayEvent, WorkerState},
     handlers::{Auth, user::UserDetails},
 };
 use reqwest::{StatusCode, header::HeaderName};

@@ -9,8 +9,7 @@ use defguard_common::db::models::{
     },
 };
 use defguard_core::{
-    grpc::gateway::events::GatewayEvent,
-    handlers::{Auth, wireguard::ImportedNetworkData},
+    grpc::GatewayEvent, handlers::{Auth, wireguard::ImportedNetworkData}
 };
 use matches::assert_matches;
 use reqwest::StatusCode;
