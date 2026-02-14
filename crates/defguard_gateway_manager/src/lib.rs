@@ -18,15 +18,20 @@ use defguard_core::{
     grpc::{GatewayEvent, WorkerState, interceptor::JwtInterceptor, worker::WorkerServer},
 };
 use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer,
+    auth::auth_service_server::AuthServiceServer, gateway::gateway_client::GatewayClient,
     worker::worker_service_server::WorkerServiceServer,
 };
+use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
 use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender},
     task::{AbortHandle, JoinSet},
 };
-use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
+use tonic::{
+    Request,
+    service::interceptor::InterceptedService,
+    transport::{Channel, Identity, Server, ServerTlsConfig, server::Router},
+};
 
 use crate::{auth::AuthServer, handler::GatewayHandler};
 
@@ -46,107 +51,153 @@ const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const TEN_SECS: Duration = Duration::from_secs(10);
 
-/// Bi-directional gRPC stream for communication with Defguard Gateway.
-pub async fn run_grpc_gateway_stream(
-    pool: PgPool,
-    events_tx: Sender<GatewayEvent>,
-    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
-) -> Result<(), anyhow::Error> {
-    let (certs_tx, certs_rx) = tokio::sync::watch::channel(Arc::new(HashMap::new()));
-    certs::refresh_certs(&pool, &certs_tx).await;
-    let refresh_pool = pool.clone();
-    tokio::spawn(async move {
-        loop {
-            certs::refresh_certs(&refresh_pool, &certs_tx).await;
-            tokio::time::sleep(TEN_SECS).await;
-        }
-    });
-    let mut abort_handles = HashMap::new();
+type Client = GatewayClient<InterceptedService<Channel, ClientVersionInterceptor>>;
 
-    let mut tasks = JoinSet::new();
-    // Helper closure to launch `GatewayHandler`.
-    let mut launch_gateway_handler = |gateway: Gateway<Id>| -> Result<AbortHandle, anyhow::Error> {
-        let mut gateway_handler = GatewayHandler::new(
-            gateway,
-            pool.clone(),
-            events_tx.clone(),
-            peer_stats_tx.clone(),
-            certs_rx.clone(),
-        )?;
-        let abort_handle = tasks.spawn(async move {
-            loop {
-                if let Err(err) = gateway_handler.handle_connection().await {
-                    error!("Gateway connection error: {err}, retrying in 5 seconds...");
-                    tokio::time::sleep(GATEWAY_RECONNECT_DELAY).await;
-                }
-            }
-        });
-        Ok(abort_handle)
-    };
-
-    for gateway in Gateway::all(&pool).await? {
-        let id = gateway.id;
-        let abort_handle = launch_gateway_handler(gateway)?;
-        abort_handles.insert(id, abort_handle);
-    }
-
-    // Observe gateway URL changes.
-    let mut listener = PgListener::connect_with(&pool).await?;
-    listener.listen(GATEWAY_TABLE_TRIGGER).await?;
-    while let Ok(notification) = listener.recv().await {
-        let payload = notification.payload();
-        match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
-            Ok(gateway_notification) => match gateway_notification.operation {
-                TriggerOperation::Insert => {
-                    if let Some(new) = gateway_notification.new {
-                        let id = new.id;
-                        let abort_handle = launch_gateway_handler(new)?;
-                        abort_handles.insert(id, abort_handle);
-                    }
-                }
-                TriggerOperation::Update => {
-                    if let (Some(old), Some(new)) =
-                        (gateway_notification.old, gateway_notification.new)
-                    {
-                        if old.url == new.url {
-                            debug!(
-                                "Gateway URL didn't change. Keeping the current gateway handler"
-                            );
-                        } else if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                            info!("Aborting connection to {old}, it has changed in the database");
-                            abort_handle.abort();
-                            let id = new.id;
-                            let abort_handle = launch_gateway_handler(new)?;
-                            abort_handles.insert(id, abort_handle);
-                        } else {
-                            warn!("Cannot find {old} on the list of connected gateways");
-                        }
-                    }
-                }
-                TriggerOperation::Delete => {
-                    if let Some(old) = gateway_notification.old {
-                        if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                            info!(
-                                "Aborting connection to {old}, it has disappeard from the database"
-                            );
-                            abort_handle.abort();
-                        } else {
-                            warn!("Cannot find {old} on the list of connected gateways");
-                        }
-                    }
-                }
-            },
-            Err(err) => error!("Failed to de-serialize database notification object: {err}"),
-        }
-    }
-
-    while let Some(Ok(_result)) = tasks.join_next().await {
-        debug!("Gateway gRPC task has ended");
-    }
-
-    Ok(())
+pub struct GatewayManager {
+    clients: Arc<Mutex<HashMap<Id, Client>>>,
 }
 
+impl GatewayManager {
+    pub fn new() -> Self {
+        Self {
+            clients: Arc::default(),
+        }
+    }
+
+    /// Bi-directional gRPC stream for communication with Defguard Gateway.
+    pub async fn run_grpc_gateway_stream(
+        &mut self,
+        pool: PgPool,
+        events_tx: Sender<GatewayEvent>,
+        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+    ) -> Result<(), anyhow::Error> {
+        let (certs_tx, certs_rx) = tokio::sync::watch::channel(Arc::new(HashMap::new()));
+        certs::refresh_certs(&pool, &certs_tx).await;
+        let refresh_pool = pool.clone();
+        tokio::spawn(async move {
+            loop {
+                certs::refresh_certs(&refresh_pool, &certs_tx).await;
+                tokio::time::sleep(TEN_SECS).await;
+            }
+        });
+        let mut abort_handles = HashMap::new();
+
+        let mut tasks = JoinSet::new();
+        // Helper closure to launch `GatewayHandler`.
+		// TODO(jck) store arguments in GatewayManager
+		// TODO(jck) rewrite this to method
+        let mut launch_gateway_handler = |gateway: Gateway<Id>,
+                                          clients: Arc<Mutex<HashMap<Id, Client>>>|
+         -> Result<AbortHandle, anyhow::Error> {
+            let mut gateway_handler = GatewayHandler::new(
+                gateway,
+                pool.clone(),
+                events_tx.clone(),
+                peer_stats_tx.clone(),
+                certs_rx.clone(),
+            )?;
+            let abort_handle = tasks.spawn(async move {
+                loop {
+                    if let Err(err) = gateway_handler
+                        .handle_connection(Arc::clone(&clients))
+                        .await
+                    {
+                        error!("Gateway connection error: {err}, retrying in 5 seconds...");
+                        tokio::time::sleep(GATEWAY_RECONNECT_DELAY).await;
+                    }
+                }
+            });
+            Ok(abort_handle)
+        };
+        for gateway in Gateway::all(&pool).await? {
+            let id = gateway.id;
+            let abort_handle = launch_gateway_handler(gateway, Arc::clone(&self.clients))?;
+            abort_handles.insert(id, abort_handle);
+        }
+
+        // Observe gateway URL changes.
+        let mut listener = PgListener::connect_with(&pool).await?;
+        listener.listen(GATEWAY_TABLE_TRIGGER).await?;
+        while let Ok(notification) = listener.recv().await {
+            let payload = notification.payload();
+            match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
+                Ok(gateway_notification) => match gateway_notification.operation {
+                    TriggerOperation::Insert => {
+                        if let Some(new) = gateway_notification.new {
+                            let id = new.id;
+                            let abort_handle =
+                                launch_gateway_handler(new, Arc::clone(&self.clients))?;
+                            abort_handles.insert(id, abort_handle);
+                        }
+                    }
+                    TriggerOperation::Update => {
+                        if let (Some(old), Some(new)) =
+                            (gateway_notification.old, gateway_notification.new)
+                        {
+                            if old.url == new.url {
+                                debug!(
+                                    "Gateway URL didn't change. Keeping the current gateway handler"
+                                );
+                            } else if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!(
+                                    "Aborting connection to {old}, it has changed in the database"
+                                );
+                                abort_handle.abort();
+                                let id = new.id;
+                                let abort_handle =
+                                    launch_gateway_handler(new, Arc::clone(&self.clients))?;
+                                abort_handles.insert(id, abort_handle);
+                            } else {
+                                warn!("Cannot find {old} on the list of connected gateways");
+                            }
+                        }
+                    }
+                    TriggerOperation::Delete => {
+						// TODO(jck) refactor
+                        if let Some(old) = gateway_notification.old {
+                            if let Some(mut client) = self
+                                .clients
+                                .lock()
+                                .expect("Failed to lock GatewayManager::clients")
+                                .remove(&old.id)
+                            {
+                                debug!("Sending purge request to gateway {old}");
+                                if let Err(err) = client.purge(Request::new(())).await {
+                                    error!("Error sending purge request to gateway {old}: {err}");
+                                } else {
+                                    info!("Sent purge request to gateway {old}");
+                                }
+                            } else {
+                                warn!(
+                                    "Cannot find gateway {old} on the list of connected gateways"
+                                );
+                            }
+                            if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!(
+                                    "Aborting connection to gateway {old}, it has disappeard from the database"
+                                );
+                                abort_handle.abort();
+                            } else {
+                                warn!(
+                                    "Cannot find gateway {old} on the list of connected gateways"
+                                );
+                            }
+                        }
+                    }
+                },
+                Err(err) => error!("Failed to de-serialize database notification object: {err}"),
+            }
+        }
+
+        while let Some(Ok(_result)) = tasks.join_next().await {
+            debug!("Gateway gRPC task has ended");
+        }
+
+        Ok(())
+    }
+}
+
+// TODO(jck) move this to core/grpc/lib
 /// Runs gRPC server with core services.
 #[instrument(skip_all)]
 pub async fn run_grpc_server(
@@ -179,6 +230,7 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
+// TODO(jck) move this to core/grpc/lib
 pub(crate) async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,

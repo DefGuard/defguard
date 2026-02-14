@@ -302,10 +302,12 @@ impl ProxyHandler {
                         Ok(purge) => {
                             info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
                             if purge {
-                                debug!("Sending purge request to proxy {}", endpoint.uri());
                                 if let Some(client) = self.client.as_mut() {
+                                    debug!("Sending purge request to proxy {}", endpoint.uri());
                                     if let Err(err) = client.purge(Request::new(())).await {
                                         error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
+                                    } else {
+                                        info!("Sent purge request to proxy {}", endpoint.uri());
                                     }
                                 }
                             }

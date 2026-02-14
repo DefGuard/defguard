@@ -3,7 +3,7 @@ use std::{
     net::IpAddr,
     str::FromStr,
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
 };
@@ -47,7 +47,7 @@ use defguard_core::{
     location_management::allowed_peers::get_location_allowed_peers,
 };
 
-use crate::{TEN_SECS, error::GatewayError};
+use crate::{Client, TEN_SECS, error::GatewayError};
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
@@ -211,7 +211,10 @@ impl GatewayHandler {
     }
 
     /// Connect to Gateway and handle its messages through gRPC.
-    pub(super) async fn handle_connection(&mut self) -> Result<(), GatewayError> {
+    pub(super) async fn handle_connection(
+        &mut self,
+        clients: Arc<Mutex<HashMap<Id, Client>>>,
+    ) -> Result<(), GatewayError> {
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
         loop {
@@ -249,6 +252,10 @@ impl GatewayHandler {
                 Version::parse(VERSION).expect("failed to parse self version"),
             );
             let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
+            clients
+                .lock()
+                .expect("GatewayHandler failed to lock clients")
+				.insert(self.gateway.id, client.clone());
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,

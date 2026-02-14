@@ -30,7 +30,7 @@ use defguard_core::{
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
-use defguard_gateway_manager::{run_grpc_gateway_stream, run_grpc_server};
+use defguard_gateway_manager::{GatewayManager, run_grpc_server};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use defguard_setup::setup::run_setup_web_server;
@@ -180,10 +180,12 @@ async fn main() -> Result<(), anyhow::Error> {
         proxy_control_rx,
     );
 
+	let mut gateway_manager = GatewayManager::new();
+
     // run services
     tokio::select! {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
-        res = run_grpc_gateway_stream(
+        res = gateway_manager.run_grpc_gateway_stream(
             pool.clone(),
             gateway_tx.clone(),
             peer_stats_tx,

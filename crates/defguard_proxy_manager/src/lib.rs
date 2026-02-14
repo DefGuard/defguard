@@ -69,6 +69,7 @@ impl ProxyManager {
         // Prime the cache to avoid race with connection loop.
         refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
+		// TODO(jck) monitor this thread somewhere
         tokio::spawn(async move {
             loop {
                 refresh_certs(&refresh_pool, &certs_tx).await;
