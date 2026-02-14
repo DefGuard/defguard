@@ -87,7 +87,7 @@
     "motion": "^12.31.0",
     "numbro": "^2.5.0",
     "qrcode": "^1.5.4",
-    "qs": "^6.14.1",
+    "qs": "^6.14.2",
     "radash": "^12.1.1",
     "react": "^19.2.4",
     "react-click-away-listener": "^2.4.0",
