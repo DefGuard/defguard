@@ -11,8 +11,8 @@ use defguard_common::{
 };
 use humantime::format_duration;
 use pgp::{
-    composed::{Deserializable, SignedPublicKey, StandaloneSignature},
-    types::{KeyDetails, PublicKeyTrait},
+    composed::{Deserializable, DetachedSignature, SignedPublicKey},
+    types::KeyDetails,
 };
 use prost::Message;
 use sqlx::{PgPool, error::Error as SqlxError};
@@ -269,8 +269,8 @@ impl License {
     }
 
     fn verify_signature(data: &[u8], signature: &[u8]) -> Result<(), LicenseError> {
-        let sig = StandaloneSignature::from_bytes(signature)
-            .map_err(|_| LicenseError::InvalidSignature)?;
+        let sig =
+            DetachedSignature::from_bytes(signature).map_err(|_| LicenseError::InvalidSignature)?;
         let (public_key, _headers_public) =
             SignedPublicKey::from_string(PUBLIC_KEY).expect("Failed to parse the public key");
 
@@ -279,21 +279,21 @@ impl License {
         if public_key.public_subkeys.is_empty() {
             debug!(
                 "Using the public key's primary key {:?} to verify the signature...",
-                public_key.key_id()
+                public_key.legacy_key_id()
             );
             sig.verify(&public_key, data)
                 .map_err(|_| LicenseError::SignatureMismatch)
         } else {
-            let signing_key = public_key
-                .public_subkeys
-                .into_iter()
-                .find(PublicKeyTrait::is_signing_key)
-                .ok_or(LicenseError::LicenseServerError(
-                    "Failed to find a signing key in the provided public key".to_string(),
-                ))?;
+            let signing_key =
+                public_key
+                    .public_subkeys
+                    .first()
+                    .ok_or(LicenseError::LicenseServerError(
+                        "Failed to find a signing key in the provided public key".to_string(),
+                    ))?;
             debug!(
                 "Using the public key's subkey {:?} to verify the signature...",
-                signing_key.key_id()
+                signing_key.legacy_key_id()
             );
             sig.verify(&signing_key, data)
                 .map_err(|_| LicenseError::SignatureMismatch)

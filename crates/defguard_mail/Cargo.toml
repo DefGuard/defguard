@@ -23,7 +23,9 @@ tokio.workspace = true
 tracing.workspace = true
 humantime.workspace = true
 
+image = "0.25" # match with qrforge
 mrml = "5.1"
+qrforge = {version = "0.1", default-features = false, features = ["image"]}
 
 [dev-dependencies]
 claims.workspace = true
