@@ -11,6 +11,7 @@ pub use crate::mail::{Attachment, Mail};
 
 pub mod mail;
 pub(crate) mod mail_context;
+mod qr;
 pub mod templates;
 #[cfg(test)]
 mod tests;

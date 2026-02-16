@@ -8,12 +8,13 @@ use lettre::{
 };
 use serde::Serialize;
 use sqlx::PgConnection;
-use tera::{Context, Tera};
+use tera::{Context, Tera, Value};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
 use crate::{
     mail_context::MailContext,
+    qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
 };
 
@@ -394,6 +395,11 @@ impl MailMessage {
                 mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
                 mail.add_png_image("google_play", GOOGLE_PLAY);
                 mail.add_png_image("apple", APPLE);
+                if let Some(Value::String(url)) = context.get("url") {
+                    if let Ok(qr) = qr_png(url.as_bytes()) {
+                        mail.add_png_image("qr", &qr);
+                    }
+                }
             }
             Self::MFACode => {
                 mail.add_png_image("date", DATE_ICON);

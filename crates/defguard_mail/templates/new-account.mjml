@@ -69,7 +69,7 @@
         <mj-text mj-class="t-body-sm-400 s-2xl" css-class="fg-default-c">
           {{ scan_qr }}
         </mj-text>
-        <mj-image src="./assets/new_account_qr_test.png" width="200px" height="200px" alt="qr" padding="0 0 24px 0" align="start" />
+        <mj-image src="cid:qr" width="200px" height="200px" alt="qr" padding="0 0 24px 0" align="start" />
         <mj-text mj-class="t-body-xs-500 s-lg" css-class="fg-muted-c">
           {{ mobile_install }}
         </mj-text>
