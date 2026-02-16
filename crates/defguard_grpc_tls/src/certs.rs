@@ -64,14 +64,18 @@ impl CertVerifier {
                 "Missing expected certificate for component id={}, serial={}",
                 self.component_id, serial
             );
-            return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
+            return Err(RustlsError::InvalidCertificate(
+                CertificateError::ApplicationVerificationFailure,
+            ));
         };
         if !expected.eq_ignore_ascii_case(&serial) {
             error!(
                 "Invalid certificate for component id={}: expected={} got={}.",
                 self.component_id, expected, serial
             );
-            return Err(RustlsError::InvalidCertificate(CertificateError::Revoked));
+            return Err(RustlsError::InvalidCertificate(
+                CertificateError::ApplicationVerificationFailure,
+            ));
         }
         Ok(())
     }
