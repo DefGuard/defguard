@@ -9,6 +9,8 @@ use std::{
 };
 
 use chrono::DateTime;
+#[cfg(not(test))]
+use defguard_common::db::models::Settings;
 use defguard_common::{
     VERSION,
     db::{
@@ -17,8 +19,6 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-#[cfg(not(test))]
-use defguard_common::db::models::Settings;
 #[cfg(not(test))]
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
