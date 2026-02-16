@@ -36,7 +36,7 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
 
     let license = get_cached_license();
     let validation_result = validate_license(license.as_ref(), &counts, tier);
-    debug!("License validation result: {:?}", validation_result);
+    debug!("License validation result: {validation_result:?}");
     validation_result.is_ok()
 }
 
