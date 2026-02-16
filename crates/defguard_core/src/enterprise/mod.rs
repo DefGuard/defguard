@@ -57,15 +57,7 @@ mod test {
     fn test_feature_gates_no_license() {
         set_cached_license(None);
 
-        // free limits are not exceeded
         let counts = Counts::new(1, 1, 1, 1);
-        set_counts(counts);
-
-        assert!(is_business_license_active());
-        assert!(is_enterprise_license_active());
-
-        // exceed free limits
-        let counts = Counts::new(1, 1, 5, 1);
         set_counts(counts);
 
         assert!(!is_business_license_active());

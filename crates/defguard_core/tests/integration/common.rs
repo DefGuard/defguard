@@ -8,6 +8,21 @@ use defguard_common::{
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
+#[cfg(test)]
+fn set_test_license_enterprise() {
+    use defguard_core::enterprise::license::set_cached_license;
+
+    let license = defguard_core::enterprise::license::License {
+        customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
+        limits: None,
+        subscription: false,
+        tier: defguard_core::enterprise::license::LicenseTier::Enterprise,
+        valid_until: None,
+        version_date_limit: None,
+    };
+    set_cached_license(Some(license));
+}
+
 /// Allows overriding the default DefGuard URL for tests, as during the tests, the server has a random port, making the URL unpredictable beforehand.
 // TODO: Allow customizing the whole config, not just the URL
 pub(crate) async fn init_config(
@@ -24,6 +39,8 @@ pub(crate) async fn init_config(
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");
+    set_test_license_enterprise();
+
     config.initialize_post_settings();
     let _ = SERVER_CONFIG.set(config.clone());
     config

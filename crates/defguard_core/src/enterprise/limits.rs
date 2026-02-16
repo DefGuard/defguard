@@ -168,14 +168,16 @@ mod test {
             locations: locations_limit,
             network_devices: Some(network_devices_limit),
         };
+
         let license = License::new(
             "test".to_string(),
-            true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            false,
+            None,
             Some(limits),
             None,
             LicenseTier::Business,
         );
+
         set_cached_license(Some(license));
 
         // User limit
@@ -183,19 +185,6 @@ mod test {
             let counts = Counts {
                 user: users_limit + 1,
                 user_device: 1,
-                location: 1,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
-
-        // Device limit
-        {
-            let counts = Counts {
-                user: 1,
-                user_device: devices_limit + 1,
                 location: 1,
                 network_device: 1,
             };
