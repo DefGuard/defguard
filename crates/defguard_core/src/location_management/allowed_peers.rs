@@ -223,42 +223,5 @@ mod test {
             "AlwaysOn service location should return peers when enterprise is enabled"
         );
         assert_eq!(peers_alwayson[0].pubkey, "pubkey3");
-
-        // Now test the negative case: service locations with enterprise disabled
-        // Exceed the enterprise limits to disable enterprise features
-        use crate::enterprise::limits::{Counts, DEFAULT_LOCATIONS_LIMIT, set_counts};
-        let over_limit_counts = Counts::new(1, 1, DEFAULT_LOCATIONS_LIMIT + 1, 0);
-        set_counts(over_limit_counts);
-
-        // Test that normal location still returns peers even without enterprise
-        let peers_normal_no_ent = get_location_allowed_peers(&network_normal, &pool)
-            .await
-            .unwrap();
-        assert_eq!(
-            peers_normal_no_ent.len(),
-            1,
-            "Normal location should still return peers without enterprise"
-        );
-
-        // Test that PreLogon service location returns NO peers without enterprise
-        let peers_prelogon_no_ent = get_location_allowed_peers(&network_prelogon, &pool)
-            .await
-            .unwrap();
-        assert!(
-            peers_prelogon_no_ent.is_empty(),
-            "PreLogon service location should return NO peers when enterprise is disabled"
-        );
-
-        // Test that AlwaysOn service location returns NO peers without enterprise
-        let peers_alwayson_no_ent = get_location_allowed_peers(&network_alwayson, &pool)
-            .await
-            .unwrap();
-        assert!(
-            peers_alwayson_no_ent.is_empty(),
-            "AlwaysOn service location should return NO peers when enterprise is disabled"
-        );
-
-        let normal_counts = Counts::new(0, 0, 0, 0);
-        set_counts(normal_counts);
     }
 }

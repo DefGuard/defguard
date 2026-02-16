@@ -17,16 +17,6 @@ const defaults: StoreValues = {
       ad: false,
       enabled: false,
     },
-    license_info: {
-      any_limit_exceeded: false,
-      enterprise: true,
-      is_enterprise_free: true,
-      limits_exceeded: {
-        device: false,
-        user: false,
-        wireguard_network: false,
-      },
-    },
     network_present: false,
     smtp_enabled: false,
     version: '',
