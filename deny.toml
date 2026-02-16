@@ -146,6 +146,14 @@ exceptions = [
     { allow = [
         "AGPL-3.0-only",
         "AGPL-3.0-or-later",
+    ], crate = "defguard_gateway_manager" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
+    ], crate = "defguard_grpc_tls" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
     ], crate = "defguard_proxy_manager" },
     { allow = [
         "AGPL-3.0-only",
