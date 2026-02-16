@@ -123,7 +123,10 @@ use crate::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
         },
-        location_stats::{devices_stats, location_stats, locations_overview_stats},
+        location_stats::{
+            devices_stats, location_connected_network_devices, location_connected_users,
+            location_stats, locations_overview_stats,
+        },
         mail::{send_support_data, test_mail},
         openid_clients::{
             add_openid_client, change_openid_client, change_openid_client_state,
@@ -522,8 +525,15 @@ pub fn build_webapp(
                 "/network/{network_id}/device/{device_id}/config",
                 get(download_config),
             )
-            .route("/network/{network_id}/stats/users", get(devices_stats))
             .route("/network/{network_id}/stats", get(location_stats))
+            .route(
+                "/network/{location_id}/stats/connected_users",
+                get(location_connected_users),
+            )
+            .route(
+                "/network/{location_id}/stats/connected_network_devices",
+                get(location_connected_network_devices),
+            )
             .route(
                 "/network/{location_id}/snat",
                 get(list_snat_bindings).post(create_snat_binding),

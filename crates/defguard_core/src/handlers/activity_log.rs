@@ -176,7 +176,8 @@ pub async fn get_activity_log_events(
         .fetch_one(&appstate.pool)
         .await?;
 
-    let pagination = get_pagination_metadata(pagination.page, total_items as u32);
+    let pagination =
+        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
 
     Ok(PaginatedApiResponse {
         data: events,
@@ -257,22 +258,4 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         .push(sorting.sort_by.to_string())
         .push(" ")
         .push(sorting.sort_order.to_string());
-}
-
-/// Prepares pagination metadata that's part of the response
-fn get_pagination_metadata(current_page: u32, total_items: u32) -> PaginationMeta {
-    let total_pages = (total_items).div_ceil(DEFAULT_API_PAGE_SIZE);
-    let next_page = if current_page < total_pages {
-        Some(current_page + 1)
-    } else {
-        None
-    };
-
-    PaginationMeta {
-        current_page,
-        page_size: DEFAULT_API_PAGE_SIZE,
-        total_items,
-        total_pages,
-        next_page,
-    }
 }

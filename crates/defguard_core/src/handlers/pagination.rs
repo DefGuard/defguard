@@ -28,6 +28,26 @@ pub struct PaginationMeta {
     pub next_page: Option<u32>,
 }
 
+impl PaginationMeta {
+    /// Prepares pagination metadata that's part of the response
+    pub fn new(current_page: u32, total_items: u32, page_size: u32) -> Self {
+        let total_pages = (total_items).div_ceil(page_size);
+        let next_page = if current_page < total_pages {
+            Some(current_page + 1)
+        } else {
+            None
+        };
+
+        Self {
+            current_page,
+            page_size,
+            total_items,
+            total_pages,
+            next_page,
+        }
+    }
+}
+
 pub type PaginatedApiResult<T> = Result<PaginatedApiResponse<T>, WebError>;
 
 #[derive(Debug, Serialize)]

@@ -2,11 +2,14 @@ use std::str::FromStr;
 
 use axum::extract::{Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::models::{
-    DeviceType, WireguardNetwork,
-    wireguard::{
-        DateTimeAggregation, WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow,
-        networks_stats,
+use defguard_common::db::{
+    Id,
+    models::{
+        DeviceType, WireguardNetwork,
+        wireguard::{
+            DateTimeAggregation, WireguardDeviceStatsRow, WireguardNetworkStats, WireguardStatsRow,
+            WireguardUserStatsRow, networks_stats,
+        },
     },
 };
 use reqwest::StatusCode;
@@ -15,10 +18,13 @@ use crate::{
     appstate::AppState,
     auth::AdminRole,
     error::WebError,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{
+        ApiResponse, ApiResult, DEFAULT_API_PAGE_SIZE,
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
+    },
 };
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(crate) struct QueryFrom {
     from: Option<String>,
 }
@@ -127,4 +133,78 @@ pub(crate) async fn devices_stats(
     debug!("Displayed WireGuard user stats for network {network_id}");
 
     Ok(ApiResponse::json(response, StatusCode::OK))
+}
+
+#[derive(Serialize)]
+pub(crate) struct LocationConnectedUser {
+    user_id: Id,
+    first_name: String,
+    last_name: String,
+    full_name: String,
+    connected_devices_count: u16,
+    // oldest active session data
+    public_ip: String,
+    vpn_ips: Vec<String>,
+    connected_at: NaiveDateTime,
+    // agregated traffic stats
+    total_upload: i64,
+    total_download: i64,
+    stats: Vec<WireguardStatsRow>,
+}
+
+/// Returns paginated list of connected users for a given location
+///
+/// # Returns
+/// Returns a paginated list of `LocationConnectedUser` objects for requested location and time period
+pub(crate) async fn location_connected_users(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Path(location_id): Path<i64>,
+    Query(query_from): Query<QueryFrom>,
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<LocationConnectedUser> {
+    debug!(
+        "Displaying connected users for location {location_id} with time window {query_from:?} and pagination {pagination:?}"
+    );
+
+    let connected_users = todo!();
+    let total_items = todo!();
+
+    let pagination =
+        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
+
+    Ok(PaginatedApiResponse {
+        data: connected_users,
+        pagination,
+    })
+}
+
+#[derive(Serialize)]
+pub(crate) struct LocationConnectedNetworkDevice {}
+
+/// Returns paginated list of connected users for a given location
+///
+/// # Returns
+/// Returns a paginated list of `LocationConnectedNetworkDevice` objects for requested location and time period
+pub(crate) async fn location_connected_network_devices(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Path(location_id): Path<i64>,
+    Query(query_from): Query<QueryFrom>,
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<LocationConnectedNetworkDevice> {
+    debug!(
+        "Displaying connected network devices for location {location_id} with time window {query_from:?} and pagination {pagination:?}"
+    );
+
+    let connected_network_devices = todo!();
+    let total_items = todo!();
+
+    let pagination =
+        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
+
+    Ok(PaginatedApiResponse {
+        data: connected_network_devices,
+        pagination,
+    })
 }
