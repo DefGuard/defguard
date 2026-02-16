@@ -13,10 +13,13 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
+        models::{WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
+#[cfg(not(test))]
+use defguard_common::db::models::Settings;
+#[cfg(not(test))]
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -26,6 +29,7 @@ use defguard_proto::{
     },
 };
 use defguard_version::client::ClientVersionInterceptor;
+#[cfg(not(test))]
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
 use semver::Version;
@@ -213,10 +217,11 @@ impl GatewayHandler {
         &mut self,
         clients: Arc<Mutex<HashMap<Id, Client>>>,
     ) -> Result<(), GatewayError> {
+        #[cfg(test)]
+        let _ = &self.certs_rx;
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
         loop {
-            // TODO(jck) how does proxy do this? can this be moved to lib?
             #[cfg(not(test))]
             let channel = {
                 let settings = Settings::get_current_settings();
