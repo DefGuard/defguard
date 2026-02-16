@@ -17,7 +17,7 @@ export const TableSkeleton = () => {
   const minHeight = useMemo(() => {
     const container = containerRef.current;
     if (!container || !windowHeight) return null;
-    return windowHeight - container.getBoundingClientRect().top;
+    return windowHeight - container.getBoundingClientRect().top - 20;
   }, [windowHeight]);
 
   return (

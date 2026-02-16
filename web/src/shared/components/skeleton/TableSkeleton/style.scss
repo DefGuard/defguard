@@ -4,13 +4,14 @@
   box-sizing: border-box;
   padding: 0 var(--spacing-xl);
 
+  .table-skeleton {
+    display: flex;
+    flex-flow: column;
+  }
+
   .table-skeleton > span {
     display: block;
     height: 100%;
     overflow: hidden;
-  }
-
-  .table-skeleton .react-loading-skeleton {
-    height: inherit;
   }
 }

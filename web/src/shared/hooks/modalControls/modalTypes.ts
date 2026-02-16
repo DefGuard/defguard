@@ -2,6 +2,7 @@ import z from 'zod';
 import type { ActivityLogStream, AddDeviceResponse, User } from '../../api/types';
 import type {
   OpenAddApiTokenModal,
+  OpenAddLocationModal,
   OpenAddNetworkDeviceModal,
   OpenAssignUsersToGroupsModal,
   OpenAuthKeyRenameModal,
@@ -146,6 +147,7 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.AddLocation),
+    data: z.custom<OpenAddLocationModal>(),
   }),
   z.object({
     name: z.literal(ModalName.AddLogStreaming),
