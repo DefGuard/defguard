@@ -1,23 +1,34 @@
-use std::{collections::hash_map::HashMap, net::{IpAddr, Ipv4Addr, SocketAddr}, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{
+    collections::hash_map::HashMap,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
 use crate::{
-    auth::failed_login::FailedLoginMap, db::AppEvent, enterprise::{
+    auth::failed_login::FailedLoginMap,
+    db::AppEvent,
+    enterprise::{
         db::models::{
             enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
             openid_provider::OpenIdProvider,
         },
         is_business_license_active, is_enterprise_license_active,
-    }, grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer}
+    },
+    grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
 };
 use defguard_common::{
-    auth::claims::ClaimsType, config::server_config, db::{
+    auth::claims::ClaimsType,
+    config::server_config,
+    db::{
         Id,
         models::{
             Device, Settings, WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
             wireguard::ServiceLocationMode,
         },
-    }, types::UrlParseError
+    },
+    types::UrlParseError,
 };
 use reqwest::Url;
 use serde::Serialize;
@@ -39,7 +50,10 @@ pub mod proto {
     }
 }
 
-use defguard_proto::{auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig, gateway::Peer, worker::worker_service_server::WorkerServiceServer};
+use defguard_proto::{
+    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig,
+    gateway::Peer, worker::worker_service_server::WorkerServiceServer,
+};
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
 // gRPC header for passing auth token from clients

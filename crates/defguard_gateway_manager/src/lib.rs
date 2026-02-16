@@ -1,37 +1,24 @@
-// FIXME: actua, Updatelly refactov errors instead
+// FIXME: actually refactor errors instead
 #![allow(clippy::result_large_err)]
 use std::{
     collections::HashMap,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex},
     time::Duration,
 };
 
 use defguard_common::{
-    auth::claims::ClaimsType,
-    config::server_config,
     db::{ChangeNotification, Id, TriggerOperation, models::gateway::Gateway},
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::{
-    auth::failed_login::FailedLoginMap,
-    grpc::{GatewayEvent, WorkerState, interceptor::JwtInterceptor, worker::WorkerServer},
-};
-use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer, gateway::gateway_client::GatewayClient,
-    worker::worker_service_server::WorkerServiceServer,
-};
+use defguard_core::grpc::GatewayEvent;
+use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
 use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender},
     task::{AbortHandle, JoinSet},
 };
-use tonic::{
-    Request,
-    service::interceptor::InterceptedService,
-    transport::{Channel, Identity, Server, ServerTlsConfig, server::Router},
-};
+use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
 
 use crate::handler::GatewayHandler;
 
@@ -52,17 +39,12 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 
 type Client = GatewayClient<InterceptedService<Channel, ClientVersionInterceptor>>;
 
+#[derive(Default)]
 pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
 }
 
 impl GatewayManager {
-    pub fn new() -> Self {
-        Self {
-            clients: Arc::default(),
-        }
-    }
-
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
     pub async fn run_grpc_gateway_stream(
         &mut self,
@@ -169,7 +151,9 @@ impl GatewayManager {
                                 info!("Sent purge request to gateway {old}");
                             }
                         } else {
-                            warn!("Cannot find gRPC client for gateway {old}, won't send purge request");
+                            warn!(
+                                "Cannot find gRPC client for gateway {old}, won't send purge request"
+                            );
                         }
 
                         // Kill the `GatewayHandler` and the connection.
@@ -179,9 +163,7 @@ impl GatewayManager {
                             );
                             abort_handle.abort();
                         } else {
-                            warn!(
-                                "Cannot find abort handle for gateway {old}"
-                            );
+                            warn!("Cannot find abort handle for gateway {old}");
                         }
                     }
                 },

@@ -16,10 +16,7 @@ where
         .collect()
 }
 
-pub(super) async fn refresh_certs(
-    pool: &PgPool,
-    tx: &watch::Sender<Arc<HashMap<Id, String>>>,
-) {
+pub(super) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<Id, String>>>) {
     match Gateway::all(pool).await {
         Ok(gateways) => {
             let certs = collect_certs(

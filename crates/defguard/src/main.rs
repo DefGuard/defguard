@@ -180,7 +180,7 @@ async fn main() -> Result<(), anyhow::Error> {
         proxy_control_rx,
     );
 
-	let mut gateway_manager = GatewayManager::new();
+    let mut gateway_manager = GatewayManager::default();
 
     // run services
     tokio::select! {

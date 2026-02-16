@@ -49,8 +49,6 @@ use defguard_core::{
 
 use crate::{Client, TEN_SECS, error::GatewayError};
 
-type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
-
 /// One instance per connected Gateway.
 pub(super) struct GatewayHandler {
     // Gateway server endpoint URL.
@@ -255,7 +253,7 @@ impl GatewayHandler {
             clients
                 .lock()
                 .expect("GatewayHandler failed to lock clients")
-				.insert(self.gateway.id, client.clone());
+                .insert(self.gateway.id, client.clone());
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
