@@ -253,7 +253,6 @@ export const ProfileAuthCard = () => {
     user.username,
     authUsername,
   ]);
-
   return (
     <ProfileCard id="profile-auth-card">
       <h2>{m.profile_auth_card_title()}</h2>
@@ -293,20 +292,17 @@ export const ProfileAuthCard = () => {
           testId="totp-row"
         />
         <Divider />
-        {smtpEnabled && (
-          <>
-            <FactorRow
-              icon="mail"
-              availability="both"
-              title={m.profile_auth_card_2fa_email()}
-              enabled={user.email_mfa_enabled}
-              isDefault={user.mfa_method === 'Email'}
-              menu={emailMenuItems}
-              testId="email-codes-row"
-            />
-            <Divider />
-          </>
-        )}
+        <FactorRow
+          icon="mail"
+          availability="both"
+          title={m.profile_auth_card_2fa_email()}
+          enabled={user.email_mfa_enabled}
+          isDefault={user.mfa_method === 'Email'}
+          menu={emailMenuItems}
+          testId="email-codes-row"
+          smtpDisabled={!smtpEnabled}
+        />
+        <Divider />
         <FactorRow
           icon="access-settings"
           availability="sso"
@@ -407,6 +403,7 @@ interface FactorRowProps {
   availability: 'sso' | 'both' | 'mfa';
   menu?: MenuItemsGroup | null;
   testId?: string;
+  smtpDisabled?: boolean;
 }
 
 const FactorRow = ({
@@ -417,6 +414,7 @@ const FactorRow = ({
   menu,
   testId,
   availability,
+  smtpDisabled,
 }: FactorRowProps) => {
   const menuItems = useMemo(() => (menu ? [menu] : undefined), [menu]);
 
@@ -430,6 +428,10 @@ const FactorRow = ({
         return 'SSO';
     }
   }, [availability]);
+  const showSmtpDisabledWarning = useMemo(
+    () => isPresent(smtpDisabled) && smtpDisabled,
+    [smtpDisabled],
+  );
 
   return (
     <div className="factor-row" data-testid={testId}>
@@ -438,7 +440,12 @@ const FactorRow = ({
           <Icon icon={icon} />
           <p className="factor-name">{title}</p>
           <div className="badges">
-            {!enabled && <Badge variant="warning" text={m.state_disabled()} />}
+            {showSmtpDisabledWarning && (
+              <Badge variant="critical" text={m.state_not_configured()} />
+            )}
+            {!enabled && !showSmtpDisabledWarning && (
+              <Badge variant="warning" text={m.state_disabled()} />
+            )}
             {enabled && <Badge variant="success" text={m.state_enabled()} />}
             {isDefault && <Badge variant="neutral" text={m.state_default()} />}
           </div>
@@ -447,7 +454,11 @@ const FactorRow = ({
           <div className="fill"></div>
           <TooltipProvider>
             <TooltipTrigger>
-              <p className="availability">{availabilityText}</p>
+              <p className="availability">
+                {showSmtpDisabledWarning
+                  ? m.state_smtp_not_configured()
+                  : availabilityText}
+              </p>
             </TooltipTrigger>
             <TooltipContent>
               <p>{m.test_placeholder()}</p>
@@ -456,7 +467,9 @@ const FactorRow = ({
         </div>
       </div>
       <div className="controls">
-        {isPresent(menuItems) && <IconButtonMenu icon="menu" menuItems={menuItems} />}
+        {isPresent(menuItems) && !showSmtpDisabledWarning && (
+          <IconButtonMenu icon="menu" menuItems={menuItems} />
+        )}
       </div>
     </div>
   );

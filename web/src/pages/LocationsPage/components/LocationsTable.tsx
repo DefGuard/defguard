@@ -74,7 +74,9 @@ export const LocationsTable = () => {
         ) {
           openModal(ModalName.LimitReached);
         } else {
-          openModal(ModalName.AddLocation);
+          openModal(ModalName.AddLocation, {
+            license,
+          });
         }
       },
     }),

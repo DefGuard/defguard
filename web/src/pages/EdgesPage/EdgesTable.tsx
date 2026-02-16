@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -24,11 +24,9 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { getEdgesQueryOptions, getLicenseInfoQueryOptions } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
-
-type Props = {
-  edges: EdgeInfo[];
-};
+import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
 type RowData = EdgeInfo;
 
@@ -48,8 +46,12 @@ const isConnected = (edge: EdgeInfo) => {
 const displayModifiedBy = (edge: EdgeInfo) =>
   `${edge.modified_by_firstname} ${edge.modified_by_lastname}`;
 
-export const EdgesTable = ({ edges }: Props) => {
+export const EdgesTable = () => {
+  const { data: edges } = useSuspenseQuery(getEdgesQueryOptions);
+  const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
+
   const navigate = useNavigate();
+
   const { mutate: deleteEdge } = useMutation({
     mutationFn: api.edge.deleteEdge,
     meta: {
@@ -64,10 +66,16 @@ export const EdgesTable = ({ edges }: Props) => {
       iconLeft: 'globe',
       testId: 'add-edge',
       onClick: () => {
-        navigate({ to: '/setup-edge' });
+        if (edges.length > 1) {
+          licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+            navigate({ to: '/setup-edge' });
+          });
+        } else {
+          navigate({ to: '/setup-edge' });
+        }
       },
     }),
-    [navigate],
+    [navigate, edges.length, licenseInfo],
   );
 
   const [search, setSearch] = useState('');
