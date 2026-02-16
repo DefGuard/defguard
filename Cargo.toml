@@ -63,7 +63,7 @@ openidconnect = { version = "4.0", default-features = false, features = [
 ] }
 parse_link_header = "0.4"
 paste = "1.0"
-pgp = { version = "0.16", default-features = false }
+pgp = { version = "0.19", default-features = false }
 prost = "0.14"
 pulldown-cmark = "0.13"
 # match version used by sqlx
