@@ -1,4 +1,4 @@
-// FIXME: actua, Updatelly refactor errors instead
+// FIXME: actua, Updatelly refactov errors instead
 #![allow(clippy::result_large_err)]
 use std::{
     collections::HashMap,
@@ -33,12 +33,11 @@ use tonic::{
     transport::{Channel, Identity, Server, ServerTlsConfig, server::Router},
 };
 
-use crate::{auth::AuthServer, handler::GatewayHandler};
+use crate::handler::GatewayHandler;
 
 #[macro_use]
 extern crate tracing;
 
-mod auth;
 mod certs;
 mod error;
 mod handler;
@@ -196,67 +195,4 @@ impl GatewayManager {
 
         Ok(())
     }
-}
-
-// TODO(jck) move this to core/grpc/lib
-/// Runs gRPC server with core services.
-#[instrument(skip_all)]
-pub async fn run_grpc_server(
-    worker_state: Arc<Mutex<WorkerState>>,
-    pool: PgPool,
-    grpc_cert: Option<String>,
-    grpc_key: Option<String>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
-) -> Result<(), anyhow::Error> {
-    // Build gRPC services
-    let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
-        let identity = Identity::from_pem(cert, key);
-        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
-    } else {
-        Server::builder()
-    };
-
-    let router = build_grpc_service_router(server, pool, worker_state, failed_logins).await?;
-
-    // Run gRPC server
-    let addr = SocketAddr::new(
-        server_config()
-            .grpc_bind_address
-            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        server_config().grpc_port,
-    );
-    debug!("Starting gRPC services");
-    router.serve(addr).await?;
-    info!("gRPC server started on {addr}");
-    Ok(())
-}
-
-// TODO(jck) move this to core/grpc/lib
-pub(crate) async fn build_grpc_service_router(
-    server: Server,
-    pool: PgPool,
-    worker_state: Arc<Mutex<WorkerState>>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
-    // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
-) -> Result<Router, anyhow::Error> {
-    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-
-    let worker_service = WorkerServiceServer::with_interceptor(
-        WorkerServer::new(pool.clone(), worker_state),
-        JwtInterceptor::new(ClaimsType::YubiBridge),
-    );
-
-    let (health_reporter, health_service) = tonic_health::server::health_reporter();
-    health_reporter
-        .set_serving::<AuthServiceServer<AuthServer>>()
-        .await;
-
-    let router = server
-        .http2_keepalive_interval(Some(TEN_SECS))
-        .tcp_keepalive(Some(TEN_SECS))
-        .add_service(health_service)
-        .add_service(auth_service);
-    let router = router.add_service(worker_service);
-
-    Ok(router)
 }

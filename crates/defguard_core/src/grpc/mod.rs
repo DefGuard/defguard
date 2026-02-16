@@ -1,30 +1,30 @@
-use std::{collections::hash_map::HashMap, net::IpAddr, time::Instant};
+use std::{collections::hash_map::HashMap, net::{IpAddr, Ipv4Addr, SocketAddr}, sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use crate::{
-    db::AppEvent,
-    enterprise::{
+    auth::failed_login::FailedLoginMap, db::AppEvent, enterprise::{
         db::models::{
             enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
             openid_provider::OpenIdProvider,
         },
         is_business_license_active, is_enterprise_license_active,
-    },
+    }, grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer}
 };
 use defguard_common::{
-    db::{
+    auth::claims::ClaimsType, config::server_config, db::{
         Id,
         models::{
             Device, Settings, WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
             wireguard::ServiceLocationMode,
         },
-    },
-    types::UrlParseError,
+    }, types::UrlParseError
 };
 use reqwest::Url;
 use serde::Serialize;
+use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
+mod auth;
 pub mod client_version;
 pub mod interceptor;
 pub mod proxy;
@@ -39,13 +39,76 @@ pub mod proto {
     }
 }
 
-use defguard_proto::{enterprise::firewall::FirewallConfig, gateway::Peer};
+use defguard_proto::{auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig, gateway::Peer, worker::worker_service_server::WorkerServiceServer};
+use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
 // gRPC header for passing auth token from clients
 pub static AUTHORIZATION_HEADER: &str = "authorization";
 
 // gRPC header for passing hostname from clients
 pub static HOSTNAME_HEADER: &str = "hostname";
+const TEN_SECS: Duration = Duration::from_secs(10);
+
+/// Runs gRPC server with core services.
+#[instrument(skip_all)]
+pub async fn run_grpc_server(
+    worker_state: Arc<Mutex<WorkerState>>,
+    pool: PgPool,
+    grpc_cert: Option<String>,
+    grpc_key: Option<String>,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
+) -> Result<(), anyhow::Error> {
+    // Build gRPC services
+    let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
+        let identity = Identity::from_pem(cert, key);
+        Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
+    } else {
+        Server::builder()
+    };
+
+    let router = build_grpc_service_router(server, pool, worker_state, failed_logins).await?;
+
+    // Run gRPC server
+    let addr = SocketAddr::new(
+        server_config()
+            .grpc_bind_address
+            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+        server_config().grpc_port,
+    );
+    debug!("Starting gRPC services");
+    router.serve(addr).await?;
+    info!("gRPC server started on {addr}");
+    Ok(())
+}
+
+pub(crate) async fn build_grpc_service_router(
+    server: Server,
+    pool: PgPool,
+    worker_state: Arc<Mutex<WorkerState>>,
+    failed_logins: Arc<Mutex<FailedLoginMap>>,
+    // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+) -> Result<Router, anyhow::Error> {
+    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
+
+    let worker_service = WorkerServiceServer::with_interceptor(
+        WorkerServer::new(pool.clone(), worker_state),
+        JwtInterceptor::new(ClaimsType::YubiBridge),
+    );
+
+    let (health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<AuthServiceServer<AuthServer>>()
+        .await;
+
+    let router = server
+        .http2_keepalive_interval(Some(TEN_SECS))
+        .tcp_keepalive(Some(TEN_SECS))
+        .add_service(health_service)
+        .add_service(auth_service);
+    let router = router.add_service(worker_service);
+
+    Ok(router)
+}
 
 pub struct Job {
     id: u32,

@@ -9,7 +9,7 @@ use jsonwebtoken::errors::Error as JWTError;
 use sqlx::PgPool;
 use tonic::{Request, Response, Status};
 
-use defguard_core::auth::failed_login::{
+use crate::auth::failed_login::{
     FailedLoginMap, check_failed_logins, log_failed_login_attempt,
 };
 
