@@ -33,7 +33,7 @@ import {
 import businessImage from './assets/business.png';
 import enterpriseImage from './assets/enterprise.png';
 import { SettingsLicenseInfoSection } from './components/SettingsLicenseInfoSection/SettingsLicenseInfoSection';
-import { LicenseModal } from './modals/LicenseModal/LicenseModal';
+import { SettingsLicenseModal } from './modals/SettingsLicenseModal/SettingsLicenseModal';
 
 type LicenseItemData = {
   imageSrc: string;
@@ -96,7 +96,7 @@ export const SettingsLicenseTab = () => {
                   (settings.license?.length ?? 0) > 0 ? 'Edit license' : 'Enter license'
                 }
                 onClick={() => {
-                  openModal(ModalName.License, {
+                  openModal(ModalName.SettingsLicense, {
                     license: settings.license,
                   });
                 }}
@@ -126,7 +126,7 @@ export const SettingsLicenseTab = () => {
           </SettingsCard>
         </Fragment>
       )}
-      <LicenseModal />
+      <SettingsLicenseModal />
     </SettingsLayout>
   );
 };

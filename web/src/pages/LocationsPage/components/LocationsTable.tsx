@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -27,18 +27,20 @@ import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/
 import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
+import {
+  getLicenseInfoQueryOptions,
+  getLocationsQueryOptions,
+} from '../../../shared/query';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
-
-type Props = {
-  locations: NetworkLocation[];
-};
 
 type RowData = NetworkLocation;
 
 const columnHelper = createColumnHelper<RowData>();
 
-export const LocationsTable = ({ locations }: Props) => {
+export const LocationsTable = () => {
+  const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
+  const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
 
@@ -66,10 +68,17 @@ export const LocationsTable = ({ locations }: Props) => {
       iconLeft: 'add-location',
       testId: 'add-location',
       onClick: () => {
-        openModal(ModalName.AddLocation);
+        if (
+          license?.limits &&
+          license.limits.locations.current === license.limits.locations.limit
+        ) {
+          openModal(ModalName.LimitReached);
+        } else {
+          openModal(ModalName.AddLocation);
+        }
       },
     }),
-    [],
+    [license],
   );
 
   const columns = useMemo(

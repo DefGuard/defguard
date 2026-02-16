@@ -1,7 +1,10 @@
 import { Fragment, type PropsWithChildren, useMemo } from 'react';
 import './style.scss';
 import dayjs from 'dayjs';
-import type { LicenseInfo } from '../../../../../../../shared/api/types';
+import type {
+  LicenseInfo,
+  LicenseLimitsInfo,
+} from '../../../../../../../shared/api/types';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
 import {
@@ -53,7 +56,7 @@ export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
         <Fragment>
           <p className="limits-label">{`Current plan limits`}</p>
           <SizedBox height={ThemeSpacing.Xl2} />
-          <LimitsSection license={license} />
+          <LimitsSection limits={license.limits} />
         </Fragment>
       )}
     </div>
@@ -80,10 +83,10 @@ const ValidUntil = ({ validUntil }: ValidUntilProps) => {
 };
 
 type LimitSectionProps = {
-  license: LicenseInfo;
+  limits: LicenseLimitsInfo;
 };
 
-const LimitsSection = ({ license: { limits } }: LimitSectionProps) => {
+const LimitsSection = ({ limits }: LimitSectionProps) => {
   return (
     <div className="license-limits">
       <LicenseLimitProgress

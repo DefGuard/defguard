@@ -12,7 +12,7 @@ type Props = {
 
 export const TopBarLicenseFloating = ({ license, ...props }: Props) => {
   const warning = useMemo(() => {
-    if (!license) return false;
+    if (!license || !license.limits) return false;
     if (
       license.limits.users.current > 0 &&
       license.limits.users.limit / license.limits.users.current < 2.0
@@ -43,20 +43,22 @@ export const TopBarLicenseFloating = ({ license, ...props }: Props) => {
       <p className="title">{title}</p>
       {isPresent(license) && (
         <>
-          <div className="limits">
-            <TopBarLicenseProgress
-              icon={IconKind.Users}
-              value={license.limits.users.current}
-              maxValue={license.limits.users.limit}
-              label="Added users"
-            />
-            <TopBarLicenseProgress
-              icon={IconKind.LocationTracking}
-              value={license.limits.locations.current}
-              maxValue={license.limits.locations.limit}
-              label="VPN locations"
-            />
-          </div>
+          {isPresent(license.limits) && (
+            <div className="limits">
+              <TopBarLicenseProgress
+                icon={IconKind.Users}
+                value={license.limits.users.current}
+                maxValue={license.limits.users.limit}
+                label="Added users"
+              />
+              <TopBarLicenseProgress
+                icon={IconKind.LocationTracking}
+                value={license.limits.locations.current}
+                maxValue={license.limits.locations.limit}
+                label="VPN locations"
+              />
+            </div>
+          )}
           {!license.limits_exceeded && warning && (
             <p className="warning">{`You're approaching the limits of your current plan. To increase your limits, please upgrade to a higher-tier plan.`}</p>
           )}

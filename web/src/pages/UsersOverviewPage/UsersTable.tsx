@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
@@ -41,19 +41,21 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../shared/hooks/useApp';
-import { getGroupsInfoQueryOptions } from '../../shared/query';
+import {
+  getGroupsInfoQueryOptions,
+  getLicenseInfoQueryOptions,
+  getUsersOverviewQueryOptions,
+} from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
-
-type Props = {
-  users: UsersListItem[];
-};
 
 type RowData = UsersListItem;
 
 const columnHelper = createColumnHelper<RowData>();
 
-export const UsersTable = ({ users }: Props) => {
+export const UsersTable = () => {
+  const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
+  const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const appInfo = useApp((s) => s.appInfo);
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
@@ -65,13 +67,20 @@ export const UsersTable = ({ users }: Props) => {
       iconLeft: 'add-user',
       testId: 'add-user',
       onClick: () => {
-        useAddUserModal.getState().open({
-          reservedEmails,
-          reservedUsernames,
-        });
+        if (
+          license?.limits &&
+          license.limits.users.current === license.limits.users.limit
+        ) {
+          openModal(ModalName.LimitReached);
+        } else {
+          useAddUserModal.getState().open({
+            reservedEmails,
+            reservedUsernames,
+          });
+        }
       },
     }),
-    [reservedEmails, reservedUsernames],
+    [reservedEmails, reservedUsernames, license],
   );
 
   const [search, setSearch] = useState('');

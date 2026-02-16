@@ -43,7 +43,8 @@ use crate::{
                 ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
             },
         },
-        limits::update_counts,
+        license::get_cached_license,
+        limits::{get_counts, update_counts},
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
@@ -314,6 +315,18 @@ pub async fn add_user(
 ) -> ApiResult {
     let username = user_data.username.clone();
     debug!("User {} adding user {username}", session.user.username);
+
+    // check if adding new user will go over limits
+    let user_count = get_counts().user();
+
+    if get_cached_license()
+        .as_ref()
+        .and_then(|l| l.limits.as_ref())
+        .is_some_and(|l| l.users == user_count)
+    {
+        error!("Adding user {username} blocked! License limit reached.");
+        return Ok(WebError::Forbidden("License limit reached.".into()).into());
+    }
 
     // check username
     if let Err(err) = check_username(&username) {

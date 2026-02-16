@@ -20,7 +20,7 @@
     "@shortercode/webzip": "1.1.1-0",
     "@stablelib/base64": "^2.0.1",
     "@stablelib/x25519": "^2.0.1",
-    "@tanstack/react-form": "^1.28.0",
+    "@tanstack/react-form": "^1.28.1",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.159.5",
     "@tanstack/react-table": "^8.21.3",
@@ -51,7 +51,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.14",
+    "@biomejs/biome": "2.3.15",
     "@inlang/paraglide-js": "2.11.0",
     "@tanstack/devtools-vite": "^0.5.1",
     "@tanstack/react-devtools": "^0.9.5",
@@ -71,7 +71,7 @@
     "prettier": "^3.8.1",
     "sass": "^1.97.3",
     "sharp": "^0.34.5",
-    "stylelint": "^17.2.0",
+    "stylelint": "^17.3.0",
     "stylelint-config-standard-scss": "^17.0.0",
     "stylelint-scss": "^7.0.0",
     "typescript": "~5.9.3",

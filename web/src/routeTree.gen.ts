@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SnackbarRouteImport } from './routes/snackbar'
-import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
@@ -22,6 +21,7 @@ import { Route as AuthLoadingRouteImport } from './routes/auth/loading'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as WizardSetupLoginRouteImport } from './routes/_wizard/setup-login'
 import { Route as WizardSetupRouteImport } from './routes/_wizard/setup'
+import { Route as AuthorizedPlaygroundRouteImport } from './routes/_authorized/playground'
 import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
@@ -63,11 +63,6 @@ import { Route as AuthorizedDefaultEdgeEdgeIdEditRouteImport } from './routes/_a
 const SnackbarRoute = SnackbarRouteImport.update({
   id: '/snackbar',
   path: '/snackbar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlaygroundRoute = PlaygroundRouteImport.update({
-  id: '/playground',
-  path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConsentRoute = ConsentRouteImport.update({
@@ -123,6 +118,11 @@ const WizardSetupRoute = WizardSetupRouteImport.update({
   id: '/_wizard/setup',
   path: '/setup',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthorizedPlaygroundRoute = AuthorizedPlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => AuthorizedRoute,
 } as any)
 const AuthorizedDefaultRoute = AuthorizedDefaultRouteImport.update({
   id: '/_default',
@@ -342,8 +342,8 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthorizedDefaultRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
-  '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
+  '/playground': typeof AuthorizedPlaygroundRoute
   '/setup': typeof WizardSetupRoute
   '/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -392,8 +392,8 @@ export interface FileRoutesByTo {
   '/404': typeof R404Route
   '/': typeof AuthorizedDefaultRouteWithChildren
   '/consent': typeof ConsentRoute
-  '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
+  '/playground': typeof AuthorizedPlaygroundRoute
   '/setup': typeof WizardSetupRoute
   '/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -444,9 +444,9 @@ export interface FileRoutesById {
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
-  '/playground': typeof PlaygroundRoute
   '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
+  '/_authorized/playground': typeof AuthorizedPlaygroundRoute
   '/_wizard/setup': typeof WizardSetupRoute
   '/_wizard/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -498,8 +498,8 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/consent'
-    | '/playground'
     | '/snackbar'
+    | '/playground'
     | '/setup'
     | '/setup-login'
     | '/auth/callback'
@@ -548,8 +548,8 @@ export interface FileRouteTypes {
     | '/404'
     | '/'
     | '/consent'
-    | '/playground'
     | '/snackbar'
+    | '/playground'
     | '/setup'
     | '/setup-login'
     | '/auth/callback'
@@ -599,9 +599,9 @@ export interface FileRouteTypes {
     | '/_authorized'
     | '/auth'
     | '/consent'
-    | '/playground'
     | '/snackbar'
     | '/_authorized/_default'
+    | '/_authorized/playground'
     | '/_wizard/setup'
     | '/_wizard/setup-login'
     | '/auth/callback'
@@ -652,7 +652,6 @@ export interface RootRouteChildren {
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
-  PlaygroundRoute: typeof PlaygroundRoute
   SnackbarRoute: typeof SnackbarRoute
   WizardSetupRoute: typeof WizardSetupRoute
   WizardSetupLoginRoute: typeof WizardSetupLoginRoute
@@ -665,13 +664,6 @@ declare module '@tanstack/react-router' {
       path: '/snackbar'
       fullPath: '/snackbar'
       preLoaderRoute: typeof SnackbarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/playground': {
-      id: '/playground'
-      path: '/playground'
-      fullPath: '/playground'
-      preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/consent': {
@@ -750,6 +742,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/setup'
       preLoaderRoute: typeof WizardSetupRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authorized/playground': {
+      id: '/_authorized/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof AuthorizedPlaygroundRouteImport
+      parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_default': {
       id: '/_authorized/_default'
@@ -1088,6 +1087,7 @@ const AuthorizedDefaultRouteWithChildren =
 
 interface AuthorizedRouteChildren {
   AuthorizedDefaultRoute: typeof AuthorizedDefaultRouteWithChildren
+  AuthorizedPlaygroundRoute: typeof AuthorizedPlaygroundRoute
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
@@ -1096,6 +1096,7 @@ interface AuthorizedRouteChildren {
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedDefaultRoute: AuthorizedDefaultRouteWithChildren,
+  AuthorizedPlaygroundRoute: AuthorizedPlaygroundRoute,
   AuthorizedWizardAddExternalOpenidRoute:
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
@@ -1147,7 +1148,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthorizedRoute: AuthorizedRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
-  PlaygroundRoute: PlaygroundRoute,
   SnackbarRoute: SnackbarRoute,
   WizardSetupRoute: WizardSetupRoute,
   WizardSetupLoginRoute: WizardSetupLoginRoute,

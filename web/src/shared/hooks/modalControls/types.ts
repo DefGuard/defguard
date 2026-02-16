@@ -2,6 +2,7 @@ import type {
   AvailableLocationIpResponse,
   Device,
   GroupInfo,
+  LicenseInfo,
   NetworkDevice,
   NetworkLocation,
   OpenIdClient,
@@ -94,18 +95,10 @@ export interface OpenDisplayListModal {
   data: string[];
 }
 
-export interface OpenLicenseModal {
+export interface OpenSettingsLicenseModal {
   license?: string | null;
 }
 
-const UpgradeLicenseModalVariant = {
-  Business: 'business',
-  Enterprise: 'enterprise',
-} as const;
-
-export type UpgradeLicenseModalVariantValue =
-  (typeof UpgradeLicenseModalVariant)[keyof typeof UpgradeLicenseModalVariant];
-
-export interface OpenUpgradeLicenseModal {
-  variant: UpgradeLicenseModalVariantValue;
+export interface OpenLicenseExpiredModal {
+  license: LicenseInfo;
 }

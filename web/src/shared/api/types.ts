@@ -265,7 +265,7 @@ export interface LicenseInfo {
   subscription: boolean;
   valid_until: string | null;
   tier: LicenseTierValue;
-  limits: LicenseLimitsInfo;
+  limits: LicenseLimitsInfo | null;
 }
 
 export interface LicenseInfoResponse {

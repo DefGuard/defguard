@@ -11,6 +11,7 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Suspense, useState } from 'react';
 import type { LicenseInfo } from '../../../../api/types';
+import { Divider } from '../../../../defguard-ui/components/Divider/Divider';
 import { Icon, IconKind } from '../../../../defguard-ui/components/Icon';
 import { isPresent } from '../../../../defguard-ui/utils/isPresent';
 import { useAuth } from '../../../../hooks/useAuth';
@@ -54,8 +55,11 @@ const Content = () => {
 
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss]);
 
+  if (licenseInfo && licenseInfo.limits === null) return null;
+
   return (
     <>
+      <Divider orientation="vertical" />
       <div id="top-bar-license-info" ref={refs.setReference} {...getReferenceProps()}>
         {licenseInfo === null && <OpenSource />}
         {isPresent(licenseInfo) && <LicenseCompactDisplay license={licenseInfo} />}
@@ -72,6 +76,7 @@ const Content = () => {
 };
 
 const LicenseCompactDisplay = ({ license }: { license: LicenseInfo }) => {
+  if (license.limits === null) return null;
   return (
     <div className="license-compact-display">
       <TopBarLicenseProgress
