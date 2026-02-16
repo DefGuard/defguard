@@ -138,12 +138,14 @@ impl GatewayManager {
                         };
 
                         // Send purge request to the gateway.
-                        if let Some(mut client) = self
-                            .clients
-                            .lock()
-                            .expect("Failed to lock GatewayManager::clients")
-                            .remove(&old.id)
-                        {
+                        let maybe_client = {
+                            self.clients
+                                .lock()
+                                .expect("Failed to lock GatewayManager::clients")
+                                .remove(&old.id)
+                        };
+
+                        if let Some(mut client) = maybe_client {
                             debug!("Sending purge request to gateway {old}");
                             if let Err(err) = client.purge(Request::new(())).await {
                                 error!("Error sending purge request to gateway {old}: {err}");
