@@ -1,18 +1,16 @@
 use defguard_common::db::{Id, models::user::User};
-use defguard_mail::{Mail, templates};
+use defguard_mail::templates::{desktop_start_mail, new_account_mail};
 use reqwest::Url;
 use sqlx::{PgConnection, PgExecutor};
 
 use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError};
-
-static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 
 /// Start user enrollment process
 /// This creates a new enrollment token valid for 24h
 /// and optionally sends enrollment email notification to user
 pub async fn start_user_enrollment(
     user: &mut User<Id>,
-    transaction: &mut PgConnection,
+    conn: &mut PgConnection,
     admin: &User<Id>,
     email: Option<String>,
     token_timeout_seconds: u64,
@@ -45,7 +43,7 @@ pub async fn start_user_enrollment(
         return Err(TokenError::UserDisabled);
     }
 
-    clear_unused_enrollment_tokens(user, &mut *transaction).await?;
+    clear_unused_enrollment_tokens(user, &mut *conn).await?;
 
     debug!("Create a new enrollment token for user {}.", user.username);
     let enrollment = Token::new(
@@ -56,7 +54,7 @@ pub async fn start_user_enrollment(
         Some(ENROLLMENT_TOKEN_TYPE.to_string()),
     );
     debug!("Saving a new enrollment token...");
-    enrollment.save(&mut *transaction).await?;
+    enrollment.save(&mut *conn).await?;
     debug!(
         "Saved a new enrollment token with id {} for user {}.",
         enrollment.id, user.username
@@ -65,7 +63,7 @@ pub async fn start_user_enrollment(
     // Mark the user with enrollment-pending flag.
     // https://github.com/DefGuard/client/issues/647
     user.enrollment_pending = true;
-    user.save(&mut *transaction).await?;
+    user.save(&mut *conn).await?;
 
     if send_user_notification {
         if let Some(email) = email {
@@ -73,27 +71,14 @@ pub async fn start_user_enrollment(
                 "Sending an enrollment mail for user {} to {email}.",
                 user.username
             );
-            let base_message_context = enrollment
-                .get_welcome_message_context(&mut *transaction)
-                .await?;
-            let result = Mail::new(
+            let base_message_context = enrollment.get_welcome_message_context(&mut *conn).await?;
+            let result = new_account_mail(
                 &email,
-                ENROLLMENT_START_MAIL_SUBJECT,
-                templates::enrollment_start_mail(
-                    base_message_context,
-                    enrollment_service_url,
-                    &enrollment.id,
-                )
-                .map_err(|err| {
-                    debug!(
-                        "Cannot send an email to the user {} due to the error {}.",
-                        user.username,
-                        err.to_string()
-                    );
-                    TokenError::NotificationError(err.to_string())
-                })?,
+                conn,
+                base_message_context,
+                enrollment_service_url,
+                &enrollment.id,
             )
-            .send()
             .await;
             match result {
                 Ok(()) => {
@@ -122,7 +107,7 @@ pub async fn start_user_enrollment(
 /// and optionally sends email notification to user
 pub async fn start_desktop_configuration(
     user: &User<Id>,
-    transaction: &mut PgConnection,
+    conn: &mut PgConnection,
     admin: &User<Id>,
     email: Option<String>,
     token_timeout_seconds: u64,
@@ -150,7 +135,7 @@ pub async fn start_desktop_configuration(
         return Err(TokenError::UserDisabled);
     }
 
-    clear_unused_enrollment_tokens(user, &mut *transaction).await?;
+    clear_unused_enrollment_tokens(user, &mut *conn).await?;
     debug!("Cleared unused tokens for {}.", user.username);
 
     debug!(
@@ -168,7 +153,7 @@ pub async fn start_desktop_configuration(
         desktop_configuration.device_id = Some(device_id);
     }
     debug!("Saving a new desktop configuration token...");
-    desktop_configuration.save(&mut *transaction).await?;
+    desktop_configuration.save(&mut *conn).await?;
     debug!(
         "Saved a new desktop activation token with id {} for user {}.",
         desktop_configuration.id, user.username
@@ -181,23 +166,22 @@ pub async fn start_desktop_configuration(
                 user.username
             );
             let base_message_context = desktop_configuration
-                .get_welcome_message_context(&mut *transaction)
+                .get_welcome_message_context(&mut *conn)
                 .await?;
-            let _ = templates::desktop_start_mail(
+            let result = desktop_start_mail(
                 &email,
-                &mut *transaction,
+                conn,
                 base_message_context,
                 &enrollment_service_url,
                 &desktop_configuration.id,
             )
-            .await
-            .map_err(|err| {
+            .await;
+            if let Err(err) = result {
                 debug!(
                     "Cannot send an email to the user {} due to the error {err}.",
                     user.username,
                 );
-                TokenError::NotificationError(err.to_string())
-            });
+            }
         }
     }
     info!(

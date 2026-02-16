@@ -19,7 +19,7 @@ use sqlx::{
 use tera::Context;
 
 use super::templates::{
-    TemplateLocation, desktop_start_mail, mfa_code_mail, new_device_added_mail,
+    TemplateLocation, desktop_start_mail, mfa_code_mail, new_account_mail, new_device_added_mail,
 };
 
 /// Set SMTP settings from environment variables.
@@ -113,6 +113,30 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
         first_name,
         code,
         None,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore]
+#[sqlx::test]
+fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut transaction = pool.begin().await.unwrap();
+    let url = Url::parse("http://localhost:8000").unwrap();
+    let context = Context::new();
+    let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
+    new_account_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut transaction,
+        context,
+        url,
+        token,
     )
     .await
     .unwrap();
