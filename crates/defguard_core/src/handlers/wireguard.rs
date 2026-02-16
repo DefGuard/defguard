@@ -39,7 +39,7 @@ use crate::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
-        is_business_license_active,
+        is_business_license_active, is_enterprise_license_active,
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
@@ -235,6 +235,19 @@ pub(crate) async fn create_network(
         return Ok(WebError::Forbidden("License limit reached.".into()).into());
     }
 
+    // check if tries to add service location without active enterprise
+    if data.service_location_mode != ServiceLocationMode::Disabled
+        && !is_enterprise_license_active()
+    {
+        error!("Adding location {network_name} blocked! Enterprise license required.");
+        return Ok(ApiResponse {
+            json: json!({
+                "msg": "Enterprise license required.",
+            }),
+            status: StatusCode::FORBIDDEN,
+        });
+    }
+
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
     let allowed_ips = data.parse_allowed_ips();
@@ -327,6 +340,21 @@ pub(crate) async fn modify_network(
         "User {} updating WireGuard network {network_id}",
         session.user.username
     );
+
+    // check if tries to modify service location without active enterprise
+    if data.service_location_mode != ServiceLocationMode::Disabled
+        && !is_enterprise_license_active()
+    {
+        let name = data.name;
+        error!("Modification of location {name} blocked! Enterprise license required.");
+        return Ok(ApiResponse {
+            json: json!({
+                "msg": "Enterprise license required.",
+            }),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
+
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
     let mut network = find_network(network_id, &appstate.pool).await?;

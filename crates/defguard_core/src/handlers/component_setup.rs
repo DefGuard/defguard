@@ -39,6 +39,7 @@ use tonic::{
 
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
+    enterprise::is_enterprise_license_active,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
@@ -193,6 +194,22 @@ pub async fn setup_proxy_tls_stream(
 
     let stream = async_stream::stream! {
         let mut flow = SetupFlow::new(log_rx);
+
+        // check if tries to connect more then 1 proxy without active enterprise license
+        if !is_enterprise_license_active() {
+            match Proxy::list(&pool).await {
+                Ok(current_proxies) => {
+                    if !current_proxies.is_empty() {
+                        yield Ok(flow.error("Enterprise license is required for connecting more then one edge."));
+                        return;
+                    }
+                },
+                Err(e) => {
+                    yield Ok(flow.error(&format!("Failed to query existing proxies: {e}")));
+                    return;
+                }
+            }
+        }
 
         // Step 1: Check configuration
         yield Ok(
@@ -597,6 +614,22 @@ pub async fn setup_gateway_tls_stream(
 
     let stream = async_stream::stream! {
         let mut flow = SetupFlow::new(log_rx);
+
+        // check if tries to add more then 1 gateway to network without enterprise license
+        if !is_enterprise_license_active() {
+            match Gateway::find_by_network_id(&pool, network_id).await {
+                Ok(gateways) => {
+                    if !gateways.is_empty() {
+                        yield Ok(flow.error("Enterprise license is required."));
+                        return;
+                    }
+                },
+                Err(e) => {
+                    yield Ok(flow.error(&format!("Reading current gateways failed! error {e}")));
+                    return;
+                }
+            }
+        }
 
         // Step 1: Check configuration
         yield Ok(
