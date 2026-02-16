@@ -84,8 +84,7 @@ impl GatewayManager {
 
         let mut tasks = JoinSet::new();
         // Helper closure to launch `GatewayHandler`.
-		// TODO(jck) store arguments in GatewayManager
-		// TODO(jck) rewrite this to method
+        // TODO: Store arguments in GatewayManager and rewrite this to method
         let mut launch_gateway_handler = |gateway: Gateway<Id>,
                                           clients: Arc<Mutex<HashMap<Id, Client>>>|
          -> Result<AbortHandle, anyhow::Error> {
@@ -153,35 +152,37 @@ impl GatewayManager {
                         }
                     }
                     TriggerOperation::Delete => {
-						// TODO(jck) refactor
-                        if let Some(old) = gateway_notification.old {
-                            if let Some(mut client) = self
-                                .clients
-                                .lock()
-                                .expect("Failed to lock GatewayManager::clients")
-                                .remove(&old.id)
-                            {
-                                debug!("Sending purge request to gateway {old}");
-                                if let Err(err) = client.purge(Request::new(())).await {
-                                    error!("Error sending purge request to gateway {old}: {err}");
-                                } else {
-                                    info!("Sent purge request to gateway {old}");
-                                }
+                        let Some(old) = gateway_notification.old else {
+                            continue;
+                        };
+
+                        // Send purge request to the gateway.
+                        if let Some(mut client) = self
+                            .clients
+                            .lock()
+                            .expect("Failed to lock GatewayManager::clients")
+                            .remove(&old.id)
+                        {
+                            debug!("Sending purge request to gateway {old}");
+                            if let Err(err) = client.purge(Request::new(())).await {
+                                error!("Error sending purge request to gateway {old}: {err}");
                             } else {
-                                warn!(
-                                    "Cannot find gateway {old} on the list of connected gateways"
-                                );
+                                info!("Sent purge request to gateway {old}");
                             }
-                            if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                                info!(
-                                    "Aborting connection to gateway {old}, it has disappeard from the database"
-                                );
-                                abort_handle.abort();
-                            } else {
-                                warn!(
-                                    "Cannot find gateway {old} on the list of connected gateways"
-                                );
-                            }
+                        } else {
+                            warn!("Cannot find gRPC client for gateway {old}, won't send purge request");
+                        }
+
+                        // Kill the `GatewayHandler` and the connection.
+                        if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                            info!(
+                                "Aborting connection to gateway {old}, it has disappeard from the database"
+                            );
+                            abort_handle.abort();
+                        } else {
+                            warn!(
+                                "Cannot find abort handle for gateway {old}"
+                            );
                         }
                     }
                 },
