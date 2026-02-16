@@ -7,11 +7,39 @@ use lettre::{
     transport::smtp::authentication::Credentials,
 };
 use serde::Serialize;
-use tera::Context;
+use sqlx::PgConnection;
+use tera::{Context, Tera, Value};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
+use crate::{
+    mail_context::MailContext,
+    qr::qr_png,
+    templates::{DEFAULT_LANG, TemplateError},
+};
+
 use super::SmtpSettings;
+
+#[derive(Debug)]
+pub struct Attachment {
+    filename: String,
+    content: Vec<u8>,
+}
+
+impl Attachment {
+    /// Create new [`Attachement`].
+    #[must_use]
+    pub fn new(filename: String, content: Vec<u8>) -> Self {
+        Self { filename, content }
+    }
+}
+
+impl From<Attachment> for SinglePart {
+    fn from(attachment: Attachment) -> Self {
+        lettre::message::Attachment::new(attachment.filename)
+            .body(attachment.content, ContentType::TEXT_PLAIN)
+    }
+}
 
 const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 // Template images.
@@ -19,6 +47,14 @@ static DEFGUARD_LOGO: &[u8] = include_bytes!("../assets/defguard.png");
 static GITHUB_LOGO: &[u8] = include_bytes!("../assets/github.png");
 static MASTODON_LOGO: &[u8] = include_bytes!("../assets/mastodon.png");
 static X_LOGO: &[u8] = include_bytes!("../assets/x.png");
+// MFA code
+static DATE_ICON: &[u8] = include_bytes!("../assets/date.png");
+static OTP_ICON: &[u8] = include_bytes!("../assets/otp.png");
+// New account
+static NEW_ACCOUNT_1: &[u8] = include_bytes!("../assets/new_account_1.png");
+static NEW_ACCOUNT_2: &[u8] = include_bytes!("../assets/new_account_2.png");
+static GOOGLE_PLAY: &[u8] = include_bytes!("../assets/google_play.png");
+static APPLE: &[u8] = include_bytes!("../assets/apple.png");
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -47,7 +83,8 @@ pub struct Mail {
     pub(crate) subject: String,
     content: String,
     context: Context,
-    attachments: Vec<Attachment>,
+    attachments: Vec<Attachment>,   // text/plain
+    images: Vec<(String, Vec<u8>)>, // image/png
 }
 
 impl Mail {
@@ -58,12 +95,21 @@ impl Mail {
         T: Into<String>,
         S: Into<String>,
     {
+        // Append images used in all templates.
+        let images = vec![
+            (String::from("defguard"), Vec::from(DEFGUARD_LOGO)),
+            (String::from("github"), Vec::from(GITHUB_LOGO)),
+            (String::from("mastodon"), Vec::from(MASTODON_LOGO)),
+            (String::from("x"), Vec::from(X_LOGO)),
+        ];
+
         Self {
             to: to.into(),
             subject: subject.into(),
             content,
             context: Context::new(),
             attachments: Vec::new(),
+            images,
         }
     }
 
@@ -100,35 +146,14 @@ impl Mail {
         self.attachments = attachments;
         self
     }
-}
 
-#[derive(Debug)]
-pub struct Attachment {
-    filename: String,
-    content: Vec<u8>,
-    content_type: ContentType,
-}
-
-impl Attachment {
-    /// Create new [`Attachement`].
-    #[must_use]
-    pub fn new(filename: String, content: Vec<u8>) -> Self {
-        Self {
-            filename,
-            content,
-            content_type: ContentType::TEXT_PLAIN,
-        }
+    pub fn add_png_image<S>(&mut self, name: S, bytes: &[u8])
+    where
+        S: Into<String>,
+    {
+        self.images.push((name.into(), Vec::from(bytes)));
     }
-}
 
-impl From<Attachment> for SinglePart {
-    fn from(attachment: Attachment) -> Self {
-        lettre::message::Attachment::new(attachment.filename)
-            .body(attachment.content, attachment.content_type)
-    }
-}
-
-impl Mail {
     /// Converts Mail to lettre Message.
     /// Message structure should look like this:
     /// - multipart mixed
@@ -148,25 +173,13 @@ impl Mail {
         let plain = SinglePart::plain("PLAIN IS NOT AVAILABLE AT THE MOMENT.".to_string());
         let html = SinglePart::html(self.content);
         let image_png = "image/png".parse::<ContentType>().unwrap();
-        let related = MultiPart::related()
-            .singlepart(html)
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("defguard"))
-                    .body(Body::new(Vec::from(DEFGUARD_LOGO)), image_png.clone()),
-            )
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("github"))
-                    .body(Body::new(Vec::from(GITHUB_LOGO)), image_png.clone()),
-            )
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("mastodon"))
-                    .body(Body::new(Vec::from(MASTODON_LOGO)), image_png.clone()),
-            )
-            .singlepart(
-                lettre::message::Attachment::new_inline(String::from("x"))
-                    .body(Body::new(Vec::from(X_LOGO)), image_png),
+        let mut related = MultiPart::related().singlepart(html);
+        for (name, bytes) in self.images {
+            related = related.singlepart(
+                lettre::message::Attachment::new_inline(name)
+                    .body(Body::new(bytes), image_png.clone()),
             );
-
+        }
         let alternative = MultiPart::alternative()
             .singlepart(plain)
             .multipart(related);
@@ -255,5 +268,146 @@ impl Mail {
         };
 
         Ok(builder.build())
+    }
+}
+
+/// Email messages.
+pub enum MailMessage {
+    /// Test email to check if SMTP configuration works correctly.
+    Test,
+    Welcome,
+    /// Information for Defguard support.
+    Support,
+    DesktopStart,
+    /// Information after starting an enrollment.
+    NewAccount,
+    NewDevice,
+    NewDeviceLogin,
+    NewDeviceOCIDLogin,
+    /// Gateway has disconnected.
+    GatewayDisconnect,
+    /// Gateway has reconnected.
+    GatewayReconnect,
+    MFAActivation,
+    MFAConfigured,
+    /// MFA code.
+    MFACode,
+    PasswordReset,
+    PasswordResetDone,
+}
+
+impl MailMessage {
+    /// Email subject.
+    pub(crate) const fn subject(&self) -> &'static str {
+        match self {
+            Self::Test => "Test message",
+            Self::Welcome => "Welcome message after enrollment",
+            Self::Support => "Support data",
+            Self::DesktopStart => "Defguard: Desktop client configuration",
+            Self::NewAccount => "Defguard: User enrollment",
+            Self::NewDevice => "Defguard: new device added to your account",
+            Self::NewDeviceLogin => "New device logged in to your account",
+            Self::NewDeviceOCIDLogin => "New login to OCID application",
+            Self::GatewayDisconnect => "Gateway disconnected",
+            Self::GatewayReconnect => "Gateway reconnected",
+            Self::MFAActivation => "Multi-Factor Authentication activation",
+            Self::MFAConfigured => "Multi-Factor Authentication {method} has been activated",
+            Self::MFACode => "Defguard: Multi-Factor Authentication code for login",
+            Self::PasswordReset => "Password reset",
+            Self::PasswordResetDone => "Password reset success",
+        }
+    }
+
+    pub(crate) const fn template_name(&self) -> &str {
+        match self {
+            Self::Test => "test",
+            Self::Welcome => "welcome",
+            Self::Support => "support",
+            Self::DesktopStart => "desktop-start",
+            Self::NewAccount => "new-account",
+            Self::NewDevice => "new-device",
+            Self::NewDeviceLogin => "new-device-loin",
+            Self::NewDeviceOCIDLogin => "new-device-login-ocid",
+            Self::GatewayDisconnect => "gateway-disconnect",
+            Self::GatewayReconnect => "gateway-reconnect",
+            Self::MFAActivation => "mfa-activation",
+            Self::MFAConfigured => "mfa-configure",
+            Self::MFACode => "mfa-code",
+            Self::PasswordReset => "password-reset",
+            Self::PasswordResetDone => "password-reset-done",
+        }
+    }
+
+    pub(crate) const fn mjml_template(&self) -> &str {
+        match self {
+            // Self::Test => "",
+            // Self::Welcome => "",
+            // Self::Support => "",
+            Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
+            Self::NewAccount => include_str!("../templates/new-account.mjml"),
+            Self::NewDevice => include_str!("../templates/new-device.mjml"),
+            // Self::NewDeviceLogin => "",
+            // Self::NewDeviceOCIDLogin => "",
+            // Self::GatewayDisconnect => "",
+            // Self::GatewayReconnect => "",
+            // Self::MFAActivation => "",
+            // Self::MFAConfigured => "",
+            Self::MFACode => include_str!("../templates/mfa-code.mjml"),
+            // Self::PasswordReset => "",
+            // Self::PasswordResetDone => "",
+            _ => "",
+        }
+    }
+
+    /// Fill `Context` from database.
+    pub(crate) async fn fill_context(
+        &self,
+        conn: &mut PgConnection,
+        context: &mut Context,
+    ) -> Result<(), sqlx::Error> {
+        let db_context =
+            MailContext::all_for_template(conn, self.template_name(), DEFAULT_LANG).await?;
+        for row in db_context {
+            context.insert(row.section, &row.text);
+        }
+
+        Ok(())
+    }
+
+    /// Build `Mail`.
+    pub(crate) fn mail(
+        &self,
+        tera: &mut Tera,
+        context: &Context,
+        to: &str,
+    ) -> Result<Mail, TemplateError> {
+        tera.add_raw_template(self.template_name(), self.mjml_template())?;
+        let processed = tera.render(self.template_name(), context)?;
+        let parsed = mrml::parse(processed)?;
+        let opts = mrml::prelude::render::RenderOptions::default();
+        let html = parsed.element.render(&opts)?;
+
+        let mut mail = Mail::new(to, self.subject(), html);
+        // Add PNG images.
+        match self {
+            Self::NewAccount => {
+                mail.add_png_image("new_account_1", NEW_ACCOUNT_1);
+                mail.add_png_image("new_account_2", NEW_ACCOUNT_2);
+                mail.add_png_image("google_play", GOOGLE_PLAY);
+                mail.add_png_image("apple", APPLE);
+                if let Some(Value::String(url)) = context.get("url") {
+                    if let Ok(qr) = qr_png(url.as_bytes()) {
+                        mail.add_png_image("qr", &qr);
+                    }
+                }
+            }
+            Self::MFACode => {
+                mail.add_png_image("date", DATE_ICON);
+                mail.add_png_image("otp", OTP_ICON);
+            }
+            _ => (),
+        }
+
+        Ok(mail)
     }
 }
