@@ -5,7 +5,7 @@ import { type EdgeAdoptionState, EdgeSetupStep, type EdgeSetupStepValue } from '
 
 type StoreValues = {
   activeStep: EdgeSetupStepValue;
-  showWelcome: boolean;
+  isOnWelcomePage: boolean;
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
@@ -16,7 +16,7 @@ type StoreMethods = {
   reset: () => void;
   start: (values?: Partial<StoreValues>) => void;
   setActiveStep: (step: EdgeSetupStepValue) => void;
-  setShowWelcome: (show: boolean) => void;
+  setisOnWelcomePage: (show: boolean) => void;
   resetEdgeAdoptionState: () => void;
   setEdgeAdoptionState: (state: EdgeAdoptionState) => void;
 };
@@ -32,7 +32,7 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 
 const defaults: StoreValues = {
   activeStep: EdgeSetupStep.EdgeComponent,
-  showWelcome: true,
+  isOnWelcomePage: true,
   common_name: '',
   ip_or_domain: '',
   grpc_port: 50051,
@@ -51,7 +51,7 @@ export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
         });
       },
       setActiveStep: (step) => set({ activeStep: step }),
-      setShowWelcome: (show) => set({ showWelcome: show }),
+      setisOnWelcomePage: (show) => set({ isOnWelcomePage: show }),
       resetEdgeAdoptionState: () =>
         set(() => ({
           edgeAdoptionState: { ...edgeAdoptionStateDefaults },
@@ -69,7 +69,7 @@ export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
           'reset',
           'start',
           'setActiveStep',
-          'setShowWelcome',
+          'setisOnWelcomePage',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',
         ]),

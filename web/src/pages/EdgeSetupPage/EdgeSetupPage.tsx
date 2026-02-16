@@ -20,8 +20,8 @@ import { useEdgeWizardStore } from './useEdgeWizardStore';
 
 export const EdgeSetupPage = () => {
   const activeStep = useEdgeWizardStore((s) => s.activeStep);
-  const showWelcome = useEdgeWizardStore((s) => s.showWelcome);
-  const setShowWelcome = useEdgeWizardStore((s) => s.setShowWelcome);
+  const isOnWelcomePage = useEdgeWizardStore((s) => s.isOnWelcomePage);
+  const setisOnWelcomePage = useEdgeWizardStore((s) => s.setisOnWelcomePage);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
@@ -70,7 +70,7 @@ export const EdgeSetupPage = () => {
         <Controls>
           <Button
             text={m.edge_setup_controls_configure()}
-            onClick={() => setShowWelcome(false)}
+            onClick={() => setisOnWelcomePage(false)}
           />
         </Controls>
       </div>
@@ -91,7 +91,7 @@ export const EdgeSetupPage = () => {
       title={m.edge_setup_page_title()}
       steps={stepsConfig}
       id="setup-wizard"
-      showWelcome={showWelcome}
+      isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.edge_setup_welcome_title(),
         subtitle: m.edge_setup_welcome_subtitle(),
@@ -99,6 +99,13 @@ export const EdgeSetupPage = () => {
         docsLink: 'https://docs.defguard.net/edge-component/deployment',
         docsText: m.edge_setup_welcome_docs_text(),
         media: <img src={welcomeImage} alt={m.edge_setup_welcome_image_alt()} />,
+        onClose: () => {
+          navigate({ to: '/vpn-overview', replace: true }).then(() => {
+            setTimeout(() => {
+              useEdgeWizardStore.getState().reset();
+            }, 100);
+          });
+        },
       }}
     >
       {stepsComponents[activeStep]}

@@ -15,7 +15,7 @@ type GatewayAdoptionState = {
 
 type StoreValues = {
   activeStep: GatewaySetupStepValue;
-  showWelcome: boolean;
+  isOnWelcomePage: boolean;
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
@@ -27,7 +27,7 @@ type StoreMethods = {
   reset: () => void;
   start: (values?: Partial<StoreValues>) => void;
   setActiveStep: (step: GatewaySetupStepValue) => void;
-  setShowWelcome: (show: boolean) => void;
+  setisOnWelcomePage: (show: boolean) => void;
   resetGatewayAdoptionState: () => void;
   setGatewayAdoptionState: (state: GatewayAdoptionState) => void;
 };
@@ -43,7 +43,7 @@ const gatewayAdoptionStateDefaults: GatewayAdoptionState = {
 
 const defaults: StoreValues = {
   activeStep: GatewaySetupStep.GatewayComponent,
-  showWelcome: true,
+  isOnWelcomePage: true,
   common_name: '',
   ip_or_domain: '',
   grpc_port: 50066,
@@ -63,7 +63,7 @@ export const useGatewayWizardStore = create<StoreMethods & StoreValues>()(
         });
       },
       setActiveStep: (step) => set({ activeStep: step }),
-      setShowWelcome: (show) => set({ showWelcome: show }),
+      setisOnWelcomePage: (show) => set({ isOnWelcomePage: show }),
       resetGatewayAdoptionState: () =>
         set(() => ({
           gatewayAdoptionState: { ...gatewayAdoptionStateDefaults },
@@ -81,7 +81,7 @@ export const useGatewayWizardStore = create<StoreMethods & StoreValues>()(
           'reset',
           'start',
           'setActiveStep',
-          'setShowWelcome',
+          'setisOnWelcomePage',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',
         ]),

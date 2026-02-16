@@ -17,8 +17,8 @@ import { useGatewayWizardStore } from './useGatewayWizardStore';
 
 export const GatewaySetupPage = () => {
   const activeStep = useGatewayWizardStore((s) => s.activeStep);
-  const showWelcome = useGatewayWizardStore((s) => s.showWelcome);
-  const setShowWelcome = useGatewayWizardStore((s) => s.setShowWelcome);
+  const isOnWelcomePage = useGatewayWizardStore((s) => s.isOnWelcomePage);
+  const setisOnWelcomePage = useGatewayWizardStore((s) => s.setisOnWelcomePage);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
@@ -61,7 +61,7 @@ export const GatewaySetupPage = () => {
         <Controls>
           <Button
             text={m.gateway_setup_controls_configure()}
-            onClick={() => setShowWelcome(false)}
+            onClick={() => setisOnWelcomePage(false)}
           />
         </Controls>
       </div>
@@ -82,7 +82,7 @@ export const GatewaySetupPage = () => {
       title={m.gateway_setup_page_title()}
       steps={stepsConfig}
       id="setup-wizard"
-      showWelcome={showWelcome}
+      isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.gateway_setup_welcome_title(),
         subtitle: m.gateway_setup_welcome_subtitle(),
@@ -90,6 +90,13 @@ export const GatewaySetupPage = () => {
         docsLink: 'https://docs.defguard.net/edge-component/deployment',
         docsText: m.gateway_setup_welcome_docs_text(),
         media: <img src={welcomeImage} alt={m.gateway_setup_welcome_image_alt()} />,
+        onClose: () => {
+          navigate({ to: '/locations', replace: true }).then(() => {
+            setTimeout(() => {
+              useGatewayWizardStore.getState().reset();
+            }, 100);
+          });
+        },
       }}
     >
       {stepsComponents[activeStep]}

@@ -27,7 +27,7 @@ export const WizardPage = ({
   children,
   onClose,
   welcomePageConfig,
-  showWelcome = false,
+  isOnWelcomePage = false,
   ...containerProps
 }: Props) => {
   const activeStep = steps[activeStepId];
@@ -60,14 +60,14 @@ export const WizardPage = ({
 
   return (
     <div className={clsx('wizard-page', className)} {...containerProps}>
-      <WizardTop onClick={onClose} />
-      <div className="limiter">
-        <div className="content-tack">
-          <LayoutGrid variant="wizard">
-            {welcomePageConfig && showWelcome ? (
-              <WizardWelcomePage {...welcomePageConfig} />
-            ) : (
-              <>
+      {isPresent(welcomePageConfig) && isOnWelcomePage ? (
+        <WizardWelcomePage {...welcomePageConfig} />
+      ) : (
+        <>
+          <WizardTop onClick={onClose} />
+          <div className="limiter">
+            <div className="content-tack">
+              <LayoutGrid variant="wizard">
                 <div className="side">
                   <p className="title">{title}</p>
                   <SizedBox height={ThemeSpacing.Md} />
@@ -85,11 +85,11 @@ export const WizardPage = ({
                   <SizedBox height={ThemeSpacing.Xl2} />
                   {children}
                 </div>
-              </>
-            )}
-          </LayoutGrid>
-        </div>
-      </div>
+              </LayoutGrid>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -5,7 +5,7 @@ export interface WizardPageConfig {
   steps: WizardPageStepsConfig;
   relatedDocs?: WizardDocsLink[];
   welcomePageConfig?: WizardWelcomePageConfig;
-  showWelcome?: boolean;
+  isOnWelcomePage?: boolean;
 }
 
 export interface WizardDocsLink {
@@ -28,6 +28,7 @@ export interface WizardWelcomePageConfig {
   media: React.ReactNode;
   docsLink?: string;
   docsText?: string;
+  onClose?: () => void;
 }
 
 export type WizardPageStepsConfig = Record<string, WizardPageStep>;
