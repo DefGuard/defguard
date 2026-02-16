@@ -185,7 +185,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // run services
     tokio::select! {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
-        res = gateway_manager.run_grpc_gateway_stream(
+        res = gateway_manager.run(
             pool.clone(),
             gateway_tx.clone(),
             peer_stats_tx,

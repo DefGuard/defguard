@@ -46,7 +46,7 @@ pub struct GatewayManager {
 
 impl GatewayManager {
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
-    pub async fn run_grpc_gateway_stream(
+    pub async fn run(
         &mut self,
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
