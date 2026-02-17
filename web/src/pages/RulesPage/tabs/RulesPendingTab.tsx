@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import api from '../../../shared/api/api';
 import type { AclRule } from '../../../shared/api/types';
@@ -6,7 +6,6 @@ import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { RulesTable } from '../RulesTable';
 import { useRuleDeps } from '../useRuleDeps';
@@ -18,10 +17,6 @@ type Props = {
 export const RulesPendingTab = ({ rules }: Props) => {
   const isEmpty = rules.length === 0;
 
-  const { data: licenseInfo, isFetching: licenseInfoFetching } = useQuery(
-    getLicenseInfoQueryOptions,
-  );
-
   const { mutate, isPending } = useMutation({
     mutationFn: api.acl.rule.applyRules,
     meta: {
@@ -29,24 +24,25 @@ export const RulesPendingTab = ({ rules }: Props) => {
     },
   });
 
+  const { aliases, groups, locations, users, devices, license, loading } = useRuleDeps();
+
   const buttonProps = useMemo(
     (): ButtonProps => ({
       text: `Deploy all pending (${rules.length})`,
       iconLeft: 'deploy',
       variant: 'primary',
       loading: isPending,
-      disabled: licenseInfoFetching,
+      disabled: loading,
       onClick: () => {
-        if (licenseInfo === undefined) return;
-        licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+        if (license === undefined) return;
+
+        licenseActionCheck(canUseBusinessFeature(license), () => {
           mutate(rules.map((rule) => rule.id));
         });
       },
     }),
-    [isPending, mutate, rules, licenseInfo, licenseInfoFetching],
+    [mutate, rules, license, loading, isPending],
   );
-
-  const { aliases, groups, locations, users, devices, loading } = useRuleDeps();
 
   return (
     <>
@@ -63,7 +59,8 @@ export const RulesPendingTab = ({ rules }: Props) => {
         isPresent(groups) &&
         isPresent(locations) &&
         isPresent(users) &&
-        isPresent(devices) && (
+        isPresent(devices) &&
+        isPresent(license) && (
           <RulesTable
             title="Pending rules"
             buttonProps={buttonProps}
@@ -73,6 +70,7 @@ export const RulesPendingTab = ({ rules }: Props) => {
             devices={devices}
             users={users}
             locations={locations}
+            license={license}
           />
         )}
     </>

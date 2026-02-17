@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
@@ -7,6 +8,8 @@ import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { AliasTable } from '../AliasTable';
 
 type Props = {
@@ -17,6 +20,9 @@ export const AliasesDeployedTab = ({ aliases }: Props) => {
   const isEmpty = aliases.length === 0;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
+    getLicenseInfoQueryOptions,
+  );
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -24,11 +30,15 @@ export const AliasesDeployedTab = ({ aliases }: Props) => {
       iconLeft: 'add-alias',
       variant: 'primary',
       testId: 'add-alias',
+      disabled: licenseFetching,
       onClick: () => {
-        navigate({ to: '/acl/add-alias' });
+        if (licenseInfo === undefined) return;
+        licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+          navigate({ to: '/acl/add-alias' });
+        });
       },
     }),
-    [navigate],
+    [navigate, licenseFetching, licenseInfo],
   );
 
   const distilledAliases = useMemo(() => {

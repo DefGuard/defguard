@@ -20,7 +20,8 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { getRulesQueryOptions } from '../../../shared/query';
+import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
 
 type Props = {
@@ -44,6 +45,10 @@ export const DestinationsTable = ({
   const rulesById = useMemo(() => resourceById(rules), [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
   const navigate = useNavigate();
+
+  const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
+    getLicenseInfoQueryOptions,
+  );
 
   const { mutate: deleteDestination } = useMutation({
     mutationFn: api.acl.destination.deleteDestination,
@@ -137,11 +142,14 @@ export const DestinationsTable = ({
                   text: m.controls_edit(),
                   icon: 'edit',
                   onClick: () => {
-                    navigate({
-                      to: '/acl/edit-destination',
-                      search: {
-                        destination: row.id,
-                      },
+                    if (licenseInfo === undefined) return;
+                    licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                      navigate({
+                        to: '/acl/edit-destination',
+                        search: {
+                          destination: row.id,
+                        },
+                      });
                     });
                   },
                 },
@@ -150,7 +158,10 @@ export const DestinationsTable = ({
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteDestination(row.id);
+                    if (licenseInfo === undefined) return;
+                    licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                      deleteDestination(row.id);
+                    });
                   },
                 },
               ],
@@ -158,13 +169,17 @@ export const DestinationsTable = ({
           ];
           return (
             <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
+              <IconButtonMenu
+                icon="menu"
+                menuItems={menuItems}
+                disabled={licenseFetching}
+              />
             </TableCell>
           );
         },
       }),
     ],
-    [navigate, deleteDestination, rulesById],
+    [navigate, deleteDestination, rulesById, licenseFetching, licenseInfo],
   );
 
   const transformedData = useMemo(() => {
