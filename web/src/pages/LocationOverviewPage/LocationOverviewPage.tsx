@@ -4,7 +4,6 @@ import './style.scss';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import api from '../../shared/api/api';
-import type { LocationDevicesStats } from '../../shared/api/types';
 import { GatewaysStatusBadge } from '../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -47,16 +46,27 @@ export const LocationOverviewPage = () => {
     refetchInterval: 30_000,
   });
 
-  const { data: locationDevicesStats } = useQuery({
-    queryFn: () =>
-      api.location.getLocationDevicesStats({
-        id: Number(locationId),
-        from: search.period,
-      }),
-    queryKey: ['network', Number(locationId), 'stats', 'users'],
-    select: (resp) => resp.data,
-    refetchInterval: 30_000,
-  });
+  // const { data: locationUserDevicesStats } = useQuery({
+  //   queryFn: () =>
+  //     api.location.getLocationDevicesStats({
+  //       id: Number(locationId),
+  //       from: search.period,
+  //     }),
+  //   queryKey: ['network', Number(locationId), 'stats', 'users'],
+  //   select: (resp) => resp.data,
+  //   refetchInterval: 30_000,
+  // });
+
+  // const { data: locationNetworkDevicesStats } = useQuery({
+  //   queryFn: () =>
+  //     api.location.getLocationConnectedUsers({
+  //       id: Number(locationId),
+  //       from: search.period,
+  //     }),
+  //   queryKey: ['network', Number(locationId), 'stats', 'users'],
+  //   select: (resp) => resp.data,
+  //   refetchInterval: 30_000,
+  // });
 
   return (
     <Page title="VPN Overview" id="location-overview-page">
@@ -85,12 +95,12 @@ export const LocationOverviewPage = () => {
         )}
       </div>
       <SizedBox height={ThemeSpacing.Xl4} />
-      {isPresent(locationDevicesStats) && <DevicesSection stats={locationDevicesStats} />}
+      <DevicesSection />
     </Page>
   );
 };
 
-const DevicesSection = ({ stats }: { stats: LocationDevicesStats }) => {
+const DevicesSection = () => {
   const [selected, setSelected] = useState<'users' | 'devices'>('users');
 
   const tabItems = useMemo(
@@ -112,17 +122,15 @@ const DevicesSection = ({ stats }: { stats: LocationDevicesStats }) => {
     <>
       <div className="table-selection">
         <p className="table-title">
-          {selected === 'users' && "Connected user's devices"}
+          {selected === 'users' && "Connected users' devices"}
           {selected === 'devices' && 'Connected network devices'}
         </p>
         <SizedBox height={ThemeSpacing.Lg} />
         <Tabs items={tabItems} />
         <SizedBox height={ThemeSpacing.Lg} />
       </div>
-      {selected === 'users' && <LocationOverviewUsersTable data={stats.user_devices} />}
-      {selected === 'devices' && (
-        <LocationOverviewNetworkDevicesTable data={stats.network_devices} />
-      )}
+      {selected === 'users' && <LocationOverviewUsersTable />}
+      {selected === 'devices' && <LocationOverviewNetworkDevicesTable />}
     </>
   );
 };

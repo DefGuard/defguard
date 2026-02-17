@@ -57,6 +57,8 @@ import type {
   GroupsResponse,
   IpValidation,
   LicenseInfoResponse,
+  LocationConnectedUser,
+  LocationConnectedUsersRequest,
   LocationDevicesStats,
   LocationStats,
   LocationStatsRequest,
@@ -317,14 +319,17 @@ const api = {
       client.get<GatewayStatus[]>(`/network/${id}/gateways`),
     deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
       client.delete(`/network/${networkId}/gateways/${gatewayId}`),
-    getLocationDevicesStats: ({ id, ...params }: LocationStatsRequest) =>
-      client.get<LocationDevicesStats>(`/network/${id}/stats/users`, {
-        params: {
-          from: params.from
-            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-            : undefined,
-        },
-      }),
+    getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
+      client
+        .get<PaginatedResponse<LocationConnectedUser>>(`/network/${id}/stats/connected_users`, {
+          params: {
+            from: params.from
+              ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+              : undefined,
+            ...params,
+          },
+        })
+        .then((resp) => resp.data),
     addLocation: (data: EditNetworkLocation) =>
       client.post<NetworkLocation>('/network', data),
     editLocation: ({ id, data }: EditNetworkLocationRequest) =>

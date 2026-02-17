@@ -3,17 +3,22 @@ import { Bar, BarChart } from 'recharts';
 import { TransferText } from '../../../../shared/components/TransferText/TransferText';
 import { TableCell } from '../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { ThemeVariable } from '../../../../shared/defguard-ui/types';
-import type { TransferChartData } from '../../../../shared/utils/stats';
+import { mapTransferToChart } from '../../../../shared/utils/stats';
+import type { TransferStats } from '../../../../shared/api/types';
+import { useMemo } from 'react';
 
 export const DeviceTrafficChartCell = ({
-  traffic,
+  stats,
   download,
   upload,
 }: {
-  traffic: TransferChartData[];
+  stats: TransferStats[];
   upload: number;
   download: number;
 }) => {
+
+const traffic = useMemo(() => mapTransferToChart(stats), [stats]);
+
   return (
     <TableCell className="device-transfer-cell">
       <div className="transfer-chart device-transfer">

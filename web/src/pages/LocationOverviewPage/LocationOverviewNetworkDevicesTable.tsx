@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-table';
 import { sumBy } from 'lodash-es';
 import { useMemo } from 'react';
-import type { DeviceStats, LocationDevicesStats } from '../../shared/api/types';
+import type { DeviceStats } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { tableActionColumnSize } from '../../shared/defguard-ui/components/table/consts';
@@ -24,11 +24,7 @@ type RowData = Omit<DeviceStats, 'stats'> & {
 
 const columnHelper = createColumnHelper<RowData>();
 
-export const LocationOverviewNetworkDevicesTable = ({
-  data,
-}: {
-  data: LocationDevicesStats['network_devices'];
-}) => {
+export const LocationOverviewNetworkDevicesTable = () => {
   const mappedData = useMemo((): RowData[] => {
     const res: RowData[] = data.map((device) => ({
       ...device,
@@ -37,7 +33,7 @@ export const LocationOverviewNetworkDevicesTable = ({
       download: sumBy(device.stats, (s) => s.download),
     }));
     return res;
-  }, [data]);
+  }, []);
 
   const columns = useMemo(
     () => [
