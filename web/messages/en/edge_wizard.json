@@ -11,7 +11,7 @@
   "edge_setup_welcome_title": "Deploy your Edge component",
   "edge_setup_welcome_subtitle": "Welcome to the Edge component Setup Wizard. This guide will help you deploy the Edge required for secure and reliable VPN communication.",
   "edge_setup_welcome_deploy_title": "Deploy Edge component first",
-  "edge_setup_welcome_deploy_subtitle": "Make sure your Edge Component is deployed. If it's already in place, click the button bellow to configure it in the following steps — otherwise deploy it first and return to this wizard.",
+  "edge_setup_welcome_deploy_subtitle": "Make sure your Edge Component is deployed. If it's already in place, click the button below to configure it in the following steps — otherwise deploy it first and return to this wizard.",
   "edge_setup_welcome_docs_text": "Before installation, we recommend reading our documentation to understand the system architecture and core components.",
   "edge_setup_welcome_image_alt": "Welcome to Edge component setup wizard",
   "edge_setup_controls_configure": "Configure Edge component",

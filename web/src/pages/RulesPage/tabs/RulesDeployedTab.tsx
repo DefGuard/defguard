@@ -49,7 +49,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
         <EmptyStateFlexible
           icon="rules"
           title={`You don't have any firewall rules yet.`}
-          subtitle={`Click the first rule by clicking button bellow.`}
+          subtitle={`Click the first rule by clicking button below.`}
           primaryAction={buttonProps}
         />
       )}
