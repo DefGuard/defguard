@@ -48,8 +48,15 @@ const Content = () => {
   const variant = useMemo((): MessageVariant => {
     if (!isPresent(license) || license.valid_until === null || daysToEnd === null)
       return 'safe';
+    if (license.subscription) {
+      if (isGracePeriod) {
+        return 'critical';
+      }
+      if (!license.expired) {
+        return 'safe';
+      }
+    }
     if (license.expired) return 'expired';
-    if (isGracePeriod) return 'critical';
     if (daysToEnd > 14) return 'safe';
     if (daysToEnd <= 14 && daysToEnd > 7) return 'warning';
     if (daysToEnd <= 7) return 'critical';

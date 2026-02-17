@@ -1,20 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import { Icon } from '../../defguard-ui/components/Icon';
+import { Icon, IconKind } from '../../defguard-ui/components/Icon';
 import type { IconKindValue } from '../../defguard-ui/components/Icon/icon-types';
 import { IconButton } from '../../defguard-ui/components/IconButton/IconButton';
 import { useApp } from '../../hooks/useApp';
 import { useAuth } from '../../hooks/useAuth';
 import { NavLogo } from './assets/NavLogo';
 import './style.scss';
+import { useQuery } from '@tanstack/react-query';
 import { Link, type LinkProps } from '@tanstack/react-router';
+import { type LicenseInfo, LicenseTier, type LicenseTierValue } from '../../api/types';
 import { Fold } from '../../defguard-ui/components/Fold/Fold';
+import { TooltipContent } from '../../defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../defguard-ui/providers/tooltip/TooltipTrigger';
+import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { useTheme } from '../../hooks/theme/useTheme';
+import { getLicenseInfoQueryOptions } from '../../query';
+import { canUseBusinessFeature } from '../../utils/license';
 
 interface NavGroupProps {
   id: string;
   label: string;
   items: NavItemProps[];
+  licenseInfo?: LicenseInfo | null;
 }
 
 interface NavItemProps {
@@ -22,6 +31,8 @@ interface NavItemProps {
   label: string;
   icon: IconKindValue;
   link: LinkProps['to'];
+  licenseTier?: LicenseTierValue;
+  license?: LicenseInfo | null;
   testId?: string;
 }
 
@@ -72,18 +83,21 @@ const navigationConfig: NavGroupProps[] = [
         icon: 'rules',
         label: m.cmp_nav_item_rules(),
         link: '/acl/rules',
+        licenseTier: LicenseTier.Business,
       },
       {
         id: 'destinations',
         icon: 'gateway',
         label: m.cmp_nav_item_destinations(),
         link: '/acl/destinations',
+        licenseTier: LicenseTier.Business,
       },
       {
         id: 'aliases',
         icon: 'access-settings',
         label: m.cmp_nav_item_aliases(),
         link: '/acl/aliases',
+        licenseTier: LicenseTier.Business,
       },
     ],
   },
@@ -141,6 +155,11 @@ export const Navigation = () => {
   const isAdmin = useAuth((s) => s.isAdmin);
   const isOpen = useApp((s) => s.navigationOpen);
 
+  const { data: licenseInfo } = useQuery({
+    ...getLicenseInfoQueryOptions,
+    enabled: isAdmin,
+  });
+
   if (!isAdmin || !isOpen) return null;
   return (
     <div className="navigation">
@@ -159,7 +178,7 @@ export const Navigation = () => {
       </div>
       <div className="groups">
         {navigationConfig.map((group) => (
-          <NavGroup key={group.id} {...group} />
+          <NavGroup key={group.id} {...group} licenseInfo={licenseInfo} />
         ))}
       </div>
       <div className="bottom">
@@ -169,7 +188,7 @@ export const Navigation = () => {
   );
 };
 
-const NavGroup = ({ items, label }: NavGroupProps) => {
+const NavGroup = ({ items, label, licenseInfo }: NavGroupProps) => {
   const [isOpen, setIsOpen] = useState(true);
   return (
     <div className="nav-group">
@@ -185,7 +204,7 @@ const NavGroup = ({ items, label }: NavGroupProps) => {
       <Fold open={isOpen}>
         <div className="items">
           {items.map((item) => (
-            <NavItem key={item.id} {...item} />
+            <NavItem key={item.id} {...item} license={licenseInfo} />
           ))}
         </div>
       </Fold>
@@ -193,11 +212,39 @@ const NavGroup = ({ items, label }: NavGroupProps) => {
   );
 };
 
-const NavItem = ({ icon, link, label, testId }: NavItemProps) => {
+const NavItem = ({ icon, link, label, testId, license, licenseTier }: NavItemProps) => {
+  const showLock = useMemo(() => {
+    if (licenseTier === undefined) {
+      return isPresent(licenseTier);
+    }
+
+    if (licenseTier !== undefined && licenseTier === LicenseTier.Business) {
+      return !canUseBusinessFeature(license as LicenseInfo | null).result;
+    }
+
+    if (licenseTier !== undefined && licenseTier === LicenseTier.Enterprise) {
+      return !canUseBusinessFeature(license as LicenseInfo | null).result;
+    }
+
+    return false;
+  }, [license, licenseTier]);
+
   return (
     <Link to={link} className="nav-item" data-testid={testId}>
       <Icon icon={icon} />
       <span>{label}</span>
+      {showLock && isPresent(licenseTier) && (
+        <div className="right">
+          <TooltipProvider>
+            <TooltipTrigger>
+              <Icon icon={IconKind.LockClosed} size={16} />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{`This is ${licenseTier ?? 'Unknown tier'} feature`}</p>
+            </TooltipContent>
+          </TooltipProvider>
+        </div>
+      )}
     </Link>
   );
 };
