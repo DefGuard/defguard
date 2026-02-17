@@ -809,7 +809,7 @@ fn gen_config(
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
-        mtu: network.mtu as u32,
+        mtu: network.mtu.cast_unsigned(),
         fwmark: network.fwmark as u32,
     }
 }

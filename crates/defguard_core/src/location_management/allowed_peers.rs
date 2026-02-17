@@ -62,7 +62,7 @@ where
             } else {
                 None
             },
-            keepalive_interval: Some(location.keepalive_interval as u32),
+            keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
         })
         .collect();
 
