@@ -1706,7 +1706,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
 ) {
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
-    set_test_license_enterprise();
+    set_test_license_business();
 
     let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
     let config = ldap_conn.config.clone();
@@ -1975,7 +1975,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
 async fn test_sync_simple_nested_ou_changes(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
-    set_test_license_enterprise();
+    set_test_license_business();
 
     let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
     let config = ldap_conn.config.clone();
@@ -2053,7 +2053,7 @@ async fn test_sync_incremental_with_nested_ou_conflicts(
 ) {
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
-    set_test_license_enterprise();
+    set_test_license_business();
 
     let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
     let config = ldap_conn.config.clone();
@@ -2360,7 +2360,7 @@ async fn test_sync_group_membership_with_intersecting_users(
 ) {
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
-    set_test_license_enterprise();
+    set_test_license_business();
 
     let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
     let config = ldap_conn.config.clone();
@@ -3034,7 +3034,7 @@ async fn test_ldap_sync_allowed_with_empty_sync_groups(
 ) {
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
-    set_test_license_enterprise();
+    set_test_license_business();
 
     let mut user = make_test_user("testuser", None, None);
     user.is_active = true;
@@ -3159,7 +3159,7 @@ async fn test_ldap_sync_allowed_with_multiple_sync_groups(
 async fn test_ldap_sync_allowed_enrolled_via_openid(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
-    set_test_license_enterprise();
+    set_test_license_business();
 
     let mut user = make_test_user("testuser", None, None);
     user.is_active = true;

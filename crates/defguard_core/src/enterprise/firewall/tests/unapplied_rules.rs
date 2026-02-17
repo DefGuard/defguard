@@ -8,14 +8,14 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use crate::enterprise::{
     db::models::acl::{AclRule, AclRuleNetwork, RuleState},
     firewall::{
-        tests::{create_test_users_and_devices, set_test_license_enterprise},
+        tests::{create_test_users_and_devices, set_test_license_business},
         try_get_location_firewall_config,
     },
 };
 
 #[sqlx::test]
 async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
-    set_test_license_enterprise();
+    set_test_license_business();
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 
@@ -92,7 +92,7 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
 
 #[sqlx::test]
 async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
-    set_test_license_enterprise();
+    set_test_license_business();
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 
@@ -169,7 +169,7 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
 
 #[sqlx::test]
 async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
-    set_test_license_enterprise();
+    set_test_license_business();
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 

@@ -5,18 +5,16 @@ use defguard_common::{
         settings::{initialize_current_settings, update_current_settings},
     },
 };
+use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
-#[cfg(test)]
-fn set_test_license_enterprise() {
-    use defguard_core::enterprise::license::set_cached_license;
-
-    let license = defguard_core::enterprise::license::License {
+fn set_test_license_business() {
+    let license = License {
         customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
         limits: None,
         subscription: false,
-        tier: defguard_core::enterprise::license::LicenseTier::Enterprise,
+        tier: LicenseTier::Business,
         valid_until: None,
         version_date_limit: None,
     };
@@ -39,7 +37,7 @@ pub(crate) async fn init_config(
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");
-    set_test_license_enterprise();
+    set_test_license_business();
 
     config.initialize_post_settings();
     let _ = SERVER_CONFIG.set(config.clone());

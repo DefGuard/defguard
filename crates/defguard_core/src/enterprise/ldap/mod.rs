@@ -37,7 +37,7 @@ pub mod test_client;
 pub mod utils;
 
 #[cfg(test)]
-fn set_test_license_enterprise() {
+fn set_test_license_business() {
     use crate::enterprise::license::set_cached_license;
 
     let license = crate::enterprise::license::License {
