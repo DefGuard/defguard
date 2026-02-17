@@ -16,7 +16,6 @@ defguard_web_ui = { workspace = true }
 defguard_version = { workspace = true }
 model_derive = { workspace = true }
 defguard_certs = { workspace = true }
-defguard_grpc_tls = { workspace = true }
 
 # external dependencies
 anyhow = { workspace = true }
@@ -43,7 +42,6 @@ prost.workspace = true
 # match version used by sqlx
 rand = { workspace = true }
 reqwest = { workspace = true }
-hyper-rustls = { version = "0.27", features = ["http2"] }
 rsa = { workspace = true }
 rust-ini = { workspace = true }
 secrecy = { workspace = true }

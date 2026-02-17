@@ -75,8 +75,8 @@ impl GatewayHandler {
     ) -> Result<Self, GatewayError> {
         let url = Url::from_str(&gateway.url).map_err(|err| {
             GatewayError::EndpointError(format!(
-                "Failed to parse Gateway URL {}: {}",
-                &gateway.url, err
+                "Failed to parse Gateway URL {}: {err}",
+                &gateway.url
             ))
         })?;
 
@@ -479,7 +479,7 @@ impl GatewayUpdatesHandler {
                                         .collect(),
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
-                                        self.network.keepalive_interval as u32,
+                                        self.network.keepalive_interval.cast_unsigned(),
                                     ),
                                 },
                                 0,
@@ -514,7 +514,7 @@ impl GatewayUpdatesHandler {
                                         .collect(),
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
-                                        self.network.keepalive_interval as u32,
+                                        self.network.keepalive_interval.cast_unsigned(),
                                     ),
                                 },
                                 1,
@@ -584,7 +584,7 @@ impl GatewayUpdatesHandler {
                                     .map(IpAddr::to_string)
                                     .collect(),
                                 preshared_key: network_device.preshared_key.clone(),
-                                keepalive_interval: Some(self.network.keepalive_interval as u32),
+                                keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
                             },
                             0,
                         )
@@ -620,10 +620,10 @@ impl GatewayUpdatesHandler {
                     name: network.name.clone(),
                     prvkey: network.prvkey.clone(),
                     addresses: network.address.iter().map(ToString::to_string).collect(),
-                    port: network.port as u32,
+                    port: network.port.cast_unsigned(),
                     peers,
                     firewall_config,
-                    mtu: network.mtu as u32,
+                    mtu: network.mtu.cast_unsigned(),
                     fwmark: network.fwmark as u32,
                 })),
             })),
@@ -657,7 +657,7 @@ impl GatewayUpdatesHandler {
                     port: 0,
                     peers: Vec::new(),
                     firewall_config: None,
-                    mtu: DEFAULT_WIREGUARD_MTU as u32,
+                    mtu: DEFAULT_WIREGUARD_MTU.cast_unsigned(),
                     fwmark: 0,
                 })),
             })),
@@ -804,7 +804,7 @@ fn gen_config(
 ) -> Configuration {
     Configuration {
         name: network.name.clone(),
-        port: network.port as u32,
+        port: network.port.cast_unsigned(),
         prvkey: network.prvkey.clone(),
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,

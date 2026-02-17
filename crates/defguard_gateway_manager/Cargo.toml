@@ -18,7 +18,6 @@ defguard_version.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 hyper-rustls.workspace = true
-jsonwebtoken.workspace = true
 reqwest.workspace = true
 semver.workspace = true
 serde_json.workspace = true
@@ -27,7 +26,6 @@ thiserror.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true
-tonic-health.workspace = true
 tower.workspace = true
 tracing.workspace = true
 
