@@ -584,7 +584,9 @@ impl GatewayUpdatesHandler {
                                     .map(IpAddr::to_string)
                                     .collect(),
                                 preshared_key: network_device.preshared_key.clone(),
-                                keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
+                                keepalive_interval: Some(
+                                    self.network.keepalive_interval.cast_unsigned(),
+                                ),
                             },
                             0,
                         )
