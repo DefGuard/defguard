@@ -3,14 +3,13 @@ use std::net::IpAddr;
 use defguard_common::{
     db::{
         Id,
-        models::{
-            WireguardNetwork, device::WireguardNetworkDevice,
-        },
+        models::{WireguardNetwork, device::WireguardNetworkDevice},
     },
     utils::{SplitIp, split_ip},
 };
 use serde::Serialize;
 use sqlx::{PgConnection, PgPool, prelude::FromRow};
+use tracing::debug;
 
 use crate::error::StaticIpError;
 
@@ -43,6 +42,7 @@ pub async fn get_ips_for_user(
     username: &str,
     pool: &PgPool,
 ) -> Result<Vec<LocationDevices>, StaticIpError> {
+    debug!("Fetching static IPs for user {username}");
     let rows = sqlx::query_as!(
         DeviceIpRow,
         "SELECT \
@@ -62,6 +62,10 @@ pub async fn get_ips_for_user(
     .fetch_all(pool)
     .await?;
 
+    debug!(
+        "Found {} device-location assignments for user {username}",
+        rows.len()
+    );
     let mut locations: Vec<LocationDevices> = Vec::new();
 
     for row in rows {
@@ -99,6 +103,10 @@ pub async fn get_ips_for_user(
         }
     }
 
+    debug!(
+        "Returning IP data for {} location(s) for user {username}",
+        locations.len()
+    );
     Ok(locations)
 }
 
@@ -108,6 +116,7 @@ pub async fn assign_static_ips(
     location: Id,
     transaction: &mut PgConnection,
 ) -> Result<(), StaticIpError> {
+    debug!("Assigning static IPs {ips:?} to device {device_id} in location {location}");
     let network = WireguardNetwork::find_by_id(&mut *transaction, location)
         .await?
         .ok_or(StaticIpError::NetworkNotFound(location))?;
@@ -123,6 +132,7 @@ pub async fn assign_static_ips(
     network_device.wireguard_ips = ips;
     network_device.update(&mut *transaction).await?;
 
+    debug!("Static IPs successfully assigned to device {device_id} in location {location}");
     Ok(())
 }
 
@@ -132,14 +142,26 @@ pub async fn validate_ip(
     location: Id,
     transaction: &mut PgConnection,
 ) -> Result<(), StaticIpError> {
+    debug!("Validating IP {ip} for device {device_id} in location {location}");
     let network = WireguardNetwork::find_by_id(&mut *transaction, location)
         .await?
         .ok_or(StaticIpError::NetworkNotFound(location))?;
 
-    network
+    let result = network
         .can_assign_ips(transaction, &[ip], Some(device_id))
         .await
-        .map_err(StaticIpError::InvalidIpAssignment)
+        .map_err(StaticIpError::InvalidIpAssignment);
+
+    if result.is_ok() {
+        debug!("IP {ip} is valid for device {device_id} in location {location}");
+    } else {
+        debug!(
+            "IP {ip} is NOT valid for device {device_id} in location {location}: {:?}",
+            result
+        );
+    }
+
+    result
 }
 
 #[cfg(test)]
