@@ -4,12 +4,10 @@ use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
-    response::IntoResponse,
 };
 use defguard_common::db::Id;
 use defguard_static_ip::{LocationDevices, get_ips_for_user};
 use serde::Serialize;
-use sqlx::{FromRow, PgPool};
 
 use crate::{
     appstate::AppState,

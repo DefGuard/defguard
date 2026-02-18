@@ -1,5 +1,5 @@
 use std::{
-    net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
+    net::{AddrParseError, IpAddr},
     str::FromStr,
 };
 
@@ -21,7 +21,6 @@ use defguard_common::{
     utils::{SplitIp, split_ip},
 };
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
-use ipnetwork::IpNetwork;
 use serde_json::json;
 use sqlx::PgConnection;
 

@@ -4,7 +4,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            WireguardNetwork, device::WireguardNetworkDevice, wireguard::NetworkAddressError,
+            WireguardNetwork, device::WireguardNetworkDevice,
         },
     },
     utils::{SplitIp, split_ip},
@@ -172,16 +172,20 @@ mod tests {
         .expect("Failed to create user");
 
         // Create test locations
-        let mut location_a = WireguardNetwork::default();
-        location_a.name = "Location A".into();
+        let mut location_a = WireguardNetwork {
+            name: "Location A".into(),
+            ..Default::default()
+        };
         location_a.try_set_address("10.0.1.1/24").unwrap();
         let location_a = location_a
             .save(&pool)
             .await
             .expect("Failed to create Location A");
 
-        let mut location_b = WireguardNetwork::default();
-        location_b.name = "Location B".into();
+        let mut location_b = WireguardNetwork {
+            name: "Location B".into(),
+            ..Default::default()
+        };
         location_b.try_set_address("10.0.2.1/24").unwrap();
         let location_b = location_b
             .save(&pool)
@@ -341,8 +345,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
-        network.name = "Assign Network".into();
+        let mut network = WireguardNetwork {
+            name: "Assign Network".into(),
+            ..Default::default()
+        };
         network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
@@ -369,7 +375,7 @@ mod tests {
 
         let new_ips = vec![IpAddr::from_str("10.0.0.10").unwrap()];
         let mut conn = pool.acquire().await.expect("Failed to acquire connection");
-        assign_static_ips(device.id, new_ips.clone(), network.id, &mut *conn)
+        assign_static_ips(device.id, new_ips.clone(), network.id, &mut conn)
             .await
             .expect("assign_static_ips should succeed");
 
@@ -389,7 +395,7 @@ mod tests {
             1,
             vec![IpAddr::from_str("10.0.0.2").unwrap()],
             9999,
-            &mut *conn,
+            &mut conn,
         )
         .await;
 
@@ -415,8 +421,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
-        network.name = "NoDevice Network".into();
+        let mut network = WireguardNetwork {
+            name: "NoDevice Network".into(),
+            ..Default::default()
+        };
         network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
@@ -437,7 +445,7 @@ mod tests {
             device.id,
             vec![IpAddr::from_str("10.0.0.2").unwrap()],
             network.id,
-            &mut *conn,
+            &mut conn,
         )
         .await;
 
@@ -463,8 +471,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
-        network.name = "Range Network".into();
+        let mut network = WireguardNetwork {
+            name: "Range Network".into(),
+            ..Default::default()
+        };
         network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
@@ -495,7 +505,7 @@ mod tests {
             device.id,
             vec![IpAddr::from_str("192.168.1.5").unwrap()],
             network.id,
-            &mut *conn,
+            &mut conn,
         )
         .await;
 
@@ -518,8 +528,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
-        network.name = "Conflict Network".into();
+        let mut network = WireguardNetwork {
+            name: "Conflict Network".into(),
+            ..Default::default()
+        };
         network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
@@ -571,7 +583,7 @@ mod tests {
             device2.id,
             vec![IpAddr::from_str("10.0.0.3").unwrap()],
             network.id,
-            &mut *conn,
+            &mut conn,
         )
         .await;
 
