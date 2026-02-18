@@ -12,8 +12,8 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
-    query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
+    query, query_as, query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, info};
@@ -32,7 +32,7 @@ use crate::{
         Id, NoId,
         models::{
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
-            vpn_session_stats::VpnSessionStats,
+            vpn_session_stats::{VpnSessionStats, endpoint_without_port},
         },
     },
     types::user_info::UserInfo,
@@ -631,6 +631,118 @@ impl WireguardNetwork<Id> {
         Ok(stats)
     }
 
+    /// Retrieves network stats for currently active users since `from` timestamp.
+    pub async fn connected_users_stats(
+        &self,
+        conn: &PgPool,
+        from: &NaiveDateTime,
+        aggregation: &DateTimeAggregation,
+        page: u32,
+        page_size: u32,
+    ) -> Result<(Vec<LocationConnectedUserStats>, u32), sqlx::Error> {
+        // helper struct used to fetch connected users from the DB
+        struct ConnectedUserRow {
+            user_id: Id,
+            first_name: String,
+            last_name: String,
+            connected_devices_count: i64,
+            connected_at: NaiveDateTime,
+            wireguard_ips: Vec<IpAddr>,
+            endpoint: String,
+        }
+        let limit = page_size;
+        let offset = (page - 1) * page_size;
+
+        // fetch currently connected users
+        let connected_users = query_as!(
+            ConnectedUserRow,
+            "SELECT DISTINCT ON (vcs.user_id) vcs.user_id, u.first_name, u.last_name, vcs.connected_at \"connected_at!\", \
+				wnd.wireguard_ips \"wireguard_ips: Vec<IpAddr>\", ss.endpoint, \
+				COUNT(*) OVER (PARTITION BY vcs.user_id) \"connected_devices_count!\" \
+            FROM vpn_client_session vcs \
+			JOIN LATERAL ( \
+				SELECT endpoint \
+				FROM vpn_session_stats \
+				WHERE session_id = vcs.id \
+				ORDER BY collected_at DESC \
+				LIMIT 1 \
+			) ss ON true \
+            JOIN \"user\" u ON vcs.user_id = u.id \
+            JOIN wireguard_network_device wnd ON vcs.device_id = wnd.device_id AND vcs.location_id = wnd.wireguard_network_id \
+            WHERE vcs.location_id = $1 AND vcs.state = 'connected' \
+            ORDER BY vcs.user_id, vcs.connected_at ASC \
+            LIMIT $2 OFFSET $3",
+            self.id,
+            i64::from(limit),
+            i64::from(offset)
+        )
+        .fetch_all(conn)
+        .await?;
+
+        // fetch traffic stats for each user
+        let mut page_result = Vec::new();
+        for user in connected_users {
+            let full_name = format!("{} {}", user.first_name, user.last_name);
+
+            // fetch transfer stats for all active sessions for this user within specified time window
+            let stats = query_as!(
+                WireguardStatsRow,
+                "SELECT \
+                    date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                    CAST(SUM(upload_diff) AS bigint) upload, \
+                    CAST(SUM(download_diff) AS bigint) download \
+                FROM vpn_session_stats \
+                JOIN vpn_client_session s ON session_id = s.id \
+                WHERE s.user_id = $2 \
+                    AND s.location_id = $3 \
+                    AND s.state = 'connected' \
+                    AND collected_at >= $4 \
+                GROUP BY 1 \
+                ORDER BY 1 \
+                LIMIT $5",
+                aggregation.fstring(),
+                user.user_id,
+                self.id,
+                from,
+                PEER_STATS_LIMIT,
+            )
+            .fetch_all(conn)
+            .await?;
+
+            let total_upload: i64 = stats.iter().filter_map(|s| s.upload).sum();
+            let total_download: i64 = stats.iter().filter_map(|s| s.download).sum();
+
+            let connected_user = LocationConnectedUserStats {
+                user_id: user.user_id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                full_name,
+                connected_devices_count: user.connected_devices_count as u16,
+                public_ip: endpoint_without_port(&user.endpoint).unwrap_or_default(),
+                vpn_ips: user.wireguard_ips,
+                connected_at: user.connected_at,
+                total_upload,
+                total_download,
+                stats,
+            };
+
+            page_result.push(connected_user);
+        }
+
+        // fetch total item count
+        let total_items: i64 = query_scalar!(
+            "SELECT COUNT(DISTINCT vcs.user_id) \
+            FROM vpn_client_session vcs \
+            WHERE vcs.location_id = $1 AND vcs.state = 'connected'",
+            self.id,
+        )
+        .fetch_one(conn)
+        .await?
+        .unwrap_or(0);
+
+        Ok((page_result, total_items as u32))
+    }
+
     /// Retrieves total active users/devices since `from` timestamp
     ///
     /// A user/device is considered active if a session is currently connected
@@ -1110,6 +1222,23 @@ pub struct WireguardNetworkStats {
     pub upload: i64,
     pub download: i64,
     pub transfer_series: Vec<WireguardStatsRow>,
+}
+
+#[derive(Serialize)]
+pub struct LocationConnectedUserStats {
+    user_id: Id,
+    first_name: String,
+    last_name: String,
+    full_name: String,
+    connected_devices_count: u16,
+    // oldest active session data
+    public_ip: String,
+    vpn_ips: Vec<IpAddr>,
+    connected_at: NaiveDateTime,
+    // agregated traffic stats
+    total_upload: i64,
+    total_download: i64,
+    stats: Vec<WireguardStatsRow>,
 }
 
 pub async fn networks_stats(

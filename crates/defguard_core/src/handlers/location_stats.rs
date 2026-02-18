@@ -2,14 +2,11 @@ use std::str::FromStr;
 
 use axum::extract::{Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{
-    Id,
-    models::{
-        DeviceType, WireguardNetwork,
-        wireguard::{
-            DateTimeAggregation, WireguardDeviceStatsRow, WireguardNetworkStats, WireguardStatsRow,
-            WireguardUserStatsRow, networks_stats,
-        },
+use defguard_common::db::models::{
+    DeviceType, WireguardNetwork,
+    wireguard::{
+        DateTimeAggregation, LocationConnectedUserStats, WireguardDeviceStatsRow,
+        WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
     },
 };
 use reqwest::StatusCode;
@@ -135,23 +132,6 @@ pub(crate) async fn devices_stats(
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
-#[derive(Serialize)]
-pub(crate) struct LocationConnectedUser {
-    user_id: Id,
-    first_name: String,
-    last_name: String,
-    full_name: String,
-    connected_devices_count: u16,
-    // oldest active session data
-    public_ip: String,
-    vpn_ips: Vec<String>,
-    connected_at: NaiveDateTime,
-    // agregated traffic stats
-    total_upload: i64,
-    total_download: i64,
-    stats: Vec<WireguardStatsRow>,
-}
-
 /// Returns paginated list of connected users for a given location
 ///
 /// # Returns
@@ -162,13 +142,28 @@ pub(crate) async fn location_connected_users(
     Path(location_id): Path<i64>,
     Query(query_from): Query<QueryFrom>,
     pagination: Query<PaginationParams>,
-) -> PaginatedApiResult<LocationConnectedUser> {
+) -> PaginatedApiResult<LocationConnectedUserStats> {
     debug!(
         "Displaying connected users for location {location_id} with time window {query_from:?} and pagination {pagination:?}"
     );
 
-    let connected_users = todo!();
-    let total_items = todo!();
+    let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? else {
+        return Err(WebError::ObjectNotFound(format!(
+            "Requested location ({location_id}) not found"
+        )));
+    };
+    let from = query_from.parse_timestamp()?.naive_utc();
+    let aggregation = get_aggregation(from)?;
+
+    let (connected_users, total_items) = location
+        .connected_users_stats(
+            &appstate.pool,
+            &from,
+            &aggregation,
+            pagination.page,
+            DEFAULT_API_PAGE_SIZE,
+        )
+        .await?;
 
     let pagination =
         PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
