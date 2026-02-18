@@ -658,7 +658,13 @@ impl WireguardNetwork<Id> {
             ConnectedUserRow,
             "SELECT DISTINCT ON (vcs.user_id) vcs.user_id, u.first_name, u.last_name, vcs.connected_at \"connected_at!\", \
 				wnd.wireguard_ips \"wireguard_ips: Vec<IpAddr>\", ss.endpoint, \
-				COUNT(*) OVER (PARTITION BY vcs.user_id) \"connected_devices_count!\" \
+				(SELECT COUNT(DISTINCT s.device_id) \
+					FROM vpn_client_session s \
+					JOIN device d2 ON d2.id = s.device_id \
+					WHERE s.user_id = vcs.user_id \
+						AND s.location_id = vcs.location_id \
+						AND s.state = 'connected' \
+						AND d2.device_type = 'user') \"connected_devices_count!\" \
             FROM vpn_client_session vcs \
 			JOIN LATERAL ( \
 				SELECT endpoint \
