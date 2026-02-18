@@ -180,16 +180,12 @@ async fn main() -> Result<(), anyhow::Error> {
         proxy_control_rx,
     );
 
-    let mut gateway_manager = GatewayManager::default();
+    let mut gateway_manager = GatewayManager::new(pool.clone(), gateway_tx.clone(), peer_stats_tx);
 
     // run services
     tokio::select! {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
-        res = gateway_manager.run(
-            pool.clone(),
-            gateway_tx.clone(),
-            peer_stats_tx,
-        ) => error!("Gateway gRPC stream returned early: {res:?}"),
+        res = gateway_manager.run() => error!("GatewayManager returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),

@@ -15,12 +15,12 @@ use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
 use tokio::{
-    sync::{broadcast::Sender, mpsc::UnboundedSender},
+    sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
     task::{AbortHandle, JoinSet},
 };
 use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
 
-use crate::handler::GatewayHandler;
+use crate::{error::GatewayError, handler::GatewayHandler};
 
 #[macro_use]
 extern crate tracing;
@@ -39,22 +39,35 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 
 type Client = GatewayClient<InterceptedService<Channel, ClientVersionInterceptor>>;
 
-#[derive(Default)]
 pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
+    pool: PgPool,
+    handlers: JoinSet<Result<(), GatewayError>>,
+    // TODO(jck) GatewayTxSet
+    events_tx: Sender<GatewayEvent>,
+    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
 }
 
 impl GatewayManager {
-    /// Bi-directional gRPC stream for communication with Defguard Gateway.
-    pub async fn run(
-        &mut self,
+    pub fn new(
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Self {
+        Self {
+            clients: Arc::default(),
+            handlers: JoinSet::new(),
+            pool,
+            events_tx,
+            peer_stats_tx,
+        }
+    }
+
+    /// Bi-directional gRPC stream for communication with Defguard Gateway.
+    pub async fn run(&mut self) -> Result<(), anyhow::Error> {
         let (certs_tx, certs_rx) = tokio::sync::watch::channel(Arc::new(HashMap::new()));
-        certs::refresh_certs(&pool, &certs_tx).await;
-        let refresh_pool = pool.clone();
+        certs::refresh_certs(&self.pool, &certs_tx).await;
+        let refresh_pool = self.pool.clone();
         tokio::spawn(async move {
             loop {
                 certs::refresh_certs(&refresh_pool, &certs_tx).await;
@@ -62,41 +75,15 @@ impl GatewayManager {
             }
         });
         let mut abort_handles = HashMap::new();
-
-        let mut tasks = JoinSet::new();
-        // Helper closure to launch `GatewayHandler`.
-        // TODO: Store arguments in GatewayManager and rewrite this to method
-        let mut launch_gateway_handler = |gateway: Gateway<Id>,
-                                          clients: Arc<Mutex<HashMap<Id, Client>>>|
-         -> Result<AbortHandle, anyhow::Error> {
-            let mut gateway_handler = GatewayHandler::new(
-                gateway,
-                pool.clone(),
-                events_tx.clone(),
-                peer_stats_tx.clone(),
-                certs_rx.clone(),
-            )?;
-            let abort_handle = tasks.spawn(async move {
-                loop {
-                    if let Err(err) = gateway_handler
-                        .handle_connection(Arc::clone(&clients))
-                        .await
-                    {
-                        error!("Gateway connection error: {err}, retrying in 5 seconds...");
-                        tokio::time::sleep(GATEWAY_RECONNECT_DELAY).await;
-                    }
-                }
-            });
-            Ok(abort_handle)
-        };
-        for gateway in Gateway::all(&pool).await? {
+        for gateway in Gateway::all(&self.pool).await? {
             let id = gateway.id;
-            let abort_handle = launch_gateway_handler(gateway, Arc::clone(&self.clients))?;
+            let abort_handle =
+                self.run_handler(gateway, Arc::clone(&self.clients), certs_rx.clone())?;
             abort_handles.insert(id, abort_handle);
         }
 
         // Observe gateway URL changes.
-        let mut listener = PgListener::connect_with(&pool).await?;
+        let mut listener = PgListener::connect_with(&self.pool).await?;
         listener.listen(GATEWAY_TABLE_TRIGGER).await?;
         while let Ok(notification) = listener.recv().await {
             let payload = notification.payload();
@@ -106,7 +93,7 @@ impl GatewayManager {
                         if let Some(new) = gateway_notification.new {
                             let id = new.id;
                             let abort_handle =
-                                launch_gateway_handler(new, Arc::clone(&self.clients))?;
+                                self.run_handler(new, Arc::clone(&self.clients), certs_rx.clone())?;
                             abort_handles.insert(id, abort_handle);
                         }
                     }
@@ -124,8 +111,11 @@ impl GatewayManager {
                                 );
                                 abort_handle.abort();
                                 let id = new.id;
-                                let abort_handle =
-                                    launch_gateway_handler(new, Arc::clone(&self.clients))?;
+                                let abort_handle = self.run_handler(
+                                    new,
+                                    Arc::clone(&self.clients),
+                                    certs_rx.clone(),
+                                )?;
                                 abort_handles.insert(id, abort_handle);
                             } else {
                                 warn!("Cannot find {old} on the list of connected gateways");
@@ -173,10 +163,37 @@ impl GatewayManager {
             }
         }
 
-        while let Some(Ok(_result)) = tasks.join_next().await {
+        while let Some(Ok(_result)) = self.handlers.join_next().await {
             debug!("Gateway gRPC task has ended");
         }
 
         Ok(())
+    }
+
+    fn run_handler(
+        &mut self,
+        gateway: Gateway<Id>,
+        clients: Arc<Mutex<HashMap<Id, Client>>>,
+        certs_rx: Receiver<Arc<HashMap<Id, String>>>,
+    ) -> Result<AbortHandle, GatewayError> {
+        let mut gateway_handler = GatewayHandler::new(
+            gateway,
+            self.pool.clone(),
+            self.events_tx.clone(),
+            self.peer_stats_tx.clone(),
+            certs_rx.clone(),
+        )?;
+        let abort_handle = self.handlers.spawn(async move {
+            loop {
+                if let Err(err) = gateway_handler
+                    .handle_connection(Arc::clone(&clients))
+                    .await
+                {
+                    error!("Gateway connection error: {err}, retrying in 5 seconds...");
+                    tokio::time::sleep(GATEWAY_RECONNECT_DELAY).await;
+                }
+            }
+        });
+        Ok(abort_handle)
     }
 }
