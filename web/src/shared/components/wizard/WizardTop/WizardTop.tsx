@@ -9,7 +9,7 @@ type Props = {
 
 export const WizardTop = ({ onClick }: Props) => {
   return (
-    <div className="wizard-top">
+    <div className={`wizard-top ${isPresent(onClick) ? 'closeable' : ''}`}>
       <div className="content-track">
         <NavLogo />
         {isPresent(onClick) && <IconButton icon="close" onClick={onClick} />}

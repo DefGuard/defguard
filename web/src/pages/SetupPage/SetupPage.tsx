@@ -117,7 +117,7 @@ export const SetupPage = () => {
       title={m.initial_setup_wizard_title()}
       steps={stepsConfig}
       id="setup-wizard"
-      showWelcome={isOnWelcomePage}
+      isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.initial_setup_welcome_title(),
         subtitle: m.initial_setup_welcome_subtitle(),

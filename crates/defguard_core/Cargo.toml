@@ -66,6 +66,7 @@ tokio-util = { workspace = true }
 tonic = { workspace = true }
 tonic-health = { workspace = true }
 totp-lite = { workspace = true }
+tower = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
 trait-variant = { workspace = true }
@@ -79,13 +80,11 @@ webauthn-rs-proto = { workspace = true }
 x25519-dalek = { workspace = true }
 ammonia = "4.1"
 regex = "1.10"
-tower = "0.5"
 uaparser = "0.6"
 async-stream = "0.3"
 
 [dev-dependencies]
 claims.workspace = true
-hyper-util = "0.1"
 matches.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",
@@ -94,7 +93,7 @@ reqwest = { version = "0.12", features = [
     "rustls-tls",
     "stream",
 ], default-features = false }
-serde_qs = "0.15"
+serde_qs = "1.0"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]

@@ -5,9 +5,7 @@ use std::{
 };
 
 use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
-use defguard_core::{
-    events::BidiStreamEvent, grpc::gateway::events::GatewayEvent, version::IncompatibleComponents,
-};
+use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
 
 use sqlx::PgPool;
 use tokio::{
@@ -21,11 +19,11 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::{certs::refresh_certs, error::ProxyError, proxy_handler::ProxyHandler};
+use crate::{certs::refresh_certs, error::ProxyError, handler::ProxyHandler};
 
 mod certs;
 mod error;
-mod proxy_handler;
+mod handler;
 mod servers;
 
 #[macro_use]
@@ -37,7 +35,6 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 ///
 /// Responsibilities include:
 /// - instantiating and supervising proxy connections,
-/// - routing responses to the appropriate proxy based on correlation state,
 /// - providing shared infrastructure (database access, outbound channels),
 pub struct ProxyManager {
     pool: PgPool,
@@ -64,12 +61,13 @@ impl ProxyManager {
     /// Spawns and supervises asynchronous tasks for all configured proxies.
     ///
     /// Each proxy runs in its own task and shares Core-side infrastructure
-    /// such as routing state and compatibility tracking.
     pub async fn run(mut self) -> Result<(), ProxyError> {
         debug!("ProxyManager starting");
         let remote_mfa_responses = Arc::default();
         let sessions = Arc::default();
         let (certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::new()));
+        // Prime the cache to avoid race with connection loop.
+        refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
         tokio::spawn(async move {
             loop {
@@ -91,7 +89,7 @@ impl ProxyManager {
                     &self.tx,
                     Arc::clone(&remote_mfa_responses),
                     Arc::clone(&sessions),
-                    Arc::new(Mutex::new(Some(shutdown_rx))),
+                    Arc::new(Mutex::new(shutdown_rx)),
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -133,7 +131,7 @@ impl ProxyManager {
                                     &self.tx,
                                     Arc::clone(&remote_mfa_responses),
                                     Arc::clone(&sessions),
-                                    Arc::new(Mutex::new(Some(shutdown_rx))),
+                                    Arc::new(Mutex::new(shutdown_rx)),
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);

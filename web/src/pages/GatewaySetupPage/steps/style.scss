@@ -14,3 +14,65 @@
     overflow-wrap: anywhere;
   }
 }
+
+#deploy-gateway-step {
+  .tab-content-header .markdown-render {
+    p {
+      font: var(--t-body-sm-400);
+      color: var(--fg-faded);
+
+      strong {
+        font-weight: 500;
+      }
+    }
+  }
+
+  #other-deployment-methods {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-lg);
+
+    p.title {
+      font: var(--t-body-sm-500);
+      color: var(--fg-default);
+    }
+
+    a {
+      font: var(--t-body-sm-400);
+      color: var(--fg-action);
+      text-decoration: none;
+      display: inline-flex;
+      flex-flow: row;
+      column-gap: var(--spacing-sm);
+      align-items: center;
+      justify-content: flex-start;
+
+      span {
+        font: inherit;
+        color: inherit;
+      }
+    }
+
+    .card {
+      padding: var(--spacing-md) var(--spacing-xl);
+
+      .inner-track {
+        display: flex;
+        flex-flow: row nowrap;
+        column-gap: var(--spacing-xl);
+        align-items: flex-start;
+        justify-content: flex-start;
+
+        .image-tack {
+          width: 44px;
+          height: 44px;
+
+          img {
+            width: inherit;
+            height: inherit;
+          }
+        }
+      }
+    }
+  }
+}

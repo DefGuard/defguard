@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -24,7 +23,7 @@ type StoreValues = {
 
 export const SetupGatewayComponentStep = () => {
   const setActiveStep = useGatewayWizardStore((s) => s.setActiveStep);
-  const navigate = useNavigate();
+
   const defaultValues = useGatewayWizardStore(
     useShallow(
       (s): FormFields => ({
@@ -40,10 +39,8 @@ export const SetupGatewayComponentStep = () => {
   };
 
   const handleBack = () => {
-    navigate({ to: '/locations', replace: true }).then(() => {
-      setTimeout(() => {
-        useGatewayWizardStore.getState().reset();
-      }, 100);
+    useGatewayWizardStore.setState({
+      activeStep: GatewaySetupStep.DeployGateway,
     });
   };
 

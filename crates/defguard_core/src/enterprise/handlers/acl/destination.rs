@@ -196,7 +196,6 @@ impl From<AclAliasInfo> for ApiAclDestination {
     )
 )]
 pub(crate) async fn list_acl_destinations(
-    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,

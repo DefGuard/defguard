@@ -17,6 +17,8 @@ import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/c
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { getLicenseInfoQueryOptions } from '../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
 type RowData = AclAlias;
 
@@ -28,6 +30,10 @@ type Props = {
 
 export const AliasTable = ({ data: rowData }: Props) => {
   const navigate = useNavigate();
+
+  const { data: licenseInfo, isFetching: isLicenseFetching } = useQuery(
+    getLicenseInfoQueryOptions,
+  );
 
   const { data: rules } = useQuery({
     queryFn: api.acl.rule.getRules,
@@ -124,11 +130,14 @@ export const AliasTable = ({ data: rowData }: Props) => {
                   text: m.controls_edit(),
                   icon: 'edit',
                   onClick: () => {
-                    navigate({
-                      to: '/acl/edit-alias',
-                      search: {
-                        alias: row.id,
-                      },
+                    if (licenseInfo === undefined) return;
+                    licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                      navigate({
+                        to: '/acl/edit-alias',
+                        search: {
+                          alias: row.id,
+                        },
+                      });
                     });
                   },
                 },
@@ -137,7 +146,10 @@ export const AliasTable = ({ data: rowData }: Props) => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteAlias(row.id);
+                    if (licenseInfo === undefined) return;
+                    licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                      deleteAlias(row.id);
+                    });
                   },
                 },
               ],
@@ -148,19 +160,26 @@ export const AliasTable = ({ data: rowData }: Props) => {
               text: 'Deploy',
               icon: 'deploy',
               onClick: () => {
-                applyAliases([row.id]);
+                if (licenseInfo === undefined) return;
+                licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                  applyAliases([row.id]);
+                });
               },
             });
           }
           return (
             <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
+              <IconButtonMenu
+                icon="menu"
+                menuItems={menuItems}
+                disabled={isLicenseFetching}
+              />
             </TableCell>
           );
         },
       }),
     ],
-    [rules, applyAliases, deleteAlias, navigate],
+    [rules, applyAliases, deleteAlias, navigate, isLicenseFetching, licenseInfo],
   );
 
   const table = useReactTable({

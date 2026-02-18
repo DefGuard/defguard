@@ -1,0 +1,115 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-wrapper border-radius="12px" border="1px solid #DFE3E9" padding="24px">
+  <mj-section>
+    <mj-group direction="ltr" vertical-align="top" width="100%">
+      <mj-column width="17.5%">
+        <mj-image src="cid:new_account_1" width="105px" height="101px" />
+      </mj-column>
+      <mj-column width="5.33%">
+      </mj-column>
+      <mj-column width="77.17%">
+        <mj-text mj-class="t-body-primary-600 s-md" css-class="fg-default-c">
+          Desktop client
+        </mj-text>
+        <mj-text mj-class="t-body-sm-400 s-sm" css-class="fg-default-c">
+          {{ download }}
+        </mj-text>
+        {{ macros::action_link(text="https://defguard.net/download/", href="https://defguard.net/download/", mj_class="s-3xl") }}
+        <mj-text mj-class="t-body-sm-500 s-lg" css-class="fg-neutral-c">
+          {{ after_install }}
+        </mj-text>
+        <mj-table css-class="dg-table" mj-class="s-lg">
+          <tr>
+            <td>
+              {{ label_url }}
+            </td>
+            <td>
+              {{ url }}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              {{ label_token }}
+            </td>
+            <td>
+              {{ token }}
+            </td>
+          </tr>
+        </mj-table>
+        <mj-text mj-class="t-body-xs-400 s-lg" css-class="fg-critical-c">
+          {{ token_info }}
+        </mj-text>
+        <mj-button href="{{ link_url }}" align="left" mj-class="dg-button">
+          {{ label_enroll }}
+        </mj-button>
+      </mj-column>
+    </mj-group>
+  </mj-section>
+  <mj-section>
+    <mj-column>
+      <mj-divider mj-class="divider" padding="32px 0" />
+    </mj-column>
+  </mj-section>
+  <mj-section>
+    <mj-group>
+      <mj-column width="17.5%">
+        <mj-image src="cid:new_account_2" width="105px" height="101px" />
+      </mj-column>
+      <mj-column width="5.33%">
+      </mj-column>
+      <mj-column width="77.17%">
+        <mj-text mj-class="t-body-primary-600 s-md" css-class="fg-default-c">
+          {{ label_mobile }}
+        </mj-text>
+        <mj-text mj-class="t-body-sm-400 s-2xl" css-class="fg-default-c">
+          {{ scan_qr }}
+        </mj-text>
+        <mj-image src="cid:qr" width="200px" height="200px" alt="qr" padding="0 0 24px 0" align="start" />
+        <mj-text mj-class="t-body-xs-500 s-lg" css-class="fg-muted-c">
+          {{ mobile_install }}
+        </mj-text>
+        <mj-text align="left" padding="0">
+          <table align="left" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td style="vertical-align: middle; padding-right: 12px;">
+                <img width="20" height="20" src="cid:google_play" alt="Android store" style="display: block;" />
+              </td>
+              <td style="vertical-align: middle;">
+                <a mj-class="t-body-sm-400" css-class="fg-action-c link" href="https://play.google.com/store/apps/details?id=net.defguard.mobile" style="color: #3961DB; text-decoration: none; font-family: Geist, Arial, sans-serif; font-weight: 400; font-size: 14px; line-height: 20px;">
+                  {{ download_google }}
+                </a>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-divider mj-class="divider" padding="12px 0" />
+
+        <mj-text align="left" padding="0">
+          <table align="left" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td style="vertical-align: middle; padding-right: 12px;">
+                <img width="20" height="20" src="cid:apple" style="display: block;" />
+              </td>
+              <td style="vertical-align: middle;">
+                <a mj-class="t-body-sm-400" css-class="fg-action-c link" href="https://apps.apple.com/us/app/defguard-vpn-client/id6748068630" style="color: #3961DB; text-decoration: none; font-family: Geist, Arial, sans-serif; font-weight: 400; font-size: 14px; line-height: 20px;">
+                   {{ download_apple }}
+                </a>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+      </mj-column>
+    </mj-group>
+  </mj-section>
+</mj-wrapper>
+<mj-section mj-class="s-3xl">
+
+</mj-section>
+
+{% endblock content %}

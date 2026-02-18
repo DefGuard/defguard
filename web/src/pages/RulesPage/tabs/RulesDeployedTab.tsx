@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import type { AclRule } from '../../../shared/api/types';
@@ -5,6 +6,8 @@ import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { RulesTable } from '../RulesTable';
 import { useRuleDeps } from '../useRuleDeps';
 
@@ -17,19 +20,28 @@ export const RulesDeployedTab = ({ rules }: Props) => {
 
   const navigate = useNavigate();
 
+  const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
+    getLicenseInfoQueryOptions,
+  );
+
   const buttonProps = useMemo(
     (): ButtonProps => ({
       variant: 'primary',
       text: 'Create new rule',
       iconLeft: 'add-rule',
+      disabled: licenseFetching,
       onClick: () => {
-        navigate({ to: '/acl/add-rule' });
+        if (licenseInfo === undefined) return;
+
+        licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+          navigate({ to: '/acl/add-rule' });
+        });
       },
     }),
-    [navigate],
+    [navigate, licenseFetching, licenseInfo],
   );
 
-  const { aliases, groups, locations, users, devices, loading } = useRuleDeps();
+  const { aliases, groups, locations, users, devices, license, loading } = useRuleDeps();
 
   return (
     <>
@@ -37,7 +49,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
         <EmptyStateFlexible
           icon="rules"
           title={`You don't have any firewall rules yet.`}
-          subtitle={`Click the first rule by clicking button bellow.`}
+          subtitle={`Click the first rule by clicking button below.`}
           primaryAction={buttonProps}
         />
       )}
@@ -47,7 +59,8 @@ export const RulesDeployedTab = ({ rules }: Props) => {
         isPresent(groups) &&
         isPresent(locations) &&
         isPresent(users) &&
-        isPresent(devices) && (
+        isPresent(devices) &&
+        isPresent(license) && (
           <RulesTable
             title="Deployed rules"
             buttonProps={buttonProps}
@@ -57,6 +70,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
             devices={devices}
             users={users}
             locations={locations}
+            license={license}
             enableSearch
           />
         )}

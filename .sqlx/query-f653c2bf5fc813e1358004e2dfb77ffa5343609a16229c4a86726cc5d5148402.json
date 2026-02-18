@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"gateway\" SET \"network_id\" = $2,\"url\" = $3,\"hostname\" = $4,\"connected_at\" = $5,\"disconnected_at\" = $6,\"certificate\" = $7,\"certificate_expiry\" = $8,\"version\" = $9,\"name\" = $10 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Timestamp",
+        "Timestamp",
+        "Text",
+        "Timestamp",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f653c2bf5fc813e1358004e2dfb77ffa5343609a16229c4a86726cc5d5148402"
+}

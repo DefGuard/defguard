@@ -167,7 +167,7 @@ export const SetupGeneralConfigStep = () => {
       </form>
       <ModalControls
         submitProps={{
-          text: m.initial_setup_controls_next(),
+          text: m.initial_setup_controls_continue(),
           onClick: handleNext,
           loading: isPending,
         }}

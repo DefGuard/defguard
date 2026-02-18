@@ -31,7 +31,7 @@ use crate::{
     enrollment_management::start_desktop_configuration,
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::events::GatewayEvent,
+    grpc::GatewayEvent,
     server_config,
 };
 

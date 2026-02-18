@@ -35,22 +35,22 @@
       },
       {
         "ordinal": 6,
-        "name": "has_certificate",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 7,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "version",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "certificate",
         "type_info": "Text"
       }
     ],
@@ -66,10 +66,10 @@
       true,
       true,
       true,
+      true,
+      true,
       false,
-      true,
-      true,
-      false
+      true
     ]
   },
   "hash": "d10c9a7b0b391aeb8b4869f6bddf997807b66e0b532da747b146513c34e15c5c"

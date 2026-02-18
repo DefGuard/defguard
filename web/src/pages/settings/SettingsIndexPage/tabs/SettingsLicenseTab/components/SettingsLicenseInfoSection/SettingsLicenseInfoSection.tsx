@@ -101,30 +101,6 @@ const LimitsSection = ({ limits }: LimitSectionProps) => {
         value={limits.locations.current}
         maxValue={limits.locations.limit}
       />
-      {isPresent(limits.devices) && (
-        <LicenseLimitProgress
-          title={`Devices`}
-          icon="devices"
-          value={limits.devices.current}
-          maxValue={limits.devices.limit}
-        />
-      )}
-      {isPresent(limits.user_devices) && (
-        <LicenseLimitProgress
-          title={`Users devices`}
-          icon="devices"
-          value={limits.user_devices.current}
-          maxValue={limits.user_devices.limit}
-        />
-      )}
-      {isPresent(limits.network_devices) && (
-        <LicenseLimitProgress
-          title={`Network devices`}
-          icon="servers"
-          value={limits.network_devices.current}
-          maxValue={limits.network_devices.limit}
-        />
-      )}
     </div>
   );
 };

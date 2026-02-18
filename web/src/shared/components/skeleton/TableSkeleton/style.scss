@@ -2,15 +2,16 @@
   display: flex;
   flex-flow: column;
   box-sizing: border-box;
-  padding: 0 var(--spacing-xl);
+  padding: var(--spacing-3xl) var(--spacing-xl) 0 var(--spacing-xl);
+
+  .table-skeleton {
+    display: flex;
+    flex-flow: column;
+  }
 
   .table-skeleton > span {
     display: block;
     height: 100%;
     overflow: hidden;
-  }
-
-  .table-skeleton .react-loading-skeleton {
-    height: inherit;
   }
 }

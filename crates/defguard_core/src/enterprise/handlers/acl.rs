@@ -201,7 +201,6 @@ pub(crate) struct ApplyAclAliasesData {
     ),
 )]
 pub(crate) async fn list_acl_rules(
-    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,

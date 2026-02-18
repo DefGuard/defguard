@@ -187,7 +187,6 @@ impl From<AclAliasInfo> for ApiAclAlias {
     ),
 )]
 pub(crate) async fn list_acl_aliases(
-    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,

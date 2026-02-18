@@ -27,7 +27,7 @@ use defguard_core::{
         ldap::utils::ldap_update_user_state,
     },
     grpc::{
-        gateway::events::GatewayEvent,
+        GatewayEvent,
         proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
@@ -39,7 +39,6 @@ use defguard_proto::proxy::{
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
 };
-use http::Uri;
 use hyper_rustls::HttpsConnectorBuilder;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
@@ -65,9 +64,9 @@ use tonic::{
 
 use crate::{
     ProxyError, ProxyTxSet, TEN_SECS,
-    certs::client_config,
     servers::{EnrollmentServer, PasswordResetServer},
 };
+use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 
@@ -86,7 +85,7 @@ pub(super) struct ProxyHandler {
     services: ProxyServices,
     /// Proxy server gRPC URL
     pub(super) url: Url,
-    shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+    shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
     proxy_id: Id,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
@@ -98,7 +97,7 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
-        shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+        shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
     ) -> Self {
         // Instantiate gRPC servers.
@@ -120,7 +119,7 @@ impl ProxyHandler {
         tx: &ProxyTxSet,
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
-        shutdown_signal: Arc<Mutex<Option<ShutdownReceiver>>>,
+        shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -202,7 +201,9 @@ impl ProxyHandler {
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config = client_config(&ca_cert_der, certs_rx.clone(), self.proxy_id)?;
+            let tls_config =
+                tls_certs::client_config(&ca_cert_der, certs_rx.clone(), self.proxy_id)
+                    .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()
@@ -282,42 +283,39 @@ impl ProxyHandler {
                 payload: Some(core_response::Payload::InitialInfo(initial_info)),
             });
 
-            let shutdown_signal = self.shutdown_signal.lock().await.take();
-            if let Some(shutdown_signal) = shutdown_signal {
-                select! {
-                    res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
-                        if let Err(err) = res {
-                            error!("Proxy message loop ended with error: {err}, reconnecting in {TEN_SECS:?}",);
-                        } else {
-                            info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
-                        }
-                        self.mark_disconnected().await?;
-                        sleep(TEN_SECS).await;
+            let shutdown_signal = Arc::clone(&self.shutdown_signal);
+            select! {
+                res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
+                    if let Err(err) = res {
+                        error!("Proxy message loop ended with error: {err}, reconnecting in {TEN_SECS:?}",);
+                    } else {
+                        info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
                     }
-                    res = shutdown_signal => {
-                        match res {
-                            Err(err) => {
-                                error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
-                            }
-                            Ok(purge) => {
-                                info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
-                                if purge {
+                    self.mark_disconnected().await?;
+                    sleep(TEN_SECS).await;
+                }
+                res = &mut *shutdown_signal.lock().await => {
+                    match res {
+                        Err(err) => {
+                            error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
+                        }
+                        Ok(purge) => {
+                            info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
+                            if purge {
+                                if let Some(client) = self.client.as_mut() {
                                     debug!("Sending purge request to proxy {}", endpoint.uri());
-                                    if let Some(client) = self.client.as_mut() {
-                                        if let Err(err) = client.purge(Request::new(())).await {
-                                            error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
-                                        }
+                                    if let Err(err) = client.purge(Request::new(())).await {
+                                        error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
+                                    } else {
+                                        info!("Sent purge request to proxy {}", endpoint.uri());
                                     }
                                 }
                             }
                         }
-                        self.mark_disconnected().await?;
-                        break;
                     }
+                    self.mark_disconnected().await?;
+                    break;
                 }
-            } else {
-                self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
-                    .await?;
             }
         }
 
@@ -835,54 +833,5 @@ impl ProxyServices {
             client_mfa,
             polling,
         }
-    }
-}
-
-/// Rewrites the request URI scheme to https for the TLS connector.
-///
-/// Tonic expects an http URI for its endpoint, but our custom connector performs
-/// the TLS handshake and requires https to select the TLS path.
-#[derive(Clone, Debug)]
-struct HttpsSchemeConnector<C> {
-    inner: C,
-}
-
-impl<C> HttpsSchemeConnector<C> {
-    const fn new(inner: C) -> Self {
-        Self { inner }
-    }
-}
-
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
-
-impl<C> tower_service::Service<Uri> for HttpsSchemeConnector<C>
-where
-    C: tower_service::Service<Uri, Error = BoxError> + Clone + Send + 'static,
-    C::Future: Send,
-{
-    type Response = C::Response;
-    type Error = BoxError;
-    type Future = std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
-    >;
-
-    fn poll_ready(
-        &mut self,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx).map_err(Into::into)
-    }
-
-    fn call(&mut self, uri: Uri) -> Self::Future {
-        let mut parts = uri.into_parts();
-        parts.scheme = Some(http::uri::Scheme::HTTPS);
-        let https_uri = match Uri::from_parts(parts) {
-            Ok(uri) => uri,
-            Err(err) => {
-                return Box::pin(async move { Err(err.into()) });
-            }
-        };
-        let mut inner = self.inner.clone();
-        Box::pin(async move { inner.call(https_uri).await })
     }
 }

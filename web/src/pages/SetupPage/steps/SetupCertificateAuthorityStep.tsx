@@ -17,6 +17,7 @@ import { formChangeLogic } from '../../../shared/formLogic';
 import { CAOption, type CAOptionType, SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 import './style.scss';
+import { BadgeVariant } from '../../../shared/defguard-ui/components/Badge/types';
 
 type ValidityValue = 1 | 2 | 3 | 5 | 10;
 
@@ -25,7 +26,11 @@ const validityOptions: SelectOption<ValidityValue>[] = [
   { key: 2, label: m.initial_setup_ca_validity_years({ years: 2 }), value: 2 },
   { key: 3, label: m.initial_setup_ca_validity_years({ years: 3 }), value: 3 },
   { key: 5, label: m.initial_setup_ca_validity_years({ years: 5 }), value: 5 },
-  { key: 10, label: m.initial_setup_ca_validity_years({ years: 10 }), value: 10 },
+  {
+    key: 10,
+    label: m.initial_setup_ca_validity_years({ years: 10 }),
+    value: 10,
+  },
 ];
 
 type CreateCAFormFields = CreateCAStoreValues;
@@ -250,9 +255,12 @@ export const SetupCertificateAuthorityStep = () => {
         value={caOption === CAOption.Create}
         onClick={() => setCAOption(CAOption.Create)}
         content={m.initial_setup_ca_option_create_description()}
+        badge={{
+          text: m.misc_recommended(),
+          variant: BadgeVariant.Success,
+        }}
       >
         <SizedBox height={ThemeSpacing.Xl2} />
-
         {caOption === CAOption.Create && <CreateCAForm />}
       </InteractiveBlock>
 
@@ -270,13 +278,13 @@ export const SetupCertificateAuthorityStep = () => {
 
       <ModalControls
         cancelProps={{
-          text: m.initial_setup_controls_back(),
+          text: m.controls_back(),
           onClick: handleBack,
           disabled: isPending,
           variant: 'outlined',
         }}
         submitProps={{
-          text: m.initial_setup_controls_continue(),
+          text: m.controls_continue(),
           onClick: handleNext,
           loading: isPending,
           disabled: isPending || !isPresent(caOption),

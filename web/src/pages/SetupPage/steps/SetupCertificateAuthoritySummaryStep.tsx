@@ -94,7 +94,6 @@ export const SetupCertificateAuthoritySummaryStep = () => {
               {m.initial_setup_ca_info_label_common_name()}
             </div>
             <div className="ca-info-value">{commonName}</div>
-
             <div className="ca-info-label">
               {m.initial_setup_ca_info_label_validity()}
             </div>
@@ -115,7 +114,10 @@ export const SetupCertificateAuthoritySummaryStep = () => {
           onClick: handleBack,
           variant: 'outlined',
         }}
-        submitProps={{ text: m.initial_setup_controls_next(), onClick: handleNext }}
+        submitProps={{
+          text: m.initial_setup_controls_continue(),
+          onClick: handleNext,
+        }}
       />
     </WizardCard>
   );

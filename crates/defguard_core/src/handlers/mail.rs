@@ -127,7 +127,7 @@ pub async fn send_support_data(
             "network_id": g.network_id,
             "version": g.version.as_deref().unwrap_or("unknown"),
             "url": g.url,
-            "has_certificate": g.has_certificate,
+            "certificate": g.certificate,
             "hostname": g.hostname,
             "connected_at": g.connected_at,
         })).collect::<Vec<_>>(),

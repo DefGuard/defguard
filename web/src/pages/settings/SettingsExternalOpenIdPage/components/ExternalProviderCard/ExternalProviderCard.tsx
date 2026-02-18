@@ -20,6 +20,7 @@ type Props = {
   onClick: () => void;
   disabled?: boolean;
   edit?: boolean;
+  loading?: boolean;
 };
 
 const providerImage: Record<OpenIdProviderKindValue, ReactNode> = {
@@ -51,6 +52,7 @@ export const ExternalProviderCard = ({
   onClick,
   edit = false,
   disabled = false,
+  loading = false,
 }: Props) => {
   const name = useMemo(() => {
     if (isPresent(displayName)) return displayName;
@@ -88,6 +90,7 @@ export const ExternalProviderCard = ({
               text={m.controls_edit()}
               onClick={onClick}
               disabled={disabled}
+              loading={loading}
             />
           )}
         </div>

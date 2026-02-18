@@ -60,7 +60,7 @@ export const SettingsLicenseModal = () => {
 };
 
 const formSchema = z.object({
-  license: z.string(m.form_error_invalid()).trim().min(1, m.form_error_required()),
+  license: z.string().trim().nullable(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -92,7 +92,7 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
     },
     onSubmit: async ({ value, formApi }) => {
       await patchSettings({
-        license: value.license.replaceAll('\n', '').trim(),
+        license: value.license?.replaceAll('\n', '').trim() ?? '',
       }).catch((e: AxiosError<ApiError>) => {
         if (e.status && e.status >= 400 && e.status < 500) {
           formApi.setErrorMap({

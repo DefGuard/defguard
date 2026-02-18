@@ -229,7 +229,7 @@ export const SetupAdminUserStep = () => {
       </form>
       <ModalControls
         submitProps={{
-          text: m.initial_setup_controls_next(),
+          text: m.controls_continue(),
           onClick: handleNext,
           loading: isPending,
         }}

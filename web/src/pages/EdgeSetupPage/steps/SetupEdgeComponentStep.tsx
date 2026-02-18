@@ -1,4 +1,3 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -24,7 +23,7 @@ type StoreValues = {
 
 export const SetupEdgeComponentStep = () => {
   const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
-  const navigate = useNavigate();
+
   const defaultValues = useEdgeWizardStore(
     useShallow(
       (s): FormFields => ({
@@ -40,10 +39,8 @@ export const SetupEdgeComponentStep = () => {
   };
 
   const handleBack = () => {
-    navigate({ to: '/setup-edge', replace: true }).then(() => {
-      setTimeout(() => {
-        useEdgeWizardStore.getState().reset();
-      }, 100);
+    useEdgeWizardStore.setState({
+      activeStep: EdgeSetupStep.EdgeDeploy,
     });
   };
 

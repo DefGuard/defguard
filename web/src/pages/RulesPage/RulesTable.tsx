@@ -15,6 +15,7 @@ import {
   AclStatus,
   type AclStatusValue,
   type GroupInfo,
+  type LicenseInfo,
   type NetworkDevice,
   type NetworkLocation,
   type ResourceById,
@@ -34,6 +35,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
 const displayUser = (user?: User): string => {
   if (!isPresent(user)) return '~';
@@ -49,6 +51,7 @@ type RowData = AclRule;
 const columnHelper = createColumnHelper<RowData>();
 
 type Props = {
+  license: LicenseInfo | null;
   aliases: ResourceById<AclAlias>;
   groups: ResourceById<GroupInfo>;
   users: ResourceById<User>;
@@ -70,8 +73,10 @@ export const RulesTable = ({
   users,
   locations,
   data,
+  license,
 }: Props) => {
   const navigate = useNavigate();
+
   const { mutate: deleteRule } = useMutation({
     mutationFn: api.acl.rule.deleteRule,
     meta: {
@@ -270,11 +275,13 @@ export const RulesTable = ({
                   icon: 'edit',
                   text: m.controls_edit(),
                   onClick: () => {
-                    navigate({
-                      to: '/acl/edit-rule',
-                      search: {
-                        rule: row.id,
-                      },
+                    licenseActionCheck(canUseBusinessFeature(license), () => {
+                      navigate({
+                        to: '/acl/edit-rule',
+                        search: {
+                          rule: row.id,
+                        },
+                      });
                     });
                   },
                 },
@@ -287,7 +294,9 @@ export const RulesTable = ({
                   variant: 'danger',
                   text: m.controls_delete(),
                   onClick: () => {
-                    deleteRule(row.id);
+                    licenseActionCheck(canUseBusinessFeature(license), () => {
+                      deleteRule(row.id);
+                    });
                   },
                 },
               ],
@@ -301,7 +310,15 @@ export const RulesTable = ({
         },
       }),
     ],
-    [aliases, renderPermissionCell, deleteRule, locations, navigate, renderStatusCell],
+    [
+      aliases,
+      renderPermissionCell,
+      deleteRule,
+      locations,
+      navigate,
+      renderStatusCell,
+      license,
+    ],
   );
 
   const visibleRules = useMemo(() => {

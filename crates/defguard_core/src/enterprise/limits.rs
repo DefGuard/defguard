@@ -4,13 +4,6 @@ use sqlx::{PgPool, error::Error as SqlxError, query};
 use super::license::License;
 #[cfg(test)]
 use super::license::get_cached_license;
-use crate::grpc::proto::enterprise::license::LicenseLimits;
-
-// Limits for free users
-pub const DEFAULT_USERS_LIMIT: u32 = 5;
-pub const DEFAULT_DEVICES_LIMIT: u32 = 10;
-pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
-pub const DEFAULT_NETWORK_DEVICES_LIMIT: u32 = 10;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
@@ -103,14 +96,8 @@ impl Counts {
         if let Some(license) = maybe_license.as_ref() {
             debug!("Cached license found. Validating license limits...");
             self.is_over_license_limits(license)
-        }
-        // free tier
-        else {
-            debug!("Cached license not found. Using default limits for validation...");
-            self.user > DEFAULT_USERS_LIMIT
-                || self.user_device > DEFAULT_DEVICES_LIMIT
-                || self.location > DEFAULT_LOCATIONS_LIMIT
-                || self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT
+        } else {
+            true
         }
     }
 
@@ -130,86 +117,13 @@ impl Counts {
         self.location
     }
 
-    // New licenses have a network device limit field, this function handles backwards compatibility
-    // If no such field is present = old behavior (user devices + network devices <= devices limit)
-    // If field is present, check user devices and network devices separately
-    fn is_over_device_limit(&self, limits: &LicenseLimits) -> bool {
-        match limits.network_devices {
-            Some(devices) => self.user_device > limits.devices || self.network_device > devices,
-            None => self.user_device + self.network_device > limits.devices,
-        }
-    }
-
     pub(crate) fn is_over_license_limits(&self, license: &License) -> bool {
         let limits = &license.limits;
         match limits {
-            Some(limits) => {
-                self.user > limits.users
-                    || self.is_over_device_limit(limits)
-                    || self.location > limits.locations
-            }
+            Some(limits) => self.user > limits.users || self.location > limits.locations,
             // unlimited license
             None => false,
         }
-    }
-
-    /// Checks if current object count exceeds default free tier limits
-    pub(crate) fn needs_paid_license(&self) -> bool {
-        debug!("Checking if current object counts ({self:?}) exceed default free tier limits");
-        self.user > DEFAULT_USERS_LIMIT
-            || self.user_device > DEFAULT_DEVICES_LIMIT
-            || self.location > DEFAULT_LOCATIONS_LIMIT
-            || self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT
-    }
-
-    pub(crate) fn get_exceeded_limits(&self, license: Option<&License>) -> LimitsExceeded {
-        if let Some(license) = license {
-            if let Some(limits) = &license.limits {
-                LimitsExceeded {
-                    user: self.user > limits.users,
-                    device: if limits.network_devices.is_some() {
-                        self.user_device > limits.devices
-                    } else {
-                        self.user_device + self.network_device > limits.devices
-                    },
-                    wireguard_network: self.location > limits.locations,
-                    network_device: match limits.network_devices {
-                        Some(devices) => self.network_device > devices,
-                        None => false,
-                    },
-                }
-            } else {
-                LimitsExceeded {
-                    user: false,
-                    device: false,
-                    wireguard_network: false,
-                    network_device: false,
-                }
-            }
-        } else {
-            LimitsExceeded {
-                user: self.user > DEFAULT_DEVICES_LIMIT,
-                device: self.user_device > DEFAULT_DEVICES_LIMIT,
-                wireguard_network: self.location > DEFAULT_LOCATIONS_LIMIT,
-                network_device: self.network_device > DEFAULT_NETWORK_DEVICES_LIMIT,
-            }
-        }
-    }
-}
-
-// Granular exceeded limits info for the AppInfo endpoint.
-#[derive(Serialize)]
-pub(crate) struct LimitsExceeded {
-    pub user: bool,
-    pub device: bool,
-    pub wireguard_network: bool,
-    pub network_device: bool,
-}
-
-/// Returns true if any of the limits has been exceeded.
-impl LimitsExceeded {
-    pub(crate) fn any(&self) -> bool {
-        self.user || self.device || self.wireguard_network || self.network_device
     }
 }
 
@@ -222,54 +136,6 @@ mod test {
         enterprise::license::{License, LicenseTier, set_cached_license},
         grpc::proto::enterprise::license::LicenseLimits,
     };
-
-    #[test]
-    fn test_network_device_limit_old_license() {
-        let limits = LicenseLimits {
-            users: 10,
-            devices: 20,
-            locations: 5,
-            network_devices: None,
-        };
-        let counts = Counts {
-            user: 5,
-            user_device: 15,
-            location: 3,
-            network_device: 6,
-        };
-        assert!(counts.is_over_device_limit(&limits));
-
-        let counts = Counts {
-            user: 5,
-            user_device: 10,
-            location: 3,
-            network_device: 5,
-        };
-        assert!(!counts.is_over_device_limit(&limits));
-
-        let limits = LicenseLimits {
-            users: 10,
-            devices: 20,
-            locations: 5,
-            network_devices: Some(10),
-        };
-
-        let counts = Counts {
-            user: 5,
-            user_device: 15,
-            location: 3,
-            network_device: 6,
-        };
-        assert!(!counts.is_over_device_limit(&limits));
-
-        let counts = Counts {
-            user: 5,
-            user_device: 15,
-            location: 3,
-            network_device: 11,
-        };
-        assert!(counts.is_over_device_limit(&limits));
-    }
 
     #[test]
     fn test_counts() {
@@ -290,74 +156,6 @@ mod test {
     }
 
     #[test]
-    fn test_is_over_limit_free_tier() {
-        // User limit
-        {
-            let counts = Counts {
-                user: DEFAULT_USERS_LIMIT + 1,
-                user_device: 1,
-                location: 1,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
-
-        // Device limit
-        {
-            let counts = Counts {
-                user: 1,
-                user_device: DEFAULT_DEVICES_LIMIT + 1,
-                location: 1,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
-
-        // Wireguard network limit
-        {
-            let counts = Counts {
-                user: 1,
-                user_device: 1,
-                location: DEFAULT_LOCATIONS_LIMIT + 1,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
-
-        // No limit
-        {
-            let counts = Counts {
-                user: 1,
-                user_device: 1,
-                location: 1,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(!counts.is_over_limit());
-        }
-
-        // All limits
-        {
-            let counts = Counts {
-                user: DEFAULT_USERS_LIMIT + 1,
-                user_device: DEFAULT_DEVICES_LIMIT,
-                location: DEFAULT_LOCATIONS_LIMIT,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
-    }
-
-    #[test]
     fn test_is_over_limit_license_with_limits() {
         let users_limit = 15;
         let devices_limit = 35;
@@ -370,14 +168,16 @@ mod test {
             locations: locations_limit,
             network_devices: Some(network_devices_limit),
         };
+
         let license = License::new(
             "test".to_string(),
-            true,
-            Some(Utc::now() + TimeDelta::days(1)),
+            false,
+            None,
             Some(limits),
             None,
             LicenseTier::Business,
         );
+
         set_cached_license(Some(license));
 
         // User limit
@@ -385,19 +185,6 @@ mod test {
             let counts = Counts {
                 user: users_limit + 1,
                 user_device: 1,
-                location: 1,
-                network_device: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
-
-        // Device limit
-        {
-            let counts = Counts {
-                user: 1,
-                user_device: devices_limit + 1,
                 location: 1,
                 network_device: 1,
             };
@@ -470,132 +257,5 @@ mod test {
             let counts = get_counts();
             assert!(!counts.is_over_limit());
         }
-    }
-
-    #[test]
-    fn test_limits_exceeded() {
-        let exceed_user = DEFAULT_DEVICES_LIMIT + 5;
-        let exceed_device = DEFAULT_DEVICES_LIMIT + 5;
-        let exceed_wireguard_network = DEFAULT_LOCATIONS_LIMIT + 5;
-        let exceed_network_device = DEFAULT_NETWORK_DEVICES_LIMIT + 5;
-
-        let counts = Counts {
-            user: exceed_user,
-            user_device: 0,
-            location: 0,
-            network_device: 0,
-        };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
-        assert!(exceeded.user);
-        assert!(!exceeded.device);
-        assert!(!exceeded.wireguard_network);
-        assert!(!exceeded.network_device);
-        assert!(exceeded.any());
-
-        let counts = Counts {
-            user: 0,
-            user_device: exceed_device,
-            location: 0,
-            network_device: 0,
-        };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
-        assert!(!exceeded.user);
-        assert!(exceeded.device);
-        assert!(!exceeded.wireguard_network);
-        assert!(!exceeded.network_device);
-        assert!(exceeded.any());
-
-        let counts = Counts {
-            user: 0,
-            user_device: 0,
-            location: exceed_wireguard_network,
-            network_device: 0,
-        };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
-        assert!(!exceeded.user);
-        assert!(!exceeded.device);
-        assert!(exceeded.wireguard_network);
-        assert!(exceeded.any());
-
-        let counts = Counts {
-            user: 0,
-            user_device: 0,
-            location: 0,
-            network_device: exceed_network_device,
-        };
-
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
-        assert!(!exceeded.user);
-        assert!(!exceeded.device);
-        assert!(!exceeded.wireguard_network);
-        assert!(exceeded.network_device);
-        assert!(exceeded.any());
-
-        let counts = Counts {
-            user: 0,
-            user_device: 0,
-            location: 0,
-            network_device: 0,
-        };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
-        assert!(!exceeded.user);
-        assert!(!exceeded.device);
-        assert!(!exceeded.wireguard_network);
-        assert!(!exceeded.network_device);
-        assert!(!exceeded.any());
-
-        let license = License::new(
-            "test".to_string(),
-            true,
-            Some(Utc::now() + TimeDelta::days(1)),
-            Some(LicenseLimits {
-                users: 2,
-                devices: 2,
-                locations: 2,
-                network_devices: Some(2),
-            }),
-            None,
-            LicenseTier::Business,
-        );
-        let counts = Counts {
-            user: 3,
-            user_device: 3,
-            location: 3,
-            network_device: 3,
-        };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(Some(&license));
-        assert!(exceeded.user);
-        assert!(exceeded.device);
-        assert!(exceeded.wireguard_network);
-        assert!(exceeded.network_device);
-        assert!(exceeded.any());
-
-        let license = License::new(
-            "test".to_string(),
-            true,
-            Some(Utc::now() + TimeDelta::days(1)),
-            None,
-            None,
-            LicenseTier::Business,
-        );
-        let counts = Counts {
-            user: 300,
-            user_device: 300,
-            location: 300,
-            network_device: 300,
-        };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(Some(&license));
-        assert!(!exceeded.user);
-        assert!(!exceeded.device);
-        assert!(!exceeded.wireguard_network);
-        assert!(!exceeded.network_device);
-        assert!(!exceeded.any());
     }
 }

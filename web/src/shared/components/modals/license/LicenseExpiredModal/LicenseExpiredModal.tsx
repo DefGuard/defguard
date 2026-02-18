@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { LicenseInfo } from '../../../../api/types';
+import type { LicenseTierValue } from '../../../../api/types';
 import { AppText } from '../../../../defguard-ui/components/AppText/AppText';
 import { Divider } from '../../../../defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../../defguard-ui/components/SizedBox/SizedBox';
@@ -17,12 +17,12 @@ const modalNameKey = ModalName.LicenseExpired;
 
 export const LicenseExpiredModal = () => {
   const [isOpen, setOpen] = useState(false);
-  const [license, setLicense] = useState<LicenseInfo | null>(null);
+  const [tier, setTier] = useState<LicenseTierValue | null>(null);
 
   useEffect(() => {
     const openSub = subscribeOpenModal(modalNameKey, (data) => {
       setOpen(true);
-      setLicense(data.license);
+      setTier(data.licenseTier);
     });
     const closeSub = subscribeCloseModal(modalNameKey, () => setOpen(false));
     return () => {
@@ -37,15 +37,15 @@ export const LicenseExpiredModal = () => {
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
-        setLicense(null);
+        setTier(null);
       }}
     >
-      {isPresent(license) && <ModalContent license={license} />}
+      {isPresent(tier) && <ModalContent tier={tier} />}
     </LicenseModal>
   );
 };
 
-const ModalContent = ({ license }: { license: LicenseInfo }) => {
+const ModalContent = ({ tier }: { tier: LicenseTierValue }) => {
   return (
     <>
       <AppText
@@ -61,7 +61,7 @@ const ModalContent = ({ license }: { license: LicenseInfo }) => {
       <AppText
         font={TextStyle.TBodySm600}
         color={ThemeVariable.FgFaded}
-      >{`Your ${license.tier} Plan license has been disabled. Paid features and extended limits are no longer available.`}</AppText>
+      >{`Your ${tier} Plan license has been disabled. Paid features and extended limits are no longer available.`}</AppText>
       <SizedBox height={ThemeSpacing.Lg} />
       <AppText
         font={TextStyle.TBodySm400}

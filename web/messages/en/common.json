@@ -43,6 +43,8 @@
   "state_active": "Active",
   "state_default": "Default",
   "state_enabled": "Enabled",
+  "state_not_configured": "Not configured",
+  "state_smtp_not_configured": "SMTP configuration has not been completed by the administrator.",
   "state_step": "Step {step}",
   "state_pending": "Pending",
   "state_enrolled": "Enrolled",
@@ -52,5 +54,7 @@
   "search_users": "Find users",
   "select_users_all": "All users",
   "sucessfull_enrollment_email": "Enrollment email sent successfully",
-  "failed_to_start_enrollment": "Failed to start enrollment"
+  "failed_to_start_enrollment": "Failed to start enrollment",
+  "misc_recommended": "Recommended",
+  "footer_copyright": "Copyright © {year} Defguard Sp. z o.o."
 }

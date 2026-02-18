@@ -1,6 +1,6 @@
 use crate::{
     auth::{AdminRole, SessionInfo},
-    enterprise::{get_counts, is_enterprise_free},
+    enterprise::get_counts,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -99,14 +99,12 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
             });
 
             serde_json::json!({
-                "free": is_enterprise_free(),
                 "valid_until": license.valid_until,
                 "subscription": license.subscription,
                 "expired": license.is_max_overdue(),
                 "limits_exceeded": counts.is_over_license_limits(license),
                 "tier": license.tier,
                 "limits": limits_info,
-
             })
         });
     Ok(ApiResponse::json(
