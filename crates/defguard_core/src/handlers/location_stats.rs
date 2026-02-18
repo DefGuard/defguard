@@ -3,11 +3,10 @@ use std::str::FromStr;
 use axum::extract::{Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use defguard_common::db::models::{
-    DeviceType, WireguardNetwork,
+    WireguardNetwork,
     wireguard::{
-        DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserDevice,
-        LocationConnectedUserStats, WireguardDeviceStatsRow, WireguardNetworkStats,
-        WireguardUserStatsRow, networks_stats,
+        DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
+        WireguardNetworkStats, networks_stats,
     },
 };
 use reqwest::StatusCode;
@@ -91,46 +90,6 @@ pub(crate) async fn location_stats(
     debug!("Displayed WireGuard network stats for location {network_id}");
 
     Ok(ApiResponse::json(stats, StatusCode::OK))
-}
-
-#[derive(Serialize)]
-pub(crate) struct DevicesStatsResponse {
-    user_devices: Vec<WireguardUserStatsRow>,
-    network_devices: Vec<WireguardDeviceStatsRow>,
-}
-
-/// Returns network statistics for users and their devices
-///
-/// # Returns
-/// Returns an `DevicesStatsResponse` for requested network and time period
-pub(crate) async fn devices_stats(
-    _role: AdminRole,
-    State(appstate): State<AppState>,
-    Path(network_id): Path<i64>,
-    Query(query_from): Query<QueryFrom>,
-) -> ApiResult {
-    debug!("Displaying WireGuard user stats for network {network_id}");
-    let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? else {
-        return Err(WebError::ObjectNotFound(format!(
-            "Requested network ({network_id}) not found",
-        )));
-    };
-    let from = query_from.parse_timestamp()?.naive_utc();
-    let aggregation = get_aggregation(from)?;
-    let user_devices_stats = network
-        .user_stats(&appstate.pool, &from, &aggregation)
-        .await?;
-    let network_devices_stats = network
-        .distinct_device_stats(&appstate.pool, &from, &aggregation, DeviceType::Network)
-        .await?;
-    let response = DevicesStatsResponse {
-        user_devices: user_devices_stats,
-        network_devices: network_devices_stats,
-    };
-
-    debug!("Displayed WireGuard user stats for network {network_id}");
-
-    Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
 /// Returns paginated list of connected users for a given location

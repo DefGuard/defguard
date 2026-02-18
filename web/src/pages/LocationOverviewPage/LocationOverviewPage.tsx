@@ -46,28 +46,6 @@ export const LocationOverviewPage = () => {
     refetchInterval: 30_000,
   });
 
-  // const { data: locationUserDevicesStats } = useQuery({
-  //   queryFn: () =>
-  //     api.location.getLocationDevicesStats({
-  //       id: Number(locationId),
-  //       from: search.period,
-  //     }),
-  //   queryKey: ['network', Number(locationId), 'stats', 'users'],
-  //   select: (resp) => resp.data,
-  //   refetchInterval: 30_000,
-  // });
-
-  // const { data: locationNetworkDevicesStats } = useQuery({
-  //   queryFn: () =>
-  //     api.location.getLocationConnectedUsers({
-  //       id: Number(locationId),
-  //       from: search.period,
-  //     }),
-  //   queryKey: ['network', Number(locationId), 'stats', 'users'],
-  //   select: (resp) => resp.data,
-  //   refetchInterval: 30_000,
-  // });
-
   return (
     <Page title="VPN Overview" id="location-overview-page">
       <SizedBox height={ThemeSpacing.Xl3} />

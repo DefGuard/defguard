@@ -363,9 +363,7 @@ const api = {
           `/network/${locationId}/stats/connected_users/${userId}/devices`,
           {
             params: {
-              from: from
-                ? dayjs.utc().subtract(from, 'hour').toISOString()
-                : undefined,
+              from: from ? dayjs.utc().subtract(from, 'hour').toISOString() : undefined,
             },
           },
         )
