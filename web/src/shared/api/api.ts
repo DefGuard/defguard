@@ -323,10 +323,10 @@ const api = {
       client
         .get<PaginatedResponse<LocationConnectedUser>>(`/network/${id}/stats/connected_users`, {
           params: {
+            ...params,
             from: params.from
               ? dayjs.utc().subtract(params.from, 'hour').toISOString()
               : undefined,
-            ...params,
           },
         })
         .then((resp) => resp.data),
