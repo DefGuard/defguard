@@ -4,14 +4,15 @@ import { CopyField } from '../../../../../../shared/defguard-ui/components/CopyF
 import { ModalControls } from '../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../shared/defguard-ui/types';
+import { closeModal } from '../../../../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../../../../shared/hooks/modalControls/modalTypes';
 import './style.scss';
 
 type Props = {
   enrollmentData: StartEnrollmentResponse;
-  onClose: () => void;
 };
 
-export const DeliveryTokenStep = ({ enrollmentData, onClose }: Props) => {
+export const DeliverTokenStep = ({ enrollmentData }: Props) => {
   return (
     <div id="add-new-device-delivery-step">
       <div className="share-credentials">
@@ -32,7 +33,7 @@ export const DeliveryTokenStep = ({ enrollmentData, onClose }: Props) => {
       <ModalControls
         submitProps={{
           text: m.controls_close(),
-          onClick: onClose,
+          onClick: () => closeModal(ModalName.AddNewDevice),
         }}
       />
     </div>

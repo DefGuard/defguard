@@ -21,12 +21,13 @@ import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import {
+  closeModal,
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../shared/hooks/useApp';
-import { DeliveryTokenStep } from './steps/DeliveryTokenStep/DeliveryTokenStep';
+import { DeliverTokenStep } from './steps/DeliverTokenStep/DeliverTokenStep';
 
 const modalName = ModalName.AddNewDevice;
 
@@ -38,10 +39,6 @@ export const AddNewDeviceModal = () => {
   const [enrollmentData, setEnrollmentData] = useState<StartEnrollmentResponse | null>(
     null,
   );
-
-  const handleClose = () => {
-    setOpen(false);
-  };
 
   const handleAfterClose = () => {
     setUser(null);
@@ -65,18 +62,14 @@ export const AddNewDeviceModal = () => {
       id="add-new-device-modal"
       title={m.modal_add_new_device_title()}
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={() => closeModal(modalName)}
       afterClose={handleAfterClose}
     >
       {isPresent(enrollmentData) ? (
-        <DeliveryTokenStep enrollmentData={enrollmentData} onClose={handleClose} />
+        <DeliverTokenStep enrollmentData={enrollmentData} />
       ) : (
         isPresent(user) && (
-          <EnrollmentChoice
-            onClose={handleClose}
-            user={user}
-            onEnrollmentReady={setEnrollmentData}
-          />
+          <EnrollmentChoice user={user} onEnrollmentReady={setEnrollmentData} />
         )
       )}
     </Modal>
@@ -84,11 +77,9 @@ export const AddNewDeviceModal = () => {
 };
 
 const EnrollmentChoice = ({
-  onClose,
   user,
   onEnrollmentReady,
 }: {
-  onClose: () => void;
   user: User;
   onEnrollmentReady: (data: StartEnrollmentResponse) => void;
 }) => {
@@ -152,7 +143,7 @@ const EnrollmentChoice = ({
           email: value.email,
         });
         Snackbar.success(m.sucessfull_enrollment_email());
-        onClose();
+        closeModal(modalName);
       }
     },
   });
@@ -217,7 +208,7 @@ const EnrollmentChoice = ({
       <ModalControls
         cancelProps={{
           text: m.controls_cancel(),
-          onClick: onClose,
+          onClick: () => closeModal(modalName),
         }}
         submitProps={{
           text: m.controls_submit(),
