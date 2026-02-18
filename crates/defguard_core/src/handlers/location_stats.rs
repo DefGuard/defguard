@@ -5,8 +5,8 @@ use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use defguard_common::db::models::{
     DeviceType, WireguardNetwork,
     wireguard::{
-        DateTimeAggregation, LocationConnectedUserStats, WireguardDeviceStatsRow,
-        WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
+        DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
+        WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
     },
 };
 use reqwest::StatusCode;
@@ -174,9 +174,6 @@ pub(crate) async fn location_connected_users(
     })
 }
 
-#[derive(Serialize)]
-pub(crate) struct LocationConnectedNetworkDevice {}
-
 /// Returns paginated list of connected users for a given location
 ///
 /// # Returns
@@ -192,8 +189,15 @@ pub(crate) async fn location_connected_network_devices(
         "Displaying connected network devices for location {location_id} with time window {query_from:?} and pagination {pagination:?}"
     );
 
-    let connected_network_devices = todo!();
-    let total_items = todo!();
+    let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? else {
+        return Err(WebError::ObjectNotFound(format!(
+            "Requested location ({location_id}) not found"
+        )));
+    };
+    let from = query_from.parse_timestamp()?.naive_utc();
+    let aggregation = get_aggregation(from)?;
+
+    let (connected_network_devices, total_items) = todo!();
 
     let pagination =
         PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);

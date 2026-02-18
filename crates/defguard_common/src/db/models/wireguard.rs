@@ -12,8 +12,8 @@ use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type,
-    query, query_as, query_scalar,
+    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
+    query_scalar,
 };
 use thiserror::Error;
 use tracing::{debug, info};
@@ -1232,6 +1232,20 @@ pub struct LocationConnectedUserStats {
     full_name: String,
     connected_devices_count: u16,
     // oldest active session data
+    public_ip: String,
+    vpn_ips: Vec<IpAddr>,
+    connected_at: NaiveDateTime,
+    // agregated traffic stats
+    total_upload: i64,
+    total_download: i64,
+    stats: Vec<WireguardStatsRow>,
+}
+
+#[derive(Serialize)]
+pub struct LocationConnectedNetworkDevice {
+    device_id: Id,
+    device_name: String,
+    // active session data
     public_ip: String,
     vpn_ips: Vec<IpAddr>,
     connected_at: NaiveDateTime,
