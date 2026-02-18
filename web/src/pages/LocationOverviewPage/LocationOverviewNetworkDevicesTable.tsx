@@ -26,7 +26,7 @@ export const LocationOverviewNetworkDevicesTable = () => {
   });
 
   const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ['network', Number(locationId), 'stats', 'connected_network_devices'],
+    queryKey: ['network', Number(locationId), 'stats', 'connected_network_devices', search.period],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.location.getLocationConnectedNetworkDevices({

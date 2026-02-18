@@ -137,7 +137,7 @@ export const LocationOverviewUsersTable = () => {
   });
 
   const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ['network', Number(locationId), 'stats', 'connected_users'],
+    queryKey: ['network', Number(locationId), 'stats', 'connected_users', search.period],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       api.location.getLocationConnectedUsers({

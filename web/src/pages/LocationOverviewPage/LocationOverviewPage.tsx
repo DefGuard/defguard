@@ -41,7 +41,7 @@ export const LocationOverviewPage = () => {
         id: Number(locationId),
         from: search.period,
       }),
-    queryKey: ['network', Number(locationId), 'stats'],
+    queryKey: ['network', Number(locationId), 'stats', search.period],
     select: (resp) => resp.data,
     refetchInterval: 30_000,
   });
