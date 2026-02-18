@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", CAST(SUM(upload_diff) AS bigint) upload, CAST(SUM(download_diff) AS bigint) download FROM vpn_session_stats JOIN vpn_client_session s ON session_id = s.id JOIN device d ON s.device_id = d.id WHERE s.user_id = $2 AND s.location_id = $3 AND s.state = 'connected' AND d.device_type = 'user' AND collected_at >= $4 GROUP BY 1 ORDER BY 1 LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "collected_at: NaiveDateTime",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 1,
+        "name": "upload",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "download",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Timestamp",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "7a585bcfa87fa425878052126f9f1882eda51ff6ddbdec27f3129f06c92dd4a9"
+}
