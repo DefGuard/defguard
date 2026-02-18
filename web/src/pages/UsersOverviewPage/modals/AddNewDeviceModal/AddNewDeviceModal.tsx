@@ -1,7 +1,9 @@
 import './style.scss';
 import { useEffect, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { m } from '../../../../paraglide/messages';
-import type { User } from '../../../../shared/api/types';
+import api from '../../../../shared/api/api';
+import type { StartEnrollmentResponse, User } from '../../../../shared/api/types';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
@@ -21,6 +23,8 @@ import {
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../shared/hooks/useApp';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { DeliveryTokenStep } from './steps/DeliveryTokenStep/DeliveryTokenStep';
 
 const modalName = ModalName.AddNewDevice;
 
@@ -29,6 +33,16 @@ type DeliveryMethod = 'email' | 'manual';
 export const AddNewDeviceModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [enrollmentData, setEnrollmentData] = useState<StartEnrollmentResponse | null>(null);
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const handleAfterClose = () => {
+    setUser(null);
+    setEnrollmentData(null);
+  };
 
   useEffect(() => {
     const openSub = subscribeOpenModal(modalName, (data) => {
@@ -47,25 +61,66 @@ export const AddNewDeviceModal = () => {
       id="add-new-device-modal"
       title={m.modal_add_new_device_title()}
       isOpen={isOpen}
-      onClose={() => setOpen(false)}
-      afterClose={() => {
-        setUser(null);
-        setOpen(false);
-      }}
+      onClose={handleClose}
+      afterClose={handleAfterClose}
     >
-      {isPresent(user) && <EnrollmentChoice onClose={() => setOpen(false)} user={user} />}
+      {isPresent(enrollmentData) ? (
+        <DeliveryTokenStep enrollmentData={enrollmentData} onClose={handleClose} />
+      ) : (
+        isPresent(user) && (
+          <EnrollmentChoice
+            onClose={handleClose}
+            user={user}
+            onEnrollmentReady={setEnrollmentData}
+          />
+        )
+      )}
     </Modal>
   );
 };
 
-const EnrollmentChoice = ({ onClose, user }: { onClose: () => void; user: User }) => {
+const EnrollmentChoice = ({
+  onClose,
+  user,
+  onEnrollmentReady,
+}: {
+  onClose: () => void;
+  user: User;
+  onEnrollmentReady: (data: StartEnrollmentResponse) => void;
+}) => {
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
   const [selected, setSelected] = useState<DeliveryMethod | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
+  const { mutateAsync: startClientActivation, isPending } = useMutation({
+    mutationFn: api.user.startClientActivation,
+    onError: (error) => {
+      Snackbar.error(m.failed_to_start_enrollment());
+      console.error(error);
+    },
+  });
+
   const form = useAppForm({
     defaultValues: {
       email: user.email ?? '',
+    },
+    onSubmit: async ({ value }) => {
+      if (!isPresent(selected)) return;
+      if (selected === 'manual') {
+        const { data } = await startClientActivation({
+          username: user.username,
+          send_enrollment_notification: false,
+        });
+        onEnrollmentReady(data);
+      } else {
+        await startClientActivation({
+          username: user.username,
+          send_enrollment_notification: true,
+          email: value.email,
+        });
+        Snackbar.success(m.sucessfull_enrollment_email());
+        onClose();
+      }
     },
   });
 
@@ -114,7 +169,7 @@ const EnrollmentChoice = ({ onClose, user }: { onClose: () => void; user: User }
         data-testid="add-new-device-manually"
         onClick={() => setSelected('manual')}
       />
-      {submitAttempted && selected === null && (
+      {submitAttempted && !isPresent(selected) && (
         <>
           <SizedBox height={ThemeSpacing.Sm} />
           <FieldError error={m.modal_add_new_device_error_no_option()} />
@@ -127,10 +182,11 @@ const EnrollmentChoice = ({ onClose, user }: { onClose: () => void; user: User }
         }}
         submitProps={{
           text: m.controls_submit(),
+          loading: isPending,
           onClick: () => {
             setSubmitAttempted(true);
-            if (selected === null) return;
-            // next step will be implemented here
+            if (!isPresent(selected)) return;
+            form.handleSubmit();
           },
         }}
       />

@@ -1,0 +1,42 @@
+@use '@scssutils' as *;
+
+#add-new-device-delivery-step {
+  .section-title {
+    font: var(--t-body-sm-500);
+  }
+
+  .section-subtitle {
+    font: var(--t-body-sm-400);
+    color: var(--fg-muted);
+    padding-top: var(--spacing-xs);
+  }
+
+  .download-pdf {
+    padding-bottom: var(--spacing-lg);
+  }
+
+  .share-credentials {
+    padding: var(--spacing-lg) 0;
+  }
+
+  .qr-section {
+    display: grid;
+    grid-template-columns: 165px 1fr;
+    align-items: center;
+    column-gap: var(--spacing-4xl);
+    padding: var(--spacing-lg) 0;
+
+    .mobile-download {
+      & > p {
+        font: var(--t-body-sm-400);
+        color: var(--fg-neutral);
+      }
+
+      .links {
+        display: flex;
+        flex-flow: row wrap;
+        gap: var(--spacing-md);
+      }
+    }
+  }
+}
