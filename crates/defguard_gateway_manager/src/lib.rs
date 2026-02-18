@@ -43,23 +43,17 @@ pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
     pool: PgPool,
     handlers: JoinSet<Result<(), GatewayError>>,
-    // TODO(jck) GatewayTxSet
-    events_tx: Sender<GatewayEvent>,
-    peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+    tx: GatewayTxSet,
 }
 
 impl GatewayManager {
-    pub fn new(
-        pool: PgPool,
-        events_tx: Sender<GatewayEvent>,
-        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
-    ) -> Self {
+    #[must_use]
+    pub fn new(pool: PgPool, tx: GatewayTxSet) -> Self {
         Self {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
-            events_tx,
-            peer_stats_tx,
+            tx,
         }
     }
 
@@ -179,8 +173,8 @@ impl GatewayManager {
         let mut gateway_handler = GatewayHandler::new(
             gateway,
             self.pool.clone(),
-            self.events_tx.clone(),
-            self.peer_stats_tx.clone(),
+            self.tx.events.clone(),
+            self.tx.peer_stats.clone(),
             certs_rx.clone(),
         )?;
         let abort_handle = self.handlers.spawn(async move {
@@ -195,5 +189,23 @@ impl GatewayManager {
             }
         });
         Ok(abort_handle)
+    }
+}
+
+/// Shared set of outbound channels that gateway instances use to forward
+/// events, notifications, and side effects to Core components.
+#[derive(Clone)]
+pub struct GatewayTxSet {
+    events: Sender<GatewayEvent>,
+    peer_stats: UnboundedSender<PeerStatsUpdate>,
+}
+
+impl GatewayTxSet {
+    #[must_use]
+    pub const fn new(
+        events: Sender<GatewayEvent>,
+        peer_stats: UnboundedSender<PeerStatsUpdate>,
+    ) -> Self {
+        Self { events, peer_stats }
     }
 }
