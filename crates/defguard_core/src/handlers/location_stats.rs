@@ -174,7 +174,7 @@ pub(crate) async fn location_connected_users(
     })
 }
 
-/// Returns paginated list of connected users for a given location
+/// Returns paginated list of connected network devices for a given location
 ///
 /// # Returns
 /// Returns a paginated list of `LocationConnectedNetworkDevice` objects for requested location and time period
@@ -197,7 +197,15 @@ pub(crate) async fn location_connected_network_devices(
     let from = query_from.parse_timestamp()?.naive_utc();
     let aggregation = get_aggregation(from)?;
 
-    let (connected_network_devices, total_items) = todo!();
+    let (connected_network_devices, total_items) = location
+        .connected_network_devices_stats(
+            &appstate.pool,
+            &from,
+            &aggregation,
+            pagination.page,
+            DEFAULT_API_PAGE_SIZE,
+        )
+        .await?;
 
     let pagination =
         PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
