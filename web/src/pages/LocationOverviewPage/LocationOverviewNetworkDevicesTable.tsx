@@ -9,6 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import api from '../../shared/api/api';
 import type { LocationConnectedNetworkDevice } from '../../shared/api/types';
+import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -24,7 +25,7 @@ export const LocationOverviewNetworkDevicesTable = () => {
     from: '/_authorized/_default/vpn-overview/$locationId',
   });
 
-  const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['network', Number(locationId), 'stats', 'connected_network_devices'],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
@@ -125,6 +126,8 @@ export const LocationOverviewNetworkDevicesTable = () => {
     enableRowSelection: false,
     columnResizeMode: 'onChange',
   });
+
+  if (isLoading) return <TableSkeleton />;
 
   if (flatData.length === 0)
     return (

@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from 'react';
 import api from '../../shared/api/api';
 import type { LocationConnectedUser } from '../../shared/api/types';
+import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -36,7 +37,7 @@ export const LocationOverviewUsersTable = () => {
     from: '/_authorized/_default/vpn-overview/$locationId',
   });
 
-  const { data, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['network', Number(locationId), 'stats', 'connected_users'],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
@@ -187,6 +188,8 @@ export const LocationOverviewUsersTable = () => {
     enableRowSelection: false,
     columnResizeMode: 'onChange',
   });
+
+  if (isLoading) return <TableSkeleton />;
 
   if (flatData.length === 0)
     return (
