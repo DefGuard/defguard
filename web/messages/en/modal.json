@@ -131,10 +131,5 @@
   "modal_ce_webhook_events_text": "",
   "modal_assign_users_groups_title": "Assign groups to selected users",
   "modal_add_new_device_error_no_option": "Please select at least one option",
-  "modal_add_new_device_delivery_title": "Share activation credentials",
-  "modal_add_new_device_delivery_subtitle": "Share the following URL and token with the user to configure their Defguard desktop or mobile client.",
-  "modal_add_new_device_delivery_download_pdf": "Download instructions (PDF)",
-  "modal_add_new_device_delivery_pdf_title": "Download file with activation instructions",
-  "modal_add_new_device_delivery_pdf_subtitle": "Download the file with user's personalized instructions and activation data.",
-  "modal_add_new_device_delivery_qr_scan": "Scan QR code bellow to activate Defguard mobile application. If you haven't installed the mobile app, click one of the buttons bellow."
+  "modal_add_new_device_delivery_title": "Share activation credentials"
 }

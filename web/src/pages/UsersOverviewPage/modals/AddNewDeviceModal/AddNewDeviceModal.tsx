@@ -1,6 +1,7 @@
 import './style.scss';
-import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import type { StartEnrollmentResponse, User } from '../../../../shared/api/types';
@@ -10,6 +11,7 @@ import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import {
   TextStyle,
   ThemeSpacing,
@@ -17,13 +19,13 @@ import {
 } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
 import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../shared/hooks/useApp';
-import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { DeliveryTokenStep } from './steps/DeliveryTokenStep/DeliveryTokenStep';
 
 const modalName = ModalName.AddNewDevice;
@@ -33,7 +35,9 @@ type DeliveryMethod = 'email' | 'manual';
 export const AddNewDeviceModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [enrollmentData, setEnrollmentData] = useState<StartEnrollmentResponse | null>(null);
+  const [enrollmentData, setEnrollmentData] = useState<StartEnrollmentResponse | null>(
+    null,
+  );
 
   const handleClose = () => {
     setOpen(false);
@@ -100,9 +104,38 @@ const EnrollmentChoice = ({
     },
   });
 
+  const formSchema = useMemo(
+    () =>
+      z
+        .object({
+          email: z.string(),
+        })
+        .superRefine((values, ctx) => {
+          if (selected === 'email') {
+            const result = z
+              .email(m.form_error_email())
+              .min(1, m.form_error_required())
+              .safeParse(values.email);
+            if (!result.success) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['email'],
+                message: result.error.issues[0].message,
+              });
+            }
+          }
+        }),
+    [selected],
+  );
+
   const form = useAppForm({
     defaultValues: {
       email: user.email ?? '',
+    },
+    validationLogic: formChangeLogic,
+    validators: {
+      onSubmit: formSchema,
+      onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
       if (!isPresent(selected)) return;
@@ -123,6 +156,12 @@ const EnrollmentChoice = ({
       }
     },
   });
+
+  useEffect(() => {
+    if (!form.state.isPristine) {
+      form.validateAllFields('change');
+    }
+  }, [form]);
 
   return (
     <>
