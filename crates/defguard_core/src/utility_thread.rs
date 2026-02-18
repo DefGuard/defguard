@@ -20,7 +20,7 @@ use crate::{
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
-    grpc::gateway::events::GatewayEvent,
+    grpc::GatewayEvent,
     location_management::allowed_peers::get_location_allowed_peers,
     updates::do_new_version_check,
 };

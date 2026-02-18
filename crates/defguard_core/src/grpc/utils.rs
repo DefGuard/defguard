@@ -7,7 +7,6 @@ use defguard_common::{
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
             device::WireguardNetworkDevice,
-            polling_token::PollingToken,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
@@ -24,47 +23,8 @@ use crate::{
     enterprise::db::models::{
         enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
     },
-    grpc::{client_version::ClientFeature, gateway::should_prevent_service_location_usage},
+    grpc::{client_version::ClientFeature, should_prevent_service_location_usage},
 };
-
-// Create a new token for configuration polling.
-pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<String, Status> {
-    debug!(
-        "Making a new polling token for device {}",
-        device.wireguard_pubkey
-    );
-    let mut transaction = pool.begin().await.map_err(|err| {
-        error!("Failed to start transaction while making a new polling token: {err}");
-        Status::internal(format!("unexpected error: {err}"))
-    })?;
-
-    // 1. Delete existing polling token for the device, if it exists
-    // 2. Create a new polling token for the device
-    PollingToken::delete_for_device_id(&mut *transaction, device.id)
-        .await
-        .map_err(|err| {
-            error!("Failed to delete polling token: {err}");
-            Status::internal(format!("unexpected error: {err}"))
-        })?;
-    let new_token = PollingToken::new(device.id)
-        .save(&mut *transaction)
-        .await
-        .map_err(|err| {
-            error!("Failed to save new polling token: {err}");
-            Status::internal(format!("unexpected error: {err}"))
-        })?;
-
-    transaction.commit().await.map_err(|err| {
-        error!("Failed to commit transaction while making a new polling token: {err}");
-        Status::internal(format!("unexpected error: {err}"))
-    })?;
-    info!(
-        "New polling token created for device {}",
-        device.wireguard_pubkey
-    );
-
-    Ok(new_token.token)
-}
 
 pub async fn build_device_config_response(
     pool: &PgPool,

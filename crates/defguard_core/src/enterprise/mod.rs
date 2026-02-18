@@ -34,35 +34,10 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
     // get current object counts
     let counts = get_counts();
 
-    // only check license if object count exceed free limit
-    if counts.needs_paid_license() {
-        debug!("User is over limit, checking his license");
-        let license = get_cached_license();
-        let validation_result = validate_license(license.as_ref(), &counts, tier);
-        debug!("License validation result: {:?}", validation_result);
-        validation_result.is_ok()
-    } else {
-        debug!("User is not over limit, allowing {tier} tier features");
-        true
-    }
-}
-
-// Is it the free version of the enterprise?
-// Free = no valid license + not over the limit
-// Paid = valid license or over the limit
-pub(crate) fn is_enterprise_free() -> bool {
-    debug!("Checking if enterprise features are a part of the free version");
-    let counts = get_counts();
     let license = get_cached_license();
-    if validate_license(license.as_ref(), &counts, LicenseTier::Business).is_ok() {
-        false
-    } else if counts.needs_paid_license() {
-        debug!("User is over limit, the enterprise features are not free");
-        false
-    } else {
-        debug!("User is not over limit, the enterprise features are free");
-        true
-    }
+    let validation_result = validate_license(license.as_ref(), &counts, tier);
+    debug!("License validation result: {validation_result:?}");
+    validation_result.is_ok()
 }
 
 #[cfg(test)]
@@ -71,7 +46,7 @@ mod test {
 
     use crate::{
         enterprise::{
-            is_business_license_active, is_enterprise_free, is_enterprise_license_active,
+            is_business_license_active, is_enterprise_license_active,
             license::{License, LicenseTier, set_cached_license},
             limits::{Counts, set_counts},
         },
@@ -82,21 +57,11 @@ mod test {
     fn test_feature_gates_no_license() {
         set_cached_license(None);
 
-        // free limits are not exceeded
         let counts = Counts::new(1, 1, 1, 1);
-        set_counts(counts);
-
-        assert!(is_business_license_active());
-        assert!(is_enterprise_license_active());
-        assert!(is_enterprise_free());
-
-        // exceed free limits
-        let counts = Counts::new(1, 1, 5, 1);
         set_counts(counts);
 
         assert!(!is_business_license_active());
         assert!(!is_enterprise_license_active());
-        assert!(!is_enterprise_free());
     }
 
     #[test]
@@ -129,7 +94,6 @@ mod test {
 
         assert!(is_business_license_active());
         assert!(!is_enterprise_license_active());
-        assert!(!is_enterprise_free());
 
         // set Enterprise license
         let users_limit = 15;
@@ -155,6 +119,5 @@ mod test {
 
         assert!(is_business_license_active());
         assert!(is_enterprise_license_active());
-        assert!(!is_enterprise_free());
     }
 }

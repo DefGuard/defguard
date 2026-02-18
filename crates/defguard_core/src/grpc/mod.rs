@@ -5,18 +5,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use defguard_common::{
-    auth::claims::ClaimsType,
-    db::{Id, models::Settings},
-    types::UrlParseError,
-};
-use reqwest::Url;
-use serde::Serialize;
-use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedSender;
-use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
-
-use self::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
@@ -25,15 +13,31 @@ use crate::{
             enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
             openid_provider::OpenIdProvider,
         },
-        is_business_license_active,
+        is_business_license_active, is_enterprise_license_active,
     },
-    server_config,
+    grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
 };
+use defguard_common::{
+    auth::claims::ClaimsType,
+    config::server_config,
+    db::{
+        Id,
+        models::{
+            Device, Settings, WireguardNetwork,
+            device::{DeviceInfo, WireguardNetworkDevice},
+            wireguard::ServiceLocationMode,
+        },
+    },
+    types::UrlParseError,
+};
+use reqwest::Url;
+use serde::Serialize;
+use sqlx::PgPool;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 mod auth;
 pub mod client_version;
-pub mod gateway;
-mod interceptor;
+pub mod interceptor;
 pub mod proxy;
 pub mod utils;
 pub mod worker;
@@ -47,16 +51,16 @@ pub mod proto {
 }
 
 use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer,
-    worker::worker_service_server::WorkerServiceServer,
+    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig,
+    gateway::Peer, worker::worker_service_server::WorkerServiceServer,
 };
+use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
 // gRPC header for passing auth token from clients
 pub static AUTHORIZATION_HEADER: &str = "authorization";
 
 // gRPC header for passing hostname from clients
 pub static HOSTNAME_HEADER: &str = "hostname";
-
 const TEN_SECS: Duration = Duration::from_secs(10);
 
 /// Runs gRPC server with core services.
@@ -91,7 +95,7 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-pub async fn build_grpc_service_router(
+pub(crate) async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
@@ -211,4 +215,48 @@ impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
             openid_display_name: instance.openid_display_name,
         }
     }
+}
+
+// TODO: move this to common crate
+#[derive(Clone, Debug)]
+pub enum GatewayEvent {
+    NetworkCreated(Id, WireguardNetwork<Id>),
+    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
+    NetworkDeleted(Id, String),
+    DeviceCreated(DeviceInfo),
+    DeviceModified(DeviceInfo),
+    DeviceDeleted(DeviceInfo),
+    FirewallConfigChanged(Id, FirewallConfig),
+    FirewallDisabled(Id),
+    MfaSessionAuthorized(Id, Device<Id>, WireguardNetworkDevice),
+    MfaSessionDisconnected(Id, Device<Id>),
+}
+
+/// Sends given `GatewayEvent` to be handled by gateway GRPC server
+///
+/// If you want to use it inside the API context, use [`crate::AppState::send_wireguard_event`] instead
+pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
+    debug!("Sending the following WireGuard event to Defguard Gateway: {event:?}");
+    if let Err(err) = wg_tx.send(event) {
+        error!("Error sending WireGuard event {err}");
+    }
+}
+
+/// Sends multiple events to be handled by gateway gRPC server.
+///
+/// If you want to use it inside the API context, use [`crate::AppState::send_multiple_wireguard_events`] instead
+pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<GatewayEvent>) {
+    debug!("Sending {} WireGuard events", events.len());
+    for event in events {
+        send_wireguard_event(event, wg_tx);
+    }
+}
+
+/// If this location is marked as a service location, checks if all requirements are met for it to
+/// function:
+/// - Enterprise is enabled
+#[must_use]
+pub fn should_prevent_service_location_usage(location: &WireguardNetwork<Id>) -> bool {
+    location.service_location_mode != ServiceLocationMode::Disabled
+        && !is_enterprise_license_active()
 }

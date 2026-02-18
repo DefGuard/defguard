@@ -125,4 +125,12 @@
     font: var(--t-body-sm-500);
     color: inherit;
   }
+
+  .right {
+    margin-left: auto;
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center;
+  }
 }

@@ -14,7 +14,7 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{ldap::LDAPConnection, license::update_cached_license},
+    enterprise::{handlers::LicenseInfo, ldap::LDAPConnection, license::update_cached_license},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };
@@ -163,7 +163,7 @@ pub async fn patch_settings(
     Ok(ApiResponse::default())
 }
 
-pub async fn test_ldap_settings(_admin: AdminRole) -> ApiResult {
+pub async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
     debug!("Testing LDAP connection");
     match LDAPConnection::create().await {
         Ok(_) => {

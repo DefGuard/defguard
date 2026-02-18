@@ -21,7 +21,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    grpc::gateway::events::GatewayEvent,
+    grpc::GatewayEvent,
     handlers::{ApiResponse, ApiResult},
 };
 

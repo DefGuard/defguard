@@ -23,17 +23,14 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent},
-    grpc::{
-        WorkerState,
-        gateway::{events::GatewayEvent, run_grpc_gateway_stream},
-        run_grpc_server,
-    },
+    grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
+use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
 use defguard_setup::setup::run_setup_web_server;
@@ -175,22 +172,22 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
-    let proxy_tx = ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone());
     let proxy_manager = ProxyManager::new(
         pool.clone(),
-        proxy_tx,
+        ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone()),
         Arc::clone(&incompatible_components),
         proxy_control_rx,
+    );
+
+    let mut gateway_manager = GatewayManager::new(
+        pool.clone(),
+        GatewayTxSet::new(gateway_tx.clone(), peer_stats_tx),
     );
 
     // run services
     tokio::select! {
         res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
-        res = run_grpc_gateway_stream(
-            pool.clone(),
-            gateway_tx.clone(),
-            peer_stats_tx,
-        ) => error!("Gateway gRPC stream returned early: {res:?}"),
+        res = gateway_manager.run() => error!("GatewayManager returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),

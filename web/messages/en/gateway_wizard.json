@@ -11,7 +11,7 @@
   "gateway_setup_welcome_title": "Deploy your Gateway component",
   "gateway_setup_welcome_subtitle": "Welcome to the Gateway component Setup Wizard. This guide will help you deploy the Gateway required for secure and reliable VPN communication.",
   "gateway_setup_welcome_deploy_title": "Deploy Gateway component first",
-  "gateway_setup_welcome_deploy_subtitle": "Make sure your Gateway Component is deployed. If it's already in place, click the button bellow to configure it in the following steps — otherwise deploy it first and return to this wizard.",
+  "gateway_setup_welcome_deploy_subtitle": "Make sure your Gateway Component is deployed. If it's already in place, click the button below to configure it in the following steps — otherwise deploy it first and return to this wizard.",
   "gateway_setup_welcome_docs_text": "Before installation, we recommend reading our documentation to understand the system architecture and core components.",
   "gateway_setup_welcome_image_alt": "Welcome to Gateway component setup wizard",
   "gateway_setup_controls_configure": "Configure gateway",

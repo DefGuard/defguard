@@ -36,6 +36,21 @@ pub mod sync;
 pub mod test_client;
 pub mod utils;
 
+#[cfg(test)]
+fn set_test_license_business() {
+    use crate::enterprise::license::set_cached_license;
+
+    let license = crate::enterprise::license::License {
+        customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
+        limits: None,
+        subscription: false,
+        tier: crate::enterprise::license::LicenseTier::Enterprise,
+        valid_until: None,
+        version_date_limit: None,
+    };
+    set_cached_license(Some(license));
+}
+
 /// Performs LDAP synchronization if enabled and enterprise features are available.
 ///
 /// This function may trigger either full and incremental sync based on the current sync status.

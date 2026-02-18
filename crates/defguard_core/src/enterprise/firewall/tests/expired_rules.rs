@@ -7,11 +7,12 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::enterprise::{
     db::models::acl::{AclRule, AclRuleNetwork, RuleState},
-    firewall::try_get_location_firewall_config,
+    firewall::{tests::set_test_license_business, try_get_location_firewall_config},
 };
 
 #[sqlx::test]
 async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
     // Create test location
     let location = WireguardNetwork {
@@ -78,6 +79,7 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
 
 #[sqlx::test]
 async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
     // Create test location
     let location = WireguardNetwork {
@@ -145,6 +147,7 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
 
 #[sqlx::test]
 async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
     // Create test location
     let location = WireguardNetwork {

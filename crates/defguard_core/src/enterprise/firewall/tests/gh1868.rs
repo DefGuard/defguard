@@ -15,7 +15,7 @@ use sqlx::{
 
 use crate::enterprise::{
     db::models::acl::{AclRule, RuleState},
-    firewall::try_get_location_firewall_config,
+    firewall::{tests::set_test_license_business, try_get_location_firewall_config},
 };
 
 async fn setup_user_and_device(
@@ -78,6 +78,7 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 
@@ -140,6 +141,7 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();
@@ -201,6 +203,7 @@ async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();

@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use defguard_core::{
     events::{ApiEvent, BidiStreamEvent},
-    grpc::gateway::events::GatewayEvent,
+    grpc::GatewayEvent,
 };
 use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 use defguard_session_manager::events::SessionManagerEvent;

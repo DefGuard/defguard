@@ -5,7 +5,7 @@ edition = "2024"
 license-file = "../../LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
-rust-version = "1.85.1"
+rust-version = "1.87.0"
 
 [dependencies]
 defguard_common = { workspace = true }

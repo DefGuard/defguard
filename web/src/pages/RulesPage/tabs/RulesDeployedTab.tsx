@@ -41,7 +41,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
     [navigate, licenseFetching, licenseInfo],
   );
 
-  const { aliases, groups, locations, users, devices, loading } = useRuleDeps();
+  const { aliases, groups, locations, users, devices, license, loading } = useRuleDeps();
 
   return (
     <>
@@ -49,7 +49,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
         <EmptyStateFlexible
           icon="rules"
           title={`You don't have any firewall rules yet.`}
-          subtitle={`Click the first rule by clicking button bellow.`}
+          subtitle={`Click the first rule by clicking button below.`}
           primaryAction={buttonProps}
         />
       )}
@@ -59,7 +59,8 @@ export const RulesDeployedTab = ({ rules }: Props) => {
         isPresent(groups) &&
         isPresent(locations) &&
         isPresent(users) &&
-        isPresent(devices) && (
+        isPresent(devices) &&
+        isPresent(license) && (
           <RulesTable
             title="Deployed rules"
             buttonProps={buttonProps}
@@ -69,6 +70,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
             devices={devices}
             users={users}
             locations={locations}
+            license={license}
             enableSearch
           />
         )}

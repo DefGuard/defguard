@@ -31,7 +31,7 @@ export const TableSkeleton = () => {
           minHeight: minHeight ?? initHeight,
         }}
       >
-        <Skeleton />
+        <Skeleton height={minHeight ?? 0} />
       </div>
     </div>
   );

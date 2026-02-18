@@ -225,8 +225,9 @@ async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    // GET should be allowed
     let response = client.get("/api/v1/acl/rule").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert_eq!(response.status(), StatusCode::OK);
     let response = client.delete("/api/v1/acl/rule/1").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
@@ -321,8 +322,9 @@ async fn test_alias_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    // GET should be allowed
     let response = client.get("/api/v1/acl/alias").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert_eq!(response.status(), StatusCode::OK);
     let response = client.delete("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 

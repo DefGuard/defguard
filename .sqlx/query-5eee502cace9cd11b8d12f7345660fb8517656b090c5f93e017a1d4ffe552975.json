@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"has_certificate\",\"certificate_expiry\",\"version\",\"name\" FROM \"gateway\" WHERE id = $1",
+  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"certificate\",\"certificate_expiry\",\"version\",\"name\" FROM \"gateway\"",
   "describe": {
     "columns": [
       {
@@ -35,8 +35,8 @@
       },
       {
         "ordinal": 6,
-        "name": "has_certificate",
-        "type_info": "Bool"
+        "name": "certificate",
+        "type_info": "Text"
       },
       {
         "ordinal": 7,
@@ -55,9 +55,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -66,11 +64,11 @@
       true,
       true,
       true,
-      false,
+      true,
       true,
       true,
       false
     ]
   },
-  "hash": "b43694450d7abe3b93ea88fa7c95c38d3e2deb43d5ca3458724deb3ead69389a"
+  "hash": "5eee502cace9cd11b8d12f7345660fb8517656b090c5f93e017a1d4ffe552975"
 }

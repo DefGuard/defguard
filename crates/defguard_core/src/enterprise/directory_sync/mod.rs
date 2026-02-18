@@ -29,7 +29,7 @@ use crate::{
             utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
         },
     },
-    grpc::gateway::events::GatewayEvent,
+    grpc::GatewayEvent,
     handlers::user::check_username,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };

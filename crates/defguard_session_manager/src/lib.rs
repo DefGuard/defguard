@@ -12,7 +12,7 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_core::grpc::gateway::events::GatewayEvent;
+use defguard_core::grpc::GatewayEvent;
 use sqlx::{PgConnection, PgPool};
 use tokio::{
     sync::{

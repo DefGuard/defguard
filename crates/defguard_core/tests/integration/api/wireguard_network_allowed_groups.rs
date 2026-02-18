@@ -9,7 +9,7 @@ use defguard_common::{
     },
 };
 use defguard_core::{
-    grpc::gateway::events::GatewayEvent,
+    grpc::GatewayEvent,
     handlers::{Auth, wireguard::ImportedNetworkData},
     location_management::allowed_peers::get_location_allowed_peers,
 };

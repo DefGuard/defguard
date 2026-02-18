@@ -4,6 +4,7 @@ import {
   getAppliedAliasesQueryOptions,
   getAppliedDestinationsQueryOptions,
   getGroupsInfoQueryOptions,
+  getLicenseInfoQueryOptions,
   getLocationsQueryOptions,
   getNetworkDevicesQueryOptions,
   getUsersQueryOptions,
@@ -11,6 +12,9 @@ import {
 import { resourceById } from '../../shared/utils/resourceById';
 
 export const useRuleDeps = () => {
+  const { data: licenseInfo, isLoading: licenseLoading } = useQuery(
+    getLicenseInfoQueryOptions,
+  );
   const { data: aliases, isLoading: aliasesLoading } = useQuery(
     getAppliedAliasesQueryOptions,
   );
@@ -40,12 +44,14 @@ export const useRuleDeps = () => {
       locationsLoading ||
       usersLoading ||
       devicesLoading ||
-      destinationsLoading,
+      destinationsLoading ||
+      licenseLoading,
     aliases: aliasesById,
     groups: groupsById,
     locations: locationsById,
     users: usersById,
     devices: devicesById,
     destinations: destinationsById,
+    license: licenseInfo,
   };
 };

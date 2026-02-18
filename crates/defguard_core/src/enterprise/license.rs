@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Duration};
+use std::{fmt, time::Duration};
 
 use anyhow::Result;
 use base64::prelude::*;
@@ -35,143 +35,7 @@ global_value!(
 );
 
 #[cfg(not(test))]
-pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
-
-mQINBGbQi9EBEAC7eeWSO6xN3nJC1axoySCrBzj6sbausKVW8opkGI3zRJ3hT6Bg
-yXkNm/DyPN1r3yRtkz49PrWtk2dmZHI65Zi/SRN9NyWAfwqMg/GFkL9TOPAUokAq
-H5nmkA333maIOl2GMorq3hrLYJbkFP0U3UJ7Sp6MUxOejNhYFCg1h/5ibopUtDpA
-pIBv14vKtAzTATvsGdU8yT4ryr7VkatsF3FU76vbc6SwdRZLiBGYO2OfnFawIh3V
-hjUJbegUHBZfpfaLpznuNYnjhuzy4oUchBOagBh7WhrIR7a+IQbt+wwDjMK6O+1P
-iCtYVWYXKBYpTUjvNdeyzjXpSpQKTLq1ZDdjHFX1IjikR74EZNMG8LAJcLM/5OaF
-LOUJPDE5K7Axq0zDi5kJmltiBqlaeszgWVGXysXeaAVKwk2GNiQfb8q/QX1P6asA
-0NYAIk8p5VK8Vmb7eQvK7HKTh2WSZLDfuDEKlvW6987H9+TeqkHhSTq7aO2TjIkW
-KXRvN5oH0m798JKr5tcuHvZDX7EJtRR8HQ//71ttLMeOGOQbjtPM+qFtDX8wPRm2
-vPKPZMc7gPGn+OB2e8Vb2k1irDZszLv2TieofWkaIlEkz2EuGapVkM0pJg47L0Tr
-wwb+KShUGTFreOswXzNX9bPPKpVOrnmEhr9NlP3TcN4LRQJipE+fvgIRhwARAQAB
-tC5kZWZndWFyZCBsaWNlbnNlIHNlcnZlciA8bGljZW5zZUBkZWZndWFyZC5uZXQ+
-iQJOBBMBCgA4FiEEd3NOssz+EdwiWubqUswQzCl98KYFAmbQjY0CGwEFCwkIBwIG
-FQoJCAsCBBYCAwECHgECF4AACgkQUswQzCl98KZd/w//chxENfSt2YaWPwyCWcpy
-KUUjBN5pT0A0NAAsV044uOh6PXPJ6zf2sQxOpKWMx6F+FVlcOqQDmwOSNoDoofJB
-DezLcxfKhL66HxWXZpCY1zSYIRpsBRHTA+rjJv/cHnSKiF+Ie+qHrtWshXc0Zvk4
-PtTHUFqxAdWN3crKViSFfuLqRXMKdJQKHh3iZVDOaaK6VluJAnhBTU5OS1EMTuzg
-MFmv2ekFkdWS3zoPcfZRmbj5J2/1gT1SgoG22BOFiEYKkNZducgYZ5oefIPk18v0
-TjHfecZdyg2JmwAxL65QH6OWBENywTJz8yopITbywTaASqFRIdUCX0Ls5CMm3gbK
-vvzMmrZE40cVxmvZptBDmo4gE0W1lNTlnTxqA2rA1crok1Wa8nKIVVQP/lxa49os
-5kSbIURTT6llwAFOrlBqO6KH3Ngt7CeQZ4UfjbCIcYEu9r0/POdoGfaJs0ljMnFu
-NMnPmk1b1UJYHBjNy1JHKuPOUh4UISN9CDwJALVopxqmx7EENwRYhLxGyK1VNOQo
-pHHdDqG+r8JngxNhdrkSHd0s9nBGWjZ1DWffJWEHUwILRX6SHAPLr2tH1KJ0c16Y
-aOmZSJeWATWL8ZxFyXYh2L5q7SiU+7PyzFySsNRz0ZB2lBVIOGQOjLD+jiU63G/P
-t5IR2KoQ13E0+MegjE8jJiG0LWRlZmd1YXJkIGVudGVycHJpc2UgPGVudGVycHJp
-c2VAZGVmZ3VhcmQubmV0PokCTgQTAQoAOBYhBHdzTrLM/hHcIlrm6lLMEMwpffCm
-BQJm0IvRAhsBBQsJCAcCBhUKCQgLAgQWAgMBAh4BAheAAAoJEFLMEMwpffCmOOQQ
-AK9BW2ETgaSa/b2fFSA56wWkUnZ4BNYYLF7Fvv5Y40Bs+vsUlvNdRgBQF0aJv9SP
-m6u+3rqx66CDdncG5T6/BcdBmcmEjvymXGPgLeJ/e9GO1egNrM0aMIbqDglTPkcc
-7CcisjxeF6GCRljD+x/ApnzPrpdaeszLVfRrZqyy/pawahmGI8wgBZapvHOUZyeq
-Pci3RVV5I2QjAkle9/k9mBevXpBGhv4PAY8ZzlM60Xli7yWbqh4XAgJEFpH7cXXc
-LMHgx37XcR6wJPQVfpeEuWyedQOPdNGMKQR8wdq7mrcWMEmP6cGGyibQW8TRn+Iu
-Ei7t/PqYqLp+baReNolPzUdEqk5IwKHZjV9a3DhuTNysutMliEeFBFyQYtk7wZsA
-ClwR2wsyJiMdsWpC1jQbtz5e4OZNP96K+mH/dxp7K+TdyX4mTg0uWqUuk4jUAxAh
-zI8CwyK7sqZXGPt31tWPxoIt6SnyDssPZ2c32q6YR8jb/C8aF3o1rqxPo7aOqV2I
-Px9F1+IUI1i8tqj23a697upFCcjfyARLray38JkaO9F8o1EhAwr04YA+XDbQyV6g
-pZbkvmjPsVFPT9DjKArAqdIgSreLv5tjcTsxzXfbv1GmsXNTwSbPHuUMGXcCeWym
-8aktXWM4+jrylRQvUNbAFJHmsXgiWVoqpe0gaxjIDFcTtDFkZWZndWFyZCBzdWJz
-Y3JpcHRpb24gPHN1YnNjcmlwdGlvbkBkZWZndWFyZC5uZXQ+iQJOBBMBCgA4FiEE
-d3NOssz+EdwiWubqUswQzCl98KYFAmbQjhcCGwEFCwkIBwIGFQoJCAsCBBYCAwEC
-HgECF4AACgkQUswQzCl98KYxBA/9GmCqitXmajxc01k0g5xXUBvPcl9D9Mb70c0t
-J4dI/9/wrp9ZwKh2p93A2BZjphkahIHsAiqCjB1hjwJbABKnAISztkGLOkJEUKEq
-UEVYdDEyEC2H8hP6ub7Zch2rPZa8TuGWh1hFB59/Cr5P6MTmUABW6zSoeN1otaUo
-tqLaNHoI/IsY2fP4VanmSyA6vOT2cYjZVKxqDQjbCft1NnCdbmTiDG11cqRATTQ1
-+fyW7ygCfBSrkXqQuoeYlxX6joPW8nm2OoDA5f/TeqjFj8y5b/Wi6SlVnbOSSM8K
-AluYD/XvFP+iPzKXJZXinN6M8Cbe9OIFlICZUzd31RPzpCK/rw68BhT1ikydBSYk
-x73lT7G8fjRm3jviX8hXJ6qzcsSyfAe/GKMxG/TqcDvlW98O9BB3jih2r1+5FubT
-QYCD7KsiaveDzy9SU3Wiah2zoJTuP80uFwSYgC1krkhpzjtUIohpqVH/KLlKUPTp
-E/40S4rTyf+eAg76HegBt83AxABLpduFSufcgJ0S8A8/Z7/Aa3/Nx+MjMtdusKOP
-UlnOrQ4g41/Cox4Q8sZCjsi1pz/upqT92bDqixmT7KU79OE4AYYJ7uJ1J5AzRIit
-jzxLRvFAJcZUS/TBEgYlXosJ32gci08TuoNKUKxhFKI1rwQvPvlhAOIaJkMmlHld
-YhDCAa65Ag0EZtCMBQEQAPJ3JQZTskkqdswT22vUUJEPba8Fxb3nHjGRDesTMx7j
-uEADCjAT4k1iqsUIsTy6L3SX74k0dHssc/zCL5aIFCPakPtgcKZnQqT+Eh3kh4/T
-+TQFMThqUMRYpkQoNLURJQd6X6kZLpcry+IlbwTNEMqdqNeVGM5PCN8Kyt+Q+Zbt
-SauoB9E7XMRhIhAnR5kuTDEOHKOW9wajFhC9swNR/ZHZH5GNwXPI5SGSGsqHzBnN
-VE6Y94+fvCdcqVwkJ0uMkO6AXg7/kHjlyMXQirouRhRK2HnzqTsK84ER0NwH+ACT
-aGa/ySkjIaF6svn0vLapjPcQKivHilTJubO8lHTMqD27VAX0Jwm+dbfPd8b1vwvQ
-TJwIvbRlq3x+vSBr4HkBaKzcqg81SYHoZcVoAkOh3BvkBMAViuyXY8KUncqmLamt
-wJhN0lt32dZ3121WnIEUGSSpJ4/FlQ3XUiBwxUUV/Q4wol+Cyyx5QWJWPnR/0kya
-qVj1gLT0RFZOlqf58/garcDRcF8cahGLb/6ypb4PsL4wd+KX0cfFQclG2Z1E9YMl
-/XDjfw55oeIO4evLFSWKQJg8lH8u0pxdXKsBi034K/kxgYzz1wCRHjeRRCL5mm6V
-QB8C/6kcnGsQ43v/62eSXQu2wAiuyJK+JMfUwGGCfWAhb5mGQgOVCu6ZXYolTA2f
-ABEBAAGJBHIEGAEKACYWIQR3c06yzP4R3CJa5upSzBDMKX3wpgUCZtCMBQIbAgUJ
-EswDAAJACRBSzBDMKX3wpsF0IAQZAQoAHRYhBFVYRcjAloCvOmdJ42ryZ3P4wdRE
-BQJm0IwFAAoJEGryZ3P4wdRE4wsP/jvKrJlW5jLQxITA7uLOfWCE6+HfSKZZ8a+w
-v4mRaEI/fBcPif2SBqrTOgfjMZi02HoDFJROzx+IEwegK2DQxjCDjUOyw+fhrIGW
-9EAcYhjki1DF/IFs/vioZ/oJoQDQnZ36n28sG8mB3YNwABGPOqRThVBxitDD0tfC
-RJxHtCHD/g54t2nSIxh0stFca0sF5u9OyNNAggBBWOHUxGehjhRR4Blp0ByHaqxK
-k2DX93rIHr1Dbjz5nAX74Ok0ugATNB11L4MmHe4zNkqsraUFJO/8Gk7Y6sSd/9hm
-xywYDimKvyb/NIjKUINa48YjGFhX6rQYLcgPRrkWPmA6rgu+arfgRm7empatH65R
-hxJoRHsbDsQcnY+aUVoiuFa8LSIDVnq1xTDO1+y+ZwmCCkEXUpnFubfNsrrOMKmp
-qUI1GYezyX/0ZlYVtwEE7B6iEsiR1UD3OUz+inwMBw3QJ5s4q3xb1hldj1tmlDKW
-+TxMV0gs7k/zReGEQBteEr/63HCYAIrzU3gMLGuzfh50KYQ2Q/CNHd4aWYLg+GmK
-DW1IDhs5Rfd9EoRm6rUbAf4x2mo6Y8IzFIZBOlDNOq9RJP0y7vg7ZsRyhtd1h80N
-H70ieJHiaXhQlc9OYmD4/Hsmz0TIWOhcYDRljcWfO/GUHwVK+Ttfpy3Jq6tWMNoz
-0VefiztSwkUP/R2EBbpoIIk/IcuD+lkYtVJ8XiXVJF77GkD0dZRyvd6V6j4hJ8zR
-EPQu+Lp23S4V5g+nu+b2o9SnFQ8zl4v6UAtJoCOc79C8B/xT1jVCYDPscuu3B9oh
-ovH9Sqr6tQwwri2D2PnBpZfd8U5PpkByJkv8VvVybzEb4gKVfrh4zlDXYpyFBl1/
-ZLfcORnvcUnPQ/qHGBPCdrJUfFPuhO+QAmW5btTfPyQy+bMOfF3gyKl4ER1PhHJe
-l3Rxr5kl/7FfuiOfJ6IQQYkda87DLn5L838byIYmlU33IRhG4i2Q6mHbPcoNq/AR
-gR0p8cGgmTzZBXYtJd/03olYVKigDZhaUeaGLOVuEYrYoR9EtkCBeQVqkX6kAhG0
-xVLjwx3IzNRfqwnrgA2VnQUmJB6EhmVTNohkr66LVz5WJdO7wDoO3Do9vH9rqSa9
-vHoqp93zqoXULkFt5W5snJsxDGo407T/d69sjrNqW/Xzk6LIW4rFuWI3ea0kBXjb
-J+huDfRNOnSqiU3G6ojjNRvxUe+P/KTKfoJERCWMhTWjsaCWY+rHNCHkRxUHktdb
-9q4owlFpwwFoC8ga/eGd1PI9MfVWfC4YgHtuZ1YlNVNWb11zWDoIqxd053lHgCLx
-HpSHlBlRoLiwOpqmU7fnwl7QNvrmm2gvbMTqXvnrxN9D4WIvZF02uxOPuQINBGbQ
-jAcBEADz36Q9hHlmppoV9YTrZ2N4cDXz8qyG5F1q8CMRi2LCgqTfKeCxnD49Y1xz
-280jPq4yDpGWJSeGyH/PTpceveVowaMBGnwmtFVN6375oNR28NLzR0wmw5O9Fj01
-xXiwot6ft2hkJs9zQRcecydEOnlX+vgauGFU4f7ZYKnPQgiyTlA1OFRa1hqy5iZA
-mTxuVT7w6ZZ2laB3qsSuQK7FGN3NCC6Rnn7Wka4GrSkO5dSnMFrsGagTCHtbGura
-GGesUuk9+37n7XWprLgnUMvZPRogyfu7cH/teQv8E5dyHSYQd7oWipNQt3GeoSIW
-bFAWft+JsuCwMlmb4uoF/JlVvDVIdUsfa1ISPA5PJZorfLhnmNscp8LL0DvS2x6i
-HXDjOzRAszkJOhCqDwcodtdtMIokaMnCTY08R4C40T3eT1uq6Yvvih9j/0bCx56x
-7MRvMjcGS5qgNKYnibpthGYPaOIG4qWpBaDGI01iZiw15pyU0DZis1NtL7IpYLVR
-/R359IMqt0/n6ynM5UoyEcTYas5u1DXpXPlItHg1LLQM9JmCyo2+loropUBRCJ4W
-R/qUQHJwW8YLNp6q0EvdGYaFxZNejs0T2b+eiJeFPDvyiEYgcnQIrR6wujjIyy1N
-ysTli/wGJ9VZG8pAZd2+TaK79/6FsH25RlDiUAvUSu8BcH5m8QARAQABiQI8BBgB
-CgAmFiEEd3NOssz+EdwiWubqUswQzCl98KYFAmbQjAcCGwwFCRLMAwAACgkQUswQ
-zCl98KavWBAAl1K2FpnDfR/sco7s1+Twq14BDBkJvaz7bnQ/4ZASf6qT7uhiy74e
-5SGIWY1JN/KXPR43DwtUUYJUVu4XETZeWezqJ1YUg0z0eAL00vqczmQudyMD0aaR
-V18sNLypmfui0i3meXW6QRXe6I0D1GUMoia6R51sg1TRDs2TYDQem0ZDq27igEAF
-bTfLt3VkcOAKQL9bEDdH8VR95XG4IjkdjbdYnhBiwo6XLxvwh1469KCXrSbLEUeI
-bmi9ISJynYUxBJpqmBvT1j+2p8RewtoR0OCYM7AkNJkyjqxOTwr/Q6LKosuEbNrm
-YuGOl08DPG1bNfTBHw7fB7joT3iXAYj3SYb7XNbinF0bTzpfEO5HmBWobTStimP+
-GVYydAMlNKS36GykQblIAdNzA132dz9wDtEWOd8+jANSF1hK2dzmBb/YdQOAIbi/
-AN95Z/jqwKGCrCQ5n8kjFKCB8H9OD0hJrgeG7l+1bcqXpv3tf6ryKjsDvNyi/0He
-YarZNHOTqGd8r38K17yONsjXkcylx2qvMunB+wfbu6e9hHkDC4NJLWV9lFLCLJLy
-O2o7u6r32xUXEV3g8TKH5vHk+0gACSErR0OfjNcMpY+oZoDW3fFThGwbBUm5vNNF
-6VyJJn+mhW0zllGSTLmUdpmNbJE9qBltQjbX4XmvBen2UUAn1ue9PGu5Ag0EZtCM
-CAEQAK386TeL7ltMga+pQtTWeiv6pTubCLMlmtLv7X1vkZEGEj1rxEzia6HSMdYd
-lIvNX0C1+8Hm2XaZoSHR5BXGO9xluYCLFvIjmEiRRwZcjg50+Y1bpCHB6S0cx5PX
-YLopRRb9I4wpqkvqc975XSjVo8KkCcoKeXlZe1h0mf055pCe4Kpkwgr60n8oayEu
-Qqfed2wNuIfSX/28KOpTJRNk9k/3OJ+b9r/tH8zBYow+cRX7raXelPPiteO5NeNN
-0WtE/pS1PlEAsHNnCf13InmEdgQR4EkyHS3dVF1MmRrhK6Uwq46vMFmI7LB21hNm
-UwKZoMHpE3UGP1C1XKizOckDIq6xlqm+PzxnO0u4OJ8RzL85d8MoWRMVILvGptnQ
-4xHu8DdiR7J4qnufq3YFibaKvHEQVcSbnu4IerH2zbMV4g23fjoHQo68eWn5TEyV
-Kk7wVSfPiHb7j27yaKXSiQgVhNBMignnj6fJUux+iq6Mer+5OW7Z9Ihip0ZT9DfJ
-N9trWDxOe9hyXvPd2C0n0paHQYygnmZ0mkZhGGvIIraRY2qbGWY2QQFHDTY6B9Lq
-Zo8Ap0dsLGostYyHnVs/h+vb7/cgEoESwWFhv1eSFimHOG9zgTIM7ksbRLRQxyus
-5GzorNnfV2p/ZsAU6ddBt+nZsyTg+wE0cLx0QnHPW62EDPrXABEBAAGJAjwEGAEK
-ACYWIQR3c06yzP4R3CJa5upSzBDMKX3wpgUCZtCMCAIbIAUJEswDAAAKCRBSzBDM
-KX3wplZwEACtaSNkm+h1K9qGH2Y2YMhjd9bnWvkq1l7LkMEfYStUF7fkoF89xxUh
-uOs6APqaOXn95iXPRTW35MGk6LaPRyVDvq+dcCxvrx19yc3M99eTAmv2Q7Spweo3
-bptXgGaQ3PrGJUsD40QK5K/VDxyMCg7kHz4mKqaTcW7J7UN/GMpVhsRINxCNAKgn
-qivttO1qsryooeXbZ4/Mz8a9M6nbn+W+CDft4dvtsPuoTkxH6x/cY0gAFuK8r1sE
-7y9MNajX+0YlhtjtIsfkYrBIGaMPFb2xfTKX3ECXbqMJfgL6kwZ2lrFx8W4tz7uJ
-uGDWmWwVQHVlxYYt3JYBEUI8dE8Iw8BqnO6kuVQ+Y9rtleNCdeJl8C9W1vkSASvA
-IT+va8ojoJbpyU66DslU57rCPOU7BjYn3+Hd0xTJfGGk8Pv1ThHaNma3bilFZ0pR
-Bup5pIc95uOXoAAcYjz95asGWUOTOewIAPEBPw3pB5eoVn70wTkHjF8CPs8FVCmO
-Qq3OOH7lyf4d1V8ZPT0bsyNfNo32ODh1afpOsRaclzJBtiwqsKfyE8H65rt6zpJ6
-p2DXdpkvUdRO5/ZQF5Hq/VxdxYamqQQlyFbuhzSLYsPN1q3LWi8HobUeqSkaz4pV
-O/CQRZLP6BvYZvex7v3BoKUYkVAeWTGU6WCOPaGp1OxdkQYdryUg/A==
-=Xet7
------END PGP PUBLIC KEY BLOCK-----
-";
+pub(crate) const PUBLIC_KEY: &[u8] = include_bytes!("public_key.asc");
 
 #[derive(Debug, Error)]
 pub enum LicenseError {
@@ -209,22 +73,19 @@ struct RefreshRequestResponse {
 /// Represents license tiers
 ///
 /// Variant order must be maintained to go from lowest (first) to highest (last) tier
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum LicenseTier {
     Business, // this corresponds to both Team & Business level in our current pricing structure
     Enterprise,
 }
 
-impl Display for LicenseTier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Business => {
-                write!(f, "Business")
-            }
-            Self::Enterprise => {
-                write!(f, "Enterprise")
-            }
-        }
+impl fmt::Display for LicenseTier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Business => "Business",
+
+            Self::Enterprise => "Enterprise",
+        })
     }
 }
 
@@ -271,8 +132,8 @@ impl License {
     fn verify_signature(data: &[u8], signature: &[u8]) -> Result<(), LicenseError> {
         let sig =
             DetachedSignature::from_bytes(signature).map_err(|_| LicenseError::InvalidSignature)?;
-        let (public_key, _headers_public) =
-            SignedPublicKey::from_string(PUBLIC_KEY).expect("Failed to parse the public key");
+        let public_key =
+            SignedPublicKey::from_bytes(PUBLIC_KEY).expect("Failed to parse the public key");
 
         // If the public key has subkeys, extract the signing key from them
         // Otherwise, use the primary key
@@ -715,20 +576,7 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
 
 // Mock public key
 #[cfg(test)]
-pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
-
-mI0EZ3ZfKQEEAKp7t6rldfVtMZ3x42cC+P7ZzF4OxuGlt/eDxoCzFpirCIwu1WY/
-cpi+3zop0dovEBbIoYIHJVLwMxx/y/UzQ9H/3Vc0MZ3ZNwK+LRGugaOi6Y/Z6C3i
-JjBJRMLi1rIU8TbYHE4QG6QUssDH74cE0s/WQjsEqkthkKwf5qv4/TgLABEBAAG0
-HWRlZmd1YXJkLXRlc3QgPGRlZmd1YXJkQHRlc3Q+iNEEEwEIADsWIQSaLjwX4m6j
-CO3NypmohGwBApqEhAUCZ3ZfKQIbAwULCQgHAgIiAgYVCgkICwIEFgIDAQIeBwIX
-gAAKCRCohGwBApqEhONUA/9vnmAL8Roouk0GPeTKt9C/srXcmPtIadzoyEqGjsNI
-Y1dpL7jhaKjY8sJtuNaCwTJ529w97fLM+SIeAMbwrK5naSdAIRqknn1h8a8VWkdX
-isbqg9N/kMP891HyJZHM35VbHn1zFuJUh2gVzfIVaaAmC7YIMtmiAP5lYbrId/Ps
-hw==
-=6frq
------END PGP PUBLIC KEY BLOCK-----
-";
+pub(crate) const PUBLIC_KEY: &[u8] = include_bytes!("test_key.asc");
 
 #[cfg(test)]
 mod test {

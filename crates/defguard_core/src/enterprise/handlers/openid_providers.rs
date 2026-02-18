@@ -210,7 +210,6 @@ pub(crate) async fn add_openid_provider(
     )
 )]
 pub(crate) async fn get_openid_provider(
-    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
@@ -366,7 +365,6 @@ pub(crate) async fn modify_openid_provider(
     ),
 )]
 pub(crate) async fn list_openid_providers(
-    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {

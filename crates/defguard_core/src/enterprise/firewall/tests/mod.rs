@@ -1,3 +1,4 @@
+use crate::enterprise::license::{License, LicenseTier};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use defguard_common::db::{
@@ -26,6 +27,7 @@ use crate::enterprise::{
         AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
     },
     firewall::try_get_location_firewall_config,
+    license::set_cached_license,
 };
 
 mod all_locations;
@@ -46,6 +48,18 @@ impl Default for AclRuleDestinationRange<Id> {
             end: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         }
     }
+}
+
+fn set_test_license_business() {
+    let license = License {
+        customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
+        limits: None,
+        subscription: false,
+        tier: LicenseTier::Business,
+        valid_until: None,
+        version_date_limit: None,
+    };
+    set_cached_license(Some(license));
 }
 
 fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
@@ -229,6 +243,7 @@ async fn create_acl_rule(
 
 #[sqlx::test]
 async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();
@@ -657,6 +672,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
 #[sqlx::test]
 async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 
@@ -1113,6 +1129,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
 #[sqlx::test]
 async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();
@@ -1756,6 +1773,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
 #[sqlx::test]
 async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();
@@ -1912,6 +1930,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();
@@ -2083,6 +2102,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
 #[sqlx::test]
 async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     // Create test location
@@ -2144,6 +2164,7 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
 
 #[sqlx::test]
 async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
+    set_test_license_business();
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();

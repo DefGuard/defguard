@@ -23,7 +23,7 @@ use crate::{
     db::{AppEvent, WebHook},
     error::WebError,
     events::ApiEvent,
-    grpc::gateway::{events::GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
     version::IncompatibleComponents,
 };
 

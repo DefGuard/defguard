@@ -22,10 +22,9 @@ use defguard_core::{
     },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
-        InstanceInfo,
+        GatewayEvent, InstanceInfo,
         client_version::ClientFeature,
-        gateway::events::GatewayEvent,
-        utils::{build_device_config_response, new_polling_token, parse_client_ip_agent},
+        utils::{build_device_config_response, parse_client_ip_agent},
     },
     handlers::{
         mail::{send_email_mfa_activation_email, send_mfa_configured_email},
@@ -1053,6 +1052,45 @@ async fn initial_info_from_user(
         enrolled,
         is_admin,
     })
+}
+
+// Create a new token for configuration polling.
+pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<String, Status> {
+    debug!(
+        "Making a new polling token for device {}",
+        device.wireguard_pubkey
+    );
+    let mut transaction = pool.begin().await.map_err(|err| {
+        error!("Failed to start transaction while making a new polling token: {err}");
+        Status::internal(format!("unexpected error: {err}"))
+    })?;
+
+    // 1. Delete existing polling token for the device, if it exists
+    // 2. Create a new polling token for the device
+    PollingToken::delete_for_device_id(&mut *transaction, device.id)
+        .await
+        .map_err(|err| {
+            error!("Failed to delete polling token: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+    let new_token = PollingToken::new(device.id)
+        .save(&mut *transaction)
+        .await
+        .map_err(|err| {
+            error!("Failed to save new polling token: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+
+    transaction.commit().await.map_err(|err| {
+        error!("Failed to commit transaction while making a new polling token: {err}");
+        Status::internal(format!("unexpected error: {err}"))
+    })?;
+    info!(
+        "New polling token created for device {}",
+        device.wireguard_pubkey
+    );
+
+    Ok(new_token.token)
 }
 
 #[cfg(test)]
