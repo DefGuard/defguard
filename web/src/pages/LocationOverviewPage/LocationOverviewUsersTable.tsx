@@ -1,13 +1,16 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useParams, useSearch } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
+  type Row,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import clsx from 'clsx';
+import { useCallback, useMemo, useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import api from '../../shared/api/api';
 import type { LocationConnectedUser } from '../../shared/api/types';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
@@ -17,6 +20,9 @@ import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptySta
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableFlexCell } from '../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
+import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
+import { ThemeVariable } from '../../shared/defguard-ui/types';
 import { ConnectionDurationCell } from './components/ConnectionDurationCell';
 import { DeviceTrafficChartCell } from './components/DeviceTrafficChartCell/DeviceTrafficChartCell';
 
@@ -30,6 +36,99 @@ const expansionHeaders = [
   '',
   'Device traffic',
 ];
+
+type ExpandedUserDevicesRowProps = {
+  userId: number;
+  locationId: number;
+  period: number | undefined;
+  isLast: boolean;
+};
+
+const ExpandedUserDevicesRow = ({
+  userId,
+  locationId,
+  period,
+  isLast,
+}: ExpandedUserDevicesRowProps) => {
+  const { data: devices, isLoading } = useQuery({
+    queryKey: [
+      'network',
+      locationId,
+      'stats',
+      'connected_users',
+      userId,
+      'devices',
+      period,
+    ],
+    queryFn: () =>
+      api.location.getLocationConnectedUserDevices({
+        locationId,
+        userId,
+        from: period,
+      }),
+  });
+
+  if (isLoading) {
+    return (
+      <TableRowContainer className={clsx({ last: isLast })} assignColumnSizing>
+        <TableCell empty />
+        <TableCell>
+          <Skeleton width={200} />
+        </TableCell>
+        <TableCell>
+          <Skeleton width={120} />
+        </TableCell>
+        <TableCell>
+          <Skeleton width={120} />
+        </TableCell>
+        <TableCell>
+          <Skeleton width={80} />
+        </TableCell>
+        <TableCell empty />
+        <TableCell>
+          <Skeleton width={300} />
+        </TableCell>
+        <TableFlexCell />
+      </TableRowContainer>
+    );
+  }
+
+  if (!devices || devices.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {devices.map((device, index) => (
+        <TableRowContainer
+          className={clsx({ last: isLast && index === devices.length - 1 })}
+          key={device.device_id}
+          assignColumnSizing
+        >
+          <TableCell alignContent="center" noPadding>
+            <Icon icon="enter" />
+          </TableCell>
+          <TableCell>
+            <Icon icon="devices" staticColor={ThemeVariable.FgSuccess} />
+            <span>{device.device_name}</span>
+          </TableCell>
+          <TableCell>
+            <span>{device.public_ip}</span>
+          </TableCell>
+          <TableValuesListCell values={device.vpn_ips} />
+          <ConnectionDurationCell connectedAt={device.connected_at} />
+          <TableCell empty />
+          <DeviceTrafficChartCell
+            stats={device.stats}
+            upload={device.total_upload}
+            download={device.total_download}
+          />
+          <TableFlexCell />
+        </TableRowContainer>
+      ))}
+    </>
+  );
+};
 
 export const LocationOverviewUsersTable = () => {
   const search = useSearch({ from: '/_authorized/_default/vpn-overview/$locationId' });
@@ -140,37 +239,17 @@ export const LocationOverviewUsersTable = () => {
     [],
   );
 
-  // const renderExpansionRow = useCallback(
-  //   (row: Row<RowData>, isLast = false) =>
-  //     row.original.devices.map((device, expandIndex) => (
-  //       <TableRowContainer
-  //         className={clsx({
-  //           last: isLast && expandIndex === row.original.devices.length - 1,
-  //         })}
-  //         key={device.id}
-  //       >
-  //         <TableCell alignContent="center" noPadding>
-  //           <Icon icon="enter" />
-  //         </TableCell>
-  //         <TableCell>
-  //           <Icon icon="devices" staticColor={ThemeVariable.FgSuccess} />
-  //           <span>{device.name}</span>
-  //         </TableCell>
-  //         <TableCell>
-  //           <span>{device.public_ip}</span>
-  //         </TableCell>
-  //         <TableValuesListCell values={device.wireguard_ips} />
-  //         <ConnectionDurationCell connectedAt={device.connected_at} />
-  //         <TableCell empty />
-  //         <DeviceTrafficChartCell
-  //           upload={device.upload}
-  //           download={device.download}
-  //           traffic={device.stats}
-  //         />
-  //       </TableRowContainer>
-  //     )),
-  //   [],
-  // );
+  const renderExpansionRow = useCallback(
+    (row: Row<LocationConnectedUser>, isLast = false) => (
+      <ExpandedUserDevicesRow
+        userId={row.original.user_id}
+        locationId={Number(locationId)}
+        period={search.period}
+        isLast={isLast}
+      />
+    ),
+    [locationId, search.period],
+  );
 
   const table = useReactTable({
     state: {
@@ -180,11 +259,11 @@ export const LocationOverviewUsersTable = () => {
     data: flatData,
     getExpandedRowModel: getExpandedRowModel(),
     getCoreRowModel: getCoreRowModel(),
-    // getRowCanExpand: (row) => row.original.devices?.length >= 1,
+    getRowCanExpand: (row) => row.original.connected_devices_count > 0,
     onSortingChange: setSortState,
     manualSorting: true,
     enableSorting: true,
-    enableExpanding: false,
+    enableExpanding: true,
     enableRowSelection: false,
     columnResizeMode: 'onChange',
   });
@@ -203,7 +282,7 @@ export const LocationOverviewUsersTable = () => {
     <TableBody
       table={table}
       expandedHeaders={expansionHeaders}
-      // renderExpandedRow={renderExpansionRow}
+      renderExpandedRow={renderExpansionRow}
       loadingNextPage={isFetchingNextPage}
       onNextPage={() => {
         fetchNextPage();

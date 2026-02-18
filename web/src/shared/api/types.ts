@@ -636,6 +636,23 @@ export interface LocationConnectedNetworkDevice {
   stats: TransferStats[];
 }
 
+export interface LocationConnectedUserDevicesRequest {
+  locationId: number;
+  userId: number;
+  from?: number;
+}
+
+export interface LocationConnectedUserDevice {
+  device_id: number;
+  device_name: string;
+  public_ip: string;
+  vpn_ips: string[];
+  connected_at: string;
+  total_upload: number;
+  total_download: number;
+  stats: TransferStats[];
+}
+
 export const LocationServiceMode = {
   Disabled: 'disabled',
   Prelogon: 'prelogon',

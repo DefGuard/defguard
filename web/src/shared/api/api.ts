@@ -60,6 +60,8 @@ import type {
   LocationConnectedNetworkDevice,
   LocationConnectedNetworkDevicesRequest,
   LocationConnectedUser,
+  LocationConnectedUserDevice,
+  LocationConnectedUserDevicesRequest,
   LocationConnectedUsersRequest,
   LocationStats,
   LocationStatsRequest,
@@ -346,6 +348,23 @@ const api = {
               ...params,
               from: params.from
                 ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+                : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
+    getLocationConnectedUserDevices: ({
+      locationId,
+      userId,
+      from,
+    }: LocationConnectedUserDevicesRequest) =>
+      client
+        .get<LocationConnectedUserDevice[]>(
+          `/network/${locationId}/stats/connected_users/${userId}/devices`,
+          {
+            params: {
+              from: from
+                ? dayjs.utc().subtract(from, 'hour').toISOString()
                 : undefined,
             },
           },
