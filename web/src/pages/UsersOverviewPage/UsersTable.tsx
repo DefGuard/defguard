@@ -376,6 +376,19 @@ export const UsersTable = () => {
               ],
             });
           }
+          if (rowData.enrolled) {
+            menuItems.splice(1, 0, {
+              items: [
+                {
+                  text: m.user_row_menu_add_new_device(),
+                  icon: IconKind.AddDevice,
+                  onClick: () => {
+                    openModal(ModalName.AddNewDevice, rowData);
+                  },
+                },
+              ],
+            });
+          }
 
           return (
             <TableCell>
