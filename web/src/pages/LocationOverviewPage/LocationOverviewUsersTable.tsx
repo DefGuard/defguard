@@ -1,42 +1,23 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { useParams, useSearch } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
   getExpandedRowModel,
-  type Row,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import clsx from 'clsx';
-import { orderBy, sumBy } from 'lodash-es';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import api from '../../shared/api/api';
-import type { DeviceStats, LocationConnectedUser, LocationUserDeviceStats } from '../../shared/api/types';
+import type { LocationConnectedUser } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
-import { ThemeVariable } from '../../shared/defguard-ui/types';
-import { mapTransferToChart, type TransferChartData } from '../../shared/utils/stats';
 import { ConnectionDurationCell } from './components/ConnectionDurationCell';
 import { DeviceTrafficChartCell } from './components/DeviceTrafficChartCell/DeviceTrafficChartCell';
-import { overviewTableUtils } from './utils/overviewTableUtils';
-
-// type TableDevice = Omit<DeviceStats, 'id'> & {
-//   stats: TransferChartData[];
-//   upload: number;
-//   download: number;
-// };
-
-// type RowData = {
-//   firstName: string;
-//   lastName: string;
-//   devices: TableDevice[];
-// } & TableDevice;
 
 const columnHelper = createColumnHelper<LocationConnectedUser>();
 
@@ -51,7 +32,6 @@ const expansionHeaders = [
 
 export const LocationOverviewUsersTable = () => {
   const search = useSearch({ from: '/_authorized/_default/vpn-overview/$locationId' });
-  const _navigate = useNavigate({ from: '/vpn-overview/$locationId' });
   const { locationId } = useParams({
     from: '/_authorized/_default/vpn-overview/$locationId',
   });
@@ -63,7 +43,7 @@ export const LocationOverviewUsersTable = () => {
       api.location.getLocationConnectedUsers({
         id: Number(locationId),
         from: search.period,
-        page: pageParam
+        page: pageParam,
       }),
     getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
     getPreviousPageParam: (page) => {
@@ -82,36 +62,6 @@ export const LocationOverviewUsersTable = () => {
 
   const lastItem = flatQueryData ? flatQueryData[flatQueryData?.length - 1] : null;
   const pagination = lastItem ? lastItem.pagination : null;
-
-  // const mapped = useMemo(
-  //   () =>
-  //     data.map(({ user, devices }): RowData => {
-  //       const oldest = orderBy(devices, (d) => d.connected_at, ['asc'])[0];
-  //       const formattedDevices = devices.map((d) => ({
-  //         ...d,
-  //         stats: mapTransferToChart(d.stats),
-  //         download: sumBy(d.stats, (s) => s.download),
-  //         upload: sumBy(d.stats, (s) => s.upload),
-  //       }));
-
-  //       const mergedStats = overviewTableUtils.mergeStats(devices);
-
-  //       return {
-  //         id: user.id,
-  //         devices: formattedDevices,
-  //         name: `${user.first_name} ${user.last_name}`,
-  //         firstName: user.first_name,
-  //         lastName: user.last_name,
-  //         stats: mergedStats,
-  //         download: sumBy(mergedStats, (s) => s.download),
-  //         upload: sumBy(mergedStats, (s) => s.upload),
-  //         connected_at: oldest.connected_at,
-  //         public_ip: oldest.public_ip,
-  //         wireguard_ips: oldest.wireguard_ips,
-  //       };
-  //     }),
-  //   [data],
-  // );
 
   const [sortState, setSortState] = useState<SortingState>([
     {
@@ -175,9 +125,13 @@ export const LocationOverviewUsersTable = () => {
         header: 'Traffic',
         cell: (info) => {
           const row = info.row.original;
-          const { stats,  total_download,  total_upload } = row;
+          const { stats, total_download, total_upload } = row;
           return (
-            <DeviceTrafficChartCell stats={stats} download={total_download} upload={total_upload} />
+            <DeviceTrafficChartCell
+              stats={stats}
+              download={total_download}
+              upload={total_upload}
+            />
           );
         },
       }),
@@ -247,11 +201,11 @@ export const LocationOverviewUsersTable = () => {
       table={table}
       expandedHeaders={expansionHeaders}
       // renderExpandedRow={renderExpansionRow}
-            loadingNextPage={isFetchingNextPage}
-            onNextPage={() => {
-              fetchNextPage();
-            }}
-            hasNextPage={pagination?.next_page !== null}
+      loadingNextPage={isFetchingNextPage}
+      onNextPage={() => {
+        fetchNextPage();
+      }}
+      hasNextPage={pagination?.next_page !== null}
     />
   );
 };

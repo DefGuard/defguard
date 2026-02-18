@@ -584,6 +584,9 @@ export interface LocationStatsRequest {
 
 export type LocationConnectedUsersRequest = LocationStatsRequest & PaginationParams;
 
+export type LocationConnectedNetworkDevicesRequest = LocationStatsRequest &
+  PaginationParams;
+
 export interface DeleteGatewayRequest {
   networkId: number | string;
   gatewayId: number | string;
@@ -614,8 +617,19 @@ export interface LocationConnectedUser {
   last_name: string;
   full_name: string;
   connected_devices_count: number;
-public_ip: string;
-vpn_ips: string[];
+  public_ip: string;
+  vpn_ips: string[];
+  connected_at: string;
+  total_upload: number;
+  total_download: number;
+  stats: TransferStats[];
+}
+
+export interface LocationConnectedNetworkDevice {
+  device_id: number;
+  device_name: string;
+  public_ip: string;
+  vpn_ips: string[];
   connected_at: string;
   total_upload: number;
   total_download: number;
