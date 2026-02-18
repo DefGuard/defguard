@@ -15,6 +15,7 @@ import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
+import { SetupEdgeDeployStep } from './steps/SetupEdgeDeployStep';
 import { EdgeSetupStep, type EdgeSetupStepValue } from './types';
 import { useEdgeWizardStore } from './useEdgeWizardStore';
 
@@ -26,21 +27,27 @@ export const EdgeSetupPage = () => {
 
   const stepsConfig = useMemo(
     (): Record<EdgeSetupStepValue, WizardPageStep> => ({
+      edgeDeploy: {
+        id: EdgeSetupStep.EdgeDeploy,
+        label: m.edge_setup_step_deploy_label(),
+        description: m.edge_setup_step_deploy_description(),
+        order: 1,
+      },
       edgeComponent: {
         id: EdgeSetupStep.EdgeComponent,
-        order: 1,
+        order: 2,
         label: m.edge_setup_step_edge_component_label(),
         description: m.edge_setup_step_edge_component_description(),
       },
       edgeAdoption: {
         id: EdgeSetupStep.EdgeAdoption,
-        order: 2,
+        order: 3,
         label: m.edge_setup_step_edge_adoption_label(),
         description: m.edge_setup_step_edge_adoption_description(),
       },
       confirmation: {
         id: EdgeSetupStep.Confirmation,
-        order: 3,
+        order: 4,
         label: m.edge_setup_step_confirmation_label(),
         description: m.edge_setup_step_confirmation_description(),
       },
@@ -50,6 +57,7 @@ export const EdgeSetupPage = () => {
 
   const stepsComponents = useMemo(
     (): Record<EdgeSetupStepValue, ReactNode> => ({
+      edgeDeploy: <SetupEdgeDeployStep />,
       edgeComponent: <SetupEdgeComponentStep />,
       edgeAdoption: <SetupEdgeAdoptionStep />,
       confirmation: <SetupConfirmationStep />,

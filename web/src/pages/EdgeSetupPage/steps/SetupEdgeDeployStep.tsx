@@ -20,43 +20,43 @@ import {
 import amazonImage from '../assets/amazon.png';
 import kubernetesImage from '../assets/kub.png';
 import teraImage from '../assets/terra.png';
-import { GatewaySetupStep } from '../types';
-import { useGatewayWizardStore } from '../useGatewayWizardStore';
+import { EdgeSetupStep } from '../types';
+import { useEdgeWizardStore } from '../useEdgeWizardStore';
 
 type TabItem = 'docker' | 'compose' | 'package' | 'virtualImage' | 'other';
 
-export const SetupDeployGatewayStep = () => {
+export const SetupEdgeDeployStep = () => {
   const [confirmed, setConfirmed] = useState(false);
   const [activeTab, setActiveTab] = useState<TabItem>('docker');
 
   const tabsConfig = useMemo(
     (): TabsItem[] => [
       {
-        title: m.gateway_setup_step_deploy_tabs_docker(),
+        title: m.edge_setup_step_deploy_tabs_docker(),
         onClick: () => setActiveTab('docker'),
         active: activeTab === 'docker',
         hidden: false,
       },
       {
-        title: m.gateway_setup_step_deploy_tabs_compose(),
+        title: m.edge_setup_step_deploy_tabs_compose(),
         onClick: () => setActiveTab('compose'),
         active: activeTab === 'compose',
         hidden: false,
       },
       {
-        title: m.gateway_setup_step_deploy_tabs_package(),
+        title: m.edge_setup_step_deploy_tabs_package(),
         onClick: () => setActiveTab('package'),
         active: activeTab === 'package',
         hidden: false,
       },
       {
-        title: m.gateway_setup_step_deploy_tabs_virtual_image(),
+        title: m.edge_setup_step_deploy_tabs_virtual_image(),
         onClick: () => setActiveTab('virtualImage'),
         active: activeTab === 'virtualImage',
         hidden: false,
       },
       {
-        title: m.gateway_setup_step_deploy_tabs_other(),
+        title: m.edge_setup_step_deploy_tabs_other(),
         onClick: () => setActiveTab('other'),
         active: activeTab === 'other',
         hidden: false,
@@ -65,7 +65,7 @@ export const SetupDeployGatewayStep = () => {
     [activeTab],
   );
   return (
-    <WizardCard id="deploy-gateway-step">
+    <WizardCard id="edge-deploy-step">
       <Tabs items={tabsConfig} disablePadding />
       <SizedBox height={ThemeSpacing.Xl2} />
       {tabsContent[activeTab]}
@@ -75,7 +75,7 @@ export const SetupDeployGatewayStep = () => {
         onClick={() => {
           setConfirmed((s) => !s);
         }}
-        text={m.gateway_setup_step_deploy_confirm()}
+        text={m.edge_setup_step_deploy_confirm()}
       />
       <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>
@@ -83,7 +83,7 @@ export const SetupDeployGatewayStep = () => {
           variant={'outlined'}
           text={m.controls_back()}
           onClick={() => {
-            useGatewayWizardStore.setState({
+            useEdgeWizardStore.setState({
               isOnWelcomePage: true,
             });
           }}
@@ -93,8 +93,8 @@ export const SetupDeployGatewayStep = () => {
             text={m.controls_continue()}
             disabled={!confirmed}
             onClick={() => {
-              useGatewayWizardStore.setState({
-                activeStep: GatewaySetupStep.GatewayComponent,
+              useEdgeWizardStore.setState({
+                activeStep: EdgeSetupStep.EdgeComponent,
               });
             }}
           />
@@ -119,26 +119,23 @@ const DockerComposeTab = () => {
   return (
     <>
       <TabContentHeader
-        title={m.gateway_setup_step_deploy_tabs_compose_title()}
-        subtitle={m.gateway_setup_step_deploy_tabs_compose_subtitle({
+        title={m.edge_setup_step_deploy_tabs_compose_title()}
+        subtitle={m.edge_setup_step_deploy_tabs_compose_subtitle({
           filename: `docker-compose.yaml`,
         })}
       />
       <CodeSnippet
         value={`services:
-  defguard-gateway:
-    image: ghcr.io/defguard/gateway:latest
+  proxy:
+    image: ghcr.io/defguard/defguard-proxy:latest
     restart: unless-stopped
-    network_mode: host
-    # If you prefer only one port:
-    #ports:
-    #  - "50066:50066"
-    volumes:
-      - ./certs:/certs`}
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "50051:50051"`}
       />
       <SizedBox height={ThemeSpacing.Xl2} />
       <AppText font={TextStyle.TBodySm400}>
-        {m.gateway_setup_step_deploy_tabs_compose_then()}
+        {m.edge_setup_step_deploy_tabs_compose_then()}
       </AppText>
       <SizedBox height={ThemeSpacing.Md} />
       <CodeSnippet value={`docker compose up -d`} />
@@ -150,11 +147,11 @@ const DockerTab = () => {
   return (
     <>
       <TabContentHeader
-        title={m.gateway_setup_step_deploy_tabs_docker_title()}
-        subtitle={m.gateway_setup_step_deploy_tabs_docker_subtitle()}
+        title={m.edge_setup_step_deploy_tabs_docker_title()}
+        subtitle={m.edge_setup_step_deploy_tabs_docker_subtitle()}
       />
       <CodeSnippet
-        value={`docker run -v ./certs:/certs --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`}
+        value={`docker run --restart unless-stopped ghcr.io/defguard/defguard-proxy:latest`}
       />
     </>
   );
@@ -164,8 +161,8 @@ const PackageTab = () => {
   return (
     <>
       <TabContentHeader
-        title={m.gateway_setup_step_deploy_tabs_package_title()}
-        subtitle={m.gateway_setup_step_deploy_tabs_package_subtitle()}
+        title={m.edge_setup_step_deploy_tabs_package_title()}
+        subtitle={m.edge_setup_step_deploy_tabs_package_subtitle()}
       />
       <CodeSnippet
         value={`sudo apt update 
@@ -180,7 +177,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/defguar
    sudo tee /etc/apt/sources.list.d/defguard.list > /dev/null 
 
 sudo apt update
-sudo apt install defguard-gateway`}
+sudo apt install defguard-proxy`}
       />
     </>
   );
@@ -190,8 +187,8 @@ const VirtualImageTab = () => {
   return (
     <>
       <TabContentHeader
-        title={m.gateway_setup_step_deploy_tabs_virtual_title()}
-        subtitle={m.gateway_setup_step_deploy_tabs_virtual_subtitle({
+        title={m.edge_setup_step_deploy_tabs_virtual_title()}
+        subtitle={m.edge_setup_step_deploy_tabs_virtual_subtitle({
           url: `https://defguard.net/download/defguard-2x-latest.ovf`,
           filename: `cloud-init-yaml`,
         })}
@@ -247,8 +244,8 @@ const OthersTab = () => {
   return (
     <>
       <TabContentHeader
-        title={m.gateway_setup_step_deploy_tabs_other_title()}
-        subtitle={m.gateway_setup_step_deploy_tabs_other_subtitle()}
+        title={m.edge_setup_step_deploy_tabs_other_title()}
+        subtitle={m.edge_setup_step_deploy_tabs_other_subtitle()}
       />
       <div id="other-deployment-methods">
         <OtherDeploymentMethod
@@ -269,7 +266,7 @@ const OthersTab = () => {
       </div>
       <SizedBox height={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
-        {m.gateway_setup_step_deploy_tabs_other_launch()}
+        {m.edge_setup_step_deploy_tabs_other_launch()}
       </AppText>
     </>
   );

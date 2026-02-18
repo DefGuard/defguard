@@ -10,11 +10,11 @@ export const LocationsPage = () => {
   return (
     <>
       <Page title="Locations" id="locations-page">
-        <Suspense fallback={<TableSkeleton />}>
-          <TablePageLayout>
+        <TablePageLayout>
+          <Suspense fallback={<TableSkeleton />}>
             <LocationsTable />
-          </TablePageLayout>
-        </Suspense>
+          </Suspense>
+        </TablePageLayout>
       </Page>
       <AddLocationModal />
     </>

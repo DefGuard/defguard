@@ -66,7 +66,7 @@ export const EdgesTable = () => {
       iconLeft: 'globe',
       testId: 'add-edge',
       onClick: () => {
-        if (edges.length > 1) {
+        if (edges.length >= 1) {
           licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
             navigate({ to: '/setup-edge' });
           });
