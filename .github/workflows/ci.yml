@@ -56,7 +56,7 @@ jobs:
           submodules: recursive
 
       - name: Scan code with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
