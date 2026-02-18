@@ -124,8 +124,8 @@ use crate::{
             remove_group_member,
         },
         location_stats::{
-            devices_stats, location_connected_network_devices, location_connected_users,
-            location_stats, locations_overview_stats,
+            devices_stats, location_connected_network_devices, location_connected_user_devices,
+            location_connected_users, location_stats, locations_overview_stats,
         },
         mail::{send_support_data, test_mail},
         openid_clients::{
@@ -529,6 +529,10 @@ pub fn build_webapp(
             .route(
                 "/network/{location_id}/stats/connected_users",
                 get(location_connected_users),
+            )
+            .route(
+                "/network/{location_id}/stats/connected_users/{user_id}/devices",
+                get(location_connected_user_devices),
             )
             .route(
                 "/network/{location_id}/stats/connected_network_devices",

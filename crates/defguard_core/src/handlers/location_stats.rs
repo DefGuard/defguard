@@ -5,8 +5,9 @@ use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use defguard_common::db::models::{
     DeviceType, WireguardNetwork,
     wireguard::{
-        DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
-        WireguardDeviceStatsRow, WireguardNetworkStats, WireguardUserStatsRow, networks_stats,
+        DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserDevice,
+        LocationConnectedUserStats, WireguardDeviceStatsRow, WireguardNetworkStats,
+        WireguardUserStatsRow, networks_stats,
     },
 };
 use reqwest::StatusCode;
@@ -212,4 +213,49 @@ pub(crate) async fn location_connected_network_devices(
         data: connected_network_devices,
         pagination,
     })
+}
+
+#[derive(Deserialize)]
+pub(crate) struct ConnectedUserDevicesPath {
+    location_id: i64,
+    user_id: i64,
+}
+
+/// Returns list of connected devices for a specific user at a given location
+///
+/// # Returns
+/// Returns a list of `LocationConnectedUserDevice` objects for requested user, location and time period
+pub(crate) async fn location_connected_user_devices(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Path(path): Path<ConnectedUserDevicesPath>,
+    Query(query_from): Query<QueryFrom>,
+) -> ApiResult {
+    debug!(
+        "Displaying connected devices for user {} at location {} with time window {query_from:?}",
+        path.user_id, path.location_id
+    );
+
+    let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, path.location_id).await?
+    else {
+        return Err(WebError::ObjectNotFound(format!(
+            "Requested location ({}) not found",
+            path.location_id
+        )));
+    };
+    let from = query_from.parse_timestamp()?.naive_utc();
+    let aggregation = get_aggregation(from)?;
+
+    let connected_devices = location
+        .connected_user_devices_stats(&appstate.pool, path.user_id, &from, &aggregation)
+        .await?;
+
+    debug!(
+        "Displayed {} connected devices for user {} at location {}",
+        connected_devices.len(),
+        path.user_id,
+        path.location_id
+    );
+
+    Ok(ApiResponse::json(connected_devices, StatusCode::OK))
 }
