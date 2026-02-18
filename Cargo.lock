@@ -1379,6 +1379,7 @@ dependencies = [
  "defguard_common",
  "defguard_mail",
  "defguard_proto",
+ "defguard_static_ip",
  "defguard_version",
  "defguard_web_ui",
  "futures",
@@ -1579,6 +1580,20 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "defguard_static_ip"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "defguard_common",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]

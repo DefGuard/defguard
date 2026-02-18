@@ -13,6 +13,7 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
+use defguard_static_ip::error::StaticIpError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
@@ -41,6 +42,7 @@ pub(crate) mod pagination;
 pub mod proxy;
 pub mod settings;
 pub(crate) mod ssh_authorized_keys;
+pub(crate) mod static_ips;
 pub(crate) mod support;
 pub(crate) mod updates;
 pub mod user;
@@ -121,6 +123,22 @@ impl From<WebError> for ApiResponse {
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
+            WebError::StaticIpError(err) => match err {
+                StaticIpError::InvalidIpAssignment(err) => {
+                    ApiResponse::new(json!({"msg": err.to_string()}), StatusCode::BAD_REQUEST)
+                }
+                StaticIpError::NetworkNotFound(_) | StaticIpError::DeviceNotInNetwork(_, _) => {
+                    error!("{err}");
+                    ApiResponse::new(json!({"msg": err.to_string()}), StatusCode::BAD_REQUEST)
+                }
+                StaticIpError::SqlxError(_) => {
+                    error!("{err}");
+                    ApiResponse::new(
+                        json!({"msg": "Internal server error"}),
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )
+                }
+            },
             WebError::AclError(err) => match err {
                 AclError::ParseIntError(_)
                 | AclError::IpNetworkError(_)
