@@ -165,8 +165,7 @@ pub(crate) async fn location_connected_users(
         )
         .await?;
 
-    let pagination =
-        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
+    let pagination = PaginationMeta::new(pagination.page, total_items, DEFAULT_API_PAGE_SIZE);
 
     Ok(PaginatedApiResponse {
         data: connected_users,
@@ -207,8 +206,7 @@ pub(crate) async fn location_connected_network_devices(
         )
         .await?;
 
-    let pagination =
-        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
+    let pagination = PaginationMeta::new(pagination.page, total_items, DEFAULT_API_PAGE_SIZE);
 
     Ok(PaginatedApiResponse {
         data: connected_network_devices,
