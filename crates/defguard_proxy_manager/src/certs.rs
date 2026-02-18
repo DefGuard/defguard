@@ -180,10 +180,10 @@ pub(crate) fn client_config(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use defguard_certs::{CertificateAuthority, Csr, DnType, generate_key_pair};
     use rustls::client::danger::HandshakeSignatureValid;
+
+    use super::*;
 
     #[derive(Debug)]
     struct NoopVerifier;

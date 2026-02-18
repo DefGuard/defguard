@@ -8,7 +8,6 @@ use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessag
 use defguard_core::{
     events::BidiStreamEvent, grpc::gateway::events::GatewayEvent, version::IncompatibleComponents,
 };
-
 use sqlx::PgPool;
 use tokio::{
     select,
