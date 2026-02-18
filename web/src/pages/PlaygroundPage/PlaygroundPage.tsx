@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
 import z from 'zod';
+import { CodeSnippet } from '../../shared/components/CodeSnippet/CodeSnippet';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
 import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
@@ -50,6 +51,22 @@ import testIconSrc from './assets/actionable-test1.png';
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
+      <Card>
+        <SizedBox height={1} width={600} />
+        <CodeSnippet
+          value={`services:
+  defguard-gateway:
+    image: ghcr.io/defguard/defguard-proxy:latest
+    restart: unless-stopped
+    network_mode: host
+    # If you prefer only one port:
+    #ports:
+    #  - "50066:50066"
+    volumes:
+      - ./certs:/certs`}
+        />
+      </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
       <TestPlanUpgrade />
       <Divider spacing={ThemeSpacing.Sm} />
       <Card>

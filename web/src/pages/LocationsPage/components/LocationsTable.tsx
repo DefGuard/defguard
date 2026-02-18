@@ -32,6 +32,7 @@ import {
   getLocationsQueryOptions,
 } from '../../../shared/query';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 
 type RowData = NetworkLocation;
@@ -213,10 +214,20 @@ export const LocationsTable = () => {
                         icon: 'network-settings',
                         text: 'Gateway setup',
                         onClick: async () => {
-                          useGatewayWizardStore.getState().start({ network_id: row.id });
-                          navigate({
-                            to: '/setup-gateway',
-                          });
+                          // allow 1 gateway per location if below business tier
+                          const action = () => {
+                            useGatewayWizardStore
+                              .getState()
+                              .start({ network_id: row.id });
+                            navigate({
+                              to: '/setup-gateway',
+                            });
+                          };
+                          if (row.gateways.length >= 1) {
+                            licenseActionCheck(canUseBusinessFeature(license), action);
+                          } else {
+                            action();
+                          }
                         },
                       },
                     ],
@@ -240,7 +251,7 @@ export const LocationsTable = () => {
         },
       }),
     ],
-    [deleteLocation, navigate],
+    [deleteLocation, navigate, license],
   );
 
   const table = useReactTable({

@@ -1,6 +1,7 @@
 import type { SetupStepId } from './steps/types';
 
 export const EdgeSetupStep = {
+  EdgeDeploy: 'edgeDeploy',
   EdgeComponent: 'edgeComponent',
   EdgeAdoption: 'edgeAdoption',
   Confirmation: 'confirmation',

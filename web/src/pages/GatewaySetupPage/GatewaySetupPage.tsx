@@ -10,6 +10,7 @@ import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
+import { SetupDeployGatewayStep } from './steps/SetupDeployGatewayStep';
 import { SetupGatewayAdoptionStep } from './steps/SetupGatewayAdaptationStep';
 import { SetupGatewayComponentStep } from './steps/SetupGatewayComponentStep';
 import { GatewaySetupStep, type GatewaySetupStepValue } from './types';
@@ -18,26 +19,32 @@ import { useGatewayWizardStore } from './useGatewayWizardStore';
 export const GatewaySetupPage = () => {
   const activeStep = useGatewayWizardStore((s) => s.activeStep);
   const isOnWelcomePage = useGatewayWizardStore((s) => s.isOnWelcomePage);
-  const setisOnWelcomePage = useGatewayWizardStore((s) => s.setisOnWelcomePage);
+  const setIsOnWelcomePage = useGatewayWizardStore((s) => s.setisOnWelcomePage);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
     (): Record<GatewaySetupStepValue, WizardPageStep> => ({
+      deployGateway: {
+        order: 1,
+        id: GatewaySetupStep.DeployGateway,
+        label: m.gateway_setup_step_deploy_label(),
+        description: m.gateway_setup_step_deploy_description(),
+      },
       gatewayComponent: {
         id: GatewaySetupStep.GatewayComponent,
-        order: 1,
+        order: 2,
         label: m.gateway_setup_step_gateway_component_label(),
         description: m.gateway_setup_step_gateway_component_description(),
       },
       gatewayAdoption: {
         id: GatewaySetupStep.GatewayAdoption,
-        order: 2,
+        order: 3,
         label: m.gateway_setup_step_gateway_adoption_label(),
         description: m.gateway_setup_step_gateway_adoption_description(),
       },
       confirmation: {
         id: GatewaySetupStep.Confirmation,
-        order: 3,
+        order: 4,
         label: m.gateway_setup_step_confirmation_label(),
         description: m.gateway_setup_step_confirmation_description(),
       },
@@ -47,6 +54,7 @@ export const GatewaySetupPage = () => {
 
   const stepsComponents = useMemo(
     (): Record<GatewaySetupStepValue, ReactNode> => ({
+      deployGateway: <SetupDeployGatewayStep />,
       gatewayComponent: <SetupGatewayComponentStep />,
       gatewayAdoption: <SetupGatewayAdoptionStep />,
       confirmation: <SetupConfirmationStep />,
@@ -61,7 +69,7 @@ export const GatewaySetupPage = () => {
         <Controls>
           <Button
             text={m.gateway_setup_controls_configure()}
-            onClick={() => setisOnWelcomePage(false)}
+            onClick={() => setIsOnWelcomePage(false)}
           />
         </Controls>
       </div>

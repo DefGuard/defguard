@@ -31,7 +31,7 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 };
 
 const defaults: StoreValues = {
-  activeStep: EdgeSetupStep.EdgeComponent,
+  activeStep: EdgeSetupStep.EdgeDeploy,
   isOnWelcomePage: true,
   common_name: '',
   ip_or_domain: '',
