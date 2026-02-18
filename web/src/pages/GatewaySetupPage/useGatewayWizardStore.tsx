@@ -42,7 +42,7 @@ const gatewayAdoptionStateDefaults: GatewayAdoptionState = {
 };
 
 const defaults: StoreValues = {
-  activeStep: GatewaySetupStep.GatewayComponent,
+  activeStep: GatewaySetupStep.DeployGateway,
   isOnWelcomePage: true,
   common_name: '',
   ip_or_domain: '',
