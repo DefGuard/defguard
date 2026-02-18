@@ -668,8 +668,9 @@ impl WireguardNetwork<Id> {
 				LIMIT 1 \
 			) ss ON true \
             JOIN \"user\" u ON vcs.user_id = u.id \
+            JOIN device d ON vcs.device_id = d.id \
             JOIN wireguard_network_device wnd ON vcs.device_id = wnd.device_id AND vcs.location_id = wnd.wireguard_network_id \
-            WHERE vcs.location_id = $1 AND vcs.state = 'connected' \
+            WHERE vcs.location_id = $1 AND vcs.state = 'connected' AND d.device_type = 'user' \
             ORDER BY vcs.user_id, vcs.connected_at ASC \
             LIMIT $2 OFFSET $3",
             self.id,
@@ -693,9 +694,11 @@ impl WireguardNetwork<Id> {
                     CAST(SUM(download_diff) AS bigint) download \
                 FROM vpn_session_stats \
                 JOIN vpn_client_session s ON session_id = s.id \
+                JOIN device d ON s.device_id = d.id \
                 WHERE s.user_id = $2 \
                     AND s.location_id = $3 \
                     AND s.state = 'connected' \
+                    AND d.device_type = 'user' \
                     AND collected_at >= $4 \
                 GROUP BY 1 \
                 ORDER BY 1 \
@@ -733,7 +736,8 @@ impl WireguardNetwork<Id> {
         let total_items: i64 = query_scalar!(
             "SELECT COUNT(DISTINCT vcs.user_id) \
             FROM vpn_client_session vcs \
-            WHERE vcs.location_id = $1 AND vcs.state = 'connected'",
+            JOIN device d ON vcs.device_id = d.id \
+            WHERE vcs.location_id = $1 AND vcs.state = 'connected' AND d.device_type = 'user'",
             self.id,
         )
         .fetch_one(conn)
