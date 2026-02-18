@@ -67,6 +67,36 @@ export interface AvailableLocationIP {
 
 export type AvailableLocationIpResponse = AvailableLocationIP[];
 
+export interface DeviceIps {
+  device_id: number;
+  device_name: string;
+  wireguard_ips: AvailableLocationIP[];
+}
+
+export interface LocationDevices {
+  location_id: number;
+  location_name: string;
+  devices: DeviceIps[];
+}
+
+export interface LocationDevicesResponse {
+  locations: LocationDevices[];
+}
+
+export interface StaticIpAssignment {
+  device_id: number;
+  location_id: number;
+  ips: string[];
+}
+
+export type AssignStaticIpsRequest = StaticIpAssignment[];
+
+export interface ValidateIpAssignmentRequest {
+  device_id: number;
+  ip: string;
+  location: number;
+}
+
 export type AddUsersToGroupsRequest = {
   groups: string[];
   users: number[];

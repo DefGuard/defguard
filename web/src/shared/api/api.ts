@@ -28,6 +28,7 @@ import type {
   AdminChangeUserPasswordRequest,
   ApiToken,
   ApplicationInfo,
+  AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
@@ -57,6 +58,7 @@ import type {
   GroupsResponse,
   IpValidation,
   LicenseInfoResponse,
+  LocationDevicesResponse,
   LocationDevicesStats,
   LocationStats,
   LocationStatsRequest,
@@ -87,6 +89,7 @@ import type {
   UserProfileResponse,
   UsersListItem,
   ValidateDeviceIpsRequest,
+  ValidateIpAssignmentRequest,
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
@@ -339,6 +342,12 @@ const api = {
     getDevices: () => client.get<Device[]>('/device'),
     getDeviceConfig: ({ deviceId, networkId }: { networkId: number; deviceId: number }) =>
       client.get<string>(`/network/${networkId}/device/${deviceId}/config`),
+    getUserDeviceIps: (username: string) =>
+      client.get<LocationDevicesResponse>(`/device/user/${username}/ip`),
+    assignUserDeviceIps: (username: string, data: AssignStaticIpsRequest) =>
+      client.post(`/device/user/${username}/ip`, data),
+    validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
+      client.post(`/device/user/${username}/ip/validate`, data),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
       const networkConfigurations: AddDeviceResponseConfig[] = [];
       for (const network of device.networks) {

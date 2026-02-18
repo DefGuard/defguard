@@ -7,6 +7,7 @@ import { ChangePasswordModal } from '../../shared/components/modals/ChangePasswo
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { AddUserModal } from './modals/AddUserModal/AddUserModal';
+import { AssignUserIPModal } from './modals/AssignUserIPModal/AssignUserIPModal';
 import { AssignUsersToGroupsModal } from './modals/AssignUsersToGroupsModal/AssignUsersToGroupsModal';
 import { EditUserModal } from './modals/EditUserModal/EditUserModal';
 import { EnrollmentTokenModal } from './modals/EnrollmentTokenModal/EnrollmentTokenModal';
@@ -28,6 +29,7 @@ export const UsersOverviewPage = () => {
       <AddAuthKeyModal />
       <ChangePasswordModal />
       <AssignUsersToGroupsModal />
+      <AssignUserIPModal />
     </>
   );
 };
