@@ -69,19 +69,15 @@ export const AssignUserDeviceIPModal = () => {
         setModalData(null);
       }}
     >
-      {isPresent(modalData) && <ModalContent {...modalData} />}
+      {isPresent(modalData) && (
+        <AssignmentForm
+          deviceId={modalData.device.id}
+          deviceName={modalData.device.name}
+          username={modalData.username}
+          locationData={modalData.locationData}
+        />
+      )}
     </Modal>
-  );
-};
-
-const ModalContent = ({ device, username, locationData }: ModalData) => {
-  return (
-    <AssignmentForm
-      deviceId={device.id}
-      deviceName={device.name}
-      username={username}
-      locationData={locationData}
-    />
   );
 };
 
