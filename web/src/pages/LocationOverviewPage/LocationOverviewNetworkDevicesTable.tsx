@@ -1,59 +1,78 @@
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useParams, useSearch } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
-  getSortedRowModel,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { sumBy } from 'lodash-es';
-import { useMemo } from 'react';
-import type { DeviceStats, LocationDevicesStats } from '../../shared/api/types';
+import { useMemo, useState } from 'react';
+import api from '../../shared/api/api';
+import type { LocationConnectedNetworkDevice } from '../../shared/api/types';
+import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { tableActionColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { mapTransferToChart, type TransferChartData } from '../../shared/utils/stats';
 import { ConnectionDurationCell } from './components/ConnectionDurationCell';
 import { DeviceTrafficChartCell } from './components/DeviceTrafficChartCell/DeviceTrafficChartCell';
 
-type RowData = Omit<DeviceStats, 'stats'> & {
-  stats: TransferChartData[];
-  upload: number;
-  download: number;
-};
+const columnHelper = createColumnHelper<LocationConnectedNetworkDevice>();
 
-const columnHelper = createColumnHelper<RowData>();
+export const LocationOverviewNetworkDevicesTable = () => {
+  const search = useSearch({ from: '/_authorized/_default/vpn-overview/$locationId' });
+  const { locationId } = useParams({
+    from: '/_authorized/_default/vpn-overview/$locationId',
+  });
 
-export const LocationOverviewNetworkDevicesTable = ({
-  data,
-}: {
-  data: LocationDevicesStats['network_devices'];
-}) => {
-  const mappedData = useMemo((): RowData[] => {
-    const res: RowData[] = data.map((device) => ({
-      ...device,
-      stats: mapTransferToChart(device.stats),
-      upload: sumBy(device.stats, (s) => s.upload),
-      download: sumBy(device.stats, (s) => s.download),
-    }));
-    return res;
-  }, [data]);
+  const { data, fetchNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
+    queryKey: [
+      'network',
+      Number(locationId),
+      'stats',
+      'connected_network_devices',
+      search.period,
+    ],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      api.location.getLocationConnectedNetworkDevices({
+        id: Number(locationId),
+        from: search.period,
+        page: pageParam,
+      }),
+    getNextPageParam: (lastPage) => lastPage?.pagination.next_page,
+    getPreviousPageParam: (page) => {
+      if (page.pagination.current_page !== 1) {
+        return page.pagination.current_page - 1;
+      }
+      return null;
+    },
+  });
+
+  const flatQueryData = useMemo(() => data?.pages.flat() ?? null, [data?.pages]);
+  const flatData = useMemo(
+    () => flatQueryData?.flatMap((page) => page.data) ?? [],
+    [flatQueryData],
+  );
+
+  const lastItem = flatQueryData ? flatQueryData[flatQueryData?.length - 1] : null;
+  const pagination = lastItem ? lastItem.pagination : null;
+
+  const [sortState, setSortState] = useState<SortingState>([
+    {
+      id: 'device_name',
+      desc: false,
+    },
+  ]);
 
   const columns = useMemo(
     () => [
-      columnHelper.display({
-        id: 'empty',
-        header: '',
-        size: tableActionColumnSize,
-        cell: () => <TableCell empty />,
-      }),
-      columnHelper.accessor('name', {
+      columnHelper.accessor('device_name', {
         header: 'Device name',
-        sortingFn: 'text',
-        enableSorting: true,
         meta: {
           flex: true,
         },
+        enableSorting: true,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -69,7 +88,7 @@ export const LocationOverviewNetworkDevicesTable = ({
           </TableCell>
         ),
       }),
-      columnHelper.accessor('wireguard_ips', {
+      columnHelper.accessor('vpn_ips', {
         size: 250,
         header: 'VPN IP',
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
@@ -85,11 +104,12 @@ export const LocationOverviewNetworkDevicesTable = ({
         size: 500,
         cell: (info) => {
           const row = info.row.original;
+          const { stats, total_download, total_upload } = row;
           return (
             <DeviceTrafficChartCell
-              traffic={row.stats}
-              download={row.download}
-              upload={row.upload}
+              stats={stats}
+              download={total_download}
+              upload={total_upload}
             />
           );
         },
@@ -99,25 +119,23 @@ export const LocationOverviewNetworkDevicesTable = ({
   );
 
   const table = useReactTable({
-    initialState: {
-      sorting: [
-        {
-          id: 'name',
-          desc: false,
-        },
-      ],
+    state: {
+      sorting: sortState,
     },
     columns,
-    data: mappedData,
+    data: flatData,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    enableExpanding: false,
+    onSortingChange: setSortState,
+    manualSorting: true,
     enableSorting: true,
+    enableExpanding: false,
     enableRowSelection: false,
     columnResizeMode: 'onChange',
   });
 
-  if (data.length === 0)
+  if (isLoading) return <TableSkeleton />;
+
+  if (flatData.length === 0)
     return (
       <EmptyStateFlexible
         title="No connected network devices"
@@ -125,5 +143,14 @@ export const LocationOverviewNetworkDevicesTable = ({
       />
     );
 
-  return <TableBody table={table} />;
+  return (
+    <TableBody
+      table={table}
+      loadingNextPage={isFetchingNextPage}
+      onNextPage={() => {
+        fetchNextPage();
+      }}
+      hasNextPage={pagination?.next_page !== null}
+    />
+  );
 };

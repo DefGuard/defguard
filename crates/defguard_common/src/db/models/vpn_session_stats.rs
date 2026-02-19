@@ -82,15 +82,19 @@ impl VpnSessionStats<Id> {
     /// IPv6: [x::y:z]:p -> x::y:z
     #[must_use]
     pub fn endpoint_without_port(&self) -> Option<String> {
-        // Remove port part
-        let mut addr = self.endpoint.rsplit_once(':')?.0;
-
-        // Strip square brackets from IPv6 addrs
-        if addr.starts_with('[') && addr.ends_with(']') {
-            let end = addr.len() - 1;
-            addr = &addr[1..end];
-        }
-
-        Some(addr.to_owned())
+        endpoint_without_port(&self.endpoint)
     }
+}
+
+pub fn endpoint_without_port(endpoint: &str) -> Option<String> {
+    // Remove port part
+    let mut addr = endpoint.rsplit_once(':')?.0;
+
+    // Strip square brackets from IPv6 addrs
+    if addr.starts_with('[') && addr.ends_with(']') {
+        let end = addr.len() - 1;
+        addr = &addr[1..end];
+    }
+
+    Some(addr.to_owned())
 }

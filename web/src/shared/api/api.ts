@@ -28,6 +28,7 @@ import type {
   AdminChangeUserPasswordRequest,
   ApiToken,
   ApplicationInfo,
+  AssignStaticIpsRequest,
   AuthKey,
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
@@ -57,7 +58,13 @@ import type {
   GroupsResponse,
   IpValidation,
   LicenseInfoResponse,
-  LocationDevicesStats,
+  LocationConnectedNetworkDevice,
+  LocationConnectedNetworkDevicesRequest,
+  LocationConnectedUser,
+  LocationConnectedUserDevice,
+  LocationConnectedUserDevicesRequest,
+  LocationConnectedUsersRequest,
+  LocationDevicesResponse,
   LocationStats,
   LocationStatsRequest,
   LoginRequest,
@@ -87,6 +94,7 @@ import type {
   UserProfileResponse,
   UsersListItem,
   ValidateDeviceIpsRequest,
+  ValidateIpAssignmentRequest,
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
@@ -317,14 +325,52 @@ const api = {
       client.get<GatewayStatus[]>(`/network/${id}/gateways`),
     deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
       client.delete(`/network/${networkId}/gateways/${gatewayId}`),
-    getLocationDevicesStats: ({ id, ...params }: LocationStatsRequest) =>
-      client.get<LocationDevicesStats>(`/network/${id}/stats/users`, {
-        params: {
-          from: params.from
-            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-            : undefined,
-        },
-      }),
+    getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
+      client
+        .get<PaginatedResponse<LocationConnectedUser>>(
+          `/network/${id}/stats/connected_users`,
+          {
+            params: {
+              ...params,
+              from: params.from
+                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+                : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
+    getLocationConnectedNetworkDevices: ({
+      id,
+      ...params
+    }: LocationConnectedNetworkDevicesRequest) =>
+      client
+        .get<PaginatedResponse<LocationConnectedNetworkDevice>>(
+          `/network/${id}/stats/connected_network_devices`,
+          {
+            params: {
+              ...params,
+              from: params.from
+                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+                : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
+    getLocationConnectedUserDevices: ({
+      locationId,
+      userId,
+      from,
+    }: LocationConnectedUserDevicesRequest) =>
+      client
+        .get<LocationConnectedUserDevice[]>(
+          `/network/${locationId}/stats/connected_users/${userId}/devices`,
+          {
+            params: {
+              from: from ? dayjs.utc().subtract(from, 'hour').toISOString() : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
     addLocation: (data: EditNetworkLocation) =>
       client.post<NetworkLocation>('/network', data),
     editLocation: ({ id, data }: EditNetworkLocationRequest) =>
@@ -339,6 +385,12 @@ const api = {
     getDevices: () => client.get<Device[]>('/device'),
     getDeviceConfig: ({ deviceId, networkId }: { networkId: number; deviceId: number }) =>
       client.get<string>(`/network/${networkId}/device/${deviceId}/config`),
+    getUserDeviceIps: (username: string) =>
+      client.get<LocationDevicesResponse>(`/device/user/${username}/ip`),
+    assignUserDeviceIps: (username: string, data: AssignStaticIpsRequest) =>
+      client.post(`/device/user/${username}/ip`, data),
+    validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
+      client.post(`/device/user/${username}/ip/validate`, data),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
       const networkConfigurations: AddDeviceResponseConfig[] = [];
       for (const network of device.networks) {

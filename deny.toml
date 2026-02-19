@@ -183,6 +183,10 @@ exceptions = [
         "AGPL-3.0-only",
         "AGPL-3.0-or-later",
     ], crate = "defguard_setup" },
+    { allow = [
+        "AGPL-3.0-only",
+        "AGPL-3.0-or-later",
+    ], crate = "defguard_static_ip" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,

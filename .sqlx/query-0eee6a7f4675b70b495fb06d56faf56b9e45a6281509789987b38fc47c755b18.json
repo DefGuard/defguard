@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(DISTINCT vcs.user_id) FROM vpn_client_session vcs JOIN device d ON vcs.device_id = d.id WHERE vcs.location_id = $1 AND vcs.state = 'connected' AND d.device_type = 'user'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0eee6a7f4675b70b495fb06d56faf56b9e45a6281509789987b38fc47c755b18"
+}

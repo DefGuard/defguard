@@ -302,6 +302,18 @@ export const UsersTable = () => {
                     });
                   },
                 },
+                {
+                  text: m.users_row_menu_ip_settings(),
+                  icon: IconKind.Gateway,
+                  testId: 'assign-ip',
+                  onClick: async () => {
+                    const response = await api.device.getUserDeviceIps(rowData.username);
+                    openModal(ModalName.AssignUserIP, {
+                      user: rowData,
+                      locationData: response.data,
+                    });
+                  },
+                },
               ],
             },
             {
