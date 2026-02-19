@@ -606,6 +606,11 @@ export interface LocationStatsRequest {
   from?: number;
 }
 
+export type LocationConnectedUsersRequest = LocationStatsRequest & PaginationParams;
+
+export type LocationConnectedNetworkDevicesRequest = LocationStatsRequest &
+  PaginationParams;
+
 export interface DeleteGatewayRequest {
   networkId: number | string;
   gatewayId: number | string;
@@ -628,6 +633,48 @@ export interface LocationUserDeviceStats {
 export interface LocationDevicesStats {
   user_devices: LocationUserDeviceStats[];
   network_devices: DeviceStats[];
+}
+
+export interface LocationConnectedUser {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  connected_devices_count: number;
+  public_ip: string;
+  vpn_ips: string[];
+  connected_at: string;
+  total_upload: number;
+  total_download: number;
+  stats: TransferStats[];
+}
+
+export interface LocationConnectedNetworkDevice {
+  device_id: number;
+  device_name: string;
+  public_ip: string;
+  vpn_ips: string[];
+  connected_at: string;
+  total_upload: number;
+  total_download: number;
+  stats: TransferStats[];
+}
+
+export interface LocationConnectedUserDevicesRequest {
+  locationId: number;
+  userId: number;
+  from?: number;
+}
+
+export interface LocationConnectedUserDevice {
+  device_id: number;
+  device_name: string;
+  public_ip: string;
+  vpn_ips: string[];
+  connected_at: string;
+  total_upload: number;
+  total_download: number;
+  stats: TransferStats[];
 }
 
 export const LocationServiceMode = {

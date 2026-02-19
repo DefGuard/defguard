@@ -48,7 +48,7 @@ use handlers::{
         rename_authentication_key,
     },
     updates::check_new_version,
-    wireguard::{all_gateways_status, networks_overview_stats},
+    wireguard::all_gateways_status,
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -117,11 +117,15 @@ use crate::{
         },
         component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
+        gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         group::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
         },
-        gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
+        location_stats::{
+            location_connected_network_devices, location_connected_user_devices,
+            location_connected_users, location_stats, locations_overview_stats,
+        },
         mail::{send_support_data, test_mail},
         openid_clients::{
             add_openid_client, change_openid_client, change_openid_client_state,
@@ -151,9 +155,9 @@ use crate::{
         },
         wireguard::{
             add_device, add_user_devices, change_gateway, create_network, delete_device,
-            delete_network, devices_stats, download_config, gateway_status, get_device,
-            import_network, list_devices, list_networks, list_user_devices, modify_device,
-            modify_network, network_details, network_stats, remove_gateway,
+            delete_network, download_config, gateway_status, get_device, import_network,
+            list_devices, list_networks, list_user_devices, modify_device, modify_network,
+            network_details, remove_gateway,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -514,7 +518,7 @@ pub fn build_webapp(
             )
             .route("/network", post(create_network).get(list_networks))
             .route("/network/import", post(import_network))
-            .route("/network/stats", get(networks_overview_stats))
+            .route("/network/stats", get(locations_overview_stats))
             .route("/network/gateways", get(all_gateways_status))
             .route(
                 "/network/{network_id}",
@@ -537,8 +541,19 @@ pub fn build_webapp(
                 "/network/{network_id}/device/{device_id}/config",
                 get(download_config),
             )
-            .route("/network/{network_id}/stats/users", get(devices_stats))
-            .route("/network/{network_id}/stats", get(network_stats))
+            .route("/network/{network_id}/stats", get(location_stats))
+            .route(
+                "/network/{location_id}/stats/connected_users",
+                get(location_connected_users),
+            )
+            .route(
+                "/network/{location_id}/stats/connected_users/{user_id}/devices",
+                get(location_connected_user_devices),
+            )
+            .route(
+                "/network/{location_id}/stats/connected_network_devices",
+                get(location_connected_network_devices),
+            )
             .route(
                 "/network/{location_id}/snat",
                 get(list_snat_bindings).post(create_snat_binding),

@@ -58,8 +58,13 @@ import type {
   GroupsResponse,
   IpValidation,
   LicenseInfoResponse,
+  LocationConnectedNetworkDevice,
+  LocationConnectedNetworkDevicesRequest,
+  LocationConnectedUser,
+  LocationConnectedUserDevice,
+  LocationConnectedUserDevicesRequest,
+  LocationConnectedUsersRequest,
   LocationDevicesResponse,
-  LocationDevicesStats,
   LocationStats,
   LocationStatsRequest,
   LoginRequest,
@@ -320,14 +325,52 @@ const api = {
       client.get<GatewayStatus[]>(`/network/${id}/gateways`),
     deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
       client.delete(`/network/${networkId}/gateways/${gatewayId}`),
-    getLocationDevicesStats: ({ id, ...params }: LocationStatsRequest) =>
-      client.get<LocationDevicesStats>(`/network/${id}/stats/users`, {
-        params: {
-          from: params.from
-            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-            : undefined,
-        },
-      }),
+    getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
+      client
+        .get<PaginatedResponse<LocationConnectedUser>>(
+          `/network/${id}/stats/connected_users`,
+          {
+            params: {
+              ...params,
+              from: params.from
+                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+                : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
+    getLocationConnectedNetworkDevices: ({
+      id,
+      ...params
+    }: LocationConnectedNetworkDevicesRequest) =>
+      client
+        .get<PaginatedResponse<LocationConnectedNetworkDevice>>(
+          `/network/${id}/stats/connected_network_devices`,
+          {
+            params: {
+              ...params,
+              from: params.from
+                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+                : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
+    getLocationConnectedUserDevices: ({
+      locationId,
+      userId,
+      from,
+    }: LocationConnectedUserDevicesRequest) =>
+      client
+        .get<LocationConnectedUserDevice[]>(
+          `/network/${locationId}/stats/connected_users/${userId}/devices`,
+          {
+            params: {
+              from: from ? dayjs.utc().subtract(from, 'hour').toISOString() : undefined,
+            },
+          },
+        )
+        .then((resp) => resp.data),
     addLocation: (data: EditNetworkLocation) =>
       client.post<NetworkLocation>('/network', data),
     editLocation: ({ id, data }: EditNetworkLocationRequest) =>

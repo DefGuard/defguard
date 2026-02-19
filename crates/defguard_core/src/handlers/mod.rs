@@ -35,6 +35,7 @@ pub mod component_setup;
 pub(crate) mod forward_auth;
 pub mod gateway;
 pub(crate) mod group;
+pub(crate) mod location_stats;
 pub mod mail;
 pub mod network_devices;
 pub mod openid_clients;

@@ -6,6 +6,7 @@ mod enrollment;
 mod enterprise_settings;
 mod forward_auth;
 mod group;
+mod location_stats;
 mod oauth;
 mod openid;
 mod openid_login;
