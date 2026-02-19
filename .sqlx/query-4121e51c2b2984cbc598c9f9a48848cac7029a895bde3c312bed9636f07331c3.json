@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (vcs.device_id) vcs.device_id, d.name \"device_name!\", vcs.connected_at \"connected_at!\", wnd.wireguard_ips \"wireguard_ips: Vec<IpAddr>\", ss.endpoint FROM vpn_client_session vcs JOIN LATERAL ( SELECT endpoint FROM vpn_session_stats WHERE session_id = vcs.id ORDER BY collected_at DESC LIMIT 1 ) ss ON true JOIN device d ON vcs.device_id = d.id JOIN wireguard_network_device wnd ON vcs.device_id = wnd.device_id AND vcs.location_id = wnd.wireguard_network_id WHERE vcs.location_id = $1 AND vcs.state = 'connected' AND d.device_type = 'network' ORDER BY vcs.device_id, vcs.connected_at ASC LIMIT $2 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "device_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "connected_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "wireguard_ips: Vec<IpAddr>",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "endpoint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "4121e51c2b2984cbc598c9f9a48848cac7029a895bde3c312bed9636f07331c3"
+}

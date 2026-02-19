@@ -1,4 +1,3 @@
-use crate::enterprise::license::{License, LicenseTier};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use defguard_common::db::{
@@ -27,7 +26,7 @@ use crate::enterprise::{
         AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
     },
     firewall::try_get_location_firewall_config,
-    license::set_cached_license,
+    license::{License, LicenseTier, set_cached_license},
 };
 
 mod all_locations;

@@ -1,0 +1,31 @@
+.assign-user-device-ip-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+
+  .device-ip-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+
+    .card-title {
+      font: var(--t-body-sm-500);
+    }
+
+    .card-description {
+      color: var(--fg-neutral);
+      font: var(--t-body-sm-400);
+    }
+  }
+
+  .locations-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+
+    .no-locations {
+      color: var(--fg-neutral);
+      font: var(--t-body-sm-400);
+    }
+  }
+}

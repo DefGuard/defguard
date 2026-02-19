@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wn.id AS location_id, wn.name AS location_name, d.id AS device_id, d.name AS device_name, wnd.wireguard_ips AS \"wireguard_ips: Vec<IpAddr>\" FROM wireguard_network wn JOIN wireguard_network_device wnd ON wnd.wireguard_network_id = wn.id JOIN device d ON d.id = wnd.device_id JOIN \"user\" u ON d.user_id = u.id WHERE u.username = $1 AND d.id = $2 ORDER BY wn.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "location_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "device_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "wireguard_ips: Vec<IpAddr>",
+        "type_info": "InetArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fc12a1d289e47595f20793bf356f473ca8571c5b3f97746a6a16a440ebec3926"
+}

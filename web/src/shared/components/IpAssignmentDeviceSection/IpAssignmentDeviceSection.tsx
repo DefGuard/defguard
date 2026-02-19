@@ -8,7 +8,7 @@ import { ThemeVariable } from '../../defguard-ui/types';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 
 interface Props {
-  name: string;
+  name?: string;
   children: ReactNode;
 }
 
@@ -48,10 +48,12 @@ export const IpAssignmentDeviceSection = ({ name, children }: Props) => {
 
   return (
     <div className="ip-assignment-device-section">
-      <div className="top-track">
-        <SectionMarker icon="devices" />
-        <p className="device-name">{name}</p>
-      </div>
+      {isPresent(name) && (
+        <div className="top-track">
+          <SectionMarker icon="devices" />
+          <p className="device-name">{name}</p>
+        </div>
+      )}
       <div className="inputs-track">
         <div className="lines">
           {childrenCount > 0 &&

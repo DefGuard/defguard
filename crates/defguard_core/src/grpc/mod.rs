@@ -5,18 +5,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{
-    auth::failed_login::FailedLoginMap,
-    db::AppEvent,
-    enterprise::{
-        db::models::{
-            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-            openid_provider::OpenIdProvider,
-        },
-        is_business_license_active, is_enterprise_license_active,
-    },
-    grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
-};
 use defguard_common::{
     auth::claims::ClaimsType,
     config::server_config,
@@ -34,6 +22,19 @@ use reqwest::Url;
 use serde::Serialize;
 use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+
+use crate::{
+    auth::failed_login::FailedLoginMap,
+    db::AppEvent,
+    enterprise::{
+        db::models::{
+            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+            openid_provider::OpenIdProvider,
+        },
+        is_business_license_active, is_enterprise_license_active,
+    },
+    grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
+};
 
 mod auth;
 pub mod client_version;

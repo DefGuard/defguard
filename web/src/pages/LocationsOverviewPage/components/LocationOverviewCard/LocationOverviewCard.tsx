@@ -123,6 +123,7 @@ export const OverviewCard = ({
       stats.upload === 0 && stats.download === 0 && stats.transfer_series.length === 0
     );
   }, [stats]);
+
   return (
     <div className="location-overview-card">
       {children}

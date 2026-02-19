@@ -32,6 +32,7 @@ use defguard_core::{
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
+use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::proxy::{
     AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, InitialInfo,
     core_request, core_response, proxy_client::ProxyClient,
@@ -66,7 +67,6 @@ use crate::{
     ProxyError, ProxyTxSet, TEN_SECS,
     servers::{EnrollmentServer, PasswordResetServer},
 };
-use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 
 static VERSION_ZERO: Version = Version::new(0, 0, 0);
 

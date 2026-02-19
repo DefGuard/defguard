@@ -19,6 +19,11 @@ use defguard_common::{
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
+use defguard_core::{
+    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent,
+    handlers::mail::send_gateway_disconnected_email,
+    location_management::allowed_peers::get_location_allowed_peers,
+};
 #[cfg(not(test))]
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
@@ -44,12 +49,6 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Code, Status, transport::Endpoint};
-
-use defguard_core::{
-    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent,
-    handlers::mail::send_gateway_disconnected_email,
-    location_management::allowed_peers::get_location_allowed_peers,
-};
 
 use crate::{Client, TEN_SECS, error::GatewayError};
 

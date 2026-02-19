@@ -6,6 +6,7 @@ use defguard_common::db::{
     Id,
     models::{
         WireguardNetwork,
+        device::WireguardNetworkDevice,
         gateway::Gateway,
         vpn_client_session::{VpnClientSession, VpnClientSessionState},
         vpn_session_stats::VpnSessionStats,
@@ -68,6 +69,27 @@ pub async fn generate_vpn_session_stats(
         // prepare requested number of devices
         let devices =
             prepare_user_devices(&pool, &mut rng, &user, config.devices_per_user as usize).await?;
+
+        // assign devices to the network if not already assigned
+        for device in &devices {
+            if WireguardNetworkDevice::find(&mut *transaction, device.id, location.id)
+                .await?
+                .is_none()
+            {
+                info!(
+                    "Assigning device {} to network {} with auto-generated IP",
+                    device.name, location.name
+                );
+                device
+                    .assign_next_network_ip(&mut transaction, &location, None, None)
+                    .await?;
+            } else {
+                info!(
+                    "Device {} already assigned to network {}",
+                    device.name, location.name
+                );
+            }
+        }
 
         for device in devices {
             info!("Generating sessions for device {device}");

@@ -27,6 +27,7 @@ import { TableCell } from '../../../../../../../shared/defguard-ui/components/ta
 import { TableFlexCell } from '../../../../../../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../../../../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
@@ -118,6 +119,26 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
                 reservedNames: reservedNames,
                 username,
               });
+            },
+          },
+          {
+            text: m.profile_devices_menu_ip_settings(),
+            icon: 'gateway',
+            testId: 'assign-device-ip',
+            onClick: () => {
+              api.device
+                .getDeviceIps(username, row.id)
+                .then(({ data: locationData }) => {
+                  openModal(ModalName.AssignUserDeviceIP, {
+                    device: row,
+                    username,
+                    locationData,
+                  });
+                })
+                .catch((error) => {
+                  Snackbar.error('Failed to load device IP settings');
+                  console.error(error);
+                });
             },
           },
           {
