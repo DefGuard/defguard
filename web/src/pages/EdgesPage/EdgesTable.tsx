@@ -26,7 +26,7 @@ import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/Tab
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getEdgesQueryOptions, getLicenseInfoQueryOptions } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
-import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
 
 type RowData = EdgeInfo;
 
@@ -67,7 +67,7 @@ export const EdgesTable = () => {
       testId: 'add-edge',
       onClick: () => {
         if (edges.length >= 1) {
-          licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+          licenseActionCheck(canUseEnterpriseFeature(licenseInfo), () => {
             navigate({ to: '/setup-edge' });
           });
         } else {

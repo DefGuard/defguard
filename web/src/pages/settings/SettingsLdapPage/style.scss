@@ -1,0 +1,7 @@
+#settings-ldap-page form {
+  .checkbox-group-column {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-md);
+  }
+}

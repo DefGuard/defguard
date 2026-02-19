@@ -13,13 +13,7 @@ import { EditMicrosoftProviderForm } from './form/EditMicrosoftProviderForm';
 import { EditOktaProviderForm } from './form/EditOktaProviderForm';
 
 const breadcrumbs = [
-  <Link
-    to="/settings"
-    search={{
-      tab: 'openid',
-    }}
-    key={0}
-  >
+  <Link to="/settings/openid" key={0}>
     External Identity providers
   </Link>,
   <Link to="/settings/edit-openid" key={1}>
