@@ -9,6 +9,7 @@ import { Controls } from '../../../../shared/components/Controls/Controls';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
+import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -174,11 +175,12 @@ const EnrollmentChoice = ({
             if (smtpEnabled) setSelected('email');
           }}
         >
-          {selected === 'email' ? (
+          <Fold open={selected === 'email'}>
+            <SizedBox height={ThemeSpacing.Lg} />
             <form.AppField name="email">
               {(field) => <field.FormInput label={m.form_label_email()} required />}
             </form.AppField>
-          ) : null}
+          </Fold>
         </SectionSelect>
       </form.AppForm>
       <SizedBox height={ThemeSpacing.Md} />
