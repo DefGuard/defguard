@@ -2,11 +2,11 @@ use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
 use defguard_common::db::{
-    Id,
     models::{
+        gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
         AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        group::Group, oauth2client::OAuth2Client, proxy::Proxy,
     },
+    Id,
 };
 use defguard_core::{
     db::WebHook,
@@ -323,6 +323,13 @@ pub enum DefguardEvent {
     },
     ProxyDeleted {
         proxy: Proxy<Id>,
+    },
+    GatewayModified {
+        before: Gateway<Id>,
+        after: Gateway<Id>,
+    },
+    GatewayDeleted {
+        gateway: Gateway<Id>,
     },
 }
 

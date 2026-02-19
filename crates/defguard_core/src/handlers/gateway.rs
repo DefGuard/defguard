@@ -12,6 +12,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -75,7 +76,10 @@ pub(crate) async fn gateway_list(
 ) -> ApiResult {
     debug!("User {} displaying gateway list", session.user.username);
     let gateways = Gateway::all(&appstate.pool).await?;
-    let gateways = gateways.into_iter().map(GatewayInfo::from).collect::<Vec<_>>();
+    let gateways = gateways
+        .into_iter()
+        .map(GatewayInfo::from)
+        .collect::<Vec<_>>();
     info!("User {} displayed gateway list", session.user.username);
 
     Ok(ApiResponse::json(gateways, StatusCode::OK))
@@ -140,22 +144,41 @@ pub(crate) async fn update_gateway(
     Path(gateway_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<GatewayUpdateData>,
 ) -> ApiResult {
-    debug!("User {} updating gateway {gateway_id}", session.user.username);
+    debug!(
+        "User {} updating gateway {gateway_id}",
+        session.user.username
+    );
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id).await?;
 
     let Some(mut gateway) = gateway else {
         warn!("Gateway {gateway_id} not found");
         return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
     };
+    let before = gateway.clone();
 
     gateway.name = data.name;
     gateway.save(&appstate.pool).await?;
 
-    info!("User {} updated gateway {gateway_id}", session.user.username);
+    info!(
+        "User {} updated gateway {gateway_id}",
+        session.user.username
+    );
 
-    Ok(ApiResponse::json(GatewayInfo::from(gateway), StatusCode::OK))
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::GatewayModified {
+            before,
+            after: gateway.clone(),
+        }),
+    })?;
+
+    Ok(ApiResponse::json(
+        GatewayInfo::from(gateway),
+        StatusCode::OK,
+    ))
 }
 
 #[utoipa::path(
@@ -178,8 +201,12 @@ pub(crate) async fn delete_gateway(
     Path(gateway_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
-    debug!("User {} deleting gateway {gateway_id}", session.user.username);
+    debug!(
+        "User {} deleting gateway {gateway_id}",
+        session.user.username
+    );
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id).await?;
 
     let Some(gateway) = gateway else {
@@ -187,9 +214,17 @@ pub(crate) async fn delete_gateway(
         return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
     };
 
-    gateway.delete(&appstate.pool).await?;
+    gateway.clone().delete(&appstate.pool).await?;
 
-    info!("User {} deleted gateway {gateway_id}", session.user.username);
+    info!(
+        "User {} deleted gateway {gateway_id}",
+        session.user.username
+    );
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::GatewayDeleted { gateway }),
+    })?;
 
     Ok(ApiResponse::default())
 }

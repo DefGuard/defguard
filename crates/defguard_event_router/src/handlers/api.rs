@@ -2,7 +2,7 @@ use defguard_core::events::{ApiEvent, ApiEventType};
 use defguard_event_logger::message::{DefguardEvent, EnrollmentEvent, EventContext, LoggerEvent};
 use tracing::debug;
 
-use crate::{EventRouter, error::EventRouterError};
+use crate::{error::EventRouterError, EventRouter};
 
 impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
@@ -395,6 +395,14 @@ impl EventRouter {
             ),
             ApiEventType::ProxyDeleted { proxy } => (
                 LoggerEvent::Defguard(Box::new(DefguardEvent::ProxyDeleted { proxy })),
+                None,
+            ),
+            ApiEventType::GatewayModified { before, after } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::GatewayModified { before, after })),
+                None,
+            ),
+            ApiEventType::GatewayDeleted { gateway } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::GatewayDeleted { gateway })),
                 None,
             ),
         };

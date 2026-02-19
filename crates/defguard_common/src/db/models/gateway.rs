@@ -2,12 +2,12 @@ use std::fmt;
 
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, query, query_as};
 
 use crate::db::{Id, NoId};
 
-#[derive(Deserialize, Model)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 pub struct Gateway<I = NoId> {
     pub id: I,
     pub network_id: Id,
