@@ -1,4 +1,5 @@
 import './style.scss';
+import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
@@ -8,7 +9,6 @@ import type { StartEnrollmentResponse, User } from '../../../../shared/api/types
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
@@ -83,10 +83,11 @@ const EnrollmentChoice = ({
   onEnrollmentReady: (data: StartEnrollmentResponse) => void;
 }) => {
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
-  const [selected, setSelected] = useState<DeliveryMethod | null>(null);
-  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [selected, setSelected] = useState<DeliveryMethod>(() =>
+    smtpEnabled ? 'email' : 'manual',
+  );
 
-  const { mutateAsync: startClientActivation, isPending } = useMutation({
+  const { mutateAsync: startClientActivation } = useMutation({
     mutationFn: api.user.startClientActivation,
     onError: (error) => {
       Snackbar.error(m.failed_to_start_enrollment());
@@ -128,7 +129,6 @@ const EnrollmentChoice = ({
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      if (!isPresent(selected)) return;
       if (selected === 'manual') {
         const { data } = await startClientActivation({
           username: user.username,
@@ -146,6 +146,7 @@ const EnrollmentChoice = ({
       }
     },
   });
+  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
   return (
     <>
@@ -157,68 +158,67 @@ const EnrollmentChoice = ({
         </AppText>
       </div>
       <SizedBox height={ThemeSpacing.Xl2} />
-      <form.AppForm>
-        <SectionSelect
-          image="token-email"
-          radio
-          selected={selected === 'email'}
-          disabled={!smtpEnabled}
-          badgeProps={
-            !smtpEnabled
-              ? { variant: 'critical', text: m.state_not_configured() }
-              : undefined
-          }
-          title={m.modal_add_new_device_choice_email_title()}
-          content={m.modal_add_new_device_choice_email_content()}
-          data-testid="add-new-device-email"
-          onClick={() => {
-            if (smtpEnabled) setSelected('email');
-          }}
-        >
-          <Fold open={selected === 'email'}>
-            <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField name="email">
-              {(field) => <field.FormInput label={m.form_label_email()} required />}
-            </form.AppField>
-          </Fold>
-        </SectionSelect>
-      </form.AppForm>
-      <SizedBox height={ThemeSpacing.Md} />
-      <SectionSelect
-        image="token-chat"
-        radio
-        selected={selected === 'manual'}
-        title={m.modal_add_new_device_choice_manual_title()}
-        content={m.modal_add_new_device_choice_manual_content()}
-        data-testid="add-new-device-manually"
-        onClick={() => setSelected('manual')}
-      />
-      {submitAttempted && !isPresent(selected) && (
-        <>
-          <SizedBox height={ThemeSpacing.Sm} />
-          <FieldError error={m.modal_add_new_device_error_no_option()} />
-        </>
-      )}
-      <SizedBox height={ThemeSpacing.Xl2} />
-      <Controls>
-        <div className="right">
-          <Button
-            variant="secondary"
-            text={m.controls_cancel()}
-            onClick={() => closeModal(modalName)}
-          />
-          <Button
-            text={m.controls_submit()}
-            variant="primary"
-            loading={isPending}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
+        <form.AppForm>
+          <SectionSelect
+            image="token-email"
+            radio
+            selected={selected === 'email'}
+            disabled={!smtpEnabled}
+            badgeProps={
+              !smtpEnabled
+                ? { variant: 'critical', text: m.state_not_configured() }
+                : undefined
+            }
+            title={m.modal_add_new_device_choice_email_title()}
+            content={m.modal_add_new_device_choice_email_content()}
+            data-testid="add-new-device-email"
             onClick={() => {
-              setSubmitAttempted(true);
-              if (!isPresent(selected)) return;
-              form.handleSubmit();
+              if (smtpEnabled) setSelected('email');
             }}
+          >
+            <Fold open={selected === 'email'}>
+              <SizedBox height={ThemeSpacing.Lg} />
+              <form.AppField name="email">
+                {(field) => <field.FormInput label={m.form_label_email()} required />}
+              </form.AppField>
+            </Fold>
+          </SectionSelect>
+          <SizedBox height={ThemeSpacing.Md} />
+          <SectionSelect
+            image="token-chat"
+            radio
+            selected={selected === 'manual'}
+            title={m.modal_add_new_device_choice_manual_title()}
+            content={m.modal_add_new_device_choice_manual_content()}
+            data-testid="add-new-device-manually"
+            onClick={() => setSelected('manual')}
           />
-        </div>
-      </Controls>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <Controls>
+            <div className="right">
+              <Button
+                type="button"
+                variant="secondary"
+                text={m.controls_cancel()}
+                onClick={() => closeModal(modalName)}
+              />
+              <Button
+                type="submit"
+                text={m.controls_submit()}
+                variant="primary"
+                loading={isSubmitting}
+              />
+            </div>
+          </Controls>
+        </form.AppForm>
+      </form>
     </>
   );
 };
