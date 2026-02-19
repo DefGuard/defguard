@@ -174,11 +174,11 @@ const EnrollmentChoice = ({
             if (smtpEnabled) setSelected('email');
           }}
         >
-          {selected === 'email' && (
+          {selected === 'email' ? (
             <form.AppField name="email">
               {(field) => <field.FormInput label={m.form_label_email()} required />}
             </form.AppField>
-          )}
+          ) : null}
         </SectionSelect>
       </form.AppForm>
       <SizedBox height={ThemeSpacing.Md} />
