@@ -121,6 +121,7 @@ use crate::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
         },
+        gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         mail::{send_support_data, test_mail},
         openid_clients::{
             add_openid_client, change_openid_client, change_openid_client_state,
@@ -360,6 +361,14 @@ pub fn build_webapp(
             .route(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),
+            )
+            // Gateway routes
+            .route("/gateway", get(gateway_list))
+            .route(
+                "/gateway/{gateway_id}",
+                get(gateway_details)
+                    .put(update_gateway)
+                    .delete(delete_gateway),
             )
             // Proxy setup with SSE
             .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
