@@ -1,7 +1,8 @@
 import { m } from '../../../../../../paraglide/messages';
 import type { StartEnrollmentResponse } from '../../../../../../shared/api/types';
+import { Controls } from '../../../../../../shared/components/Controls/Controls';
+import { Button } from '../../../../../../shared/defguard-ui/components/Button/Button';
 import { CopyField } from '../../../../../../shared/defguard-ui/components/CopyField/CopyField';
-import { ModalControls } from '../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../shared/defguard-ui/types';
 import { closeModal } from '../../../../../../shared/hooks/modalControls/modalsSubjects';
@@ -30,12 +31,16 @@ export const DeliverTokenStep = ({ enrollmentData }: Props) => {
           text={enrollmentData.enrollment_token}
         />
       </div>
-      <ModalControls
-        submitProps={{
-          text: m.controls_close(),
-          onClick: () => closeModal(ModalName.AddNewDevice),
-        }}
-      />
+
+      <Controls>
+        <div className="right">
+          <Button
+            text={m.controls_close()}
+            onClick={() => closeModal(ModalName.AddNewDevice)}
+            variant="primary"
+          />
+        </div>
+      </Controls>
     </div>
   );
 };

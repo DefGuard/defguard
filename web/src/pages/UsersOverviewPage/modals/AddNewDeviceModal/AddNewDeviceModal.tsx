@@ -5,10 +5,11 @@ import z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import type { StartEnrollmentResponse, User } from '../../../../shared/api/types';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { FieldError } from '../../../../shared/defguard-ui/components/FieldError/FieldError';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -65,13 +66,10 @@ export const AddNewDeviceModal = () => {
       onClose={() => closeModal(modalName)}
       afterClose={handleAfterClose}
     >
-      {isPresent(enrollmentData) ? (
-        <DeliverTokenStep enrollmentData={enrollmentData} />
-      ) : (
-        isPresent(user) && (
-          <EnrollmentChoice user={user} onEnrollmentReady={setEnrollmentData} />
-        )
+      {isPresent(user) && !isPresent(enrollmentData) && (
+        <EnrollmentChoice user={user} onEnrollmentReady={setEnrollmentData} />
       )}
+      {isPresent(enrollmentData) && <DeliverTokenStep enrollmentData={enrollmentData} />}
     </Modal>
   );
 };
@@ -148,12 +146,6 @@ const EnrollmentChoice = ({
     },
   });
 
-  useEffect(() => {
-    if (!form.state.isPristine) {
-      form.validateAllFields('change');
-    }
-  }, [form]);
-
   return (
     <>
       <div className="enrollment-info">
@@ -205,21 +197,26 @@ const EnrollmentChoice = ({
           <FieldError error={m.modal_add_new_device_error_no_option()} />
         </>
       )}
-      <ModalControls
-        cancelProps={{
-          text: m.controls_cancel(),
-          onClick: () => closeModal(modalName),
-        }}
-        submitProps={{
-          text: m.controls_submit(),
-          loading: isPending,
-          onClick: () => {
-            setSubmitAttempted(true);
-            if (!isPresent(selected)) return;
-            form.handleSubmit();
-          },
-        }}
-      />
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <Controls>
+        <div className="right">
+          <Button
+            variant="secondary"
+            text={m.controls_cancel()}
+            onClick={() => closeModal(modalName)}
+          />
+          <Button
+            text={m.controls_submit()}
+            variant="primary"
+            loading={isPending}
+            onClick={() => {
+              setSubmitAttempted(true);
+              if (!isPresent(selected)) return;
+              form.handleSubmit();
+            }}
+          />
+        </div>
+      </Controls>
     </>
   );
 };
