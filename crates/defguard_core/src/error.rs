@@ -7,6 +7,7 @@ use defguard_common::{
     types::UrlParseError,
 };
 use defguard_mail::templates::TemplateError;
+use defguard_static_ip::error::StaticIpError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use utoipa::ToSchema;
@@ -85,6 +86,9 @@ pub enum WebError {
     #[error(transparent)]
     #[schema(value_type=Object)]
     UrlParseError(#[from] UrlParseError),
+    #[error(transparent)]
+    #[schema(value_type=Object)]
+    StaticIpError(#[from] StaticIpError),
 }
 
 impl From<tonic::Status> for WebError {

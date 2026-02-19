@@ -12,7 +12,10 @@ resolver = "2"
 
 [workspace.dependencies]
 # internal crates
+
+defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
 defguard_common = { path = "./crates/defguard_common", version = "2.0.0" }
+defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
@@ -26,7 +29,6 @@ defguard_vpn_stats_purge = { path = "./crates/defguard_vpn_stats_purge", version
 defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
 defguard_certs = { path = "./crates/defguard_certs", version = "0.0.0" }
 defguard_grpc_tls = { path = "./crates/defguard_grpc_tls", version = "0.0.0" }
-defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
 model_derive = { path = "./crates/model_derive", version = "0.0.0" }
 
 # external dependencies
@@ -58,7 +60,11 @@ ipnetwork = "0.20"
 jsonwebkey = { version = "0.4", features = ["pkcs-convert"] }
 jsonwebtoken = { version = "10.3", features = ["rust_crypto"] }
 ldap3 = { version = "0.12", default-features = false, features = ["tls"] }
-lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
+lettre = { version = "0.11", default-features = false, features = [
+    "builder",
+    "smtp-transport",
+    "tokio1-rustls-tls",
+] }
 matches = "0.1"
 md4 = "0.10"
 openidconnect = { version = "4.0", default-features = false, features = [

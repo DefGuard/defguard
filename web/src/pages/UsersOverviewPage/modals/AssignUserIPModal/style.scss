@@ -1,0 +1,33 @@
+#assign-user-ip-modal {
+  .assign-user-ip-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    min-height: 400px;
+
+    .assignment-mode {
+      display: flex;
+      flex-direction: column;
+
+      h3 {
+        font: var(--t-body-sm-400);
+      }
+
+      .mode-description {
+        color: var(--fg-neutral);
+        font: var(--t-body-xs-400);
+      }
+    }
+
+    .devices-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
+
+      .no-locations {
+        color: var(--fg-neutral);
+        font: var(--t-body-sm-400);
+      }
+    }
+  }
+}

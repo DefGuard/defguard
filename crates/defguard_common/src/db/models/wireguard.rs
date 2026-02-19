@@ -201,7 +201,7 @@ pub enum NetworkAddressError {
         "Location {0} has no network that could contain IP address {1}, available networks: {2:?}"
     )]
     NoContainingNetwork(String, IpAddr, Vec<IpNetwork>),
-    #[error("IP address {1} is reserved for gateway in location {0}")]
+    #[error("IP address {1} is reserved for Gateway in location {0}")]
     ReservedForGateway(String, IpAddr),
     #[error("IP address {1} is network broadcast address in location {0}")]
     IsBroadcastAddress(String, IpAddr),

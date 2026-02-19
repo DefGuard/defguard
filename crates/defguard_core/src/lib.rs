@@ -140,6 +140,7 @@ use crate::{
             test_ldap_settings, update_settings,
         },
         ssh_authorized_keys::get_authorized_keys,
+        static_ips::{assign_static_ips, get_all_user_device_ips, validate_ip_assignment},
         support::{configuration, logs},
         updates::outdated_components,
         user::{
@@ -471,6 +472,14 @@ pub fn build_webapp(
             )
             .route("/device", get(list_devices))
             .route("/device/user/{username}", get(list_user_devices))
+            .route(
+                "/device/user/{username}/ip",
+                get(get_all_user_device_ips).post(assign_static_ips),
+            )
+            .route(
+                "/device/user/{username}/ip/validate",
+                post(validate_ip_assignment),
+            )
             // Network devices, as opposed to user devices
             .route(
                 "/device/network",

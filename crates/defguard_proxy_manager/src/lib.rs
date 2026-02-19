@@ -6,7 +6,6 @@ use std::{
 
 use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
-
 use sqlx::PgPool;
 use tokio::{
     select,

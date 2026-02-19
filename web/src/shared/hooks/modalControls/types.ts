@@ -4,6 +4,7 @@ import type {
   GroupInfo,
   LicenseInfo,
   LicenseTierValue,
+  LocationDevicesResponse,
   NetworkDevice,
   NetworkLocation,
   OpenIdClient,
@@ -106,4 +107,9 @@ export interface OpenLicenseExpiredModal {
 
 export interface OpenAddLocationModal {
   license: LicenseInfo | null;
+}
+
+export interface OpenAssignUserIPModal {
+  user: User;
+  locationData: LocationDevicesResponse;
 }

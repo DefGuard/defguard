@@ -12,13 +12,12 @@ use tera::{Context, Tera, Value};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
+use super::SmtpSettings;
 use crate::{
     mail_context::MailContext,
     qr::qr_png,
     templates::{DEFAULT_LANG, TemplateError},
 };
-
-use super::SmtpSettings;
 
 #[derive(Debug)]
 pub struct Attachment {

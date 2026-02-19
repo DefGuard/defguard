@@ -122,5 +122,13 @@
   "modal_ce_webhook_edit_title": "Edit Webhook",
   "modal_ce_webhook_events_title": "Trigger events",
   "modal_ce_webhook_events_text": "",
-  "modal_assign_users_groups_title": "Assign groups to selected users"
+  "modal_assign_users_groups_title": "Assign groups to selected users",
+  "modal_assign_user_ip_title": "{firstName} {lastName} IP settings",
+  "modal_assign_user_ip_title_fallback": "IP settings",
+  "modal_assign_user_ip_assignment_mode_title": "Single IP Assignment",
+  "modal_assign_user_ip_assignment_mode_description": "Assign and update IP addresses sequentially, managing each user's device individually.",
+  "modal_assign_user_ip_success": "{firstName} {lastName}'s IP addresses were successfully updated.",
+  "modal_assign_user_ip_error": "Failed to update IP addresses",
+  "modal_assign_user_ip_validation_error": "Invalid or already taken",
+  "modal_assign_user_ip_no_locations": "No locations available. Add a location first."
 }
