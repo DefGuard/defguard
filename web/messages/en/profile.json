@@ -37,6 +37,7 @@
   "profile_devices_col_location_connected": "Last connected",
   "profile_devices_col_never_connected": "Never connected",
   "profile_devices_menu_show_config": "Show configuration",
+  "profile_devices_menu_ip_settings": "Device IP settings",
   "profile_auth_keys_no_data_title": "You don't have any added keys.",
   "profile_auth_keys_no_data_subtitle": "To add one, click the button below",
   "profile_auth_keys_no_data_cta": "Add new key",

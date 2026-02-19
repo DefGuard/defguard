@@ -1,23 +1,24 @@
-.assign-user-ip-modal {
+.assign-user-device-ip-modal {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-2xl);
 
-  .assignment-mode {
+  .device-ip-card {
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-xs);
 
-    h3 {
-      font: var(--t-body-sm-400);
+    .card-title {
+      font: var(--t-body-sm-500);
     }
 
-    .mode-description {
+    .card-description {
       color: var(--fg-neutral);
-      font: var(--t-body-xs-400);
+      font: var(--t-body-sm-400);
     }
   }
 
-  .devices-list {
+  .locations-list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);

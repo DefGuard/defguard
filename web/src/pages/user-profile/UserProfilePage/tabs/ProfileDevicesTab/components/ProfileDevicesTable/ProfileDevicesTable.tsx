@@ -121,6 +121,22 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             },
           },
           {
+            text: m.profile_devices_menu_ip_settings(),
+            icon: 'gateway',
+            testId: 'assign-device-ip',
+            onClick: async () => {
+              const { data: locationData } = await api.device.getDeviceIps(
+                username,
+                row.id,
+              );
+              openModal(ModalName.AssignUserDeviceIP, {
+                device: row,
+                username,
+                locationData,
+              });
+            },
+          },
+          {
             text: m.profile_devices_menu_show_config(),
             onClick: () => {
               api.device.getDeviceConfigs(row).then((modalData) => {

@@ -311,6 +311,7 @@ export const UsersTable = () => {
                     openModal(ModalName.AssignUserIP, {
                       user: rowData,
                       locationData: response.data,
+                      hasDevices: rowData.devices.length > 0,
                     });
                   },
                 },

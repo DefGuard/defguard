@@ -83,6 +83,16 @@ export interface LocationDevicesResponse {
   locations: LocationDevices[];
 }
 
+export interface DeviceLocationIp {
+  location_id: number;
+  location_name: string;
+  wireguard_ips: AvailableLocationIP[];
+}
+
+export interface DeviceLocationIpsResponse {
+  locations: DeviceLocationIp[];
+}
+
 export interface StaticIpAssignment {
   device_id: number;
   location_id: number;

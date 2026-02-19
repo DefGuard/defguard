@@ -4,6 +4,7 @@ import type {
   OpenAddApiTokenModal,
   OpenAddLocationModal,
   OpenAddNetworkDeviceModal,
+  OpenAssignUserDeviceIPModal,
   OpenAssignUserIPModal,
   OpenAssignUsersToGroupsModal,
   OpenAuthKeyRenameModal,
@@ -57,6 +58,7 @@ export const ModalName = {
   DeleteLogStreaming: 'deleteLogStreaming',
   SelfEnrollmentToken: 'selfEnrollmentToken',
   AssignUserIP: 'assignUserIP',
+  AssignUserDeviceIP: 'assignUserDeviceIP',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -185,6 +187,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.AssignUserIP),
     data: z.custom<OpenAssignUserIPModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.AssignUserDeviceIP),
+    data: z.custom<OpenAssignUserDeviceIPModal>(),
   }),
 ]);
 

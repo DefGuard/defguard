@@ -91,13 +91,14 @@ export const AssignUserIPModal = () => {
   );
 };
 
-const ModalContent = ({ user, locationData }: ModalData) => {
+const ModalContent = ({ user, locationData, hasDevices }: ModalData) => {
   return (
     <AssignmentForm
       username={user.username}
       firstName={user.first_name}
       lastName={user.last_name}
       locationData={locationData}
+      hasDevices={hasDevices}
     />
   );
 };
@@ -107,6 +108,7 @@ type AssignmentFormProps = {
   firstName: string;
   lastName: string;
   locationData: LocationDevicesResponse;
+  hasDevices: boolean;
 };
 
 const AssignmentForm = ({
@@ -114,6 +116,7 @@ const AssignmentForm = ({
   firstName,
   lastName,
   locationData,
+  hasDevices,
 }: AssignmentFormProps) => {
   const [openLocations, setOpenLocations] = useState<Set<number>>(() => new Set());
 
@@ -216,7 +219,11 @@ const AssignmentForm = ({
 
         <div className="devices-list">
           {locationData.locations.length === 0 && (
-            <p className="no-locations">{m.modal_assign_user_ip_no_locations()}</p>
+            <p className="no-locations">
+              {hasDevices
+                ? m.modal_assign_user_ip_no_locations()
+                : m.modal_assign_user_ip_no_devices()}
+            </p>
           )}
           {locationData.locations.map((location: LocationDevices, locIdx) => (
             <IpAssignmentCard

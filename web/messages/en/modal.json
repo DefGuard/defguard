@@ -130,5 +130,12 @@
   "modal_assign_user_ip_success": "{firstName} {lastName}'s IP addresses were successfully updated.",
   "modal_assign_user_ip_error": "Failed to update IP addresses",
   "modal_assign_user_ip_validation_error": "Invalid or already taken",
-  "modal_assign_user_ip_no_locations": "No locations available. Add a location first."
+  "modal_assign_user_ip_no_locations": "No locations available. Add a location first.",
+  "modal_assign_user_ip_no_devices": "This user has no devices.",
+  "modal_assign_user_device_ip_title": "Device IP settings",
+  "modal_assign_user_device_ip_title_fallback": "Device IP settings",
+  "modal_assign_user_device_ip_card_title": "{deviceName} IP settings",
+  "modal_assign_user_device_ip_assignment_description": "You can change the IP address for this device separately in each location/network one-by-one.",
+  "modal_assign_user_device_ip_success": "{deviceName}'s IP addresses were successfully updated.",
+  "modal_assign_user_device_ip_error": "Failed to update IP addresses"
 }

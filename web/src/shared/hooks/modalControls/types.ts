@@ -1,6 +1,7 @@
 import type {
   AvailableLocationIpResponse,
   Device,
+  DeviceLocationIpsResponse,
   GroupInfo,
   LicenseInfo,
   LicenseTierValue,
@@ -112,4 +113,11 @@ export interface OpenAddLocationModal {
 export interface OpenAssignUserIPModal {
   user: User;
   locationData: LocationDevicesResponse;
+  hasDevices: boolean;
+}
+
+export interface OpenAssignUserDeviceIPModal {
+  device: Device;
+  username: string;
+  locationData: DeviceLocationIpsResponse;
 }
