@@ -122,7 +122,7 @@ importers:
         version: 2.4.2
       '@tanstack/devtools-vite':
         specifier: ^0.5.1
-        version: 0.5.1(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))
+        version: 0.5.1(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))
       '@tanstack/react-devtools':
         specifier: ^0.9.6
         version: 0.9.6(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(csstype@3.2.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.9)
@@ -134,7 +134,7 @@ importers:
         version: 1.161.1(@tanstack/react-router@1.161.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@tanstack/router-core@1.161.1)(csstype@3.2.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/router-plugin':
         specifier: ^1.161.1
-        version: 1.161.1(@tanstack/react-router@1.161.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))
+        version: 1.161.1(@tanstack/react-router@1.161.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))
       '@types/byte-size':
         specifier: ^8.1.2
         version: 8.1.2
@@ -145,8 +145,8 @@ importers:
         specifier: ^4.17.12
         version: 4.17.12
       '@types/node':
-        specifier: ^25.2.3
-        version: 25.2.3
+        specifier: ^25.3.0
+        version: 25.3.0
       '@types/qs':
         specifier: ^6.14.0
         version: 6.14.0
@@ -158,7 +158,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react-swc':
         specifier: ^4.2.3
-        version: 4.2.3(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))
+        version: 4.2.3(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))
       autoprefixer:
         specifier: ^10.4.24
         version: 10.4.24(postcss@8.5.6)
@@ -188,10 +188,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^7.3.1
-        version: 7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0)
+        version: 7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0)
       vite-plugin-image-optimizer:
         specifier: ^2.0.3
-        version: 2.0.3(sharp@0.34.5)(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))
+        version: 2.0.3(sharp@0.34.5)(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))
 
 packages:
 
@@ -1367,8 +1367,8 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
-  '@types/node@25.2.3':
-    resolution: {integrity: sha512-m0jEgYlYz+mDJZ2+F4v8D1AyQb+QzsNqRuI7xg1VQX/KlKS0qT9r1Mo16yo5F/MtifXFgaofIFsdFMox2SxIbQ==}
+  '@types/node@25.3.0':
+    resolution: {integrity: sha512-4K3bqJpXpqfg2XKGK9bpDTc6xO/xoUP/RBWS7AtRMug6zZFaRekiLzjVtAoZMquxoAbzBvy5nxQ7veS5eYzf8A==}
 
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
@@ -1849,8 +1849,8 @@ packages:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
 
-  get-east-asian-width@1.4.0:
-    resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
+  get-east-asian-width@1.5.0:
+    resolution: {integrity: sha512-CQ+bEO+Tva/qlmw24dCejulK5pMzVnUOFOijVogd3KQs07HnRIgp8TGipvCCRT06xeYEbpbgwaCxglFyiuIcmA==}
     engines: {node: '>=18'}
 
   get-intrinsic@1.3.0:
@@ -1908,8 +1908,8 @@ packages:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
     engines: {node: '>= 0.4'}
 
-  hashery@1.4.0:
-    resolution: {integrity: sha512-Wn2i1In6XFxl8Az55kkgnFRiAlIAushzh26PTjL2AKtQcEfXrcLa7Hn5QOWGZEf3LU057P9TwwZjFyxfS1VuvQ==}
+  hashery@1.5.0:
+    resolution: {integrity: sha512-nhQ6ExaOIqti2FDWoEMWARUqIKyjr2VcZzXShrI+A3zpeiuPWzx6iPftt44LhP74E5sW36B75N6VHbvRtpvO6Q==}
     engines: {node: '>=20'}
 
   hasown@2.0.2:
@@ -2567,8 +2567,8 @@ packages:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
 
-  string-width@8.1.1:
-    resolution: {integrity: sha512-KpqHIdDL9KwYk22wEOg/VIqYbrnLeSApsKT/bSj6Ez7pn3CftUiLAv2Lccpq1ALcpLV9UX1Ppn92npZWu2w/aw==}
+  string-width@8.2.0:
+    resolution: {integrity: sha512-6hJPQ8N0V0P3SNmP6h2J99RLuzrWz2gvT7VnK5tKvrNqJoyS9W4/Fb8mo31UiPvy00z7DQXkP2hnKBVav76thw==}
     engines: {node: '>=20'}
 
   stringify-entities@4.0.4:
@@ -2745,8 +2745,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+  undici-types@7.18.2:
+    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
 
   unicorn-magic@0.4.0:
     resolution: {integrity: sha512-wH590V9VNgYH9g3lH9wWjTrUoKsjLF6sGLjhR4sH1LWpLmCOH0Zf7PukhDA8BiS7KHe4oPNkcTHqYkj7SOGUOw==}
@@ -3083,7 +3083,7 @@ snapshots:
 
   '@cacheable/utils@2.3.4':
     dependencies:
-      hashery: 1.4.0
+      hashery: 1.5.0
       keyv: 5.6.0
 
   '@csstools/css-calc@3.1.1(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
@@ -3363,7 +3363,7 @@ snapshots:
 
   '@keyv/bigmap@1.3.1(keyv@5.6.0)':
     dependencies:
-      hashery: 1.4.0
+      hashery: 1.5.0
       hookified: 1.15.1
       keyv: 5.6.0
 
@@ -3705,7 +3705,7 @@ snapshots:
     transitivePeerDependencies:
       - csstype
 
-  '@tanstack/devtools-vite@0.5.1(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))':
+  '@tanstack/devtools-vite@0.5.1(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/generator': 7.29.1
@@ -3717,7 +3717,7 @@ snapshots:
       chalk: 5.6.2
       launch-editor: 2.13.0
       picomatch: 4.0.3
-      vite: 7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -3858,7 +3858,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tanstack/router-plugin@1.161.1(@tanstack/react-router@1.161.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))':
+  '@tanstack/router-plugin@1.161.1(@tanstack/react-router@1.161.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/plugin-syntax-jsx': 7.28.6(@babel/core@7.29.0)
@@ -3875,7 +3875,7 @@ snapshots:
       zod: 3.25.76
     optionalDependencies:
       '@tanstack/react-router': 1.161.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      vite: 7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -3955,9 +3955,9 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
-  '@types/node@25.2.3':
+  '@types/node@25.3.0':
     dependencies:
-      undici-types: 7.16.0
+      undici-types: 7.18.2
 
   '@types/qs@6.14.0': {}
 
@@ -3982,11 +3982,11 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@vitejs/plugin-react-swc@4.2.3(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0))':
+  '@vitejs/plugin-react-swc@4.2.3(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.2
       '@swc/core': 1.15.11
-      vite: 7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - '@swc/helpers'
 
@@ -4384,7 +4384,7 @@ snapshots:
 
   gensync@1.0.0-beta.2: {}
 
-  get-east-asian-width@1.4.0: {}
+  get-east-asian-width@1.5.0: {}
 
   get-intrinsic@1.3.0:
     dependencies:
@@ -4449,7 +4449,7 @@ snapshots:
     dependencies:
       has-symbols: 1.1.0
 
-  hashery@1.4.0:
+  hashery@1.5.0:
     dependencies:
       hookified: 1.15.1
 
@@ -5279,9 +5279,9 @@ snapshots:
       is-fullwidth-code-point: 3.0.0
       strip-ansi: 6.0.1
 
-  string-width@8.1.1:
+  string-width@8.2.0:
     dependencies:
-      get-east-asian-width: 1.4.0
+      get-east-asian-width: 1.5.0
       strip-ansi: 7.1.2
 
   stringify-entities@4.0.4:
@@ -5379,7 +5379,7 @@ snapshots:
       postcss-safe-parser: 7.0.1(postcss@8.5.6)
       postcss-selector-parser: 7.1.1
       postcss-value-parser: 4.2.0
-      string-width: 8.1.1
+      string-width: 8.2.0
       supports-hyperlinks: 4.4.0
       svg-tags: 1.0.0
       table: 6.9.0
@@ -5528,7 +5528,7 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  undici-types@7.16.0: {}
+  undici-types@7.18.2: {}
 
   unicorn-magic@0.4.0: {}
 
@@ -5622,15 +5622,15 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite-plugin-image-optimizer@2.0.3(sharp@0.34.5)(vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0)):
+  vite-plugin-image-optimizer@2.0.3(sharp@0.34.5)(vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0)):
     dependencies:
       ansi-colors: 4.1.3
       pathe: 2.0.3
-      vite: 7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0)
     optionalDependencies:
       sharp: 0.34.5
 
-  vite@7.3.1(@types/node@25.2.3)(sass@1.97.3)(tsx@4.21.0):
+  vite@7.3.1(@types/node@25.3.0)(sass@1.97.3)(tsx@4.21.0):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -5639,7 +5639,7 @@ snapshots:
       rollup: 4.57.1
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.2.3
+      '@types/node': 25.3.0
       fsevents: 2.3.3
       sass: 1.97.3
       tsx: 4.21.0
