@@ -422,6 +422,7 @@ const api = {
     patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) =>
       client.patch('/settings_enterprise', data),
     getSettingsEssentials: () => client.get<SettingsEssentials>('/settings_essentials'),
+    getLdapConnectionStatus: () => client.get(`/ldap/test`),
   },
   openIdProvider: {
     getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
