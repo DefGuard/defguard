@@ -12,7 +12,6 @@ import {
 } from '@floating-ui/react';
 import clsx from 'clsx';
 import { type HTMLProps, useMemo, useState } from 'react';
-import type { GatewayStatus } from '../../api/types';
 import { Badge } from '../../defguard-ui/components/Badge/Badge';
 import type { BadgeVariantValue } from '../../defguard-ui/components/Badge/types';
 import { Button } from '../../defguard-ui/components/Button/Button';
@@ -23,6 +22,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useGatewayWizardStore } from '../../../pages/GatewaySetupPage/useGatewayWizardStore';
 import api from '../../api/api';
+import type { GatewayInfo } from '../../api/types';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { Icon } from '../../defguard-ui/components/Icon';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
@@ -31,7 +31,7 @@ import { ThemeSpacing } from '../../defguard-ui/types';
 type Status = 'all' | 'none' | 'some';
 
 type Props = {
-  data: GatewayStatus[];
+  data: GatewayInfo[];
   showDetails?: boolean;
 };
 
@@ -144,16 +144,16 @@ const FloatingMenu = ({
   status,
   className,
   ...rest
-}: { status: GatewayStatus[] } & HTMLProps<HTMLDivElement>) => {
-  const networkId = status[0].network_id as number;
+}: { status: GatewayInfo[] } & HTMLProps<HTMLDivElement>) => {
+  const locationId = status[0].location_id as number;
   const connected = useMemo(() => status.filter((gw) => gw.connected), [status]);
   const disconnected = useMemo(() => status.filter((gw) => !gw.connected), [status]);
   const navigate = useNavigate();
 
   const { mutate: removeGw } = useMutation({
-    mutationFn: api.location.deleteGateway,
+    mutationFn: api.gateway.deleteGateway,
     meta: {
-      invalidate: ['network', networkId, 'gateways'],
+      invalidate: ['network', locationId, 'gateways'],
     },
   });
 
@@ -164,13 +164,13 @@ const FloatingMenu = ({
           <p>Connected</p>
           <ul>
             {connected.map((gw) => (
-              <li key={gw.uid}>
+              <li key={gw.id}>
                 <Badge
                   showIcon
                   removeBackground
                   variant="success"
                   icon="status-attention"
-                  text={gw.name ?? gw.hostname}
+                  text={gw.name}
                 />
               </li>
             ))}
@@ -185,22 +185,19 @@ const FloatingMenu = ({
           <p>Disconnected</p>
           <ul>
             {disconnected.map((gw) => (
-              <li key={gw.uid}>
+              <li key={gw.id}>
                 <Badge
                   removeBackground
                   showIcon
                   icon="status-important"
                   variant="critical"
-                  text={gw.name ?? gw.hostname}
+                  text={gw.name}
                 />
                 <InteractionBox
                   icon="close"
                   iconSize={20}
                   onClick={() => {
-                    removeGw({
-                      gatewayId: gw.uid,
-                      networkId: networkId,
-                    });
+                    removeGw(gw.id);
                   }}
                 />
               </li>
@@ -215,7 +212,7 @@ const FloatingMenu = ({
         variant="outlined"
         text="Add more gateways"
         onClick={() => {
-          useGatewayWizardStore.getState().start({ network_id: networkId });
+          useGatewayWizardStore.getState().start({ network_id: locationId });
           navigate({ to: '/setup-gateway', replace: true });
         }}
       />

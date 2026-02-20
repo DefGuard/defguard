@@ -39,7 +39,6 @@ import type {
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
-  DeleteGatewayRequest,
   Device,
   Edge,
   EdgeInfo,
@@ -52,7 +51,8 @@ import type {
   EditNetworkLocationRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
-  GatewayStatus,
+  Gateway,
+  GatewayInfo,
   GetCAResponse,
   GroupInfo,
   GroupsResponse,
@@ -322,9 +322,7 @@ const api = {
         },
       }),
     getLocationGatewaysStatus: (id: number) =>
-      client.get<GatewayStatus[]>(`/network/${id}/gateways`),
-    deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
-      client.delete(`/network/${networkId}/gateways/${gatewayId}`),
+      client.get<GatewayInfo[]>(`/network/${id}/gateways`),
     getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
       client
         .get<PaginatedResponse<LocationConnectedUser>>(
@@ -437,6 +435,13 @@ const api = {
     getEdge: (edgeId: number | string) => client.get<Edge>(`/proxy/${edgeId}`),
     editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
+  },
+  gateway: {
+    getGateways: () => client.get<GatewayInfo[]>('/gateway'),
+    getGateway: (gatewayId: number | string) =>
+      client.get<Gateway>(`/gateway/${gatewayId}`),
+    editGateway: (data: Gateway) => client.put(`/gateway/${data.id}`, data),
+    deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
   },
   acl: {
     destination: {

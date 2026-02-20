@@ -36,6 +36,14 @@ export const getEdgesQueryOptions = queryOptions({
   refetchOnReconnect: true,
 });
 
+export const getGatewaysQueryOptions = queryOptions({
+  queryFn: api.gateway.getGateways,
+  queryKey: ['gateway'],
+  select: (resp) => resp.data,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+});
+
 export const getEdgeQueryOptions = (id: number) =>
   queryOptions({
     queryFn: () => api.edge.getEdge(id),
