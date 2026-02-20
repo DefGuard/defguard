@@ -11,6 +11,7 @@ import type {
   OpenCEOpenIdClientModal,
   OpenCEWebhookModal,
   OpenDeleteGatewayModal,
+  OpenDeleteLocationModal,
   OpenDisplayListModal,
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
@@ -57,6 +58,7 @@ export const ModalName = {
   EditLogStreaming: 'editLogStreaming',
   DeleteLogStreaming: 'deleteLogStreaming',
   DeleteGateway: 'deleteGateway',
+  DeleteLocation: 'deleteLocation',
   SelfEnrollmentToken: 'selfEnrollmentToken',
   AssignUserIP: 'assignUserIP',
 } as const;
@@ -167,6 +169,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.DeleteGateway),
     data: z.custom<OpenDeleteGatewayModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeleteLocation),
+    data: z.custom<OpenDeleteLocationModal>(),
   }),
   z.object({
     name: z.literal(ModalName.SendTestMail),

@@ -119,3 +119,8 @@ export interface OpenDeleteGatewayModal {
   name: string;
   locationName: string;
 }
+
+export interface OpenDeleteLocationModal {
+  id: number;
+  name: string;
+}

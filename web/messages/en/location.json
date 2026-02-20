@@ -1,0 +1,5 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "location_delete_success": "Location deleted",
+  "location_delete_failed": "Failed to delete location"
+}
