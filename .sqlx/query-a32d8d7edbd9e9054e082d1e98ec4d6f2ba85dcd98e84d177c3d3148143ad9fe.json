@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT gateway.*, u.first_name modified_by_firstname, u.last_name modified_by_lastname, CASE WHEN gateway.connected_at IS NULL THEN false WHEN gateway.disconnected_at IS NULL THEN true WHEN gateway.connected_at >= gateway.disconnected_at THEN true ELSE false END AS \"connected!\", wn.name AS location_name FROM gateway JOIN \"user\" u on gateway.modified_by = u.id JOIN wireguard_network wn ON gateway.location_id = wn.id WHERE location_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "location_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "disconnected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "certificate_expiry",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "certificate",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "modified_by_firstname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "modified_by_lastname",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "connected!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "location_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "a32d8d7edbd9e9054e082d1e98ec4d6f2ba85dcd98e84d177c3d3148143ad9fe"
+}

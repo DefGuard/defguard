@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM gateway WHERE network_id = $1 ORDER BY id",
+  "query": "SELECT * FROM gateway WHERE location_id = $1 ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -10,48 +10,58 @@
       },
       {
         "ordinal": 1,
-        "name": "network_id",
+        "name": "location_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 2,
-        "name": "url",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 3,
-        "name": "hostname",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 5,
+        "ordinal": 3,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 4,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 7,
+        "ordinal": 5,
         "name": "version",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 6,
         "name": "name",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 7,
         "name": "certificate",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_by",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -62,15 +72,17 @@
     "nullable": [
       false,
       false,
+      true,
+      true,
+      true,
+      true,
       false,
       true,
-      true,
-      true,
-      true,
-      true,
       false,
-      true
+      false,
+      false,
+      false
     ]
   },
-  "hash": "d10c9a7b0b391aeb8b4869f6bddf997807b66e0b532da747b146513c34e15c5c"
+  "hash": "3c6a119f2f10046bd9e42314df953a0a0b3b44d0a87d43f69425729c15e1a400"
 }

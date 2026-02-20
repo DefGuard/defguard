@@ -1,16 +1,15 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE gateway SET hostname = $2, connected_at = $3 WHERE id = $1",
+  "query": "UPDATE gateway SET connected_at = $2 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Int8",
-        "Text",
         "Timestamp"
       ]
     },
     "nullable": []
   },
-  "hash": "b3cae8e4b2468e9b0ae88ef135729532ee95c54bc1343706bc61d9e4bceed4d4"
+  "hash": "e74c6ca03ed8cc57ab9ffc86df3d78dd79c4707c132f6edb7d642b362853985d"
 }
