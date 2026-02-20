@@ -2,11 +2,11 @@ use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
-    models::{
-        gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
-        AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-    },
     Id,
+    models::{
+        AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
+        gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
+    },
 };
 use defguard_proto::proxy::MfaMethod;
 
