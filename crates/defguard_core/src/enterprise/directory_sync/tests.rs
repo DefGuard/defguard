@@ -19,7 +19,14 @@ mod test {
     use tokio::sync::broadcast;
 
     use super::super::*;
-    use crate::enterprise::db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind};
+    use crate::{
+        enterprise::{
+            db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind},
+            license::{License, LicenseTier, set_cached_license},
+            limits::{get_counts, update_counts},
+        },
+        grpc::proto::enterprise::license::LicenseLimits,
+    };
 
     async fn get_test_network(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::find_by_name(pool, "test")
@@ -851,6 +858,57 @@ mod test {
         // all active directory users were synced
         let defguard_users = User::all(&pool).await.unwrap();
         assert_eq!(defguard_users.len(), 3);
+
+        // No events
+        assert!(wg_rx.try_recv().is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_users_prefetch_respects_license_user_limit(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
+
+        // enable prefetching users
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
+            true,
+        )
+        .await;
+
+        let user_limit = 1;
+        let license = License::new(
+            "test".to_string(),
+            false,
+            None,
+            Some(LicenseLimits {
+                users: user_limit,
+                devices: 100,
+                locations: 100,
+                network_devices: Some(100),
+            }),
+            None,
+            LicenseTier::Business,
+        );
+        set_cached_license(Some(license));
+        update_counts(&pool).await.unwrap();
+
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
+        update_counts(&pool).await.unwrap();
+
+        let user_count = get_counts().user();
+        assert!(user_count <= user_limit);
+
+        let defguard_users = User::all(&pool).await.unwrap();
+        assert_eq!(defguard_users.len(), user_limit as usize);
 
         // No events
         assert!(wg_rx.try_recv().is_err());

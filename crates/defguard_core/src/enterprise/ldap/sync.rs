@@ -66,9 +66,13 @@ use sqlx::{PgConnection, PgPool};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
-    enterprise::ldap::model::{
-        get_users_without_ldap_path, ldap_sync_allowed_for_user, update_from_ldap_user,
-        user_from_searchentry,
+    enterprise::{
+        ldap::model::{
+            get_users_without_ldap_path, ldap_sync_allowed_for_user, update_from_ldap_user,
+            user_from_searchentry,
+        },
+        license::get_cached_license,
+        limits::{get_counts, update_counts},
     },
     hashset,
 };
@@ -806,6 +810,12 @@ impl super::LDAPConnection {
     ) -> Result<(), LdapError> {
         let mut transaction = pool.begin().await?;
         let mut admin_count = User::find_admins(&mut *transaction).await?.len();
+        let mut user_count = get_counts().user();
+
+        let user_limit = get_cached_license()
+            .as_ref()
+            .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
+
         for user in changes.delete_defguard {
             if user.is_admin(&mut *transaction).await? {
                 if admin_count == 1 {
@@ -849,11 +859,22 @@ impl super::LDAPConnection {
                     "LDAP user {} does not exist in Defguard yet, adding...",
                     user.username
                 );
+                if let Some(limit) = user_limit.filter(|limit| user_count >= *limit) {
+                    error!(
+                        "Skipping LDAP import of user {} (email: {}) because license user limit \
+                        has been reached ({}/{})",
+                        user.username, user.email, user_count, limit
+                    );
+                    continue;
+                }
                 user.save(&mut *transaction).await?;
+                user_count += 1;
             }
         }
 
         transaction.commit().await?;
+
+        update_counts(pool).await?;
 
         for user in changes.delete_ldap {
             debug!("Deleting user {} from LDAP", user.username);
