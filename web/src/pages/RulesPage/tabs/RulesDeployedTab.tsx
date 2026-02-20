@@ -61,7 +61,7 @@ export const RulesDeployedTab = () => {
         isPresent(locations) &&
         isPresent(users) &&
         isPresent(devices) &&
-        isPresent(license) && (
+        license !== undefined && (
           <RulesTable
             title="Deployed rules"
             buttonProps={buttonProps}

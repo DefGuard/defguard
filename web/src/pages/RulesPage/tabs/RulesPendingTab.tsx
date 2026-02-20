@@ -61,7 +61,7 @@ export const RulesPendingTab = () => {
         isPresent(locations) &&
         isPresent(users) &&
         isPresent(devices) &&
-        isPresent(license) && (
+        license !== undefined && (
           <RulesTable
             title="Pending rules"
             buttonProps={buttonProps}
