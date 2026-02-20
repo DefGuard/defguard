@@ -1,4 +1,4 @@
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -7,7 +7,6 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import type { GatewayInfo } from '../../../shared/api/types';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -18,6 +17,8 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getGatewaysQueryOptions } from '../../../shared/query';
 import { displayDate } from '../../../shared/utils/displayDate';
 
@@ -46,13 +47,6 @@ const getStatusBadge = (gateway: GatewayInfo) => {
 
 export const GatewaysTable = () => {
   const { data: gateways } = useSuspenseQuery(getGatewaysQueryOptions);
-
-  const { mutate: deleteGateway } = useMutation({
-    mutationFn: api.gateway.deleteGateway,
-    meta: {
-      invalidate: ['gateway'],
-    },
-  });
 
   const [search, setSearch] = useState('');
 
@@ -176,7 +170,11 @@ export const GatewaysTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteGateway(rowData.id);
+                    openModal(ModalName.DeleteGateway, {
+                      id: rowData.id,
+                      name: rowData.name,
+                      locationName: rowData.location_name,
+                    });
                   },
                 },
               ],
@@ -191,7 +189,7 @@ export const GatewaysTable = () => {
         },
       }),
     ],
-    [deleteGateway],
+    [],
   );
 
   const table = useReactTable({
