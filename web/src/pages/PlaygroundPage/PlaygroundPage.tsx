@@ -7,6 +7,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useMemo, useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import z from 'zod';
 import { CodeSnippet } from '../../shared/components/CodeSnippet/CodeSnippet';
 import { Controls } from '../../shared/components/Controls/Controls';
@@ -52,6 +53,11 @@ import testIconSrc from './assets/actionable-test1.png';
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
+      <Card>
+        <SizedBox height={1} width={600} />
+        <Skeleton height={250} width={600} />
+      </Card>
+      <Divider spacing={ThemeSpacing.Xl} />
       <Card>
         <SizedBox height={1} width={600} />
         <div>

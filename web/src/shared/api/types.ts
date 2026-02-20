@@ -923,6 +923,11 @@ export const AclProtocolName: Record<AclProtocolValue, string> = {
   '17': 'UDP',
 };
 
+export interface AclCount {
+  applied: number;
+  pending: number;
+}
+
 export interface AclDestination {
   id: number;
   name: string;

@@ -4,6 +4,7 @@ import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
   AclAlias,
+  AclCount,
   AclDestination,
   AclRule,
   ActivityLogEvent,
@@ -448,6 +449,7 @@ const api = {
   },
   acl: {
     destination: {
+      getCount: () => client.get<AclCount>('acl/destination/count'),
       getDestinations: () => client.get<AclDestination[]>('/acl/destination'),
       getDestination: (destinationId: number | string) =>
         client.get<AclDestination>(`/acl/destination/${destinationId}`),
@@ -462,6 +464,7 @@ const api = {
         }),
     },
     alias: {
+      getCount: () => client.get<AclCount>('acl/alias/count'),
       getAliases: () => client.get<AclAlias[]>('/acl/alias'),
       getAlias: (aliasId: number | string) =>
         client.get<AclAlias>(`/acl/alias/${aliasId}`),
@@ -474,6 +477,7 @@ const api = {
         }),
     },
     rule: {
+      getCount: () => client.get<AclCount>('acl/rule/count'),
       getRules: () => client.get<AclRule[]>(`/acl/rule`),
       getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),

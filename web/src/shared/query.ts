@@ -163,6 +163,23 @@ export const getOpenIdProvidersQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getAliasesCountQueryOptions = queryOptions({
+  queryFn: api.acl.alias.getCount,
+  queryKey: ['acl', 'alias', 'count'],
+  select: (resp) => resp.data,
+});
+export const getDestinationsCountQueryOptions = queryOptions({
+  queryFn: api.acl.destination.getCount,
+  queryKey: ['acl', 'destination', 'count'],
+  select: (resp) => resp.data,
+});
+
+export const getRulesCountQueryOptions = queryOptions({
+  queryFn: api.acl.rule.getCount,
+  queryKey: ['acl', 'rule', 'count'],
+  select: (resp) => resp.data,
+});
+
 export const getRulesQueryOptions = queryOptions({
   queryFn: api.acl.rule.getRules,
   queryKey: ['acl', 'rule'],
