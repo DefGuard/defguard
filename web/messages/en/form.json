@@ -18,6 +18,8 @@
   "form_error_email_reserved": "Email is already in use",
   "form_error_max_len": "Maximum length of {length} exceeded",
   "form_error_min_len": "Minimal length of {length} required",
+  "form_error_max": "Maximum value of {value} exceeded",
+  "form_error_min": "Minimal value of {value} required",
   "form_error_code": "Incorrect code. Please check and try again.",
   "form_error_invalid_key": "Invalid key format",
   "form_error_ip_invalid": "IP is invalid",

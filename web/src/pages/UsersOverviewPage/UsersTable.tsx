@@ -311,6 +311,7 @@ export const UsersTable = () => {
                     openModal(ModalName.AssignUserIP, {
                       user: rowData,
                       locationData: response.data,
+                      hasDevices: rowData.devices.length > 0,
                     });
                   },
                 },
@@ -383,6 +384,19 @@ export const UsersTable = () => {
                         Snackbar.error('Failed to initiate enrollment');
                         console.error(error);
                       });
+                  },
+                },
+              ],
+            });
+          }
+          if (rowData.enrolled) {
+            menuItems.splice(1, 0, {
+              items: [
+                {
+                  text: m.user_row_menu_add_new_device(),
+                  icon: IconKind.AddDevice,
+                  onClick: () => {
+                    openModal(ModalName.AddNewDevice, rowData);
                   },
                 },
               ],

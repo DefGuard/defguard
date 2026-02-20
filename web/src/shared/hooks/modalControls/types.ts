@@ -1,6 +1,7 @@
 import type {
   AvailableLocationIpResponse,
   Device,
+  DeviceLocationIpsResponse,
   GroupInfo,
   LicenseInfo,
   LicenseTierValue,
@@ -65,6 +66,10 @@ export interface OpenEnrollmentTokenModal {
   enrollmentResponse: StartEnrollmentResponse;
 }
 
+export interface OpenAddNewDeviceModal {
+  user: User;
+}
+
 export interface OpenCEWebhookModal {
   webhook?: Webhook;
 }
@@ -112,6 +117,13 @@ export interface OpenAddLocationModal {
 export interface OpenAssignUserIPModal {
   user: User;
   locationData: LocationDevicesResponse;
+  hasDevices: boolean;
+}
+
+export interface OpenAssignUserDeviceIPModal {
+  device: Device;
+  username: string;
+  locationData: DeviceLocationIpsResponse;
 }
 
 export interface OpenDeleteGatewayModal {

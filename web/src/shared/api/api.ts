@@ -40,6 +40,7 @@ import type {
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
   Device,
+  DeviceLocationIpsResponse,
   Edge,
   EdgeInfo,
   EditAclAliasRequest,
@@ -385,6 +386,8 @@ const api = {
       client.get<string>(`/network/${networkId}/device/${deviceId}/config`),
     getUserDeviceIps: (username: string) =>
       client.get<LocationDevicesResponse>(`/device/user/${username}/ip`),
+    getDeviceIps: (username: string, deviceId: number) =>
+      client.get<DeviceLocationIpsResponse>(`/device/user/${username}/ip/${deviceId}`),
     assignUserDeviceIps: (username: string, data: AssignStaticIpsRequest) =>
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>

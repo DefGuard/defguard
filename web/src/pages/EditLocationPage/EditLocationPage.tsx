@@ -222,7 +222,11 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         <EditPageFormSection label="Network settings">
           <form.AppField name="keepalive_interval">
             {(field) => (
-              <field.FormInput required label="Keep alive interval (seconds)" />
+              <field.FormInput
+                required
+                label="Keep alive interval (seconds)"
+                type="number"
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />

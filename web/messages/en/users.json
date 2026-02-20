@@ -24,6 +24,7 @@
   "users_row_menu_edit": "Edit details",
   "users_row_menu_change_password": "Change password",
   "users_row_menu_edit_groups": "Edit groups",
+  "user_row_menu_add_new_device": "Add new device",
   "users_row_menu_initiate_self_enrollment": "Initiate self-enrollment",
   "users_row_menu_ip_settings": "User devices IP settings",
   "modal_edit_user_groups_title": "Edit user groups"

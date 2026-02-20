@@ -4,7 +4,7 @@ import type { BadgeProps } from '../../../shared/defguard-ui/components/Badge/ty
 export const settingsTabsSchema = z.enum([
   'general',
   'notifications',
-  'openid',
+  'identity',
   'activity',
   'license',
 ]);

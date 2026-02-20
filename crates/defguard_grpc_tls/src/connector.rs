@@ -22,11 +22,11 @@ where
     C: tower_service::Service<Uri, Error = BoxError> + Clone + Send + 'static,
     C::Future: Send,
 {
-    type Response = C::Response;
     type Error = BoxError;
     type Future = std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + Send>,
     >;
+    type Response = C::Response;
 
     fn poll_ready(
         &mut self,

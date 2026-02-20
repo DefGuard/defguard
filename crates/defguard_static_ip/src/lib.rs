@@ -29,6 +29,16 @@ pub struct DeviceIps {
     pub wireguard_ips: Vec<SplitIp>,
 }
 
+/// Flattened location entry used by the single-device IP endpoint.
+/// Each entry represents one location the device belongs to,
+/// without wrapping IPs in an inner device array.
+#[derive(Serialize)]
+pub struct DeviceLocationIp {
+    pub location_id: i64,
+    pub location_name: String,
+    pub wireguard_ips: Vec<SplitIp>,
+}
+
 #[derive(FromRow)]
 struct DeviceIpRow {
     location_id: i64,
@@ -105,6 +115,67 @@ pub async fn get_ips_for_user(
 
     debug!(
         "Returning IP data for {} location(s) for user {username}",
+        locations.len()
+    );
+    Ok(locations)
+}
+
+pub async fn get_ips_for_device(
+    username: &str,
+    device_id: Id,
+    pool: &PgPool,
+) -> Result<Vec<DeviceLocationIp>, StaticIpError> {
+    debug!("Fetching static IPs for device {device_id} of user {username}");
+    let rows = sqlx::query_as!(
+        DeviceIpRow,
+        "SELECT \
+            wn.id AS location_id, \
+            wn.name AS location_name, \
+            d.id AS device_id, \
+            d.name AS device_name, \
+            wnd.wireguard_ips AS \"wireguard_ips: Vec<IpAddr>\" \
+        FROM wireguard_network wn \
+        JOIN wireguard_network_device wnd ON wnd.wireguard_network_id = wn.id \
+        JOIN device d ON d.id = wnd.device_id \
+        JOIN \"user\" u ON d.user_id = u.id \
+        WHERE u.username = $1 AND d.id = $2 \
+        ORDER BY wn.name",
+        username,
+        device_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    debug!(
+        "Found {} location(s) for device {device_id} of user {username}",
+        rows.len()
+    );
+    let mut locations: Vec<DeviceLocationIp> = Vec::new();
+
+    for row in rows {
+        let network = WireguardNetwork::find_by_id(pool, row.location_id)
+            .await?
+            .ok_or(StaticIpError::NetworkNotFound(row.location_id))?;
+
+        let wireguard_ips: Vec<SplitIp> = row
+            .wireguard_ips
+            .iter()
+            .filter_map(|ip| {
+                network
+                    .get_containing_network(*ip)
+                    .map(|net| split_ip(ip, &net))
+            })
+            .collect();
+
+        locations.push(DeviceLocationIp {
+            location_id: row.location_id,
+            location_name: row.location_name,
+            wireguard_ips,
+        });
+    }
+
+    debug!(
+        "Returning IP data for {} location(s) for device {device_id}",
         locations.len()
     );
     Ok(locations)

@@ -31,7 +31,10 @@ import {
   getLocationsQueryOptions,
 } from '../../../shared/query';
 import { tableSortingFns } from '../../../shared/utils/dateSortingFn';
-import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import {
+  canUseEnterpriseFeature,
+  licenseActionCheck,
+} from '../../../shared/utils/license';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 
 type RowData = NetworkLocation;
@@ -216,7 +219,7 @@ export const LocationsTable = () => {
                             });
                           };
                           if (row.gateways.length >= 1) {
-                            licenseActionCheck(canUseBusinessFeature(license), action);
+                            licenseActionCheck(canUseEnterpriseFeature(license), action);
                           } else {
                             action();
                           }

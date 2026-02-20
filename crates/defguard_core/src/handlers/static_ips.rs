@@ -6,7 +6,7 @@ use axum::{
     http::StatusCode,
 };
 use defguard_common::db::Id;
-use defguard_static_ip::{LocationDevices, get_ips_for_user};
+use defguard_static_ip::{DeviceLocationIp, LocationDevices, get_ips_for_device, get_ips_for_user};
 use serde::Serialize;
 
 use crate::{
@@ -20,6 +20,11 @@ pub struct LocationDevicesResponse {
     pub locations: Vec<LocationDevices>,
 }
 
+#[derive(Serialize)]
+pub struct DeviceLocationIpsResponse {
+    pub locations: Vec<DeviceLocationIp>,
+}
+
 pub async fn get_all_user_device_ips(
     _admin_role: AdminRole,
     _session: SessionInfo,
@@ -29,6 +34,19 @@ pub async fn get_all_user_device_ips(
     let locations = get_ips_for_user(&username, &state.pool).await?;
     Ok(ApiResponse::json(
         LocationDevicesResponse { locations },
+        StatusCode::OK,
+    ))
+}
+
+pub async fn get_device_ips(
+    _admin_role: AdminRole,
+    _session: SessionInfo,
+    Path((username, device_id)): Path<(String, Id)>,
+    State(state): State<AppState>,
+) -> ApiResult {
+    let locations = get_ips_for_device(&username, device_id, &state.pool).await?;
+    Ok(ApiResponse::json(
+        DeviceLocationIpsResponse { locations },
         StatusCode::OK,
     ))
 }

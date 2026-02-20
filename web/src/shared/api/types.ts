@@ -83,6 +83,16 @@ export interface LocationDevicesResponse {
   locations: LocationDevices[];
 }
 
+export interface DeviceLocationIp {
+  location_id: number;
+  location_name: string;
+  wireguard_ips: AvailableLocationIP[];
+}
+
+export interface DeviceLocationIpsResponse {
+  locations: DeviceLocationIp[];
+}
+
 export interface StaticIpAssignment {
   device_id: number;
   location_id: number;
@@ -744,9 +754,9 @@ export interface SettingsBranding {
 }
 
 export interface SettingsLDAP {
-  ldap_bind_password?: string;
-  ldap_bind_username?: string;
-  ldap_url?: string;
+  ldap_bind_password: string | null;
+  ldap_bind_username: string | null;
+  ldap_url: string | null;
   ldap_group_member_attr: string;
   ldap_group_obj_class: string;
   ldap_group_search_base: string;
@@ -763,7 +773,7 @@ export interface SettingsLDAP {
   ldap_tls_verify_cert: boolean;
   ldap_sync_interval: number;
   ldap_uses_ad: boolean;
-  ldap_user_rdn_attr?: string;
+  ldap_user_rdn_attr: string | null;
   ldap_sync_groups: string[];
 }
 

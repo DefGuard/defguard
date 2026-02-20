@@ -38,6 +38,7 @@ import { RadioIndicator } from '../../shared/defguard-ui/components/RadioIndicat
 import { SectionSelect } from '../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { SuggestedIpInput } from '../../shared/defguard-ui/components/SuggestedIPInput/SuggestedIPInput';
+import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
@@ -51,6 +52,40 @@ import testIconSrc from './assets/actionable-test1.png';
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
+      <Card>
+        <SizedBox height={1} width={600} />
+        <div>
+          <Toggle active />
+        </div>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <div>
+          <Toggle active={false} />
+        </div>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <div>
+          <Toggle active label={m.test_placeholder_long()} />
+        </div>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <div>
+          <Toggle active={false} label={m.test_placeholder_long()} />
+        </div>
+        <div>
+          <Toggle active disabled />
+        </div>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <div>
+          <Toggle active={false} disabled />
+        </div>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <div>
+          <Toggle active disabled label={m.test_placeholder_long()} />
+        </div>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <div>
+          <Toggle active={false} disabled label={m.test_placeholder_long()} />
+        </div>
+      </Card>
+      <Divider spacing={ThemeSpacing.Sm} />
       <Card>
         <SizedBox height={1} width={600} />
         <CodeSnippet

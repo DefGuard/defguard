@@ -6,7 +6,7 @@ import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabProps } from '../../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { SettingsActivityLogStreamingPage } from '../SettingsActivityLogStreamingPage/SettingsActivityStreamingTab';
-import { SettingsExternalOpenIdPage } from '../SettingsExternalOpenIdPage/SettingsExternalOpenIdPage';
+import { SettingsExternalProvidersTab } from './tabs/SettingsExternalProvidersTab';
 import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
 import { SettingsLicenseTab } from './tabs/SettingsLicenseTab/SettingsLicenseTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
@@ -15,9 +15,9 @@ import { type SettingsTabValue, settingsTabsSchema } from './types';
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
   notifications: <SettingsNotificationsTab />,
-  openid: <SettingsExternalOpenIdPage />,
   activity: <SettingsActivityLogStreamingPage />,
   license: <SettingsLicenseTab />,
+  identity: <SettingsExternalProvidersTab />,
 };
 
 const tabToTitle = (tab: SettingsTabValue): string => {
@@ -30,8 +30,8 @@ const tabToTitle = (tab: SettingsTabValue): string => {
       return 'License';
     case 'notifications':
       return 'Notifications';
-    case 'openid':
-      return 'External identity providers';
+    case 'identity':
+      return 'Identity Providers';
   }
 };
 

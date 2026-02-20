@@ -57,10 +57,7 @@ export const AddExternalOpenIdWizardPage = () => {
       subtitle="Configure the OpenID client settings with values provided by your external OpenID provider."
       onClose={() => {
         navigate({
-          to: '/settings',
-          search: {
-            tab: 'openid',
-          },
+          to: '/settings/openid',
           replace: true,
         }).then(() => {
           useAddExternalOpenIdStore.getState().reset();

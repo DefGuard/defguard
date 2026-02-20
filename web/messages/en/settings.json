@@ -8,5 +8,6 @@
   "settings_activity_log_streaming_delete_log_streaming_title": "Delete destination confirmation",
   "settings_activity_log_streaming_table_title": "All log streams",
   "settings_activity_log_streaming_table_header_name": "Name",
-  "settings_activity_log_streaming_table_stream_type_name": "Destination"
+  "settings_activity_log_streaming_table_stream_type_name": "Destination",
+  "settings_msg_saved": "Settings saved"
 }
