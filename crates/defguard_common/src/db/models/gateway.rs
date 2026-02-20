@@ -10,15 +10,17 @@ use crate::db::{Id, NoId};
 #[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 pub struct Gateway<I = NoId> {
     pub id: I,
-    pub network_id: Id,
-    pub url: String,
-    pub hostname: Option<String>,
+    pub location_id: Id,
+    pub name: String,
+    pub address: String,
+    pub port: i32,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
-    pub name: String,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: Id,
 }
 
 impl<I> Gateway<I> {
@@ -35,54 +37,56 @@ impl<I> Gateway<I> {
 
 impl Gateway {
     #[must_use]
-    pub fn new<S: Into<String>>(network_id: Id, url: S, name: S) -> Self {
+    pub fn new<S: Into<String>>(
+        network_id: Id,
+        name: S,
+        address: S,
+        port: i32,
+        modified_by: Id,
+    ) -> Self {
         Self {
             id: NoId,
-            network_id,
-            url: url.into(),
-            hostname: None,
+            location_id: network_id,
+            name: name.into(),
+            address: address.into(),
+            port,
             connected_at: None,
             disconnected_at: None,
             certificate: None,
             certificate_expiry: None,
             version: None,
-            name: name.into(),
+            modified_by,
+            modified_at: Utc::now().naive_utc(),
         }
     }
 }
 
 impl Gateway<Id> {
-    pub async fn find_by_network_id<'e, E>(
+    pub async fn find_by_location_id<'e, E>(
         executor: E,
-        network_id: Id,
+        location_id: Id,
     ) -> Result<Vec<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT * FROM gateway WHERE network_id = $1 ORDER BY id",
-            network_id
+            "SELECT * FROM gateway WHERE location_id = $1 ORDER BY id",
+            location_id
         )
         .fetch_all(executor)
         .await
     }
 
-    /// Update `hostname` and set `connected_at` to the current time and save it to the database.
-    pub async fn touch_connected<'e, E>(
-        &mut self,
-        executor: E,
-        hostname: String,
-    ) -> Result<(), sqlx::Error>
+    /// Update `connected_at` to the current time and save it to the database.
+    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
-        self.hostname = Some(hostname);
         self.connected_at = Some(Utc::now().naive_utc());
         query!(
-            "UPDATE gateway SET hostname = $2, connected_at = $3 WHERE id = $1",
+            "UPDATE gateway SET connected_at = $2 WHERE id = $1",
             self.id,
-            self.hostname,
             self.connected_at
         )
         .execute(executor)
@@ -108,36 +112,49 @@ impl Gateway<Id> {
         Ok(())
     }
 
-    pub async fn delete_by_id<'e, E>(executor: E, id: Id, network_id: Id) -> Result<(), sqlx::Error>
+    pub async fn delete_by_id<'e, E>(executor: E, id: Id) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query!(
-            "DELETE FROM \"gateway\" WHERE id = $1 AND network_id = $2",
-            id,
-            network_id
-        )
-        .execute(executor)
-        .await?;
+        sqlx::query!("DELETE FROM \"gateway\" WHERE id = $1", id,)
+            .execute(executor)
+            .await?;
 
         Ok(())
     }
 
     // TODO: Split the URL into address and port fields just like in proxy
-    pub async fn find_by_url<'e, E>(executor: E, url: &str) -> Result<Option<Self>, sqlx::Error>
+    pub async fn find_by_url<'e, E>(
+        executor: E,
+        address: &str,
+        port: u16,
+    ) -> Result<Option<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
-        let record = query_as!(Self, "SELECT * FROM gateway WHERE url = $1", url)
-            .fetch_optional(executor)
-            .await?;
+        let record = query_as!(
+            Self,
+            "SELECT * FROM gateway WHERE address = $1 AND port = $2",
+            address,
+            i32::from(port)
+        )
+        .fetch_optional(executor)
+        .await?;
 
         Ok(record)
+    }
+
+    pub fn url(&self) -> String {
+        format!("http://{}:{}", self.address, self.port)
     }
 }
 
 impl fmt::Display for Gateway<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Gateway(ID {}; URL {})", self.id, self.url)
+        write!(
+            f,
+            "Gateway(ID {}; URL {}:{})",
+            self.id, self.address, self.port
+        )
     }
 }

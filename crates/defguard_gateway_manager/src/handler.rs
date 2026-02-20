@@ -73,10 +73,10 @@ impl GatewayHandler {
         peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Self, GatewayError> {
-        let url = Url::from_str(&gateway.url).map_err(|err| {
+        let url = Url::from_str(&gateway.url()).map_err(|err| {
             GatewayError::EndpointError(format!(
                 "Failed to parse Gateway URL {}: {err}",
-                &gateway.url
+                &gateway.url()
             ))
         })?;
 
@@ -120,7 +120,7 @@ impl GatewayHandler {
         tx: &UnboundedSender<CoreResponse>,
     ) -> Result<WireguardNetwork<Id>, GatewayError> {
         debug!("Sending configuration to Gateway");
-        let network_id = self.gateway.network_id;
+        let network_id = self.gateway.location_id;
 
         let mut conn = self.pool.acquire().await?;
 
@@ -170,16 +170,16 @@ impl GatewayHandler {
     /// Sends notification only if last notification time is bigger than specified in config.
     async fn send_disconnect_notification(&self) {
         debug!("Sending gateway disconnect email notification");
-        let hostname = self.gateway.hostname.clone();
+        let name = self.gateway.name.clone();
         let pool = self.pool.clone();
-        let url = self.gateway.url.clone();
+        let url = format!("{}:{}", self.gateway.address, self.gateway.port);
 
         let Ok(Some(network)) =
-            WireguardNetwork::find_by_id(&self.pool, self.gateway.network_id).await
+            WireguardNetwork::find_by_id(&self.pool, self.gateway.location_id).await
         else {
             error!(
                 "Failed to fetch network ID {} from database",
-                self.gateway.network_id
+                self.gateway.location_id
             );
             return;
         };
@@ -197,7 +197,7 @@ impl GatewayHandler {
             // To return result instead of logging
             tokio::spawn(async move {
                 if let Err(err) =
-                    send_gateway_disconnected_email(hostname, network.name, &url, &pool).await
+                    send_gateway_disconnected_email(name, network.name, &url, &pool).await
                 {
                     error!("Failed to send gateway disconnect notification: {err}");
                 } else {
@@ -292,7 +292,7 @@ impl GatewayHandler {
                         debug!("Message from Gateway {uri}");
 
                         match received.payload {
-                            Some(core_request::Payload::ConfigRequest(config_request)) => {
+                            Some(core_request::Payload::ConfigRequest(_config_request)) => {
                                 if config_sent {
                                     warn!(
                                         "Ignoring repeated configuration request from {}",
@@ -306,18 +306,11 @@ impl GatewayHandler {
                                     Ok(network) => {
                                         info!("Sent configuration to {}", self.gateway);
                                         config_sent = true;
-                                        let _ = self
-                                            .gateway
-                                            .touch_connected(&self.pool, config_request.hostname)
-                                            .await;
+                                        let _ = self.gateway.touch_connected(&self.pool).await;
                                         let mut updates_handler = GatewayUpdatesHandler::new(
-                                            self.gateway.network_id,
+                                            self.gateway.location_id,
                                             network,
-                                            self.gateway
-                                                .hostname
-                                                .clone()
-                                                .unwrap_or_default()
-                                                .clone(),
+                                            self.gateway.name.clone(),
                                             self.events_tx.subscribe(),
                                             tx.clone(),
                                         );
@@ -346,7 +339,7 @@ impl GatewayHandler {
                                 // convert stats to DB storage format
                                 match try_protos_into_stats_message(
                                     peer_stats.clone(),
-                                    self.gateway.network_id,
+                                    self.gateway.location_id,
                                     self.gateway.id,
                                 ) {
                                     None => {
@@ -386,7 +379,7 @@ impl GatewayHandler {
 struct GatewayUpdatesHandler {
     network_id: Id,
     network: WireguardNetwork<Id>,
-    gateway_hostname: String,
+    gateway_name: String,
     events_rx: broadcast::Receiver<GatewayEvent>,
     tx: UnboundedSender<CoreResponse>,
 }
@@ -396,14 +389,14 @@ impl GatewayUpdatesHandler {
     fn new(
         network_id: Id,
         network: WireguardNetwork<Id>,
-        gateway_hostname: String,
+        gateway_name: String,
         events_rx: broadcast::Receiver<GatewayEvent>,
         tx: UnboundedSender<CoreResponse>,
     ) -> Self {
         Self {
             network_id,
             network,
-            gateway_hostname,
+            gateway_name,
             events_rx,
             tx,
         }
@@ -416,7 +409,7 @@ impl GatewayUpdatesHandler {
     async fn run(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
-            self.gateway_hostname, self.network
+            self.gateway_name, self.network
         );
         while let Ok(update) = self.events_rx.recv().await {
             debug!("Received WireGuard update: {update:?}");
@@ -598,7 +591,7 @@ impl GatewayUpdatesHandler {
             if result.is_err() {
                 error!(
                     "Closing update steam to gateway: {}, network {}",
-                    self.gateway_hostname, self.network
+                    self.gateway_name, self.network
                 );
                 break;
             }

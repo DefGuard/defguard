@@ -7,6 +7,7 @@ use defguard_common::db::{Id, models::gateway::Gateway};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sqlx::{PgPool, query_as};
 use utoipa::ToSchema;
 
 use crate::{
@@ -19,34 +20,59 @@ use crate::{
 #[derive(Serialize, ToSchema)]
 pub struct GatewayInfo {
     pub id: Id,
-    pub network_id: Id,
-    pub url: String,
-    pub hostname: Option<String>,
+    pub location_id: Id,
+    pub name: String,
+    pub address: String,
+    pub port: i32,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub connected: bool,
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
-    pub name: String,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: Id,
+    pub modified_by_firstname: String,
+    pub modified_by_lastname: String,
 }
 
-impl From<Gateway<Id>> for GatewayInfo {
-    fn from(gateway: Gateway<Id>) -> Self {
-        let connected = gateway.is_connected();
-        Self {
-            id: gateway.id,
-            network_id: gateway.network_id,
-            url: gateway.url,
-            hostname: gateway.hostname,
-            connected_at: gateway.connected_at,
-            disconnected_at: gateway.disconnected_at,
-            connected,
-            certificate: gateway.certificate,
-            certificate_expiry: gateway.certificate_expiry,
-            version: gateway.version,
-            name: gateway.name,
-        }
+impl GatewayInfo {
+    pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<Self>> {
+        query_as!(
+            Self,
+            "SELECT gateway.*, \
+                u.first_name modified_by_firstname, \
+                u.last_name modified_by_lastname, \
+                CASE \
+                    WHEN gateway.connected_at IS NULL THEN false \
+                    WHEN gateway.disconnected_at IS NULL THEN true \
+                    WHEN gateway.connected_at >= gateway.disconnected_at THEN true \
+                    ELSE false \
+                END AS \"connected!\" \
+            FROM gateway JOIN \"user\" u on gateway.modified_by = u.id",
+        )
+        .fetch_all(pool)
+        .await
+    }
+
+    pub async fn find_by_location_id(pool: &PgPool, location_id: Id) -> sqlx::Result<Vec<Self>> {
+        query_as!(
+            Self,
+            "SELECT gateway.*, \
+                u.first_name modified_by_firstname, \
+                u.last_name modified_by_lastname, \
+                CASE \
+                    WHEN gateway.connected_at IS NULL THEN false \
+                    WHEN gateway.disconnected_at IS NULL THEN true \
+                    WHEN gateway.connected_at >= gateway.disconnected_at THEN true \
+                    ELSE false \
+                END AS \"connected!\" \
+            FROM gateway JOIN \"user\" u on gateway.modified_by = u.id \
+            WHERE location_id = $1",
+            location_id
+        )
+        .fetch_all(pool)
+        .await
     }
 }
 
@@ -75,11 +101,7 @@ pub(crate) async fn gateway_list(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("User {} displaying gateway list", session.user.username);
-    let gateways = Gateway::all(&appstate.pool).await?;
-    let gateways = gateways
-        .into_iter()
-        .map(GatewayInfo::from)
-        .collect::<Vec<_>>();
+    let gateways = GatewayInfo::list(&appstate.pool).await?;
     info!("User {} displayed gateway list", session.user.username);
 
     Ok(ApiResponse::json(gateways, StatusCode::OK))
@@ -112,7 +134,7 @@ pub(crate) async fn gateway_details(
     );
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id).await?;
     let response = match gateway {
-        Some(gateway) => ApiResponse::json(GatewayInfo::from(gateway), StatusCode::OK),
+        Some(gateway) => ApiResponse::json(gateway, StatusCode::OK),
         None => ApiResponse::json(Value::Null, StatusCode::NOT_FOUND),
     };
     info!(
@@ -175,10 +197,7 @@ pub(crate) async fn update_gateway(
         }),
     })?;
 
-    Ok(ApiResponse::json(
-        GatewayInfo::from(gateway),
-        StatusCode::OK,
-    ))
+    Ok(ApiResponse::json(gateway, StatusCode::OK))
 }
 
 #[utoipa::path(

@@ -77,10 +77,11 @@ pub(crate) async fn dump_config(db: &PgPool) -> Value {
                 .iter()
                 .map(|g| json!({
                     "id": g.id,
-                    "network_id": g.network_id,
+                    "network_id": g.location_id,
                     "version": g.version.as_deref().unwrap_or("unknown"),
-                    "url": g.url,
-                    "hostname": g.hostname,
+                    "address": g.address,
+                    "port": g.port,
+                    "name": g.name,
                     "connected_at": g.connected_at,
                 }))
                 .collect::<Vec<_>>()

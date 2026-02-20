@@ -124,11 +124,12 @@ pub async fn send_support_data(
         })).collect::<Vec<_>>(),
         "gateways": gateways.iter().map(|g| json!({
             "id": g.id,
-            "network_id": g.network_id,
+            "network_id": g.location_id,
             "version": g.version.as_deref().unwrap_or("unknown"),
-            "url": g.url,
+            "address": g.address,
+            "port": g.port,
             "certificate": g.certificate,
-            "hostname": g.hostname,
+            "name": g.name,
             "connected_at": g.connected_at,
         })).collect::<Vec<_>>(),
     });
@@ -169,14 +170,13 @@ pub async fn send_support_data(
 }
 
 pub async fn send_gateway_disconnected_email(
-    gateway_name: Option<String>,
+    gateway_name: String,
     network_name: String,
     gateway_adress: &str,
     pool: &PgPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
     let admin_users = User::find_admins(pool).await?;
-    let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         Mail::new(
             &user.email,

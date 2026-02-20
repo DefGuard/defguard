@@ -154,10 +154,9 @@ use crate::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_user_devices, change_gateway, create_network, delete_device,
-            delete_network, download_config, gateway_status, get_device, import_network,
-            list_devices, list_networks, list_user_devices, modify_device, modify_network,
-            network_details, remove_gateway,
+            add_device, add_user_devices, create_network, delete_device, delete_network,
+            download_config, gateway_status, get_device, import_network, list_devices,
+            list_networks, list_user_devices, modify_device, modify_network, network_details,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -532,10 +531,6 @@ pub fn build_webapp(
                 get(setup_gateway_tls_stream),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
-            .route(
-                "/network/{network_id}/gateways/{gateway_id}",
-                put(change_gateway).delete(remove_gateway),
-            )
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
                 "/network/{network_id}/device/{device_id}/config",

@@ -95,7 +95,7 @@ impl GatewayManager {
                         if let (Some(old), Some(new)) =
                             (gateway_notification.old, gateway_notification.new)
                         {
-                            if old.url == new.url {
+                            if old.address == new.address && old.port == new.port {
                                 debug!(
                                     "Gateway URL didn't change. Keeping the current gateway handler"
                                 );

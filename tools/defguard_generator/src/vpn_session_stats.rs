@@ -158,7 +158,7 @@ async fn truncate_with_restart(pool: &PgPool) -> Result<()> {
 
 async fn prepare_gateway(pool: &PgPool, location_id: Id) -> Result<Gateway<Id>> {
     // check if a gateway exists already
-    let existing_gateways = Gateway::find_by_network_id(pool, location_id).await?;
+    let existing_gateways = Gateway::find_by_location_id(pool, location_id).await?;
     match existing_gateways.into_iter().next() {
         Some(gateway) => Ok(gateway),
         None => {
