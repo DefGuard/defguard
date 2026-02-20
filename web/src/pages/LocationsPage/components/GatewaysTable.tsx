@@ -10,7 +10,6 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { GatewayInfo } from '../../../shared/api/types';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
-import { EmptyState } from '../../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { IconButtonMenu } from '../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../shared/defguard-ui/components/Menu/types';
@@ -225,7 +224,13 @@ export const GatewaysTable = () => {
           onChange={setSearch}
         />
       </TableTop>
-      {transformedData.length === 0 && search.length > 0 && <EmptyState title="Search" />}
+      {transformedData.length === 0 && search.length > 0 && (
+        <EmptyStateFlexible
+          icon="search"
+          title={m.search_empty_common_title()}
+          subtitle={m.search_empty_common_subtitle()}
+        />
+      )}
       {transformedData.length > 0 && <TableBody table={table} />}
     </>
   );
