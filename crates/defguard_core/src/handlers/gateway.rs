@@ -34,6 +34,7 @@ pub struct GatewayInfo {
     pub modified_by: Id,
     pub modified_by_firstname: String,
     pub modified_by_lastname: String,
+    pub location_name: String,
 }
 
 impl GatewayInfo {
@@ -48,8 +49,11 @@ impl GatewayInfo {
                     WHEN gateway.disconnected_at IS NULL THEN true \
                     WHEN gateway.connected_at >= gateway.disconnected_at THEN true \
                     ELSE false \
-                END AS \"connected!\" \
-            FROM gateway JOIN \"user\" u on gateway.modified_by = u.id",
+                END AS \"connected!\", \
+                wn.name AS location_name \
+            FROM gateway \
+            JOIN \"user\" u on gateway.modified_by = u.id \
+            JOIN wireguard_network wn ON gateway.location_id = wn.id",
         )
         .fetch_all(pool)
         .await
@@ -66,8 +70,10 @@ impl GatewayInfo {
                     WHEN gateway.disconnected_at IS NULL THEN true \
                     WHEN gateway.connected_at >= gateway.disconnected_at THEN true \
                     ELSE false \
-                END AS \"connected!\" \
+                END AS \"connected!\", \
+                wn.name AS location_name \
             FROM gateway JOIN \"user\" u on gateway.modified_by = u.id \
+            JOIN wireguard_network wn ON gateway.location_id = wn.id \
             WHERE location_id = $1",
             location_id
         )
