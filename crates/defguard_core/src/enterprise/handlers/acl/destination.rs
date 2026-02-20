@@ -5,10 +5,10 @@ use axum::{
 use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
-use sqlx::{PgConnection, PgPool, query};
+use sqlx::{PgConnection, PgPool, query, query_as};
 use utoipa::ToSchema;
 
-use super::LicenseInfo;
+use super::{AclStateCount, LicenseInfo};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -213,6 +213,33 @@ pub(crate) async fn list_acl_destinations(
     }
     info!("User {} listed ACL destinations", session.user.username);
     Ok(ApiResponse::json(api_aliases, StatusCode::OK))
+}
+
+/// Count ACL destinations by state.
+#[utoipa::path(
+    get,
+    path = "/api/v1/acl/destination/count",
+    tag = "ACL",
+    responses(
+        (status = OK, description = "ACL destination state counts", body = AclStateCount),
+    )
+)]
+pub(crate) async fn count_acl_destinations(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let counts = query_as::<_, AclStateCount>(
+        "SELECT \
+            COUNT(*) FILTER (WHERE state = 'applied'::aclalias_state) AS applied, \
+            COUNT(*) FILTER (WHERE state = 'modified'::aclalias_state) AS pending \
+        FROM aclalias \
+        WHERE kind = $1",
+    )
+    .bind(AliasKind::Destination)
+    .fetch_one(&appstate.pool)
+    .await?;
+
+    Ok(ApiResponse::json(counts, StatusCode::OK))
 }
 
 /// Get ACL destination.

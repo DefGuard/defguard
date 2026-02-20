@@ -84,6 +84,7 @@ use super::{
 		openid_providers::list_openid_providers,
 		// /acl/rule
 		acl::list_acl_rules,
+		acl::count_acl_rules,
 		acl::create_acl_rule,
 		acl::apply_acl_rules,
 		acl::get_acl_rule,
@@ -91,6 +92,7 @@ use super::{
 		acl::delete_acl_rule,
 		// /acl/alias
 		acl::alias::list_acl_aliases,
+		acl::alias::count_acl_aliases,
 		acl::alias::create_acl_alias,
 		acl::alias::get_acl_alias,
 		acl::alias::update_acl_alias,
@@ -98,6 +100,7 @@ use super::{
 		acl::apply_acl_aliases,
 		// /acl/destination
 		acl::destination::list_acl_destinations,
+		acl::destination::count_acl_destinations,
 		acl::destination::create_acl_destination,
 		acl::destination::get_acl_destination,
 		acl::destination::update_acl_destination,

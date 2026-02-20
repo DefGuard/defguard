@@ -94,6 +94,18 @@ fn make_alias() -> EditAclAlias {
     }
 }
 
+fn make_destination() -> Value {
+    json!({
+        "name": "destination",
+        "addresses": "10.20.30.40, 10.0.0.1/24, 10.0.10.1-10.0.20.1",
+        "ports": "1, 2, 3, 10-20, 30-40",
+        "protocols": [6, 17],
+        "any_address": false,
+        "any_port": false,
+        "any_protocol": false
+    })
+}
+
 fn edit_rule_data_into_api_response(
     data: &EditAclRule,
     id: Id,
@@ -1265,4 +1277,90 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
     assert_eq!(alias.state, AliasState::Modified);
     let alias: ApiAclAlias = client.get("/api/v1/acl/alias/6").send().await.json().await;
     assert_eq!(alias.state, AliasState::Applied);
+}
+
+#[sqlx::test]
+async fn test_acl_count_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool.clone()).await;
+    authenticate_admin(&mut client).await;
+
+    // rules: 1 applied, 1 pending (new)
+    let rule = make_rule();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    set_rule_state(&pool, 1, RuleState::Applied, None).await;
+
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // aliases: 2 applied, 1 pending (modified)
+    let alias = make_alias();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let mut alias_to_update: ApiAclAlias =
+        client.get("/api/v1/acl/alias/2").send().await.json().await;
+    alias_to_update.name = "updated alias".to_string();
+    let response = client
+        .put("/api/v1/acl/alias/2")
+        .json(&alias_to_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // destinations: 2 applied, 1 pending (modified)
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let destination_1: Value = response.json().await;
+    let destination_1_id = destination_1["id"].as_i64().unwrap();
+
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination_to_update = destination_1;
+    destination_to_update["name"] = json!("updated destination");
+    let response = client
+        .put(format!("/api/v1/acl/destination/{destination_1_id}"))
+        .json(&destination_to_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let counts: Value = client
+        .get("/api/v1/acl/rule/count")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(counts["applied"], json!(1));
+    assert_eq!(counts["pending"], json!(1));
+
+    let counts: Value = client
+        .get("/api/v1/acl/alias/count")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(counts["applied"], json!(2));
+    assert_eq!(counts["pending"], json!(1));
+
+    let counts: Value = client
+        .get("/api/v1/acl/destination/count")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(counts["applied"], json!(2));
+    assert_eq!(counts["pending"], json!(1));
 }
