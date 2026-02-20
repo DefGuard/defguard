@@ -12,18 +12,16 @@ use tokio::{
 use tracing::Instrument;
 
 use crate::{
-    enterprise::{
-        db::models::acl::{AclRule, RuleState},
-        directory_sync::{do_directory_sync, get_directory_sync_interval},
-        firewall::try_get_location_firewall_config,
-        is_business_license_active,
-        ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
-        limits::do_count_update,
-    },
     grpc::GatewayEvent,
     location_management::allowed_peers::get_location_allowed_peers,
     updates::do_new_version_check,
 };
+use defguard_enterprise_db::models::acl::{AclRule, RuleState};
+use defguard_enterprise_directory_sync::{do_directory_sync, get_directory_sync_interval};
+use defguard_enterprise_firewall::try_get_location_firewall_config;
+use defguard_enterprise_ldap::{do_ldap_sync, sync::get_ldap_sync_interval};
+use defguard_enterprise_license::{do_count_update, is_business_license_active};
+use crate::enterprise::directory_sync_context::build_directory_sync_context;
 
 // Times in seconds
 const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
@@ -31,6 +29,7 @@ const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
 const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
+
 
 #[instrument(skip_all)]
 pub async fn run_utility_thread(
@@ -48,8 +47,9 @@ pub async fn run_utility_thread(
     let mut enterprise_enabled = is_business_license_active();
 
     let directory_sync_task = || async {
+    let context = build_directory_sync_context(wireguard_tx.clone());
         if let Err(e) = Box::pin(
-            do_directory_sync(pool, &wireguard_tx).instrument(info_span!("directory_sync_task")),
+            do_directory_sync(pool, &context).instrument(info_span!("directory_sync_task")),
         )
         .await
         {
@@ -255,15 +255,26 @@ async fn expired_acl_rules_check(
     );
 
     // find affected locations
-    let mut affected_locations = HashSet::new();
+    let mut affected_location_ids = HashSet::new();
     for rule in updated_rules {
-        let locations = rule.get_networks(pool).await?;
-        for location in locations {
-            affected_locations.insert(location);
+        if rule.all_locations {
+            let locations = WireguardNetwork::all(pool).await?;
+            for location in locations {
+                affected_location_ids.insert(location.id);
+            }
+        } else {
+            let locations = rule.get_networks(pool).await?;
+            for location in locations {
+                affected_location_ids.insert(location.id);
+            }
         }
     }
 
-    let affected_locations: Vec<WireguardNetwork<Id>> = affected_locations.into_iter().collect();
+    let affected_locations: Vec<WireguardNetwork<Id>> = WireguardNetwork::all(pool)
+        .await?
+        .into_iter()
+        .filter(|location| affected_location_ids.contains(&location.id))
+        .collect();
     debug!(
         "{} locations affected by expired ACL rules. Sending gateway firewall update events \
             for each location",

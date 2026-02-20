@@ -2,20 +2,18 @@ use std::net::IpAddr;
 
 use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
-    Id,
     models::{
-        AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        group::Group, oauth2client::OAuth2Client, proxy::Proxy,
+        group::Group, oauth2client::OAuth2Client, proxy::Proxy, AuthenticationKey, Device,
+        MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
     },
+    Id,
 };
 use defguard_proto::proxy::MfaMethod;
 
-use crate::{
-    db::WebHook,
-    enterprise::db::models::{
-        activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider, snat::UserSnatBinding,
-    },
+use crate::db::WebHook;
+use defguard_enterprise_db::models::{
+    activity_log_stream::ActivityLogStream, api_tokens::ApiToken, openid_provider::OpenIdProvider,
+    snat::UserSnatBinding,
 };
 
 /// Shared context that needs to be added to every API event

@@ -17,17 +17,14 @@ use defguard_common::{
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    enterprise::{
-        activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
-        license::{License, run_periodic_license_check, set_cached_license},
-        limits::update_counts,
-    },
     events::{ApiEvent, BidiStreamEvent},
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
+use defguard_enterprise_activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager;
+use defguard_enterprise_license::{License, run_periodic_license_check, set_cached_license, update_counts};
 use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
 use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};

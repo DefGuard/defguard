@@ -6,8 +6,8 @@ repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.87.0"
 
 [workspace]
-members = ["crates/*", "tools/*"]
-default-members = ["crates/*"]
+members = ["crates/*", "enterprise/crates/*", "tools/*"]
+default-members = ["crates/*", "enterprise/crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -17,6 +17,13 @@ defguard_setup = { path = "./crates/defguard_setup", version = "0.0.0" }
 defguard_common = { path = "./crates/defguard_common", version = "2.0.0" }
 defguard_static_ip = { path = "./crates/defguard_static_ip", version = "0.0.0" }
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
+defguard_enterprise_activity_log_stream = { path = "./enterprise/crates/defguard_enterprise_activity_log_stream", version = "0.0.0" }
+defguard_enterprise_db = { path = "./enterprise/crates/defguard_enterprise_db", version = "0.0.0" }
+defguard_enterprise_directory_sync = { path = "./enterprise/crates/defguard_enterprise_directory_sync", version = "0.0.0" }
+defguard_enterprise_firewall = { path = "./enterprise/crates/defguard_enterprise_firewall", version = "0.0.0" }
+defguard_enterprise_ldap = { path = "./enterprise/crates/defguard_enterprise_ldap", version = "0.0.0" }
+defguard_enterprise_license = { path = "./enterprise/crates/defguard_enterprise_license", version = "0.0.0" }
+defguard_enterprise_snat = { path = "./enterprise/crates/defguard_enterprise_snat", version = "0.0.0" }
 defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
 defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
 defguard_gateway_manager = { path = "./crates/defguard_gateway_manager", version = "0.0.0" }

@@ -10,6 +10,13 @@ rust-version.workspace = true
 [dependencies]
 # internal crates
 defguard_common = { workspace = true }
+defguard_enterprise_activity_log_stream = { workspace = true }
+defguard_enterprise_db = { workspace = true }
+defguard_enterprise_directory_sync = { workspace = true }
+defguard_enterprise_firewall = { workspace = true }
+defguard_enterprise_ldap = { workspace = true }
+defguard_enterprise_license = { workspace = true }
+defguard_enterprise_snat = { workspace = true }
 defguard_mail = { workspace = true }
 defguard_proto = { workspace = true }
 defguard_web_ui = { workspace = true }
@@ -96,6 +103,3 @@ reqwest = { version = "0.12", features = [
 ], default-features = false }
 serde_qs = "1.0"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
-
-[build-dependencies]
-tonic-prost-build.workspace = true

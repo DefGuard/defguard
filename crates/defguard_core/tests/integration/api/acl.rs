@@ -11,16 +11,14 @@ use defguard_common::{
     },
 };
 use defguard_core::{
-    enterprise::{
-        db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
-        handlers::acl::{
-            ApiAclRule, EditAclRule,
-            alias::{ApiAclAlias, EditAclAlias},
-        },
-        license::{get_cached_license, set_cached_license},
+    enterprise::handlers::acl::{
+        ApiAclRule, EditAclRule,
+        alias::{ApiAclAlias, EditAclAlias},
     },
     handlers::Auth,
 };
+use defguard_enterprise_db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState};
+use defguard_enterprise_license::{get_cached_license, set_cached_license};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::{
@@ -672,9 +670,9 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
     let mut rule = make_rule();
     rule.aliases = vec![1];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[sqlx::test]

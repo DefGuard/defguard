@@ -20,13 +20,11 @@ use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 use crate::{
-    appstate::AppState,
-    auth::SessionInfo,
-    db::WebHook,
-    enterprise::{db::models::acl::AclError, license::LicenseError},
-    error::WebError,
+    appstate::AppState, auth::SessionInfo, db::WebHook, error::WebError,
     events::ApiRequestContext,
 };
+use defguard_enterprise_db::models::acl::AclError;
+use defguard_enterprise_license::LicenseError;
 
 pub(crate) mod activity_log;
 pub(crate) mod app_info;
@@ -186,7 +184,7 @@ impl From<WebError> for ApiResponse {
                 ),
                 AclError::CannotUseModifiedAliasInRuleError(alias_ids) => ApiResponse::new(
                     json!({"msg": format!("Cannot use modified alias in ACL rule {alias_ids:?}")}),
-                    StatusCode::BAD_REQUEST,
+                    StatusCode::UNPROCESSABLE_ENTITY,
                 ),
             },
             WebError::Http(status) => {

@@ -2,13 +2,11 @@ use std::net::IpAddr;
 
 use defguard_common::db::Id;
 use defguard_core::{
-    enterprise::{
-        db::models::snat::UserSnatBinding,
-        license::{get_cached_license, set_cached_license},
-        snat::handlers::{EditUserSnatBinding, NewUserSnatBinding},
-    },
+    enterprise::snat::handlers::{EditUserSnatBinding, NewUserSnatBinding},
     handlers::Auth,
 };
+use defguard_enterprise_db::models::snat::UserSnatBinding;
+use defguard_enterprise_license::{get_cached_license, set_cached_license};
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

@@ -4,12 +4,10 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use defguard_core::{
-    enterprise::{
-        db::models::api_tokens::{ApiToken, ApiTokenInfo},
-        handlers::api_tokens::{AddApiTokenData, RenameRequest},
-    },
+    enterprise::handlers::api_tokens::{AddApiTokenData, RenameRequest},
     handlers::Auth,
 };
+use defguard_enterprise_db::models::api_tokens::{ApiToken, ApiTokenInfo};
 use reqwest::{StatusCode, header::HeaderName};
 use serde::Deserialize;
 use serde_json::json;

@@ -5,9 +5,8 @@ use defguard_common::{
 };
 
 use super::{ApiResponse, ApiResult};
-use crate::{
-    appstate::AppState, auth::SessionInfo, enterprise::db::models::openid_provider::OpenIdProvider,
-};
+use crate::{appstate::AppState, auth::SessionInfo};
+use defguard_enterprise_db::models::openid_provider::OpenIdProvider;
 
 #[derive(Serialize)]
 struct LdapInfo {

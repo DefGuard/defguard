@@ -15,18 +15,18 @@ use sqlx::query_as;
 use utoipa::ToSchema;
 
 use super::{ApiResponse, ApiResult, EditGroupInfo, GroupInfo, Username};
+use defguard_enterprise_ldap::hashset;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::ldap::utils::{
-        ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
-        ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,
-        ldap_update_users_state,
-    },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    hashset,
     location_management::sync_all_networks,
+};
+use defguard_enterprise_ldap::utils::{
+    ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
+    ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,
+    ldap_update_users_state,
 };
 
 #[derive(Serialize, ToSchema)]

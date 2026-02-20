@@ -39,9 +39,9 @@ use tonic::{
 
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
-    enterprise::is_enterprise_license_active,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
+use defguard_enterprise_license::is_enterprise_license_active;
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);

@@ -1,0 +1,11 @@
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tonic_prost_build::configure()
+        .protoc_arg("--experimental_allow_proto3_optional")
+        .type_attribute(
+            "LicenseLimits",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .compile_protos(&["proto/license.proto"], &["proto"])?;
+    println!("cargo:rerun-if-changed=proto");
+    Ok(())
+}

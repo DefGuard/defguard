@@ -19,11 +19,9 @@ use sqlx::PgPool;
 use tonic::Status;
 
 use super::InstanceInfo;
-use crate::{
-    enterprise::db::models::{
-        enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
-    },
-    grpc::{client_version::ClientFeature, should_prevent_service_location_usage},
+use crate::grpc::{client_version::ClientFeature, should_prevent_service_location_usage};
+use defguard_enterprise_db::models::{
+    enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
 };
 
 pub async fn build_device_config_response(

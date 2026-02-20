@@ -1,10 +1,8 @@
-use defguard_core::{
-    enterprise::{
-        db::models::enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-        license::{get_cached_license, set_cached_license},
-    },
-    handlers::Auth,
+use defguard_core::handlers::Auth;
+use defguard_enterprise_db::models::enterprise_settings::{
+    ClientTrafficPolicy, EnterpriseSettings,
 };
+use defguard_enterprise_license::{get_cached_license, set_cached_license};
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

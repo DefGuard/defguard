@@ -4,16 +4,14 @@ use reqwest::Url;
 use tonic::Status;
 
 use crate::{
-    enterprise::{
-        handlers::openid_login::{extract_state_data, user_from_claims},
-        is_business_license_active,
-    },
+    enterprise::handlers::openid_login::{extract_state_data, user_from_claims},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{
         proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
         utils::parse_client_ip_agent,
     },
 };
+use defguard_enterprise_license::is_business_license_active;
 
 impl ClientMfaServer {
     #[instrument(skip_all)]

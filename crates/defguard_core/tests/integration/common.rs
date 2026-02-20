@@ -5,7 +5,7 @@ use defguard_common::{
         settings::{initialize_current_settings, update_current_settings},
     },
 };
-use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
+use defguard_enterprise_license::{License, LicenseTier, set_cached_license};
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 

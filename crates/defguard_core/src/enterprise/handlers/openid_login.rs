@@ -36,11 +36,6 @@ pub const SELECT_ACCOUNT_SUPPORTED_PROVIDERS: &[&str] = &["Google"];
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    enterprise::{
-        db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
-        limits::update_counts,
-    },
     error::WebError,
     handlers::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
@@ -48,6 +43,10 @@ use crate::{
         user::{MAX_USERNAME_CHARS, check_username},
     },
 };
+use defguard_enterprise_db::models::openid_provider::OpenIdProvider;
+use defguard_enterprise_directory_sync::sync_user_groups_if_configured;
+use defguard_enterprise_ldap::utils::ldap_update_user_state;
+use defguard_enterprise_license::update_counts;
 
 /// Prune the given username from illegal characters in accordance with the following rules:
 ///
@@ -595,9 +594,10 @@ pub(crate) async fn auth_callback(
     // since he already managed to login through the provider. Currently, there is no other way to
     // sync the groups for the MFA enabled user logging in through the provider without firing it on
     // every login attempt, even for standard, non-provider users.
-    if let Err(err) =
-        sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
-    {
+    let context = crate::enterprise::directory_sync_context::build_directory_sync_context(
+        appstate.wireguard_tx.clone(),
+    );
+    if let Err(err) = sync_user_groups_if_configured(&user, &appstate.pool, &context).await {
         error!(
             "Failed to sync user groups for user {} with the directory while the user was trying \
             to login in through an external provider: {err}",

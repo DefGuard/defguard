@@ -8,11 +8,12 @@ use sqlx::PgConnection;
 use tokio::sync::broadcast::Sender;
 
 use crate::{
-    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     error::WebError,
     grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
     location_management::sync_allowed_devices_for_user,
 };
+use defguard_enterprise_firewall::try_get_location_firewall_config;
+use defguard_enterprise_license::update_counts;
 
 /// Deletes the user and cleans up his devices from gateways
 pub async fn delete_user_and_cleanup_devices(

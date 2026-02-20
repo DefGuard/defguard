@@ -20,19 +20,19 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
-    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent,
-    handlers::mail::send_gateway_disconnected_email,
+    grpc::GatewayEvent, handlers::mail::send_gateway_disconnected_email,
     location_management::allowed_peers::get_location_allowed_peers,
 };
+use defguard_enterprise_firewall::try_get_location_firewall_config;
 #[cfg(not(test))]
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
-    enterprise::firewall::FirewallConfig,
     gateway::{
         Configuration, CoreResponse, Peer, PeerStats, Update, core_request, core_response,
         gateway_client, update,
     },
 };
+use defguard_proto::enterprise::firewall::FirewallConfig;
 use defguard_version::client::ClientVersionInterceptor;
 #[cfg(not(test))]
 use hyper_rustls::HttpsConnectorBuilder;

@@ -17,14 +17,10 @@ use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enrollment_management::clear_unused_enrollment_tokens,
     enterprise::{
-        db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{
             SELECT_ACCOUNT_SUPPORTED_PROVIDERS, build_state, make_oidc_client, user_from_claims,
         },
-        is_business_license_active,
-        ldap::utils::ldap_update_user_state,
     },
     grpc::{
         GatewayEvent,
@@ -32,6 +28,11 @@ use defguard_core::{
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
+use defguard_enterprise_db::models::openid_provider::OpenIdProvider;
+use defguard_enterprise_directory_sync::sync_user_groups_if_configured;
+use defguard_enterprise_ldap::utils::ldap_update_user_state;
+use defguard_enterprise_license::is_business_license_active;
+use defguard_core::enterprise::directory_sync_context::build_directory_sync_context;
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::proxy::{
     AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, InitialInfo,
@@ -700,10 +701,13 @@ impl ProxyHandler {
                                     {
                                         Ok(mut user) => {
                                             clear_unused_enrollment_tokens(&user, &pool).await?;
+                                            let context = build_directory_sync_context(
+                                                wireguard_tx.clone(),
+                                            );
                                             if let Err(err) = sync_user_groups_if_configured(
                                                 &user,
                                                 &pool,
-                                                &wireguard_tx,
+                                                &context,
                                             )
                                             .await
                                             {

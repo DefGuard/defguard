@@ -1,4 +1,5 @@
-use defguard_core::{enterprise::firewall::FirewallError, events::GrpcEvent};
+use defguard_core::events::GrpcEvent;
+use defguard_enterprise_firewall::FirewallError;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
 use tonic::{Code, Status};

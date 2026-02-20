@@ -6,17 +6,19 @@ use defguard_common::db::{Id, NoId};
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use sqlx::{PgConnection, PgPool, query};
+use sqlx::postgres::types::PgRange;
+use std::net::IpAddr;
 use utoipa::ToSchema;
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::acl::{
-        AclAlias, AclAliasDestinationRange, AclAliasInfo, AclError, AliasKind, AliasState,
-        Protocol, acl_delete_related_objects, parse_destination_addresses,
-    },
     handlers::{ApiResponse, ApiResult},
+};
+use defguard_enterprise_db::models::acl::{
+    AclAlias, AclAliasDestinationRange, AclAliasInfo, AclError, AliasKind, AliasState, Protocol,
+    acl_delete_related_objects, parse_destination_addresses, parse_ports,
 };
 
 /// API representation of [`AclAlias`] used in API requests for modification operations
@@ -37,11 +39,11 @@ impl EditAclDestination {
         &self,
         transaction: &mut PgConnection,
         alias_id: Id,
+        ranges: &[(IpAddr, IpAddr)],
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL alias {self:?}");
         // save related destination ranges
-        let destination = parse_destination_addresses(&self.addresses)?;
-        for range in destination.ranges {
+        for range in ranges {
             let obj = AclAliasDestinationRange {
                 id: NoId,
                 alias_id,
@@ -83,16 +85,17 @@ impl ApiAclDestination {
     ) -> Result<Self, AclError> {
         let mut transaction = pool.begin().await?;
 
-        let alias = AclAlias::try_from(api_alias)?
+        let (alias, ranges) = build_destination_alias_from_api(api_alias, AliasState::Applied)?;
+        let alias = alias
             .save(&mut *transaction)
             .await?;
 
         api_alias
-            .create_related_objects(&mut transaction, alias.id)
+            .create_related_objects(&mut transaction, alias.id, &ranges)
             .await?;
 
         transaction.commit().await?;
-        let result = Self::from(alias.to_info(pool).await?);
+        let result = Self::from(AclAlias::<Id>::to_info(&alias, pool).await?);
         Ok(result)
     }
 
@@ -113,8 +116,7 @@ impl ApiAclDestination {
                     AclError::AliasNotFoundError(id)
                 })?;
 
-        // Convert alias from API to model.
-        let mut alias = AclAlias::try_from(api_alias)?;
+        let (mut alias, ranges) = build_destination_alias_from_api(api_alias, AliasState::Modified)?;
 
         // perform appropriate updates depending on existing alias' state
         let alias = match existing_alias.state {
@@ -131,13 +133,12 @@ impl ApiAclDestination {
                 );
 
                 // save as a new alias with appropriate parent_id and state
-                alias.state = AliasState::Modified;
                 alias.parent_id = Some(id);
                 let alias = alias.save(&mut *transaction).await?;
 
                 // create related objects
                 api_alias
-                    .create_related_objects(&mut transaction, alias.id)
+                    .create_related_objects(&mut transaction, alias.id, &ranges)
                     .await?;
 
                 alias
@@ -155,7 +156,7 @@ impl ApiAclDestination {
                 // recreate related objects
                 acl_delete_related_objects(&mut transaction, alias.id).await?;
                 api_alias
-                    .create_related_objects(&mut transaction, alias.id)
+                    .create_related_objects(&mut transaction, alias.id, &ranges)
                     .await?;
 
                 alias
@@ -163,7 +164,7 @@ impl ApiAclDestination {
         };
 
         transaction.commit().await?;
-        Ok(alias.to_info(pool).await?.into())
+        Ok(AclAlias::<Id>::to_info(&alias, pool).await?.into())
     }
 }
 
@@ -201,11 +202,12 @@ pub(crate) async fn list_acl_destinations(
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} listing ACL destinations", session.user.username);
-    let aliases = AclAlias::all_of_kind(&appstate.pool, AliasKind::Destination).await?;
+    let aliases: Vec<AclAlias<Id>> =
+        AclAlias::all_of_kind(&appstate.pool, AliasKind::Destination).await?;
     let mut api_aliases = Vec::<ApiAclDestination>::with_capacity(aliases.len());
     for alias in &aliases {
         // TODO: may require optimisation wrt. sql queries
-        let info = alias.to_info(&appstate.pool).await.map_err(|err| {
+        let info = AclAlias::<Id>::to_info(alias, &appstate.pool).await.map_err(|err| {
             error!("Error retrieving ACL destination {alias:?}: {err}");
             err
         })?;
@@ -242,7 +244,7 @@ pub(crate) async fn get_acl_destination(
         match AclAlias::find_by_id_and_kind(&appstate.pool, id, AliasKind::Destination).await? {
             Some(alias) => (
                 json!(ApiAclDestination::from(
-                    alias.to_info(&appstate.pool).await.map_err(|err| {
+                    AclAlias::<Id>::to_info(&alias, &appstate.pool).await.map_err(|err| {
                         error!("Error retrieving ACL destination {alias:?}: {err}");
                         err
                     })?
@@ -350,15 +352,72 @@ pub(crate) async fn delete_acl_destination(
         "User {} deleting ACL destination {id}",
         session.user.username
     );
-    AclAlias::delete_from_api(&appstate.pool, id)
-        .await
-        .map_err(|err| {
-            error!("Error deleting ACL destination {id}: {err}");
-            err
-        })?;
+    let mut transaction = appstate.pool.begin().await?;
+    let alias = AclAlias::find_by_id_and_kind(&mut *transaction, id, AliasKind::Destination)
+        .await?
+        .ok_or_else(|| AclError::AliasNotFoundError(id))?;
+
+    match alias.state {
+        AliasState::Applied => {
+            let rules = alias.get_rules(&mut *transaction).await?;
+            if !rules.is_empty() {
+                return Err(AclError::AliasUsedByRulesError(id).into());
+            }
+
+            let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
+                .execute(&mut *transaction)
+                .await?;
+            debug!(
+                "Removed {} old modifications of alias {id}",
+                result.rows_affected()
+            );
+
+            acl_delete_related_objects(&mut transaction, alias.id).await?;
+            alias.delete(&mut *transaction).await?;
+        }
+        AliasState::Modified => {
+            acl_delete_related_objects(&mut transaction, alias.id).await?;
+            alias.delete(&mut *transaction).await?;
+        }
+    }
+    transaction.commit().await?;
     info!(
         "User {} deleted ACL destination {id}",
         session.user.username
     );
     Ok(ApiResponse::default())
+}
+
+fn build_destination_alias_from_api(
+    api_alias: &EditAclDestination,
+    state: AliasState,
+) -> Result<(AclAlias, Vec<(IpAddr, IpAddr)>), AclError> {
+    let destination = parse_destination_addresses(&api_alias.addresses)?;
+    validate_destination_ranges(&destination.ranges)?;
+    let ports = parse_ports(&api_alias.ports)?;
+
+    let alias = AclAlias::new(
+        api_alias.name.clone(),
+        state,
+        AliasKind::Destination,
+        destination.addrs,
+        ports.into_iter().map(Into::into).collect::<Vec<PgRange<i32>>>(),
+        api_alias.protocols.clone(),
+        api_alias.any_address,
+        api_alias.any_port,
+        api_alias.any_protocol,
+    );
+
+    Ok((alias, destination.ranges))
+}
+
+fn validate_destination_ranges(ranges: &[(IpAddr, IpAddr)]) -> Result<(), AclError> {
+    for (start, end) in ranges {
+        if start > end {
+            return Err(AclError::InvalidIpRangeError(format!(
+                "{start}-{end}"
+            )));
+        }
+    }
+    Ok(())
 }

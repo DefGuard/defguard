@@ -1,8 +1,8 @@
 use axum::http::StatusCode;
 use defguard_common::{
     db::models::{
-        DeviceError, ModelError, WireguardNetworkError, settings::SettingsValidationError,
-        user::UserError,
+        settings::SettingsValidationError, user::UserError, DeviceError, ModelError,
+        WireguardNetworkError,
     },
     types::UrlParseError,
 };
@@ -13,15 +13,13 @@ use tokio::sync::mpsc::error::SendError;
 use utoipa::ToSchema;
 
 use crate::{
-    auth::failed_login::FailedLoginError,
-    db::models::enrollment::TokenError,
-    enterprise::{
-        activity_log_stream::error::ActivityLogStreamError, db::models::acl::AclError,
-        firewall::FirewallError, license::LicenseError,
-    },
-    events::ApiEvent,
+    auth::failed_login::FailedLoginError, db::models::enrollment::TokenError, events::ApiEvent,
     location_management::LocationManagementError,
 };
+use defguard_enterprise_activity_log_stream::error::ActivityLogStreamError;
+use defguard_enterprise_db::models::acl::AclError;
+use defguard_enterprise_firewall::FirewallError;
+use defguard_enterprise_license::LicenseError;
 
 /// Represents kinds of error that occurred
 #[derive(Debug, Error, ToSchema)]

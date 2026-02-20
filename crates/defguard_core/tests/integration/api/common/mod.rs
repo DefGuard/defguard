@@ -18,11 +18,11 @@ use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     db::AppEvent,
-    enterprise::license::{License, LicenseTier, set_cached_license},
     events::ApiEvent,
     grpc::{GatewayEvent, WorkerState},
     handlers::{Auth, user::UserDetails},
 };
+use defguard_enterprise_license::{License, LicenseTier, set_cached_license};
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
 use serde_json::json;

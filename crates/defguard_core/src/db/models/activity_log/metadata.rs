@@ -1,26 +1,23 @@
 use chrono::NaiveDateTime;
 use defguard_common::db::{
-    Id,
     models::{
-        AuthenticationKey, AuthenticationKeyType, Device, MFAMethod, Settings, WebAuthn,
-        WireguardNetwork,
         group::Group,
         oauth2client::OAuth2Client,
         proxy::Proxy,
         settings::{LdapSyncStatus, OpenIdUsernameHandling, SmtpEncryption},
         user::User,
+        AuthenticationKey, AuthenticationKeyType, Device, MFAMethod, Settings, WebAuthn,
+        WireguardNetwork,
     },
+    Id,
 };
 
-use crate::{
-    db::WebHook,
-    enterprise::db::models::{
-        activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
-        api_tokens::ApiToken,
-        openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
-        snat::UserSnatBinding,
-    },
-    events::ClientMFAMethod,
+use crate::{db::WebHook, events::ClientMFAMethod};
+use defguard_enterprise_db::models::{
+    activity_log_stream::{ActivityLogStream, ActivityLogStreamType},
+    api_tokens::ApiToken,
+    openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider},
+    snat::UserSnatBinding,
 };
 
 #[derive(Serialize)]

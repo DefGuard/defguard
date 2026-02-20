@@ -13,16 +13,14 @@ use defguard_common::db::{
     },
 };
 use defguard_core::{
-    enterprise::{
-        db::models::openid_provider::{
-            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
-        },
-        handlers::openid_providers::AddProviderData,
-        license::{get_cached_license, set_cached_license},
-    },
+    enterprise::handlers::openid_providers::AddProviderData,
     grpc::GatewayEvent,
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
+use defguard_enterprise_db::models::openid_provider::{
+    DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+};
+use defguard_enterprise_license::{get_cached_license, set_cached_license};
 use ipnetwork::IpNetwork;
 use matches::assert_matches;
 use reqwest::StatusCode;

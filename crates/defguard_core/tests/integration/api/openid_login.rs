@@ -4,15 +4,13 @@ use defguard_common::db::{
     models::{oauth2client::OAuth2Client, settings::OpenIdUsernameHandling},
 };
 use defguard_core::{
-    enterprise::{
-        db::models::openid_provider::{
-            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
-        },
-        handlers::openid_providers::AddProviderData,
-        license::{License, LicenseTier, set_cached_license},
-    },
+    enterprise::handlers::openid_providers::AddProviderData,
     handlers::{Auth, openid_clients::NewOpenIDClient},
 };
+use defguard_enterprise_db::models::openid_provider::{
+    DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
+};
+use defguard_enterprise_license::{License, LicenseTier, set_cached_license};
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

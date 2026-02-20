@@ -11,11 +11,11 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult, user_for_admin_or_self},
 };
+use defguard_enterprise_db::models::api_tokens::{ApiToken, ApiTokenInfo};
 
 const API_TOKEN_LENGTH: usize = 32;
 

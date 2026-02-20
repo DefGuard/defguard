@@ -38,10 +38,11 @@ use tokio::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayEvent, utils::parse_client_ip_agent},
 };
+use defguard_enterprise_db::models::openid_provider::OpenIdProvider;
+use defguard_enterprise_license::is_business_license_active;
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 

@@ -23,11 +23,9 @@ use defguard_common::db::{
 };
 use sqlx::PgPool;
 
-use crate::{
-    enterprise::{db::models::api_tokens::ApiToken, is_business_license_active},
-    error::WebError,
-    handlers::SESSION_COOKIE_NAME,
-};
+use crate::{error::WebError, handlers::SESSION_COOKIE_NAME};
+use defguard_enterprise_db::models::api_tokens::ApiToken;
+use defguard_enterprise_license::is_business_license_active;
 
 pub struct SessionExtractor(pub Session);
 

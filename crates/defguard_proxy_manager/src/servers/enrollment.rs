@@ -14,12 +14,6 @@ use defguard_common::{
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
-        firewall::try_get_location_firewall_config,
-        ldap::utils::ldap_add_user,
-        limits::update_counts,
-    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::{
         GatewayEvent, InstanceInfo,
@@ -33,7 +27,15 @@ use defguard_core::{
     headers::get_device_info,
     is_valid_phone_number,
 };
+use defguard_enterprise_db::models::{
+    enterprise_settings::EnterpriseSettings,
+    openid_provider::OpenIdProvider,
+};
+use defguard_enterprise_firewall::try_get_location_firewall_config;
+use defguard_enterprise_ldap::utils::ldap_add_user;
+use defguard_enterprise_license::update_counts;
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
+use defguard_proto::enterprise::firewall::FirewallConfig;
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
@@ -186,7 +188,7 @@ impl EnrollmentServer {
                 "Retrieving enterprise settings for enrollment of user {}({:?}).",
                 user.username, user.id
             );
-            let enterprise_settings =
+            let enterprise_settings: EnterpriseSettings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
                     .map_err(|err| {
@@ -201,7 +203,7 @@ impl EnrollmentServer {
                 user.username, user.id
             );
 
-            let openid_provider = OpenIdProvider::get_current(&self.pool)
+            let openid_provider: Option<OpenIdProvider<Id>> = OpenIdProvider::get_current(&self.pool)
                 .await
                 .map_err(|err| {
                     error!("Failed to get OpenID provider: {err}");
@@ -241,7 +243,7 @@ impl EnrollmentServer {
             debug!("Admin info {admin_info:?}");
 
             debug!("Creating enrollment start response for user {username}({user_id:?}).");
-            let enterprise_settings =
+            let enterprise_settings: EnterpriseSettings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
                     .map_err(|err| {
@@ -495,7 +497,8 @@ impl EnrollmentServer {
             "Fetching enterprise settings for device creation process for user {}({:?})",
             user.username, user.id,
         );
-        let enterprise_settings = EnterpriseSettings::get(&self.pool).await.map_err(|err| {
+        let enterprise_settings: EnterpriseSettings =
+            EnterpriseSettings::get(&self.pool).await.map_err(|err| {
             error!(
             "Failed to fetch enterprise settings for device creation process for user {}({:?}): \
             {err}",
@@ -731,13 +734,14 @@ impl EnrollmentServer {
                     Status::internal("unexpected error")
                 })?
             {
-                if let Some(firewall_config) =
+                let firewall_config: Option<FirewallConfig> =
                     try_get_location_firewall_config(&location, &mut transaction)
                         .await
                         .map_err(|err| {
                             error!("Failed to get firewall config for location {location}: {err}",);
                             Status::internal("unexpected error")
-                        })?
+                        })?;
+                if let Some(firewall_config) = firewall_config
                 {
                     debug!(
                         "Sending firewall config update for location {location} affected by adding new device {}, user {}({})",
@@ -835,7 +839,7 @@ impl EnrollmentServer {
 
         info!("Device {} remote configuration done.", device.name);
 
-        let openid_provider = OpenIdProvider::get_current(&self.pool)
+        let openid_provider: Option<OpenIdProvider<Id>> = OpenIdProvider::get_current(&self.pool)
             .await
             .map_err(|err| {
                 error!("Failed to get OpenID provider: {err}");

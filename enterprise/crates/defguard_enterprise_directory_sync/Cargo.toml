@@ -1,0 +1,32 @@
+[package]
+name = "defguard_enterprise_directory_sync"
+version = "0.0.0"
+edition.workspace = true
+license-file.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+defguard_common = { workspace = true }
+defguard_enterprise_db = { workspace = true }
+defguard_enterprise_ldap = { workspace = true }
+defguard_enterprise_license = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+jsonwebtoken = { workspace = true }
+jsonwebkey = { workspace = true }
+parse_link_header = { workspace = true }
+paste = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+trait-variant = { workspace = true }
+
+[dev-dependencies]
+ipnetwork = { workspace = true }
+secrecy = { workspace = true }

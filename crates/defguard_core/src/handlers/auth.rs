@@ -37,7 +37,6 @@ use crate::{
         SessionExtractor, SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    enterprise::ldap::utils::login_through_ldap,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
@@ -48,6 +47,7 @@ use crate::{
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
     server_config,
 };
+use defguard_enterprise_ldap::utils::login_through_ldap;
 
 /// Common functionality for `authenticate()` and `auth_callback()`.
 /// Returns either `AuthResponse` or `MFAInfo`.

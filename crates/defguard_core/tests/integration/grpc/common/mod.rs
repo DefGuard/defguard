@@ -7,13 +7,13 @@ use defguard_common::{
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    enterprise::license::{License, LicenseTier, set_cached_license},
     events::GrpcEvent,
     grpc::{
         WorkerState, build_grpc_service_router,
         gateway::{client_state::ClientMap, events::GatewayEvent, map::GatewayMap},
     },
 };
+use defguard_enterprise_license::{License, LicenseTier, set_cached_license};
 use defguard_mail::Mail;
 use hyper_util::rt::TokioIo;
 use sqlx::PgPool;

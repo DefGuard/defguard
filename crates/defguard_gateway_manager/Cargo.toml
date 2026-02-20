@@ -11,6 +11,7 @@ rust-version.workspace = true
 defguard_certs.workspace = true
 defguard_common.workspace = true
 defguard_core.workspace = true
+defguard_enterprise_firewall.workspace = true
 defguard_grpc_tls.workspace = true
 defguard_proto.workspace = true
 defguard_version.workspace = true

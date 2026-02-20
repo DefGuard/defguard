@@ -10,11 +10,13 @@ use defguard_common::db::models::{
 use sqlx::PgPool;
 use struct_patch::Patch;
 
+use defguard_enterprise_ldap::LDAPConnection;
+use defguard_enterprise_license::update_cached_license;
 use super::{ApiResponse, ApiResult};
 use crate::{
     AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{handlers::LicenseInfo, ldap::LDAPConnection, license::update_cached_license},
+    enterprise::handlers::LicenseInfo,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
 };

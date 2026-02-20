@@ -1,0 +1,266 @@
+use std::fmt;
+
+use defguard_common::db::{Id, NoId};
+use model_derive::Model;
+use serde::{Deserialize, Serialize};
+use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
+use tracing::warn;
+use utoipa::ToSchema;
+
+// The behavior when a user is deleted from the directory
+// Keep: Keep the user, despite being deleted from the external provider's directory
+// Disable: Disable the user
+// Delete: Delete the user
+#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
+#[sqlx(type_name = "dirsync_user_behavior", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum DirectorySyncUserBehavior {
+    Keep,
+    Disable,
+    Delete,
+}
+
+impl fmt::Display for DirectorySyncUserBehavior {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DirectorySyncUserBehavior::Keep => "keep",
+                DirectorySyncUserBehavior::Disable => "disable",
+                DirectorySyncUserBehavior::Delete => "delete",
+            }
+        )
+    }
+}
+
+impl From<String> for DirectorySyncUserBehavior {
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "keep" => DirectorySyncUserBehavior::Keep,
+            "disable" => DirectorySyncUserBehavior::Disable,
+            "delete" => DirectorySyncUserBehavior::Delete,
+            _ => {
+                warn!("Unknown directory sync user behavior passed: {s}");
+                DirectorySyncUserBehavior::Keep
+            }
+        }
+    }
+}
+
+// What to sync from the directory
+// All: Sync both users and groups
+// Users: Sync only users and their state
+// Groups: Sync only groups (members without their state)
+#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
+#[sqlx(type_name = "dirsync_target", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum DirectorySyncTarget {
+    All,
+    Users,
+    Groups,
+}
+
+impl fmt::Display for DirectorySyncTarget {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DirectorySyncTarget::All => "all",
+                DirectorySyncTarget::Users => "users",
+                DirectorySyncTarget::Groups => "groups",
+            }
+        )
+    }
+}
+
+impl From<String> for DirectorySyncTarget {
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "all" => DirectorySyncTarget::All,
+            "users" => DirectorySyncTarget::Users,
+            "groups" => DirectorySyncTarget::Groups,
+            _ => {
+                warn!("Unknown directory sync target passed: {s}");
+                DirectorySyncTarget::All
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
+#[sqlx(type_name = "openid_provider_kind")]
+pub enum OpenIdProviderKind {
+    Custom,
+    Google,
+    Microsoft,
+    Okta,
+    JumpCloud,
+    Zitadel,
+}
+
+#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize)]
+pub struct OpenIdProvider<I = NoId> {
+    pub id: I,
+    pub name: String,
+    pub base_url: String,
+    #[model(enum)]
+    pub kind: OpenIdProviderKind,
+    pub client_id: String,
+    pub client_secret: String,
+    pub display_name: Option<String>,
+    // Specific stuff for Google
+    pub google_service_account_key: Option<String>,
+    pub google_service_account_email: Option<String>,
+    pub admin_email: Option<String>,
+    pub directory_sync_enabled: bool,
+    // How often to sync the directory in seconds
+    pub directory_sync_interval: i32,
+    #[model(enum)]
+    pub directory_sync_user_behavior: DirectorySyncUserBehavior,
+    #[model(enum)]
+    pub directory_sync_admin_behavior: DirectorySyncUserBehavior,
+    #[model(enum)]
+    pub directory_sync_target: DirectorySyncTarget,
+    // Specific stuff for Okta
+    pub okta_private_jwk: Option<String>,
+    // The client ID of the directory sync app specifically
+    pub okta_dirsync_client_id: Option<String>,
+    #[model(ref)]
+    // The groups to sync from the directory, exact match
+    pub directory_sync_group_match: Vec<String>,
+    pub jumpcloud_api_key: Option<String>,
+    // Fetch all users from directory and create them in Defguard
+    // TODO: currently only supported for Microsoft
+    pub prefetch_users: bool,
+}
+
+impl OpenIdProvider {
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new<S: Into<String>>(
+        name: S,
+        base_url: S,
+        kind: OpenIdProviderKind,
+        client_id: S,
+        client_secret: S,
+        display_name: Option<String>,
+        google_service_account_key: Option<String>,
+        google_service_account_email: Option<String>,
+        admin_email: Option<String>,
+        directory_sync_enabled: bool,
+        directory_sync_interval: i32,
+        directory_sync_user_behavior: DirectorySyncUserBehavior,
+        directory_sync_admin_behavior: DirectorySyncUserBehavior,
+        directory_sync_target: DirectorySyncTarget,
+        okta_private_jwk: Option<String>,
+        okta_dirsync_client_id: Option<String>,
+        directory_sync_group_match: Vec<String>,
+        jumpcloud_api_key: Option<String>,
+        prefetch_users: bool,
+    ) -> Self {
+        Self {
+            id: NoId,
+            name: name.into(),
+            base_url: base_url.into(),
+            kind,
+            client_id: client_id.into(),
+            client_secret: client_secret.into(),
+            display_name,
+            google_service_account_key,
+            google_service_account_email,
+            admin_email,
+            directory_sync_enabled,
+            directory_sync_interval,
+            directory_sync_user_behavior,
+            directory_sync_admin_behavior,
+            directory_sync_target,
+            okta_private_jwk,
+            okta_dirsync_client_id,
+            directory_sync_group_match,
+            jumpcloud_api_key,
+            prefetch_users,
+        }
+    }
+
+    pub async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
+        if let Some(provider) = OpenIdProvider::<Id>::get_current(pool).await? {
+            query!(
+                "UPDATE openidprovider SET name = $1, base_url = $2, kind = $3, client_id = $4, \
+                client_secret = $5, display_name = $6, google_service_account_key = $7, \
+                google_service_account_email = $8, admin_email = $9, directory_sync_enabled = $10, \
+                directory_sync_interval = $11, directory_sync_user_behavior = $12, \
+                directory_sync_admin_behavior = $13, directory_sync_target = $14, \
+                okta_private_jwk = $15, okta_dirsync_client_id = $16, \
+                directory_sync_group_match = $17, jumpcloud_api_key = $18, prefetch_users = $19 \
+                WHERE id = $20",
+                self.name,
+                self.base_url,
+                self.kind as OpenIdProviderKind,
+                self.client_id,
+                self.client_secret,
+                self.display_name,
+                self.google_service_account_key,
+                self.google_service_account_email,
+                self.admin_email,
+                self.directory_sync_enabled,
+                self.directory_sync_interval,
+                self.directory_sync_user_behavior as DirectorySyncUserBehavior,
+                self.directory_sync_admin_behavior as DirectorySyncUserBehavior,
+                self.directory_sync_target as DirectorySyncTarget,
+                self.okta_private_jwk,
+                self.okta_dirsync_client_id,
+                &self.directory_sync_group_match,
+                self.jumpcloud_api_key,
+                self.prefetch_users,
+                provider.id,
+            )
+            .execute(pool)
+            .await?;
+
+            Ok(provider)
+        } else {
+            self.save(pool).await
+        }
+    }
+}
+
+impl OpenIdProvider<Id> {
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            OpenIdProvider,
+            "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, \
+            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled,
+            directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
+            directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
+            directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users \
+            FROM openidprovider WHERE name = $1",
+            name
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
+    pub async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            OpenIdProvider,
+            "SELECT id, name, base_url, kind \"kind: OpenIdProviderKind\", client_id, client_secret, display_name, \
+            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \
+            directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
+            directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
+            directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match, jumpcloud_api_key, prefetch_users \
+            FROM openidprovider LIMIT 1"
+        )
+        .fetch_optional(executor)
+        .await
+    }
+}

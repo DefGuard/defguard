@@ -1,0 +1,21 @@
+[package]
+name = "defguard_enterprise_activity_log_stream"
+version = "0.0.0"
+edition.workspace = true
+license-file.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+defguard_common = { workspace = true }
+defguard_enterprise_db = { workspace = true }
+defguard_enterprise_license = { workspace = true }
+anyhow = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
+reqwest = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }

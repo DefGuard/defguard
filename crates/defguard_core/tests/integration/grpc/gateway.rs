@@ -15,14 +15,14 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_core::{
-    enterprise::{license::set_cached_license, limits::update_counts},
     events::GrpcEvent,
     grpc::{MIN_GATEWAY_VERSION, gateway::events::GatewayEvent},
 };
-use defguard_proto::{
-    enterprise::firewall::FirewallPolicy,
-    gateway::{Configuration, PeerStats, Update, stats_update::Payload, update},
+use defguard_enterprise_license::{set_cached_license, update_counts};
+use defguard_proto::gateway::{
+    Configuration, PeerStats, Update, stats_update::Payload, update,
 };
+use defguard_enterprise_firewall::FirewallPolicy;
 use semver::Version;
 use sqlx::{
     PgPool,

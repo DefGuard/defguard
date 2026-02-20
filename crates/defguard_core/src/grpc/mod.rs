@@ -26,15 +26,13 @@ use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    enterprise::{
-        db::models::{
-            enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
-            openid_provider::OpenIdProvider,
-        },
-        is_business_license_active, is_enterprise_license_active,
-    },
     grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
 };
+use defguard_enterprise_db::models::{
+    enterprise_settings::{ClientTrafficPolicy, EnterpriseSettings},
+    openid_provider::OpenIdProvider,
+};
+use defguard_enterprise_license::{is_business_license_active, is_enterprise_license_active};
 
 mod auth;
 pub mod client_version;
@@ -43,18 +41,11 @@ pub mod proxy;
 pub mod utils;
 pub mod worker;
 
-pub mod proto {
-    pub mod enterprise {
-        pub mod license {
-            tonic::include_proto!("enterprise.license");
-        }
-    }
-}
-
 use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig,
-    gateway::Peer, worker::worker_service_server::WorkerServiceServer,
+    auth::auth_service_server::AuthServiceServer, gateway::Peer,
+    worker::worker_service_server::WorkerServiceServer,
 };
+use defguard_proto::enterprise::firewall::FirewallConfig;
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
 // gRPC header for passing auth token from clients

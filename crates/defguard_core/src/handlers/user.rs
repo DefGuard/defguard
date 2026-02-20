@@ -20,6 +20,13 @@ use serde_json::json;
 use sqlx::{Error as SqlxError, PgPool};
 use utoipa::ToSchema;
 
+use defguard_enterprise_db::models::api_tokens::ApiToken;
+use defguard_enterprise_ldap::model::{ldap_sync_allowed_for_user, maybe_update_rdn};
+use defguard_enterprise_ldap::utils::{
+    ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
+    ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+};
+use defguard_enterprise_license::{get_cached_license, get_counts, update_counts};
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
     StartEnrollmentRequest, Username, mail::EMAIL_PASSWORD_RESET_START_SUBJECT,
@@ -33,19 +40,7 @@ use crate::{
         models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     },
     enrollment_management::{start_desktop_configuration, start_user_enrollment},
-    enterprise::{
-        db::models::api_tokens::ApiToken,
-        handlers::CanManageDevices,
-        ldap::{
-            model::{ldap_sync_allowed_for_user, maybe_update_rdn},
-            utils::{
-                ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
-                ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
-            },
-        },
-        license::get_cached_license,
-        limits::{get_counts, update_counts},
-    },
+    enterprise::handlers::CanManageDevices,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     is_valid_phone_number, server_config,

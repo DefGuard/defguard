@@ -16,13 +16,11 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{
-        db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind},
-        directory_sync::test_directory_sync_connection,
-    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
+use defguard_enterprise_db::models::openid_provider::{OpenIdProvider, OpenIdProviderKind};
+use defguard_enterprise_directory_sync::test_directory_sync_connection;
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddProviderData {

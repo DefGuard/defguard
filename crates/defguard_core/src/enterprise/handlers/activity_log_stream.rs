@@ -9,11 +9,11 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::activity_log_stream::{
-        ActivityLogStream, ActivityLogStreamConfig, ActivityLogStreamType,
-    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
+};
+use defguard_enterprise_db::models::activity_log_stream::{
+    ActivityLogStream, ActivityLogStreamConfig, ActivityLogStreamType,
 };
 
 pub async fn get_activity_log_stream(

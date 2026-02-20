@@ -1,8 +1,8 @@
 use crate::{
     auth::{AdminRole, SessionInfo},
-    enterprise::get_counts,
     handlers::{ApiResponse, ApiResult},
 };
+use defguard_enterprise_license::get_counts;
 
 pub mod acl;
 pub mod activity_log_stream;
@@ -17,10 +17,8 @@ use axum::{
 };
 use serde::Serialize;
 
-use super::{
-    db::models::enterprise_settings::EnterpriseSettings, is_business_license_active,
-    license::get_cached_license,
-};
+use defguard_enterprise_db::models::enterprise_settings::EnterpriseSettings;
+use defguard_enterprise_license::{get_cached_license, is_business_license_active};
 use crate::{appstate::AppState, error::WebError};
 
 pub struct LicenseInfo {
@@ -68,7 +66,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
     let license = get_cached_license();
     let license_info = license
         .as_ref()
-        .map(|license: &crate::enterprise::license::License| {
+        .map(|license: &defguard_enterprise_license::License| {
             let counts = get_counts();
             let limits_info = license.limits.map(|limits| LicenseLimitsInfo {
                 locations: LimitInfo {

@@ -4,7 +4,6 @@ use defguard_common::{
 };
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
-    enterprise::ldap::utils::ldap_change_password,
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
     grpc::utils::parse_client_ip_agent,
     handlers::{
@@ -13,6 +12,7 @@ use defguard_core::{
     },
     headers::get_device_info,
 };
+use defguard_enterprise_ldap::utils::ldap_change_password;
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,

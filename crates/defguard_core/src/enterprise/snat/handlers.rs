@@ -15,15 +15,15 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{
-        db::models::snat::UserSnatBinding, firewall::try_get_location_firewall_config,
-        handlers::LicenseInfo, snat::error::UserSnatBindingError,
-    },
+    enterprise::handlers::LicenseInfo,
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
     handlers::{ApiResponse, ApiResult},
 };
+use defguard_enterprise_db::models::snat::UserSnatBinding;
+use defguard_enterprise_firewall::try_get_location_firewall_config;
+use defguard_enterprise_snat::UserSnatBindingError;
 
 /// List all SNAT bindings for a WireGuard location
 ///
@@ -138,7 +138,15 @@ pub async fn create_snat_binding(
     let binding = snat_binding
         .save(&appstate.pool)
         .await
-        .map_err(UserSnatBindingError::from)?;
+        .map_err(|err| match UserSnatBindingError::from(err) {
+            UserSnatBindingError::BindingNotFound => {
+                WebError::ObjectNotFound("SNAT binding not found".into())
+            }
+            UserSnatBindingError::BindingAlreadyExists => {
+                WebError::ObjectAlreadyExists("SNAT binding already exists".into())
+            }
+            UserSnatBindingError::DbError { source } => WebError::DbError(source.to_string()),
+        })?;
 
     // emit event
     appstate.emit_event(ApiEvent {

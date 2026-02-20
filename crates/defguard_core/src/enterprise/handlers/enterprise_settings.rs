@@ -5,8 +5,10 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::enterprise_settings::{EnterpriseSettings, EnterpriseSettingsPatch},
     handlers::{ApiResponse, ApiResult},
+};
+use defguard_enterprise_db::models::enterprise_settings::{
+    EnterpriseSettings, EnterpriseSettingsPatch,
 };
 
 pub async fn get_enterprise_settings(

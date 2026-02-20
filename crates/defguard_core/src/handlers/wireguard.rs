@@ -28,14 +28,7 @@ use super::{ApiResponse, ApiResult, WebError, device_for_admin_or_self, user_for
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
-        firewall::try_get_location_firewall_config,
-        handlers::CanManageDevices,
-        is_business_license_active, is_enterprise_license_active,
-        license::get_cached_license,
-        limits::{get_counts, update_counts},
-    },
+    enterprise::handlers::CanManageDevices,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
     location_management::{
@@ -43,6 +36,14 @@ use crate::{
         sync_location_allowed_devices,
     },
     wg_config::{ImportedDevice, parse_wireguard_config},
+};
+use defguard_enterprise_db::models::{
+    enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider,
+};
+use defguard_enterprise_firewall::try_get_location_firewall_config;
+use defguard_enterprise_license::{
+    get_cached_license, get_counts, is_business_license_active, is_enterprise_license_active,
+    update_counts,
 };
 
 #[derive(Serialize, ToSchema)]
