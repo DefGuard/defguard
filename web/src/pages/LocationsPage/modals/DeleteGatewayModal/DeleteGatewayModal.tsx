@@ -5,6 +5,7 @@ import api from '../../../../shared/api/api';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TextStyle } from '../../../../shared/defguard-ui/types';
 import {
   subscribeCloseModal,
@@ -42,8 +43,13 @@ export const DeleteGatewayModal = () => {
 
   const handleDelete = async () => {
     if (!modalData) return;
-    await deleteGateway(modalData.id);
-    setOpen(false);
+    try {
+      await deleteGateway(modalData.id);
+      Snackbar.success(m.gateway_delete_success());
+      setOpen(false);
+    } catch {
+      Snackbar.error(m.gateway_delete_failed());
+    }
   };
 
   return (

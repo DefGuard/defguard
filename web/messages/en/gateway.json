@@ -1,0 +1,5 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "gateway_delete_success": "Gateway deleted",
+  "gateway_delete_failed": "Failed to delete gateway"
+}
