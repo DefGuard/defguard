@@ -10,7 +10,21 @@ use defguard_common::db::{
 use sqlx::PgPool;
 
 use super::{LDAPConnection, error::LdapError};
-use crate::enterprise::ldap::{model::ldap_sync_allowed_for_user, with_ldap_status};
+use crate::enterprise::{
+    ldap::{model::ldap_sync_allowed_for_user, with_ldap_status},
+    license::get_cached_license,
+    limits::get_counts,
+};
+
+fn reached_user_license_limit() -> Option<(u32, u32)> {
+    let user_count = get_counts().user();
+    let user_limit = get_cached_license()
+        .as_ref()
+        .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
+    user_limit
+        .filter(|limit| user_count >= *limit)
+        .map(|limit| (user_count, limit))
+}
 
 /// Retrieves a user from LDAP if they are in the configured LDAP sync groups.
 ///
@@ -22,6 +36,16 @@ pub(crate) async fn login_through_ldap(
 ) -> Result<User<Id>, LdapError> {
     debug!("Logging in user {username} through LDAP");
     let mut ldap_connection = LDAPConnection::create().await?;
+    login_through_ldap_with_connection(pool, &mut ldap_connection, username, password).await
+}
+
+pub(crate) async fn login_through_ldap_with_connection(
+    pool: &PgPool,
+    ldap_connection: &mut LDAPConnection,
+    username: &str,
+    password: &str,
+) -> Result<User<Id>, LdapError> {
+    debug!("Logging in user {username} through LDAP");
     let mut ldap_user = ldap_connection
         .get_user_by_credentials(username, password)
         .await?;
@@ -49,6 +73,15 @@ pub(crate) async fn login_through_ldap(
         debug!(
             "User {ldap_user} doesn't exist in Defguard, creating them first based on LDAP data"
         );
+        if let Some((user_count, limit)) = reached_user_license_limit() {
+            error!(
+                "Skipping LDAP account creation for user {} (email: {}) because license user \
+                limit has been reached ({}/{})",
+                ldap_user.username, ldap_user.email, user_count, limit
+            );
+            return Err(LdapError::LicenseUserLimitReached(user_count, limit));
+        }
+
         ldap_user.from_ldap = true;
         ldap_user.save(pool).await?
     };

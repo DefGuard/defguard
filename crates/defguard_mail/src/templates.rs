@@ -47,6 +47,7 @@ static MAIL_PASSWORD_RESET_START: &str =
     include_str!("../templates/mail_password_reset_start.tera");
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
+static MAIL_PLAIN_NOTIFICATION: &str = include_str!("../templates/plain-notification.mjml");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Debug, Error)]
@@ -188,6 +189,21 @@ pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateErr
     let html = parsed.element.render(&opts)?;
 
     Ok(html)
+}
+
+pub async fn user_import_blocked_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    context: Context,
+) -> Result<(), TemplateError> {
+    debug!("Render a plain notification mail template for blocked user import.");
+    let (mut tera, mut context) = get_base_tera_mjml(context, None, None, None)?;
+
+    let message = MailMessage::UserImportBlocked;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 // Mail with link to enrollment service.
