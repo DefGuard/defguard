@@ -5,6 +5,7 @@ mod common;
 mod enrollment;
 mod enterprise_settings;
 mod forward_auth;
+mod gateway;
 mod group;
 mod location_stats;
 mod oauth;

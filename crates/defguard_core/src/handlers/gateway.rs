@@ -1,5 +1,6 @@
 use axum::{
     Json,
+    extract::rejection::JsonRejection,
     extract::{Path, State},
 };
 use chrono::NaiveDateTime;
@@ -13,6 +14,7 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
@@ -83,6 +85,7 @@ impl GatewayInfo {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct GatewayUpdateData {
     pub name: String,
 }
@@ -173,8 +176,16 @@ pub(crate) async fn update_gateway(
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
-    Json(data): Json<GatewayUpdateData>,
+    payload: Result<Json<GatewayUpdateData>, JsonRejection>,
 ) -> ApiResult {
+    let Json(data) = match payload {
+        Ok(payload) => payload,
+        Err(err) => {
+            let msg = format!("Failed to parse request data: {err}");
+            warn!(msg);
+            return Err(WebError::BadRequest(msg));
+        }
+    };
     debug!(
         "User {} updating gateway {gateway_id}",
         session.user.username
@@ -182,8 +193,9 @@ pub(crate) async fn update_gateway(
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id).await?;
 
     let Some(mut gateway) = gateway else {
-        warn!("Gateway {gateway_id} not found");
-        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
+        let msg = format!("Gateway {gateway_id} not found");
+        warn!(msg);
+        return Err(WebError::ObjectNotFound(msg));
     };
     let before = gateway.clone();
 
@@ -235,8 +247,9 @@ pub(crate) async fn delete_gateway(
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id).await?;
 
     let Some(gateway) = gateway else {
-        warn!("Gateway {gateway_id} not found");
-        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
+        let msg = format!("Gateway {gateway_id} not found");
+        warn!(msg);
+        return Err(WebError::ObjectNotFound(msg));
     };
 
     gateway.clone().delete(&appstate.pool).await?;
