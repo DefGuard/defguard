@@ -152,6 +152,7 @@ impl Gateway<Id> {
         Ok(record)
     }
 
+    #[must_use]
     pub fn url(&self) -> String {
         format!("http://{}:{}", self.address, self.port)
     }

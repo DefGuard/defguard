@@ -45,13 +45,13 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
-    let mut transaction = pool.begin().await.unwrap();
+    let mut conn = pool.begin().await.unwrap();
     let context = Context::new();
     let url = Url::parse("http://localhost:8000").unwrap();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
     desktop_start_mail(
         &env::var("SMTP_TO").unwrap(),
-        &mut transaction,
+        &mut conn,
         context,
         &url,
         token,
@@ -69,7 +69,7 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
-    let mut transaction = pool.begin().await.unwrap();
+    let mut conn = pool.begin().await.unwrap();
     let device_name = "My beloved machine";
     let public_key = "6N8h7HILMcQ6nqEfQMBAYQH26X+y3t/WdWSOW4bNNxw=";
     let locations = &[
@@ -84,7 +84,7 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     ];
     new_device_added_mail(
         &env::var("SMTP_TO").unwrap(),
-        &mut transaction,
+        &mut conn,
         device_name,
         public_key,
         locations,
@@ -104,12 +104,12 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
-    let mut transaction = pool.begin().await.unwrap();
+    let mut conn = pool.begin().await.unwrap();
     let first_name = "Nebuchadnezzar";
     let code = "123456";
     mfa_code_mail(
         &env::var("SMTP_TO").unwrap(),
-        &mut transaction,
+        &mut conn,
         first_name,
         code,
         None,
@@ -127,13 +127,13 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
-    let mut transaction = pool.begin().await.unwrap();
+    let mut conn = pool.begin().await.unwrap();
     let url = Url::parse("http://localhost:8000").unwrap();
     let context = Context::new();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
     new_account_mail(
         &env::var("SMTP_TO").unwrap(),
-        &mut transaction,
+        &mut conn,
         context,
         url,
         token,
