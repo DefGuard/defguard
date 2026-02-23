@@ -6,6 +6,8 @@ import api from '../../../../shared/api/api';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
 import { Checkbox } from '../../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CopyField } from '../../../../shared/defguard-ui/components/CopyField/CopyField';
+import { IconKind } from '../../../../shared/defguard-ui/components/Icon/icon-types';
+import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -149,26 +151,34 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
         data-testid="activation-token-field"
         text={enrollmentResponse.enrollment_token}
       />
-      {appInfo.smtp_enabled && (
-        <>
-          <SizedBox height={ThemeSpacing.Xl3} />
-          <form.AppForm>
-            <Checkbox
-              text={m.modal_add_user_enrollment_form_label_send()}
-              active={sendEmail}
-              onClick={() => setSendEmail((s) => !s)}
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <form.AppForm>
+        {!appInfo.smtp_enabled && (
+          <>
+            <InfoBanner
+              icon={IconKind.InfoFilled}
+              text={m.state_smtp_not_configured_admin()}
+              variant="warning"
             />
-            {sendEmail && (
-              <>
-                <SizedBox height={ThemeSpacing.Xl} />
-                <form.AppField name="email">
-                  {(field) => <field.FormInput label={m.form_label_email()} />}
-                </form.AppField>
-              </>
-            )}
-          </form.AppForm>
-        </>
-      )}
+            <SizedBox height={ThemeSpacing.Md} />
+          </>
+        )}
+        <Checkbox
+          text={m.modal_add_user_enrollment_form_label_send()}
+          active={sendEmail}
+          disabled={!appInfo.smtp_enabled}
+          onClick={() => setSendEmail((s) => !s)}
+        />
+        {sendEmail && (
+          <>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <form.AppField name="email">
+              {(field) => <field.FormInput label={m.form_label_email()} required />}
+            </form.AppField>
+          </>
+        )}
+      </form.AppForm>
+
       <form.Subscribe>
         {() => (
           <ModalControls
