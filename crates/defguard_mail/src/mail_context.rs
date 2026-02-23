@@ -11,6 +11,8 @@ pub(crate) struct MailContext {
     language_tag: String,
     /// Text to be replaced.
     pub(crate) text: String,
+    #[allow(unused)]
+    enabled: bool,
 }
 
 impl MailContext {
@@ -19,7 +21,7 @@ impl MailContext {
     //     E: PgExecutor<'e>,
     // {
     //     query_scalar!(
-    //         "INSERT INTO mail_context (template, section, language_tag, text) \
+    //         "INSERT INTO mail_context (template, section, language_tag, text, enabled) \
     //         VALUES ($1, $2, $3, $4) \
     //         ON CONFLICT ON CONSTRAINT template_section_language DO \
     //         UPDATE SET text = $4",
@@ -44,8 +46,8 @@ impl MailContext {
     {
         query_as!(
             Self,
-            "SELECT template, section, language_tag, text FROM mail_context \
-            WHERE template = $1 AND language_tag = $2",
+            "SELECT template, section, language_tag, text, enabled FROM mail_context \
+            WHERE template = $1 AND language_tag = $2 AND enabled",
             template,
             language_tag
         )
