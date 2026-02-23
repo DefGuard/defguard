@@ -62,7 +62,7 @@ export const EdgesTable = () => {
   const addButtonProps = useMemo(
     (): ButtonProps => ({
       variant: 'primary',
-      text: 'Add Edge component',
+      text: m.edge_add(),
       iconLeft: 'globe',
       testId: 'add-edge',
       onClick: () => {
