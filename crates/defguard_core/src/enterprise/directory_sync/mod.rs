@@ -32,7 +32,7 @@ use crate::{
         limits::{get_counts, update_counts},
     },
     grpc::GatewayEvent,
-    handlers::{mail::send_user_import_blocked_email, user::check_username},
+    handlers::user::check_username,
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
@@ -740,12 +740,7 @@ async fn sync_all_users_state(
                         );
                         if !blocked_import_notification_sent {
                             blocked_import_notification_sent = true;
-                            if let Err(err) = send_user_import_blocked_email(pool).await {
-                                warn!(
-                                    "Failed to notify admins about blocked directory sync import: \
-                                    {err}"
-                                );
-                            }
+                            // TODO: send emails
                         }
                         continue;
                     }

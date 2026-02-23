@@ -74,7 +74,6 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
-    handlers::mail::send_user_import_blocked_email,
     hashset,
 };
 
@@ -869,9 +868,7 @@ impl super::LDAPConnection {
                     );
                     if !blocked_import_notification_sent {
                         blocked_import_notification_sent = true;
-                        if let Err(err) = send_user_import_blocked_email(pool).await {
-                            warn!("Failed to notify admins about blocked LDAP sync import: {err}");
-                        }
+                        // TODO: send emails
                     }
                     continue;
                 }

@@ -47,7 +47,6 @@ use crate::{
     handlers::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
-        mail::send_user_import_blocked_email,
         user::{MAX_USERNAME_CHARS, check_username},
     },
 };
@@ -387,13 +386,7 @@ pub async fn user_from_claims(
                         user_count,
                         limit
                     );
-                    if let Err(err) = send_user_import_blocked_email(pool).await {
-                        warn!(
-                            "Failed to notify admins about blocked OpenID user import for {}: \
-                            {err}",
-                            username
-                        );
-                    }
+                    // TODO: send emails
                     return Err(WebError::Forbidden("License limit reached.".into()));
                 }
 
