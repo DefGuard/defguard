@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -47,6 +48,7 @@ const getStatusBadge = (gateway: GatewayInfo) => {
 
 export const GatewaysTable = () => {
   const { data: gateways } = useSuspenseQuery(getGatewaysQueryOptions);
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
 
@@ -166,6 +168,18 @@ export const GatewaysTable = () => {
             {
               items: [
                 {
+                  text: m.controls_edit(),
+                  icon: 'edit',
+                  onClick: () => {
+                    navigate({
+                      to: '/gateway/$gatewayId/edit',
+                      params: {
+                        gatewayId: rowData.id.toString(),
+                      },
+                    });
+                  },
+                },
+                {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
@@ -189,7 +203,7 @@ export const GatewaysTable = () => {
         },
       }),
     ],
-    [],
+    [navigate],
   );
 
   const table = useReactTable({

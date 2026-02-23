@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { Edge } from '../../shared/api/types';
+import type { Gateway } from '../../shared/api/types';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
@@ -13,28 +13,28 @@ import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-import { getEdgeQueryOptions } from '../../shared/query';
+import { getGatewayQueryOptions } from '../../shared/query';
 
-export const EditEdgePage = () => {
-  const { edgeId } = useParams({
-    from: '/_authorized/_default/edge/$edgeId/edit',
+export const EditGatewayPage = () => {
+  const { gatewayId } = useParams({
+    from: '/_authorized/_default/gateway/$gatewayId/edit',
   });
-  const { data: edge } = useSuspenseQuery(getEdgeQueryOptions(Number(edgeId)));
+  const { data: gateway } = useSuspenseQuery(getGatewayQueryOptions(Number(gatewayId)));
   const breadcrumbsLinks = [
-    <Link key={0} to="/edges">
-      Edge components
+    <Link key={0} to="/locations">
+      {m.gateway_title()}
     </Link>,
-    <Link key={1} to="/edge/$edgeId/edit" params={{ edgeId }}>
-      {edge.name}
+    <Link key={1} to="/gateway/$gatewayId/edit" params={{ gatewayId }}>
+      {gateway.name}
     </Link>,
   ];
   return (
     <EditPage
-      pageTitle={m.edge_title()}
+      pageTitle={m.gateway_title()}
       links={breadcrumbsLinks}
-      headerProps={{ title: m.edge_edit_title() }}
+      headerProps={{ title: m.gateway_edit_title() }}
     >
-      <EditEdgeForm edge={edge} />
+      <EditGatewayForm gateway={gateway} />
     </EditPage>
   );
 };
@@ -48,44 +48,45 @@ const formSchema = z.object({
   modified_at: z.string(),
   modified_by: z.number(),
   version: z.string().nullable(),
+  location_id: z.number(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
-const EditEdgeForm = ({ edge }: { edge: Edge }) => {
+const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const navigate = useNavigate();
 
-  const { mutateAsync: editEdge } = useMutation({
-    mutationFn: api.edge.editEdge,
+  const { mutateAsync: editGateway } = useMutation({
+    mutationFn: api.gateway.editGateway,
     meta: {
-      invalidate: ['edge'],
+      invalidate: ['gateway'],
     },
     onSuccess: () => {
-      Snackbar.success(m.edge_edit_success());
+      Snackbar.success(m.gateway_edit_success());
     },
     onError: () => {
-      Snackbar.error(m.edge_edit_failed());
+      Snackbar.error(m.gateway_edit_failed());
     },
   });
 
-  const { mutate: deleteEdge, isPending: deletePending } = useMutation({
-    mutationFn: () => api.edge.deleteEdge(edge.id),
+  const { mutate: deleteGateway, isPending: deletePending } = useMutation({
+    mutationFn: () => api.gateway.deleteGateway(gateway.id),
     meta: {
-      invalidate: ['edge'],
+      invalidate: ['gateway'],
     },
     onSuccess: () => {
       navigate({
-        to: '/edges',
+        to: '/locations',
         replace: true,
       });
-      Snackbar.success(m.edge_delete_success());
+      Snackbar.success(m.gateway_delete_success());
     },
     onError: () => {
-      Snackbar.error(m.edge_delete_failed());
+      Snackbar.error(m.gateway_delete_failed());
     },
   });
 
-  const defaultValues = useMemo((): FormFields => ({ ...edge }), [edge]);
+  const defaultValues = useMemo((): FormFields => ({ ...gateway }), [gateway]);
 
   const form = useAppForm({
     defaultValues,
@@ -95,9 +96,9 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await editEdge({
+      await editGateway({
         ...value,
-        id: edge.id,
+        id: gateway.id,
       });
       form.reset(value);
     },
@@ -112,17 +113,17 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
       }}
     >
       <form.AppForm>
-        <EditPageFormSection label={m.edge_edit_general_info()}>
+        <EditPageFormSection label={m.gateway_edit_general_info()}>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.edge_edit_name()} />}
+            {(field) => <field.FormInput required label={m.gateway_edit_name()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="address">
-            {(field) => <field.FormInput disabled label={m.edge_edit_address()} />}
+            {(field) => <field.FormInput disabled label={m.gateway_edit_address()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
-            {(field) => <field.FormInput disabled label={m.edge_edit_port()} />}
+            {(field) => <field.FormInput disabled label={m.gateway_edit_port()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
         </EditPageFormSection>
@@ -135,9 +136,9 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
           {({ isDefault, isSubmitting }) => (
             <EditPageControls
               deleteProps={{
-                text: m.edge_edit_delete(),
+                text: m.gateway_edit_delete(),
                 onClick: () => {
-                  deleteEdge();
+                  deleteGateway();
                 },
                 loading: deletePending,
                 disabled: isSubmitting,
