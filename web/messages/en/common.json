@@ -45,6 +45,7 @@
   "state_enabled": "Enabled",
   "state_not_configured": "Not configured",
   "state_smtp_not_configured": "SMTP configuration has not been completed by the administrator.",
+  "state_smtp_not_configured_admin": "SMTP not configured. Please configure SMTP to send enrollment details by email.",
   "state_step": "Step {step}",
   "state_pending": "Pending",
   "state_enrolled": "Enrolled",
