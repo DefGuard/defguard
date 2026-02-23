@@ -15,6 +15,8 @@ use defguard_mail::{
 };
 use reqwest::Url;
 use serde_json::json;
+use sqlx::query_scalar;
+use tera::Context;
 use tokio::fs::read_to_string;
 
 use super::{ApiResponse, ApiResult};
@@ -205,6 +207,37 @@ pub async fn send_gateway_reconnected_email(
             templates::gateway_reconnected_mail(&gateway_name, gateway_adress, &network_name)?,
         )
         .send_and_forget();
+    }
+
+    Ok(())
+}
+
+pub async fn get_admins_emails(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    debug!("Getting emails of active admins");
+    query_scalar::<_, String>(
+        "
+        SELECT u.email
+        FROM \"user\" u
+        WHERE u.is_active = true
+          AND EXISTS (
+              SELECT 1
+              FROM group_user gu
+              JOIN \"group\" g ON gu.group_id = g.id
+              WHERE g.is_admin = true AND gu.user_id = u.id
+          )",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), WebError> {
+    debug!("Sending blocked user import mail to all admin users");
+    let admin_emails = get_admins_emails(pool).await?;
+    let mut conn = pool.acquire().await?;
+
+    for email in admin_emails {
+        templates::user_import_blocked_mail(&email, &mut *conn, Context::new()).await?;
+        debug!("Scheduled blocked user import mail to admin {}", email);
     }
 
     Ok(())

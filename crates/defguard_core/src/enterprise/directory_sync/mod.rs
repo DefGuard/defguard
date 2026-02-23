@@ -32,7 +32,7 @@ use crate::{
         limits::{get_counts, update_counts},
     },
     grpc::GatewayEvent,
-    handlers::user::check_username,
+    handlers::{mail::send_user_import_blocked_email, user::check_username},
     user_management::{delete_user_and_cleanup_devices, disable_user, sync_allowed_user_devices},
 };
 
@@ -650,6 +650,7 @@ async fn sync_all_users_state(
     let user_limit = get_cached_license()
         .as_ref()
         .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
+    let mut blocked_import_notification_sent = false;
 
     sync_inactive_directory_users(
         &mut transaction,
@@ -737,6 +738,15 @@ async fn sync_all_users_state(
                             license user limit has been reached ({}/{})",
                             user.username, user.email, user_count, limit
                         );
+                        if !blocked_import_notification_sent {
+                            blocked_import_notification_sent = true;
+                            if let Err(err) = send_user_import_blocked_email(pool).await {
+                                warn!(
+                                    "Failed to notify admins about blocked directory sync import: \
+                                    {err}"
+                                );
+                            }
+                        }
                         continue;
                     }
                     let new_user = user.save(&mut *transaction).await?;

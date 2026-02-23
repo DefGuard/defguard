@@ -74,6 +74,7 @@ use crate::{
         license::get_cached_license,
         limits::{get_counts, update_counts},
     },
+    handlers::mail::send_user_import_blocked_email,
     hashset,
 };
 
@@ -815,6 +816,7 @@ impl super::LDAPConnection {
         let user_limit = get_cached_license()
             .as_ref()
             .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
+        let mut blocked_import_notification_sent = false;
 
         for user in changes.delete_defguard {
             if user.is_admin(&mut *transaction).await? {
@@ -865,6 +867,12 @@ impl super::LDAPConnection {
                         has been reached ({}/{})",
                         user.username, user.email, user_count, limit
                     );
+                    if !blocked_import_notification_sent {
+                        blocked_import_notification_sent = true;
+                        if let Err(err) = send_user_import_blocked_email(pool).await {
+                            warn!("Failed to notify admins about blocked LDAP sync import: {err}");
+                        }
+                    }
                     continue;
                 }
                 user.save(&mut *transaction).await?;

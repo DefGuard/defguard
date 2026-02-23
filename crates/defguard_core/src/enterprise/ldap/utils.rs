@@ -15,6 +15,7 @@ use crate::enterprise::{
     license::get_cached_license,
     limits::get_counts,
 };
+use crate::handlers::mail::send_user_import_blocked_email;
 
 fn reached_user_license_limit() -> Option<(u32, u32)> {
     let user_count = get_counts().user();
@@ -79,6 +80,12 @@ pub(crate) async fn login_through_ldap_with_connection(
                 limit has been reached ({}/{})",
                 ldap_user.username, ldap_user.email, user_count, limit
             );
+            if let Err(err) = send_user_import_blocked_email(pool).await {
+                warn!(
+                    "Failed to notify admins about blocked LDAP user import for {}: {err}",
+                    ldap_user.username
+                );
+            }
             return Err(LdapError::LicenseUserLimitReached(user_count, limit));
         }
 
