@@ -236,7 +236,7 @@ pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), WebErro
     let mut conn = pool.acquire().await?;
 
     for email in admin_emails {
-        templates::user_import_blocked_mail(&email, &mut *conn, Context::new()).await?;
+        templates::user_import_blocked_mail(&email, &mut conn, Context::new()).await?;
         debug!("Scheduled blocked user import mail to admin {}", email);
     }
 
