@@ -99,6 +99,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
         ...value,
         id: edge.id,
       });
+      form.reset(value);
     },
   });
 
@@ -140,11 +141,6 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
                 },
                 loading: deletePending,
                 disabled: isSubmitting,
-              }}
-              cancelProps={{
-                onClick: () => {
-                  window.history.back();
-                },
               }}
               submitProps={{
                 loading: isSubmitting,
