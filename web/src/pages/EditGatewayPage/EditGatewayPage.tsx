@@ -63,10 +63,6 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
     },
     onSuccess: () => {
       Snackbar.success(m.gateway_edit_success());
-      navigate({
-        to: '/locations',
-        replace: true,
-      });
     },
     onError: () => {
       Snackbar.error(m.gateway_edit_failed());
@@ -104,6 +100,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
         ...value,
         id: gateway.id,
       });
+      form.reset(value);
     },
   });
 
@@ -145,11 +142,6 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
                 },
                 loading: deletePending,
                 disabled: isSubmitting,
-              }}
-              cancelProps={{
-                onClick: () => {
-                  window.history.back();
-                },
               }}
               submitProps={{
                 loading: isSubmitting,

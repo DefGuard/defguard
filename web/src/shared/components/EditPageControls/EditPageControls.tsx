@@ -21,21 +21,25 @@ export const EditPageControls = ({ cancelProps, deleteProps, submitProps }: Prop
           }}
         />
       )}
-      <Button
-        className="cancel"
-        {...{
-          text: m.controls_cancel(),
-          variant: 'secondary',
-          ...cancelProps,
-        }}
-      />
-      <Button
-        {...{
-          text: m.controls_submit(),
-          variant: 'primary',
-          ...submitProps,
-        }}
-      />
+      <div className="edit-page-controls__actions">
+        {isPresent(cancelProps) && (
+          <Button
+            className="cancel"
+            {...{
+              text: m.controls_cancel(),
+              variant: 'secondary',
+              ...cancelProps,
+            }}
+          />
+        )}
+        <Button
+          {...{
+            text: m.controls_save_changes(),
+            variant: 'primary',
+            ...submitProps,
+          }}
+        />
+      </div>
     </div>
   );
 };
