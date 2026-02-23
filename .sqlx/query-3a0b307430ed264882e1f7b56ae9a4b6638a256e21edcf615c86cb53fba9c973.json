@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\",\"certificate\",\"certificate_expiry\",\"version\",\"name\" FROM \"gateway\" WHERE id = $1",
+  "query": "SELECT id, \"location_id\",\"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"certificate\",\"certificate_expiry\",\"version\",\"modified_at\",\"modified_by\" FROM \"gateway\"",
   "describe": {
     "columns": [
       {
@@ -10,67 +10,77 @@
       },
       {
         "ordinal": 1,
-        "name": "network_id",
+        "name": "location_id",
         "type_info": "Int8"
       },
       {
         "ordinal": 2,
-        "name": "url",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "hostname",
+        "name": "address",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "certificate",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "version",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
-        "name": "name",
-        "type_info": "Text"
+        "ordinal": 10,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_by",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
       false,
       false,
+      false,
+      false,
       true,
       true,
       true,
       true,
       true,
-      true,
+      false,
       false
     ]
   },
-  "hash": "161dca354966b0bc33849d2ef1245351bf9bf9650acca042a12ad75a71fdee71"
+  "hash": "3a0b307430ed264882e1f7b56ae9a4b6638a256e21edcf615c86cb53fba9c973"
 }

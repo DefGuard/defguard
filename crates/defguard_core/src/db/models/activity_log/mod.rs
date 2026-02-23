@@ -116,6 +116,10 @@ pub enum EventType {
     UserSnatBindingModified,
     // Proxy management
     ProxyModified,
+    ProxyDeleted,
+    // Gateway management
+    GatewayModified,
+    GatewayDeleted,
 }
 
 #[derive(Model, FromRow, Serialize)]

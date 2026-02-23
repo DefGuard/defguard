@@ -606,6 +606,7 @@ pub async fn setup_proxy_tls_stream(
 // This is a get request, since HTML's EventSource only supports GET
 pub async fn setup_gateway_tls_stream(
     _admin: AdminOrSetupRole,
+    session: SessionInfo,
     Query(request): Query<GatewaySetupRequest>,
     Path(network_id): Path<Id>,
     Extension(pool): Extension<PgPool>,
@@ -617,7 +618,7 @@ pub async fn setup_gateway_tls_stream(
 
         // check if tries to add more then 1 gateway to network without enterprise license
         if !is_enterprise_license_active() {
-            match Gateway::find_by_network_id(&pool, network_id).await {
+            match Gateway::find_by_location_id(&pool, network_id).await {
                 Ok(gateways) => {
                     if !gateways.is_empty() {
                         yield Ok(flow.error("Enterprise license is required."));
@@ -637,11 +638,10 @@ pub async fn setup_gateway_tls_stream(
         );
 
 
-        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
 
-        match Gateway::find_by_url(&pool, &url_str).await {
+        match Gateway::find_by_url(&pool, &request.ip_or_domain, request.grpc_port).await {
             Ok(Some(gateway)) => {
-               yield Ok(flow.error(&format!("A Gateway with url {} is already registered with hostname \"{:?}\".", url_str, gateway.hostname)));
+               yield Ok(flow.error(&format!("A Gateway with URL {}:{} is already registered with name \"{}\".", request.ip_or_domain, request.grpc_port, gateway.name)));
                return;
             }
             Ok(None) => {
@@ -653,6 +653,7 @@ pub async fn setup_gateway_tls_stream(
             }
         }
 
+        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -974,8 +975,10 @@ pub async fn setup_gateway_tls_stream(
 
         let mut gateway = Gateway::new(
             network_id,
-            url_str,
             request.common_name,
+            request.ip_or_domain,
+            request.grpc_port.into(),
+            session.user.id,
         );
 
         gateway.certificate = Some(serial);

@@ -1,16 +1,19 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import api from '../../../../shared/api/api';
-import type { AclDestination } from '../../../../shared/api/types';
+import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { getDestinationsQueryOptions } from '../../../../shared/query';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
-type Props = {
-  destinations: AclDestination[];
-};
+export const DestinationPendingTab = () => {
+  const { data: destinations } = useSuspenseQuery({
+    ...getDestinationsQueryOptions,
+    select: (resp) =>
+      resp.data.filter((destination) => destination.state !== AclStatus.Applied),
+  });
 
-export const DestinationPendingTab = ({ destinations }: Props) => {
   const { mutate, isPending } = useMutation({
     mutationFn: api.acl.destination.applyDestinations,
     meta: {

@@ -1,21 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
-import type { AclRule } from '../../../shared/api/types';
+import { AclStatus } from '../../../shared/api/types';
 import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { RulesTable } from '../RulesTable';
 import { useRuleDeps } from '../useRuleDeps';
 
-type Props = {
-  rules: AclRule[];
-};
+export const RulesDeployedTab = () => {
+  const { data: rules } = useSuspenseQuery({
+    ...getRulesQueryOptions,
+    select: (resp) => resp.data.filter((rule) => rule.state === AclStatus.Applied),
+  });
 
-export const RulesDeployedTab = ({ rules }: Props) => {
   const isEmpty = rules.length === 0;
 
   const navigate = useNavigate();
@@ -60,7 +61,7 @@ export const RulesDeployedTab = ({ rules }: Props) => {
         isPresent(locations) &&
         isPresent(users) &&
         isPresent(devices) &&
-        isPresent(license) && (
+        license !== undefined && (
           <RulesTable
             title="Deployed rules"
             buttonProps={buttonProps}

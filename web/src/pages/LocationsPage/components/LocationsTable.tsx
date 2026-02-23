@@ -1,4 +1,4 @@
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import type { NetworkLocation } from '../../../shared/api/types';
 import { GatewaysStatusBadge } from '../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -47,13 +46,6 @@ export const LocationsTable = () => {
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-
-  const { mutate: deleteLocation } = useMutation({
-    mutationFn: api.location.deleteLocation,
-    meta: {
-      invalidate: [['network'], ['enterprise_info']],
-    },
-  });
 
   const transformedData = useMemo(() => {
     let res = locations;
@@ -242,7 +234,10 @@ export const LocationsTable = () => {
                         text: m.controls_delete(),
                         variant: 'danger',
                         onClick: () => {
-                          deleteLocation(row.id);
+                          openModal(ModalName.DeleteLocation, {
+                            id: row.id,
+                            name: row.name,
+                          });
                         },
                       },
                     ],
@@ -254,7 +249,7 @@ export const LocationsTable = () => {
         },
       }),
     ],
-    [deleteLocation, navigate, license],
+    [navigate, license],
   );
 
   const table = useReactTable({

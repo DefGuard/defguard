@@ -33,6 +33,7 @@ pub(crate) mod app_info;
 pub mod auth;
 pub mod component_setup;
 pub(crate) mod forward_auth;
+pub mod gateway;
 pub(crate) mod group;
 pub(crate) mod location_stats;
 pub mod mail;

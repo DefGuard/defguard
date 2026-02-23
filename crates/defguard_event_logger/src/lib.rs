@@ -6,13 +6,13 @@ use defguard_core::db::models::activity_log::{
         ActivityLogStreamMetadata, ActivityLogStreamModifiedMetadata, ApiTokenMetadata,
         ApiTokenRenamedMetadata, AuthenticationKeyMetadata, AuthenticationKeyRenamedMetadata,
         ClientConfigurationTokenMetadata, DeviceMetadata, DeviceModifiedMetadata,
-        EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GroupAssignedMetadata,
-        GroupMembersModifiedMetadata, GroupMetadata, GroupModifiedMetadata,
-        GroupsBulkAssignedMetadata, LoginFailedMetadata, MfaLoginFailedMetadata, MfaLoginMetadata,
-        MfaSecurityKeyMetadata, NetworkDeviceMetadata, NetworkDeviceModifiedMetadata,
-        OpenIdAppMetadata, OpenIdAppModifiedMetadata, OpenIdAppStateChangedMetadata,
-        OpenIdProviderMetadata, PasswordChangedByAdminMetadata, PasswordResetMetadata,
-        ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata,
+        EnrollmentDeviceAddedMetadata, EnrollmentTokenMetadata, GatewayDeletedMetadata,
+        GatewayModifiedMetadata, GroupAssignedMetadata, GroupMembersModifiedMetadata,
+        GroupMetadata, GroupModifiedMetadata, GroupsBulkAssignedMetadata, LoginFailedMetadata,
+        MfaLoginFailedMetadata, MfaLoginMetadata, MfaSecurityKeyMetadata, NetworkDeviceMetadata,
+        NetworkDeviceModifiedMetadata, OpenIdAppMetadata, OpenIdAppModifiedMetadata,
+        OpenIdAppStateChangedMetadata, OpenIdProviderMetadata, PasswordChangedByAdminMetadata,
+        PasswordResetMetadata, ProxyDeletedMetadata, ProxyModifiedMetadata, SettingsUpdateMetadata,
         UserGroupsModifiedMetadata, UserMetadata, UserMfaDisabledMetadata, UserModifiedMetadata,
         UserSnatBindingMetadata, UserSnatBindingModifiedMetadata, VpnClientMetadata,
         VpnClientMfaFailedMetadata, VpnClientMfaMetadata, VpnLocationMetadata,
@@ -474,8 +474,17 @@ pub async fn run_event_logger(
                                 serde_json::to_value(ProxyModifiedMetadata { before, after }).ok(),
                             ),
                             DefguardEvent::ProxyDeleted { proxy } => (
-                                EventType::ProxyModified,
+                                EventType::ProxyDeleted,
                                 serde_json::to_value(ProxyDeletedMetadata { proxy }).ok(),
+                            ),
+                            DefguardEvent::GatewayModified { before, after } => (
+                                EventType::GatewayModified,
+                                serde_json::to_value(GatewayModifiedMetadata { before, after })
+                                    .ok(),
+                            ),
+                            DefguardEvent::GatewayDeleted { gateway } => (
+                                EventType::GatewayDeleted,
+                                serde_json::to_value(GatewayDeletedMetadata { gateway }).ok(),
                             ),
                         };
                         (module, event_type, description, metadata)

@@ -1,22 +1,25 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import type { AclAlias } from '../../../shared/api/types';
+import { AclStatus } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import {
+  getAliasesQueryOptions,
+  getLicenseInfoQueryOptions,
+} from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { AliasTable } from '../AliasTable';
 
-type Props = {
-  aliases: AclAlias[];
-};
-
-export const AliasesDeployedTab = ({ aliases }: Props) => {
+export const AliasesDeployedTab = () => {
+  const { data: aliases } = useSuspenseQuery({
+    ...getAliasesQueryOptions,
+    select: (resp) => resp.data.filter((alias) => alias.state === AclStatus.Applied),
+  });
   const isEmpty = aliases.length === 0;
   const navigate = useNavigate();
   const [search, setSearch] = useState('');

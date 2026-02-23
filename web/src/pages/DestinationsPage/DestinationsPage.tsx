@@ -1,16 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
-import api from '../../shared/api/api';
+import { Suspense, useMemo, useState } from 'react';
 import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
+import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
+import { getDestinationsCountQueryOptions } from '../../shared/query';
 import { DestinationDeployedTab } from './tabs/DestinationDeployedTab/DestinationDeployedTab';
 import { DestinationPendingTab } from './tabs/DestinationPendingTab/DestinationPendingTab';
 
 export const DestinationsPage = () => {
+  const { data: destinationsCount } = useQuery(getDestinationsCountQueryOptions);
+
   const [activeTab, setActiveTab] = useState<AclDeploymentStateValue>(
     AclDeploymentState.Applied,
   );
@@ -29,42 +31,22 @@ export const DestinationsPage = () => {
         onClick: () => {
           setActiveTab(AclDeploymentState.Modified);
         },
-        title: 'Pending',
+        title: destinationsCount?.pending
+          ? `Pending (${destinationsCount.pending})`
+          : 'Pending',
       },
     ],
-    [activeTab],
-  );
-
-  const { data: destinationsData } = useQuery({
-    queryFn: api.acl.destination.getDestinations,
-    queryKey: ['acl', 'destination'],
-    select: (resp) => resp.data,
-  });
-
-  const applied = useMemo(
-    () => destinationsData?.filter((item) => item.state === AclDeploymentState.Applied),
-    [destinationsData],
-  );
-
-  const pending = useMemo(
-    () => destinationsData?.filter((item) => item.state === AclDeploymentState.Modified),
-    [destinationsData],
+    [activeTab, destinationsCount],
   );
 
   return (
     <Page title="Destinations" id="destination-page">
       <TablePageLayout>
         <Tabs items={tabs} />
-        {isPresent(pending) && isPresent(applied) && (
-          <>
-            {activeTab === AclDeploymentState.Applied && (
-              <DestinationDeployedTab destinations={applied} />
-            )}
-            {activeTab === AclDeploymentState.Modified && (
-              <DestinationPendingTab destinations={pending} />
-            )}
-          </>
-        )}
+        <Suspense fallback={<TableSkeleton />}>
+          {activeTab === AclDeploymentState.Applied && <DestinationDeployedTab />}
+          {activeTab === AclDeploymentState.Modified && <DestinationPendingTab />}
+        </Suspense>
       </TablePageLayout>
     </Page>
   );

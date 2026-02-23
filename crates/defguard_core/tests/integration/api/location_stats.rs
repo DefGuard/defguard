@@ -64,7 +64,7 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
     let response = make_network(&client, "network").await;
     let network: WireguardNetwork<Id> = response.json().await;
 
-    let gateway = Gateway::new(network.id, "http://localhost:50055", "gateway")
+    let gateway = Gateway::new(network.id, "gateway", "localhost", 50051, 1)
         .save(&client_state.pool)
         .await
         .unwrap();

@@ -101,9 +101,9 @@ const formSchema = z.object({
   ldap_use_starttls: z.boolean(),
   ldap_tls_verify_cert: z.boolean(),
   ldap_sync_interval: z.number().min(
-    20,
+    10,
     m.form_error_min({
-      value: 20,
+      value: 10,
     }),
   ),
   ldap_uses_ad: z.boolean(),
@@ -154,6 +154,17 @@ const PageForm = () => {
     },
     onError: (e) => {
       Snackbar.error('Failed to save settings.');
+      console.error(e);
+    },
+  });
+
+  const { mutate: handleLdapTest, isPending: testInProgress } = useMutation({
+    mutationFn: api.settings.getLdapConnectionStatus,
+    onSuccess: () => {
+      Snackbar.success('LDAP Connected');
+    },
+    onError: (e) => {
+      Snackbar.error('Connection failed');
       console.error(e);
     },
   });
@@ -233,7 +244,7 @@ const PageForm = () => {
               {(field) => <field.FormInput label="Username attribute" required notNull />}
             </form.AppField>
             <form.AppField name="ldap_user_rdn_attr">
-              {(field) => <field.FormInput label="User RDN attribute" required notNull />}
+              {(field) => <field.FormInput label="User RDN attribute" />}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -275,11 +286,13 @@ const PageForm = () => {
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
-            <form.AppField name="ldap_group_obj_class">
-              {(field) => <field.FormInput label="Group object class" notNull required />}
+            <form.AppField name="ldap_group_member_attr">
+              {(field) => (
+                <field.FormInput label="Group member attribute" notNull required />
+              )}
             </form.AppField>
-            <form.AppField name="ldap_group_obj_class">
-              {(field) => <field.FormInput label="Group object class" notNull required />}
+            <form.AppField name="ldap_group_search_base">
+              {(field) => <field.FormInput label="Group search base" notNull required />}
             </form.AppField>
           </EvenSplit>
         </MarkedSection>
@@ -373,15 +386,14 @@ const PageForm = () => {
                     <TooltipTrigger>
                       <div>
                         <Button
+                          type="button"
                           variant="outlined"
-                          type="submit"
                           text={`Test connection`}
                           iconLeft={IconKind.Refresh}
-                          disabled={
-                            (isSubmitting && !isDefaultValue) || !isAppLdapEnabled
-                          }
+                          disabled={isSubmitting || !isDefaultValue || !isAppLdapEnabled}
+                          loading={testInProgress}
                           onClick={() => {
-                            Snackbar.default('TODO');
+                            handleLdapTest();
                           }}
                         />
                       </div>

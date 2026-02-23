@@ -5,7 +5,7 @@ use defguard_common::db::{
     Id,
     models::{
         AuthenticationKey, Device, MFAMethod, Settings, User, WebAuthn, WireguardNetwork,
-        group::Group, oauth2client::OAuth2Client, proxy::Proxy,
+        gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
     },
 };
 use defguard_core::{
@@ -323,6 +323,13 @@ pub enum DefguardEvent {
     },
     ProxyDeleted {
         proxy: Proxy<Id>,
+    },
+    GatewayModified {
+        before: Gateway<Id>,
+        after: Gateway<Id>,
+    },
+    GatewayDeleted {
+        gateway: Gateway<Id>,
     },
 }
 

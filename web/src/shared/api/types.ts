@@ -554,9 +554,7 @@ export interface NetworkLocation {
   address: string[];
   port: number;
   endpoint: string;
-  connected: boolean;
-  connected_at: string | null;
-  gateways: GatewayStatus[];
+  gateways: GatewayInfo[];
   allowed_ips: string[];
   allowed_groups: string[];
   dns: string | null;
@@ -584,14 +582,6 @@ export interface EditNetworkLocationRequest {
   data: EditNetworkLocation;
 }
 
-export interface GatewayStatus {
-  connected: boolean;
-  network_id: number;
-  network_name: string;
-  name?: string;
-  hostname: string;
-  uid: string;
-}
 export interface TransferStats {
   collected_at: string;
   download: number;
@@ -933,6 +923,11 @@ export const AclProtocolName: Record<AclProtocolValue, string> = {
   '17': 'UDP',
 };
 
+export interface AclCount {
+  applied: number;
+  pending: number;
+}
+
 export interface AclDestination {
   id: number;
   name: string;
@@ -1069,6 +1064,26 @@ export interface Edge {
 export interface EdgeInfo extends Edge {
   modified_by_firstname: string;
   modified_by_lastname: string;
+}
+
+export interface Gateway {
+  id: number;
+  location_id: number;
+  name: string;
+  address: string | null;
+  port: number | null;
+  version: string | null;
+  connected_at: string | null;
+  disconnected_at: string | null;
+  modified_at: string;
+  modified_by: number;
+}
+
+export interface GatewayInfo extends Gateway {
+  connected: boolean;
+  modified_by_firstname: string;
+  modified_by_lastname: string;
+  location_name: string;
 }
 
 export interface PaginationParams {

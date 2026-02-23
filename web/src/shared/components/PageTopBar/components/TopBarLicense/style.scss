@@ -87,6 +87,11 @@
   background-color: var(--bg-default);
   z-index: 2;
 
+  & > .title {
+    font: var(--t-body-primary-600);
+    color: var(--fg-default);
+  }
+
   .limits {
     display: flex;
     flex-flow: column;

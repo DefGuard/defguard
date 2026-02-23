@@ -103,6 +103,12 @@ export const ActivityLogEventType = {
   UserSnatBindingAdded: 'user_snat_binding_added',
   UserSnatBindingModified: 'user_snat_binding_modified',
   UserSnatBindingRemoved: 'user_snat_binding_removed',
+
+  ProxyModified: 'proxy_modified',
+  ProxyDeleted: 'proxy_deleted',
+
+  GatewayModified: 'gateway_modified',
+  GatewayDeleted: 'gateway_deleted',
 } as const;
 
 export type ActivityLogEventTypeValue =

@@ -73,5 +73,9 @@
   "activity_event_client_configuration_token_added": "Client configuration token added",
   "activity_event_user_snat_binding_added": "User SNAT binding added",
   "activity_event_user_snat_binding_modified": "User SNAT binding modified",
-  "activity_event_user_snat_binding_removed": "User SNAT binding removed"
+  "activity_event_user_snat_binding_removed": "User SNAT binding removed",
+  "activity_event_proxy_modified": "Edge component modified",
+  "activity_event_proxy_deleted": "Edge component deleted",
+  "activity_event_gateway_modified": "Gateway modified",
+  "activity_event_gateway_deleted": "Gateway deleted"
 }

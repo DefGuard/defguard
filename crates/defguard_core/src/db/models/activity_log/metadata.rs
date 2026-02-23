@@ -4,6 +4,7 @@ use defguard_common::db::{
     models::{
         AuthenticationKey, AuthenticationKeyType, Device, MFAMethod, Settings, WebAuthn,
         WireguardNetwork,
+        gateway::Gateway,
         group::Group,
         oauth2client::OAuth2Client,
         proxy::Proxy,
@@ -575,4 +576,15 @@ pub struct ProxyModifiedMetadata {
 #[derive(Serialize)]
 pub struct ProxyDeletedMetadata {
     pub proxy: Proxy<Id>,
+}
+
+#[derive(Serialize)]
+pub struct GatewayModifiedMetadata {
+    pub before: Gateway<Id>,
+    pub after: Gateway<Id>,
+}
+
+#[derive(Serialize)]
+pub struct GatewayDeletedMetadata {
+    pub gateway: Gateway<Id>,
 }

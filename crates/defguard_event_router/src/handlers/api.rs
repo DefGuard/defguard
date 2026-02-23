@@ -397,6 +397,14 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::ProxyDeleted { proxy })),
                 None,
             ),
+            ApiEventType::GatewayModified { before, after } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::GatewayModified { before, after })),
+                None,
+            ),
+            ApiEventType::GatewayDeleted { gateway } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::GatewayDeleted { gateway })),
+                None,
+            ),
         };
         self.log_event(
             EventContext::from_api_context(event.context, location),

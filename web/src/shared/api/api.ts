@@ -4,6 +4,7 @@ import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import type {
   AclAlias,
+  AclCount,
   AclDestination,
   AclRule,
   ActivityLogEvent,
@@ -39,7 +40,6 @@ import type {
   CreateGroupRequest,
   DeleteApiTokenRequest,
   DeleteAuthKeyRequest,
-  DeleteGatewayRequest,
   Device,
   DeviceLocationIpsResponse,
   Edge,
@@ -53,7 +53,8 @@ import type {
   EditNetworkLocationRequest,
   EditOpenIdClientActiveStateRequest,
   EnableMfaMethodResponse,
-  GatewayStatus,
+  Gateway,
+  GatewayInfo,
   GetCAResponse,
   GroupInfo,
   GroupsResponse,
@@ -323,9 +324,7 @@ const api = {
         },
       }),
     getLocationGatewaysStatus: (id: number) =>
-      client.get<GatewayStatus[]>(`/network/${id}/gateways`),
-    deleteGateway: ({ gatewayId, networkId }: DeleteGatewayRequest) =>
-      client.delete(`/network/${networkId}/gateways/${gatewayId}`),
+      client.get<GatewayInfo[]>(`/network/${id}/gateways`),
     getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
       client
         .get<PaginatedResponse<LocationConnectedUser>>(
@@ -422,6 +421,7 @@ const api = {
     patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) =>
       client.patch('/settings_enterprise', data),
     getSettingsEssentials: () => client.get<SettingsEssentials>('/settings_essentials'),
+    getLdapConnectionStatus: () => client.get(`/ldap/test`),
   },
   openIdProvider: {
     getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
@@ -441,8 +441,17 @@ const api = {
     editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
   },
+  gateway: {
+    getGateways: () => client.get<GatewayInfo[]>('/gateway'),
+    getGateway: (gatewayId: number | string) =>
+      client.get<Gateway>(`/gateway/${gatewayId}`),
+    editGateway: (data: Gateway) =>
+      client.put(`/gateway/${data.id}`, { name: data.name }),
+    deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
+  },
   acl: {
     destination: {
+      getCount: () => client.get<AclCount>('acl/destination/count'),
       getDestinations: () => client.get<AclDestination[]>('/acl/destination'),
       getDestination: (destinationId: number | string) =>
         client.get<AclDestination>(`/acl/destination/${destinationId}`),
@@ -457,6 +466,7 @@ const api = {
         }),
     },
     alias: {
+      getCount: () => client.get<AclCount>('acl/alias/count'),
       getAliases: () => client.get<AclAlias[]>('/acl/alias'),
       getAlias: (aliasId: number | string) =>
         client.get<AclAlias>(`/acl/alias/${aliasId}`),
@@ -469,6 +479,7 @@ const api = {
         }),
     },
     rule: {
+      getCount: () => client.get<AclCount>('acl/rule/count'),
       getRules: () => client.get<AclRule[]>(`/acl/rule`),
       getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),

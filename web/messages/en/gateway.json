@@ -1,0 +1,14 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "gateway_title": "Gateways",
+  "gateway_edit_title": "Edit gateway",
+  "gateway_edit_general_info": "General information",
+  "gateway_edit_name": "Name",
+  "gateway_edit_address": "IP or Domain",
+  "gateway_edit_port": "gRPC port",
+  "gateway_edit_delete": "Delete",
+  "gateway_edit_success": "Gateway updated",
+  "gateway_edit_failed": "Failed to update gateway",
+  "gateway_delete_success": "Gateway deleted",
+  "gateway_delete_failed": "Failed to delete gateway"
+}

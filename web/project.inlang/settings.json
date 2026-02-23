@@ -20,6 +20,8 @@
       "./messages/{locale}/activity.json",
       "./messages/{locale}/edge.json",
       "./messages/{locale}/edge_wizard.json",
+      "./messages/{locale}/gateway.json",
+      "./messages/{locale}/location.json",
       "./messages/{locale}/settings.json",
       "./messages/{locale}/gateway_wizard.json",
       "./messages/{locale}/initial_wizard.json"

@@ -1,20 +1,19 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
-import api from '../../shared/api/api';
-import {
-  AclAliasStatus,
-  AclDeploymentState,
-  type AclDeploymentStateValue,
-} from '../../shared/api/types';
+import { Suspense, useMemo, useState } from 'react';
+import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
+import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
+import { getAliasesCountQueryOptions } from '../../shared/query';
 import { AliasesDeployedTab } from './tabs/AliasesDeployedTab';
 import { AliasesPendingTab } from './tabs/AliasesPendingTab';
 
 export const AliasesPage = () => {
+  const { data: aliasesCount } = useQuery(getAliasesCountQueryOptions);
+
   const [activeTab, setActiveTab] = useState<AclDeploymentStateValue>(
     AclDeploymentState.Applied,
   );
@@ -33,39 +32,21 @@ export const AliasesPage = () => {
         onClick: () => {
           setActiveTab(AclDeploymentState.Modified);
         },
-        title: 'Pending',
+        title: aliasesCount?.pending ? `Pending (${aliasesCount.pending})` : 'Pending',
       },
     ],
-    [activeTab],
+    [activeTab, aliasesCount],
   );
-
-  const { data: aliases } = useQuery({
-    queryFn: api.acl.alias.getAliases,
-    queryKey: ['acl', 'alias'],
-    select: (resp) => resp.data,
-  });
-
-  const deployedAliases = useMemo(() => {
-    if (isPresent(aliases)) {
-      return aliases.filter((alias) => alias.state === AclAliasStatus.Applied);
-    }
-  }, [aliases]);
-
-  const pendingAliases = useMemo(() => {
-    if (isPresent(aliases)) {
-      return aliases.filter((alias) => alias.state === AclAliasStatus.Modified);
-    }
-  }, [aliases]);
 
   return (
     <Page id="aliases-page" title={'Aliases'}>
-      <Tabs items={tabs} />
-      {isPresent(deployedAliases) && activeTab === AclDeploymentState.Applied && (
-        <AliasesDeployedTab aliases={deployedAliases} />
-      )}
-      {isPresent(pendingAliases) && activeTab === AclDeploymentState.Modified && (
-        <AliasesPendingTab aliases={pendingAliases} />
-      )}
+      <TablePageLayout>
+        <Tabs items={tabs} />
+        <Suspense fallback={<TableSkeleton />}>
+          {activeTab === AclDeploymentState.Applied && <AliasesDeployedTab />}
+          {activeTab === AclDeploymentState.Modified && <AliasesPendingTab />}
+        </Suspense>
+      </TablePageLayout>
     </Page>
   );
 };

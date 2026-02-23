@@ -36,10 +36,25 @@ export const getEdgesQueryOptions = queryOptions({
   refetchOnReconnect: true,
 });
 
+export const getGatewaysQueryOptions = queryOptions({
+  queryFn: api.gateway.getGateways,
+  queryKey: ['gateway'],
+  select: (resp) => resp.data,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+});
+
 export const getEdgeQueryOptions = (id: number) =>
   queryOptions({
     queryFn: () => api.edge.getEdge(id),
     queryKey: ['edge', id],
+    select: (resp) => resp.data,
+  });
+
+export const getGatewayQueryOptions = (id: number) =>
+  queryOptions({
+    queryFn: () => api.gateway.getGateway(id),
+    queryKey: ['gateway', id],
     select: (resp) => resp.data,
   });
 
@@ -152,6 +167,23 @@ export const getSettingsQueryOptions = queryOptions({
 export const getOpenIdProvidersQueryOptions = queryOptions({
   queryFn: api.openIdProvider.getOpenIdProvider,
   queryKey: ['openid', 'provider'],
+  select: (resp) => resp.data,
+});
+
+export const getAliasesCountQueryOptions = queryOptions({
+  queryFn: api.acl.alias.getCount,
+  queryKey: ['acl', 'alias', 'count'],
+  select: (resp) => resp.data,
+});
+export const getDestinationsCountQueryOptions = queryOptions({
+  queryFn: api.acl.destination.getCount,
+  queryKey: ['acl', 'destination', 'count'],
+  select: (resp) => resp.data,
+});
+
+export const getRulesCountQueryOptions = queryOptions({
+  queryFn: api.acl.rule.getCount,
+  queryKey: ['acl', 'rule', 'count'],
   select: (resp) => resp.data,
 });
 

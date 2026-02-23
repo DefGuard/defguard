@@ -79,13 +79,14 @@ use crate::{
         handlers::{
             acl::{
                 alias::{
-                    create_acl_alias, delete_acl_alias, get_acl_alias, list_acl_aliases,
-                    update_acl_alias,
+                    count_acl_aliases, create_acl_alias, delete_acl_alias, get_acl_alias,
+                    list_acl_aliases, update_acl_alias,
                 },
-                apply_acl_aliases, apply_acl_rules, create_acl_rule, delete_acl_rule,
+                apply_acl_aliases, apply_acl_rules, count_acl_rules, create_acl_rule,
+                delete_acl_rule,
                 destination::{
-                    create_acl_destination, delete_acl_destination, get_acl_destination,
-                    list_acl_destinations, update_acl_destination,
+                    count_acl_destinations, create_acl_destination, delete_acl_destination,
+                    get_acl_destination, list_acl_destinations, update_acl_destination,
                 },
                 get_acl_rule, list_acl_rules, update_acl_rule,
             },
@@ -117,6 +118,7 @@ use crate::{
         },
         component_setup::setup_gateway_tls_stream,
         forward_auth::forward_auth,
+        gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         group::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
@@ -155,10 +157,9 @@ use crate::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_user_devices, change_gateway, create_network, delete_device,
-            delete_network, download_config, gateway_status, get_device, import_network,
-            list_devices, list_networks, list_user_devices, modify_device, modify_network,
-            network_details, remove_gateway,
+            add_device, add_user_devices, create_network, delete_device, delete_network,
+            download_config, gateway_status, get_device, import_network, list_devices,
+            list_networks, list_user_devices, modify_device, modify_network, network_details,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -367,6 +368,14 @@ pub fn build_webapp(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),
             )
+            // Gateway routes
+            .route("/gateway", get(gateway_list))
+            .route(
+                "/gateway/{gateway_id}",
+                get(gateway_details)
+                    .put(update_gateway)
+                    .delete(delete_gateway),
+            )
             // Proxy setup with SSE
             .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
     );
@@ -436,6 +445,7 @@ pub fn build_webapp(
         "/api/v1/acl",
         Router::new()
             .route("/rule", get(list_acl_rules).post(create_acl_rule))
+            .route("/rule/count", get(count_acl_rules))
             .route("/rule/apply", put(apply_acl_rules))
             .route(
                 "/rule/{id}",
@@ -444,6 +454,7 @@ pub fn build_webapp(
                     .delete(delete_acl_rule),
             )
             .route("/alias", get(list_acl_aliases).post(create_acl_alias))
+            .route("/alias/count", get(count_acl_aliases))
             .route(
                 "/alias/{id}",
                 get(get_acl_alias)
@@ -455,6 +466,7 @@ pub fn build_webapp(
                 "/destination",
                 get(list_acl_destinations).post(create_acl_destination),
             )
+            .route("/destination/count", get(count_acl_destinations))
             .route(
                 "/destination/{id}",
                 get(get_acl_destination)
@@ -529,10 +541,6 @@ pub fn build_webapp(
                 get(setup_gateway_tls_stream),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
-            .route(
-                "/network/{network_id}/gateways/{gateway_id}",
-                put(change_gateway).delete(remove_gateway),
-            )
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
                 "/network/{network_id}/device/{device_id}/config",

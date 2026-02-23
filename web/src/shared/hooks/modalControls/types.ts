@@ -125,3 +125,14 @@ export interface OpenAssignUserDeviceIPModal {
   username: string;
   locationData: DeviceLocationIpsResponse;
 }
+
+export interface OpenDeleteGatewayModal {
+  id: number;
+  name: string;
+  locationName: string;
+}
+
+export interface OpenDeleteLocationModal {
+  id: number;
+  name: string;
+}

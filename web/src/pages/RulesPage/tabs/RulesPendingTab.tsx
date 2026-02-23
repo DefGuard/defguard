@@ -1,20 +1,21 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import api from '../../../shared/api/api';
-import type { AclRule } from '../../../shared/api/types';
+import { AclStatus } from '../../../shared/api/types';
 import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { RulesTable } from '../RulesTable';
 import { useRuleDeps } from '../useRuleDeps';
 
-type Props = {
-  rules: AclRule[];
-};
-
-export const RulesPendingTab = ({ rules }: Props) => {
+export const RulesPendingTab = () => {
+  const { data: rules } = useSuspenseQuery({
+    ...getRulesQueryOptions,
+    select: (resp) => resp.data.filter((rule) => rule.state !== AclStatus.Applied),
+  });
   const isEmpty = rules.length === 0;
 
   const { mutate, isPending } = useMutation({
@@ -60,7 +61,7 @@ export const RulesPendingTab = ({ rules }: Props) => {
         isPresent(locations) &&
         isPresent(users) &&
         isPresent(devices) &&
-        isPresent(license) && (
+        license !== undefined && (
           <RulesTable
             title="Pending rules"
             buttonProps={buttonProps}
