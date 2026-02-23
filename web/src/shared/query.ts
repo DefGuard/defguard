@@ -51,6 +51,13 @@ export const getEdgeQueryOptions = (id: number) =>
     select: (resp) => resp.data,
   });
 
+export const getGatewayQueryOptions = (id: number) =>
+  queryOptions({
+    queryFn: () => api.gateway.getGateway(id),
+    queryKey: ['gateway', id],
+    select: (resp) => resp.data,
+  });
+
 export const getNetworkDevicesQueryOptions = queryOptions({
   queryFn: api.network_device.getDevices,
   queryKey: ['device', 'network'],
