@@ -162,7 +162,7 @@ async fn prepare_gateway(pool: &PgPool, location_id: Id) -> Result<Gateway<Id>> 
     match existing_gateways.into_iter().next() {
         Some(gateway) => Ok(gateway),
         None => {
-            let gateway = Gateway::new(location_id, "http://localhost:50055", "gateway")
+            let gateway = Gateway::new(location_id, "test", "localhost", 50055, 1)
                 .save(pool)
                 .await?;
             Ok(gateway)

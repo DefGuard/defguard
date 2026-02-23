@@ -1,21 +1,25 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
-import type { AclDestination } from '../../../../shared/api/types';
+import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { getLicenseInfoQueryOptions } from '../../../../shared/query';
+import {
+  getDestinationsQueryOptions,
+  getLicenseInfoQueryOptions,
+} from '../../../../shared/query';
 import {
   canUseBusinessFeature,
   licenseActionCheck,
 } from '../../../../shared/utils/license';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
-type Props = {
-  destinations: AclDestination[];
-};
-
-export const DestinationDeployedTab = ({ destinations }: Props) => {
+export const DestinationDeployedTab = () => {
+  const { data: destinations } = useSuspenseQuery({
+    ...getDestinationsQueryOptions,
+    select: (resp) =>
+      resp.data.filter((destination) => destination.state === AclStatus.Applied),
+  });
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching } = useQuery(getLicenseInfoQueryOptions);

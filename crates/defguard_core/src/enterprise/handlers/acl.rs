@@ -9,6 +9,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use defguard_common::db::Id;
 use serde_json::{Value, json};
+use sqlx::query_as;
 use utoipa::ToSchema;
 
 use super::LicenseInfo;
@@ -191,6 +192,12 @@ pub(crate) struct ApplyAclAliasesData {
     aliases: Vec<Id>,
 }
 
+#[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]
+pub struct AclStateCount {
+    pub applied: i64,
+    pub pending: i64,
+}
+
 /// List all ACL rules.
 #[utoipa::path(
     get,
@@ -219,6 +226,33 @@ pub(crate) async fn list_acl_rules(
     }
     info!("User {} listed ACL rules", session.user.username);
     Ok(ApiResponse::json(api_rules, StatusCode::OK))
+}
+
+/// Count ACL rules by state.
+#[utoipa::path(
+    get,
+    path = "/api/v1/acl/rule/count",
+    tag = "ACL",
+    responses(
+        (status = OK, description = "ACL rule state counts", body = AclStateCount),
+    ),
+)]
+pub(crate) async fn count_acl_rules(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let counts = query_as::<_, AclStateCount>(
+        "SELECT \
+            COUNT(*) FILTER (WHERE state = 'applied'::aclrule_state) AS applied, \
+            COUNT(*) FILTER ( \
+                WHERE state IN ('new'::aclrule_state, 'modified'::aclrule_state, 'deleted'::aclrule_state) \
+            ) AS pending \
+        FROM aclrule",
+    )
+    .fetch_one(&appstate.pool)
+    .await?;
+
+    Ok(ApiResponse::json(counts, StatusCode::OK))
 }
 
 /// Get ACL rule.
