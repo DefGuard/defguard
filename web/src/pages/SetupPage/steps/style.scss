@@ -24,6 +24,12 @@
     }
   }
 
+  .content {
+    .controls {
+      padding-top: 0;
+    }
+  }
+
   .password-checklist {
     & > p {
       font: var(--t-body-sm-600);
