@@ -238,7 +238,9 @@ const PageForm = () => {
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="ldap_bind_password">
-              {(field) => <field.FormInput label="Bind password" required notNull />}
+              {(field) => (
+                <field.FormInput label="Bind password" required notNull type="password" />
+              )}
             </form.AppField>
             <form.AppField name="ldap_sync_groups">
               {(field) => (
