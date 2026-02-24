@@ -531,10 +531,7 @@ impl Settings {
     }
 
     /// Returns configured Edge Component URL with the correct callback path appended depending on auth flow type.
-    pub fn edge_callback_url(
-        &self,
-        auth_flow_type: AuthFlowType,
-    ) -> Result<Url, url::ParseError> {
+    pub fn edge_callback_url(&self, auth_flow_type: AuthFlowType) -> Result<Url, url::ParseError> {
         let mut url = self.proxy_public_url()?;
         // Append callback segments to the URL.
         if let Ok(mut path_segments) = url.path_segments_mut() {
