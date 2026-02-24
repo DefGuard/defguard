@@ -30,6 +30,8 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../shared/hooks/useApp';
 import {
   getLicenseInfoQueryOptions,
@@ -115,6 +117,7 @@ type FormFields = z.infer<typeof formSchema>;
 
 const PageForm = () => {
   const isAppLdapEnabled = useApp((s) => s.appInfo.ldap_info.enabled);
+  const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
   const defaultValues = useMemo((): FormFields => {
@@ -177,6 +180,12 @@ const PageForm = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      const licenseCheckRes = canUseBusinessFeature(licenseInfo);
+      if (!licenseCheckRes.result) {
+        openModal(ModalName.UpgradeBusiness);
+        return;
+      }
+
       await mutateAsync({
         ...value,
         ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes
