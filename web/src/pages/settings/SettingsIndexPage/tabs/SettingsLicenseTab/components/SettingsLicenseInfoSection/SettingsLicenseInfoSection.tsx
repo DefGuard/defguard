@@ -73,7 +73,7 @@ const ValidUntil = ({ validUntil }: ValidUntilProps) => {
     const nowDay = dayjs();
     const diff = untilDay.diff(nowDay, 'days');
     let res = untilDay.format('DD/MM/YYYY');
-    if (diff > 0) {
+    if (diff > 0 && diff <= 28) {
       res += ` (${untilDay.fromNow(true)})`;
     }
     return res;
