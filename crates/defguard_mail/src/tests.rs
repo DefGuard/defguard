@@ -128,7 +128,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     set_smtp_settings(&pool).await;
 
     let mut conn = pool.begin().await.unwrap();
-    let url = Url::parse("http://localhost:8000").unwrap();
+    let url = Url::parse("http://localhost:8001").unwrap();
     let context = Context::new();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
     new_account_mail(
