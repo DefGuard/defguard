@@ -293,6 +293,7 @@ pub enum MailMessage {
     MFACode,
     PasswordReset,
     PasswordResetDone,
+    UserImportBlocked,
 }
 
 impl MailMessage {
@@ -314,6 +315,7 @@ impl MailMessage {
             Self::MFACode => "Defguard: Multi-Factor Authentication code for login",
             Self::PasswordReset => "Password reset",
             Self::PasswordResetDone => "Password reset success",
+            Self::UserImportBlocked => "User import blocked",
         }
     }
 
@@ -334,6 +336,7 @@ impl MailMessage {
             Self::MFACode => "mfa-code",
             Self::PasswordReset => "password-reset",
             Self::PasswordResetDone => "password-reset-done",
+            Self::UserImportBlocked => "user-import-blocked",
         }
     }
 
@@ -354,6 +357,7 @@ impl MailMessage {
             Self::MFACode => include_str!("../templates/mfa-code.mjml"),
             // Self::PasswordReset => "",
             // Self::PasswordResetDone => "",
+            Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
             _ => "",
         }
     }
