@@ -28,23 +28,23 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    General
+    {m.settings_breadcrumb_general()}
   </Link>,
   <Link to="/settings/instance" key={1}>
-    Instance settings
+    {m.settings_breadcrumb_instance()}
   </Link>,
 ];
 
 export const SettingsInstancePage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="Instance settings"
-          subtitle="Here you can configure general instance parameters."
+          title={m.settings_instance_title()}
+          subtitle={m.settings_instance_subtitle()}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -77,13 +77,25 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 const sessionDurationOptions = [
-  { key: 1, value: 1, label: '1 day' },
-  { key: 2, value: 2, label: '2 days' },
-  { key: 3, value: 3, label: '3 days' },
-  { key: 7, value: 7, label: '7 days' },
-  { key: 10, value: 10, label: '10 days' },
-  { key: 14, value: 14, label: '14 days' },
-  { key: 30, value: 30, label: '30 days' },
+  { key: 1, value: 1, label: m.settings_instance_session_duration_1() },
+  { key: 2, value: 2, label: m.settings_instance_session_duration_2() },
+  { key: 3, value: 3, label: m.settings_instance_session_duration_3() },
+  { key: 7, value: 7, label: m.settings_instance_session_duration_7() },
+  {
+    key: 10,
+    value: 10,
+    label: m.settings_instance_session_duration_10(),
+  },
+  {
+    key: 14,
+    value: 14,
+    label: m.settings_instance_session_duration_14(),
+  },
+  {
+    key: 30,
+    value: 30,
+    label: m.settings_instance_session_duration_30(),
+  },
 ];
 
 const Content = ({ settings }: { settings: Settings }) => {
@@ -136,18 +148,25 @@ const Content = ({ settings }: { settings: Settings }) => {
     >
       <form.AppForm>
         <form.AppField name="instance_name">
-          {(field) => <field.FormInput required label="Instance name" />}
+          {(field) => (
+            <field.FormInput required label={m.settings_instance_label_name()} />
+          )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="public_proxy_url">
-          {(field) => <field.FormInput required label="Public Edge Component URL" />}
+          {(field) => (
+            <field.FormInput
+              required
+              label={m.settings_instance_label_public_proxy_url()}
+            />
+          )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="authentication_period_days">
           {(field) => (
             <field.FormSelect
               required
-              label="Session duration"
+              label={m.settings_instance_label_session_duration()}
               options={sessionDurationOptions}
             />
           )}
