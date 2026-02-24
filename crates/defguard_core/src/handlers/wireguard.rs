@@ -329,14 +329,14 @@ pub(crate) async fn modify_network(
     let new_addresses = data.parse_addresses()?;
 
     // Block network address changes if any device is assigned to the network
-    if before.address != new_addresses {
-        if WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network_id).await? {
-            return Err(WebError::BadRequest(
-                "Cannot change network address while devices are assigned to this network. \
-                 Remove all devices first."
-                    .into(),
-            ));
-        }
+    if before.address != new_addresses
+        && WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network_id).await?
+    {
+        return Err(WebError::BadRequest(
+            "Cannot change network address while devices are assigned to this network. \
+             Remove all devices first."
+                .into(),
+        ));
     }
 
     network.address = new_addresses;
