@@ -120,6 +120,11 @@ const PageForm = () => {
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
+  const canUseBusinessLicenseCheck = useMemo(() => {
+    if (licenseInfo === undefined) return false;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
+
   const defaultValues = useMemo((): FormFields => {
     return {
       ldap_group_search_base: settings?.ldap_group_search_base ?? '',
@@ -391,7 +396,12 @@ const PageForm = () => {
             >
               {({ isDefaultValue, isSubmitting }) => (
                 <>
-                  <TooltipProvider disabled={!(!isAppLdapEnabled || !isDefaultValue)}>
+                  <TooltipProvider
+                    disabled={
+                      !(!isAppLdapEnabled || !isDefaultValue) ||
+                      !canUseBusinessLicenseCheck
+                    }
+                  >
                     <TooltipTrigger>
                       <div>
                         <Button
@@ -399,7 +409,12 @@ const PageForm = () => {
                           variant="outlined"
                           text={`Test connection`}
                           iconLeft={IconKind.Refresh}
-                          disabled={isSubmitting || !isDefaultValue || !isAppLdapEnabled}
+                          disabled={
+                            isSubmitting ||
+                            !isDefaultValue ||
+                            !isAppLdapEnabled ||
+                            !canUseBusinessLicenseCheck
+                          }
                           loading={testInProgress}
                           onClick={() => {
                             handleLdapTest();
