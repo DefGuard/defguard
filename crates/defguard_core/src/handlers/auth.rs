@@ -37,7 +37,7 @@ use crate::{
         SessionExtractor, SessionInfo,
         failed_login::{check_failed_logins, log_failed_login_attempt},
     },
-    enterprise::ldap::utils::login_through_ldap,
+    enterprise::ldap::{error::LdapError, utils::login_through_ldap},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
@@ -167,6 +167,9 @@ pub(crate) async fn authenticate(
                         .await
                     {
                         Ok(user) => user,
+                        Err(LdapError::LicenseUserLimitReached(_, _)) => {
+                            return Err(WebError::Forbidden("License limit reached.".into()));
+                        }
                         Err(ldap_err) => {
                             warn!(
                                 "Failed to authenticate user {username_or_email} internally and through LDAP. Internal error: {err}, LDAP error: {ldap_err}"
@@ -214,6 +217,9 @@ pub(crate) async fn authenticate(
         debug!("User not found in DB, authenticating user {username_or_email} with LDAP");
         match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
             Ok(user) => user,
+            Err(LdapError::LicenseUserLimitReached(_, _)) => {
+                return Err(WebError::Forbidden("License limit reached.".into()));
+            }
             Err(err) => {
                 info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
                 log_failed_login_attempt(&appstate.failed_logins, &username_or_email);

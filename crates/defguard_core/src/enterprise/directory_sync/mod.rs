@@ -28,6 +28,8 @@ use crate::{
             model::ldap_sync_allowed_for_user,
             utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
         },
+        license::get_cached_license,
+        limits::{get_counts, update_counts},
     },
     grpc::GatewayEvent,
     handlers::user::check_username,
@@ -644,6 +646,11 @@ async fn sync_all_users_state(
     let mut modified_users = Vec::new();
     let mut deleted_users = Vec::new();
     let mut created_users = Vec::new();
+    let mut user_count = get_counts().user();
+    let user_limit = get_cached_license()
+        .as_ref()
+        .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
+    let mut blocked_import_notification_sent = false;
 
     sync_inactive_directory_users(
         &mut transaction,
@@ -725,7 +732,20 @@ async fn sync_all_users_state(
                         details.phone_number.clone(),
                     );
                     user.openid_sub.clone_from(&directory_user.id);
+                    if let Some(limit) = user_limit.filter(|limit| user_count >= *limit) {
+                        error!(
+                            "Skipping directory sync import of user {} (email: {}) because \
+                            license user limit has been reached ({}/{})",
+                            user.username, user.email, user_count, limit
+                        );
+                        if !blocked_import_notification_sent {
+                            blocked_import_notification_sent = true;
+                            // TODO: send emails
+                        }
+                        continue;
+                    }
                     let new_user = user.save(&mut *transaction).await?;
+                    user_count += 1;
                     created_users.push(new_user);
                 }
             }
@@ -860,6 +880,7 @@ async fn sync_all_users_state(
     debug!("Done processing missing users");
 
     transaction.commit().await?;
+    update_counts(pool).await?;
 
     // trigger LDAP sync
     ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;

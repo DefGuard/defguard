@@ -1,0 +1,17 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section>
+  <mj-column>
+    <mj-text mj-class="t-body-sm-400" css-class="fg-neutral-c">
+      {{notification_text}}
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}

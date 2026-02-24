@@ -28,6 +28,8 @@ pub enum LdapError {
     InvalidUsername(String),
     #[error("LDAP object already exists: {0}")]
     ObjectAlreadyExists(String),
+    #[error("License user limit reached: {0}/{1}")]
+    LicenseUserLimitReached(u32, u32),
     #[error("User {0} does not belong to the defined synchronization groups in {1}")]
     UserNotInLDAPSyncGroups(String, &'static str),
 }

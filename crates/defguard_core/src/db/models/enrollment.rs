@@ -1,5 +1,6 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
+    VERSION,
     db::{
         Id,
         models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
@@ -335,6 +336,7 @@ impl Token {
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
         context.insert("defguard_url", &url);
+        context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {
             context.insert("admin_first_name", &admin.first_name);
@@ -454,14 +456,14 @@ impl Token {
     }
 }
 
-pub fn enrollment_welcome_message(settings: &Settings) -> Result<String, TokenError> {
+fn enrollment_welcome_message(settings: &Settings) -> Result<String, TokenError> {
     settings.enrollment_welcome_message.clone().ok_or_else(|| {
         error!("Enrollment welcome message not configured");
         TokenError::WelcomeMsgNotConfigured
     })
 }
 
-pub fn enrollment_welcome_email(settings: &Settings) -> Result<String, TokenError> {
+fn enrollment_welcome_email(settings: &Settings) -> Result<String, TokenError> {
     if settings.enrollment_use_welcome_message_as_email {
         return enrollment_welcome_message(settings);
     }

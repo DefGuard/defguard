@@ -5,14 +5,19 @@ use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::enterprise::ldap::{
-    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
-    sync::{
-        Authority, compute_group_sync_changes, compute_user_sync_changes,
-        extract_intersecting_users,
+use crate::enterprise::license::{License, LicenseTier, set_cached_license};
+use crate::enterprise::{
+    ldap::{
+        model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+        sync::{
+            Authority, compute_group_sync_changes, compute_user_sync_changes,
+            extract_intersecting_users,
+        },
+        test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
     },
-    test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
+    limits::get_counts,
 };
+use crate::grpc::proto::enterprise::license::LicenseLimits;
 
 const PASSWORD: &str = "test_password";
 
@@ -2431,6 +2436,128 @@ async fn test_sync_group_membership_with_intersecting_users(
     assert!(user2_groups.contains(&"management".to_string()));
     assert!(!user2_groups.contains(&"engineering".to_string())); // Removed from LDAP
     assert!(ldap_conn.test_client.get_events().is_empty());
+}
+
+#[sqlx::test]
+async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let user_limit = 1;
+    // set license with some limits
+    let license = License::new(
+        "test".to_string(),
+        false,
+        None,
+        Some(LicenseLimits {
+            users: user_limit,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        None,
+        LicenseTier::Business,
+    );
+    set_cached_license(Some(license));
+
+    let existing_user = make_test_user("existing_user", None, None);
+    existing_user.save(&pool).await.unwrap();
+
+    crate::enterprise::limits::update_counts(&pool)
+        .await
+        .unwrap();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_only_user = make_test_user("ldap_only_user_limit", None, None);
+    ldap_only_user.ldap_rdn = Some("ldap_only_user_limit".to_string());
+    ldap_only_user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_string());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_only_user, &config);
+
+    ldap_conn.sync(&pool, false).await.unwrap();
+
+    let user_count_after_sync = get_counts().user();
+
+    assert!(
+        user_count_after_sync <= user_limit,
+        "LDAP sync exceeded user license limit: users={}, limit={}",
+        user_count_after_sync,
+        user_limit
+    );
+
+    let skipped_user = User::find_by_username(&pool, "ldap_only_user_limit")
+        .await
+        .unwrap();
+    assert!(skipped_user.is_none());
+}
+
+#[sqlx::test]
+async fn test_ldap_login_does_not_create_user_when_user_license_limit_is_reached(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let user_limit = 1;
+    let license = License::new(
+        "test".to_string(),
+        false,
+        None,
+        Some(LicenseLimits {
+            users: user_limit,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        None,
+        LicenseTier::Business,
+    );
+    set_cached_license(Some(license));
+
+    let existing_user = make_test_user("existing_user_ldap_login", None, None);
+    existing_user.save(&pool).await.unwrap();
+    crate::enterprise::limits::update_counts(&pool)
+        .await
+        .unwrap();
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_only_user = make_test_user("ldap_login_only_user_limit", None, None);
+    ldap_only_user.ldap_rdn = Some("ldap_login_only_user_limit".to_string());
+    ldap_only_user.ldap_user_path = Some("ou=users,dc=example,dc=com".to_string());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_only_user, &config);
+
+    let login_result = super::utils::login_through_ldap_with_connection(
+        &pool,
+        &mut ldap_conn,
+        "ldap_login_only_user_limit",
+        PASSWORD,
+    )
+    .await;
+
+    assert!(
+        matches!(
+            login_result,
+            Err(LdapError::LicenseUserLimitReached(count, limit))
+                if count == user_limit && limit == user_limit
+        ),
+        "Expected LDAP login to fail with license limit reached, got: {login_result:?}"
+    );
+
+    let skipped_user = User::find_by_username(&pool, "ldap_login_only_user_limit")
+        .await
+        .unwrap();
+    assert!(skipped_user.is_none());
 }
 
 #[sqlx::test]

@@ -38,13 +38,16 @@ use crate::{
     appstate::AppState,
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
-        limits::update_counts,
+        directory_sync::sync_user_groups_if_configured,
+        ldap::utils::ldap_update_user_state,
+        license::get_cached_license,
+        limits::{get_counts, update_counts},
     },
     error::WebError,
     handlers::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
+        mail::send_user_import_blocked_email,
         user::{MAX_USERNAME_CHARS, check_username},
     },
 };
@@ -92,6 +95,16 @@ pub fn prune_username(username: &str, handling: OpenIdUsernameHandling) -> Strin
 
     result.truncate(MAX_USERNAME_CHARS);
     result
+}
+
+fn reached_user_license_limit() -> Option<(u32, u32)> {
+    let user_count = get_counts().user();
+    let user_limit = get_cached_license()
+        .as_ref()
+        .and_then(|license| license.limits.as_ref().map(|limits| limits.users));
+    user_limit
+        .filter(|limit| user_count >= *limit)
+        .map(|limit| (user_count, limit))
 }
 
 /// Create HTTP client and prevent following redirects
@@ -363,6 +376,21 @@ pub async fn user_from_claims(
                     return Err(WebError::Authorization(format!(
                         "User with username {username} already exists"
                     )));
+                }
+
+                if let Some((user_count, limit)) = reached_user_license_limit() {
+                    error!(
+                        "Skipping OpenID account creation for user {username} (email: {}) because \
+                        license user limit has been reached ({user_count}/{limit})",
+                        email.as_str()
+                    );
+                    if let Err(err) = send_user_import_blocked_email(pool).await {
+                        error!(
+                            "Failed to send user import blocked emails for OpenID login attempt: \
+                            {err}"
+                        );
+                    }
+                    return Err(WebError::Forbidden("License limit reached.".into()));
                 }
 
                 // Extract all necessary information from the token or call the userinfo endpoint.
@@ -644,6 +672,14 @@ pub(crate) async fn auth_callback(
 
 #[cfg(test)]
 mod test {
+    use crate::{
+        enterprise::{
+            license::{License, LicenseTier, set_cached_license},
+            limits::{Counts, set_counts},
+        },
+        grpc::proto::enterprise::license::LicenseLimits,
+    };
+
     use super::*;
 
     #[test]
@@ -761,5 +797,63 @@ mod test {
         let encoded = BASE64_STANDARD.encode("csrf.data.with.dots");
         let extracted = extract_state_data(&encoded);
         assert_eq!(extracted, Some("data.with.dots".to_string()));
+    }
+
+    #[test]
+    fn test_reached_user_license_limit_reached() {
+        set_counts(Counts::new(2, 0, 0, 0));
+        let license = License::new(
+            "test".to_string(),
+            false,
+            None,
+            Some(LicenseLimits {
+                users: 2,
+                devices: 100,
+                locations: 100,
+                network_devices: Some(100),
+            }),
+            None,
+            LicenseTier::Business,
+        );
+        set_cached_license(Some(license));
+
+        assert_eq!(reached_user_license_limit(), Some((2, 2)));
+    }
+
+    #[test]
+    fn test_reached_user_license_limit_not_reached() {
+        set_counts(Counts::new(1, 0, 0, 0));
+        let license = License::new(
+            "test".to_string(),
+            false,
+            None,
+            Some(LicenseLimits {
+                users: 2,
+                devices: 100,
+                locations: 100,
+                network_devices: Some(100),
+            }),
+            None,
+            LicenseTier::Business,
+        );
+        set_cached_license(Some(license));
+
+        assert_eq!(reached_user_license_limit(), None);
+    }
+
+    #[test]
+    fn test_reached_user_license_limit_unlimited() {
+        set_counts(Counts::new(100, 0, 0, 0));
+        let license = License::new(
+            "test".to_string(),
+            false,
+            None,
+            None,
+            None,
+            LicenseTier::Business,
+        );
+        set_cached_license(Some(license));
+
+        assert_eq!(reached_user_license_limit(), None);
     }
 }
