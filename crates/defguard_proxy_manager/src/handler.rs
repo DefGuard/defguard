@@ -706,7 +706,9 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {
-                            match Url::parse(&request.callback_url) {
+                            match Settings::get_current_settings()
+                                .edge_callback_url(AuthFlowType::Enrollment)
+                            {
                                 Ok(callback_url) => {
                                     let code = AuthorizationCode::new(request.code);
                                     match user_from_claims(
@@ -778,8 +780,7 @@ impl ProxyHandler {
                                 Err(err) => {
                                     error!(
                                         "Proxy requested an OpenID authentication info for a callback \
-                                    URL ({}) that couldn't be parsed. Details: {err}",
-                                        request.callback_url
+                                    URL that couldn't be built. Details: {err}"
                                     );
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,
