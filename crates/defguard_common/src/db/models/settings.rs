@@ -523,7 +523,7 @@ impl Settings {
 
     #[must_use]
     pub fn authentication_timeout(&self) -> Duration {
-        Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
+        Duration::from_hours(self.authentication_period_days as u64 * 24)
     }
 
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
