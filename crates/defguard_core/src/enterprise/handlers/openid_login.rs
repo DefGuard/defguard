@@ -47,6 +47,7 @@ use crate::{
     handlers::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
+        mail::send_user_import_blocked_email,
         user::{MAX_USERNAME_CHARS, check_username},
     },
 };
@@ -379,14 +380,16 @@ pub async fn user_from_claims(
 
                 if let Some((user_count, limit)) = reached_user_license_limit() {
                     error!(
-                        "Skipping OpenID account creation for user {} (email: {}) because \
-                        license user limit has been reached ({}/{})",
-                        username,
-                        email.as_str(),
-                        user_count,
-                        limit
+                        "Skipping OpenID account creation for user {username} (email: {}) because \
+                        license user limit has been reached ({user_count}/{limit})",
+                        email.as_str()
                     );
-                    // TODO: send emails
+                    if let Err(err) = send_user_import_blocked_email(pool).await {
+                        error!(
+                            "Failed to send user import blocked emails for OpenID login attempt: \
+                            {err}"
+                        );
+                    }
                     return Err(WebError::Forbidden("License limit reached.".into()));
                 }
 

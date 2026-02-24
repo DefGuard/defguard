@@ -863,8 +863,8 @@ impl super::LDAPConnection {
                 if let Some(limit) = user_limit.filter(|limit| user_count >= *limit) {
                     error!(
                         "Skipping LDAP import of user {} (email: {}) because license user limit \
-                        has been reached ({}/{})",
-                        user.username, user.email, user_count, limit
+                        has been reached ({user_count}/{limit})",
+                        user.username, user.email
                     );
                     if !blocked_import_notification_sent {
                         blocked_import_notification_sent = true;

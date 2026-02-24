@@ -871,7 +871,7 @@ mod test {
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
-        let _ = SERVER_CONFIG.set(config.clone());
+        let _ = SERVER_CONFIG.set(config);
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
 
         // enable prefetching users

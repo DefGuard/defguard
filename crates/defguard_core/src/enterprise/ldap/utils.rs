@@ -76,8 +76,8 @@ pub(crate) async fn login_through_ldap_with_connection(
         if let Some((user_count, limit)) = reached_user_license_limit() {
             error!(
                 "Skipping LDAP account creation for user {} (email: {}) because license user \
-                limit has been reached ({}/{})",
-                ldap_user.username, ldap_user.email, user_count, limit
+                limit has been reached ({user_count}/{limit})",
+                ldap_user.username, ldap_user.email
             );
             // TODO: send email to admins
             return Err(LdapError::LicenseUserLimitReached(user_count, limit));

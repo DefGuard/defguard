@@ -215,16 +215,10 @@ pub async fn send_gateway_reconnected_email(
 pub async fn get_admins_emails(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
     debug!("Getting emails of active admins");
     query_scalar::<_, String>(
-        "
-        SELECT u.email
-        FROM \"user\" u
-        WHERE u.is_active = true
-          AND EXISTS (
-              SELECT 1
-              FROM group_user gu
-              JOIN \"group\" g ON gu.group_id = g.id
-              WHERE g.is_admin = true AND gu.user_id = u.id
-          )",
+        "SELECT u.email \
+            FROM \"user\" u \
+            JOIN group_user gu oN gu.user_id = u.id JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE g.is_admin AND u.is_active",
     )
     .fetch_all(pool)
     .await
