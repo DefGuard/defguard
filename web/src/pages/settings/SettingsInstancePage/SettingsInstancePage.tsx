@@ -71,9 +71,20 @@ const formSchema = z.object({
   public_proxy_url: z
     .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
     .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
+  authentication_period_days: z.number().min(1, m.form_error_invalid()),
 });
 
 type FormFields = z.infer<typeof formSchema>;
+
+const sessionDurationOptions = [
+  { key: 1, value: 1, label: '1 day' },
+  { key: 2, value: 2, label: '2 days' },
+  { key: 3, value: 3, label: '3 days' },
+  { key: 7, value: 7, label: '7 days' },
+  { key: 10, value: 10, label: '10 days' },
+  { key: 14, value: 14, label: '14 days' },
+  { key: 30, value: 30, label: '30 days' },
+];
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -93,8 +104,13 @@ const Content = ({ settings }: { settings: Settings }) => {
     (): FormFields => ({
       instance_name: settings.instance_name ?? '',
       public_proxy_url: settings.public_proxy_url ?? '',
+      authentication_period_days: settings.authentication_period_days ?? 7,
     }),
-    [settings.instance_name, settings.public_proxy_url],
+    [
+      settings.instance_name,
+      settings.public_proxy_url,
+      settings.authentication_period_days,
+    ],
   );
 
   const form = useAppForm({
@@ -125,6 +141,16 @@ const Content = ({ settings }: { settings: Settings }) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="public_proxy_url">
           {(field) => <field.FormInput required label="Public Edge Component URL" />}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="authentication_period_days">
+          {(field) => (
+            <field.FormSelect
+              required
+              label="Session duration (days)"
+              options={sessionDurationOptions}
+            />
+          )}
         </form.AppField>
       </form.AppForm>
       <form.Subscribe

@@ -793,6 +793,7 @@ export interface SettingsGatewayNotifications {
 
 export interface SettingsGeneral {
   public_proxy_url: string;
+  authentication_period_days: number;
 }
 
 export type Settings = SettingsBranding &
