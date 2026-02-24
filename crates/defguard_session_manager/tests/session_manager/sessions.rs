@@ -2,34 +2,14 @@ use chrono::{TimeDelta, Utc};
 use defguard_common::db::models::vpn_client_session::{VpnClientSession, VpnClientSessionState};
 use defguard_common::db::setup_pool;
 use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
+use defguard_session_manager::{SESSION_UPDATE_INTERVAL, run_session_manager_iteration};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::time::{Duration, timeout};
+use tokio::time::{Duration, interval};
 
 use crate::common::{
-    attach_device_to_network, create_device, create_gateway, create_network, create_user,
-    start_session_manager,
+    SessionManagerHarness, attach_device_to_network, create_device, create_gateway, create_network,
+    create_user,
 };
-
-const DB_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
-
-async fn wait_for_active_session(
-    pool: &sqlx::PgPool,
-    location_id: defguard_common::db::Id,
-    device_id: defguard_common::db::Id,
-) -> VpnClientSession<defguard_common::db::Id> {
-    timeout(DB_WAIT_TIMEOUT, async {
-        loop {
-            if let Ok(Some(session)) =
-                VpnClientSession::try_get_active_session(pool, location_id, device_id).await
-            {
-                return session;
-            }
-            tokio::time::sleep(Duration::from_millis(25)).await;
-        }
-    })
-    .await
-    .expect("timed out waiting for active session")
-}
 
 #[sqlx::test]
 async fn test_session_manager_creates_active_session(_: PgPoolOptions, options: PgConnectOptions) {
@@ -40,7 +20,7 @@ async fn test_session_manager_creates_active_session(_: PgPoolOptions, options: 
     attach_device_to_network(&pool, network.id, device.id).await;
     let gateway = create_gateway(&pool, network.id, user.id).await;
 
-    let manager = start_session_manager(pool.clone());
+    let mut harness = SessionManagerHarness::new(pool.clone());
 
     let base_time = Utc::now().naive_utc();
     let update = PeerStatsUpdate {
@@ -54,8 +34,20 @@ async fn test_session_manager_creates_active_session(_: PgPoolOptions, options: 
         latest_handshake: base_time - TimeDelta::seconds(5),
     };
 
-    manager.send_stats(update);
+    harness.send_stats(update);
 
-    let session = wait_for_active_session(&pool, network.id, device.id).await;
+    let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
+    let _ = run_session_manager_iteration(
+        &mut harness.manager,
+        &mut harness.stats_rx,
+        &mut session_update_timer,
+    )
+    .await
+    .expect("session manager iteration failed");
+
+    let session = VpnClientSession::try_get_active_session(&pool, network.id, device.id)
+        .await
+        .expect("failed to query active session")
+        .expect("expected active session");
     assert_eq!(session.state, VpnClientSessionState::Connected);
 }

@@ -7,58 +7,36 @@ use defguard_common::db::models::{
 };
 use defguard_common::db::Id;
 use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
-use defguard_core::grpc::GatewayEvent;
-use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
+use defguard_session_manager::{SessionManager, events::SessionManagerEvent};
 use ipnetwork::IpNetwork;
-use tokio::{
-    sync::{broadcast, mpsc},
-    task::JoinHandle,
-    time::{Duration, timeout},
-};
-
-const EVENT_TIMEOUT: Duration = Duration::from_secs(2);
+use tokio::sync::{broadcast, mpsc};
 
 pub(crate) struct SessionManagerHarness {
+    pub(crate) manager: SessionManager,
     stats_tx: mpsc::UnboundedSender<PeerStatsUpdate>,
-    event_rx: mpsc::UnboundedReceiver<SessionManagerEvent>,
-    #[allow(dead_code)]
-    gateway_rx: broadcast::Receiver<GatewayEvent>,
-    handle: JoinHandle<Result<(), defguard_session_manager::error::SessionManagerError>>,
-}
-
-impl Drop for SessionManagerHarness {
-    fn drop(&mut self) {
-        self.handle.abort();
-    }
+    pub(crate) stats_rx: mpsc::UnboundedReceiver<PeerStatsUpdate>,
+    pub(crate) event_rx: mpsc::UnboundedReceiver<SessionManagerEvent>,
 }
 
 impl SessionManagerHarness {
+    pub(crate) fn new(pool: sqlx::PgPool) -> Self {
+        let (stats_tx, stats_rx) = mpsc::unbounded_channel();
+        let (event_tx, event_rx) = mpsc::unbounded_channel();
+        let (gateway_tx, _gateway_rx) = broadcast::channel(16);
+        let manager = SessionManager::new(pool, event_tx, gateway_tx);
+
+        Self {
+            manager,
+            stats_tx,
+            stats_rx,
+            event_rx,
+        }
+    }
+
     pub(crate) fn send_stats(&self, update: PeerStatsUpdate) {
         self.stats_tx
             .send(update)
             .expect("failed to send peer stats update");
-    }
-
-    pub(crate) async fn recv_event(&mut self) -> SessionManagerEvent {
-        timeout(EVENT_TIMEOUT, self.event_rx.recv())
-            .await
-            .expect("timed out waiting for session manager event")
-            .expect("session manager event channel closed")
-    }
-}
-
-pub(crate) fn start_session_manager(pool: sqlx::PgPool) -> SessionManagerHarness {
-    let (stats_tx, stats_rx) = mpsc::unbounded_channel();
-    let (event_tx, event_rx) = mpsc::unbounded_channel();
-    let (gateway_tx, gateway_rx) = broadcast::channel(16);
-
-    let handle = tokio::spawn(run_session_manager(pool, stats_rx, event_tx, gateway_tx));
-
-    SessionManagerHarness {
-        stats_tx,
-        event_rx,
-        gateway_rx,
-        handle,
     }
 }
 
