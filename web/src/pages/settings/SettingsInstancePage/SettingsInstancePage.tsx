@@ -147,7 +147,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Session duration (days)"
+              label="Session duration"
               options={sessionDurationOptions}
             />
           )}
