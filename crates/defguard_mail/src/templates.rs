@@ -221,7 +221,10 @@ pub async fn new_account_mail(
     context.insert("url", &enrollment_service_url);
     context.insert("token", enrollment_token);
 
-    // prepare enrollment service URL
+    // Build URL to Proxy's "open desktop" page, with token as query.
+    if let Ok(mut url) = enrollment_service_url.path_segments_mut() {
+        url.push("open-desktop");
+    }
     enrollment_service_url
         .query_pairs_mut()
         .append_pair("token", enrollment_token);

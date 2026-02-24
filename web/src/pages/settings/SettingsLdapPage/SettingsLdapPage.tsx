@@ -30,6 +30,8 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../shared/hooks/useApp';
 import {
   getLicenseInfoQueryOptions,
@@ -115,7 +117,13 @@ type FormFields = z.infer<typeof formSchema>;
 
 const PageForm = () => {
   const isAppLdapEnabled = useApp((s) => s.appInfo.ldap_info.enabled);
+  const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
+
+  const canUseBusinessLicenseCheck = useMemo(() => {
+    if (licenseInfo === undefined) return false;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
 
   const defaultValues = useMemo((): FormFields => {
     return {
@@ -177,6 +185,12 @@ const PageForm = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      const licenseCheckRes = canUseBusinessFeature(licenseInfo);
+      if (!licenseCheckRes.result) {
+        openModal(ModalName.UpgradeBusiness);
+        return;
+      }
+
       await mutateAsync({
         ...value,
         ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes
@@ -224,7 +238,9 @@ const PageForm = () => {
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="ldap_bind_password">
-              {(field) => <field.FormInput label="Bind password" required notNull />}
+              {(field) => (
+                <field.FormInput label="Bind password" required notNull type="password" />
+              )}
             </form.AppField>
             <form.AppField name="ldap_sync_groups">
               {(field) => (
@@ -382,7 +398,12 @@ const PageForm = () => {
             >
               {({ isDefaultValue, isSubmitting }) => (
                 <>
-                  <TooltipProvider disabled={!(!isAppLdapEnabled || !isDefaultValue)}>
+                  <TooltipProvider
+                    disabled={
+                      !(!isAppLdapEnabled || !isDefaultValue) ||
+                      !canUseBusinessLicenseCheck
+                    }
+                  >
                     <TooltipTrigger>
                       <div>
                         <Button
@@ -390,7 +411,12 @@ const PageForm = () => {
                           variant="outlined"
                           text={`Test connection`}
                           iconLeft={IconKind.Refresh}
-                          disabled={isSubmitting || !isDefaultValue || !isAppLdapEnabled}
+                          disabled={
+                            isSubmitting ||
+                            !isDefaultValue ||
+                            !isAppLdapEnabled ||
+                            !canUseBusinessLicenseCheck
+                          }
                           loading={testInProgress}
                           onClick={() => {
                             handleLdapTest();

@@ -34,14 +34,14 @@ const Content = () => {
 
   const expiresDisplay = useMemo(() => {
     if (license === null || license.valid_until === null) return '';
-    return dayjs(license.valid_until).fromNow();
+    return dayjs.utc(license.valid_until).local().fromNow();
   }, [license]);
 
   const daysToEnd = useMemo(() => {
     if (!isPresent(license)) return null;
     if (license.expired || license.valid_until === null) return 0;
     const current = dayjs();
-    const expires = dayjs(license.valid_until);
+    const expires = dayjs.utc(license.valid_until).local();
     return expires.diff(current, 'days');
   }, [license]);
 
