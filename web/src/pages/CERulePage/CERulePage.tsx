@@ -30,6 +30,7 @@ import type {
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
+import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
@@ -58,7 +59,6 @@ import {
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
 import emptyDestinationIconSrc from './assets/empty-destinations-icon.png';
-import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 
 const getProtocolName = (key: AclProtocolValue) => AclProtocolName[key];
 
@@ -267,7 +267,7 @@ const Content = ({ rule: initialRule }: Props) => {
   const [restrictDevices, setRestrictDevices] = useState(() =>
     isPresent(initialRule)
       ? initialRule.deny_all_network_devices ||
-          initialRule.denied_network_devices.length > 0
+        initialRule.denied_network_devices.length > 0
       : false,
   );
   // const [manualDestination, setManualDestination] = useState(false);
@@ -841,7 +841,9 @@ const Content = ({ rule: initialRule }: Props) => {
                 <div className="restriction-body">
                   <div className="restriction-radio">
                     <form.AppField name="deny_all_users">
-                      {(field) => <field.FormRadio text="Exclude all users" value={true} />}
+                      {(field) => (
+                        <field.FormRadio text="Exclude all users" value={true} />
+                      )}
                     </form.AppField>
                     <form.AppField name="deny_all_users">
                       {(field) => (
@@ -889,7 +891,9 @@ const Content = ({ rule: initialRule }: Props) => {
                 <div className="restriction-body">
                   <div className="restriction-radio">
                     <form.AppField name="deny_all_groups">
-                      {(field) => <field.FormRadio text="Exclude all groups" value={true} />}
+                      {(field) => (
+                        <field.FormRadio text="Exclude all groups" value={true} />
+                      )}
                     </form.AppField>
                     <form.AppField name="deny_all_groups">
                       {(field) => (
