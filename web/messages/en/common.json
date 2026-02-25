@@ -10,6 +10,8 @@
   "misc_secret": "Secret",
   "misc_active": "Active",
   "misc_disabled": "Disabled",
+  "license_enterprise_required": "Available in Enterprise plan.",
+  "license_upgrade_to_unlock": "Upgrade to unlock.",
   "controls_connect": "Connect",
   "controls_search": "Search",
   "controls_accept": "Accept",

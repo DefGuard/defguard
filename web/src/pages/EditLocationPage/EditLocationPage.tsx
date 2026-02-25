@@ -16,6 +16,7 @@ import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import { externalLink } from '../../shared/constants';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -23,7 +24,8 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-import { getLocationQueryOptions } from '../../shared/query';
+import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
+import { canUseEnterpriseFeature } from '../../shared/utils/license';
 import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
 
 export const EditLocationPage = () => {
@@ -99,6 +101,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   );
 
   const navigate = useNavigate();
+
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseEnterprise = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseEnterpriseFeature(licenseInfo).result;
+  }, [licenseInfo]);
+  const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
 
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
@@ -353,23 +362,39 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                         }
                       />
                     )}
-                    <EditPageFormSection label="Location type (Windows only)">
+                    <EditPageFormSection
+                      label="Location type (Windows only)"
+                      labelContent={
+                        (serviceLocationLocked && (
+                          <>
+                            <p>{m.license_enterprise_required()}</p>
+                            <a
+                              href={externalLink.defguard.pricing}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {m.license_upgrade_to_unlock()}
+                            </a>
+                          </>
+                        )) || undefined
+                      }
+                    >
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
                         text="Regular location"
-                        disabled={disabled}
+                        disabled={disabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Prelogon}
                         text="Service location: Pre-logon"
-                        disabled={disabled}
+                        disabled={disabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Alwayson}
                         text="Service location: Always on"
-                        disabled={disabled}
+                        disabled={disabled || serviceLocationLocked}
                       />
                     </EditPageFormSection>
                   </>
