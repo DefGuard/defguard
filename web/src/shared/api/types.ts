@@ -798,6 +798,11 @@ export interface SettingsGatewayNotifications {
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 }
 
+export interface SettingsGeneral {
+  public_proxy_url: string;
+  authentication_period_days: number;
+}
+
 export type Settings = SettingsBranding &
   SettingsGatewayNotifications &
   SettingsEnterprise &
@@ -806,7 +811,8 @@ export type Settings = SettingsBranding &
   SettingsModules &
   SettingsOpenID &
   SettingsEnrollment &
-  SettingsSMTP;
+  SettingsSMTP &
+  SettingsGeneral;
 
 export interface OpenIdProviderSettings {
   create_account: boolean;
