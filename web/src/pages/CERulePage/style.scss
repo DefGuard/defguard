@@ -19,7 +19,7 @@
   .selected-destinations {
     padding-top: var(--spacing-2xl);
 
-    & > .top {
+    &>.top {
       padding-bottom: var(--spacing-sm);
       user-select: none;
 
@@ -29,7 +29,7 @@
       }
     }
 
-    & > .items-track {
+    &>.items-track {
       display: flex;
       flex-flow: column;
       row-gap: var(--spacing-md);
@@ -39,7 +39,7 @@
   .alias-data-block {
     padding-top: var(--spacing-lg);
 
-    & > .top {
+    &>.top {
       padding-bottom: var(--spacing-sm);
       user-select: none;
 
@@ -49,12 +49,12 @@
       }
     }
 
-    & > .content-track {
+    &>.content-track {
       display: flex;
       flex-flow: row;
       gap: var(--spacing-sm);
 
-      & > button {
+      &>button {
         background-color: transparent;
         border: 0;
         border-radius: 0;
@@ -75,6 +75,30 @@
       }
     }
   }
+
+  .restriction-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .restriction-toggle {
+    display: flex;
+    align-items: center;
+  }
+
+  .restriction-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .restriction-radio {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
 }
 
 .selection-section .item .destination-selection-item {
