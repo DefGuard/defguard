@@ -1,11 +1,12 @@
 use std::net::{IpAddr, Ipv4Addr};
 
+use defguard_common::db::Id;
 use defguard_common::db::models::gateway::Gateway;
 use defguard_common::db::models::{
-    device::WireguardNetworkDevice, wireguard::{LocationMfaMode, ServiceLocationMode}, Device,
-    DeviceType, User, WireguardNetwork,
+    Device, DeviceType, User, WireguardNetwork,
+    device::WireguardNetworkDevice,
+    wireguard::{LocationMfaMode, ServiceLocationMode},
 };
-use defguard_common::db::Id;
 use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
 use defguard_session_manager::{SessionManager, events::SessionManagerEvent};
 use ipnetwork::IpNetwork;
@@ -90,11 +91,7 @@ pub(crate) async fn create_device(pool: &sqlx::PgPool, user_id: Id) -> Device<Id
     .expect("failed to create device")
 }
 
-pub(crate) async fn attach_device_to_network(
-    pool: &sqlx::PgPool,
-    network_id: Id,
-    device_id: Id,
-) {
+pub(crate) async fn attach_device_to_network(pool: &sqlx::PgPool, network_id: Id, device_id: Id) {
     let network_device = WireguardNetworkDevice::new(
         network_id,
         device_id,

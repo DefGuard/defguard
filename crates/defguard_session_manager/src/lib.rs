@@ -73,6 +73,7 @@ pub async fn run_session_manager_iteration(
     // to disconnect inactive sessions if necessary
     let mut message_buffer: Vec<PeerStatsUpdate> = Vec::with_capacity(MESSAGE_LIMIT);
     let message_count = tokio::select! {
+        biased;
         message_count = peer_stats_rx.recv_many(&mut message_buffer, MESSAGE_LIMIT) => message_count,
         _ = session_update_timer.tick() => {
             warn!("No wireguard peer stats updates received in last {SESSION_UPDATE_INTERVAL}. Triggering session status update to disconnect inactive clients.");
@@ -83,11 +84,19 @@ pub async fn run_session_manager_iteration(
 
     };
 
+    if message_count == 0 {
+        return Err(SessionManagerError::PeerStatsChannelClosed);
+    }
+
     // process received messages to update active sessions
-    session_manager.process_message_batch(message_buffer).await?;
+    session_manager
+        .process_message_batch(message_buffer)
+        .await?;
 
     // update inactive/disconnected sessions
     session_manager.update_inactive_session_status().await?;
+
+    session_update_timer.reset();
 
     Ok(IterationOutcome::ProcessedBatch(message_count))
 }
