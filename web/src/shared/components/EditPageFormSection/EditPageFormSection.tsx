@@ -13,7 +13,7 @@ export const EditPageFormSection = ({ label, children, labelContent }: Props) =>
       {isPresent(labelContent) && (
         <div className="label-area">
           <p className="label">{label}</p>
-          <p className="label-content">{labelContent}</p>
+          <div className="label-content">{labelContent}</div>
         </div>
       )}
       {!isPresent(labelContent) && <p className="label">{label}</p>}

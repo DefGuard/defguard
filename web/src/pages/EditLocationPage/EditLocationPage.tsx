@@ -25,7 +25,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
-import { canUseEnterpriseFeature } from '../../shared/utils/license';
+import { canUseBusinessFeature, canUseEnterpriseFeature } from '../../shared/utils/license';
 import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
 
 export const EditLocationPage = () => {
@@ -107,7 +107,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     if (licenseInfo === undefined) return undefined;
     return canUseEnterpriseFeature(licenseInfo).result;
   }, [licenseInfo]);
+  const canUseBusiness = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
   const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
+  const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
 
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
@@ -425,12 +430,29 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </form.AppField>
           )}
         </EditPageFormSection>
-        <EditPageFormSection label="Firewall">
+        <EditPageFormSection
+          label="Firewall"
+          labelContent={
+            (firewallLocked && (
+              <>
+                <p>{m.license_business_required()}</p>
+                <a
+                  href={externalLink.defguard.pricing}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {m.license_upgrade_to_unlock()}
+                </a>
+              </>
+            )) || undefined
+          }
+        >
           <form.AppField name="firewall">
             {(field) => (
               <field.FormRadio
                 value={LocationFirewall.Disabled}
                 text="Disable firewall option"
+                disabled={firewallLocked}
               />
             )}
           </form.AppField>
@@ -440,6 +462,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormRadio
                 value={LocationFirewall.Allow}
                 text="Users/devices can access all resources unless limited by ACL rules."
+                disabled={firewallLocked}
               />
             )}
           </form.AppField>
@@ -449,6 +472,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormRadio
                 value={LocationFirewall.Deny}
                 text="All traffic not explicitly allowed by an ACL rule will be blocked."
+                disabled={firewallLocked}
               />
             )}
           </form.AppField>
