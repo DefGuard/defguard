@@ -486,7 +486,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
     // network details
     let response = client.get("/api/v1/network/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let network_from_details: WireguardNetwork<Id> = response.json().await;
+    let network_details: serde_json::Value = response.json().await;
+    let network_id = network_details["id"].as_i64().unwrap();
 
     // create devices
     let device = json!({
@@ -499,7 +500,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device1: Device<Id> = response.json().await;
+    let device1: serde_json::Value = response.json().await;
+    let device1_id = device1["device"]["id"].as_i64().unwrap();
     let device = json!({
         "name": "device2",
         "wireguard_pubkey": "ZqDlG4LQZRO9v57Sd27AHdtTLxegbMp5oVThjYrg21I=",
@@ -510,10 +512,11 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device2: Device<Id> = response.json().await;
+    let device2: serde_json::Value = response.json().await;
+    let device2_id = device2["device"]["id"].as_i64().unwrap();
 
     // ensure IPs were assigned for new devices
-    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device1.id)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device1_id)
         .await
         .unwrap()
         .unwrap();
@@ -521,7 +524,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         network_devices[0].wireguard_ips,
         vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2))],
     );
-    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device2.id)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device2_id)
         .await
         .unwrap()
         .unwrap();
@@ -532,7 +535,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
 
     // trying to modify network addresses while devices exist should fail
     let network = json!({
-        "id": network_from_details.id,
+        "id": network_id,
         "name": "network",
         "address": "10.1.1.1/24,fc00::1/112",
         "port": 55555,
@@ -550,7 +553,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "service_location_mode": "disabled"
     });
     let response = client
-        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .put(format!("/api/v1/network/{network_id}"))
         .json(&network)
         .send()
         .await;
@@ -558,19 +561,19 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
 
     // delete both devices
     let response = client
-        .delete(format!("/api/v1/device/{}", device1.id))
+        .delete(format!("/api/v1/device/{device1_id}"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let response = client
-        .delete(format!("/api/v1/device/{}", device2.id))
+        .delete(format!("/api/v1/device/{device2_id}"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // now modify network addresses should succeed
     let response = client
-        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .put(format!("/api/v1/network/{network_id}"))
         .json(&network)
         .send()
         .await;
@@ -587,9 +590,10 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let device3: Device<Id> = response.json().await;
+    let device3: serde_json::Value = response.json().await;
+    let device3_id = device3["device"]["id"].as_i64().unwrap();
 
-    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device3.id)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device3_id)
         .await
         .unwrap()
         .unwrap();
