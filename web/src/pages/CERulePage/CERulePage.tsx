@@ -860,6 +860,8 @@ const Content = ({ rule: initialRule }: Props) => {
                           <form.AppField name="denied_users">
                             {(field) => (
                               <field.FormSelectMultiple
+                                toggleValue={!open}
+                                onToggleChange={() => {}}
                                 counterText={(counter) => `Users ${counter}`}
                                 editText="Edit users"
                                 modalTitle="Select restricted users"
@@ -910,6 +912,8 @@ const Content = ({ rule: initialRule }: Props) => {
                           <form.AppField name="denied_groups">
                             {(field) => (
                               <field.FormSelectMultiple
+                                toggleValue={!open}
+                                onToggleChange={() => {}}
                                 counterText={(counter) => `Groups ${counter}`}
                                 editText="Edit groups"
                                 modalTitle="Select restricted groups"
@@ -962,6 +966,8 @@ const Content = ({ rule: initialRule }: Props) => {
                           <form.AppField name="denied_network_devices">
                             {(field) => (
                               <field.FormSelectMultiple
+                                toggleValue={!open}
+                                onToggleChange={() => {}}
                                 counterText={(counter) => `Devices ${counter}`}
                                 editText="Edit devices"
                                 modalTitle="Select restricted devices"
