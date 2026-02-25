@@ -96,6 +96,7 @@ pub async fn run_session_manager_iteration(
     // update inactive/disconnected sessions
     session_manager.update_inactive_session_status().await?;
 
+    // reset timer to avoid it being immediately ready on next iteration
     session_update_timer.reset();
 
     Ok(IterationOutcome::ProcessedBatch(message_count))
