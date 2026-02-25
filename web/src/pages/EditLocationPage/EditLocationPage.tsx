@@ -199,7 +199,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
-            {(field) => <field.FormInput required label="Gateway port" />}
+            {(field) => <field.FormInput required label="Gateway port" type="number" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="endpoint">
