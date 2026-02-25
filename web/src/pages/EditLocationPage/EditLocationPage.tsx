@@ -18,6 +18,7 @@ import { EditPageFormSection } from '../../shared/components/EditPageFormSection
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
@@ -122,6 +123,9 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         replace: true,
       });
     },
+    onError: () => {
+      Snackbar.error(m.location_edit_failed());
+    },
   });
 
   const { mutate: deleteLocation, isPending: deletePending } = useMutation({
@@ -205,9 +209,23 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           </form.AppField>
         </EditPageFormSection>
         <EditPageFormSection label="Internal VPN settings">
+          {location.has_devices && (
+            <>
+              <InfoBanner
+                icon="info-outlined"
+                variant="warning"
+                text={m.location_edit_failed_has_devices()}
+              />
+              <SizedBox height={ThemeSpacing.Lg} />
+            </>
+          )}
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput required label="Gateway VPN IP address and netmask" />
+              <field.FormInput
+                required
+                disabled={location.has_devices}
+                label="Gateway VPN IP address and netmask"
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />

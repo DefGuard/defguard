@@ -63,7 +63,7 @@ export const AddDeviceModalManualSetupStep = () => {
   const { mutateAsync: createDevice } = useMutation({
     mutationFn: api.device.addDevice,
     meta: {
-      invalidate: [['user-overview'], ['user']],
+      invalidate: [['user-overview'], ['user'], ['network']],
     },
   });
 

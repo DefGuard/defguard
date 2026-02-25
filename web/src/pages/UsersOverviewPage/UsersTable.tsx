@@ -16,7 +16,7 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { UsersListItem } from '../../shared/api/types';
+import type { Device, UsersListItem } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -437,9 +437,80 @@ export const UsersTable = () => {
     [],
   );
 
+  const { mutate: deleteDevice } = useMutation({
+    mutationFn: api.device.deleteDevice,
+    meta: {
+      invalidate: [['user-overview'], ['user'], ['network']],
+    },
+  });
+
+  const makeDeviceRowMenu = useCallback(
+    (
+      device: Device,
+      username: string,
+      reservedDeviceNames: string[],
+    ): MenuItemsGroup[] => [
+      {
+        items: [
+          {
+            text: m.controls_edit(),
+            icon: 'edit',
+            onClick: () => {
+              openModal(ModalName.EditUserDevice, {
+                device,
+                reservedNames: reservedDeviceNames,
+                username,
+              });
+            },
+          },
+          {
+            text: m.profile_devices_menu_ip_settings(),
+            icon: 'gateway',
+            testId: 'assign-device-ip',
+            onClick: () => {
+              api.device
+                .getDeviceIps(username, device.id)
+                .then(({ data: locationData }) => {
+                  openModal(ModalName.AssignUserDeviceIP, {
+                    device,
+                    username,
+                    locationData,
+                  });
+                })
+                .catch((error) => {
+                  Snackbar.error('Failed to load device IP settings');
+                  console.error(error);
+                });
+            },
+          },
+          {
+            text: m.profile_devices_menu_show_config(),
+            onClick: () => {
+              api.device.getDeviceConfigs(device).then((modalData) => {
+                openModal(ModalName.UserDeviceConfig, modalData);
+              });
+            },
+            icon: 'config',
+          },
+          {
+            text: m.controls_delete(),
+            onClick: () => {
+              deleteDevice(device.id);
+            },
+            variant: 'danger',
+            icon: 'delete',
+          },
+        ],
+      },
+    ],
+    [deleteDevice],
+  );
+
   const renderExpanded = useCallback(
-    (row: Row<RowData>, isLast = false) =>
-      row.original.devices.map((device, deviceIndex) => {
+    (row: Row<RowData>, isLast = false) => {
+      const username = row.original.username;
+      const reservedDeviceNames = row.original.devices.map((d) => d.name);
+      return row.original.devices.map((device, deviceIndex) => {
         const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
@@ -454,6 +525,7 @@ export const UsersTable = () => {
         const connectionDate = latestNetwork?.last_connected_at
           ? displayDate(latestNetwork.last_connected_at)
           : neverConnected;
+        const menuItems = makeDeviceRowMenu(device, username, reservedDeviceNames);
         return (
           <TableRowContainer
             className={clsx({ last: lastRow })}
@@ -479,12 +551,15 @@ export const UsersTable = () => {
               <span>{connectionDate}</span>
             </TableCell>
             <TableCell empty />
-            <TableCell empty />
+            <TableCell>
+              <IconButtonMenu icon="menu" menuItems={menuItems} />
+            </TableCell>
             <TableFlexCell />
           </TableRowContainer>
         );
-      }),
-    [],
+      });
+    },
+    [makeDeviceRowMenu],
   );
 
   const table = useReactTable({

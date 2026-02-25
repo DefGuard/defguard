@@ -6,7 +6,7 @@ use defguard_common::{
     },
 };
 use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::PgPool;
 
 fn set_test_license_business() {
@@ -29,6 +29,7 @@ pub(crate) async fn init_config(
 ) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let mut config = DefGuardConfig::new_test_config();
+    config.default_admin_password = SecretString::new("pass123".into());
     initialize_current_settings(pool)
         .await
         .expect("Could not initialize current settings in the database");

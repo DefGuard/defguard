@@ -59,7 +59,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
   const { mutateAsync: editDevice } = useMutation({
     mutationFn: api.network_device.editDevice,
     meta: {
-      invalidate: ['device', 'network'],
+      invalidate: [['device', 'network'], ['network']],
     },
     onSuccess: () => {
       closeModal(modalNameValue);
