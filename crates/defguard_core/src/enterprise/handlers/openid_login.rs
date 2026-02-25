@@ -672,6 +672,7 @@ pub(crate) async fn auth_callback(
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::{
         enterprise::{
             license::{License, LicenseTier, set_cached_license},
@@ -679,8 +680,6 @@ mod test {
         },
         grpc::proto::enterprise::license::LicenseLimits,
     };
-
-    use super::*;
 
     #[test]
     fn test_prune_username() {

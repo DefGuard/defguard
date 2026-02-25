@@ -6,7 +6,6 @@ import { SetupPageStep, type SetupPageStepValue } from '../../pages/SetupPage/ty
 import { useSetupWizardStore } from '../../pages/SetupPage/useSetupWizardStore';
 import api from '../../shared/api/api';
 import type { InitialSetupStepValue } from '../../shared/api/types';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useApp } from '../../shared/hooks/useApp';
 import { getSettingsEssentialsQueryOptions } from '../../shared/query';
 
@@ -20,14 +19,17 @@ const handleWizardRedirect = async ({
   location: ParsedLocation;
   client: QueryClient;
 }) => {
-  let settingsEssentials = useApp.getState().settingsEssentials;
-  if (!isPresent(settingsEssentials)) {
-    settingsEssentials = (await client.ensureQueryData(getSettingsEssentialsQueryOptions))
-      .data;
-    useApp.setState({
-      settingsEssentials,
-    });
-  }
+  // Reset wizard state on every navigation to clear any stale/corrupt sessionStorage data.
+  // The correct step will be restored from the backend below.
+  useSetupWizardStore.getState().reset();
+
+  // Always fetch fresh settings from the backend to get the current wizard step,
+  // bypassing any stale cached data.
+  const settingsEssentials = (await client.fetchQuery(getSettingsEssentialsQueryOptions))
+    .data;
+  useApp.setState({
+    settingsEssentials,
+  });
 
   const applyWizardStepFromServer = (step: InitialSetupStepValue) => {
     const stepMap: Record<InitialSetupStepValue, SetupPageStepValue> = {

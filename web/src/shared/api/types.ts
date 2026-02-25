@@ -566,12 +566,19 @@ export interface NetworkLocation {
   acl_default_allow: boolean;
   location_mfa_mode: LocationMfaModeValue;
   service_location_mode: LocationServiceModeValue;
+  has_devices: boolean;
 }
 
 export interface EditNetworkLocation
   extends Omit<
     NetworkLocation,
-    'gateways' | 'connected_at' | 'id' | 'connected' | 'allowed_ips' | 'address'
+    | 'gateways'
+    | 'connected_at'
+    | 'id'
+    | 'connected'
+    | 'allowed_ips'
+    | 'address'
+    | 'has_devices'
   > {
   allowed_ips: string;
   address: string;

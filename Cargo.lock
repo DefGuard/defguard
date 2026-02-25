@@ -1590,6 +1590,7 @@ dependencies = [
  "chrono",
  "defguard_common",
  "defguard_core",
+ "ipnetwork",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",

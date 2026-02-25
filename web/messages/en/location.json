@@ -1,5 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "location_delete_success": "Location deleted",
-  "location_delete_failed": "Failed to delete location"
+  "location_delete_failed": "Failed to delete location",
+  "location_edit_failed": "Failed to update location",
+  "location_edit_failed_has_devices": "Gateway VPN IP address and netmask can’t be changed while devices are active on this network. To proceed, remove all devices from the current network first."
 }

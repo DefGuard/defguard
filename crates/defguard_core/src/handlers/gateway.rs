@@ -1,7 +1,6 @@
 use axum::{
     Json,
-    extract::rejection::JsonRejection,
-    extract::{Path, State},
+    extract::{Path, State, rejection::JsonRejection},
 };
 use chrono::NaiveDateTime;
 use defguard_common::db::{Id, models::gateway::Gateway};
