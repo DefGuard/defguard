@@ -1,7 +1,7 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
@@ -13,8 +13,13 @@ import { ModalControls } from '../../../shared/defguard-ui/components/ModalContr
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { externalLink } from '../../../shared/constants';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature } from '../../../shared/utils/license';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
 import actionCardImage from '../assets/gateway-setup-action-card.png';
+import businessFeatureCardImage from '../assets/business-feature-icon.png';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
@@ -24,6 +29,13 @@ export const AddLocationFirewallStep = () => {
   const [showGateway, setShowGateway] = useState(true);
   const [state, setState] = useState<Choice>('disable');
   const navigate = useNavigate();
+
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseFeature = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
+  const firewallLocked = isPresent(canUseFeature) && !canUseFeature;
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.location.addLocation,
@@ -75,12 +87,35 @@ export const AddLocationFirewallStep = () => {
 
   return (
     <WizardCard>
+      {firewallLocked && (
+        <>
+          <ActionCard
+            imageSrc={businessFeatureCardImage}
+            title=''
+            subtitle={m.add_location_firewall_no_license_subtitle()}
+          >
+            <a
+              href={externalLink.defguard.pricing}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Button
+                variant="outlined"
+                text="See other plans"
+                iconRight="open-in-new-window"
+              />
+            </a>
+          </ActionCard>
+          <Divider spacing={ThemeSpacing.Xl2} />
+        </>
+      )}
       <Radio
         active={state === 'disable'}
         onClick={() => {
           setState('disable');
         }}
         text="Disable firewall option"
+        disabled={firewallLocked}
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
@@ -89,6 +124,7 @@ export const AddLocationFirewallStep = () => {
           setState('enabled-allowed');
         }}
         text="Users/devices can access all resources unless limited by ACL rules."
+        disabled={firewallLocked}
       />
       <SizedBox height={ThemeSpacing.Md} />
       <Radio
@@ -97,6 +133,7 @@ export const AddLocationFirewallStep = () => {
           setState('enabled-denied');
         }}
         text="All traffic not explicitly allowed by an ACL rule will be blocked."
+        disabled={firewallLocked}
       />
       <Divider spacing={ThemeSpacing.Xl2} />
       <ActionCard
