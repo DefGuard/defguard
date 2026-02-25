@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import { LocationMfaMode, type NetworkLocation } from '../../../shared/api/types';
+import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Input } from '../../../shared/defguard-ui/components/Input/Input';
@@ -10,6 +12,8 @@ import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature } from '../../../shared/utils/license';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
@@ -20,6 +24,11 @@ const schema = z
 export const AddLocationMfaStep = () => {
   const [error, setError] = useState<string | null>(null);
   const [disconnect, setDisconnect] = useState<number | null>(300);
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseFeature = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
 
   const [choice, setChoice] = useState<NetworkLocation['location_mfa_mode']>(
     LocationMfaMode.Disabled,
@@ -67,7 +76,11 @@ export const AddLocationMfaStep = () => {
         active={choice === LocationMfaMode.External}
         onClick={() => setChoice(LocationMfaMode.External)}
         text="External MFA"
+        disabled={isPresent(canUseFeature) && !canUseFeature}
         testId="enforce-external-mfa"
+        badgeProps={
+          isPresent(canUseFeature) && !canUseFeature ? businessBadgeProps : undefined
+        }
       />
       {choice !== LocationMfaMode.Disabled && (
         <>
