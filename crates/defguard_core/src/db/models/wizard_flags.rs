@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, prelude::FromRow};
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct WizardFlags {
     pub migration_wizard_needed: bool,
     pub migration_wizard_in_progress: bool,

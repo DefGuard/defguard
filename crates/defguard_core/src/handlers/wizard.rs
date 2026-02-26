@@ -1,39 +1,18 @@
 use axum::{Json, extract::State, http::StatusCode};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::FromRow;
 
 use super::{ApiResponse, ApiResult};
 use crate::{
-    appstate::AppState, auth::AdminRole, db::models::migration_wizard::MigrationWizardState,
+    appstate::AppState,
+    auth::AdminRole,
+    db::models::{migration_wizard::MigrationWizardState, wizard_flags::WizardFlags},
 };
-
-#[derive(Debug, Serialize, Deserialize, FromRow)]
-pub(crate) struct WizardFlags {
-    pub migration_wizard_needed: bool,
-    pub migration_wizard_in_progress: bool,
-    pub migration_wizard_completed: bool,
-    pub initial_wizard_completed: bool,
-    pub initial_wizard_in_progress: bool,
-}
 
 pub(crate) async fn get_wizard_flags(
     _role: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    let flags = sqlx::query_as!(
-        WizardFlags,
-        "SELECT
-            migration_wizard_needed,
-            migration_wizard_in_progress,
-            migration_wizard_completed,
-            initial_wizard_completed,
-            initial_wizard_in_progress
-         FROM wizard
-         LIMIT 1"
-    )
-    .fetch_one(&appstate.pool)
-    .await?;
+    let flags = WizardFlags::get(&appstate.pool).await?;
 
     Ok(ApiResponse::json(flags, StatusCode::OK))
 }
