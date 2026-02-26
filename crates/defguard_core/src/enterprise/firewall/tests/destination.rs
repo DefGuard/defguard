@@ -9,8 +9,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::enterprise::{
     db::models::acl::{
-        AclAlias, AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AliasKind,
-        RuleState,
+        AclAlias, AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AliasKind, RuleState,
     },
     firewall::{process_destination_addrs, try_get_location_firewall_config},
 };
@@ -170,12 +169,10 @@ async fn test_any_address_overwrites_manual_destination(
         Vec::new(),
         Vec::new(),
         Vec::new(),
-        vec![
-            (
-                IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)),
-                IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)),
-            ),
-        ],
+        vec![(
+            IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)),
+            IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)),
+        )],
         Vec::new(),
     )
     .await;
