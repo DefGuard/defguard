@@ -123,6 +123,30 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
   const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
 
+  const serviceLocationLabelContent = useMemo(() => {
+    if (!serviceLocationLocked) return undefined;
+    return (
+      <>
+        <p>{m.license_enterprise_required()}</p>
+        <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+          {m.license_upgrade_to_unlock()}
+        </a>
+      </>
+    );
+  }, [serviceLocationLocked]);
+
+  const firewallLabelContent = useMemo(() => {
+    if (!firewallLocked) return undefined;
+    return (
+      <>
+        <p>{m.license_business_required()}</p>
+        <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+          {m.license_upgrade_to_unlock()}
+        </a>
+      </>
+    );
+  }, [firewallLocked]);
+
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
     queryKey: ['group'],
@@ -401,21 +425,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                     )}
                     <EditPageFormSection
                       label="Location type (Windows only)"
-                      labelContent={
-                        (serviceLocationLocked && (
-                          <>
-                            <p>{m.license_enterprise_required()}</p>
-                            <a
-                              href={externalLink.defguard.pricing}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {m.license_upgrade_to_unlock()}
-                            </a>
-                          </>
-                        )) ||
-                        undefined
-                      }
+                      labelContent={serviceLocationLabelContent}
                     >
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
@@ -463,20 +473,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </form.AppField>
           )}
         </EditPageFormSection>
-        <EditPageFormSection
-          label="Firewall"
-          labelContent={
-            (firewallLocked && (
-              <>
-                <p>{m.license_business_required()}</p>
-                <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
-                  {m.license_upgrade_to_unlock()}
-                </a>
-              </>
-            )) ||
-            undefined
-          }
-        >
+        <EditPageFormSection label="Firewall" labelContent={firewallLabelContent}>
           <form.AppField name="firewall">
             {(field) => (
               <field.FormRadio
