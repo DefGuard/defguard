@@ -3,51 +3,22 @@ import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
-import { cloneDeep, flat, omit } from 'radashi';
+import { cloneDeep, omit } from 'radashi';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import {
-  type AclDestination,
-  AclProtocolName,
-  type AclProtocolValue,
-  type AclRule,
-  aclProtocolValues,
-  type NetworkLocation,
-} from '../../shared/api/types';
-import { Card } from '../../shared/components/Card/Card';
+import type { AclRule } from '../../shared/api/types';
 import { Controls } from '../../shared/components/Controls/Controls';
-import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
-import { DestinationDismissibleBox } from '../../shared/components/DestinationDismissibleBox/DestinationDismissibleBox';
-import { DestinationLabel } from '../../shared/components/DestinationLabel/DestinationLabel';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
-import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
-import type {
-  SelectionOption,
-  SelectionSectionCustomRender,
-} from '../../shared/components/SelectionSection/type';
-import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
+import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
-import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
-import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
-import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
-import { Icon, type IconKindValue } from '../../shared/defguard-ui/components/Icon';
-import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
-import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
-import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
   getAppliedAliasesQueryOptions,
   getAppliedDestinationsQueryOptions,
@@ -59,62 +30,11 @@ import {
 import { aclDestinationValidator, aclPortsValidator } from '../../shared/validators';
 import aliasesEmptyImage from './assets/aliases-empty-icon.png';
 import emptyDestinationIconSrc from './assets/empty-destinations-icon.png';
-
-const getProtocolName = (key: AclProtocolValue) => AclProtocolName[key];
-
-const renderDestinationSelectionItem: SelectionSectionCustomRender<
-  number,
-  AclDestination
-> = ({ active, onClick, option }) => (
-  <div className="destination-selection-item" onClick={onClick}>
-    <CheckboxIndicator active={active} />
-    {isPresent(option.meta) && (
-      <DestinationLabel
-        name={option.meta.name}
-        ips={option.meta.addresses}
-        ports={option.meta.ports}
-        protocols={option.meta.protocols
-          .map((protocol) => AclProtocolName[protocol])
-          .join(',')}
-      />
-    )}
-  </div>
-);
-
-const renderLocationSelectionItem: SelectionSectionCustomRender<
-  number,
-  NetworkLocation
-> = ({ active, onClick, option }) => {
-  const icon: IconKindValue = 'check';
-  return (
-    <div className="item location-selection-item" onClick={onClick}>
-      <CheckboxIndicator active={active} />
-      {isPresent(option.meta) && (
-        <>
-          <div className="content-track">
-            <p className="item-label">{option.meta?.name}</p>
-          </div>
-          <TooltipProvider>
-            <TooltipTrigger>
-              <Icon icon={icon} size={16} />
-            </TooltipTrigger>
-            <TooltipContent>
-              {!option.meta.acl_enabled && (
-                <p>{`Location access unmanaged (ACL disabled)`}</p>
-              )}
-              {option.meta.acl_enabled && option.meta.acl_default_allow && (
-                <p>{`Location access allowed by default - network traffic not explicitly defined by the rules will be passed.`}</p>
-              )}
-              {option.meta.acl_enabled && !option.meta.acl_default_allow && (
-                <p>{`Location access denied by default - network traffic not explicitly defined by the rules will be blocked.`}</p>
-              )}
-            </TooltipContent>
-          </TooltipProvider>
-        </>
-      )}
-    </div>
-  );
-};
+import { DestinationSection } from './components/DestinationSection';
+import { GeneralSettingsSection } from './components/GeneralSettingsSection';
+import { PermissionsSection } from './components/PermissionsSection';
+import { RestrictionsSection } from './components/RestrictionsSection';
+import type { CERuleFormValues } from './types';
 
 type Props = {
   rule?: AclRule;
@@ -381,7 +301,7 @@ const Content = ({ rule: initialRule }: Props) => {
     [],
   );
 
-  type FormFields = z.infer<typeof formSchema>;
+  type FormFields = CERuleFormValues;
 
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(initialRule)) {
@@ -478,512 +398,37 @@ const Content = ({ rule: initialRule }: Props) => {
       }}
     >
       <form.AppForm>
-        <MarkedSection icon="settings">
-          <AppText font={TextStyle.TBodyPrimary600}>{`General settings`}</AppText>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="name">
-            {(field) => <field.FormInput required label="Rule name" />}
-          </form.AppField>
-          <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Locations">
-            <p>{`Specify which locations this rule applies to. You can select all available locations or choose specific ones based on your requirements.`}</p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.Subscribe selector={(s) => s.values.all_locations}>
-            {(allValue) => (
-              <form.AppField name="locations">
-                {(field) => (
-                  <field.FormSelectMultiple
-                    options={locationsOptions}
-                    counterText={(counter) => `Locations ${counter}`}
-                    editText="Edit locations"
-                    modalTitle="Select locations"
-                    toggleText="Include all locations"
-                    selectionCustomItemRender={renderLocationSelectionItem}
-                    toggleValue={allValue}
-                    onToggleChange={(value) => {
-                      form.setFieldValue('all_locations', value);
-                    }}
-                  />
-                )}
-              </form.AppField>
-            )}
-          </form.Subscribe>
-        </MarkedSection>
+        <GeneralSettingsSection form={form} locationsOptions={locationsOptions} />
         <Divider spacing={ThemeSpacing.Xl2} />
-        <MarkedSection icon="location-tracking">
-          <AppText font={TextStyle.TBodyPrimary600}>{`Destination`}</AppText>
-          <SizedBox height={ThemeSpacing.Sm} />
-          <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-            {`You can add additional destinations to this rule to extend its scope. These destinations are configured separately in the 'Destinations' section.`}
-          </AppText>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          {isPresent(destinations) && destinations.length === 0 && (
-            <div className="no-resource">
-              <div className="icon-box">
-                <img src={emptyDestinationIconSrc} height={40} width={41} />
-              </div>
-              <p>{`You don't have any predefined destinations yet — add them in the 'Destinations' section to create reusable elements for defining destinations across multiple firewall ACL rules.`}</p>
-            </div>
-          )}
-          {isPresent(destinations) && destinations.length > 0 && (
-            <form.AppField name="destinations">
-              {(field) => {
-                const selectedDestinations =
-                  destinations?.filter((destination) =>
-                    field.state.value.has(destination.id),
-                  ) ?? [];
-                return (
-                  <>
-                    <Button
-                      variant="outlined"
-                      text="Select predefined destination(s)"
-                      onClick={() => {
-                        useSelectionModal.setState({
-                          title: 'Select predefined destination(s)',
-                          isOpen: true,
-                          options: destinationsOptions ?? [],
-                          itemGap: 12,
-                          enableDividers: true,
-                          onSubmit: (selection) =>
-                            field.handleChange(new Set(selection as number[])),
-                          // @ts-expect-error
-                          renderItem: renderDestinationSelectionItem,
-                        });
-                      }}
-                    />
-                    {selectedDestinations.length > 0 && (
-                      <div className="selected-destinations">
-                        <div className="top">
-                          <p>{`Selected destinations`}</p>
-                        </div>
-                        <div className="items-track">
-                          {selectedDestinations.map((destination) => (
-                            <DestinationDismissibleBox
-                              key={destination.id}
-                              name={destination.name}
-                              ips={destination.addresses}
-                              ports={destination.ports}
-                              protocols={destination.protocols
-                                .map((p) => AclProtocolName[p])
-                                .join(',')}
-                              onClick={() => {
-                                const newValue = new Set(field.state.value);
-                                newValue.delete(destination.id);
-                                field.handleChange(newValue);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              }}
-            </form.AppField>
-          )}
-          <Divider text="or/and" spacing={ThemeSpacing.Lg} />
-          <DescriptionBlock title={`Define destination manually`}>
-            <p>{`Manually configure destinations parameters for this rule.`}</p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="use_manual_destination_settings">
-            {(field) => <field.FormCheckbox text="Add manual destination settings" />}
-          </form.AppField>
-          <form.Subscribe selector={(s) => s.values.use_manual_destination_settings}>
-            {(open) => (
-              <Fold open={open}>
-                <SizedBox height={ThemeSpacing.Xl2} />
-                <Card>
-                  {isPresent(aliasesOptions) && aliasesOptions.length === 0 && (
-                    <div className="no-resource">
-                      <div className="icon-box">
-                        <img src={aliasesEmptyImage} height={40} />
-                      </div>
-                      <p>{`You don't have any aliases to use yet — create them in the “Aliases” section to create reusable elements for defining destinations in multiple firewall ACL rules.`}</p>
-                    </div>
-                  )}
-                  {isPresent(aliasesOptions) && aliasesOptions.length > 0 && (
-                    <>
-                      <DescriptionBlock title="Aliases">
-                        <p>{`Aliases can optionally define some or all of the manual destination settings. They are combined with the values you specify to form the final destination for firewall rule generation.`}</p>
-                      </DescriptionBlock>
-                      <SizedBox height={ThemeSpacing.Lg} />
-                      <form.AppField name="aliases">
-                        {(field) => (
-                          <>
-                            <ButtonsGroup>
-                              <Button
-                                variant="outlined"
-                                text="Apply aliases"
-                                disabled={aliasesOptions?.length === 0}
-                                onClick={() => {
-                                  useSelectionModal.setState({
-                                    isOpen: true,
-                                    onSubmit: (selected) => {
-                                      field.handleChange(new Set(selected as number[]));
-                                    },
-                                    options: aliasesOptions,
-                                    selected: new Set(field.state.value),
-                                    title: 'Select Aliases',
-                                  });
-                                }}
-                              />
-                            </ButtonsGroup>
-                            <SizedBox height={ThemeSpacing.Xl} />
-                            {isPresent(aliasesOptions) &&
-                              aliasesOptions
-                                .filter((alias) => field.state.value.has(alias.id))
-                                .map((option) => (
-                                  <Chip
-                                    size="sm"
-                                    text={option.label}
-                                    key={option.id}
-                                    onDismiss={() => {
-                                      const newState = new Set(field.state.value);
-                                      newState.delete(option.id);
-                                      field.handleChange(newState);
-                                    }}
-                                  />
-                                ))}
-                          </>
-                        )}
-                      </form.AppField>
-                    </>
-                  )}
-                  <Divider spacing={ThemeSpacing.Xl} />
-                  <DescriptionBlock title="Addresses/Ranges">
-                    <p>
-                      {`Define the IP addresses or ranges that form the destination of this ACL rule.`}
-                    </p>
-                  </DescriptionBlock>
-                  <SizedBox height={ThemeSpacing.Xl} />
-                  <form.AppField name="any_address">
-                    {(field) => <field.FormToggle label="Any IP Address" />}
-                  </form.AppField>
-                  <form.Subscribe selector={(s) => !s.values.any_address}>
-                    {(open) => (
-                      <Fold open={open}>
-                        <SizedBox height={ThemeSpacing.Xl} />
-                        <form.AppField name="addresses">
-                          {(field) => (
-                            <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
-                          )}
-                        </form.AppField>
-                        <AliasDataBlock
-                          values={flat(
-                            selectedAliases.map((alias) => alias.addresses.split(',')),
-                          )}
-                        />
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                  <Divider spacing={ThemeSpacing.Xl} />
-                  <DescriptionBlock title="Ports">
-                    <p>
-                      {`You may specify the exact ports accessible to users in this location.`}
-                    </p>
-                  </DescriptionBlock>
-                  <SizedBox height={ThemeSpacing.Xl} />
-                  <form.AppField name="any_port">
-                    {(field) => <field.FormToggle label="Any port" />}
-                  </form.AppField>
-                  <form.Subscribe selector={(s) => !s.values.any_port}>
-                    {(open) => (
-                      <Fold open={open}>
-                        <SizedBox height={ThemeSpacing.Xl} />
-                        <form.AppField name="ports">
-                          {(field) => (
-                            <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
-                          )}
-                        </form.AppField>
-                        <AliasDataBlock
-                          values={flat(
-                            selectedAliases.map((alias) => alias.ports.split(',')),
-                          )}
-                        />
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                  <Divider spacing={ThemeSpacing.Xl} />
-                  <DescriptionBlock title="Protocols">
-                    <p>
-                      {`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must remain selected.`}
-                    </p>
-                  </DescriptionBlock>
-                  <SizedBox height={ThemeSpacing.Xl} />
-                  <form.AppField name="any_protocol">
-                    {(field) => <field.FormToggle label="Any protocol" />}
-                  </form.AppField>
-                  <form.Subscribe selector={(s) => !s.values.any_protocol}>
-                    {(open) => (
-                      <Fold open={open}>
-                        <SizedBox height={ThemeSpacing.Xl2} />
-                        <form.AppField name="protocols">
-                          {(field) => (
-                            <field.FormCheckboxGroup
-                              values={aclProtocolValues}
-                              getLabel={getProtocolName}
-                            />
-                          )}
-                        </form.AppField>
-                        <AliasDataBlock
-                          values={flat(
-                            selectedAliases.map((alias) =>
-                              alias.protocols.map(
-                                (protocol) => AclProtocolName[protocol],
-                              ),
-                            ),
-                          )}
-                        />
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </Card>
-              </Fold>
-            )}
-          </form.Subscribe>
-        </MarkedSection>
+        <DestinationSection
+          form={form}
+          destinations={destinations}
+          destinationsOptions={destinationsOptions}
+          aliasesOptions={aliasesOptions}
+          selectedAliases={selectedAliases}
+          aliasesEmptyImage={aliasesEmptyImage}
+          emptyDestinationIconSrc={emptyDestinationIconSrc}
+        />
         <Divider spacing={ThemeSpacing.Xl2} />
-        <MarkedSection icon="enrollment">
-          <AppText font={TextStyle.TBodyPrimary600}>{`Permissions`}</AppText>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <DescriptionBlock title="Permitted Users & Devices">
-            <p>{`Define who should be granted access. Only the entities you list here will be allowed through.`}</p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Xl} />
-          {isPresent(usersOptions) && (
-            <form.Subscribe selector={(s) => s.values.allow_all_users}>
-              {(allowAllValue) => (
-                <form.AppField name="allowed_users">
-                  {(field) => (
-                    <field.FormSelectMultiple
-                      toggleValue={allowAllValue}
-                      toggleText="All users have access"
-                      counterText={(counter) => `Users ${counter}`}
-                      editText={`Edit users`}
-                      modalTitle="Select allowed users"
-                      options={usersOptions}
-                      onToggleChange={(value) => {
-                        form.setFieldValue('allow_all_users', value);
-                      }}
-                    />
-                  )}
-                </form.AppField>
-              )}
-            </form.Subscribe>
-          )}
-          <Divider spacing={ThemeSpacing.Lg} />
-          {isPresent(groupsOptions) && (
-            <form.Subscribe selector={(s) => s.values.allow_all_groups}>
-              {(allAllowedValue) => (
-                <form.AppField name="allowed_groups">
-                  {(field) => (
-                    <field.FormSelectMultiple
-                      toggleValue={allAllowedValue}
-                      onToggleChange={(value) => {
-                        form.setFieldValue('allow_all_groups', value);
-                      }}
-                      options={groupsOptions}
-                      counterText={(counter) => `Groups ${counter}`}
-                      editText="Edit groups"
-                      modalTitle="Select allowed groups"
-                      toggleText="All groups have access"
-                    />
-                  )}
-                </form.AppField>
-              )}
-            </form.Subscribe>
-          )}
-          <Divider spacing={ThemeSpacing.Lg} />
-          {isPresent(networkDevicesOptions) && (
-            <form.Subscribe selector={(s) => s.values.allow_all_network_devices}>
-              {(allowAllValue) => (
-                <form.AppField name="allowed_network_devices">
-                  {(field) => (
-                    <field.FormSelectMultiple
-                      toggleValue={allowAllValue}
-                      onToggleChange={(value) => {
-                        form.setFieldValue('allow_all_network_devices', value);
-                      }}
-                      options={networkDevicesOptions}
-                      counterText={(counter) => `Devices ${counter}`}
-                      editText="Edit devices"
-                      modalTitle="Select allowed devices"
-                      toggleText="All network devices have access"
-                    />
-                  )}
-                </form.AppField>
-              )}
-            </form.Subscribe>
-          )}
-        </MarkedSection>
+        <PermissionsSection
+          form={form}
+          usersOptions={usersOptions}
+          groupsOptions={groupsOptions}
+          networkDevicesOptions={networkDevicesOptions}
+        />
         <Divider spacing={ThemeSpacing.Xl2} />
-        <MarkedSection icon="lock-closed">
-          <AppText font={TextStyle.TBodyPrimary600}>{`Restrictions`}</AppText>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <DescriptionBlock title="Limit access">
-            <p>{`Choose who or what should be blocked from accessing this location.`}</p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Xl} />
-          {isPresent(usersOptions) && (
-            <div className="restriction-block">
-              <div className="restriction-toggle">
-                <Checkbox
-                  active={restrictUsers}
-                  onClick={() => {
-                    setRestrictUsers((current) => !current);
-                  }}
-                  text="Limit access for users"
-                />
-              </div>
-              <Fold open={restrictUsers}>
-                <div className="restriction-body">
-                  <div className="restriction-radio">
-                    <form.AppField name="deny_all_users">
-                      {(field) => (
-                        <field.FormRadio text="Exclude all users" value={true} />
-                      )}
-                    </form.AppField>
-                    <form.AppField name="deny_all_users">
-                      {(field) => (
-                        <field.FormRadio text="Exclude specific users" value={false} />
-                      )}
-                    </form.AppField>
-                  </div>
-                  <form.Subscribe
-                    selector={(s) => s.values.deny_all_users === false && restrictUsers}
-                  >
-                    {(open) => (
-                      <Fold open={open}>
-                        {isPresent(usersOptions) && (
-                          <form.AppField name="denied_users">
-                            {(field) => (
-                              <field.FormSelectMultiple
-                                toggleValue={!open}
-                                onToggleChange={() => {}}
-                                counterText={(counter) => `Users ${counter}`}
-                                editText="Edit users"
-                                modalTitle="Select restricted users"
-                                options={usersOptions}
-                              />
-                            )}
-                          </form.AppField>
-                        )}
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </div>
-              </Fold>
-            </div>
-          )}
-          <Divider spacing={ThemeSpacing.Lg} />
-          {isPresent(groupsOptions) && (
-            <div className="restriction-block">
-              <div className="restriction-toggle">
-                <Checkbox
-                  active={restrictGroups}
-                  onClick={() => {
-                    setRestrictGroups((current) => !current);
-                  }}
-                  text="Limit access for groups"
-                />
-              </div>
-              <Fold open={restrictGroups}>
-                <div className="restriction-body">
-                  <div className="restriction-radio">
-                    <form.AppField name="deny_all_groups">
-                      {(field) => (
-                        <field.FormRadio text="Exclude all groups" value={true} />
-                      )}
-                    </form.AppField>
-                    <form.AppField name="deny_all_groups">
-                      {(field) => (
-                        <field.FormRadio text="Exclude specific groups" value={false} />
-                      )}
-                    </form.AppField>
-                  </div>
-                  <form.Subscribe
-                    selector={(s) => s.values.deny_all_groups === false && restrictGroups}
-                  >
-                    {(open) => (
-                      <Fold open={open}>
-                        {isPresent(groupsOptions) && (
-                          <form.AppField name="denied_groups">
-                            {(field) => (
-                              <field.FormSelectMultiple
-                                toggleValue={!open}
-                                onToggleChange={() => {}}
-                                counterText={(counter) => `Groups ${counter}`}
-                                editText="Edit groups"
-                                modalTitle="Select restricted groups"
-                                options={groupsOptions}
-                              />
-                            )}
-                          </form.AppField>
-                        )}
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </div>
-              </Fold>
-              <Divider spacing={ThemeSpacing.Lg} />
-            </div>
-          )}
-          {isPresent(networkDevicesOptions) && (
-            <div className="restriction-block">
-              <div className="restriction-toggle">
-                <Checkbox
-                  active={restrictDevices}
-                  onClick={() => {
-                    setRestrictDevices((current) => !current);
-                  }}
-                  text="Limit access for devices"
-                />
-              </div>
-              <Fold open={restrictDevices}>
-                <div className="restriction-body">
-                  <div className="restriction-radio">
-                    <form.AppField name="deny_all_network_devices">
-                      {(field) => (
-                        <field.FormRadio text="Exclude all devices" value={true} />
-                      )}
-                    </form.AppField>
-                    <form.AppField name="deny_all_network_devices">
-                      {(field) => (
-                        <field.FormRadio text="Exclude specific devices" value={false} />
-                      )}
-                    </form.AppField>
-                  </div>
-                  <form.Subscribe
-                    selector={(s) =>
-                      s.values.deny_all_network_devices === false && restrictDevices
-                    }
-                  >
-                    {(open) => (
-                      <Fold open={open}>
-                        {isPresent(networkDevicesOptions) && (
-                          <form.AppField name="denied_network_devices">
-                            {(field) => (
-                              <field.FormSelectMultiple
-                                toggleValue={!open}
-                                onToggleChange={() => {}}
-                                counterText={(counter) => `Devices ${counter}`}
-                                editText="Edit devices"
-                                modalTitle="Select restricted devices"
-                                options={networkDevicesOptions}
-                              />
-                            )}
-                          </form.AppField>
-                        )}
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </div>
-              </Fold>
-            </div>
-          )}
-        </MarkedSection>
+        <RestrictionsSection
+          form={form}
+          usersOptions={usersOptions}
+          groupsOptions={groupsOptions}
+          networkDevicesOptions={networkDevicesOptions}
+          restrictUsers={restrictUsers}
+          restrictGroups={restrictGroups}
+          restrictDevices={restrictDevices}
+          setRestrictUsers={setRestrictUsers}
+          setRestrictGroups={setRestrictGroups}
+          setRestrictDevices={setRestrictDevices}
+        />
         <Divider spacing={ThemeSpacing.Xl2} />
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (
@@ -1003,37 +448,5 @@ const Content = ({ rule: initialRule }: Props) => {
         </form.Subscribe>
       </form.AppForm>
     </form>
-  );
-};
-
-type AliasDataBlockProps = {
-  values: string[];
-};
-
-const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
-  if (values.length === 0) return null;
-  return (
-    <div className="alias-data-block">
-      <div className="top">
-        <p>{`Data from aliases`}</p>
-      </div>
-      <div className="content-track">
-        {values.map((value) => (
-          <Chip key={value} text={value} />
-        ))}
-        {values.length > 4 && (
-          <button
-            onClick={() => {
-              openModal(ModalName.DisplayList, {
-                title: 'Data from aliases',
-                data: values,
-              });
-            }}
-          >
-            <span>{`Show all`}</span>
-          </button>
-        )}
-      </div>
-    </div>
   );
 };
