@@ -1,17 +1,20 @@
-import { autoUpdate, FloatingPortal, offset, useFloating } from '@floating-ui/react';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { ButtonsGroup } from '../../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
-import { Tooltip } from '../../../shared/defguard-ui/components/Tooltip/Tooltip';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -43,13 +46,6 @@ export const AddLocationInternalVpnStep = () => {
     return canUseBusinessFeature(licenseInfo).result;
   }, [licenseInfo]);
   const firewallRulesToggleLocked = isPresent(canUseBusiness) && !canUseBusiness;
-
-  const [tooltipOpen, setTooltipOpen] = useState(false);
-  const { refs, floatingStyles } = useFloating({
-    placement: 'top-start',
-    whileElementsMounted: autoUpdate,
-    middleware: [offset({ mainAxis: 8, crossAxis: -88 })],
-  });
 
   const defaultValues = useAddLocationStore(
     useShallow(
@@ -107,24 +103,32 @@ export const AddLocationInternalVpnStep = () => {
             {(field) => <field.FormInput required label={'Allowed IPs'} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Lg} />
-          <div
-            ref={refs.setReference}
-            onMouseEnter={() => setTooltipOpen(true)}
-            onMouseLeave={() => setTooltipOpen(false)}
-          >
-            <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
-              active={false}
-              disabled={firewallRulesToggleLocked}
-              label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-            />
-          </div>
-          {firewallRulesToggleLocked && tooltipOpen && (
-            <FloatingPortal>
-              <Tooltip ref={refs.setFloating} style={floatingStyles}>
+          <ButtonsGroup>
+            <TooltipProvider disabled={!firewallRulesToggleLocked} placement="top">
+              <TooltipTrigger>
+                <div>
+                  <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
+                    active={false}
+                    disabled={firewallRulesToggleLocked}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
                 <p>{m.license_upgrade_business_tooltip()}</p>
-              </Tooltip>
-            </FloatingPortal>
-          )}
+              </TooltipContent>
+            </TooltipProvider>
+            <AppText
+              as="span"
+              font={TextStyle.TBodySm400}
+              color={
+                firewallRulesToggleLocked
+                  ? ThemeVariable.FgDisabled
+                  : ThemeVariable.FgDefault
+              }
+            >
+              {m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+            </AppText>
+          </ButtonsGroup>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label={'DNS'} />}
