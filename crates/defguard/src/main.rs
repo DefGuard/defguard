@@ -16,7 +16,7 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::AppEvent,
+    db::{AppEvent, models::wizard_flags::WizardFlags},
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -94,13 +94,15 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
+    let wizard_flags = WizardFlags::init(&pool).await?;
+
     // initialize default settings
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
     let mut settings = Settings::get_current_settings();
 
-    if !settings.initial_setup_completed {
+    if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
         if let Err(err) =
             run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {
