@@ -33,7 +33,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::setup::run_setup_web_server;
+use defguard_setup::{db::models::wizard_flags::WizardFlags, setup::run_setup_web_server};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -94,13 +94,15 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
+    let wizard_flags = WizardFlags::init(&pool).await?;
+
     // initialize default settings
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
     let mut settings = Settings::get_current_settings();
 
-    if !settings.initial_setup_completed {
+    if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
         if let Err(err) =
             run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {

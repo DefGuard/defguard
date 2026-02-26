@@ -18,14 +18,21 @@ use defguard_core::{
 };
 use defguard_web_ui::{index, svg, web_asset};
 use semver::Version;
-use sqlx::PgPool;
+use sqlx::{PgExecutor, PgPool};
 use tokio::{net::TcpListener, sync::oneshot::Sender};
 use tracing::{info, instrument};
 
-use crate::handlers::{
+use crate::handlers::initial_wizard::{
     create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login, setup_session,
     upload_ca,
 };
+
+pub async fn is_initial_setup_needed<'e, E>(executor: E) -> Result<bool, sqlx::Error>
+where
+    E: PgExecutor<'e>,
+{
+    todo!()
+}
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
     let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));

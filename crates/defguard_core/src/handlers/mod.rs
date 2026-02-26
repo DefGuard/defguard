@@ -50,6 +50,7 @@ pub(crate) mod updates;
 pub mod user;
 pub(crate) mod webhooks;
 pub mod wireguard;
+pub(crate) mod wizard;
 pub mod worker;
 pub(crate) mod yubikey;
 
