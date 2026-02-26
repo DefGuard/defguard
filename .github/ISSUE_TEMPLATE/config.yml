@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Defguard Troubleshooting Guide
+    url: https://docs.defguard.net/support-1/troubleshooting
+    about: Make sure to check the troubleshooting guide before submitting an issue. It has solutions for common problems and can help you debug faster.
+  - name: Open a discussion to get help from the community
+    url: https://github.com/DefGuard/defguard/discussions/new/choose
+    about: Having trouble with Defguard deployment or configuration? Reach out to our community for help. 

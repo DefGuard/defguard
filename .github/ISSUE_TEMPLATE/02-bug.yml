@@ -1,0 +1,146 @@
+name: Bug report
+description: Report a problem in Defguard so we can reproduce and fix it.
+title: "[Bug]: "
+labels:
+  - bug
+type: bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        **Privacy note:** This issue tracker is public. Do not include sensitive data such as secrets, private keys, tokens, passwords, internal domains, or customer data. All data should be anonymised and any secrets must be redacted.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear, one-paragraph description of what’s broken.
+      placeholder: "After enabling MFA for a user, Desktop client cannot start a session; it loops on …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps help us reproduce reliably. Attach screenshots or recordings if they help illustrate the steps.
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. Configure …
+        4. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen if the bug were fixed?
+      placeholder: "VPN connects successfully and a session is established."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happens instead? Include error messages, screenshots, or recordings if they help illustrate the issue.
+      placeholder: "VPN connection fails with … / UI shows … / API returns …"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Defguard version
+      description: Exact versions of all components.
+      placeholder: "Core: v1.6.0, Gateway: v1.6.0, Edge: v1.6.0, Desktop client: v1.6.0, Mobile client: v1.6.0."
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment details
+      description: Operating systems of all components.
+      placeholder: "Core: Ubuntu 24.04, Gateway: Ubuntu 24.04, Edge: Ubuntu 24.04, Desktop client: macOS 15.x, Mobile client: iOS 18."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment / install method
+      description: How is Defguard installed?
+      multiple: false
+      options:
+        - One-line script
+        - Standalone packages
+        - Docker / Docker Compose
+        - Kubernetes / Helm
+        - Terraform
+        - AMI
+        - Custom
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / output
+      description: Paste only what’s necessary. Please redact secrets (tokens, private IPs, domains) if needed. Enable DEBUG log level if you can (https://docs.defguard.net/support-1/how-to-submit-an-issue#id-1.-enable-debug-logging).
+      render: shell
+      placeholder: |
+        # Core logs
+        [2024-06-01T12:00:00Z] ERROR: ...
+
+        # Edge logs
+        [2024-06-01T12:00:00Z] ERROR: ...
+
+        # Gateway logs
+        [2024-06-01T12:00:00Z] ERROR: ...
+
+        # Desktop client logs (you can find them in the app's settings)
+        [2024-06-01T12:00:00Z] ERROR: ...
+
+        # Mobile client logs (you can find them in the app's main menu - View Application Logs)
+        [2024-06-01T12:00:00Z] ERROR: ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant configuration (redacted)
+      description: If configuration is involved (LDAP, OIDC, WireGuard, gRPC certs), paste the minimum snippet.
+      render: yaml
+      placeholder: |
+        # Redact secrets/certs/private keys
+    validations:
+      required: false
+
+  - type: input
+    id: contact_email
+    attributes:
+      label: Contact email
+      description: How can we reach you if we need more details? (Optional, but recommended)
+      placeholder: you@company.com
+    validations:
+      required: false
+
+  - type: dropdown
+    id: purchased_plan
+    attributes:
+      label: Purchased plan
+      description: Helps us route your report and match support expectations.
+      multiple: false
+      options:
+        - Open source (community)
+        - Business
+        - Enterprise
+    validations:
+      required: true

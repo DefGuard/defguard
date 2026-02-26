@@ -1,0 +1,77 @@
+name: Feature request
+description: Suggest an idea or improvement for Defguard
+title: "[Feature]: "
+labels:
+  - feature
+type: feature
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature. Your feedback helps improve Defguard.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: What problem are you trying to solve? Attach screenshots or recording if it helps illustrate the problem.
+      placeholder: |
+        Describe the limitation, friction, or missing capability.
+        Example: "Users cannot restrict access based on device posture..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution you would like. Attach mockups or diagrams if you have them.
+      placeholder: |
+        Describe the desired behavior, API, UI, or workflow.
+        Include examples if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or workarounds you've considered
+      placeholder: |
+        Example: "Currently we use separate locations, but this is hard to manage..."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How important is this feature for you?
+      options:
+        - Nice to have
+        - Important
+        - Critical / blocking our usage
+    validations:
+      required: true
+
+  - type: input
+    id: contact_email
+    attributes:
+      label: Contact email
+      description: Optional, in case we need clarification or want to follow up
+      placeholder: you@company.com
+    validations:
+      required: false
+
+  - type: dropdown
+    id: purchased_plan
+    attributes:
+      label: Purchased plan
+      description: Helps us prioritize and understand your environment
+      options:
+        - Open source (community)
+        - Business
+        - Enterprise
+    validations:
+      required: true

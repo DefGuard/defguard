@@ -1,0 +1,19 @@
+name: Internal issue
+description: Internal Defguard team use only
+labels:
+  - internal
+type: task
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is intended for internal Defguard team use.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: Detailed description, context, links, notes
+    validations:
+      required: false
