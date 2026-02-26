@@ -1,5 +1,5 @@
 use defguard_common::global_value;
-use sqlx::{PgPool, error::Error as SqlxError, query};
+use sqlx::{error::Error as SqlxError, query};
 
 use super::license::License;
 #[cfg(test)]
@@ -57,11 +57,6 @@ pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> Result<(
         get_counts()
     );
 
-    Ok(())
-}
-
-pub async fn do_count_update(pool: &PgPool) -> Result<(), SqlxError> {
-    update_counts(pool).await?;
     Ok(())
 }
 

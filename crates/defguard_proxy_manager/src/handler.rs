@@ -619,13 +619,7 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
-                            if !is_business_license_active() {
-                                warn!("Enterprise license required");
-                                Some(core_response::Payload::CoreError(CoreError {
-                                    status_code: Code::FailedPrecondition as i32,
-                                    message: "no valid license".into(),
-                                }))
-                            } else {
+                            if is_business_license_active() {
                                 let redirect_url = match request.auth_flow_type() {
                                     ProtoAuthFlowType::Enrollment => {
                                         let settings = Settings::get_current_settings();
@@ -703,6 +697,12 @@ impl ProxyHandler {
                                         message: "invalid redirect URL".into(),
                                     }))
                                 }
+                            } else {
+                                warn!("Enterprise license required");
+                                Some(core_response::Payload::CoreError(CoreError {
+                                    status_code: Code::FailedPrecondition as i32,
+                                    message: "no valid license".into(),
+                                }))
                             }
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {

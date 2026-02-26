@@ -109,6 +109,7 @@ pub struct SessionManager {
 }
 
 impl SessionManager {
+    #[must_use]
     pub fn new(
         pool: PgPool,
         session_manager_event_tx: UnboundedSender<SessionManagerEvent>,

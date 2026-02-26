@@ -44,6 +44,7 @@ pub struct SplitIp {
 ///    If they are not equal, we found the first modifiable segment (one of the segments of an address that may change between hosts in the same network),
 ///    append the rest of the segments to the modifiable part.
 /// 3. Join the segments with the delimiter and return the network part, modifiable part and the network prefix
+#[must_use]
 pub fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
     let network_addr = network.network();
     let network_prefix = network.prefix();
