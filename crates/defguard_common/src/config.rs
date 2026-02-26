@@ -40,6 +40,7 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
     #[serde(skip_serializing)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
     pub auth_cookie_timeout: Duration,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
@@ -93,7 +94,9 @@ pub struct DefGuardConfig {
     // relying party id and relying party origin for WebAuthn
     #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
     pub webauthn_rp_id: Option<String>,
+
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
+    #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
@@ -112,6 +115,7 @@ pub struct DefGuardConfig {
     pub stats_purge_threshold: Duration,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
     pub enrollment_url: Url,
 
