@@ -19,6 +19,7 @@ pub struct Gateway<I = NoId> {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub modified_at: NaiveDateTime,
     pub modified_by: Id,
 }
@@ -63,6 +64,7 @@ impl Gateway {
             certificate: None,
             certificate_expiry: None,
             version: None,
+            enabled: true,
             modified_by,
             modified_at,
         }

@@ -65,21 +65,26 @@
       },
       {
         "ordinal": 12,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
         "name": "modified_by_firstname",
         "type_info": "Text"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "modified_by_lastname",
         "type_info": "Text"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "connected!",
         "type_info": "Bool"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "location_name",
         "type_info": "Text"
       }
@@ -98,6 +103,7 @@
       true,
       false,
       true,
+      false,
       false,
       false,
       false,

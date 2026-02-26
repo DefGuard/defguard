@@ -31,6 +31,7 @@ pub struct GatewayInfo {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub modified_at: NaiveDateTime,
     pub modified_by: Id,
     pub modified_by_firstname: String,
@@ -87,6 +88,7 @@ impl GatewayInfo {
 #[serde(deny_unknown_fields)]
 pub struct GatewayUpdateData {
     pub name: String,
+    pub enabled: bool,
 }
 
 #[utoipa::path(
@@ -199,6 +201,7 @@ pub(crate) async fn update_gateway(
     let before = gateway.clone();
 
     gateway.name = data.name;
+    gateway.enabled = data.enabled;
     gateway.save(&appstate.pool).await?;
 
     info!(

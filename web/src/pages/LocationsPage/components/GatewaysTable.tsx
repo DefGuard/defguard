@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import type { GatewayInfo } from '../../../shared/api/types';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -31,6 +32,9 @@ const displayModifiedBy = (gateway: GatewayInfo) =>
   `${gateway.modified_by_firstname} ${gateway.modified_by_lastname}`;
 
 const getStatusBadge = (gateway: GatewayInfo) => {
+  if (!gateway.enabled) {
+    return <Badge icon="disabled" showIcon variant="critical" text={m.state_disabled()} />;
+  }
   if (gateway.connected) {
     return <Badge icon="check-filled" showIcon variant="success" text="Connected" />;
   }
@@ -49,6 +53,12 @@ const getStatusBadge = (gateway: GatewayInfo) => {
 export const GatewaysTable = () => {
   const { data: gateways } = useSuspenseQuery(getGatewaysQueryOptions);
   const navigate = useNavigate();
+  const { mutate: toggleGateway } = useMutation({
+    mutationFn: api.gateway.editGateway,
+    meta: {
+      invalidate: ['gateway'],
+    },
+  });
 
   const [search, setSearch] = useState('');
 
@@ -180,6 +190,21 @@ export const GatewaysTable = () => {
                   },
                 },
                 {
+                  text: rowData.enabled ? m.controls_disable() : m.controls_enable(),
+                  icon: rowData.enabled ? 'disabled' : 'check-circle',
+                  onClick: () => {
+                    toggleGateway({
+                      id: rowData.id,
+                      name: rowData.name,
+                      enabled: !rowData.enabled,
+                    });
+                  },
+                },
+              ],
+            },
+            {
+              items: [
+                {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
@@ -203,7 +228,7 @@ export const GatewaysTable = () => {
         },
       }),
     ],
-    [navigate],
+    [navigate, toggleGateway],
   );
 
   const table = useReactTable({
