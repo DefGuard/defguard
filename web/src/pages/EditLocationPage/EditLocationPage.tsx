@@ -18,6 +18,7 @@ import { EditPageFormSection } from '../../shared/components/EditPageFormSection
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { externalLink } from '../../shared/constants';
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
+import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
@@ -255,21 +256,15 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             {(field) => <field.FormInput label="Allowed IPs" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Lg} />
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'flex-start',
-              columnGap: ThemeSpacing.Md,
-            }}
-          >
+          <ButtonsGroup>
             <TooltipProvider disabled={!firewallLocked} placement="top">
               <TooltipTrigger>
-                <span>
+                <div>
                   <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
                     active={false}
                     disabled={firewallLocked}
                   />
-                </span>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
                 <p>{m.license_upgrade_business_tooltip()}</p>
@@ -282,7 +277,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             >
               {m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
             </AppText>
-          </div>
+          </ButtonsGroup>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label="DNS" />}
