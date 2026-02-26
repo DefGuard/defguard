@@ -115,8 +115,7 @@ impl Interceptor for AuthInterceptor {
 
 fn fallback_message(err: &str, last_step: SetupStep) -> String {
     format!(
-        r#"{{"step":"{last_step:?}","message":"Failed to serialize error response: \
-        {err}","error":true}}"#,
+        r#"{{"step":"{last_step:?}","message":"Failed to serialize error response: {err}","error":true}}"#,
     )
 }
 
@@ -401,20 +400,20 @@ pub async fn setup_proxy_tls_stream(
             .transpose()
             .unwrap_or(None);
 
-        debug!("Proxy metadata: {:?}", response_with_metadata.metadata());
-        debug!("Proxy version: {proxy_version:?}");
+        debug!("Edge metadata: {:?}", response_with_metadata.metadata());
+        debug!("Edge version: {proxy_version:?}");
 
         if let Some(proxy_version) = proxy_version {
             if proxy_version < MIN_PROXY_VERSION {
                 yield Ok(flow.error(&format!(
-                    "Edge version {proxy_version} is older than core version \
-                    {version_clone}. Please update the edge component.",
+                    "Edge version {proxy_version} is older than Core version \
+                    {version_clone}. Please update the Edge component.",
                 )));
                 return;
             }
 
             debug!(
-                "Edge version {} is compatible with core version {}",
+                "Edge version {} is compatible with Core version {}",
                 proxy_version, version_clone
             );
 
@@ -470,7 +469,7 @@ pub async fn setup_proxy_tls_stream(
         });
 
         // Create guard to ensure task is aborted on all exit paths
-        let _ = TaskGuard(log_reader_task);
+        let _log_task_guard = TaskGuard(log_reader_task);
 
         // Step 4: Obtain CSR
         yield Ok(flow.step(SetupStep::ObtainingCsr));
@@ -778,7 +777,7 @@ pub async fn setup_gateway_tls_stream(
             }
         );
 
-        debug!("Initiating connection to edge Gateway at {}:{}", request.ip_or_domain,
+        debug!("Initiating connection to Gateway at {}:{}", request.ip_or_domain,
             request.grpc_port);
 
         let response_with_metadata = match tokio::time::timeout(
@@ -841,8 +840,8 @@ pub async fn setup_gateway_tls_stream(
         if let Some(gateway_version) = gateway_version {
             if gateway_version < MIN_GATEWAY_VERSION {
                 yield Ok(flow.error(&format!(
-                    "Gateway version {gateway_version} is older than core version {version_clone}. \
-                    Please update the Edge component.",
+                    "Gateway version {gateway_version} is older than Core version {version_clone}. \
+                    Please update the Gateway component.",
                 )));
                 return;
             }
@@ -905,7 +904,7 @@ pub async fn setup_gateway_tls_stream(
         });
 
         // Create guard to ensure task is aborted on all exit paths
-        let _ = TaskGuard(log_reader_task);
+        let _log_task_guard = TaskGuard(log_reader_task);
 
         // Step 4: Obtain CSR
         yield Ok(flow.step(SetupStep::ObtainingCsr));
