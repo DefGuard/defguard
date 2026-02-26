@@ -689,7 +689,7 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Successfully validated Gateway address: {}", url_str);
+        debug!("Successfully validated Gateway address: {url_str}");
 
         let endpoint = match Endpoint::from_shared(url.to_string()) {
             Ok(e) => e,
@@ -790,12 +790,12 @@ pub async fn setup_gateway_tls_stream(
                     tonic::Code::Unavailable => {
                         let error_msg = e.to_string();
                         if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
-                        yield Ok(flow.error(&format!(
-                            "Failed to connect to Gateway at {}:{}: {e}. This may indicate that \
-                            the Gateway is already configured with TLS. Please check if the \
-                            Gateway has already been set up.",
-                            request.ip_or_domain, request.grpc_port,
-                        )));
+                            yield Ok(flow.error(&format!(
+                                "Failed to connect to Gateway at {}:{}: {e}. This may indicate \
+                                that the Gateway is already configured with TLS. Please check if \
+                                the Gateway has already been set up.",
+                                request.ip_or_domain, request.grpc_port,
+                            )));
                         } else {
                         yield Ok(flow.error(&format!(
                             "Failed to connect to Gateway at {}:{}. Please ensure the address and \
@@ -922,16 +922,16 @@ pub async fn setup_gateway_tls_stream(
         {
             Ok(r) => r.into_inner(),
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
+                return;
             }
         };
 
         let csr = match defguard_certs::Csr::from_der(&csr_response.der_data) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
+                return;
             }
         };
 
@@ -958,8 +958,8 @@ pub async fn setup_gateway_tls_stream(
         ) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to create CA: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to create CA: {e}")));
+                return;
             }
         };
 
@@ -968,8 +968,8 @@ pub async fn setup_gateway_tls_stream(
         let cert = match ca.sign_csr(&csr) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
+                return;
             }
         };
 
