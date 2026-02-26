@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { autoUpdate, FloatingPortal, offset, useFloating } from '@floating-ui/react';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
@@ -19,13 +20,18 @@ import type { SelectionOption } from '../../shared/components/SelectionSection/t
 import { externalLink } from '../../shared/constants';
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
+import { Tooltip } from '../../shared/defguard-ui/components/Tooltip/Tooltip';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
-import { canUseBusinessFeature, canUseEnterpriseFeature } from '../../shared/utils/license';
+import {
+  canUseBusinessFeature,
+  canUseEnterpriseFeature,
+} from '../../shared/utils/license';
 import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
 
 export const EditLocationPage = () => {
@@ -99,6 +105,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const [allGroupsToggle, setAllGroupsToggle] = useState(
     location.allowed_groups.length === 0,
   );
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -113,6 +120,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   }, [licenseInfo]);
   const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
   const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
+
+  const { refs, floatingStyles } = useFloating({
+    placement: 'top-start',
+    whileElementsMounted: autoUpdate,
+    middleware: [offset({ mainAxis: 8, crossAxis: -88 })],
+  });
 
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
@@ -246,6 +259,25 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <form.AppField name="allowed_ips">
             {(field) => <field.FormInput label="Allowed IPs" />}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <div
+            ref={refs.setReference}
+            onMouseEnter={() => setTooltipOpen(true)}
+            onMouseLeave={() => setTooltipOpen(false)}
+          >
+            <Toggle
+              active={false}
+              disabled={firewallLocked}
+              label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+            />
+          </div>
+          {firewallLocked && tooltipOpen && (
+            <FloatingPortal>
+              <Tooltip ref={refs.setFloating} style={floatingStyles}>
+                <p>{m.license_upgrade_business_tooltip()}</p>
+              </Tooltip>
+            </FloatingPortal>
+          )}
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label="DNS" />}
@@ -381,7 +413,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                               {m.license_upgrade_to_unlock()}
                             </a>
                           </>
-                        )) || undefined
+                        )) ||
+                        undefined
                       }
                     >
                       <field.FormRadio
@@ -436,15 +469,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             (firewallLocked && (
               <>
                 <p>{m.license_business_required()}</p>
-                <a
-                  href={externalLink.defguard.pricing}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
                   {m.license_upgrade_to_unlock()}
                 </a>
               </>
-            )) || undefined
+            )) ||
+            undefined
           }
         >
           <form.AppField name="firewall">

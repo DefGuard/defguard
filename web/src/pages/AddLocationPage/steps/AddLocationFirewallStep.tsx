@@ -6,6 +6,7 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
@@ -14,12 +15,11 @@ import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { externalLink } from '../../../shared/constants';
 import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature } from '../../../shared/utils/license';
 import { useGatewayWizardStore } from '../../GatewaySetupPage/useGatewayWizardStore';
-import actionCardImage from '../assets/gateway-setup-action-card.png';
 import businessFeatureCardImage from '../assets/business-feature-icon.png';
+import actionCardImage from '../assets/gateway-setup-action-card.png';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
@@ -91,14 +91,10 @@ export const AddLocationFirewallStep = () => {
         <>
           <ActionCard
             imageSrc={businessFeatureCardImage}
-            title=''
+            title=""
             subtitle={m.add_location_firewall_no_license_subtitle()}
           >
-            <a
-              href={externalLink.defguard.pricing}
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
               <Button
                 variant="outlined"
                 text="See other plans"

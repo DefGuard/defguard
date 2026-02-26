@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
 import { autoUpdate, FloatingPortal, offset, useFloating } from '@floating-ui/react';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -108,6 +108,7 @@ export const AddLocationInternalVpnStep = () => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Lg} />
           <div
+            ref={refs.setReference}
             onMouseEnter={() => setTooltipOpen(true)}
             onMouseLeave={() => setTooltipOpen(false)}
           >
