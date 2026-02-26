@@ -79,7 +79,18 @@
   .restriction-block {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+
+    .fold.folded .fold-content {
+      padding: 0;
+    }
+
+    & > .fold {
+      margin-top: var(--spacing-sm);
+    }
+
+    & > .fold.folded {
+      margin-top: 0;
+    }
   }
 
   .restriction-toggle {
