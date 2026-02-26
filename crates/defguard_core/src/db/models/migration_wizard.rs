@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::PgExecutor;
 
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub(crate) enum MigrationWizardStep {
     #[default]

@@ -16,7 +16,7 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::AppEvent,
+    db::{AppEvent, models::wizard_flags::WizardFlags},
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -33,7 +33,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::{db::models::wizard_flags::WizardFlags, setup::run_setup_web_server};
+use defguard_setup::setup::run_setup_web_server;
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
