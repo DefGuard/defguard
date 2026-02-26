@@ -76,10 +76,10 @@ export const RestrictionsSection = ({
                 </Form.AppField>
               </div>
               <Form.Subscribe
-                selector={(s) => {
-                  const state = s as { values: { deny_all_users: boolean } };
-                  return state.values.deny_all_users === false && restrictUsers;
-                }}
+                selector={(s) =>
+                  (s as { values: { deny_all_users: boolean } }).values.deny_all_users ===
+                    false && restrictUsers
+                }
               >
                 {(open) => (
                   <Fold open={Boolean(open)}>
@@ -167,9 +167,9 @@ export const RestrictionsSection = ({
               </Form.Subscribe>
             </div>
           </Fold>
-          <Divider spacing={ThemeSpacing.Lg} />
         </div>
       )}
+      <Divider spacing={ThemeSpacing.Lg} />
       {isPresent(networkDevicesOptions) && (
         <div className="restriction-block">
           <div className="restriction-toggle">

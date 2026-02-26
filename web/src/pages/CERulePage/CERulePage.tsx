@@ -190,7 +190,6 @@ const Content = ({ rule: initialRule }: Props) => {
         initialRule.denied_network_devices.length > 0
       : false,
   );
-  // const [manualDestination, setManualDestination] = useState(false);
 
   const formSchema = useMemo(
     () =>

@@ -79,7 +79,7 @@
   .restriction-block {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-sm);
   }
 
   .restriction-toggle {
@@ -90,7 +90,6 @@
   .restriction-body {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
   }
 
   .restriction-radio {
