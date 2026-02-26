@@ -106,7 +106,7 @@ export const AddLocationInternalVpnStep = () => {
           <form.AppField name="allowed_ips">
             {(field) => <field.FormInput required label={'Allowed IPs'} />}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Md} />
+          <SizedBox height={ThemeSpacing.Lg} />
           <div
             onMouseEnter={() => setTooltipOpen(true)}
             onMouseLeave={() => setTooltipOpen(false)}
