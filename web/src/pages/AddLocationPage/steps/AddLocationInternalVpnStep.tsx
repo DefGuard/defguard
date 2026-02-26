@@ -14,7 +14,11 @@ import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
 import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
-import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';

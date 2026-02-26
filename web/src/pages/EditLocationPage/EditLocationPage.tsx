@@ -22,8 +22,8 @@ import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/B
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
-import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
