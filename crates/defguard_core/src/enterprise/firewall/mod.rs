@@ -238,7 +238,11 @@ async fn get_manual_destination_rules(
     }
 
     // prepare destination addresses
-    let (dest_addrs_v4, dest_addrs_v6) = process_destination_addrs(&addresses, &address_ranges);
+    let (dest_addrs_v4, dest_addrs_v6) = if any_address {
+        (Vec::new(), Vec::new())
+    } else {
+        process_destination_addrs(&addresses, &address_ranges)
+    };
 
     // prepare destination ports
     let destination_ports = if any_port {
@@ -319,8 +323,11 @@ async fn get_predefined_destination_rules(
     let alias_destination_ranges = destination.get_destination_ranges(&mut *conn).await?;
 
     // combine destination addrs
-    let (dest_addrs_v4, dest_addrs_v6) =
-        process_alias_destination_addrs(&destination.addresses, &alias_destination_ranges);
+    let (dest_addrs_v4, dest_addrs_v6) = if destination.any_address {
+        (Vec::new(), Vec::new())
+    } else {
+        process_alias_destination_addrs(&destination.addresses, &alias_destination_ranges)
+    };
 
     // process alias ports
     let destination_ports = if destination.any_port {
@@ -430,6 +437,7 @@ fn create_rules(
         debug!("ALLOW rule generated from ACL: {rule:?}");
         Some(rule)
     };
+
     // prepare DENY rule
     // it should specify only the destination addrs to block all remaining traffic
     let deny = FirewallRule {
