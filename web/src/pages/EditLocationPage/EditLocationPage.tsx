@@ -214,7 +214,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <InfoBanner
                 icon="info-outlined"
                 variant="warning"
-                text={m.location_edit_failed_has_devices()}
+                text={m.location_edit_addresses_rewrite_warning()}
               />
               <SizedBox height={ThemeSpacing.Lg} />
             </>
@@ -223,7 +223,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             {(field) => (
               <field.FormInput
                 required
-                disabled={location.has_devices}
                 label="Gateway VPN IP address and netmask"
               />
             )}
