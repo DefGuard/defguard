@@ -16,6 +16,7 @@ use crate::{
         AclAlias, AclAliasDestinationRange, AclAliasInfo, AclError, AliasKind, AliasState,
         Protocol, acl_delete_related_objects, parse_destination_addresses,
     },
+    error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -32,6 +33,26 @@ pub(crate) struct EditAclDestination {
 }
 
 impl EditAclDestination {
+    fn validate(&self) -> Result<(), WebError> {
+        if !self.any_address && self.addresses.trim().is_empty() {
+            return Err(WebError::BadRequest(
+                "Must provide destination addresses or enable any address".to_string(),
+            ));
+        }
+        if !self.any_port && self.ports.trim().is_empty() {
+            return Err(WebError::BadRequest(
+                "Must provide destination ports or enable any port".to_string(),
+            ));
+        }
+        if !self.any_protocol && self.protocols.is_empty() {
+            return Err(WebError::BadRequest(
+                "Must provide destination protocols or enable any protocol".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Creates relation objects for a given [`AclAlias`] based on [`AclAliasInfo`] object.
     pub(crate) async fn create_related_objects(
         &self,
@@ -307,6 +328,7 @@ pub(crate) async fn create_acl_destination(
         "User {} creating ACL destination {data:?}",
         session.user.username
     );
+    data.validate()?;
     let alias = ApiAclDestination::create_from_api(&appstate.pool, &data)
         .await
         .map_err(|err| {
@@ -344,6 +366,7 @@ pub(crate) async fn update_acl_destination(
         "User {} updating ACL destination {data:?}",
         session.user.username
     );
+    data.validate()?;
     let alias = ApiAclDestination::update_from_api(&appstate.pool, id, &data)
         .await
         .map_err(|err| {
