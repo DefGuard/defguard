@@ -82,7 +82,7 @@ export const LocationsTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Location name',
+        header: 'Name',
         meta: {
           flex: true,
         },
@@ -118,7 +118,7 @@ export const LocationsTable = () => {
         header: 'Firewall',
         size: 76,
         cell: (info) => (
-          <TableCell className="cell-acl-enabled">
+          <TableCell className="cell-with-check-icons">
             {info.getValue() ? (
               <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
             ) : (
@@ -157,6 +157,47 @@ export const LocationsTable = () => {
               );
           }
         },
+      }),
+      columnHelper.accessor('service_location_mode', {
+        header: 'Service location',
+        cell: (info) => {
+          switch (info.getValue()) {
+            case 'disabled':
+              return (
+                <TableCell className="cell-with-check-icons">
+                  <Icon icon="disabled" />
+                </TableCell>
+              );
+            case 'prelogon':
+              return (
+                <TableCell>
+                  <span>Pre-logon</span>
+                </TableCell>
+              );
+            case 'alwayson':
+              return (
+                <TableCell>
+                  <span>Always</span>
+                </TableCell>
+              );
+          }
+        },
+      }),
+      columnHelper.accessor('fwmark', {
+        header: 'FWMark',
+        cell: (info) => (
+          <TableCell>
+            <span>0x{info.getValue().toString(16)}</span>
+          </TableCell>
+        ),
+      }),
+      columnHelper.accessor('mtu', {
+        header: 'MTU',
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('allowed_groups', {
         header: 'Allowed groups',
