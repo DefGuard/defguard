@@ -139,10 +139,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
-    if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
-        anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
-    }
-
     // read grpc TLS cert and key
     let grpc_cert = config
         .grpc_cert
