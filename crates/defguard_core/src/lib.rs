@@ -43,12 +43,14 @@ use handlers::{
         find_available_ips, get_network_device, list_network_devices, modify_network_device,
         start_network_device_setup, start_network_device_setup_for_device,
     },
+    session_info::get_session_info,
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
     },
     updates::check_new_version,
     wireguard::all_gateways_status,
+    wizard::{get_migration_wizard_state, get_wizard_flags, update_migration_wizard_state},
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -236,9 +238,15 @@ pub fn build_webapp(
         Router::new()
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
+            .route("/session-info", get(get_session_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
             .route("/updates", get(check_new_version))
+            .route("/wizard", get(get_wizard_flags))
+            .route(
+                "/wizard/migration",
+                get(get_migration_wizard_state).put(update_migration_wizard_state),
+            )
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))

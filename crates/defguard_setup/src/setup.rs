@@ -22,7 +22,7 @@ use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::oneshot::Sender};
 use tracing::{info, instrument};
 
-use crate::handlers::{
+use crate::handlers::initial_wizard::{
     create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login, setup_session,
     upload_ca,
 };
