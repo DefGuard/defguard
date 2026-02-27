@@ -1,0 +1,17 @@
+ALTER TABLE settings
+    DROP COLUMN auth_cookie_timeout,
+    DROP COLUMN secret_key,
+    DROP COLUMN grpc_ca,
+    DROP COLUMN grpc_cert,
+    DROP COLUMN grpc_key,
+    DROP COLUMN openid_signing_key,
+    DROP COLUMN webauthn_rp_id,
+    DROP COLUMN grpc_url,
+    DROP COLUMN disable_stats_purge,
+    DROP COLUMN stats_purge_frequency,
+    DROP COLUMN stats_purge_threshold,
+    DROP COLUMN enrollment_token_timeout,
+    DROP COLUMN password_reset_token_timeout,
+    DROP COLUMN enrollment_session_timeout,
+    DROP COLUMN password_reset_session_timeout,
+    DROP COLUMN proxy_grpc_ca;
