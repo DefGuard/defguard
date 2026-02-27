@@ -854,7 +854,7 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             any_address: rule.any_address,
             any_port: rule.any_port,
             any_protocol: rule.any_protocol,
-            use_manual_destination_settings: true,
+            use_manual_destination_settings: rule.use_manual_destination_settings,
         })
     }
 }
@@ -1644,9 +1644,9 @@ impl TryFrom<&EditAclAlias> for AclAlias {
             kind: AliasKind::Component,
             state: AliasState::Applied,
             protocols: alias.protocols.clone(),
-            any_address: true,
-            any_port: true,
-            any_protocol: true,
+            any_address: false,
+            any_port: false,
+            any_protocol: false,
         })
     }
 }

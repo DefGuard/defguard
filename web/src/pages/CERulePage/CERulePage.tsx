@@ -34,10 +34,12 @@ import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox'
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
+import { FieldError } from '../../shared/defguard-ui/components/FieldError/FieldError';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
 import { Icon, type IconKindValue } from '../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { useFormFieldError } from '../../shared/defguard-ui/hooks/useFormFieldError';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
@@ -376,6 +378,38 @@ const Content = ({ rule: initialRule }: Props) => {
               message,
             });
           }
+
+          if (vals.use_manual_destination_settings) {
+            const message =
+              'Manual destination is enabled. Provide a value or enable Any.';
+            if (!vals.any_address && vals.addresses.trim().length === 0) {
+              ctx.addIssue({
+                path: ['addresses'],
+                code: 'custom',
+                message,
+              });
+            }
+            if (!vals.any_port && vals.ports.trim().length === 0) {
+              ctx.addIssue({
+                path: ['ports'],
+                code: 'custom',
+                message,
+              });
+            }
+            if (!vals.any_protocol && vals.protocols.size === 0) {
+              ctx.addIssue({
+                path: ['protocols'],
+                code: 'custom',
+                message,
+              });
+            }
+          } else if (vals.destinations.size === 0) {
+            ctx.addIssue({
+              path: ['destinations'],
+              code: 'custom',
+              message: m.form_error_required(),
+            });
+          }
         }),
     [],
   );
@@ -551,6 +585,7 @@ const Content = ({ rule: initialRule }: Props) => {
                         });
                       }}
                     />
+                    <DestinationSelectionError />
                     {selectedDestinations.length > 0 && (
                       <div className="selected-destinations">
                         <div className="top">
@@ -1034,5 +1069,13 @@ const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
         )}
       </div>
     </div>
+  );
+};
+
+const DestinationSelectionError = () => {
+  const error = useFormFieldError();
+  if (!error) return null;
+  return (
+    <FieldError error="Manual destination is disabled. Select a predefined destination or enable manual config." />
   );
 };
