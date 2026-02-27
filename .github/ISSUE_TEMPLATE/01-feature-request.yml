@@ -54,24 +54,3 @@ body:
         - Critical / blocking our usage
     validations:
       required: true
-
-  - type: input
-    id: contact_email
-    attributes:
-      label: Contact email
-      description: Optional, in case we need clarification or want to follow up
-      placeholder: you@company.com
-    validations:
-      required: false
-
-  - type: dropdown
-    id: purchased_plan
-    attributes:
-      label: Purchased plan
-      description: Helps us prioritize and understand your environment
-      options:
-        - Open source (community)
-        - Business
-        - Enterprise
-    validations:
-      required: true
