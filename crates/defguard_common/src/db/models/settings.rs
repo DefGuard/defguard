@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
 use chrono::NaiveDateTime;
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
@@ -10,7 +11,7 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{db::Id, global_value, secret::SecretStringWrapper};
+use crate::{config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -175,6 +176,22 @@ pub struct Settings {
     pub public_proxy_url: String,
     pub initial_setup_step: InitialSetupStep,
     pub default_admin_id: Option<Id>,
+    // 1.6 config options
+    pub auth_cookie_timeout_days: i32,
+    pub secret_key: String,
+    pub grpc_ca: Option<String>,
+    pub grpc_cert: Option<String>,
+    pub grpc_key: Option<String>,
+    pub webauthn_rp_id: Option<String>,
+    pub grpc_url: String,
+    pub disable_stats_purge: bool,
+    pub stats_purge_frequency_hours: i32,
+    pub stats_purge_threshold_days: i32,
+    pub enrollment_token_timeout_hours: i32,
+    pub password_reset_token_timeout_hours: i32,
+    pub enrollment_session_timeout_minutes: i32,
+    pub password_reset_session_timeout_minutes: i32,
+    pub proxy_grpc_ca: Option<String>,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -297,7 +314,22 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
-            default_admin_id \
+            default_admin_id, \
+			auth_cookie_timeout_days, \
+			secret_key, \
+			grpc_ca, \
+			grpc_cert, \
+			grpc_key, \
+			webauthn_rp_id, \
+			grpc_url, \
+			disable_stats_purge, \
+			stats_purge_frequency_hours, \
+			stats_purge_threshold_days, \
+			enrollment_token_timeout_hours, \
+			password_reset_token_timeout_hours, \
+			enrollment_session_timeout_minutes, \
+			password_reset_session_timeout_minutes, \
+			proxy_grpc_ca \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -528,6 +560,40 @@ impl Settings {
 
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
+    }
+
+    pub async fn update_from_config<'e, E>(
+        &mut self,
+        executor: E,
+        config: &DefGuardConfig,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let minute = 60;
+        let hour = minute * 60;
+        let day = hour * 24;
+        self.auth_cookie_timeout_days = (config.auth_cookie_timeout.as_secs() / day) as i32;
+        self.secret_key = config.secret_key.expose_secret().to_string();
+        self.grpc_ca = config.grpc_ca.clone();
+        self.grpc_cert = config.grpc_cert.clone();
+        self.grpc_key = config.grpc_key.clone();
+        self.webauthn_rp_id = config.webauthn_rp_id.clone();
+        self.grpc_url = config.grpc_url.to_string();
+        self.disable_stats_purge = config.disable_stats_purge;
+        self.stats_purge_frequency_hours = (config.stats_purge_frequency.as_secs() / hour) as i32;
+        self.stats_purge_threshold_days = (config.stats_purge_threshold.as_secs() / day) as i32;
+        self.enrollment_token_timeout_hours =
+            (config.enrollment_token_timeout.as_secs() / hour) as i32;
+        self.password_reset_token_timeout_hours =
+            (config.password_reset_token_timeout.as_secs() / hour) as i32;
+        self.enrollment_session_timeout_minutes =
+            (config.enrollment_session_timeout.as_secs() / minute) as i32;
+        self.password_reset_session_timeout_minutes =
+            (config.password_reset_session_timeout.as_secs() / minute) as i32;
+        self.proxy_grpc_ca = config.proxy_grpc_ca.clone();
+
+        self.save(executor).await
     }
 }
 

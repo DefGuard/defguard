@@ -112,6 +112,10 @@ async fn main() -> Result<(), anyhow::Error> {
         settings = Settings::get_current_settings();
     }
 
+	if wizard_flags.migration_wizard_needed {
+
+	}
+
     config.initialize_post_settings();
 
     SERVER_CONFIG
