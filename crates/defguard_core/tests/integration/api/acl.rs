@@ -1469,3 +1469,107 @@ async fn test_acl_count_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(counts["applied"], json!(2));
     assert_eq!(counts["pending"], json!(1));
 }
+
+#[sqlx::test]
+async fn test_destination_requires_any_or_values(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // create destination with empty fields and no any flags
+    let invalid_destination = json!({
+        "name": "invalid destination",
+        "addresses": "",
+        "ports": "",
+        "protocols": [],
+        "any_address": false,
+        "any_port": false,
+        "any_protocol": false
+    });
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&invalid_destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // try to create destinations with only some destination fields set
+    let invalid_destination = json!({
+        "name": "invalid destination",
+        "addresses": "",
+        "ports": "22, 443",
+        "protocols": [],
+        "any_address": false,
+        "any_port": false,
+        "any_protocol": true
+    });
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&invalid_destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // create valid destination
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let destination: Value = response.json().await;
+    let destination_id = destination["id"].as_i64().unwrap();
+
+    // update destination with empty fields and no any flags
+    let invalid_update = json!({
+        "name": "invalid update",
+        "addresses": "",
+        "ports": "",
+        "protocols": [],
+        "any_address": false,
+        "any_port": false,
+        "any_protocol": false
+    });
+    let response = client
+        .put(format!("/api/v1/acl/destination/{destination_id}"))
+        .json(&invalid_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // update destination with some destination fields set
+    let invalid_update = json!({
+        "name": "invalid update",
+        "addresses": "",
+        "ports": "5432",
+        "protocols": [],
+        "any_address": true,
+        "any_port": false,
+        "any_protocol": false
+    });
+    let response = client
+        .put(format!("/api/v1/acl/destination/{destination_id}"))
+        .json(&invalid_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // create valid destination with only "any" flags enabled
+    let destination = json!({
+        "name": "valid destination",
+        "addresses": "",
+        "ports": "",
+        "protocols": [],
+        "any_address": true,
+        "any_port": true,
+        "any_protocol": true
+    });
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
