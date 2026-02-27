@@ -160,6 +160,7 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('service_location_mode', {
         header: 'Service location',
+        minSize: 100,
         cell: (info) => {
           switch (info.getValue()) {
             case 'disabled':
@@ -185,6 +186,7 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('fwmark', {
         header: 'FWMark',
+        minSize: 100,
         cell: (info) => (
           <TableCell>
             <span>0x{info.getValue().toString(16)}</span>
@@ -193,6 +195,7 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('mtu', {
         header: 'MTU',
+        minSize: 100,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
