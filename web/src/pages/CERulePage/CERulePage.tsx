@@ -1019,9 +1019,7 @@ const Content = ({ rule: initialRule }: Props) => {
           )}
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
-        <form.Subscribe
-          selector={(s) => ({ isSubmitting: s.isSubmitting, canSubmit: s.canSubmit })}
-        >
+        <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (
             <Controls>
               <form.AppField name="enabled">
