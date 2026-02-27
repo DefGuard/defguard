@@ -5,20 +5,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { ButtonsGroup } from '../../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
 import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -107,32 +101,20 @@ export const AddLocationInternalVpnStep = () => {
             {(field) => <field.FormInput required label={'Allowed IPs'} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Lg} />
-          <ButtonsGroup>
-            <TooltipProvider disabled={!firewallRulesToggleLocked} placement="top">
-              <TooltipTrigger>
-                <div>
-                  <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
-                    active={false}
-                    disabled={firewallRulesToggleLocked}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{m.license_upgrade_business_tooltip()}</p>
-              </TooltipContent>
-            </TooltipProvider>
-            <AppText
-              as="span"
-              font={TextStyle.TBodySm400}
-              color={
-                firewallRulesToggleLocked
-                  ? ThemeVariable.FgDisabled
-                  : ThemeVariable.FgDefault
-              }
-            >
-              {m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-            </AppText>
-          </ButtonsGroup>
+          <TooltipProvider disabled={!firewallRulesToggleLocked} placement="top-start">
+            <TooltipTrigger>
+              <div>
+                <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
+                  active={false}
+                  disabled={firewallRulesToggleLocked}
+                  label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{m.license_upgrade_business_tooltip()}</p>
+            </TooltipContent>
+          </TooltipProvider>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label={'DNS'} />}
