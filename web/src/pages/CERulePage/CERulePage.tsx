@@ -4,8 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
 import { cloneDeep, flat, omit } from 'radashi';
-import clsx from 'clsx';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -37,20 +36,16 @@ import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { FieldError } from '../../shared/defguard-ui/components/FieldError/FieldError';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
 import { Icon, type IconKindValue } from '../../shared/defguard-ui/components/Icon';
-import { Input } from '../../shared/defguard-ui/components/Input/Input';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Textarea } from '../../shared/defguard-ui/components/Textarea/Textarea';
-import type { InputProps } from '../../shared/defguard-ui/components/Input/types';
-import type { TextareaProps } from '../../shared/defguard-ui/components/Textarea/types';
+import { useFormFieldError } from '../../shared/defguard-ui/hooks/useFormFieldError';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
-import { useFormFieldError } from '../../shared/defguard-ui/hooks/useFormFieldError';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
-import { useAppForm, useFieldContext, useFormContext } from '../../shared/form';
+import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -684,13 +679,11 @@ const Content = ({ rule: initialRule }: Props) => {
                     {(open) => (
                       <Fold open={open}>
                         <SizedBox height={ThemeSpacing.Xl} />
-                   <form.AppField name="addresses">
-                     {() => (
-                       <ManualDestinationTextarea
-                         label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)"
-                       />
-                     )}
-                   </form.AppField>
+                        <form.AppField name="addresses">
+                          {(field) => (
+                            <field.FormTextarea label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)" />
+                          )}
+                        </form.AppField>
                         <AliasDataBlock
                           values={flat(
                             selectedAliases.map((alias) => alias.addresses.split(',')),
@@ -713,11 +706,11 @@ const Content = ({ rule: initialRule }: Props) => {
                     {(open) => (
                       <Fold open={open}>
                         <SizedBox height={ThemeSpacing.Xl} />
-                   <form.AppField name="ports">
-                     {() => (
-                       <ManualDestinationInput label="Manually defined ports (or multiple values separated by commas)" />
-                     )}
-                   </form.AppField>
+                        <form.AppField name="ports">
+                          {(field) => (
+                            <field.FormInput label="Manually defined ports (or multiple values separated by commas)" />
+                          )}
+                        </form.AppField>
                         <AliasDataBlock
                           values={flat(
                             selectedAliases.map((alias) => alias.ports.split(',')),
@@ -740,14 +733,14 @@ const Content = ({ rule: initialRule }: Props) => {
                     {(open) => (
                       <Fold open={open}>
                         <SizedBox height={ThemeSpacing.Xl2} />
-                   <form.AppField name="protocols">
-                     {() => (
-                       <ManualDestinationCheckboxGroup
-                         values={aclProtocolValues}
-                         getLabel={getProtocolName}
-                       />
-                     )}
-                   </form.AppField>
+                        <form.AppField name="protocols">
+                          {(field) => (
+                            <field.FormCheckboxGroup
+                              values={aclProtocolValues}
+                              getLabel={getProtocolName}
+                            />
+                          )}
+                        </form.AppField>
                         <AliasDataBlock
                           values={flat(
                             selectedAliases.map((alias) =>
@@ -900,8 +893,10 @@ const Content = ({ rule: initialRule }: Props) => {
           </Fold>
         </MarkedSection> */}
         <Divider spacing={ThemeSpacing.Xl2} />
-        <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting, canSubmit: s.canSubmit })}>
-          {({ isSubmitting  }) => (
+        <form.Subscribe
+          selector={(s) => ({ isSubmitting: s.isSubmitting, canSubmit: s.canSubmit })}
+        >
+          {({ isSubmitting }) => (
             <Controls>
               <form.AppField name="enabled">
                 {(field) => <field.FormToggle label="Enable rule" />}
@@ -958,116 +953,5 @@ const DestinationSelectionError = () => {
   if (!error) return null;
   return (
     <FieldError error="Manual destination is disabled. Select a predefined destination or enable manual config." />
-  );
-};
-
-const manualDestinationErrorMessage =
-  'Manual destination is enabled. Provide a value or enable Any.';
-
-const useManualDestinationErrorVisibility = () => {
-  const form = useFormContext();
-  return useStore(
-    form.store,
-    (store) => !store.isSubmitSuccessful && store.submissionAttempts > 0,
-  );
-};
-
-const ManualDestinationTextarea = (
-  props: Omit<TextareaProps, 'value' | 'onChange' | 'error'>,
-) => {
-  const field = useFieldContext<string | null>();
-  const showError = useManualDestinationErrorVisibility();
-  const error =
-    showError && field.state.meta.errors?.length
-      ? manualDestinationErrorMessage
-      : undefined;
-
-  return (
-    <Textarea
-      {...props}
-      value={field.state.value}
-      onChange={field.handleChange}
-      onBlur={field.handleBlur}
-      error={error}
-    />
-  );
-};
-
-const ManualDestinationInput = (props: Omit<InputProps, 'value' | 'onChange' | 'error'>) => {
-  const field = useFieldContext<string | number | null>();
-  const showError = useManualDestinationErrorVisibility();
-  const error =
-    showError && field.state.meta.errors?.length
-      ? manualDestinationErrorMessage
-      : undefined;
-
-  return (
-    <Input
-      {...props}
-      testId={`field-${field.name}`}
-      onBlur={field.handleBlur}
-      onChange={field.handleChange}
-      value={field.state.value}
-      error={error}
-    />
-  );
-};
-
-type ManualCheckboxGroupProps<T extends number> = {
-  values: T[];
-  getLabel: (value: T) => string;
-};
-
-const ManualDestinationCheckboxGroup = <T extends number>({
-  values,
-  getLabel,
-}: ManualCheckboxGroupProps<T>) => {
-  const field = useFieldContext<Set<T>>();
-  const showError = useManualDestinationErrorVisibility();
-  const error =
-    showError && field.state.meta.errors?.length
-      ? manualDestinationErrorMessage
-      : undefined;
-
-  const handleChange = useCallback(
-    (value: T, present: boolean) => {
-      const clone = new Set(field.store.state.value);
-      if (!present) {
-        clone.add(value);
-      } else {
-        clone.delete(value);
-      }
-      field.handleChange(clone);
-    },
-    [field],
-  );
-
-  return (
-    <div className="form-checkbox-group">
-      <div className="values-tack">
-        {values.map((value) => {
-          const checked = field.state.value.has(value);
-          const testId = `field-${field.name}-${String(value)}`;
-          const hasError = isPresent(error);
-          return (
-            <div
-              className={clsx('item', {
-                error: hasError,
-              })}
-              data-testid={testId}
-              data-value={checked}
-              key={value}
-              onClick={() => {
-                handleChange(value, checked);
-              }}
-            >
-              <CheckboxIndicator active={checked} error={hasError} />
-              <p>{getLabel(value)}</p>
-            </div>
-          );
-        })}
-      </div>
-      <FieldError error={error} />
-    </div>
   );
 };
