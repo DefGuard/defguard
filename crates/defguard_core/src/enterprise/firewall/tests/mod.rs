@@ -1801,6 +1801,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
         addresses: vec!["192.168.1.0/24".parse().unwrap()],
         allow_all_users: true,
         use_manual_destination_settings: true,
+        any_address: false,
         ..Default::default()
     }
     .save(&pool)
