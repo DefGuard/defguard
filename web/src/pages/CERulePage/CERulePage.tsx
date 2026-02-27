@@ -364,32 +364,7 @@ const Content = ({ rule: initialRule }: Props) => {
             });
           }
 
-          // check if ACL destination is set
-          if (vals.use_manual_destination_settings) {
-            const message =
-              'Manual destination is enabled. Provide a value or enable Any.';
-            if (!vals.any_address && vals.addresses.trim().length === 0) {
-              ctx.addIssue({
-                path: ['addresses'],
-                code: 'custom',
-                message,
-              });
-            }
-            if (!vals.any_port && vals.ports.trim().length === 0) {
-              ctx.addIssue({
-                path: ['ports'],
-                code: 'custom',
-                message,
-              });
-            }
-            if (!vals.any_protocol && vals.protocols.size === 0) {
-              ctx.addIssue({
-                path: ['protocols'],
-                code: 'custom',
-                message,
-              });
-            }
-          } else if (vals.destinations.size === 0) {
+          if (!vals.use_manual_destination_settings && vals.destinations.size === 0) {
             ctx.addIssue({
               path: ['destinations'],
               code: 'custom',
@@ -398,6 +373,38 @@ const Content = ({ rule: initialRule }: Props) => {
           }
         }),
     [],
+  );
+
+  const submitFormSchema = useMemo(
+    () =>
+      formSchema.superRefine((vals, ctx) => {
+        if (vals.use_manual_destination_settings) {
+          const message =
+            'Manual destination is enabled. Provide a value or enable Any.';
+          if (!vals.any_address && vals.addresses.trim().length === 0) {
+            ctx.addIssue({
+              path: ['addresses'],
+              code: 'custom',
+              message,
+            });
+          }
+          if (!vals.any_port && vals.ports.trim().length === 0) {
+            ctx.addIssue({
+              path: ['ports'],
+              code: 'custom',
+              message,
+            });
+          }
+          if (!vals.any_protocol && vals.protocols.size === 0) {
+            ctx.addIssue({
+              path: ['protocols'],
+              code: 'custom',
+              message,
+            });
+          }
+        }
+      }),
+    [formSchema],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -447,7 +454,7 @@ const Content = ({ rule: initialRule }: Props) => {
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
-      onSubmit: formSchema,
+      onSubmit: submitFormSchema,
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
