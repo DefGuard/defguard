@@ -417,7 +417,22 @@ impl Settings {
             mfa_code_timeout_seconds = $56, \
             public_proxy_url = $57, \
             initial_setup_step = $58, \
-            default_admin_id = $59 \
+            default_admin_id = $59, \
+			auth_cookie_timeout_days = $60, \
+			secret_key = $61, \
+			grpc_ca = $62, \
+			grpc_cert = $63, \
+			grpc_key = $64, \
+			webauthn_rp_id = $65, \
+			grpc_url = $66, \
+			disable_stats_purge = $67, \
+			stats_purge_frequency_hours = $68, \
+			stats_purge_threshold_days = $69, \
+			enrollment_token_timeout_hours = $70, \
+			password_reset_token_timeout_hours = $71, \
+			enrollment_session_timeout_minutes = $72, \
+			password_reset_session_timeout_minutes = $73, \
+			proxy_grpc_ca = $74 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -478,6 +493,21 @@ impl Settings {
             self.public_proxy_url,
             &self.initial_setup_step as &InitialSetupStep,
             self.default_admin_id,
+            self.auth_cookie_timeout_days,
+            self.secret_key,
+            self.grpc_ca,
+            self.grpc_cert,
+            self.grpc_key,
+            self.webauthn_rp_id,
+            self.grpc_url,
+            self.disable_stats_purge,
+            self.stats_purge_frequency_hours,
+            self.stats_purge_threshold_days,
+            self.enrollment_token_timeout_hours,
+            self.password_reset_token_timeout_hours,
+            self.enrollment_session_timeout_minutes,
+            self.password_reset_session_timeout_minutes,
+            self.proxy_grpc_ca,
         )
         .execute(executor)
         .await?;
