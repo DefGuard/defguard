@@ -131,7 +131,24 @@ pub struct EditAclRule {
 
 impl EditAclRule {
     pub fn validate(&self) -> Result<(), WebError> {
-        // FIXME: validate that destination is defined
+        let manual_configured = self.any_address
+            || self.any_port
+            || self.any_protocol
+            || !self.addresses.trim().is_empty()
+            || !self.ports.trim().is_empty()
+            || !self.protocols.is_empty();
+        if self.use_manual_destination_settings {
+            if !manual_configured {
+                return Err(WebError::BadRequest(
+                    "Must provide manual destination settings".to_string(),
+                ));
+            }
+        } else if self.destinations.is_empty() {
+            return Err(WebError::BadRequest(
+                "Must provide destination alias".to_string(),
+            ));
+        }
+
         // check if some allowed users/group/devices are configured
         if !self.allow_all_users
             && !self.allow_all_groups
