@@ -1,4 +1,4 @@
-use std::{fmt, net::IpAddr};
+use std::{collections::HashSet, fmt, net::IpAddr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
@@ -845,6 +845,7 @@ impl Device<Id> {
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
         current_ips: Option<&[IpAddr]>,
+        used_ips: Option<&HashSet<IpAddr>>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         debug!(
             "Assiging IP addresses for device: {} in network {}",
@@ -852,6 +853,19 @@ impl Device<Id> {
         );
         let mut ips = Vec::new();
         let reserved = reserved_ips.unwrap_or_default();
+
+        let fetched;
+        let used_ips: &HashSet<IpAddr> = match used_ips {
+            Some(set) => set,
+            None => {
+                fetched = WireguardNetworkDevice::all_for_network(&mut *transaction, network.id)
+                    .await?
+                    .into_iter()
+                    .flat_map(|device| device.wireguard_ips)
+                    .collect::<HashSet<_>>();
+                &fetched
+            }
+        };
 
         // Iterate over all network addresses and assign new IP for the device in each of them
         for address in &network.address {
@@ -872,15 +886,20 @@ impl Device<Id> {
             }
             let mut picked = None;
             for ip in address {
-                if network
-                    .can_assign_ips(transaction, &[ip], Some(self.id))
-                    .await
-                    .is_ok()
-                    && !reserved.contains(&ip)
-                {
-                    picked = Some(ip);
-                    break;
+                if ip == address.network() || ip == address.broadcast() || ip == address.ip() {
+                    continue;
                 }
+
+                if used_ips.contains(&ip) || reserved.contains(&ip) {
+                    continue;
+                }
+
+                if reserved.contains(&ip) {
+                    continue;
+                }
+
+                picked = Some(ip);
+                break;
             }
 
             // Return error if no address can be assigned

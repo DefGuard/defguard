@@ -1,4 +1,7 @@
-use std::{collections::HashMap, net::IpAddr};
+use std::{
+    collections::{HashMap, HashSet},
+    net::IpAddr,
+};
 
 use defguard_common::{
     csv::AsCsv,
@@ -165,6 +168,12 @@ pub async fn process_device_access_changes(
     // Loop through current device configurations; remove no longer allowed, readdress
     // when necessary; remove processed entry from all devices list initial list should
     // now contain only devices to be added.
+    let all_devices =
+        WireguardNetworkDevice::all_for_network(&mut *transaction, location.id).await?;
+    let used_ips: HashSet<IpAddr> = all_devices
+        .into_iter()
+        .flat_map(|device| device.wireguard_ips)
+        .collect();
     let mut events: Vec<GatewayEvent> = Vec::new();
     for device_network_config in currently_configured_devices {
         // Device is allowed and an IP was already assigned
@@ -179,6 +188,7 @@ pub async fn process_device_access_changes(
                         location,
                         reserved_ips,
                         Some(&device_network_config.wireguard_ips),
+                        Some(&used_ips),
                     )
                     .await?;
                 events.push(GatewayEvent::DeviceModified(DeviceInfo {
@@ -221,7 +231,7 @@ pub async fn process_device_access_changes(
     // Add configs for new allowed devices
     for device in allowed_devices.into_values() {
         let wireguard_network_device = device
-            .assign_next_network_ip(&mut *transaction, location, reserved_ips, None)
+            .assign_next_network_ip(&mut *transaction, location, reserved_ips, None, None)
             .await?;
         events.push(GatewayEvent::DeviceCreated(DeviceInfo {
             device,

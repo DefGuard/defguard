@@ -762,7 +762,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not save device");
         device
-            .assign_next_network_ip(&mut transaction, &network, None, None)
+            .assign_next_network_ip(&mut transaction, &network, None, None, None)
             .await
             .expect("Could not assign IP to device");
     }

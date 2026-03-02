@@ -441,7 +441,7 @@ impl WireguardNetwork<Id> {
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
-                .assign_next_network_ip(&mut *transaction, self, None, None)
+                .assign_next_network_ip(&mut *transaction, self, None, None, None)
                 .await?;
         }
         Ok(())
@@ -459,7 +459,7 @@ impl WireguardNetwork<Id> {
         let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None)
+                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None, None)
                 .await?;
             Ok(wireguard_network_device)
         } else {
