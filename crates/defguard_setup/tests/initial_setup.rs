@@ -16,7 +16,7 @@ use defguard_common::{
         setup_pool,
     },
 };
-use defguard_setup::setup::build_setup_webapp;
+use defguard_setup::setup_server::build_setup_webapp;
 use reqwest::{
     Client, StatusCode,
     cookie::Jar,
@@ -157,6 +157,53 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(settings.default_admin_id, Some(user.id));
 
     assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
+}
+
+#[sqlx::test]
+async fn test_create_admin_with_automatic_group_assignment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let default_admin_group_name = Settings::get_current_settings().default_admin_group_name;
+
+    let payload = json!({
+        "first_name": "Admin",
+        "last_name": "Admin",
+        "username": "admin1",
+        "email": "admin1@example.com",
+        "password": "Passw0rd!",
+        "automatically_assign_group": true
+    });
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let group = Group::find_by_name(&pool, &default_admin_group_name)
+        .await
+        .expect("Failed to fetch group")
+        .expect("Default admin group not created");
+    assert!(group.is_admin);
+
+    let admin = User::find_by_username(&pool, "admin1")
+        .await
+        .expect("Failed to fetch admin")
+        .expect("Admin user missing");
+    let groups = admin
+        .member_of_names(&pool)
+        .await
+        .expect("Failed to fetch group membership");
+    assert!(groups.contains(&default_admin_group_name));
 }
 
 #[sqlx::test]

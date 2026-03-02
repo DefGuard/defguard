@@ -81,10 +81,14 @@ import type {
   PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  SetAutoAdoptionMfaSettingsRequest,
+  SetAutoAdoptionUrlSettingsRequest,
+  SetAutoAdoptionVpnSettingsRequest,
   SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
   SettingsEssentials,
+  SetupAutoAdoptionResponse,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
@@ -125,8 +129,16 @@ const api = {
       client.post('/initial_setup/admin', data),
     login: (data: LoginRequest) => client.post('/initial_setup/login', data),
     session: () => client.get('/initial_setup/session'),
+    getAutoAdoptionResult: () =>
+      client.get<SetupAutoAdoptionResponse>('/initial_setup/auto_adoption'),
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post('/initial_setup/general_config', data),
+    setAutoAdoptionUrlSettings: (data: SetAutoAdoptionUrlSettingsRequest) =>
+      client.post('/initial_setup/auto_wizard/url_settings', data),
+    setAutoAdoptionVpnSettings: (data: SetAutoAdoptionVpnSettingsRequest) =>
+      client.post('/initial_setup/auto_wizard/vpn_settings', data),
+    setAutoAdoptionMfaSettings: (data: SetAutoAdoptionMfaSettingsRequest) =>
+      client.post('/initial_setup/auto_wizard/mfa_settings', data),
     finishSetup: () => client.post('/initial_setup/finish'),
   },
   openid: {

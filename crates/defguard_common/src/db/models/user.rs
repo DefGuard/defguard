@@ -1159,6 +1159,10 @@ impl User<Id> {
         .fetch_all(executor)
         .await
     }
+
+    pub fn fullname(&self) -> String {
+        format!("{} {}", self.first_name, self.last_name)
+    }
 }
 
 impl Distribution<User<Id>> for Standard {

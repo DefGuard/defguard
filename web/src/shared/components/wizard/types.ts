@@ -29,6 +29,7 @@ export interface WizardWelcomePageConfig {
   docsLink?: string;
   docsText?: string;
   onClose?: () => void;
+  displayDocs?: boolean;
 }
 
 export type WizardPageStepsConfig = Record<string, WizardPageStep>;

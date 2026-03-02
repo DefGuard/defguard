@@ -15,6 +15,7 @@ use defguard_common::db::models::{
     Session, SessionState, Settings, User,
     group::Group,
     settings::{InitialSetupStep, update_current_settings},
+    setup_auto_adoption::AutoAdoptionWizardStep,
 };
 use defguard_core::{
     auth::{
@@ -31,6 +32,8 @@ use serde_json::json;
 use sqlx::PgPool;
 use tokio::sync::oneshot;
 use tracing::{debug, info};
+
+use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
 
 async fn advance_setup_to_step(pool: &PgPool, step: InitialSetupStep) -> Result<(), WebError> {
     let mut settings = Settings::get_current_settings();
@@ -54,6 +57,26 @@ async fn advance_setup_to_step(pool: &PgPool, step: InitialSetupStep) -> Result<
     Ok(())
 }
 
+async fn advance_wizard_to_step(
+    pool: &PgPool,
+    initial_step: Option<InitialSetupStep>,
+    auto_step: Option<AutoAdoptionWizardStep>,
+) -> Result<(), WebError> {
+    if let Some(step) = auto_step
+        && is_auto_wizard_active(pool).await?
+    {
+        advance_auto_wizard_to_step(pool, step).await?;
+    }
+
+    if let Some(initial_step) = initial_step
+        && !is_auto_wizard_active(pool).await?
+    {
+        advance_setup_to_step(pool, initial_step).await?;
+    }
+
+    Ok(())
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CreateAdmin {
     first_name: String,
@@ -61,6 +84,8 @@ pub struct CreateAdmin {
     username: String,
     email: String,
     password: String,
+    #[serde(default)]
+    automatically_assign_group: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -76,7 +101,12 @@ pub async fn create_admin(
     Extension(pool): Extension<PgPool>,
     Json(admin): Json<CreateAdmin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
-    advance_setup_to_step(&pool, InitialSetupStep::AdminUser).await?;
+    advance_wizard_to_step(
+        &pool,
+        Some(InitialSetupStep::AdminUser),
+        Some(AutoAdoptionWizardStep::AdminUser),
+    )
+    .await?;
     info!(
         "Creating initial admin user {} ({})",
         admin.username, admin.email
@@ -98,6 +128,29 @@ pub async fn create_admin(
     update_current_settings(&pool, settings).await?;
     debug!("Initial admin user set as default admin in settings");
 
+    if admin.automatically_assign_group {
+        let settings = Settings::get_current_settings();
+        let default_admin_group_name = settings.default_admin_group_name;
+
+        let admin_group =
+            if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
+                group.is_admin = true;
+                group.save(&pool).await?;
+                group
+            } else {
+                let mut group = Group::new(&default_admin_group_name);
+                group.is_admin = true;
+                group.save(&pool).await?
+            };
+
+        user.add_to_group(&pool, &admin_group).await?;
+
+        debug!(
+            "Automatically assigned admin user {} to admin group {}",
+            user.username, admin_group.name
+        );
+    }
+
     let device_info = get_device_info(user_agent.as_str());
 
     Session::delete_expired(&pool).await?;
@@ -117,7 +170,12 @@ pub async fn create_admin(
 
     info!("Initial admin user created");
 
-    advance_setup_to_step(&pool, InitialSetupStep::GeneralConfiguration).await?;
+    advance_wizard_to_step(
+        &pool,
+        Some(InitialSetupStep::GeneralConfiguration),
+        Some(AutoAdoptionWizardStep::UrlSettings),
+    )
+    .await?;
 
     Ok((cookies, ApiResponse::with_status(StatusCode::CREATED)))
 }

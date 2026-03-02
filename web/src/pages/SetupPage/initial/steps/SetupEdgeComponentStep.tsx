@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
-import { m } from '../../../paraglide/messages';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { useAppForm } from '../../../shared/form';
-import { formChangeLogic } from '../../../shared/formLogic';
-import { validateIpOrDomain } from '../../../shared/validators';
+import { m } from '../../../../paraglide/messages';
+import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { useAppForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
+import { validateIpOrDomain } from '../../../../shared/validators';
 import { SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 

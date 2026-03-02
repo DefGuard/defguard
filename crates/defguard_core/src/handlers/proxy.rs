@@ -121,7 +121,7 @@ pub(crate) async fn update_proxy(
     let before = proxy.clone();
 
     proxy.name = data.name;
-    proxy.modified_by = session.user.id;
+    proxy.modified_by = session.user.fullname();
     proxy.modified_at = Utc::now().naive_utc();
     proxy.save(&appstate.pool).await?;
 

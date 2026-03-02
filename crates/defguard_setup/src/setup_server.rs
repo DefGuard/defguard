@@ -23,7 +23,7 @@ use tokio::{net::TcpListener, sync::oneshot::Sender};
 use tracing::{info, instrument};
 
 use crate::handlers::{
-    auto_wizard::{set_mfa_settings, set_url_settings, set_vpn_settings},
+    auto_wizard::{get_auto_adoption_result, set_mfa_settings, set_url_settings, set_vpn_settings},
     initial_wizard::{
         create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login,
         setup_session, upload_ca,
@@ -53,6 +53,8 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
                         .route("/admin", post(create_admin))
                         .route("/login", post(setup_login))
                         .route("/session", get(setup_session))
+                        // .route("/step", post(advance_setup_step))
+                        .route("/auto_adoption", get(get_auto_adoption_result))
                         .route("/auto_wizard/url_settings", post(set_url_settings))
                         .route("/auto_wizard/vpn_settings", post(set_vpn_settings))
                         .route("/auto_wizard/mfa_settings", post(set_mfa_settings))

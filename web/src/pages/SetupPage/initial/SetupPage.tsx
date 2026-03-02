@@ -1,15 +1,15 @@
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useMemo } from 'react';
-import { m } from '../../paraglide/messages';
-import { Controls } from '../../shared/components/Controls/Controls';
-import type { WizardPageStep } from '../../shared/components/wizard/types';
-import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
-import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../shared/defguard-ui/types';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
-import { useApp } from '../../shared/hooks/useApp';
-import worldMap from './assets/world-map.png';
+import { m } from '../../../paraglide/messages';
+import { Controls } from '../../../shared/components/Controls/Controls';
+import type { WizardPageStep } from '../../../shared/components/wizard/types';
+import { WizardPage } from '../../../shared/components/wizard/WizardPage/WizardPage';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { useApp } from '../../../shared/hooks/useApp';
+import worldMap from '../assets/world-map.png';
 import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
 import { SetupCertificateAuthorityStep } from './steps/SetupCertificateAuthorityStep';
 import { SetupCertificateAuthoritySummaryStep } from './steps/SetupCertificateAuthoritySummaryStep';
@@ -122,7 +122,7 @@ export const SetupPage = () => {
         title: m.initial_setup_welcome_title(),
         subtitle: m.initial_setup_welcome_subtitle(),
         content: <WelcomePageContent />,
-        media: <img src={worldMap} />,
+        media: <img src={worldMap} alt="World map" />,
       }}
     >
       {stepsComponents[activeStep]}

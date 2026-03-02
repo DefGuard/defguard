@@ -14,6 +14,7 @@ pub mod polling_token;
 pub mod proxy;
 pub mod session;
 pub mod settings;
+pub mod setup_auto_adoption;
 pub mod user;
 pub mod vpn_client_session;
 pub mod vpn_session_stats;

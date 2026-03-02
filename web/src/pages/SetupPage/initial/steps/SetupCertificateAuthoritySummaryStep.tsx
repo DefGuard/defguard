@@ -1,16 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { downloadFile } from '../../../shared/utils/download';
-import caIcon from '../assets/ca.png';
+import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
+import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
+import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import { downloadFile } from '../../../../shared/utils/download';
+import caIcon from '../../assets/ca.png';
+import { CertificateAuthorityInfoCard } from '../components/CertificateAuthorityInfoCard';
 import { CAOption, SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 import './style.scss';
@@ -81,26 +80,16 @@ export const SetupCertificateAuthoritySummaryStep = () => {
     const validity = getValidityString(caData.valid_for_days);
 
     return (
-      <ActionCard
+      <CertificateAuthorityInfoCard
         title={m.initial_setup_ca_validated_title()}
         subtitle={m.initial_setup_ca_validated_subtitle()}
+        infoTitle={m.initial_setup_ca_info_title()}
+        commonNameLabel={m.initial_setup_ca_info_label_common_name()}
+        validityLabel={m.initial_setup_ca_info_label_validity()}
+        commonName={commonName}
+        validity={validity}
         imageSrc={caIcon}
-      >
-        <div className="ca-info">
-          <p className="ca-info-title">{m.initial_setup_ca_info_title()}</p>
-          <Divider spacing={ThemeSpacing.Md} />
-          <div className="ca-info-grid">
-            <div className="ca-info-label">
-              {m.initial_setup_ca_info_label_common_name()}
-            </div>
-            <div className="ca-info-value">{commonName}</div>
-            <div className="ca-info-label">
-              {m.initial_setup_ca_info_label_validity()}
-            </div>
-            <div className="ca-info-value">{validity}</div>
-          </div>
-        </div>
-      </ActionCard>
+      />
     );
   };
 

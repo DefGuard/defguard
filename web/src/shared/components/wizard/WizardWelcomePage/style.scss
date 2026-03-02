@@ -22,7 +22,7 @@
     width: 100%;
     max-width: 1110px;
 
-    .main-track {
+    & > .main-track {
       box-sizing: border-box;
       padding: var(--spacing-4xl);
       display: flex;
@@ -31,7 +31,7 @@
 
       .top-content {
         h1 {
-          font: var(--t-title-h3);
+          font: var(--t-title-h1);
           color: var(--fg-default);
         }
       }
@@ -95,7 +95,7 @@
 
   & > .footer {
     grid-row: 5;
-    margin-bottom: 24px;
+    margin: 24px auto 24px;
     display: flex;
     justify-content: space-between;
     max-width: 1110px;

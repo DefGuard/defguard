@@ -556,7 +556,7 @@ pub async fn setup_proxy_tls_stream(
             &request.common_name,
             &request.ip_or_domain,
             i32::from(request.grpc_port),
-            session.user.id,
+            &session.user.fullname(),
         );
 
         proxy.certificate = Some(serial);
@@ -978,7 +978,7 @@ pub async fn setup_gateway_tls_stream(
             request.common_name,
             request.ip_or_domain,
             request.grpc_port.into(),
-            session.user.id,
+            session.user.fullname(),
         );
 
         gateway.certificate = Some(serial);

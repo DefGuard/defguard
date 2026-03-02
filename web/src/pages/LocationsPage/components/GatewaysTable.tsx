@@ -27,8 +27,7 @@ type RowData = GatewayInfo;
 
 const columnHelper = createColumnHelper<RowData>();
 
-const displayModifiedBy = (gateway: GatewayInfo) =>
-  `${gateway.modified_by_firstname} ${gateway.modified_by_lastname}`;
+const displayModifiedBy = (gateway: GatewayInfo) => `${gateway.modified_by}`;
 
 const getStatusBadge = (gateway: GatewayInfo) => {
   if (gateway.connected) {

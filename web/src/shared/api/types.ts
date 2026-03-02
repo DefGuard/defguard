@@ -38,6 +38,7 @@ export interface CreateAdminRequest {
   username: string;
   email: string;
   password: string;
+  automatically_assign_group?: boolean;
 }
 
 export interface SetGeneralConfigRequest {
@@ -47,6 +48,23 @@ export interface SetGeneralConfigRequest {
   default_mfa_code_lifetime: number;
   public_proxy_url: string;
   admin_username: string;
+}
+
+export interface SetAutoAdoptionUrlSettingsRequest {
+  defguard_url: string;
+  public_proxy_url: string;
+}
+
+export interface SetAutoAdoptionVpnSettingsRequest {
+  vpn_public_ip: string;
+  vpn_wireguard_port: number;
+  vpn_gateway_address: string;
+  vpn_allowed_ips: string;
+  vpn_dns_server_ip: string;
+}
+
+export interface SetAutoAdoptionMfaSettingsRequest {
+  vpn_mfa_mode: LocationMfaModeValue;
 }
 
 export interface ValidateDeviceIpsRequest {
@@ -718,9 +736,41 @@ export type InitialSetupStepValue =
   | 'Confirmation'
   | 'Finished';
 
+export type AutoAdoptionAdoptionStepValue =
+  | 'welcome'
+  | 'admin_user'
+  | 'url_settings'
+  | 'vpn_settings'
+  | 'mfa_settings'
+  | 'summary'
+  | 'finished';
+
 export interface SettingsEssentials {
   initial_setup_completed: boolean;
   initial_setup_step: InitialSetupStepValue;
+}
+
+export type SetupAutoAdoptionComponentValue = 'edge' | 'gateway';
+
+export interface AutoAdoptionComponentResult {
+  success: boolean;
+  logs: string[];
+  updated_at: string;
+}
+
+export interface SetupAutoAdoptionResponse {
+  step: AutoAdoptionAdoptionStepValue;
+  adoption_result: Record<SetupAutoAdoptionComponentValue, AutoAdoptionComponentResult>;
+}
+
+export interface SetupAutoAdoptionLogsItem {
+  component: SetupAutoAdoptionComponentValue;
+  endpoint: string;
+  logs: string[];
+}
+
+export interface SetupAutoAdoptionLogsResponse {
+  items: SetupAutoAdoptionLogsItem[];
 }
 
 export const SmtpEncryption = {
@@ -1065,13 +1115,10 @@ export interface Edge {
   connected_at: string | null;
   disconnected_at: string | null;
   modified_at: string;
-  modified_by: number;
+  modified_by: string;
 }
 
-export interface EdgeInfo extends Edge {
-  modified_by_firstname: string;
-  modified_by_lastname: string;
-}
+export interface EdgeInfo extends Edge {}
 
 export interface Gateway {
   id: number;
@@ -1083,13 +1130,11 @@ export interface Gateway {
   connected_at: string | null;
   disconnected_at: string | null;
   modified_at: string;
-  modified_by: number;
+  modified_by: string;
 }
 
 export interface GatewayInfo extends Gateway {
   connected: boolean;
-  modified_by_firstname: string;
-  modified_by_lastname: string;
   location_name: string;
 }
 

@@ -43,8 +43,7 @@ const isConnected = (edge: EdgeInfo) => {
   return connected > disconnected;
 };
 
-const displayModifiedBy = (edge: EdgeInfo) =>
-  `${edge.modified_by_firstname} ${edge.modified_by_lastname}`;
+const displayModifiedBy = (edge: EdgeInfo) => `${edge.modified_by}`;
 
 export const EdgesTable = () => {
   const { data: edges } = useSuspenseQuery(getEdgesQueryOptions);
