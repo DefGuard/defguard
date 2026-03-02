@@ -100,7 +100,6 @@ async fn main() -> Result<(), anyhow::Error> {
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
-    let mut settings = Settings::get_current_settings();
 
     if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
         if let Err(err) =
@@ -108,8 +107,6 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Setup web server exited with error: {err}");
         }
-
-        settings = Settings::get_current_settings();
     }
 
     config.initialize_post_settings();

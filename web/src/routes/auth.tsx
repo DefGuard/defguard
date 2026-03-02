@@ -4,9 +4,8 @@ import { useCallback, useEffect } from 'react';
 import z from 'zod';
 import { type User, UserMfaMethod } from '../shared/api/types';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
-import { useApp } from '../shared/hooks/useApp';
 import { useAuth } from '../shared/hooks/useAuth';
-import { getSettingsEssentialsQueryOptions } from '../shared/query';
+import { getSessionInfoQueryOptions } from '../shared/query';
 
 const basicSchema = z.object({
   url: z.string().nullable().optional(),
@@ -22,22 +21,23 @@ const mfaSchema = z.object({
 
 export const Route = createFileRoute('/auth')({
   beforeLoad: async ({ context }) => {
-    // ensure that login is possible on the instance
-    let settings = useApp.getState().settingsEssentials;
-    // fill settings
-    if (!isPresent(settings)) {
-      settings = (
-        await context.queryClient.ensureQueryData(getSettingsEssentialsQueryOptions)
-      ).data;
-      useApp.setState({
-        settingsEssentials: settings,
-      });
-    }
-    if (!settings.initial_setup_completed) {
+    const sessionInfo = (
+      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
+    ).data;
+    if (sessionInfo.wizard_flags?.initial_wizard_in_progress) {
       throw redirect({
         to: '/setup',
         replace: true,
       });
+    }
+    if (sessionInfo.authorized) {
+      if (sessionInfo.wizard_flags?.migration_wizard_in_progress) {
+        throw redirect({
+          to: '/migration',
+          replace: true,
+        });
+      } else {
+      }
     }
   },
   component: RouteComponent,

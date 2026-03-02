@@ -77,12 +77,11 @@ impl WizardFlags {
 
             sqlx::query(
                 "INSERT INTO wizard (
-                    migration_wizard_needed,
                     migration_wizard_in_progress,
                     migration_wizard_completed,
                     initial_wizard_in_progress,
                     initial_wizard_completed
-                ) VALUES ($1, FALSE, FALSE, $2, FALSE)",
+                ) VALUES ($1, FALSE, $2, FALSE)",
             )
             .bind(is_migration_needed)
             .bind(is_fresh_instance)
@@ -90,8 +89,8 @@ impl WizardFlags {
             .await?;
 
             return Ok(Self {
-                migration_wizard_needed: is_migration_needed,
-                migration_wizard_in_progress: false,
+                migration_wizard_needed: false,
+                migration_wizard_in_progress: is_migration_needed,
                 migration_wizard_completed: false,
                 initial_wizard_in_progress: is_fresh_instance,
                 initial_wizard_completed: false,

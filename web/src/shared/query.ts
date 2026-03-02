@@ -231,6 +231,15 @@ export const getActivityLogStreamsQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getSessionInfoQueryOptions = queryOptions({
+  queryFn: api.getSessionInfo,
+  queryKey: ['session-info'],
+  select: (resp) => resp.data,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+  refetchOnWindowFocus: false,
+});
+
 export const getSettingsEssentialsQueryOptions = queryOptions({
   queryFn: api.settings.getSettingsEssentials,
   queryKey: ['settings_essentials'],

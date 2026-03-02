@@ -11,6 +11,7 @@ use crate::{
 #[derive(Serialize)]
 struct SessionInfoResponse {
     authorized: bool,
+    is_admin: bool,
     wizard_flags: Option<WizardFlags>,
 }
 
@@ -22,49 +23,38 @@ pub(crate) async fn get_session_info(
     let flags = WizardFlags::get(pool).await?;
 
     let Ok(SessionExtractor(session)) = session else {
-        if flags.initial_wizard_in_progress {
-            return Ok(ApiResponse::json(
-                SessionInfoResponse {
-                    authorized: false,
-                    wizard_flags: Some(flags),
+        return Ok(ApiResponse::json(
+            SessionInfoResponse {
+                authorized: false,
+                is_admin: false,
+                wizard_flags: if flags.initial_wizard_in_progress {
+                    Some(flags)
+                } else {
+                    None
                 },
-                StatusCode::OK,
-            ));
-        } else {
-            return Ok(ApiResponse::json(
-                SessionInfoResponse {
-                    authorized: false,
-                    wizard_flags: None,
-                },
-                StatusCode::OK,
-            ));
-        }
+            },
+            StatusCode::OK,
+        ));
     };
 
     let Some(user) = User::find_by_id(pool, session.user_id).await? else {
         return Ok(ApiResponse::json(
             SessionInfoResponse {
                 authorized: false,
+                is_admin: false,
                 wizard_flags: None,
             },
             StatusCode::OK,
         ));
     };
 
-    if !user.is_admin(pool).await? {
-        return Ok(ApiResponse::json(
-            SessionInfoResponse {
-                authorized: true,
-                wizard_flags: None,
-            },
-            StatusCode::OK,
-        ));
-    }
+    let user_admin = user.is_admin(pool).await?;
 
     Ok(ApiResponse::json(
         SessionInfoResponse {
             authorized: true,
-            wizard_flags: Some(flags),
+            is_admin: user_admin,
+            wizard_flags: if user_admin { Some(flags) } else { None },
         },
         StatusCode::OK,
     ))

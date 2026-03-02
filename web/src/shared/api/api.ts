@@ -81,6 +81,7 @@ import type {
   PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  SessionInfo,
   SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
@@ -499,6 +500,7 @@ const api = {
       client.put(`/activity_log_stream/${id}`, data),
     deleteStream: (id: number) => client.delete(`/activity_log_stream/${id}`),
   },
+  getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     client
       .get<PaginatedResponse<ActivityLogEvent>>(`/activity_log`, {
