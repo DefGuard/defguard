@@ -121,7 +121,7 @@
     @include animate(fill);
   }
 
-  span {
+  &>span {
     font: var(--t-body-sm-500);
     color: inherit;
   }
