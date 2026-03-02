@@ -110,22 +110,22 @@ export const MigrationWizardEdgeComponentStep = () => {
               />
             )}
           </form.AppField>
+          <Controls>
+            <Button
+              variant="outlined"
+              text={m.controls_back()}
+              onClick={() => setActiveStep(MigrationWizardStep.CaSummary)}
+            />
+            <div className="right">
+              <Button
+                text={m.edge_setup_component_controls_submit()}
+                onClick={handleNext}
+                type="submit"
+              />
+            </div>
+          </Controls>
         </form.AppForm>
       </form>
-      <Controls>
-        <Button
-          variant="outlined"
-          text={m.controls_back()}
-          onClick={() => setActiveStep(MigrationWizardStep.CaSummary)}
-        />
-        <div className="right">
-          <Button
-            text={m.edge_setup_component_controls_submit()}
-            onClick={handleNext}
-            type="submit"
-          />
-        </div>
-      </Controls>
     </WizardCard>
   );
 };
