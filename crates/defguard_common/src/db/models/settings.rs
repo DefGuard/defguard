@@ -660,6 +660,9 @@ impl Settings {
         if let Some(enrollment_url) = &config.enrollment_url {
             self.public_proxy_url = enrollment_url.to_string();
         }
+        if let Some(mfa_code_timeout) = config.mfa_code_timeout {
+            self.mfa_code_timeout_seconds = mfa_code_timeout.as_secs() as i32;
+        }
         if let Some(disable_stats_purge) = config.disable_stats_purge {
             self.disable_stats_purge = disable_stats_purge;
         }

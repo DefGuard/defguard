@@ -129,13 +129,13 @@ pub struct DefGuardConfig {
     )]
     pub enrollment_token_timeout: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT", default_value = "60s")]
+    #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT")]
     #[serde(skip_serializing)]
     #[deprecated(
         since = "2.0.0",
-        note = "Use Settings.default_mfa_code_lifetime instead"
+        note = "Use Settings.mfa_code_timeout_seconds instead"
     )]
-    pub mfa_code_timeout: Duration,
+    pub mfa_code_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT", default_value = "7d")]
     #[serde(skip_serializing)]
