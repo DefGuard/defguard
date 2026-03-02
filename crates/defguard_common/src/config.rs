@@ -235,6 +235,7 @@ impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
         let config = Self::parse();
+        #[allow(deprecated)]
         if let Some(secret_key) = &config.secret_key {
             Settings::validate_secret_key(secret_key.expose_secret())
                 .expect("Invalid DEFGUARD_SECRET_KEY");

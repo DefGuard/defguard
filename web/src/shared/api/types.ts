@@ -9,6 +9,19 @@ export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
 
+export type WizardFlags = {
+  initial_wizard_in_progress: boolean;
+  initial_wizard_completed: boolean;
+  migration_wizard_completed: boolean;
+  migration_wizard_in_progress: boolean;
+};
+
+export interface SessionInfo {
+  authorized: boolean;
+  isAdmin: boolean;
+  wizard_flags: WizardFlags | null;
+}
+
 export interface GatewayTokenResponse {
   grpc_url: string;
   token: string;

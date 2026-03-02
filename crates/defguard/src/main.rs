@@ -33,7 +33,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::setup::run_setup_web_server;
+use defguard_setup::{migration::run_migration_web_server, setup::run_setup_web_server};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -95,11 +95,13 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let wizard_flags = WizardFlags::init(&pool).await?;
+    let mut ini_server_config = true;
 
     // initialize default settings
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
+    Settings::ensure_secret_key(&pool, &config).await?;
     let mut settings = Settings::get_current_settings();
 
     if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
@@ -108,7 +110,21 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Setup web server exited with error: {err}");
         }
+        settings = Settings::get_current_settings();
+    } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
+    {
+        config.initialize_post_settings();
+        SERVER_CONFIG
+            .set(config.clone())
+            .expect("Failed to initialize server config.");
 
+        ini_server_config = false;
+
+        if let Err(err) =
+            run_migration_web_server(pool.clone(), config.http_bind_address, config.http_port).await
+        {
+            anyhow::bail!("Migration web server exited with error: {err}");
+        }
         settings = Settings::get_current_settings();
     }
 
@@ -118,14 +134,13 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Migration from 1.6: copied configuration options to DB");
     }
 
-    Settings::ensure_secret_key(&pool, &config).await?;
-    settings = Settings::get_current_settings();
+    if ini_server_config {
+        config.initialize_post_settings();
 
-    config.initialize_post_settings();
-
-    SERVER_CONFIG
-        .set(config.clone())
-        .expect("Failed to initialize server config.");
+        SERVER_CONFIG
+            .set(config.clone())
+            .expect("Failed to initialize server config.");
+    }
 
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();

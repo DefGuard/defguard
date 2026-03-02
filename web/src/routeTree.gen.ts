@@ -21,6 +21,7 @@ import { Route as AuthLoadingRouteImport } from './routes/auth/loading'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as WizardSetupLoginRouteImport } from './routes/_wizard/setup-login'
 import { Route as WizardSetupRouteImport } from './routes/_wizard/setup'
+import { Route as WizardMigrationRouteImport } from './routes/_wizard/migration'
 import { Route as AuthorizedPlaygroundRouteImport } from './routes/_authorized/playground'
 import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
@@ -120,6 +121,11 @@ const WizardSetupLoginRoute = WizardSetupLoginRouteImport.update({
 const WizardSetupRoute = WizardSetupRouteImport.update({
   id: '/_wizard/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WizardMigrationRoute = WizardMigrationRouteImport.update({
+  id: '/_wizard/migration',
+  path: '/migration',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthorizedPlaygroundRoute = AuthorizedPlaygroundRouteImport.update({
@@ -365,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
   '/playground': typeof AuthorizedPlaygroundRoute
+  '/migration': typeof WizardMigrationRoute
   '/setup': typeof WizardSetupRoute
   '/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
   '/playground': typeof AuthorizedPlaygroundRoute
+  '/migration': typeof WizardMigrationRoute
   '/setup': typeof WizardSetupRoute
   '/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -474,6 +482,7 @@ export interface FileRoutesById {
   '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/_authorized/playground': typeof AuthorizedPlaygroundRoute
+  '/_wizard/migration': typeof WizardMigrationRoute
   '/_wizard/setup': typeof WizardSetupRoute
   '/_wizard/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -530,6 +539,7 @@ export interface FileRouteTypes {
     | '/consent'
     | '/snackbar'
     | '/playground'
+    | '/migration'
     | '/setup'
     | '/setup-login'
     | '/auth/callback'
@@ -583,6 +593,7 @@ export interface FileRouteTypes {
     | '/consent'
     | '/snackbar'
     | '/playground'
+    | '/migration'
     | '/setup'
     | '/setup-login'
     | '/auth/callback'
@@ -638,6 +649,7 @@ export interface FileRouteTypes {
     | '/snackbar'
     | '/_authorized/_default'
     | '/_authorized/playground'
+    | '/_wizard/migration'
     | '/_wizard/setup'
     | '/_wizard/setup-login'
     | '/auth/callback'
@@ -692,6 +704,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
   SnackbarRoute: typeof SnackbarRoute
+  WizardMigrationRoute: typeof WizardMigrationRoute
   WizardSetupRoute: typeof WizardSetupRoute
   WizardSetupLoginRoute: typeof WizardSetupLoginRoute
 }
@@ -780,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof WizardSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_wizard/migration': {
+      id: '/_wizard/migration'
+      path: '/migration'
+      fullPath: '/migration'
+      preLoaderRoute: typeof WizardMigrationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authorized/playground': {
@@ -1216,6 +1236,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
   SnackbarRoute: SnackbarRoute,
+  WizardMigrationRoute: WizardMigrationRoute,
   WizardSetupRoute: WizardSetupRoute,
   WizardSetupLoginRoute: WizardSetupLoginRoute,
 }

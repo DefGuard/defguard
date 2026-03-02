@@ -90,6 +90,7 @@ pub(super) struct ProxyHandler {
 }
 
 impl ProxyHandler {
+	#[allow(clippy::too_many_arguments)]
     pub(super) fn new(
         pool: PgPool,
         url: Url,
@@ -205,7 +206,7 @@ impl ProxyHandler {
                 ));
             };
             let tls_config =
-                tls_certs::client_config(&ca_cert_der, certs_rx.clone(), self.proxy_id)
+                tls_certs::client_config(ca_cert_der, certs_rx.clone(), self.proxy_id)
                     .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)

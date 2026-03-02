@@ -1,0 +1,58 @@
+#migration-wizard .wizard-card {
+  .ca-info {
+    .ca-info-title {
+      font: var(--t-body-sm-500);
+    }
+
+    .ca-info-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: var(--spacing-md) var(--spacing-lg);
+      align-items: center;
+    }
+
+    .ca-info-label {
+      color: var(--fg-neutral);
+      font: var(--t-body-md-400);
+    }
+
+    .ca-info-value {
+      color: var(--fg-faded);
+      font: var(--t-body-md-400);
+    }
+  }
+
+  .ca-settings {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    border: var(--border-1) solid var(--border-default);
+
+    form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-xl) var(--spacing-md);
+
+      & > :nth-child(odd):last-child {
+        grid-column: span 2;
+      }
+    }
+  }
+}
+
+#upgrade-guide-list {
+  font: var(--t-body-sm-400);
+  color: var(--fg-neutral);
+
+  li {
+    margin-left: var(--spacing-md);
+  }
+}
+
+#confirm-improve-notice {
+  font: var(--t-body-sm-400);
+  color: var(--fg-neutral);
+
+  strong {
+    font-weight: 500;
+  }
+}

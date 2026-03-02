@@ -2,11 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect } from 'react';
 import z from 'zod';
+import { queryClient } from '../app/query';
 import { type User, UserMfaMethod } from '../shared/api/types';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
-import { useApp } from '../shared/hooks/useApp';
 import { useAuth } from '../shared/hooks/useAuth';
-import { getSettingsEssentialsQueryOptions } from '../shared/query';
+import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../shared/query';
 
 const basicSchema = z.object({
   url: z.string().nullable().optional(),
@@ -22,22 +22,38 @@ const mfaSchema = z.object({
 
 export const Route = createFileRoute('/auth')({
   beforeLoad: async ({ context }) => {
-    // ensure that login is possible on the instance
-    let settings = useApp.getState().settingsEssentials;
-    // fill settings
-    if (!isPresent(settings)) {
-      settings = (
-        await context.queryClient.ensureQueryData(getSettingsEssentialsQueryOptions)
-      ).data;
-      useApp.setState({
-        settingsEssentials: settings,
-      });
-    }
-    if (!settings.initial_setup_completed) {
+    const sessionInfo = (
+      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
+    ).data;
+    if (sessionInfo.wizard_flags?.initial_wizard_in_progress) {
       throw redirect({
         to: '/setup',
         replace: true,
       });
+    }
+    if (sessionInfo.authorized) {
+      if (sessionInfo.wizard_flags?.migration_wizard_in_progress) {
+        throw redirect({
+          to: '/migration',
+          replace: true,
+        });
+      } else {
+        if (sessionInfo.isAdmin) {
+          throw redirect({
+            to: '/vpn-overview',
+            replace: true,
+          });
+        } else {
+          const me = (await queryClient.ensureQueryData(getUserMeQueryOptions)).data;
+          throw redirect({
+            to: '/user/$username',
+            params: {
+              username: me.username,
+            },
+            replace: true,
+          });
+        }
+      }
     }
   },
   component: RouteComponent,
@@ -67,14 +83,23 @@ function RouteComponent() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: rxjs sub
   useEffect(() => {
-    const sub = loginSubject.subscribe((state) => {
+    const sub = loginSubject.subscribe(async (state) => {
       const basicResult = basicSchema.safeParse(state);
       const basicResponse = basicResult.data;
       if (isPresent(basicResponse) && basicResult.success) {
+        useAuth.getState().setUser(basicResponse.user);
         void queryClient.invalidateQueries({
           queryKey: ['me'],
         });
-        useAuth.getState().setUser(basicResponse.user);
+        void queryClient.invalidateQueries({
+          queryKey: ['session-info'],
+        });
+        const sessionInfo = (
+          await queryClient.ensureQueryData(getSessionInfoQueryOptions)
+        ).data;
+        if (sessionInfo.wizard_flags?.migration_wizard_in_progress) {
+          navigate({ to: '/migration', replace: true });
+        }
         if (isPresent(basicResponse.url)) {
           window.location.replace(basicResponse.url);
           return;

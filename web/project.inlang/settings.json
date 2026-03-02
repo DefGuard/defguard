@@ -1,7 +1,9 @@
 {
   "$schema": "https://inlang.com/schema/project-settings",
   "baseLocale": "en",
-  "locales": ["en"],
+  "locales": [
+    "en"
+  ],
   "modules": [
     "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@latest/dist/index.js"
   ],
@@ -24,7 +26,8 @@
       "./messages/{locale}/location.json",
       "./messages/{locale}/settings.json",
       "./messages/{locale}/gateway_wizard.json",
-      "./messages/{locale}/initial_wizard.json"
+      "./messages/{locale}/initial_wizard.json",
+      "./messages/{locale}/migration_wizard.json"
     ]
   }
 }
