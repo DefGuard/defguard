@@ -81,6 +81,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
     mutationFn: api.acl.destination.addDestination,
     onSuccess: () => {
       Snackbar.success('Destination added');
+      Snackbar.default('Destinations added to Pending tab and awaiting deployment.');
     },
     onError: (e) => {
       Snackbar.error('Error occurred');
@@ -95,6 +96,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
     mutationFn: api.acl.destination.editDestination,
     onSuccess: () => {
       Snackbar.success('Destination modified');
+      Snackbar.default('Destinations added to Pending tab and awaiting deployment.');
     },
     onError: (e) => {
       Snackbar.error('Error occurred');

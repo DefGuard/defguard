@@ -17,6 +17,7 @@ import { Controls } from '../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../shared/components/DescriptionBlock/DescriptionBlock';
 import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -138,8 +139,12 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       };
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
+        Snackbar.success('Alias modified');
+        Snackbar.default('Aliases added to Pending tab and awaiting deployment.');
       } else {
         await addAlias(toSend);
+        Snackbar.success('Alias added');
+        Snackbar.default('Aliases added to Pending tab and awaiting deployment.');
       }
       router.history.back();
     },
