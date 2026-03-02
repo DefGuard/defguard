@@ -267,10 +267,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           )}
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput
-                required
-                label="Gateway VPN IP address and netmask"
-              />
+              <field.FormInput required label="Gateway VPN IP address and netmask" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
