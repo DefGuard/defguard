@@ -122,6 +122,22 @@ pub(crate) async fn update_proxy(
     let before = proxy.clone();
 
     proxy.name = data.name;
+    if proxy.enabled != data.enabled {
+        if data.enabled {
+            // TODO: spawn Proxy
+        } else {
+            if let Err(err) = appstate
+                .proxy_control_tx
+                .send(ProxyControlMessage::ShutdownConnection(proxy.id))
+                .await
+            {
+                error!(
+                    "Failed to shutdown Proxy {}, it may be disconnected: {err:?}",
+                    proxy.id
+                );
+            }
+        }
+    }
     proxy.enabled = data.enabled;
     proxy.modified_by = session.user.id;
     proxy.modified_at = Utc::now().naive_utc();
@@ -178,7 +194,7 @@ pub(crate) async fn delete_proxy(
         .await
     {
         error!(
-            "Error shutting down proxy {}, it may be disconnected: {err:?}",
+            "Failed to purge Proxy {}, it may be disconnected: {err:?}",
             proxy.id
         );
     }

@@ -76,7 +76,7 @@ impl ProxyManager {
         });
         // Retrieve proxies from DB.
         let mut shutdown_channels = HashMap::new();
-        let proxies = Proxy::all(&self.pool)
+        let proxies = Proxy::all_enabled(&self.pool)
             .await?
             .iter()
             .map(|proxy| {
@@ -94,8 +94,8 @@ impl ProxyManager {
             .collect::<Result<Vec<_>, _>>()?;
         debug!("Retrieved {} proxies from the DB", proxies.len());
 
-        // Connect to all proxies.
-        let mut tasks = JoinSet::<Result<(), ProxyError>>::new();
+        // Connect to all enabled proxies.
+        let mut tasks = JoinSet::new();
         for proxy in proxies {
             debug!("Spawning proxy task for proxy {}", proxy.url);
             tasks.spawn(proxy.run(

@@ -69,7 +69,7 @@ use crate::{
     servers::{EnrollmentServer, PasswordResetServer},
 };
 
-static VERSION_ZERO: Version = Version::new(0, 0, 0);
+const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
@@ -170,9 +170,9 @@ impl ProxyHandler {
     fn endpoint(&self) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
-        // Using http here because the connector upgrades to TLS internally.
+        // Using HTTP here because the connector upgrades to TLS internally.
         url.set_scheme("http").map_err(|()| {
-            ProxyError::UrlError(format!("Failed to set http scheme on URL {url}"))
+            ProxyError::UrlError(format!("Failed to set HTTP scheme on URL {url}"))
         })?;
         let endpoint = Endpoint::from_shared(url.to_string())?;
         let endpoint = endpoint
@@ -194,6 +194,7 @@ impl ProxyHandler {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<(), ProxyError> {
+        let parsed_version = Version::parse(VERSION)?;
         loop {
             let endpoint = self.endpoint()?;
             let settings = Settings::get_current_settings();
@@ -213,7 +214,7 @@ impl ProxyHandler {
             let connector = HttpsSchemeConnector::new(connector);
 
             debug!("Connecting to proxy at {}", endpoint.uri());
-            let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
+            let interceptor = ClientVersionInterceptor::new(parsed_version.clone());
             let channel = endpoint.connect_with_connector_lazy(connector);
             let mut client = ProxyClient::with_interceptor(channel, interceptor);
             self.client = Some(client.clone());

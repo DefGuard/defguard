@@ -67,6 +67,16 @@ impl Proxy {
 }
 
 impl Proxy<Id> {
+    /// Fetch all enabled Proxies.
+    pub async fn all_enabled<'e, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
+    where
+        E: sqlx::PgExecutor<'e>,
+    {
+        sqlx::query_as!(Self, "SELECT * FROM proxy WHERE enabled")
+            .fetch_all(executor)
+            .await
+    }
+
     pub async fn find_by_address_port(
         pool: &PgPool,
         address: &str,
