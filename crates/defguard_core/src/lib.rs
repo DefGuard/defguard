@@ -740,13 +740,10 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .await
             .expect("Could not save network")
     };
-    let all_devices = WireguardNetworkDevice::all_for_network(&mut *transaction, network.id)
+    let used_ips = network
+        .all_used_ips_for_network(&mut *transaction)
         .await
-        .expect("Failed to query all devices");
-    let used_ips: HashSet<IpAddr> = all_devices
-        .into_iter()
-        .flat_map(|device| device.wireguard_ips)
-        .collect();
+        .expect("Failed to query used ip's from database");
     if Device::find_by_pubkey(
         &mut *transaction,
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",

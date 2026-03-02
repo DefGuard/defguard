@@ -168,12 +168,7 @@ pub async fn process_device_access_changes(
     // Loop through current device configurations; remove no longer allowed, readdress
     // when necessary; remove processed entry from all devices list initial list should
     // now contain only devices to be added.
-    let all_devices =
-        WireguardNetworkDevice::all_for_network(&mut *transaction, location.id).await?;
-    let used_ips: HashSet<IpAddr> = all_devices
-        .into_iter()
-        .flat_map(|device| device.wireguard_ips)
-        .collect();
+    let used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
     let mut events: Vec<GatewayEvent> = Vec::new();
     for device_network_config in currently_configured_devices {
         // Device is allowed and an IP was already assigned
@@ -227,12 +222,6 @@ pub async fn process_device_access_changes(
             }
         }
     }
-    let all_devices =
-        WireguardNetworkDevice::all_for_network(&mut *transaction, location.id).await?;
-    let used_ips: HashSet<IpAddr> = all_devices
-        .into_iter()
-        .flat_map(|device| device.wireguard_ips)
-        .collect();
     // Add configs for new allowed devices
     for device in allowed_devices.into_values() {
         let wireguard_network_device = device
@@ -670,5 +659,104 @@ mod test {
         }
 
         transaction.commit().await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_readdress_on_network_change(_: PgPoolOptions, options: PgConnectOptions) {
+        use std::net::IpAddr;
+
+        let pool = setup_pool(options).await;
+
+        // Sieć z trzema podsieciami
+        let mut network = WireguardNetwork::default();
+        network
+            .try_set_address("10.0.0.1/8,12.0.0.1/8,14.0.0.1/8")
+            .unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("pass"),
+            "Test",
+            "User",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device1".into(),
+            "key1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Ręczne przypisanie konkretnych IP do urządzenia
+        let ip_10: IpAddr = "10.0.0.10".parse().unwrap();
+        let ip_12: IpAddr = "12.0.0.12".parse().unwrap();
+        let ip_14: IpAddr = "14.0.0.15".parse().unwrap();
+
+        WireguardNetworkDevice::new(network.id, device.id, vec![ip_10, ip_12, ip_14])
+            .insert(&pool)
+            .await
+            .unwrap();
+
+        // Zmiana sieci: 12.x -> 15.x, maska 14.x zmieniona z /8 na /16
+        let mut network = network;
+        network.address = "10.0.0.1/8,15.0.0.1/8,14.0.0.1/16"
+            .split(',')
+            .map(|s| s.trim().parse::<ipnetwork::IpNetwork>().unwrap())
+            .collect();
+
+        let mut transaction = pool.begin().await.unwrap();
+
+        let events = sync_location_allowed_devices(&network, &mut transaction, None)
+            .await
+            .unwrap();
+
+        transaction.commit().await.unwrap();
+
+        // Szukamy eventu modyfikacji dla naszego urządzenia
+        let new_ips = events
+            .iter()
+            .find_map(|e| match e {
+                GatewayEvent::DeviceModified(info) if info.device.id == device.id => {
+                    Some(&info.network_info[0].device_wireguard_ips)
+                }
+                _ => None,
+            })
+            .expect("Oczekiwano zdarzenia DeviceModified dla urządzenia");
+
+        // 10.0.0.10 nadal pasuje do 10.0.0.0/8 - powinien pozostać
+        assert!(
+            new_ips.contains(&ip_10),
+            "10.0.0.10 powinno pozostać: {new_ips:?}"
+        );
+
+        // 12.0.0.12 nie pasuje do żadnej nowej podsieci - powinno zostać zastąpione przez 15.x.x.x
+        assert!(
+            !new_ips.contains(&ip_12),
+            "12.0.0.12 powinno zostać przepisane: {new_ips:?}"
+        );
+        assert!(
+            new_ips.iter().any(|ip| match ip {
+                IpAddr::V4(v4) => v4.octets()[0] == 15,
+                _ => false,
+            }),
+            "Oczekiwano adresu z zakresu 15.x.x.x: {new_ips:?}"
+        );
+
+        // 14.0.0.15 nadal pasuje do 14.0.0.0/16 - powinien pozostać
+        assert!(
+            new_ips.contains(&ip_14),
+            "14.0.0.15 powinno pozostać: {new_ips:?}"
+        );
     }
 }

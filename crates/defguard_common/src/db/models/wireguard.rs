@@ -438,12 +438,7 @@ impl WireguardNetwork<Id> {
             "Assigning IPs in network {} for all existing devices ",
             self
         );
-        let all_devices =
-            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
-        let used_ips: HashSet<IpAddr> = all_devices
-            .into_iter()
-            .flat_map(|device| device.wireguard_ips)
-            .collect();
+        let used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
@@ -463,13 +458,7 @@ impl WireguardNetwork<Id> {
         info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
-
-        let all_devices =
-            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
-        let used_ips: HashSet<IpAddr> = all_devices
-            .into_iter()
-            .flat_map(|device| device.wireguard_ips)
-            .collect();
+        let used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
 
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
@@ -1367,6 +1356,20 @@ impl WireguardNetwork<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    /// Obtain all used ips for network
+    pub async fn all_used_ips_for_network(
+        &self,
+        transaction: &mut PgConnection,
+    ) -> Result<HashSet<IpAddr>, SqlxError> {
+        let all_devices =
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
+        let used_ips: HashSet<IpAddr> = all_devices
+            .into_iter()
+            .flat_map(|device| device.wireguard_ips)
+            .collect();
+        Ok(used_ips)
     }
 }
 
