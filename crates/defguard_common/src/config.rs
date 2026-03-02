@@ -137,10 +137,13 @@ pub struct DefGuardConfig {
     )]
     pub mfa_code_timeout: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT", default_value = "7d")]
+    #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT")]
     #[serde(skip_serializing)]
-    #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
-    pub session_timeout: Duration,
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.authentication_period_days instead"
+    )]
+    pub session_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT")]
     #[serde(skip_serializing)]

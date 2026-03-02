@@ -663,6 +663,9 @@ impl Settings {
         if let Some(mfa_code_timeout) = config.mfa_code_timeout {
             self.mfa_code_timeout_seconds = mfa_code_timeout.as_secs() as i32;
         }
+        if let Some(session_timeout) = config.session_timeout {
+            self.authentication_period_days = (session_timeout.as_secs() / day) as i32;
+        }
         if let Some(disable_stats_purge) = config.disable_stats_purge {
             self.disable_stats_purge = disable_stats_purge;
         }
