@@ -18,6 +18,10 @@ export const AliasesPage = () => {
     AclDeploymentState.Applied,
   );
 
+  const pendingCount = aliasesCount?.pending ?? 0;
+  const pendingTitle = pendingCount ? `Pending (${pendingCount})` : 'Pending';
+  const pendingBadgeText = pendingCount > 0 ? '!' : undefined;
+
   const tabs = useMemo(
     (): TabsItem[] => [
       {
@@ -32,10 +36,11 @@ export const AliasesPage = () => {
         onClick: () => {
           setActiveTab(AclDeploymentState.Modified);
         },
-        title: aliasesCount?.pending ? `Pending (${aliasesCount.pending})` : 'Pending',
+        title: pendingTitle,
+        badgeText: pendingBadgeText,
       },
     ],
-    [activeTab, aliasesCount],
+    [activeTab, pendingBadgeText, pendingTitle],
   );
 
   return (

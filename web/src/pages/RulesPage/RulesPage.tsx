@@ -17,10 +17,12 @@ export const RulesPage = () => {
 
   const { data: rulesCount } = useQuery(getRulesCountQueryOptions);
 
+  const pendingCount = rulesCount?.pending ?? 0;
   const pendingTabTitle = useMemo(
-    () => `Pending${rulesCount?.pending ? ` (${rulesCount.pending})` : ''}`,
-    [rulesCount],
+    () => `Pending${pendingCount ? ` (${pendingCount})` : ''}`,
+    [pendingCount],
   );
+  const pendingBadgeText = pendingCount > 0 ? '!' : undefined;
 
   const tabs = useMemo(
     (): TabsItem[] => [
@@ -33,13 +35,14 @@ export const RulesPage = () => {
       },
       {
         title: pendingTabTitle,
+        badgeText: pendingBadgeText,
         active: activeTab === RulesPageTab.Pending,
         onClick: () => {
           setActiveTab(RulesPageTab.Pending);
         },
       },
     ],
-    [activeTab, pendingTabTitle],
+    [activeTab, pendingBadgeText, pendingTabTitle],
   );
 
   return (

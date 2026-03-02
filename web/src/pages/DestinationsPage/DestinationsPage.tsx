@@ -17,6 +17,10 @@ export const DestinationsPage = () => {
     AclDeploymentState.Applied,
   );
 
+  const pendingCount = destinationsCount?.pending ?? 0;
+  const pendingTitle = pendingCount ? `Pending (${pendingCount})` : 'Pending';
+  const pendingBadgeText = pendingCount > 0 ? '!' : undefined;
+
   const tabs = useMemo(
     (): TabsItem[] => [
       {
@@ -31,12 +35,11 @@ export const DestinationsPage = () => {
         onClick: () => {
           setActiveTab(AclDeploymentState.Modified);
         },
-        title: destinationsCount?.pending
-          ? `Pending (${destinationsCount.pending})`
-          : 'Pending',
+        title: pendingTitle,
+        badgeText: pendingBadgeText,
       },
     ],
-    [activeTab, destinationsCount],
+    [activeTab, pendingBadgeText, pendingTitle],
   );
 
   return (
