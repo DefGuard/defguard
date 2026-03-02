@@ -52,6 +52,7 @@ async fn test_gateway_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .put(format!("/api/v1/gateway/{}", gateway_1.id))
         .json(&json!({
             "name": "gateway-updated",
+            "enabled": true,
         }))
         .send()
         .await;
@@ -112,6 +113,7 @@ async fn test_gateway_endpoints_require_admin(_: PgPoolOptions, options: PgConne
         .put(format!("/api/v1/gateway/{}", gateway.id))
         .json(&json!({
             "name": "gateway-updated",
+            "enabled": true,
         }))
         .send()
         .await;
