@@ -323,6 +323,7 @@ impl Settings {
     pub async fn ensure_secret_key(pool: &PgPool, config: &DefGuardConfig) -> Result<(), anyhow::Error> {
         let mut settings = Settings::get_current_settings();
 
+		#[allow(deprecated)]
         if let Some(secret_key) = &config.secret_key {
             let secret_key = secret_key.expose_secret();
             Settings::validate_secret_key(secret_key)?;
@@ -676,6 +677,7 @@ impl Settings {
         Url::parse(&self.public_proxy_url)
     }
 
+	#[allow(deprecated)]
     pub async fn update_from_config<'e, E>(
         &mut self,
         executor: E,

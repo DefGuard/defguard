@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use defguard_common::{
-    config::server_config,
     csv::AsCsv,
     db::{
         Id,

@@ -32,7 +32,6 @@ use crate::{
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
-    server_config,
 };
 
 #[derive(Serialize)]
@@ -448,7 +447,6 @@ pub(crate) async fn start_network_device_setup(
         config,
         device: NetworkDeviceInfo::from_device(device, &mut transaction).await?,
     };
-    let config = server_config();
     let settings = Settings::get_current_settings();
     let configuration_token = start_desktop_configuration(
         &user,

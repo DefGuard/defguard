@@ -1,7 +1,4 @@
-use defguard_common::{
-    config::server_config,
-    db::models::{Settings, User},
-};
+use defguard_common::db::models::{Settings, User};
 use defguard_core::{
     db::models::enrollment::{PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::ldap::utils::ldap_change_password,

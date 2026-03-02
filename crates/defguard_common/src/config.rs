@@ -1,4 +1,4 @@
-use std::{fs::read_to_string, io, net::IpAddr, sync::OnceLock};
+use std::{net::IpAddr, sync::OnceLock};
 
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
@@ -11,9 +11,8 @@ use rsa::{
     traits::PublicKeyParts,
     RsaPrivateKey,
 };
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 use serde::Serialize;
-use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
 use crate::db::models::Settings;
 

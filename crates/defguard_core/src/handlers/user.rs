@@ -48,7 +48,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    is_valid_phone_number, server_config,
+    is_valid_phone_number,
     user_management::{delete_user_and_cleanup_devices, sync_allowed_user_devices},
 };
 
