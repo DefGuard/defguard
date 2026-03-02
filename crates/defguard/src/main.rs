@@ -115,7 +115,7 @@ async fn main() -> Result<(), anyhow::Error> {
     if wizard_flags.migration_wizard_needed {
         info!("Migration from 1.6: copying configuration options to DB");
         settings.update_from_config(&pool, &config).await?;
-        info!("Migration from 1.6: copyied configuration options to DB");
+        info!("Migration from 1.6: copied configuration options to DB");
     }
 
     config.initialize_post_settings();

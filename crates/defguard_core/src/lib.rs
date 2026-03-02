@@ -709,8 +709,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.ca_key_der = Some(ca.key_pair_der().to_vec());
     settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
     settings.initial_setup_completed = true;
-    // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
-    settings.public_proxy_url = config.enrollment_url.to_string();
     settings.defguard_url = config.url.to_string();
     update_current_settings(&pool, settings)
         .await

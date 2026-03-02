@@ -117,9 +117,9 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_threshold instead")]
     pub stats_purge_threshold: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse)]
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
-    pub enrollment_url: Url,
+    pub enrollment_url: Option<Url>,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT")]
     #[serde(skip_serializing)]

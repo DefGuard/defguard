@@ -657,6 +657,9 @@ impl Settings {
         if let Some(grpc_url) = &config.grpc_url {
             self.grpc_url = grpc_url.to_string();
         }
+        if let Some(enrollment_url) = &config.enrollment_url {
+            self.public_proxy_url = enrollment_url.to_string();
+        }
         if let Some(disable_stats_purge) = config.disable_stats_purge {
             self.disable_stats_purge = disable_stats_purge;
         }
