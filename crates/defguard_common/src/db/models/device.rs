@@ -1197,13 +1197,13 @@ mod test {
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
-            .all_used_ips_for_network(&mut *conn)
+            .all_used_ips_for_network(&mut conn)
             .await
             .unwrap();
 
         let result = device
             .assign_next_network_ip(
-                &mut *conn,
+                &mut conn,
                 &updated_network,
                 &used_ips,
                 None,
@@ -1286,13 +1286,13 @@ mod test {
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
-            .all_used_ips_for_network(&mut *conn)
+            .all_used_ips_for_network(&mut conn)
             .await
             .unwrap();
 
         let result = device
             .assign_next_network_ip(
-                &mut *conn,
+                &mut conn,
                 &updated_network,
                 &used_ips,
                 None,
@@ -1366,13 +1366,13 @@ mod test {
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
-            .all_used_ips_for_network(&mut *conn)
+            .all_used_ips_for_network(&mut conn)
             .await
             .unwrap();
 
         let result = device
             .assign_next_network_ip(
-                &mut *conn,
+                &mut conn,
                 &updated_network,
                 &used_ips,
                 None,
