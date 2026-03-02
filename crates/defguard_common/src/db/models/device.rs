@@ -843,9 +843,9 @@ impl Device<Id> {
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
+        used_ips: &HashSet<IpAddr>,
         reserved_ips: Option<&[IpAddr]>,
         current_ips: Option<&[IpAddr]>,
-        used_ips: Option<&HashSet<IpAddr>>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         debug!(
             "Assiging IP addresses for device: {} in network {}",
@@ -853,19 +853,6 @@ impl Device<Id> {
         );
         let mut ips = Vec::new();
         let reserved = reserved_ips.unwrap_or_default();
-
-        let fetched;
-        let used_ips: &HashSet<IpAddr> = match used_ips {
-            Some(set) => set,
-            None => {
-                fetched = WireguardNetworkDevice::all_for_network(&mut *transaction, network.id)
-                    .await?
-                    .into_iter()
-                    .flat_map(|device| device.wireguard_ips)
-                    .collect::<HashSet<_>>();
-                &fetched
-            }
-        };
 
         // Iterate over all network addresses and assign new IP for the device in each of them
         for address in &network.address {

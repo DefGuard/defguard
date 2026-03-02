@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::{self, Display},
     iter::zip,
     net::{IpAddr, Ipv4Addr},
@@ -438,10 +438,16 @@ impl WireguardNetwork<Id> {
             "Assigning IPs in network {} for all existing devices ",
             self
         );
+        let all_devices =
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
+        let used_ips: HashSet<IpAddr> = all_devices
+            .into_iter()
+            .flat_map(|device| device.wireguard_ips)
+            .collect();
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
-                .assign_next_network_ip(&mut *transaction, self, None, None, None)
+                .assign_next_network_ip(&mut *transaction, self, &used_ips, None, None)
                 .await?;
         }
         Ok(())
@@ -457,9 +463,17 @@ impl WireguardNetwork<Id> {
         info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
+
+        let all_devices =
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
+        let used_ips: HashSet<IpAddr> = all_devices
+            .into_iter()
+            .flat_map(|device| device.wireguard_ips)
+            .collect();
+
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None, None)
+                .assign_next_network_ip(&mut *transaction, self, &used_ips, reserved_ips, None)
                 .await?;
             Ok(wireguard_network_device)
         } else {

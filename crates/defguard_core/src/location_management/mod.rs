@@ -186,9 +186,9 @@ pub async fn process_device_access_changes(
                     .assign_next_network_ip(
                         &mut *transaction,
                         location,
+                        &used_ips,
                         reserved_ips,
                         Some(&device_network_config.wireguard_ips),
-                        Some(&used_ips),
                     )
                     .await?;
                 events.push(GatewayEvent::DeviceModified(DeviceInfo {
@@ -227,11 +227,16 @@ pub async fn process_device_access_changes(
             }
         }
     }
-
+    let all_devices =
+        WireguardNetworkDevice::all_for_network(&mut *transaction, location.id).await?;
+    let used_ips: HashSet<IpAddr> = all_devices
+        .into_iter()
+        .flat_map(|device| device.wireguard_ips)
+        .collect();
     // Add configs for new allowed devices
     for device in allowed_devices.into_values() {
         let wireguard_network_device = device
-            .assign_next_network_ip(&mut *transaction, location, reserved_ips, None, None)
+            .assign_next_network_ip(&mut *transaction, location, &used_ips, reserved_ips, None)
             .await?;
         events.push(GatewayEvent::DeviceCreated(DeviceInfo {
             device,

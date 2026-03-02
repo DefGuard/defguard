@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 use std::{
+    collections::HashSet,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, LazyLock, Mutex, RwLock},
 };
@@ -20,6 +21,7 @@ use defguard_common::{
         init_db,
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
             wireguard::{
@@ -738,7 +740,13 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .await
             .expect("Could not save network")
     };
-
+    let all_devices = WireguardNetworkDevice::all_for_network(&mut *transaction, network.id)
+        .await
+        .expect("Failed to query all devices");
+    let used_ips: HashSet<IpAddr> = all_devices
+        .into_iter()
+        .flat_map(|device| device.wireguard_ips)
+        .collect();
     if Device::find_by_pubkey(
         &mut *transaction,
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",
@@ -762,7 +770,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not save device");
         device
-            .assign_next_network_ip(&mut transaction, &network, None, None, None)
+            .assign_next_network_ip(&mut transaction, &network, &used_ips, None, None)
             .await
             .expect("Could not assign IP to device");
     }
