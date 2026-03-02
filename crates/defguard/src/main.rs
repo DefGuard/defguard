@@ -150,11 +150,11 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     // read grpc TLS cert and key
-    let grpc_cert = config
+    let grpc_cert = settings
         .grpc_cert
         .as_ref()
         .and_then(|path| read_to_string(path).ok());
-    let grpc_key = config
+    let grpc_key = settings
         .grpc_key
         .as_ref()
         .and_then(|path| read_to_string(path).ok());
@@ -216,9 +216,13 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
-            config.stats_purge_frequency.into(),
-            config.stats_purge_threshold.into()
-        ), if !config.disable_stats_purge =>
+            std::time::Duration::from_secs(
+                (settings.stats_purge_frequency_hours as u64) * 3600,
+            ),
+            std::time::Duration::from_secs(
+                (settings.stats_purge_threshold_days as u64) * 24 * 3600,
+            )
+        ), if !settings.disable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool) =>
             error!("Periodic license check task returned early: {res:?}"),
