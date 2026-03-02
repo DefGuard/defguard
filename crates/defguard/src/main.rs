@@ -33,7 +33,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::setup::run_setup_web_server;
+use defguard_setup::{migration::run_migration_web_server, setup::run_setup_web_server};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -106,6 +106,13 @@ async fn main() -> Result<(), anyhow::Error> {
             run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {
             anyhow::bail!("Setup web server exited with error: {err}");
+        }
+    } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
+    {
+        if let Err(err) =
+            run_migration_web_server(pool.clone(), config.http_bind_address, config.http_port).await
+        {
+            anyhow::bail!("Migration web server exited with error: {err}");
         }
     }
 
