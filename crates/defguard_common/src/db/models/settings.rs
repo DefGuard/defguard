@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
 use chrono::NaiveDateTime;
+use rand::{RngCore, rngs::OsRng};
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
@@ -290,6 +291,59 @@ impl fmt::Debug for Settings {
 }
 
 impl Settings {
+    fn validate_secret_key(secret_key: &str) -> Result<(), SettingsRequiredValueError> {
+        if secret_key.trim().len() != secret_key.len() {
+            return Err(SettingsRequiredValueError::Invalid(
+                "secret_key",
+                "cannot have leading or trailing whitespace",
+            ));
+        }
+
+        if secret_key.len() < 64 {
+            return Err(SettingsRequiredValueError::Invalid(
+                "secret_key",
+                "must be at least 64 characters long",
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn generate_secret_key() -> String {
+        let mut bytes = [0_u8; 32];
+        OsRng.fill_bytes(&mut bytes);
+        let mut secret_key = String::with_capacity(64);
+        for byte in bytes {
+            use std::fmt::Write as _;
+            let _ = write!(secret_key, "{byte:02x}");
+        }
+        secret_key
+    }
+
+    pub async fn ensure_secret_key(pool: &PgPool, config: &DefGuardConfig) -> Result<(), anyhow::Error> {
+        let mut settings = Settings::get_current_settings();
+
+        if let Some(secret_key) = &config.secret_key {
+            let secret_key = secret_key.expose_secret();
+            Settings::validate_secret_key(secret_key)?;
+            if settings.secret_key.as_deref() != Some(secret_key) {
+                settings.secret_key = Some(secret_key.to_string());
+                update_current_settings(pool, settings).await?;
+            }
+            return Ok(());
+        }
+
+        if let Some(secret_key) = settings.secret_key.as_deref() {
+            Settings::validate_secret_key(secret_key)?;
+            return Ok(());
+        }
+
+        settings.secret_key = Some(Settings::generate_secret_key());
+        update_current_settings(pool, settings).await?;
+
+        Ok(())
+    }
+
     pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
@@ -613,19 +667,7 @@ impl Settings {
             .as_deref()
             .ok_or(SettingsRequiredValueError::Missing("secret_key"))?;
 
-        if secret_key.trim().len() != secret_key.len() {
-            return Err(SettingsRequiredValueError::Invalid(
-                "secret_key",
-                "cannot have leading or trailing whitespace",
-            ));
-        }
-
-        if secret_key.len() < 64 {
-            return Err(SettingsRequiredValueError::Invalid(
-                "secret_key",
-                "must be at least 64 characters long",
-            ));
-        }
+        Settings::validate_secret_key(secret_key)?;
 
         Ok(secret_key)
     }

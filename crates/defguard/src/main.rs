@@ -118,6 +118,9 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Migration from 1.6: copied configuration options to DB");
     }
 
+    Settings::ensure_secret_key(&pool, &config).await?;
+    settings = Settings::get_current_settings();
+
     config.initialize_post_settings();
 
     SERVER_CONFIG
