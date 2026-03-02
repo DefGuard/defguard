@@ -1,6 +1,5 @@
 #![allow(clippy::too_many_arguments)]
 use std::{
-    collections::HashSet,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, LazyLock, Mutex, RwLock},
 };
@@ -21,7 +20,6 @@ use defguard_common::{
         init_db,
         models::{
             Device, DeviceType, Settings, User, WireguardNetwork,
-            device::WireguardNetworkDevice,
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
             wireguard::{
@@ -741,7 +739,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .expect("Could not save network")
     };
     let used_ips = network
-        .all_used_ips_for_network(&mut *transaction)
+        .all_used_ips_for_network(&mut transaction)
         .await
         .expect("Failed to query used ip's from database");
     if Device::find_by_pubkey(

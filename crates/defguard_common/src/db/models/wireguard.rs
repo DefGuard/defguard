@@ -536,9 +536,7 @@ impl WireguardNetwork<Id> {
         // split into separate stats for each device
         let mut device_stats: HashMap<Id, Vec<WireguardDeviceTransferRow>> =
             stats.into_iter().fold(HashMap::new(), |mut acc, item| {
-                acc.entry(item.device_id)
-                    .or_insert_with(Vec::new)
-                    .push(item);
+                acc.entry(item.device_id).or_default().push(item);
                 acc
             });
 
