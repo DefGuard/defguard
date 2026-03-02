@@ -3,7 +3,6 @@ use sqlx::{PgExecutor, prelude::FromRow};
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct WizardFlags {
-    pub migration_wizard_needed: bool,
     pub migration_wizard_in_progress: bool,
     pub migration_wizard_completed: bool,
     pub initial_wizard_completed: bool,
@@ -18,14 +17,12 @@ impl WizardFlags {
         sqlx::query(
             "UPDATE wizard
              SET
-                migration_wizard_needed = $1,
                      migration_wizard_in_progress = $2,
                      migration_wizard_completed = $3,
                      initial_wizard_in_progress = $4,
                      initial_wizard_completed = $5
              WHERE is_singleton = TRUE",
         )
-        .bind(self.migration_wizard_needed)
         .bind(self.migration_wizard_in_progress)
         .bind(self.migration_wizard_completed)
         .bind(self.initial_wizard_in_progress)
@@ -43,7 +40,6 @@ impl WizardFlags {
         sqlx::query_as!(
             Self,
             "SELECT
-                migration_wizard_needed,
                 migration_wizard_in_progress,
                 migration_wizard_completed,
                 initial_wizard_in_progress,
@@ -89,7 +85,6 @@ impl WizardFlags {
             .await?;
 
             return Ok(Self {
-                migration_wizard_needed: false,
                 migration_wizard_in_progress: is_migration_needed,
                 migration_wizard_completed: false,
                 initial_wizard_in_progress: is_fresh_instance,

@@ -1,5 +1,4 @@
 CREATE TABLE wizard (
-    migration_wizard_needed BOOLEAN NOT NULL DEFAULT FALSE,
     migration_wizard_state JSONB DEFAULT NULL,
     migration_wizard_completed BOOLEAN NOT NULL DEFAULT FALSE,
     migration_wizard_in_progress BOOLEAN NOT NULL DEFAULT FALSE,
