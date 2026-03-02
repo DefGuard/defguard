@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::{
+    fs::read_to_string,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use bytes::Bytes;
 use defguard_common::{
@@ -146,6 +149,16 @@ async fn main() -> Result<(), anyhow::Error> {
         anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
     }
 
+    // read grpc TLS cert and key from legacy config values
+    let grpc_cert = config
+        .grpc_cert
+        .as_ref()
+        .and_then(|path| read_to_string(path).ok());
+    let grpc_key = config
+        .grpc_key
+        .as_ref()
+        .and_then(|path| read_to_string(path).ok());
+
     // initialize failed login attempt tracker
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -188,8 +201,8 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),
-            None,
-            None,
+            grpc_cert,
+            grpc_key,
             failed_logins.clone(),
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
