@@ -33,7 +33,9 @@ const displayModifiedBy = (gateway: GatewayInfo) =>
 
 const getStatusBadge = (gateway: GatewayInfo) => {
   if (!gateway.enabled) {
-    return <Badge icon="disabled" showIcon variant="critical" text={m.state_disabled()} />;
+    return (
+      <Badge icon="disabled" showIcon variant="critical" text={m.state_disabled()} />
+    );
   }
   if (gateway.connected) {
     return <Badge icon="check-filled" showIcon variant="success" text="Connected" />;
