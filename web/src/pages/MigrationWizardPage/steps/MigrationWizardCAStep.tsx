@@ -1,23 +1,21 @@
 import { useMutation } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { BadgeVariant } from '../../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
+import { EvenSplit } from '../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import type { SelectOption } from '../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
-import { CAOption, type CAOptionType, MigrationWizardStep } from '../types';
+import { MigrationWizardStep } from '../types';
 
 type ValidityValue = 1 | 2 | 3 | 5 | 10;
 
@@ -41,27 +39,8 @@ type CreateCAStoreValues = {
   ca_validity_period_years: number;
 };
 
-type UploadCAFormFields = UploadCAStoreValues;
-
-type UploadCAStoreValues = {
-  ca_cert_file: File | null;
-};
-
-const readFileAsText = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(file);
-  });
-};
-
 export const MigrationWizardCAStep = () => {
   const setActiveStep = useMigrationWizardStore((s) => s.setActiveStep);
-  const caOption = useMigrationWizardStore((s) => s.ca_option);
-  const setCAOption = useCallback((option: CAOptionType) => {
-    useMigrationWizardStore.setState({ ca_option: option });
-  }, []);
 
   const createCAdefaultValues = useMigrationWizardStore(
     useShallow(
@@ -72,10 +51,6 @@ export const MigrationWizardCAStep = () => {
       }),
     ),
   );
-
-  const uploadCAdefaultValues: UploadCAFormFields = {
-    ca_cert_file: undefined as unknown as File,
-  };
 
   const createFormSchema = useMemo(
     () =>
@@ -93,17 +68,7 @@ export const MigrationWizardCAStep = () => {
     [],
   );
 
-  const uploadFormSchema = useMemo(
-    () =>
-      z.object({
-        ca_cert_file: z
-          .file()
-          .refine((file) => isPresent(file), m.migration_wizard_ca_error_cert_required()),
-      }),
-    [],
-  );
-
-  const { mutate: createCA, isPending: isCreatingCA } = useMutation({
+  const { mutateAsync: createCA } = useMutation({
     mutationFn: api.initial_setup.createCA,
     onSuccess: () => {
       setActiveStep(MigrationWizardStep.CaSummary);
@@ -117,34 +82,20 @@ export const MigrationWizardCAStep = () => {
     },
   });
 
-  const { mutate: uploadCA, isPending: isUploadingCA } = useMutation({
-    mutationFn: api.initial_setup.uploadCA,
-    onSuccess: () => {
-      setActiveStep(MigrationWizardStep.CaSummary);
-    },
-    onError: (error) => {
-      console.error('Failed to upload CA:', error);
-      Snackbar.error(m.migration_wizard_ca_error_upload_failed());
-    },
-    meta: {
-      invalidate: ['initial_setup', 'ca'],
-    },
-  });
-
-  const createForm = useAppForm({
+  const form = useAppForm({
     defaultValues: createCAdefaultValues,
     validationLogic: formChangeLogic,
     validators: {
       onSubmit: createFormSchema,
       onChange: createFormSchema,
     },
-    onSubmit: ({ value }) => {
+    onSubmit: async ({ value }) => {
       useMigrationWizardStore.setState({
         ca_common_name: value.ca_common_name,
         ca_email: value.ca_email,
         ca_validity_period_years: value.ca_validity_period_years,
       });
-      createCA({
+      await createCA({
         common_name: value.ca_common_name,
         email: value.ca_email,
         validity_period_years: value.ca_validity_period_years,
@@ -152,32 +103,21 @@ export const MigrationWizardCAStep = () => {
     },
   });
 
-  const uploadForm = useAppForm({
-    defaultValues: uploadCAdefaultValues,
-    validationLogic: formChangeLogic,
-    validators: {
-      onSubmit: uploadFormSchema,
-      onChange: uploadFormSchema,
-    },
-    onSubmit: async ({ value }) => {
-      if (!value.ca_cert_file) return;
-      const certContent = await readFileAsText(value.ca_cert_file);
-      uploadCA({ cert_file: certContent });
-    },
-  });
+  const handleBack = () => {
+    setActiveStep(MigrationWizardStep.General);
+  };
 
-  const CreateCAForm = () => {
-    const form = createForm;
-    return (
-      <div className="ca-settings">
-        <form
-          onSubmit={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <form.AppForm>
+  return (
+    <WizardCard>
+      <form
+        onSubmit={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <form.AppForm>
+          <EvenSplit>
             <form.AppField name="ca_common_name">
               {(field) => (
                 <field.FormInput
@@ -188,7 +128,6 @@ export const MigrationWizardCAStep = () => {
                 />
               )}
             </form.AppField>
-
             <form.AppField name="ca_email">
               {(field) => (
                 <field.FormInput
@@ -198,68 +137,42 @@ export const MigrationWizardCAStep = () => {
                 />
               )}
             </form.AppField>
-
-            <form.AppField name="ca_validity_period_years">
-              {(field) => (
-                <field.FormSelect
-                  required
-                  label={m.migration_wizard_ca_label_validity()}
-                  options={validityOptions}
+          </EvenSplit>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="ca_validity_period_years">
+            {(field) => (
+              <field.FormSelect
+                required
+                label={m.migration_wizard_ca_label_validity()}
+                options={validityOptions}
+              />
+            )}
+          </form.AppField>
+          <form.Subscribe
+            selector={(s) => ({
+              isSubmitting: s.isSubmitting,
+            })}
+          >
+            {({ isSubmitting }) => (
+              <Controls>
+                <Button
+                  variant="outlined"
+                  text={m.controls_back()}
+                  onClick={handleBack}
+                  disabled={isSubmitting}
                 />
-              )}
-            </form.AppField>
-          </form.AppForm>
-        </form>
-      </div>
-    );
-  };
-
-  const handleBack = () => {
-    setActiveStep(MigrationWizardStep.General);
-  };
-
-  const handleNext = () => {
-    if (caOption === CAOption.Create) {
-      createForm.handleSubmit();
-    } else if (caOption === CAOption.UseOwn) {
-      uploadForm.handleSubmit();
-    }
-  };
-
-  const isPending = isCreatingCA || isUploadingCA;
-
-  return (
-    <WizardCard>
-      <InteractiveBlock
-        title={m.migration_wizard_ca_option_create_title()}
-        value={caOption === CAOption.Create}
-        onClick={() => setCAOption(CAOption.Create)}
-        content={m.migration_wizard_ca_option_create_description()}
-        badge={{
-          text: m.misc_recommended(),
-          variant: BadgeVariant.Success,
-        }}
-      >
-        <SizedBox height={ThemeSpacing.Xl2} />
-        {caOption === CAOption.Create && <CreateCAForm />}
-      </InteractiveBlock>
-
-      <Controls>
-        <Button
-          variant="outlined"
-          text={m.controls_back()}
-          onClick={handleBack}
-          disabled={isPending}
-        />
-        <div className="right">
-          <Button
-            text={m.controls_continue()}
-            onClick={handleNext}
-            loading={isPending}
-            disabled={isPending || !isPresent(caOption)}
-          />
-        </div>
-      </Controls>
+                <div className="right">
+                  <Button
+                    text={m.controls_continue()}
+                    type="submit"
+                    loading={isSubmitting}
+                  />
+                </div>
+              </Controls>
+            )}
+          </form.Subscribe>
+        </form.AppForm>
+      </form>
     </WizardCard>
   );
 };

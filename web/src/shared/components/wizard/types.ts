@@ -25,7 +25,7 @@ export interface WizardWelcomePageConfig {
   title: string;
   subtitle: string;
   content: React.ReactNode;
-  media: React.ReactNode;
+  media?: React.ReactNode;
   docsLink?: string;
   docsText?: string;
   onClose?: () => void;

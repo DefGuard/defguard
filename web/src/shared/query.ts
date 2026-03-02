@@ -65,7 +65,7 @@ export const getNetworkDevicesQueryOptions = queryOptions({
 });
 
 export const getUserMeQueryOptions = queryOptions({
-  queryFn: () => api.user.getMe,
+  queryFn: api.user.getMe,
   queryKey: ['me'],
   staleTime: 60_000,
   throwOnError: false,
@@ -248,5 +248,11 @@ export const getSettingsEssentialsQueryOptions = queryOptions({
   refetchOnMount: true,
   refetchOnReconnect: true,
   staleTime: 60_000,
+  select: (resp) => resp.data,
+});
+
+export const getCaQueryOptions = queryOptions({
+  queryFn: api.initial_setup.getCA,
+  queryKey: ['initial_setup', 'ca'],
   select: (resp) => resp.data,
 });

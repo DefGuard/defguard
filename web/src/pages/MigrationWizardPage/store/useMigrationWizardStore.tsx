@@ -11,6 +11,11 @@ import {
 interface StoreValues {
   isWelcome: boolean;
   activeStep: MigrationWizardStepValue;
+  defguard_url: string;
+  default_admin_group_name: string;
+  default_authentication_period_days: number;
+  default_mfa_code_timeout_seconds: number;
+  public_proxy_url: string;
   ca_common_name: string;
   ca_email: string;
   ca_validity_period_years: number;
@@ -34,6 +39,11 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 const defaults: StoreValues = {
   isWelcome: true,
   activeStep: MigrationWizardStep.General,
+  defguard_url: '',
+  default_admin_group_name: '',
+  default_authentication_period_days: 7,
+  default_mfa_code_timeout_seconds: 60,
+  public_proxy_url: '',
   ca_common_name: '',
   ca_email: '',
   ca_validity_period_years: 5,
