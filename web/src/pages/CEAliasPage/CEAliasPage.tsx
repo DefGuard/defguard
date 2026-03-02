@@ -139,11 +139,9 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       };
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
-        Snackbar.success('Alias modified');
         Snackbar.default('Aliases added to Pending tab and awaiting deployment.');
       } else {
         await addAlias(toSend);
-        Snackbar.success('Alias added');
         Snackbar.default('Aliases added to Pending tab and awaiting deployment.');
       }
       router.history.back();
