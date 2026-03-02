@@ -10,5 +10,4 @@ ALTER TABLE settings
     ADD COLUMN enrollment_token_timeout_hours int4 NOT NULL DEFAULT 24,
     ADD COLUMN password_reset_token_timeout_hours int4 NOT NULL DEFAULT 24,
     ADD COLUMN enrollment_session_timeout_minutes int4 NOT NULL DEFAULT 10,
-    ADD COLUMN password_reset_session_timeout_minutes int4 NOT NULL DEFAULT 10,
-    ADD COLUMN proxy_grpc_ca text;
+    ADD COLUMN password_reset_session_timeout_minutes int4 NOT NULL DEFAULT 10;

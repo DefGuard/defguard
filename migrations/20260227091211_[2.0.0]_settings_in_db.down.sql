@@ -10,5 +10,4 @@ ALTER TABLE settings
     DROP COLUMN enrollment_token_timeout_hours,
     DROP COLUMN password_reset_token_timeout_hours,
     DROP COLUMN enrollment_session_timeout_minutes,
-    DROP COLUMN password_reset_session_timeout_minutes,
-    DROP COLUMN proxy_grpc_ca;
+    DROP COLUMN password_reset_session_timeout_minutes;

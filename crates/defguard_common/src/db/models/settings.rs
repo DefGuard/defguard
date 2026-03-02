@@ -196,7 +196,6 @@ pub struct Settings {
     password_reset_token_timeout_hours: i32,
     enrollment_session_timeout_minutes: i32,
     password_reset_session_timeout_minutes: i32,
-    pub proxy_grpc_ca: Option<String>,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -322,8 +321,7 @@ impl Settings {
             default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
-            enrollment_session_timeout_minutes, password_reset_session_timeout_minutes, \
-            proxy_grpc_ca \
+            enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -422,8 +420,7 @@ impl Settings {
             enrollment_token_timeout_hours = $67, \
             password_reset_token_timeout_hours = $68, \
             enrollment_session_timeout_minutes = $69, \
-            password_reset_session_timeout_minutes = $70, \
-            proxy_grpc_ca = $71 \
+            password_reset_session_timeout_minutes = $70 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -495,7 +492,6 @@ impl Settings {
             self.password_reset_token_timeout_hours,
             self.enrollment_session_timeout_minutes,
             self.password_reset_session_timeout_minutes,
-            self.proxy_grpc_ca,
         )
         .execute(executor)
         .await?;
@@ -685,11 +681,7 @@ impl Settings {
             self.password_reset_session_timeout_minutes =
                 (password_reset_session_timeout.as_secs() / minute) as i32;
         }
-        if let Some(proxy_grpc_ca) = &config.proxy_grpc_ca {
-            self.proxy_grpc_ca = Some(proxy_grpc_ca.clone());
-        }
-
-		update_current_settings(executor, self.clone()).await
+        update_current_settings(executor, self.clone()).await
     }
 }
 

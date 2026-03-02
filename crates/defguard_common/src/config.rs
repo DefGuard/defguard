@@ -172,11 +172,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
 
-    // path to certificate `.pem` file used if connecting to proxy over HTTPS
-    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.proxy_grpc_ca instead")]
-    pub proxy_grpc_ca: Option<String>,
-
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,
