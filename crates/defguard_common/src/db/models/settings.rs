@@ -689,6 +689,7 @@ impl Settings {
     where
         E: PgExecutor<'e>,
     {
+        info!("Updating Settings from DefguardConfig: {config:?}");
         let minute = 60;
         let hour = minute * 60;
         let day = hour * 24;
@@ -738,7 +739,10 @@ impl Settings {
             self.password_reset_session_timeout_minutes =
                 (password_reset_session_timeout.as_secs() / minute) as i32;
         }
-        update_current_settings(executor, self.clone()).await
+        update_current_settings(executor, self.clone()).await?;
+
+        info!("Updated Settings from DefguardConfig: {config:?}");
+		Ok(())
     }
 }
 

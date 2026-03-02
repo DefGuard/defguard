@@ -113,6 +113,8 @@ async fn main() -> Result<(), anyhow::Error> {
         settings = Settings::get_current_settings();
     } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
     {
+        settings.update_from_config(&pool, &config).await?;
+
         config.initialize_post_settings();
         SERVER_CONFIG
             .set(config.clone())
@@ -126,12 +128,6 @@ async fn main() -> Result<(), anyhow::Error> {
             anyhow::bail!("Migration web server exited with error: {err}");
         }
         settings = Settings::get_current_settings();
-    }
-
-    if wizard_flags.migration_wizard_needed {
-        info!("Migration from 1.6: copying configuration options to DB");
-        settings.update_from_config(&pool, &config).await?;
-        info!("Migration from 1.6: copied configuration options to DB");
     }
 
     if ini_server_config {
