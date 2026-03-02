@@ -1070,6 +1070,7 @@ export interface Edge {
   version: string | null;
   connected_at: string | null;
   disconnected_at: string | null;
+  enabled: boolean;
   modified_at: string;
   modified_by: number;
 }

@@ -60,11 +60,16 @@
       },
       {
         "ordinal": 11,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
         "name": "modified_by_firstname",
         "type_info": "Text"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "modified_by_lastname",
         "type_info": "Text"
       }
@@ -84,6 +89,7 @@
       false,
       false,
       true,
+      false,
       false,
       false
     ]

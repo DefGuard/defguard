@@ -4,7 +4,7 @@ use axum::{
 };
 use chrono::Utc;
 use defguard_common::{
-    db::models::proxy::Proxy,
+    db::{Id, models::proxy::Proxy},
     types::proxy::{ProxyControlMessage, ProxyInfo},
 };
 use reqwest::StatusCode;
@@ -21,6 +21,7 @@ use crate::{
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct ProxyUpdateData {
     pub name: String,
+    pub enabled: bool,
 }
 
 #[utoipa::path(
@@ -65,7 +66,7 @@ pub(crate) async fn proxy_list(
     )
 )]
 pub(crate) async fn proxy_details(
-    Path(proxy_id): Path<i64>,
+    Path(proxy_id): Path<Id>,
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -105,7 +106,7 @@ pub(crate) async fn proxy_details(
 )]
 pub(crate) async fn update_proxy(
     _role: AdminRole,
-    Path(proxy_id): Path<i64>,
+    Path(proxy_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -121,6 +122,7 @@ pub(crate) async fn update_proxy(
     let before = proxy.clone();
 
     proxy.name = data.name;
+    proxy.enabled = data.enabled;
     proxy.modified_by = session.user.id;
     proxy.modified_at = Utc::now().naive_utc();
     proxy.save(&appstate.pool).await?;
@@ -156,7 +158,7 @@ pub(crate) async fn update_proxy(
 )]
 pub(crate) async fn delete_proxy(
     _role: AdminRole,
-    Path(proxy_id): Path<i64>,
+    Path(proxy_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
