@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
 use chrono::NaiveDateTime;
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
@@ -619,33 +620,62 @@ impl Settings {
     pub async fn update_from_config<'e, E>(
         &mut self,
         executor: E,
-        _config: &DefGuardConfig,
+        config: &DefGuardConfig,
     ) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
-        // let minute = 60;
-        // let hour = minute * 60;
-        // let day = hour * 24;
-        // self.auth_cookie_timeout_days = (config.auth_cookie_timeout.as_secs() / day) as i32;
-        // self.secret_key = config.secret_key.expose_secret().to_string();
-        // self.grpc_ca = config.grpc_ca.clone();
-        // self.grpc_cert = config.grpc_cert.clone();
-        // self.grpc_key = config.grpc_key.clone();
-        // self.webauthn_rp_id = config.webauthn_rp_id.clone();
-        // self.grpc_url = config.grpc_url.to_string();
-        // self.disable_stats_purge = config.disable_stats_purge;
-        // self.stats_purge_frequency_hours = (config.stats_purge_frequency.as_secs() / hour) as i32;
-        // self.stats_purge_threshold_days = (config.stats_purge_threshold.as_secs() / day) as i32;
-        // self.enrollment_token_timeout_hours =
-        //     (config.enrollment_token_timeout.as_secs() / hour) as i32;
-        // self.password_reset_token_timeout_hours =
-        //     (config.password_reset_token_timeout.as_secs() / hour) as i32;
-        // self.enrollment_session_timeout_minutes =
-        //     (config.enrollment_session_timeout.as_secs() / minute) as i32;
-        // self.password_reset_session_timeout_minutes =
-        //     (config.password_reset_session_timeout.as_secs() / minute) as i32;
-        // self.proxy_grpc_ca = config.proxy_grpc_ca.clone();
+        let minute = 60;
+        let hour = minute * 60;
+        let day = hour * 24;
+        if let Some(auth_cookie_timeout) = config.auth_cookie_timeout {
+            self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
+        }
+        if let Some(secret_key) = &config.secret_key {
+            self.secret_key = secret_key.expose_secret().to_string();
+        }
+        if let Some(grpc_ca) = &config.grpc_ca {
+            self.grpc_ca = Some(grpc_ca.clone());
+        }
+        if let Some(grpc_cert) = &config.grpc_cert {
+            self.grpc_cert = Some(grpc_cert.clone());
+        }
+        if let Some(grpc_key) = &config.grpc_key {
+            self.grpc_key = Some(grpc_key.clone());
+        }
+        if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
+            self.webauthn_rp_id = Some(webauthn_rp_id.clone());
+        }
+        if let Some(grpc_url) = &config.grpc_url {
+            self.grpc_url = grpc_url.to_string();
+        }
+        if let Some(disable_stats_purge) = config.disable_stats_purge {
+            self.disable_stats_purge = disable_stats_purge;
+        }
+        if let Some(stats_purge_frequency) = config.stats_purge_frequency {
+            self.stats_purge_frequency_hours = (stats_purge_frequency.as_secs() / hour) as i32;
+        }
+        if let Some(stats_purge_threshold) = config.stats_purge_threshold {
+            self.stats_purge_threshold_days = (stats_purge_threshold.as_secs() / day) as i32;
+        }
+        if let Some(enrollment_token_timeout) = config.enrollment_token_timeout {
+            self.enrollment_token_timeout_hours = (enrollment_token_timeout.as_secs() / hour) as i32;
+        }
+        if let Some(password_reset_token_timeout) = config.password_reset_token_timeout {
+            self.password_reset_token_timeout_hours =
+                (password_reset_token_timeout.as_secs() / hour) as i32;
+        }
+        if let Some(enrollment_session_timeout) = config.enrollment_session_timeout {
+            self.enrollment_session_timeout_minutes =
+                (enrollment_session_timeout.as_secs() / minute) as i32;
+        }
+        if let Some(password_reset_session_timeout) = config.password_reset_session_timeout {
+            self.password_reset_session_timeout_minutes =
+                (password_reset_session_timeout.as_secs() / minute) as i32;
+        }
+        if let Some(proxy_grpc_ca) = &config.proxy_grpc_ca {
+            self.proxy_grpc_ca = Some(proxy_grpc_ca.clone());
+        }
 
         self.save(executor).await
     }

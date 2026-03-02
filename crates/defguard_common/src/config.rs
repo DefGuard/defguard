@@ -3,13 +3,13 @@ use std::{fs::read_to_string, io, net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
@@ -38,13 +38,15 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    // #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
-    // #[serde(skip_serializing)]
-    // pub auth_cookie_timeout: Duration,
+    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.auth_cookie_timeout instead")]
+    pub auth_cookie_timeout: Option<Duration>,
 
-    // #[arg(long, env = "DEFGUARD_SECRET_KEY")]
-    // #[serde(skip_serializing)]
-    // pub secret_key: SecretString,
+    #[arg(long, env = "DEFGUARD_SECRET_KEY")]
+    #[serde(skip_serializing)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.secret_key instead")]
+    pub secret_key: Option<SecretString>,
 
     #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
     pub database_host: String,
@@ -68,13 +70,16 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
-    // // Certificate authority (CA), certificate, and key for gRPC communication over HTTPS.
-    // #[arg(long, env = "DEFGUARD_GRPC_CA")]
-    // pub grpc_ca: Option<String>,
-    // #[arg(long, env = "DEFGUARD_GRPC_CERT")]
-    // pub grpc_cert: Option<String>,
-    // #[arg(long, env = "DEFGUARD_GRPC_KEY")]
-    // pub grpc_key: Option<String>,
+    // Certificate authority (CA), certificate, and key for gRPC communication over HTTPS.
+    #[arg(long, env = "DEFGUARD_GRPC_CA")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_ca instead")]
+    pub grpc_ca: Option<String>,
+    #[arg(long, env = "DEFGUARD_GRPC_CERT")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_cert instead")]
+    pub grpc_cert: Option<String>,
+    #[arg(long, env = "DEFGUARD_GRPC_KEY")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_key instead")]
+    pub grpc_key: Option<String>,
 
     #[arg(
         long,
@@ -90,34 +95,43 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
-    // // relying party id and relying party origin for WebAuthn
-    // #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
-    // pub webauthn_rp_id: Option<String>,
+    // relying party id and relying party origin for WebAuthn
+    #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.webauthn_rp_id instead")]
+    pub webauthn_rp_id: Option<String>,
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
-    // #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse, default_value = "http://localhost:50055")]
-    // pub grpc_url: Url,
+    #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_url instead")]
+    pub grpc_url: Option<Url>,
 
-    // #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
-    // pub disable_stats_purge: bool,
+    #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
+    pub disable_stats_purge: Option<bool>,
 
-    // #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
-    // #[serde(skip_serializing)]
-    // pub stats_purge_frequency: Duration,
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY")]
+    #[serde(skip_serializing)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_frequency instead")]
+    pub stats_purge_frequency: Option<Duration>,
 
-    // #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
-    // #[serde(skip_serializing)]
-    // pub stats_purge_threshold: Duration,
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD")]
+    #[serde(skip_serializing)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_threshold instead")]
+    pub stats_purge_threshold: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
     pub enrollment_url: Url,
 
-    // #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h")]
-    // #[serde(skip_serializing)]
-    // pub enrollment_token_timeout: Duration,
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.enrollment_token_timeout instead"
+    )]
+    pub enrollment_token_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT", default_value = "60s")]
     #[serde(skip_serializing)]
@@ -132,29 +146,29 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
     pub session_timeout: Duration,
 
-    // #[arg(
-    //     long,
-    //     env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",
-    //     default_value = "24h"
-    // )]
-    // #[serde(skip_serializing)]
-    // pub password_reset_token_timeout: Duration,
+    #[arg(long, env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.password_reset_token_timeout instead"
+    )]
+    pub password_reset_token_timeout: Option<Duration>,
 
-    // #[arg(
-    //     long,
-    //     env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
-    //     default_value = "10m"
-    // )]
-    // #[serde(skip_serializing)]
-    // pub enrollment_session_timeout: Duration,
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.enrollment_session_timeout instead"
+    )]
+    pub enrollment_session_timeout: Option<Duration>,
 
-    // #[arg(
-    //     long,
-    //     env = "DEFGUARD_PASSWORD_RESET_SESSION_TIMEOUT",
-    //     default_value = "10m"
-    // )]
-    // #[serde(skip_serializing)]
-    // pub password_reset_session_timeout: Duration,
+    #[arg(long, env = "DEFGUARD_PASSWORD_RESET_SESSION_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.password_reset_session_timeout instead"
+    )]
+    pub password_reset_session_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_COOKIE_DOMAIN")]
     pub cookie_domain: Option<String>,
@@ -162,9 +176,10 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
 
-    // // path to certificate `.pem` file used if connecting to proxy over HTTPS
-    // #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
-    // pub proxy_grpc_ca: Option<String>,
+    // path to certificate `.pem` file used if connecting to proxy over HTTPS
+    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.proxy_grpc_ca instead")]
+    pub proxy_grpc_ca: Option<String>,
 
     #[command(subcommand)]
     #[serde(skip_serializing)]
@@ -227,7 +242,7 @@ impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
         let config = Self::parse();
-		// TODO(jck)
+        // TODO(jck)
         // config.validate_secret_key();
         config
     }
@@ -241,7 +256,7 @@ impl DefGuardConfig {
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
         let url = Settings::url().expect("Unable to parse Defguard URL.");
-		// TODO(jck)
+        // TODO(jck)
         // self.initialize_rp_id(&url);
         self.initialize_cookie_domain(&url);
     }
