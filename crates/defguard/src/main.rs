@@ -95,6 +95,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let wizard_flags = WizardFlags::init(&pool).await?;
+    let mut ini_server_config = true;
 
     // initialize default settings
     Settings::init_defaults(&pool).await?;
@@ -109,6 +110,13 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
     {
+        config.initialize_post_settings();
+        SERVER_CONFIG
+            .set(config.clone())
+            .expect("Failed to initialize server config.");
+
+        ini_server_config = false;
+
         if let Err(err) =
             run_migration_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {
@@ -116,11 +124,13 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    config.initialize_post_settings();
+    if ini_server_config {
+        config.initialize_post_settings();
 
-    SERVER_CONFIG
-        .set(config.clone())
-        .expect("Failed to initialize server config.");
+        SERVER_CONFIG
+            .set(config.clone())
+            .expect("Failed to initialize server config.");
+    }
 
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();

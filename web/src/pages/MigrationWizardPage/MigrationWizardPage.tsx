@@ -8,7 +8,7 @@ import type {
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { MigrationWizardCAStep } from './steps/MigrationWizardCAStep';
 import { MigrationWizardCASummaryStep } from './steps/MigrationWizardCASummaryStep';
-import { MigrationWizardConfirmationStep } from './steps/MigrationWizardConfirmationStep';
+import { MigrationWizardConfirmationStep } from './steps/MigrationWizardConfirmationStep/MigrationWizardConfirmationStep';
 import { MigrationWizardEdgeAdoptionStep } from './steps/MigrationWizardEdgeAdoptionStep';
 import { MigrationWizardEdgeComponentStep } from './steps/MigrationWizardEdgeComponentStep';
 import { MigrationWizardGeneralConfigurationStep } from './steps/MigrationWizardGeneralConfigurationStep';
