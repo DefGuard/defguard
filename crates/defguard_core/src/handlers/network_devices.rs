@@ -455,7 +455,7 @@ pub(crate) async fn start_network_device_setup(
         &mut transaction,
         &user,
         None,
-        config.enrollment_token_timeout.as_secs(),
+		(settings.enrollment_token_timeout_hours * 3600) as u64,
         settings.proxy_public_url()?.clone(),
         false,
         Some(result.device.id),
@@ -514,14 +514,13 @@ pub(crate) async fn start_network_device_setup_for_device(
                 user which added the device not found"
             ))
         })?;
-    let config = server_config();
     let settings = Settings::get_current_settings();
     let configuration_token = start_desktop_configuration(
         &user,
         &mut transaction,
         &user,
         None,
-        config.enrollment_token_timeout.as_secs(),
+		(settings.enrollment_token_timeout_hours * 3600) as u64,
         settings.proxy_public_url()?,
         false,
         Some(device.id),

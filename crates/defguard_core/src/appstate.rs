@@ -120,10 +120,10 @@ impl AppState {
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
-        let config = server_config();
         let url = Settings::url().expect("Invalid Defguard URL configuration");
+		let settings = Settings::get_current_settings();
         let webauthn_builder = WebauthnBuilder::new(
-            config
+            settings
                 .webauthn_rp_id
                 .as_ref()
                 .expect("Webauth RP ID configuration is required"),
@@ -136,7 +136,7 @@ impl AppState {
                 .expect("Invalid WebAuthn configuration"),
         );
 
-        let key = Key::from(config.secret_key.expose_secret().as_bytes());
+        let key = Key::from(settings.secret_key.as_bytes());
 
         Self {
             pool,

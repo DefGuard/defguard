@@ -271,8 +271,7 @@ impl ProxyHandler {
             let mut resp_stream = response.into_inner();
 
             // Derive proxy cookie key from core secret to avoid transmitting it over gRPC.
-            let config = server_config();
-            let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
+            let proxy_cookie_key = Key::derive_from(settings.secret_key.as_bytes());
 
             // Send initial info with private cookies key.
             let initial_info = InitialInfo {
@@ -722,12 +721,12 @@ impl ProxyHandler {
                                             as a result of proxy OpenID auth callback.",
                                                 user.username
                                             );
-                                            let config = server_config();
+                                            let settings = Settings::get_current_settings();
                                             let desktop_configuration = Token::new(
                                                 user.id,
                                                 Some(user.id),
                                                 Some(user.email),
-                                                config.enrollment_token_timeout.as_secs(),
+												(settings.enrollment_token_timeout_hours * 3600) as u64,
                                                 Some(ENROLLMENT_TOKEN_TYPE.to_string()),
                                             );
                                             debug!("Saving a new desktop configuration token...");
@@ -736,7 +735,6 @@ impl ProxyHandler {
                                                 "Saved desktop configuration token. Responding to \
                                             proxy with the token."
                                             );
-                                            let settings = Settings::get_current_settings();
                                             let public_proxy_url = settings.proxy_public_url()?;
 
                                             Some(core_response::Payload::AuthCallback(

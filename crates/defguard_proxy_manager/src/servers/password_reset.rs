@@ -59,7 +59,8 @@ impl PasswordResetServer {
             return Err(Status::permission_denied("invalid token"));
         }
 
-        if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+        let settings = Settings::get_current_settings();
+        if enrollment.is_session_valid((settings.enrollment_session_timeout_minutes * 60) as u64) {
             info!("Password reset session validated: {enrollment:?}.",);
             Ok(enrollment)
         } else {
@@ -88,7 +89,6 @@ impl PasswordResetServer {
         request: PasswordResetInitializeRequest,
         req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
-        let config = server_config();
         debug!("Starting password reset request");
 
         let ip_address;
@@ -133,11 +133,12 @@ impl PasswordResetServer {
 
         Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
 
+        let settings = Settings::get_current_settings();
         let enrollment = Token::new(
             user.id,
             None,
             Some(email.clone()),
-            config.password_reset_token_timeout.as_secs(),
+			(settings.password_reset_token_timeout_hours * 3600) as u64,
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
@@ -147,7 +148,6 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        let settings = Settings::get_current_settings();
         let public_proxy_url = settings.proxy_public_url().map_err(|err| {
             error!("Failed to get public proxy URL: {err}");
             Status::internal("unexpected error")
@@ -212,10 +212,11 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
+        let settings = Settings::get_current_settings();
         let session_deadline = enrollment
             .start_session(
                 &mut transaction,
-                server_config().password_reset_session_timeout.as_secs(),
+                (settings.password_reset_session_timeout_minutes * 60) as u64,
             )
             .await?;
 

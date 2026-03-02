@@ -177,7 +177,6 @@ pub struct Settings {
     pub initial_setup_step: InitialSetupStep,
     pub default_admin_id: Option<Id>,
     // 1.6 config options
-    pub auth_cookie_timeout_days: i32,
     pub secret_key: String,
     pub grpc_ca: Option<String>,
     pub grpc_cert: Option<String>,
@@ -185,6 +184,7 @@ pub struct Settings {
     pub webauthn_rp_id: Option<String>,
     pub grpc_url: String,
     pub disable_stats_purge: bool,
+	pub auth_cookie_timeout_days: i32,
     pub stats_purge_frequency_hours: i32,
     pub stats_purge_threshold_days: i32,
     pub enrollment_token_timeout_hours: i32,
@@ -314,22 +314,12 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
-            default_admin_id, \
-			auth_cookie_timeout_days, \
-			secret_key, \
-			grpc_ca, \
-			grpc_cert, \
-			grpc_key, \
-			webauthn_rp_id, \
-			grpc_url, \
-			disable_stats_purge, \
-			stats_purge_frequency_hours, \
-			stats_purge_threshold_days, \
-			enrollment_token_timeout_hours, \
-			password_reset_token_timeout_hours, \
-			enrollment_session_timeout_minutes, \
-			password_reset_session_timeout_minutes, \
-			proxy_grpc_ca \
+            default_admin_id, auth_cookie_timeout_days, secret_key, grpc_ca, grpc_cert, \
+            grpc_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
+            stats_purge_frequency_hours, stats_purge_threshold_days, \
+            enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
+            enrollment_session_timeout_minutes, password_reset_session_timeout_minutes, \
+            proxy_grpc_ca \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -418,21 +408,21 @@ impl Settings {
             public_proxy_url = $57, \
             initial_setup_step = $58, \
             default_admin_id = $59, \
-			auth_cookie_timeout_days = $60, \
-			secret_key = $61, \
-			grpc_ca = $62, \
-			grpc_cert = $63, \
-			grpc_key = $64, \
-			webauthn_rp_id = $65, \
-			grpc_url = $66, \
-			disable_stats_purge = $67, \
-			stats_purge_frequency_hours = $68, \
-			stats_purge_threshold_days = $69, \
-			enrollment_token_timeout_hours = $70, \
-			password_reset_token_timeout_hours = $71, \
-			enrollment_session_timeout_minutes = $72, \
-			password_reset_session_timeout_minutes = $73, \
-			proxy_grpc_ca = $74 \
+            auth_cookie_timeout_days = $60, \
+            secret_key = $61, \
+            grpc_ca = $62, \
+            grpc_cert = $63, \
+            grpc_key = $64, \
+            webauthn_rp_id = $65, \
+            grpc_url = $66, \
+            disable_stats_purge = $67, \
+            stats_purge_frequency_hours = $68, \
+            stats_purge_threshold_days = $69, \
+            enrollment_token_timeout_hours = $70, \
+            password_reset_token_timeout_hours = $71, \
+            enrollment_session_timeout_minutes = $72, \
+            password_reset_session_timeout_minutes = $73, \
+            proxy_grpc_ca = $74 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -600,28 +590,28 @@ impl Settings {
     where
         E: PgExecutor<'e>,
     {
-        let minute = 60;
-        let hour = minute * 60;
-        let day = hour * 24;
-        self.auth_cookie_timeout_days = (config.auth_cookie_timeout.as_secs() / day) as i32;
-        self.secret_key = config.secret_key.expose_secret().to_string();
-        self.grpc_ca = config.grpc_ca.clone();
-        self.grpc_cert = config.grpc_cert.clone();
-        self.grpc_key = config.grpc_key.clone();
-        self.webauthn_rp_id = config.webauthn_rp_id.clone();
-        self.grpc_url = config.grpc_url.to_string();
-        self.disable_stats_purge = config.disable_stats_purge;
-        self.stats_purge_frequency_hours = (config.stats_purge_frequency.as_secs() / hour) as i32;
-        self.stats_purge_threshold_days = (config.stats_purge_threshold.as_secs() / day) as i32;
-        self.enrollment_token_timeout_hours =
-            (config.enrollment_token_timeout.as_secs() / hour) as i32;
-        self.password_reset_token_timeout_hours =
-            (config.password_reset_token_timeout.as_secs() / hour) as i32;
-        self.enrollment_session_timeout_minutes =
-            (config.enrollment_session_timeout.as_secs() / minute) as i32;
-        self.password_reset_session_timeout_minutes =
-            (config.password_reset_session_timeout.as_secs() / minute) as i32;
-        self.proxy_grpc_ca = config.proxy_grpc_ca.clone();
+        // let minute = 60;
+        // let hour = minute * 60;
+        // let day = hour * 24;
+        // self.auth_cookie_timeout_days = (config.auth_cookie_timeout.as_secs() / day) as i32;
+        // self.secret_key = config.secret_key.expose_secret().to_string();
+        // self.grpc_ca = config.grpc_ca.clone();
+        // self.grpc_cert = config.grpc_cert.clone();
+        // self.grpc_key = config.grpc_key.clone();
+        // self.webauthn_rp_id = config.webauthn_rp_id.clone();
+        // self.grpc_url = config.grpc_url.to_string();
+        // self.disable_stats_purge = config.disable_stats_purge;
+        // self.stats_purge_frequency_hours = (config.stats_purge_frequency.as_secs() / hour) as i32;
+        // self.stats_purge_threshold_days = (config.stats_purge_threshold.as_secs() / day) as i32;
+        // self.enrollment_token_timeout_hours =
+        //     (config.enrollment_token_timeout.as_secs() / hour) as i32;
+        // self.password_reset_token_timeout_hours =
+        //     (config.password_reset_token_timeout.as_secs() / hour) as i32;
+        // self.enrollment_session_timeout_minutes =
+        //     (config.enrollment_session_timeout.as_secs() / minute) as i32;
+        // self.password_reset_session_timeout_minutes =
+        //     (config.password_reset_session_timeout.as_secs() / minute) as i32;
+        // self.proxy_grpc_ca = config.proxy_grpc_ca.clone();
 
         self.save(executor).await
     }
