@@ -15,7 +15,7 @@ struct SessionInfoResponse {
     wizard_flags: Option<WizardFlags>,
 }
 
-pub(crate) async fn get_session_info(
+pub async fn get_session_info(
     State(appstate): State<AppState>,
     session: Result<SessionExtractor, WebError>,
 ) -> ApiResult {

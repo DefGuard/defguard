@@ -487,7 +487,7 @@ pub async fn user_from_claims(
     Ok(user)
 }
 
-pub(crate) async fn get_auth_info(
+pub async fn get_auth_info(
     _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
@@ -555,12 +555,12 @@ pub(crate) async fn get_auth_info(
 }
 
 #[derive(Deserialize)]
-pub(crate) struct AuthenticationResponse {
+pub struct AuthenticationResponse {
     code: AuthorizationCode,
     state: CsrfToken,
 }
 
-pub(crate) async fn auth_callback(
+pub async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
