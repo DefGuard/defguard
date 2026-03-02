@@ -7,7 +7,6 @@ use std::{
 use axum_extra::extract::cookie::Key;
 use defguard_common::{
     VERSION,
-    config::server_config,
     db::{
         Id,
         models::{Settings, proxy::Proxy},
@@ -43,7 +42,6 @@ use defguard_version::{
 use hyper_rustls::HttpsConnectorBuilder;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
-use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
@@ -87,6 +85,7 @@ pub(super) struct ProxyHandler {
     pub(super) url: Url,
     shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
     proxy_id: Id,
+    proxy_cookie_key: Key,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
 
@@ -99,6 +98,7 @@ impl ProxyHandler {
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
+        proxy_cookie_key: Key,
     ) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
@@ -109,6 +109,7 @@ impl ProxyHandler {
             url,
             shutdown_signal,
             proxy_id,
+            proxy_cookie_key,
             client: None,
         }
     }
@@ -120,6 +121,7 @@ impl ProxyHandler {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
+        proxy_cookie_key: Key,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -131,6 +133,7 @@ impl ProxyHandler {
             sessions,
             shutdown_signal,
             proxy_id,
+            proxy_cookie_key,
         ))
     }
 
@@ -270,17 +273,9 @@ impl ProxyHandler {
             info!("Connected to proxy at {}", endpoint.uri());
             let mut resp_stream = response.into_inner();
 
-            // Derive proxy cookie key from core secret to avoid transmitting it over gRPC.
-            let proxy_cookie_key = Key::derive_from(
-                settings
-                    .secret_key_required()
-                    .map_err(|err| ProxyError::MissingConfiguration(err.to_string()))?
-                    .as_bytes(),
-            );
-
             // Send initial info with private cookies key.
             let initial_info = InitialInfo {
-                private_cookies_key: proxy_cookie_key.master().to_vec(),
+                private_cookies_key: self.proxy_cookie_key.master().to_vec(),
             };
             let _ = tx.send(CoreResponse {
                 id: 0,
