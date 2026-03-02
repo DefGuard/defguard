@@ -274,20 +274,6 @@ impl DefGuardConfig {
         }
     }
 
-    // fn validate_secret_key(&self) {
-    //     let secret_key = self.secret_key.expose_secret();
-    //     assert!(
-    //         secret_key.trim().len() == secret_key.len(),
-    //         "SECRET_KEY cannot have leading and trailing space",
-    //     );
-
-    //     assert!(
-    //         secret_key.len() >= 64,
-    //         "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
-    //         secret_key.len()
-    //     );
-    // }
-
     /// Try PKCS#1 and PKCS#8 PEM formats.
     fn parse_openid_key(path: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
         if let Ok(key) = RsaPrivateKey::read_pkcs1_pem_file(path) {
@@ -307,25 +293,6 @@ impl DefGuardConfig {
             None
         }
     }
-
-    // /// Provide [`ClientTlsConfig`] from paths to cerfiticate, key, and cerfiticate authority (CA).
-    // pub fn grpc_client_tls_config(&self) -> Result<Option<ClientTlsConfig>, io::Error> {
-    //     if self.grpc_ca.is_none() && (self.grpc_cert.is_none() || self.grpc_key.is_none()) {
-    //         return Ok(None);
-    //     }
-    //     let mut tls = ClientTlsConfig::new();
-    //     if let (Some(cert_path), Some(key_path)) = (&self.grpc_cert, &self.grpc_key) {
-    //         let cert = read_to_string(cert_path)?;
-    //         let key = read_to_string(key_path)?;
-    //         tls = tls.identity(Identity::from_pem(cert, key));
-    //     }
-    //     if let Some(ca_path) = &self.grpc_ca {
-    //         let ca = read_to_string(ca_path)?;
-    //         tls = tls.ca_certificate(Certificate::from_pem(ca));
-    //     }
-
-    //     Ok(Some(tls))
-    // }
 }
 
 impl Default for DefGuardConfig {
