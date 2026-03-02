@@ -2,11 +2,8 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
-use defguard_common::{
-    config::server_config, db::models::Settings, types::proxy::ProxyControlMessage,
-};
+use defguard_common::{db::models::Settings, types::proxy::ProxyControlMessage};
 use reqwest::Client;
-use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::{
@@ -113,6 +110,7 @@ impl AppState {
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,
+        key: Key,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         event_tx: UnboundedSender<ApiEvent>,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
@@ -135,8 +133,6 @@ impl AppState {
                 .build()
                 .expect("Invalid WebAuthn configuration"),
         );
-
-        let key = Key::from(settings.secret_key.as_bytes());
 
         Self {
             pool,

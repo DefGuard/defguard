@@ -196,7 +196,7 @@ impl ProxyHandler {
         loop {
             let endpoint = self.endpoint()?;
             let settings = Settings::get_current_settings();
-            let Some(ca_cert_der) = settings.ca_cert_der else {
+            let Some(ref ca_cert_der) = settings.ca_cert_der else {
                 return Err(ProxyError::MissingConfiguration(
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
@@ -271,7 +271,12 @@ impl ProxyHandler {
             let mut resp_stream = response.into_inner();
 
             // Derive proxy cookie key from core secret to avoid transmitting it over gRPC.
-            let proxy_cookie_key = Key::derive_from(settings.secret_key.as_bytes());
+            let proxy_cookie_key = Key::derive_from(
+                settings
+                    .secret_key_required()
+                    .map_err(|err| ProxyError::MissingConfiguration(err.to_string()))?
+                    .as_bytes(),
+            );
 
             // Send initial info with private cookies key.
             let initial_info = InitialInfo {

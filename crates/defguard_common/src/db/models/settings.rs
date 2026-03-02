@@ -47,6 +47,14 @@ pub enum SettingsValidationError {
     CannotEnableGatewayNotifications,
 }
 
+#[derive(Error, Debug)]
+pub enum SettingsRequiredValueError {
+    #[error("Missing required setting: {0}")]
+    Missing(&'static str),
+    #[error("Invalid required setting `{0}`: {1}")]
+    Invalid(&'static str, &'static str),
+}
+
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
 pub enum SmtpEncryption {
@@ -177,7 +185,7 @@ pub struct Settings {
     pub initial_setup_step: InitialSetupStep,
     pub default_admin_id: Option<Id>,
     // 1.6 config options
-    pub secret_key: String,
+    pub secret_key: Option<String>,
     pub grpc_ca: Option<String>,
     pub grpc_cert: Option<String>,
     pub grpc_key: Option<String>,
@@ -613,6 +621,29 @@ impl Settings {
         Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
     }
 
+    pub fn secret_key_required(&self) -> Result<&str, SettingsRequiredValueError> {
+        let secret_key = self
+            .secret_key
+            .as_deref()
+            .ok_or(SettingsRequiredValueError::Missing("secret_key"))?;
+
+        if secret_key.trim().len() != secret_key.len() {
+            return Err(SettingsRequiredValueError::Invalid(
+                "secret_key",
+                "cannot have leading or trailing whitespace",
+            ));
+        }
+
+        if secret_key.len() < 64 {
+            return Err(SettingsRequiredValueError::Invalid(
+                "secret_key",
+                "must be at least 64 characters long",
+            ));
+        }
+
+        Ok(secret_key)
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
@@ -632,7 +663,7 @@ impl Settings {
             self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
         }
         if let Some(secret_key) = &config.secret_key {
-            self.secret_key = secret_key.expose_secret().to_string();
+            self.secret_key = Some(secret_key.expose_secret().to_string());
         }
         if let Some(grpc_ca) = &config.grpc_ca {
             self.grpc_ca = Some(grpc_ca.clone());
@@ -677,7 +708,7 @@ impl Settings {
             self.proxy_grpc_ca = Some(proxy_grpc_ca.clone());
         }
 
-        self.save(executor).await
+		update_current_settings(executor, self.clone()).await
     }
 }
 

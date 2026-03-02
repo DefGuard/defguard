@@ -11,6 +11,7 @@ use axum::{
     routing::{delete, get, post, put},
     serve,
 };
+use axum_extra::extract::cookie::Key;
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
@@ -219,6 +220,7 @@ pub fn build_webapp(
     wireguard_tx: Sender<GatewayEvent>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
+    key: Key,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     version: Version,
@@ -604,6 +606,7 @@ pub fn build_webapp(
             webhook_tx,
             webhook_rx,
             wireguard_tx,
+            key,
             failed_logins,
             event_tx,
             incompatible_components,
@@ -638,12 +641,16 @@ pub async fn run_web_server(
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
+    let settings = Settings::get_current_settings();
+    let key = Key::from(settings.secret_key_required()?.as_bytes());
+
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
         worker_state,
         pool,
+        key,
         failed_logins,
         event_tx,
         Version::parse(VERSION)?,

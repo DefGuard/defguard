@@ -1,6 +1,6 @@
 ALTER TABLE settings
     ADD COLUMN auth_cookie_timeout_days int4 NOT NULL DEFAULT 7,
-    ADD COLUMN secret_key text NOT NULL DEFAULT 'UNSET', -- TODO(jck)
+    ADD COLUMN secret_key text,
     ADD COLUMN grpc_ca text,
     ADD COLUMN grpc_cert text,
     ADD COLUMN grpc_key text,
