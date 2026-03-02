@@ -9,7 +9,8 @@ use axum::{
     routing::{get, post, put},
     serve,
 };
-use defguard_common::VERSION;
+use axum_extra::extract::cookie::Key;
+use defguard_common::{VERSION, db::models::Settings};
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     handle_404,
@@ -58,11 +59,18 @@ pub fn build_migration_webapp(
     let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(64);
     let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(32);
     let incompatible_components = Arc::new(RwLock::new(IncompatibleComponents::default()));
+    let key = Key::from(
+        Settings::get_current_settings()
+            .secret_key_required()
+            .expect("Missing required secret key in settings")
+            .as_bytes(),
+    );
     let app_state = AppState::new(
         pool.clone(),
         webhook_tx,
         webhook_rx,
         wireguard_tx,
+        key,
         failed_logins.clone(),
         event_tx,
         incompatible_components,

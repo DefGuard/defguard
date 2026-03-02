@@ -237,7 +237,7 @@ pub async fn authenticate(
     let (session, user_info, mfa_info) =
         create_session(&appstate.pool, insecure_ip, user_agent.as_str(), &mut user).await?;
 
-    let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
+    let max_age = Duration::seconds(settings.auth_cookie_timeout().as_secs() as i64);
     let config = server_config();
     let cookie_domain = config
         .cookie_domain

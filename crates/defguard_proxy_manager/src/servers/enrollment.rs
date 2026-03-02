@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use defguard_common::{
-    config::server_config,
     csv::AsCsv,
     db::{
         Id,
@@ -87,7 +86,8 @@ impl EnrollmentServer {
             );
             return Err(Status::permission_denied("invalid token"));
         }
-        if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+        let settings = Settings::get_current_settings();
+        if enrollment.is_session_valid(settings.enrollment_session_timeout().as_secs()) {
             info!("Enrollment session validated: {enrollment:?}");
             Ok(enrollment)
         } else {
@@ -164,10 +164,11 @@ impl EnrollmentServer {
                 "Validating enrollment token and starting session for user {}({:?})",
                 user.username, user.id,
             );
+            let settings = Settings::get_current_settings();
             let session_deadline = enrollment
                 .start_session(
                     &mut transaction,
-                    server_config().enrollment_session_timeout.as_secs(),
+                    settings.enrollment_session_timeout().as_secs(),
                 )
                 .await?;
             info!(
@@ -179,7 +180,6 @@ impl EnrollmentServer {
                 "Retrieving settings for enrollment of user {}({:?}).",
                 user.username, user.id
             );
-            let settings = Settings::get_current_settings();
             debug!("Settings: {settings:?}");
 
             debug!(

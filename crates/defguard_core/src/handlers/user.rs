@@ -48,7 +48,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    is_valid_phone_number, server_config,
+    is_valid_phone_number,
     user_management::{delete_user_and_cleanup_devices, sync_allowed_user_devices},
 };
 
@@ -465,7 +465,7 @@ pub async fn start_enrollment(
     let mut transaction = appstate.pool.begin().await?;
 
     // try to parse token expiration time if provided
-    let config = server_config();
+    let settings = Settings::get_current_settings();
     let token_expiration_time_seconds = match data.token_expiration_time {
         Some(time) => parse_duration(&time)
             .map_err(|err| {
@@ -473,10 +473,9 @@ pub async fn start_enrollment(
                 WebError::BadRequest("Failed to parse token expiration time".to_owned())
             })?
             .as_secs(),
-        None => config.enrollment_token_timeout.as_secs(),
+        None => settings.enrollment_token_timeout().as_secs(),
     };
 
-    let settings: Settings = Settings::get_current_settings();
     let public_proxy_url = settings.proxy_public_url()?;
 
     let enrollment_token = start_user_enrollment(
@@ -580,7 +579,6 @@ pub async fn start_remote_desktop_configuration(
         "Generating a new desktop activation token by {}.",
         session.user.username
     );
-    let config = server_config();
     let settings = Settings::get_current_settings();
     let public_proxy_url = settings.proxy_public_url()?;
     let desktop_configuration_token = start_desktop_configuration(
@@ -588,7 +586,7 @@ pub async fn start_remote_desktop_configuration(
         &mut transaction,
         &session.user,
         Some(email),
-        config.enrollment_token_timeout.as_secs(),
+        settings.enrollment_token_timeout().as_secs(),
         public_proxy_url.clone(),
         data.send_enrollment_notification,
         None,
@@ -1105,16 +1103,15 @@ pub async fn reset_password(
 
         Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
 
-        let config = server_config();
+        let settings = Settings::get_current_settings();
         let enrollment = Token::new(
             user.id,
             Some(session.user.id),
             Some(user.email.clone()),
-            config.password_reset_token_timeout.as_secs(),
+            settings.password_reset_token_timeout().as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
-        let settings = Settings::get_current_settings();
         let public_proxy_url = settings.proxy_public_url()?;
 
         let result = Mail::new(

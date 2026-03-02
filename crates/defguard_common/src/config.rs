@@ -1,4 +1,4 @@
-use std::{fs::read_to_string, io, net::IpAddr, sync::OnceLock};
+use std::{net::IpAddr, sync::OnceLock};
 
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
@@ -13,7 +13,6 @@ use rsa::{
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
-use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
 use crate::db::models::Settings;
 
@@ -38,13 +37,15 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
+    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT")]
     #[serde(skip_serializing)]
-    pub auth_cookie_timeout: Duration,
+    #[deprecated(since = "2.0.0", note = "Use Settings.auth_cookie_timeout instead")]
+    pub auth_cookie_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
-    pub secret_key: SecretString,
+    #[deprecated(since = "2.0.0", note = "Use Settings.secret_key instead")]
+    pub secret_key: Option<SecretString>,
 
     #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
     pub database_host: String,
@@ -68,9 +69,8 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
-    // Certificate authority (CA), certificate, and key for gRPC communication over HTTPS.
-    #[arg(long, env = "DEFGUARD_GRPC_CA")]
-    pub grpc_ca: Option<String>,
+    // Certificate and key for gRPC communication over HTTPS.
+    // Kept in runtime config for backwards compatibility - workers still use this.
     #[arg(long, env = "DEFGUARD_GRPC_CERT")]
     pub grpc_cert: Option<String>,
     #[arg(long, env = "DEFGUARD_GRPC_KEY")]
@@ -92,79 +92,87 @@ pub struct DefGuardConfig {
 
     // relying party id and relying party origin for WebAuthn
     #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.webauthn_rp_id instead")]
     pub webauthn_rp_id: Option<String>,
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
-    #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse, default_value = "http://localhost:50055")]
-    pub grpc_url: Url,
+    #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse)]
+    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_url instead")]
+    pub grpc_url: Option<Url>,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
-    pub disable_stats_purge: bool,
+    #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
+    pub disable_stats_purge: Option<bool>,
 
-    #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY", default_value = "24h")]
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY")]
     #[serde(skip_serializing)]
-    pub stats_purge_frequency: Duration,
+    #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_frequency instead")]
+    pub stats_purge_frequency: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD", default_value = "30d")]
+    #[arg(long, env = "DEFGUARD_STATS_PURGE_THRESHOLD")]
     #[serde(skip_serializing)]
-    pub stats_purge_threshold: Duration,
+    #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_threshold instead")]
+    pub stats_purge_threshold: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse)]
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
-    pub enrollment_url: Url,
+    pub enrollment_url: Option<Url>,
 
-    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT", default_value = "24h")]
-    #[serde(skip_serializing)]
-    pub enrollment_token_timeout: Duration,
-
-    #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT", default_value = "60s")]
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT")]
     #[serde(skip_serializing)]
     #[deprecated(
         since = "2.0.0",
-        note = "Use Settings.default_mfa_code_lifetime instead"
+        note = "Use Settings.enrollment_token_timeout instead"
     )]
-    pub mfa_code_timeout: Duration,
+    pub enrollment_token_timeout: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT", default_value = "7d")]
+    #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT")]
     #[serde(skip_serializing)]
-    #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
-    pub session_timeout: Duration,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",
-        default_value = "24h"
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.mfa_code_timeout_seconds instead"
     )]
-    #[serde(skip_serializing)]
-    pub password_reset_token_timeout: Duration,
+    pub mfa_code_timeout: Option<Duration>,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT",
-        default_value = "10m"
-    )]
+    #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT")]
     #[serde(skip_serializing)]
-    pub enrollment_session_timeout: Duration,
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.authentication_period_days instead"
+    )]
+    pub session_timeout: Option<Duration>,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_PASSWORD_RESET_SESSION_TIMEOUT",
-        default_value = "10m"
-    )]
+    #[arg(long, env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT")]
     #[serde(skip_serializing)]
-    pub password_reset_session_timeout: Duration,
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.password_reset_token_timeout instead"
+    )]
+    pub password_reset_token_timeout: Option<Duration>,
+
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_SESSION_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.enrollment_session_timeout instead"
+    )]
+    pub enrollment_session_timeout: Option<Duration>,
+
+    #[arg(long, env = "DEFGUARD_PASSWORD_RESET_SESSION_TIMEOUT")]
+    #[serde(skip_serializing)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use Settings.password_reset_session_timeout instead"
+    )]
+    pub password_reset_session_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_COOKIE_DOMAIN")]
     pub cookie_domain: Option<String>,
 
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
-
-    // path to certificate `.pem` file used if connecting to proxy over HTTPS
-    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
-    pub proxy_grpc_ca: Option<String>,
 
     #[command(subcommand)]
     #[serde(skip_serializing)]
@@ -227,7 +235,11 @@ impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
         let config = Self::parse();
-        config.validate_secret_key();
+        #[allow(deprecated)]
+        if let Some(secret_key) = &config.secret_key {
+            Settings::validate_secret_key(secret_key.expose_secret())
+                .expect("Invalid DEFGUARD_SECRET_KEY");
+        }
         config
     }
 
@@ -240,19 +252,20 @@ impl DefGuardConfig {
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
         let url = Settings::url().expect("Unable to parse Defguard URL.");
-        self.initialize_rp_id(&url);
+        // TODO(jck)
+        // self.initialize_rp_id(&url);
         self.initialize_cookie_domain(&url);
     }
 
-    fn initialize_rp_id(&mut self, url: &Url) {
-        if self.webauthn_rp_id.is_none() {
-            self.webauthn_rp_id = Some(
-                url.domain()
-                    .expect("Unable to get domain for server URL.")
-                    .to_string(),
-            );
-        }
-    }
+    // fn initialize_rp_id(&mut self, url: &Url) {
+    //     if self.webauthn_rp_id.is_none() {
+    //         self.webauthn_rp_id = Some(
+    //             url.domain()
+    //                 .expect("Unable to get domain for server URL.")
+    //                 .to_string(),
+    //         );
+    //     }
+    // }
 
     fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
@@ -262,20 +275,6 @@ impl DefGuardConfig {
                     .to_string(),
             );
         }
-    }
-
-    fn validate_secret_key(&self) {
-        let secret_key = self.secret_key.expose_secret();
-        assert!(
-            secret_key.trim().len() == secret_key.len(),
-            "SECRET_KEY cannot have leading and trailing space",
-        );
-
-        assert!(
-            secret_key.len() >= 64,
-            "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
-            secret_key.len()
-        );
     }
 
     /// Try PKCS#1 and PKCS#8 PEM formats.
@@ -297,25 +296,6 @@ impl DefGuardConfig {
             None
         }
     }
-
-    /// Provide [`ClientTlsConfig`] from paths to cerfiticate, key, and cerfiticate authority (CA).
-    pub fn grpc_client_tls_config(&self) -> Result<Option<ClientTlsConfig>, io::Error> {
-        if self.grpc_ca.is_none() && (self.grpc_cert.is_none() || self.grpc_key.is_none()) {
-            return Ok(None);
-        }
-        let mut tls = ClientTlsConfig::new();
-        if let (Some(cert_path), Some(key_path)) = (&self.grpc_cert, &self.grpc_key) {
-            let cert = read_to_string(cert_path)?;
-            let key = read_to_string(key_path)?;
-            tls = tls.identity(Identity::from_pem(cert, key));
-        }
-        if let Some(ca_path) = &self.grpc_ca {
-            let ca = read_to_string(ca_path)?;
-            tls = tls.ca_certificate(Certificate::from_pem(ca));
-        }
-
-        Ok(Some(tls))
-    }
 }
 
 impl Default for DefGuardConfig {
@@ -336,29 +316,29 @@ mod tests {
         DefGuardConfig::command().debug_assert();
     }
 
-    #[test]
-    fn test_generate_rp_id() {
-        unsafe {
-            env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-        }
+    // #[test]
+    // fn test_generate_rp_id() {
+    //     unsafe {
+    //         env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
+    //     }
 
-        let url = Url::parse("https://defguard.example.com").unwrap();
-        let mut config = DefGuardConfig::new();
-        config.initialize_rp_id(&url);
+    //     let url = Url::parse("https://defguard.example.com").unwrap();
+    //     let mut config = DefGuardConfig::new();
+    //     config.initialize_rp_id(&url);
 
-        assert_eq!(
-            config.webauthn_rp_id,
-            Some("defguard.example.com".to_string())
-        );
+    //     assert_eq!(
+    //         config.webauthn_rp_id,
+    //         Some("defguard.example.com".to_string())
+    //     );
 
-        unsafe {
-            env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
-        }
+    //     unsafe {
+    //         env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
+    //     }
 
-        let config = DefGuardConfig::new();
+    //     let config = DefGuardConfig::new();
 
-        assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
-    }
+    //     assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
+    // }
 
     #[test]
     fn test_generate_cookie_domain() {

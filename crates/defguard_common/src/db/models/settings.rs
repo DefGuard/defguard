@@ -1,6 +1,8 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
 use chrono::NaiveDateTime;
+use rand::{RngCore, rngs::OsRng};
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
@@ -10,7 +12,7 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{db::Id, global_value, secret::SecretStringWrapper};
+use crate::{config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -44,6 +46,14 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
+}
+
+#[derive(Error, Debug)]
+pub enum SettingsRequiredValueError {
+    #[error("Missing required setting: {0}")]
+    Missing(&'static str),
+    #[error("Invalid required setting `{0}`: {1}")]
+    Invalid(&'static str, &'static str),
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
@@ -175,6 +185,18 @@ pub struct Settings {
     pub public_proxy_url: String,
     pub initial_setup_step: InitialSetupStep,
     pub default_admin_id: Option<Id>,
+    // 1.6 config options
+    pub secret_key: Option<String>,
+    pub webauthn_rp_id: Option<String>,
+    pub grpc_url: String,
+    pub disable_stats_purge: bool,
+    auth_cookie_timeout_days: i32,
+    stats_purge_frequency_hours: i32,
+    stats_purge_threshold_days: i32,
+    enrollment_token_timeout_hours: i32,
+    password_reset_token_timeout_hours: i32,
+    enrollment_session_timeout_minutes: i32,
+    password_reset_session_timeout_minutes: i32,
 }
 
 // Implement manually to avoid exposing the license key.
@@ -269,6 +291,63 @@ impl fmt::Debug for Settings {
 }
 
 impl Settings {
+    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsRequiredValueError> {
+        if secret_key.trim().len() != secret_key.len() {
+            return Err(SettingsRequiredValueError::Invalid(
+                "secret_key",
+                "cannot have leading or trailing whitespace",
+            ));
+        }
+
+        if secret_key.len() < 64 {
+            return Err(SettingsRequiredValueError::Invalid(
+                "secret_key",
+                "must be at least 64 characters long",
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn generate_secret_key() -> String {
+        let mut bytes = [0_u8; 32];
+        OsRng.fill_bytes(&mut bytes);
+        let mut secret_key = String::with_capacity(64);
+        for byte in bytes {
+            use std::fmt::Write as _;
+            let _ = write!(secret_key, "{byte:02x}");
+        }
+        secret_key
+    }
+
+    pub async fn ensure_secret_key(
+        pool: &PgPool,
+        config: &DefGuardConfig,
+    ) -> Result<(), anyhow::Error> {
+        let mut settings = Settings::get_current_settings();
+
+        #[allow(deprecated)]
+        if let Some(secret_key) = &config.secret_key {
+            let secret_key = secret_key.expose_secret();
+            Settings::validate_secret_key(secret_key)?;
+            if settings.secret_key.as_deref() != Some(secret_key) {
+                settings.secret_key = Some(secret_key.to_string());
+                update_current_settings(pool, settings).await?;
+            }
+            return Ok(());
+        }
+
+        if let Some(secret_key) = settings.secret_key.as_deref() {
+            Settings::validate_secret_key(secret_key)?;
+            return Ok(());
+        }
+
+        settings.secret_key = Some(Settings::generate_secret_key());
+        update_current_settings(pool, settings).await?;
+
+        Ok(())
+    }
+
     pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
@@ -297,7 +376,10 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
-            default_admin_id \
+            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
+            stats_purge_frequency_hours, stats_purge_threshold_days, \
+            enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
+            enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -385,7 +467,18 @@ impl Settings {
             mfa_code_timeout_seconds = $56, \
             public_proxy_url = $57, \
             initial_setup_step = $58, \
-            default_admin_id = $59 \
+            default_admin_id = $59, \
+            auth_cookie_timeout_days = $60, \
+            secret_key = $61, \
+            webauthn_rp_id = $62, \
+            grpc_url = $63, \
+            disable_stats_purge = $64, \
+            stats_purge_frequency_hours = $65, \
+            stats_purge_threshold_days = $66, \
+            enrollment_token_timeout_hours = $67, \
+            password_reset_token_timeout_hours = $68, \
+            enrollment_session_timeout_minutes = $69, \
+            password_reset_session_timeout_minutes = $70 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -446,6 +539,17 @@ impl Settings {
             self.public_proxy_url,
             &self.initial_setup_step as &InitialSetupStep,
             self.default_admin_id,
+            self.auth_cookie_timeout_days,
+            self.secret_key,
+            self.webauthn_rp_id,
+            self.grpc_url,
+            self.disable_stats_purge,
+            self.stats_purge_frequency_hours,
+            self.stats_purge_threshold_days,
+            self.enrollment_token_timeout_hours,
+            self.password_reset_token_timeout_hours,
+            self.enrollment_session_timeout_minutes,
+            self.password_reset_session_timeout_minutes,
         )
         .execute(executor)
         .await?;
@@ -526,8 +630,115 @@ impl Settings {
         Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
     }
 
+    #[must_use]
+    pub fn auth_cookie_timeout(&self) -> Duration {
+        Duration::from_secs(self.auth_cookie_timeout_days as u64 * 24 * 3600)
+    }
+
+    #[must_use]
+    pub fn stats_purge_frequency(&self) -> Duration {
+        Duration::from_secs(self.stats_purge_frequency_hours as u64 * 3600)
+    }
+
+    #[must_use]
+    pub fn stats_purge_threshold(&self) -> Duration {
+        Duration::from_secs(self.stats_purge_threshold_days as u64 * 24 * 3600)
+    }
+
+    #[must_use]
+    pub fn enrollment_token_timeout(&self) -> Duration {
+        Duration::from_secs(self.enrollment_token_timeout_hours as u64 * 3600)
+    }
+
+    #[must_use]
+    pub fn password_reset_token_timeout(&self) -> Duration {
+        Duration::from_secs(self.password_reset_token_timeout_hours as u64 * 3600)
+    }
+
+    #[must_use]
+    pub fn enrollment_session_timeout(&self) -> Duration {
+        Duration::from_secs(self.enrollment_session_timeout_minutes as u64 * 60)
+    }
+
+    #[must_use]
+    pub fn password_reset_session_timeout(&self) -> Duration {
+        Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
+    }
+
+    pub fn secret_key_required(&self) -> Result<&str, SettingsRequiredValueError> {
+        let secret_key = self
+            .secret_key
+            .as_deref()
+            .ok_or(SettingsRequiredValueError::Missing("secret_key"))?;
+
+        Settings::validate_secret_key(secret_key)?;
+
+        Ok(secret_key)
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
+    }
+
+    #[allow(deprecated)]
+    pub async fn update_from_config<'e, E>(
+        &mut self,
+        executor: E,
+        config: &DefGuardConfig,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let minute = 60;
+        let hour = minute * 60;
+        let day = hour * 24;
+        if let Some(auth_cookie_timeout) = config.auth_cookie_timeout {
+            self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
+        }
+        if let Some(secret_key) = &config.secret_key {
+            self.secret_key = Some(secret_key.expose_secret().to_string());
+        }
+        if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
+            self.webauthn_rp_id = Some(webauthn_rp_id.clone());
+        }
+        if let Some(grpc_url) = &config.grpc_url {
+            self.grpc_url = grpc_url.to_string();
+        }
+        if let Some(enrollment_url) = &config.enrollment_url {
+            self.public_proxy_url = enrollment_url.to_string();
+        }
+        if let Some(mfa_code_timeout) = config.mfa_code_timeout {
+            self.mfa_code_timeout_seconds = mfa_code_timeout.as_secs() as i32;
+        }
+        if let Some(session_timeout) = config.session_timeout {
+            self.authentication_period_days = (session_timeout.as_secs() / day) as i32;
+        }
+        if let Some(disable_stats_purge) = config.disable_stats_purge {
+            self.disable_stats_purge = disable_stats_purge;
+        }
+        if let Some(stats_purge_frequency) = config.stats_purge_frequency {
+            self.stats_purge_frequency_hours = (stats_purge_frequency.as_secs() / hour) as i32;
+        }
+        if let Some(stats_purge_threshold) = config.stats_purge_threshold {
+            self.stats_purge_threshold_days = (stats_purge_threshold.as_secs() / day) as i32;
+        }
+        if let Some(enrollment_token_timeout) = config.enrollment_token_timeout {
+            self.enrollment_token_timeout_hours =
+                (enrollment_token_timeout.as_secs() / hour) as i32;
+        }
+        if let Some(password_reset_token_timeout) = config.password_reset_token_timeout {
+            self.password_reset_token_timeout_hours =
+                (password_reset_token_timeout.as_secs() / hour) as i32;
+        }
+        if let Some(enrollment_session_timeout) = config.enrollment_session_timeout {
+            self.enrollment_session_timeout_minutes =
+                (enrollment_session_timeout.as_secs() / minute) as i32;
+        }
+        if let Some(password_reset_session_timeout) = config.password_reset_session_timeout {
+            self.password_reset_session_timeout_minutes =
+                (password_reset_session_timeout.as_secs() / minute) as i32;
+        }
+        update_current_settings(executor, self.clone()).await
     }
 }
 

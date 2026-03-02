@@ -101,6 +101,8 @@ async fn main() -> Result<(), anyhow::Error> {
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
+    Settings::ensure_secret_key(&pool, &config).await?;
+    let mut settings = Settings::get_current_settings();
 
     if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
         if let Err(err) =
@@ -108,6 +110,7 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Setup web server exited with error: {err}");
         }
+        settings = Settings::get_current_settings();
     } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
     {
         config.initialize_post_settings();
@@ -122,6 +125,13 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Migration web server exited with error: {err}");
         }
+        settings = Settings::get_current_settings();
+    }
+
+    if wizard_flags.migration_wizard_needed {
+        info!("Migration from 1.6: copying configuration options to DB");
+        settings.update_from_config(&pool, &config).await?;
+        info!("Migration from 1.6: copied configuration options to DB");
     }
 
     if ini_server_config {
@@ -153,7 +163,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
-    // read grpc TLS cert and key
+    if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
+        anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
+    }
+
+    // read grpc TLS cert and key from legacy config values
     let grpc_cert = config
         .grpc_cert
         .as_ref()
@@ -184,11 +198,13 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
+    let proxy_secret_key = settings.secret_key_required()?.to_string();
     let proxy_manager = ProxyManager::new(
         pool.clone(),
         ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone()),
         Arc::clone(&incompatible_components),
         proxy_control_rx,
+        proxy_secret_key,
     );
 
     let mut gateway_manager = GatewayManager::new(
@@ -220,9 +236,9 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
-            config.stats_purge_frequency.into(),
-            config.stats_purge_threshold.into()
-        ), if !config.disable_stats_purge =>
+            settings.stats_purge_frequency(),
+            settings.stats_purge_threshold()
+        ), if !settings.disable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool) =>
             error!("Periodic license check task returned early: {res:?}"),
