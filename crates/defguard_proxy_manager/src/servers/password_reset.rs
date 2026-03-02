@@ -135,7 +135,7 @@ impl PasswordResetServer {
             user.id,
             None,
             Some(email.clone()),
-			settings.password_reset_token_timeout().as_secs(),
+            settings.password_reset_token_timeout().as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;

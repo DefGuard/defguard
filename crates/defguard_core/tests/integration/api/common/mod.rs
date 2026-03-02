@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use axum_extra::extract::cookie::Key;
 pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
@@ -23,7 +24,6 @@ use defguard_core::{
     grpc::{GatewayEvent, WorkerState},
     handlers::{Auth, user::UserDetails},
 };
-use axum_extra::extract::cookie::Key;
 use reqwest::{StatusCode, header::HeaderName};
 use semver::Version;
 use serde_json::json;

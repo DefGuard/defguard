@@ -320,10 +320,13 @@ impl Settings {
         secret_key
     }
 
-    pub async fn ensure_secret_key(pool: &PgPool, config: &DefGuardConfig) -> Result<(), anyhow::Error> {
+    pub async fn ensure_secret_key(
+        pool: &PgPool,
+        config: &DefGuardConfig,
+    ) -> Result<(), anyhow::Error> {
         let mut settings = Settings::get_current_settings();
 
-		#[allow(deprecated)]
+        #[allow(deprecated)]
         if let Some(secret_key) = &config.secret_key {
             let secret_key = secret_key.expose_secret();
             Settings::validate_secret_key(secret_key)?;
@@ -677,7 +680,7 @@ impl Settings {
         Url::parse(&self.public_proxy_url)
     }
 
-	#[allow(deprecated)]
+    #[allow(deprecated)]
     pub async fn update_from_config<'e, E>(
         &mut self,
         executor: E,
@@ -720,7 +723,8 @@ impl Settings {
             self.stats_purge_threshold_days = (stats_purge_threshold.as_secs() / day) as i32;
         }
         if let Some(enrollment_token_timeout) = config.enrollment_token_timeout {
-            self.enrollment_token_timeout_hours = (enrollment_token_timeout.as_secs() / hour) as i32;
+            self.enrollment_token_timeout_hours =
+                (enrollment_token_timeout.as_secs() / hour) as i32;
         }
         if let Some(password_reset_token_timeout) = config.password_reset_token_timeout {
             self.password_reset_token_timeout_hours =

@@ -586,7 +586,7 @@ pub async fn start_remote_desktop_configuration(
         &mut transaction,
         &session.user,
         Some(email),
-		settings.enrollment_token_timeout().as_secs(),
+        settings.enrollment_token_timeout().as_secs(),
         public_proxy_url.clone(),
         data.send_enrollment_notification,
         None,
@@ -1103,12 +1103,12 @@ pub async fn reset_password(
 
         Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
 
-		let settings = Settings::get_current_settings();
+        let settings = Settings::get_current_settings();
         let enrollment = Token::new(
             user.id,
             Some(session.user.id),
             Some(user.email.clone()),
-			settings.password_reset_token_timeout().as_secs(),
+            settings.password_reset_token_timeout().as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;

@@ -119,7 +119,7 @@ impl AppState {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
         let url = Settings::url().expect("Invalid Defguard URL configuration");
-		let settings = Settings::get_current_settings();
+        let settings = Settings::get_current_settings();
         let webauthn_builder = WebauthnBuilder::new(
             settings
                 .webauthn_rp_id
