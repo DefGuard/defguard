@@ -16,14 +16,24 @@ import { EditPage } from '../../shared/components/EditPage/EditPage';
 import { EditPageControls } from '../../shared/components/EditPageControls/EditPageControls';
 import { EditPageFormSection } from '../../shared/components/EditPageFormSection/EditPageFormSection';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
+import { externalLink } from '../../shared/constants';
+
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-import { getLocationQueryOptions } from '../../shared/query';
+import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
+import {
+  canUseBusinessFeature,
+  canUseEnterpriseFeature,
+} from '../../shared/utils/license';
 import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
 
 export const EditLocationPage = () => {
@@ -99,6 +109,42 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   );
 
   const navigate = useNavigate();
+
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseEnterprise = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseEnterpriseFeature(licenseInfo).result;
+  }, [licenseInfo]);
+  const canUseBusiness = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
+  const serviceLocationLocked = isPresent(canUseEnterprise) && !canUseEnterprise;
+  const firewallLocked = isPresent(canUseBusiness) && !canUseBusiness;
+
+  const serviceLocationLabelContent = useMemo(() => {
+    if (!serviceLocationLocked) return undefined;
+    return (
+      <>
+        <p>{m.license_enterprise_required()}</p>
+        <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+          {m.license_upgrade_to_unlock()}
+        </a>
+      </>
+    );
+  }, [serviceLocationLocked]);
+
+  const firewallLabelContent = useMemo(() => {
+    if (!firewallLocked) return undefined;
+    return (
+      <>
+        <p>{m.license_business_required()}</p>
+        <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
+          {m.license_upgrade_to_unlock()}
+        </a>
+      </>
+    );
+  }, [firewallLocked]);
 
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
@@ -232,6 +278,21 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <form.AppField name="allowed_ips">
             {(field) => <field.FormInput label="Allowed IPs" />}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Lg} />
+          <TooltipProvider disabled={!firewallLocked} placement="top-start">
+            <TooltipTrigger>
+              <div>
+                <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
+                  active={false}
+                  disabled={firewallLocked}
+                  label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{m.license_upgrade_business_tooltip()}</p>
+            </TooltipContent>
+          </TooltipProvider>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label="DNS" />}
@@ -353,23 +414,26 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                         }
                       />
                     )}
-                    <EditPageFormSection label="Location type (Windows only)">
+                    <EditPageFormSection
+                      label="Location type (Windows only)"
+                      labelContent={serviceLocationLabelContent}
+                    >
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
                         text="Regular location"
-                        disabled={disabled}
+                        disabled={disabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Prelogon}
                         text="Service location: Pre-logon"
-                        disabled={disabled}
+                        disabled={disabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Alwayson}
                         text="Service location: Always on"
-                        disabled={disabled}
+                        disabled={disabled || serviceLocationLocked}
                       />
                     </EditPageFormSection>
                   </>
@@ -400,12 +464,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </form.AppField>
           )}
         </EditPageFormSection>
-        <EditPageFormSection label="Firewall">
+        <EditPageFormSection label="Firewall" labelContent={firewallLabelContent}>
           <form.AppField name="firewall">
             {(field) => (
               <field.FormRadio
                 value={LocationFirewall.Disabled}
                 text="Disable firewall option"
+                disabled={firewallLocked}
               />
             )}
           </form.AppField>
@@ -415,6 +480,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormRadio
                 value={LocationFirewall.Allow}
                 text="Users/devices can access all resources unless limited by ACL rules."
+                disabled={firewallLocked}
               />
             )}
           </form.AppField>
@@ -424,6 +490,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <field.FormRadio
                 value={LocationFirewall.Deny}
                 text="All traffic not explicitly allowed by an ACL rule will be blocked."
+                disabled={firewallLocked}
               />
             )}
           </form.AppField>
