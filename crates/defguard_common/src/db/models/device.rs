@@ -881,10 +881,6 @@ impl Device<Id> {
                     continue;
                 }
 
-                if reserved.contains(&ip) {
-                    continue;
-                }
-
                 picked = Some(ip);
                 break;
             }
