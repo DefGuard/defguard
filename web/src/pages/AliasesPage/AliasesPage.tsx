@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from 'react';
 import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
@@ -20,7 +21,7 @@ export const AliasesPage = () => {
 
   const pendingCount = aliasesCount?.pending ?? 0;
   const pendingTitle = pendingCount ? `Pending (${pendingCount})` : 'Pending';
-  const pendingBadgeText = pendingCount > 0 ? '!' : undefined;
+  const pendingIcon = pendingCount > 0 ? IconKind.AttentionFilled : undefined;
 
   const tabs = useMemo(
     (): TabsItem[] => [
@@ -37,10 +38,10 @@ export const AliasesPage = () => {
           setActiveTab(AclDeploymentState.Modified);
         },
         title: pendingTitle,
-        badgeText: pendingBadgeText,
+        icon: pendingIcon,
       },
     ],
-    [activeTab, pendingBadgeText, pendingTitle],
+    [activeTab, pendingIcon, pendingTitle],
   );
 
   return (
