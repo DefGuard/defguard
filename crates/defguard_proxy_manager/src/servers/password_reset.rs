@@ -60,7 +60,7 @@ impl PasswordResetServer {
         }
 
         let settings = Settings::get_current_settings();
-        if enrollment.is_session_valid((settings.enrollment_session_timeout_minutes * 60) as u64) {
+        if enrollment.is_session_valid(settings.enrollment_session_timeout().as_secs()) {
             info!("Password reset session validated: {enrollment:?}.",);
             Ok(enrollment)
         } else {
@@ -138,7 +138,7 @@ impl PasswordResetServer {
             user.id,
             None,
             Some(email.clone()),
-			(settings.password_reset_token_timeout_hours * 3600) as u64,
+			settings.password_reset_token_timeout().as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
@@ -216,7 +216,7 @@ impl PasswordResetServer {
         let session_deadline = enrollment
             .start_session(
                 &mut transaction,
-                (settings.password_reset_session_timeout_minutes * 60) as u64,
+                settings.password_reset_session_timeout().as_secs(),
             )
             .await?;
 

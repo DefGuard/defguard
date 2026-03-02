@@ -216,12 +216,8 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
-            std::time::Duration::from_secs(
-                (settings.stats_purge_frequency_hours as u64) * 3600,
-            ),
-            std::time::Duration::from_secs(
-                (settings.stats_purge_threshold_days as u64) * 24 * 3600,
-            )
+            settings.stats_purge_frequency(),
+            settings.stats_purge_threshold()
         ), if !settings.disable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool) =>

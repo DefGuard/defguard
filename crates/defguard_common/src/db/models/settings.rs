@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
 use chrono::NaiveDateTime;
-use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
@@ -184,13 +183,13 @@ pub struct Settings {
     pub webauthn_rp_id: Option<String>,
     pub grpc_url: String,
     pub disable_stats_purge: bool,
-	pub auth_cookie_timeout_days: i32,
-    pub stats_purge_frequency_hours: i32,
-    pub stats_purge_threshold_days: i32,
-    pub enrollment_token_timeout_hours: i32,
-    pub password_reset_token_timeout_hours: i32,
-    pub enrollment_session_timeout_minutes: i32,
-    pub password_reset_session_timeout_minutes: i32,
+    auth_cookie_timeout_days: i32,
+    stats_purge_frequency_hours: i32,
+    stats_purge_threshold_days: i32,
+    enrollment_token_timeout_hours: i32,
+    password_reset_token_timeout_hours: i32,
+    enrollment_session_timeout_minutes: i32,
+    password_reset_session_timeout_minutes: i32,
     pub proxy_grpc_ca: Option<String>,
 }
 
@@ -578,6 +577,41 @@ impl Settings {
         Duration::from_secs(self.authentication_period_days as u64 * 24 * 3600)
     }
 
+    #[must_use]
+    pub fn auth_cookie_timeout(&self) -> Duration {
+        Duration::from_secs(self.auth_cookie_timeout_days as u64 * 24 * 3600)
+    }
+
+    #[must_use]
+    pub fn stats_purge_frequency(&self) -> Duration {
+        Duration::from_secs(self.stats_purge_frequency_hours as u64 * 3600)
+    }
+
+    #[must_use]
+    pub fn stats_purge_threshold(&self) -> Duration {
+        Duration::from_secs(self.stats_purge_threshold_days as u64 * 24 * 3600)
+    }
+
+    #[must_use]
+    pub fn enrollment_token_timeout(&self) -> Duration {
+        Duration::from_secs(self.enrollment_token_timeout_hours as u64 * 3600)
+    }
+
+    #[must_use]
+    pub fn password_reset_token_timeout(&self) -> Duration {
+        Duration::from_secs(self.password_reset_token_timeout_hours as u64 * 3600)
+    }
+
+    #[must_use]
+    pub fn enrollment_session_timeout(&self) -> Duration {
+        Duration::from_secs(self.enrollment_session_timeout_minutes as u64 * 60)
+    }
+
+    #[must_use]
+    pub fn password_reset_session_timeout(&self) -> Duration {
+        Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
@@ -585,7 +619,7 @@ impl Settings {
     pub async fn update_from_config<'e, E>(
         &mut self,
         executor: E,
-        config: &DefGuardConfig,
+        _config: &DefGuardConfig,
     ) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,

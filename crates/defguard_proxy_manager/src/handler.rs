@@ -726,7 +726,7 @@ impl ProxyHandler {
                                                 user.id,
                                                 Some(user.id),
                                                 Some(user.email),
-												(settings.enrollment_token_timeout_hours * 3600) as u64,
+												settings.enrollment_token_timeout().as_secs(),
                                                 Some(ENROLLMENT_TOKEN_TYPE.to_string()),
                                             );
                                             debug!("Saving a new desktop configuration token...");
