@@ -1,9 +1,6 @@
 ALTER TABLE settings
     ADD COLUMN auth_cookie_timeout_days int4 NOT NULL DEFAULT 7,
     ADD COLUMN secret_key text,
-    ADD COLUMN grpc_ca text,
-    ADD COLUMN grpc_cert text,
-    ADD COLUMN grpc_key text,
     ADD COLUMN openid_signing_key text,
     ADD COLUMN webauthn_rp_id text,
     ADD COLUMN grpc_url text NOT NULL DEFAULT 'http://localhost:50055',

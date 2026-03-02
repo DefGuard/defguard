@@ -70,17 +70,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
-    // Certificate authority (CA), certificate, and key for gRPC communication over HTTPS.
-    #[arg(long, env = "DEFGUARD_GRPC_CA")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_ca instead")]
-    pub grpc_ca: Option<String>,
-    #[arg(long, env = "DEFGUARD_GRPC_CERT")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_cert instead")]
-    pub grpc_cert: Option<String>,
-    #[arg(long, env = "DEFGUARD_GRPC_KEY")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_key instead")]
-    pub grpc_key: Option<String>,
-
     #[arg(
         long,
         env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",

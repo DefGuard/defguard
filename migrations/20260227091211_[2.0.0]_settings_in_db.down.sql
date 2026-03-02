@@ -1,9 +1,6 @@
 ALTER TABLE settings
     DROP COLUMN auth_cookie_timeout_days,
     DROP COLUMN secret_key,
-    DROP COLUMN grpc_ca,
-    DROP COLUMN grpc_cert,
-    DROP COLUMN grpc_key,
     DROP COLUMN openid_signing_key,
     DROP COLUMN webauthn_rp_id,
     DROP COLUMN grpc_url,

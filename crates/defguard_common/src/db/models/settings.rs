@@ -186,9 +186,6 @@ pub struct Settings {
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     pub secret_key: Option<String>,
-    pub grpc_ca: Option<String>,
-    pub grpc_cert: Option<String>,
-    pub grpc_key: Option<String>,
     pub webauthn_rp_id: Option<String>,
     pub grpc_url: String,
     pub disable_stats_purge: bool,
@@ -322,8 +319,7 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
-            default_admin_id, auth_cookie_timeout_days, secret_key, grpc_ca, grpc_cert, \
-            grpc_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
+            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes, \
@@ -418,19 +414,16 @@ impl Settings {
             default_admin_id = $59, \
             auth_cookie_timeout_days = $60, \
             secret_key = $61, \
-            grpc_ca = $62, \
-            grpc_cert = $63, \
-            grpc_key = $64, \
-            webauthn_rp_id = $65, \
-            grpc_url = $66, \
-            disable_stats_purge = $67, \
-            stats_purge_frequency_hours = $68, \
-            stats_purge_threshold_days = $69, \
-            enrollment_token_timeout_hours = $70, \
-            password_reset_token_timeout_hours = $71, \
-            enrollment_session_timeout_minutes = $72, \
-            password_reset_session_timeout_minutes = $73, \
-            proxy_grpc_ca = $74 \
+            webauthn_rp_id = $62, \
+            grpc_url = $63, \
+            disable_stats_purge = $64, \
+            stats_purge_frequency_hours = $65, \
+            stats_purge_threshold_days = $66, \
+            enrollment_token_timeout_hours = $67, \
+            password_reset_token_timeout_hours = $68, \
+            enrollment_session_timeout_minutes = $69, \
+            password_reset_session_timeout_minutes = $70, \
+            proxy_grpc_ca = $71 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -493,9 +486,6 @@ impl Settings {
             self.default_admin_id,
             self.auth_cookie_timeout_days,
             self.secret_key,
-            self.grpc_ca,
-            self.grpc_cert,
-            self.grpc_key,
             self.webauthn_rp_id,
             self.grpc_url,
             self.disable_stats_purge,
@@ -664,15 +654,6 @@ impl Settings {
         }
         if let Some(secret_key) = &config.secret_key {
             self.secret_key = Some(secret_key.expose_secret().to_string());
-        }
-        if let Some(grpc_ca) = &config.grpc_ca {
-            self.grpc_ca = Some(grpc_ca.clone());
-        }
-        if let Some(grpc_cert) = &config.grpc_cert {
-            self.grpc_cert = Some(grpc_cert.clone());
-        }
-        if let Some(grpc_key) = &config.grpc_key {
-            self.grpc_key = Some(grpc_key.clone());
         }
         if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
             self.webauthn_rp_id = Some(webauthn_rp_id.clone());
