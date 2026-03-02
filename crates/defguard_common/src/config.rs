@@ -11,7 +11,7 @@ use rsa::{
     traits::PublicKeyParts,
     RsaPrivateKey,
 };
-use secrecy::SecretString;
+use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
 use crate::db::models::Settings;
@@ -235,8 +235,10 @@ impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
         let config = Self::parse();
-        // TODO(jck)
-        // config.validate_secret_key();
+        if let Some(secret_key) = &config.secret_key {
+            Settings::validate_secret_key(secret_key.expose_secret())
+                .expect("Invalid DEFGUARD_SECRET_KEY");
+        }
         config
     }
 

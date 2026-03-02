@@ -291,7 +291,7 @@ impl fmt::Debug for Settings {
 }
 
 impl Settings {
-    fn validate_secret_key(secret_key: &str) -> Result<(), SettingsRequiredValueError> {
+    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsRequiredValueError> {
         if secret_key.trim().len() != secret_key.len() {
             return Err(SettingsRequiredValueError::Invalid(
                 "secret_key",
