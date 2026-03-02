@@ -125,17 +125,15 @@ pub(crate) async fn update_proxy(
     if proxy.enabled != data.enabled {
         if data.enabled {
             // TODO: spawn Proxy
-        } else {
-            if let Err(err) = appstate
-                .proxy_control_tx
-                .send(ProxyControlMessage::ShutdownConnection(proxy.id))
-                .await
-            {
-                error!(
-                    "Failed to shutdown Proxy {}, it may be disconnected: {err:?}",
-                    proxy.id
-                );
-            }
+        } else if let Err(err) = appstate
+            .proxy_control_tx
+            .send(ProxyControlMessage::ShutdownConnection(proxy.id))
+            .await
+        {
+            error!(
+                "Failed to shutdown Proxy {}, it may be disconnected: {err:?}",
+                proxy.id
+            );
         }
     }
     proxy.enabled = data.enabled;
