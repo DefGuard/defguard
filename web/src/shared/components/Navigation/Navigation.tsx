@@ -284,9 +284,7 @@ const NavItem = ({
       <span>{label}</span>
       {showRight && (
         <div className="right">
-          {showPending && (
-            <CounterLabel value={pendingCount} variant="warning" />
-          )}
+          {showPending && <CounterLabel value={pendingCount} variant="warning" />}
           {showLock && isPresent(licenseTier) && (
             <TooltipProvider>
               <TooltipTrigger>
