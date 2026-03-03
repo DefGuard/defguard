@@ -441,7 +441,7 @@ impl WireguardNetwork<Id> {
         let mut used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
-            let device = device
+            let wireguard_network_device = device
                 .assign_next_network_ip(&mut *transaction, self, &used_ips, None, None)
                 .await?;
             used_ips.extend(device.wireguard_ips);
