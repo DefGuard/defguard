@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { LocationMfaMode } from '../../../../shared/api/types';
 import { businessBadgeProps } from '../../../../shared/components/badges/BusinessBadge';
@@ -32,14 +33,14 @@ export const AutoAdoptionMfaSetupStep = () => {
         <InteractiveBlock
           value={mfaMode === LocationMfaMode.Disabled}
           onClick={() => setMfaMode(LocationMfaMode.Disabled)}
-          title="Do not enforce MFA"
+          title={m.initial_setup_auto_adoption_mfa_option_disabled_title()}
         />
         <SizedBox height={ThemeSpacing.Xl} />
         <InteractiveBlock
           value={mfaMode === LocationMfaMode.Internal}
           onClick={() => setMfaMode(LocationMfaMode.Internal)}
-          title="Internal Defguard Multi-Factor Authentication"
-          content="Uses the MFA methods configured in your Defguard profile."
+          title={m.initial_setup_auto_adoption_mfa_option_internal_title()}
+          content={m.initial_setup_auto_adoption_mfa_option_internal_content()}
         >
           {mfaMode === LocationMfaMode.Internal && (
             <>
@@ -47,7 +48,7 @@ export const AutoAdoptionMfaSetupStep = () => {
               <InfoBanner
                 variant="warning"
                 icon="info-outlined"
-                text="After completing the initial DefGuard setup, configure MFA in your profile to enable it."
+                text={m.initial_setup_auto_adoption_mfa_option_internal_warning()}
               />
             </>
           )}
@@ -56,19 +57,19 @@ export const AutoAdoptionMfaSetupStep = () => {
         <InteractiveBlock
           value={false}
           disabled
-          title="External Identity Provider Authentication"
-          content="Requires configuring an external identity provider in the settings, such as Google, Microsoft Entra ID, Okta, or JumpCloud."
+          title={m.initial_setup_auto_adoption_mfa_option_external_title()}
+          content={m.initial_setup_auto_adoption_mfa_option_external_content()}
           badge={businessBadgeProps}
         ></InteractiveBlock>
       </div>
       <ModalControls
         cancelProps={{
-          text: 'Back',
+          text: m.initial_setup_controls_back(),
           variant: 'outlined',
           onClick: () => setActiveStep(AutoAdoptionSetupStep.VpnSettings),
         }}
         submitProps={{
-          text: 'Continue',
+          text: m.initial_setup_controls_continue(),
           onClick: () => {
             setMfaSettings({ vpn_mfa_mode: mfaMode });
           },

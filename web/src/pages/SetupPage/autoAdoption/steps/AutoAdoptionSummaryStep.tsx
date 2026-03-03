@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
@@ -45,7 +46,7 @@ export const AutoAdoptionSummaryStep = () => {
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
 
-    throw new Error('Timed out waiting for settings essentials.');
+    throw new Error(m.initial_setup_auto_adoption_summary_error_settings_timeout());
   };
 
   const { mutateAsync: finishSetup } = useMutation({
@@ -66,8 +67,8 @@ export const AutoAdoptionSummaryStep = () => {
         useAutoAdoptionSetupWizardStore.getState().reset();
       }, 100);
     } catch (error) {
-      console.error('Failed to finish setup flow:', error);
-      Snackbar.error('Failed to finish setup.');
+      console.error(m.initial_setup_auto_adoption_summary_error_finish_console(), error);
+      Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
     } finally {
       setIsSubmitting(false);
     }
@@ -75,34 +76,36 @@ export const AutoAdoptionSummaryStep = () => {
 
   return (
     <WizardCard className="auto-adoption-summary-step">
-      <p className="thank-you">Thank you for choosing Defguard.</p>
+      <p className="thank-you">{m.initial_setup_auto_adoption_summary_thank_you()}</p>
       <Divider spacing={ThemeSpacing.Xl} />
       <p className="note">
-        Please note that if the host running Defguard is not publicly accessible (i.e., it
-        does not have the VPN public IP assigned to it), you must forward the following
-        ports to it:
+        {m.initial_setup_auto_adoption_summary_note()}
       </p>
       <SizedBox height={ThemeSpacing.Lg} />
       <ul>
-        <li>TCP ports 80 and 443</li>
-        <li>UDP port {wireguardPort}</li>
+        <li>{m.initial_setup_auto_adoption_summary_ports_http_https()}</li>
+        <li>{m.initial_setup_auto_adoption_summary_ports_wireguard({ port: wireguardPort })}</li>
       </ul>
       <Divider spacing={ThemeSpacing.Xl2} />
-      <p className="encourage">We would encourage you to:</p>
+      <p className="encourage">{m.initial_setup_auto_adoption_summary_encourage()}</p>
       <SizedBox height={ThemeSpacing.Md} />
       <div className="recommendations">
         <div className="container">
-          <img src={FileIcon} alt="Documentation Icon" className="icon" />
+          <img
+            src={FileIcon}
+            alt={m.initial_setup_auto_adoption_summary_docs_icon_alt()}
+            className="icon"
+          />
           <div className="recommendation-row">
             <div className="kicker-title">
-              <p className="kicker">Defguard insides</p>
+              <p className="kicker">{m.initial_setup_auto_adoption_summary_docs_kicker()}</p>
               <p className="title">
-                Get familiar with our security concepts and architecture
+                {m.initial_setup_auto_adoption_summary_docs_title()}
               </p>
             </div>
             <Button
               variant="outlined"
-              text="Learn more"
+              text={m.initial_setup_auto_adoption_summary_docs_button()}
               iconRight="open-in-new-window"
               onClick={() => window.open('https://docs.defguard.net/', '_blank')}
             />
@@ -110,15 +113,23 @@ export const AutoAdoptionSummaryStep = () => {
         </div>
 
         <div className="container">
-          <img src={CommunityIcon} alt="Community Icon" className="icon" />
+          <img
+            src={CommunityIcon}
+            alt={m.initial_setup_auto_adoption_summary_community_icon_alt()}
+            className="icon"
+          />
           <div className="recommendation-row">
             <div className="kicker-title">
-              <p className="kicker">Join our community</p>
-              <p className="title">Join our community and participate in discussion</p>
+              <p className="kicker">
+                {m.initial_setup_auto_adoption_summary_community_kicker()}
+              </p>
+              <p className="title">
+                {m.initial_setup_auto_adoption_summary_community_title()}
+              </p>
             </div>
             <Button
               variant="outlined"
-              text="Join now"
+              text={m.initial_setup_auto_adoption_summary_community_button()}
               iconRight="open-in-new-window"
               onClick={() =>
                 window.open('https://github.com/DefGuard/defguard/discussions', '_blank')
@@ -128,15 +139,19 @@ export const AutoAdoptionSummaryStep = () => {
         </div>
 
         <div className="container">
-          <img src={ShieldIcon} alt="Security Icon" className="icon" />
+          <img
+            src={ShieldIcon}
+            alt={m.initial_setup_auto_adoption_summary_support_icon_alt()}
+            className="icon"
+          />
           <div className="recommendation-row">
             <div className="kicker-title">
-              <p className="kicker">Support Us</p>
-              <p className="title">Star us on GitHub</p>
+              <p className="kicker">{m.initial_setup_auto_adoption_summary_support_kicker()}</p>
+              <p className="title">{m.initial_setup_auto_adoption_summary_support_title()}</p>
             </div>
             <Button
               variant="outlined"
-              text="Go to GitHub"
+              text={m.initial_setup_auto_adoption_summary_support_button()}
               iconRight="open-in-new-window"
               onClick={() =>
                 window.open('https://github.com/DefGuard/defguard', '_blank')
@@ -148,7 +163,7 @@ export const AutoAdoptionSummaryStep = () => {
 
       <ModalControls
         submitProps={{
-          text: 'Go to Defguard',
+          text: m.initial_setup_auto_adoption_summary_submit(),
           onClick: handleGoToDefguard,
           loading: isSubmitting,
         }}

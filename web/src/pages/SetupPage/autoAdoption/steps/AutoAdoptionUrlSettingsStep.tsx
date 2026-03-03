@@ -90,9 +90,7 @@ export const AutoAdoptionUrlSettingsStep = () => {
       >
         <form.AppForm>
           <p>
-            This URL will be used to access and control Defguard. It should not be exposed
-            to the Internet only to the internal or VPN network. You can learn more about
-            our security approach in the video below.
+            {m.initial_setup_auto_adoption_url_settings_defguard_description()}
           </p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="defguard_url">
@@ -106,12 +104,7 @@ export const AutoAdoptionUrlSettingsStep = () => {
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
           <p>
-            We have deployed a secure Edge component that handles various tasks, such as
-            enabling automated user enrollment and sending automated configuration updates
-            to desktop and mobile clients. It requires a dedicated URL and must be
-            publicly accessible on the Internet. You can change public URL later in
-            General Settings. Learn more about Edge component in the video guide on the
-            left.
+            {m.initial_setup_auto_adoption_url_settings_public_proxy_description()}
           </p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="public_proxy_url">

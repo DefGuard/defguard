@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useMemo } from 'react';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { SetupAutoAdoptionResponse } from '../../../shared/api/types';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -25,8 +26,8 @@ import './style.scss';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 
 const componentLabel = (component: string): string => {
-  if (component === 'edge') return 'Edge';
-  if (component === 'gateway') return 'Gateway';
+  if (component === 'edge') return m.initial_setup_auto_adoption_component_edge();
+  if (component === 'gateway') return m.initial_setup_auto_adoption_component_gateway();
   return component;
 };
 
@@ -52,13 +53,13 @@ const AutoAdoptionFailedWelcomeContent = ({
     <div className="auto-adoption-welcome-content">
       <Divider spacing={ThemeSpacing.Xl} />
       <div className="summary">
-        <p className="summary-title">Error summary:</p>
+        <p className="summary-title">{m.initial_setup_auto_adoption_failed_summary_title()}</p>
         <SizedBox height={ThemeSpacing.Md} />
         <ul className="status-list">
           <li key={'ca'} className={'status-item success'}>
             <div className="status-row">
               <Icon icon={'check-circle'} />
-              <span>Certificate Authority setup successful.</span>
+              <span>{m.initial_setup_auto_adoption_failed_ca_success()}</span>
             </div>
           </li>
           {Object.entries(results).map(([component, state]) => {
@@ -73,14 +74,21 @@ const AutoAdoptionFailedWelcomeContent = ({
                 <div className="status-row">
                   <Icon icon={success ? 'check-circle' : 'warning-filled'} />
                   <span>
-                    {componentLabel(component)} setup{' '}
-                    {success ? 'successful' : 'unsuccessful'}
+                    {success
+                      ? m.initial_setup_auto_adoption_failed_component_success({
+                          component: componentLabel(component),
+                        })
+                      : m.initial_setup_auto_adoption_failed_component_unsuccessful({
+                          component: componentLabel(component),
+                        })}
                   </span>
                 </div>
                 {showErrorLog && (
                   <div className="component-error-log">
                     <CodeCard
-                      title={`${componentLabel(component)} error log`}
+                      title={m.initial_setup_auto_adoption_failed_component_error_log_title({
+                        component: componentLabel(component),
+                      })}
                       value={componentLogs}
                       onCopy={() => {
                         void writeToClipboard(componentLogs);
@@ -105,21 +113,23 @@ const AutoAdoptionFailedWelcomeContent = ({
         <div className="support-row">
           <Icon icon="support" />
           <p>
-            If you are a Business or Enterprise customer, please{' '}
-            <a href="mailto:support@defguard.net">contact our support team</a> and provide
-            the logs you see in the error summary section above.
+            {m.initial_setup_auto_adoption_failed_support_business_prefix()}{' '}
+            <a href="mailto:support@defguard.net">
+              {m.initial_setup_auto_adoption_failed_support_business_link()}
+            </a>{' '}
+            {m.initial_setup_auto_adoption_failed_support_business_suffix()}
           </p>
         </div>
         <div className="support-row">
           <Icon icon="config" />
           <p>
-            If you are an Open Source or Free plan user, find support on{' '}
+            {m.initial_setup_auto_adoption_failed_support_community_prefix()}{' '}
             <a
               href="https://github.com/DefGuard/defguard/discussions"
               target="_blank"
               rel="noreferrer"
             >
-              Github Discussions.
+              {m.initial_setup_auto_adoption_failed_support_community_link()}
             </a>
           </p>
         </div>
@@ -137,17 +147,15 @@ const AutoAdoptionSuccessWelcomeContent = ({
 }: AutoAdoptionSuccessWelcomeContentProps) => (
   <div className="auto-adoption-welcome-content">
     <Divider spacing={ThemeSpacing.Lg} />
-    <p>This guide will walk you through the process.</p>
+    <p>{m.initial_setup_auto_adoption_success_guide_intro()}</p>
     <br />
     <p>
-      If you would like to understand some basic Defguard concepts, each screen includes
-      links to documentation as well as short videos with explanations that you can watch
-      directly during the setup process.
+      {m.initial_setup_auto_adoption_success_guide_description()}
     </p>
     <SizedBox height={ThemeSpacing.Xl} />
     <Controls>
       <Button
-        text="Start Defguard configuration"
+        text={m.initial_setup_auto_adoption_success_start_button()}
         onClick={() => {
           onStartFlow();
         }}
@@ -181,35 +189,32 @@ export const AutoAdoptionSetupPage = () => {
       adminUser: {
         id: AutoAdoptionSetupStep.AdminUser,
         order: 1,
-        label: 'Create Admin User',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.initial_setup_auto_adoption_step_admin_user_label(),
+        description: m.initial_setup_auto_adoption_step_admin_user_description(),
       },
       urlSettings: {
         id: AutoAdoptionSetupStep.UrlSettings,
         order: 2,
-        label: 'Internal and external URL settings',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.initial_setup_auto_adoption_step_url_settings_label(),
+        description: m.initial_setup_auto_adoption_step_url_settings_description(),
       },
       vpnSettings: {
         id: AutoAdoptionSetupStep.VpnSettings,
         order: 3,
-        label: 'VPN Public and Internal Settings',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.initial_setup_auto_adoption_step_vpn_settings_label(),
+        description: m.initial_setup_auto_adoption_step_vpn_settings_description(),
       },
       mfaSetup: {
         id: AutoAdoptionSetupStep.MfaSetup,
         order: 4,
-        label: 'Multi-Factor Authentication',
-        description: 'You can enable Multi-Factor Authentication (MFA) for your VPN.',
+        label: m.initial_setup_auto_adoption_step_mfa_setup_label(),
+        description: m.initial_setup_auto_adoption_step_mfa_setup_description(),
       },
       summary: {
         id: AutoAdoptionSetupStep.Summary,
         order: 5,
-        label: 'Summary',
-        description: 'Everything is set up and ready to go!',
+        label: m.initial_setup_auto_adoption_step_summary_label(),
+        description: m.initial_setup_auto_adoption_step_summary_description(),
       },
     }),
     [],
@@ -227,8 +232,8 @@ export const AutoAdoptionSetupPage = () => {
   );
 
   const subtitle = hasFailedResult
-    ? 'Unfortunately, the automated setup for some components did not complete successfully. Find detailed errors below.'
-    : 'We have successfully configured all the necessary components (gateway and edge) using Docker for this instance. Now, we need to configure some general settings.';
+    ? m.initial_setup_auto_adoption_welcome_subtitle_failed()
+    : m.initial_setup_auto_adoption_welcome_subtitle_success();
 
   if (!results) {
     return null;
@@ -238,12 +243,12 @@ export const AutoAdoptionSetupPage = () => {
     <WizardPage
       id="auto-adoption-setup-wizard"
       activeStep={activeStep}
-      subtitle="Complete the final three steps to fully configure DefGuard."
-      title="Defguard configuration"
+      subtitle={m.initial_setup_auto_adoption_wizard_subtitle()}
+      title={m.initial_setup_auto_adoption_wizard_title()}
       steps={stepsConfig}
       isOnWelcomePage={!isAutoAdoptionFlowStarted}
       welcomePageConfig={{
-        title: 'Welcome to Defguard.',
+        title: m.initial_setup_auto_adoption_welcome_title(),
         subtitle,
         content: hasFailedResult ? (
           <AutoAdoptionFailedWelcomeContent results={results} />

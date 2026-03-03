@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { m } from '../../../../paraglide/messages';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import api from '../../../../shared/api/api';
@@ -19,19 +20,22 @@ const formSchema = z.object({
   vpn_public_ip: z
     .string()
     .trim()
-    .min(1, 'Required')
+    .min(1, m.initial_setup_auto_adoption_vpn_error_required())
     .refine(
       (value) => Validate.any(value, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
-      'Invalid value',
+      m.initial_setup_auto_adoption_vpn_error_invalid_value(),
     ),
-  vpn_wireguard_port: z.number().min(1, 'Required').max(65535, 'Port is too large'),
+  vpn_wireguard_port: z
+    .number()
+    .min(1, m.initial_setup_auto_adoption_vpn_error_required())
+    .max(65535, m.initial_setup_auto_adoption_vpn_error_port_too_large()),
   vpn_gateway_address: z
     .string()
     .trim()
-    .min(1, 'Required')
+    .min(1, m.initial_setup_auto_adoption_vpn_error_required())
     .refine(
       (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
-      'Invalid value',
+      m.initial_setup_auto_adoption_vpn_error_invalid_value(),
     ),
   vpn_allowed_ips: z.string().trim(),
   vpn_dns_server_ip: z.string().trim(),
@@ -84,61 +88,71 @@ export const AutoAdoptionVpnSettingsStep = () => {
       >
         <form.AppForm>
           <p>
-            To make the VPN operational, a few basic parameters must be configured.
-            WireGuard® needs to be publicly accessible on a specific IP address and UDP
-            port. This IP does not have to be set directly on the gateway it can be
-            configured on your firewall or router and forwarded to the Defguard Gateway.
+            {m.initial_setup_auto_adoption_vpn_intro()}
           </p>
           <SizedBox height={ThemeSpacing.Lg} />
           <div className="vpn-top-row">
             <form.AppField name="vpn_public_ip">
-              {(field) => <field.FormInput required label="Public IP" />}
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.initial_setup_auto_adoption_vpn_label_public_ip()}
+                />
+              )}
             </form.AppField>
             <form.AppField name="vpn_wireguard_port">
               {(field) => (
-                <field.FormInput required label="WireGuard Port" type="number" />
+                <field.FormInput
+                  required
+                  label={m.initial_setup_auto_adoption_vpn_label_wireguard_port()}
+                  type="number"
+                />
               )}
             </form.AppField>
           </div>
           <Divider spacing={ThemeSpacing.Xl} />
           <p>
-            Please provide the internal VPN network IP address for the Defguard Gateway.
-            The VPN network will be derived from this address (e.g., 10.10.10.1 →
-            10.10.10.0). You may specify multiple addresses separated by commas; the first
-            will be used as the primary address for device IP assignment.
+            {m.initial_setup_auto_adoption_vpn_gateway_description()}
           </p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_gateway_address">
-            {(field) => <field.FormInput required label="Gateway Address" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.initial_setup_auto_adoption_vpn_label_gateway_address()}
+              />
+            )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
           <p>
-            If you want your local networks to be accessible from VPN, list them in
-            addresses/masks format below:
+            {m.initial_setup_auto_adoption_vpn_allowed_ips_description()}
           </p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_allowed_ips">
-            {(field) => <field.FormInput label="Allowed IPs" />}
+            {(field) => (
+              <field.FormInput label={m.initial_setup_auto_adoption_vpn_label_allowed_ips()} />
+            )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
           <p>
-            Configure (optionally) a custom DNS server for VPN connections (e.g., your
-            local network DNS or a preferred DNS to use while connected to the VPN).
+            {m.initial_setup_auto_adoption_vpn_dns_description()}
           </p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_dns_server_ip">
-            {(field) => <field.FormInput label="DNS Server IP" />}
+            {(field) => (
+              <field.FormInput label={m.initial_setup_auto_adoption_vpn_label_dns_server_ip()} />
+            )}
           </form.AppField>
           <ModalControls
             submitProps={{
-              text: 'Continue',
+              text: m.initial_setup_controls_continue(),
               onClick: form.handleSubmit,
               loading: isPending,
             }}
           >
             <Button
               variant="outlined"
-              text="Back"
+              text={m.initial_setup_controls_back()}
               onClick={() => {
                 useAutoAdoptionSetupWizardStore.setState(form.state.values);
                 setActiveStep(AutoAdoptionSetupStep.UrlSettings);
