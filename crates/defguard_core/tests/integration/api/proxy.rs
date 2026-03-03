@@ -47,7 +47,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let mut proxy = Proxy::new("test", "localhost", 50051, "admin")
+    let mut proxy = Proxy::new("test", "localhost", 50051, "DefGuard Administrator")
         .save(&pool)
         .await
         .unwrap();
