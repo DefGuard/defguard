@@ -12,11 +12,11 @@ use defguard_common::{
             Session, Settings, User,
             group::Group,
             settings::{InitialSetupStep, initialize_current_settings},
+            wizard::Wizard,
         },
         setup_pool,
     },
 };
-use defguard_common::db::models::wizard::Wizard;
 use defguard_setup::setup_server::build_setup_webapp;
 use reqwest::{
     Client, StatusCode,
@@ -116,7 +116,9 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -171,7 +173,9 @@ async fn test_create_admin_with_automatic_group_assignment(
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
     let default_admin_group_name = Settings::get_current_settings().default_admin_group_name;
@@ -216,7 +220,9 @@ async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnect
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -264,7 +270,9 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -333,7 +341,9 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -382,7 +392,9 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -429,7 +441,9 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -481,7 +495,9 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -533,7 +549,9 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false).await.expect("Failed to initialize wizard");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
     let shutdown_notify = Arc::new(Notify::new());

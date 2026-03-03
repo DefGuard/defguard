@@ -11,7 +11,13 @@ use defguard_common::{
     auth::claims::Claims,
     db::{
         Id,
-        models::{Settings, gateway::Gateway, proxy::Proxy, settings::InitialSetupStep},
+        models::{
+            Settings,
+            gateway::Gateway,
+            proxy::Proxy,
+            settings::InitialSetupStep,
+            wizard::{InitialSetupState, Wizard},
+        },
     },
     types::proxy::ProxyControlMessage,
 };
@@ -31,8 +37,6 @@ use tonic::{
     service::Interceptor,
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
-
-use defguard_common::db::models::wizard::{InitialSetupState, Wizard};
 
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
@@ -584,10 +588,10 @@ pub async fn setup_proxy_tls_stream(
         {
             match Wizard::get(&pool).await {
                 Ok(mut wizard) => {
-				if !wizard.completed {
-					wizard.initial_setup_state = Some(InitialSetupState {
-						step: InitialSetupStep::Confirmation,
-					});
+                if !wizard.completed {
+                    wizard.initial_setup_state = Some(InitialSetupState {
+                        step: InitialSetupStep::Confirmation,
+                    });
                         if let Err(err) = wizard.save(&pool).await {
                             yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
                             return;

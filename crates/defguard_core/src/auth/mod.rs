@@ -230,12 +230,12 @@ where
             if wizard.active_wizard == ActiveWizard::Initial
                 || wizard.active_wizard == ActiveWizard::AutoAdoption
             {
-			let step = wizard
-					.initial_setup_state
-					.as_ref()
-					.map(|s| s.step)
-					.unwrap_or(InitialSetupStep::Welcome);
-				if step <= InitialSetupStep::AdminUser {
+                let step = wizard
+                    .initial_setup_state
+                    .as_ref()
+                    .map(|s| s.step)
+                    .unwrap_or(InitialSetupStep::Welcome);
+                if step <= InitialSetupStep::AdminUser {
                     return Ok(Self {});
                 }
             }

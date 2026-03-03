@@ -542,17 +542,17 @@ impl SettingsEssentials {
         E: PgExecutor<'e>,
     {
         query_as!(
-			SettingsEssentials,
-			"SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
+            SettingsEssentials,
+            "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
 			s.webhooks_enabled, s.worker_enabled, s.openid_enabled, \
 			COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\" \
 			FROM settings s \
 			LEFT JOIN wizard w ON TRUE \
 			WHERE s.id = 1 \
 			LIMIT 1"
-		)
-		.fetch_one(executor)
-		.await
+        )
+        .fetch_one(executor)
+        .await
     }
 }
 
