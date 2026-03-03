@@ -533,6 +533,9 @@ pub async fn run_periodic_license_check(
         // Check if the license is present in the mutex, if not skip the check
         if get_cached_license().is_none() {
             debug!("No license found, skipping license check");
+
+            trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+
             sleep(*config.check_period_no_license).await;
             continue;
         }
@@ -580,6 +583,9 @@ pub async fn run_periodic_license_check(
                 }
             } else {
                 debug!("No license found, skipping license check");
+
+                trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+
                 false
             }
         };
