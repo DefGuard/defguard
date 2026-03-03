@@ -94,6 +94,7 @@ const Content = ({ settings }: { settings: Settings }) => {
     },
     onSubmit: async ({ value }) => {
       await mutateAsync(value);
+      form.reset(value);
     },
   });
 
