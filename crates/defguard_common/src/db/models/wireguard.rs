@@ -1357,7 +1357,7 @@ impl WireguardNetwork<Id> {
         .await
     }
 
-    /// Obtain all used ips for network
+    /// Obtain all used IP addresses for network.
     pub async fn all_used_ips_for_network(
         &self,
         transaction: &mut PgConnection,
