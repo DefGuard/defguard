@@ -122,7 +122,12 @@ pub(crate) async fn update_proxy(
     let before = proxy.clone();
 
     proxy.name = data.name;
-    if proxy.enabled != data.enabled {
+    proxy.enabled = data.enabled;
+    proxy.modified_by = session.user.id;
+    proxy.modified_at = Utc::now().naive_utc();
+    proxy.save(&appstate.pool).await?;
+
+    if before.enabled != proxy.enabled {
         if data.enabled {
             if let Err(err) = appstate
                 .proxy_control_tx
@@ -145,10 +150,6 @@ pub(crate) async fn update_proxy(
             );
         }
     }
-    proxy.enabled = data.enabled;
-    proxy.modified_by = session.user.id;
-    proxy.modified_at = Utc::now().naive_utc();
-    proxy.save(&appstate.pool).await?;
 
     info!("User {} updated proxy {proxy_id}", session.user.username);
 

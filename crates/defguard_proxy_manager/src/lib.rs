@@ -122,7 +122,12 @@ impl ProxyManager {
                         Some(ProxyControlMessage::StartConnection(id)) => {
                             debug!("Starting proxy with ID: {id}");
                             if let Ok(Some(proxy_model)) = Proxy::find_by_id(&self.pool, id).await {
-                                let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<bool>();
+                                if !proxy_model.enabled {
+                                    debug!("Proxy ID {id} is disabled; connecting abandoned");
+                                    continue;
+                                }
+                                let (shutdown_tx, shutdown_rx) =
+                                    tokio::sync::oneshot::channel::<bool>();
                                 shutdown_channels.insert(id, shutdown_tx);
                                 match ProxyHandler::from_proxy(
                                     &proxy_model,
@@ -134,7 +139,8 @@ impl ProxyManager {
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);
-                                        tasks.spawn(proxy.run(self.tx.clone(), self.incompatible_components.clone(), certs_rx.clone()));
+                                        tasks.spawn(proxy.run(self.tx.clone(),
+                                            self.incompatible_components.clone(), certs_rx.clone()));
                                     }
                                     Err(err) => error!("Failed to create proxy server: {err}"),
                                 }

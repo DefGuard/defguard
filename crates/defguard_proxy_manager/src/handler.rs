@@ -138,10 +138,10 @@ impl ProxyHandler {
     async fn mark_connected(&self, version: &Version) -> Result<(), ProxyError> {
         if let Some(mut proxy) = Proxy::find_by_id(&self.pool, self.proxy_id).await? {
             proxy
-                .mark_connected(&self.pool, &version.to_string())
+                .mark_connected(&self.pool, version.to_string())
                 .await?;
         } else {
-            warn!("Couldn't find proxy by id, URL: {}", self.url);
+            warn!("Couldn't find Proxy by ID for URL: {}", self.url);
         }
 
         Ok(())
