@@ -300,30 +300,6 @@ mod tests {
         DefGuardConfig::command().debug_assert();
     }
 
-    // #[test]
-    // fn test_generate_rp_id() {
-    //     unsafe {
-    //         env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-    //     }
-
-    //     let url = Url::parse("https://defguard.example.com").unwrap();
-    //     let mut config = DefGuardConfig::new();
-    //     config.initialize_rp_id(&url);
-
-    //     assert_eq!(
-    //         config.webauthn_rp_id,
-    //         Some("defguard.example.com".to_string())
-    //     );
-
-    //     unsafe {
-    //         env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
-    //     }
-
-    //     let config = DefGuardConfig::new();
-
-    //     assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
-    // }
-
     #[test]
     fn test_generate_cookie_domain() {
         unsafe {
