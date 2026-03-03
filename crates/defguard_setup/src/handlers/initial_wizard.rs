@@ -59,8 +59,7 @@ async fn advance_initial_wizard_to_step(
         info!("Advanced initial wizard setup to step {:?}", step);
     } else {
         debug!(
-            "Not advancing initial wizard setup step from {:?} to {:?} as it is not a forward step",
-            current_step, step
+            "Not advancing initial wizard setup step from {current_step:?} to {step:?} as it is not a forward step"
         );
     }
     Ok(())
