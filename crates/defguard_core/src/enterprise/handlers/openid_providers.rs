@@ -372,6 +372,45 @@ pub(crate) async fn list_openid_providers(
     Ok(ApiResponse::json(providers, StatusCode::OK))
 }
 
+/// Get current OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/provider/current",
+    tag = "OpenID",
+    responses(
+        (status = OK, description = "Get current OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
+pub(crate) async fn get_current_openid_provider(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let settings = Settings::get_current_settings();
+    let settings_json = json!({"create_account": settings.openid_create_account,
+        "username_handling": settings.openid_username_handling});
+    match OpenIdProvider::get_current(&appstate.pool).await? {
+        Some(mut provider) => {
+            // Get rid of it, it should stay on the backend only.
+            provider.google_service_account_key = None;
+            provider.okta_private_jwk = None;
+            Ok(ApiResponse::new(
+                json!({"provider": provider, "settings": settings_json}),
+                StatusCode::OK,
+            ))
+        }
+        None => Ok(ApiResponse::new(
+            json!({"provider": null, "settings": settings_json}),
+            StatusCode::NO_CONTENT,
+        )),
+    }
+}
+
 pub(crate) async fn test_dirsync_connection(
     _license: LicenseInfo,
     _admin: AdminRole,

@@ -424,7 +424,7 @@ const api = {
     getLdapConnectionStatus: () => client.get(`/ldap/test`),
   },
   openIdProvider: {
-    getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
+    getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider/current'),
     addOpenIdProvider: (data: AddOpenIdProvider) => client.post('/openid/provider', data),
     deleteOpenIdProvider: (name: string) => client.delete(`/openid/provider/${name}`),
     editOpenIdProvider: (data: AddOpenIdProvider) =>
