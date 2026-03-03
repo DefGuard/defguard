@@ -6,6 +6,7 @@ use defguard_common::{
     },
 };
 use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
+use reqwest::Url;
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
@@ -29,6 +30,7 @@ pub(crate) async fn init_config(
 ) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let test_secret_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    let webauthn_rp_id = Url::parse(url).unwrap().domain().unwrap().to_string();
     let mut config = DefGuardConfig::new_test_config();
     initialize_current_settings(pool)
         .await
@@ -36,6 +38,7 @@ pub(crate) async fn init_config(
     let mut settings = Settings::get_current_settings();
     settings.defguard_url = url.to_string();
     settings.secret_key = Some(test_secret_key.to_string());
+    settings.webauthn_rp_id = Some(webauthn_rp_id);
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");
