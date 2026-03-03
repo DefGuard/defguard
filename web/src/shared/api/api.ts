@@ -502,6 +502,7 @@ const api = {
     deleteStream: (id: number) => client.delete(`/activity_log_stream/${id}`),
   },
   migration: {
+    finish: () => client.post(`/migration/finish`),
     ca: {
       createCA: (data: CreateCARequest) => client.post('/migration/ca', data),
       getCA: () => client.get<GetCAResponse>('/migration/ca'),

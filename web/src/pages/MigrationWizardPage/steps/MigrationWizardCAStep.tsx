@@ -15,7 +15,6 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
-import { MigrationWizardStep } from '../types';
 
 type ValidityValue = 1 | 2 | 3 | 5 | 10;
 
@@ -40,8 +39,6 @@ type CreateCAStoreValues = {
 };
 
 export const MigrationWizardCAStep = () => {
-  const setActiveStep = useMigrationWizardStore((s) => s.setActiveStep);
-
   const createCAdefaultValues = useMigrationWizardStore(
     useShallow(
       (s): CreateCAFormFields => ({
@@ -70,15 +67,12 @@ export const MigrationWizardCAStep = () => {
 
   const { mutateAsync: createCA } = useMutation({
     mutationFn: api.migration.ca.createCA,
-    onSuccess: () => {
-      setActiveStep(MigrationWizardStep.CaSummary);
-    },
     onError: (error) => {
       console.error('Failed to create CA:', error);
       Snackbar.error(m.migration_wizard_ca_error_create_failed());
     },
     meta: {
-      invalidate: ['initial_setup', 'ca'],
+      invalidate: ['migration', 'ca'],
     },
   });
 
@@ -100,12 +94,9 @@ export const MigrationWizardCAStep = () => {
         email: value.ca_email,
         validity_period_years: value.ca_validity_period_years,
       });
+      useMigrationWizardStore.getState().next();
     },
   });
-
-  const handleBack = () => {
-    setActiveStep(MigrationWizardStep.General);
-  };
 
   return (
     <WizardCard>
@@ -158,7 +149,9 @@ export const MigrationWizardCAStep = () => {
                 <Button
                   variant="outlined"
                   text={m.controls_back()}
-                  onClick={handleBack}
+                  onClick={() => {
+                    useMigrationWizardStore.getState().back();
+                  }}
                   disabled={isSubmitting}
                 />
                 <div className="right">

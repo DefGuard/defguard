@@ -12,10 +12,9 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { downloadFile } from '../../../shared/utils/download';
 import caIcon from '../../SetupPage/assets/ca.png';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
-import { CAOption, MigrationWizardStep } from '../types';
+import { CAOption } from '../types';
 
 export const MigrationWizardCASummaryStep = () => {
-  const setActiveStep = useMigrationWizardStore((s) => s.setActiveStep);
   const caOption = useMigrationWizardStore((s) => s.ca_option);
 
   const { data: caData, isFetching } = useQuery({
@@ -32,14 +31,6 @@ export const MigrationWizardCASummaryStep = () => {
     });
     downloadFile(blob, 'defguard-ca', 'pem');
   }, [caData?.ca_cert_pem]);
-
-  const handleBack = () => {
-    setActiveStep(MigrationWizardStep.Ca);
-  };
-
-  const handleNext = () => {
-    setActiveStep(MigrationWizardStep.Edge);
-  };
 
   const downloadCA = () => {
     return (
@@ -109,9 +100,20 @@ export const MigrationWizardCASummaryStep = () => {
       {caOption === CAOption.Create && downloadCA()}
       {caOption === CAOption.UseOwn && displayCAInfo()}
       <Controls>
-        <Button variant="outlined" text={m.controls_back()} onClick={handleBack} />
+        <Button
+          variant="outlined"
+          text={m.controls_back()}
+          onClick={() => {
+            useMigrationWizardStore.getState().back();
+          }}
+        />
         <div className="right">
-          <Button text={m.controls_continue()} onClick={handleNext} />
+          <Button
+            text={m.controls_continue()}
+            onClick={() => {
+              useMigrationWizardStore.getState().next();
+            }}
+          />
         </div>
       </Controls>
     </WizardCard>

@@ -10,10 +10,8 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
 import type { SetupEvent, SetupStep, SetupStepId } from '../../EdgeSetupPage/steps/types';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
-import { MigrationWizardStep } from '../types';
 
 export const MigrationWizardEdgeAdoptionStep = () => {
-  const setActiveStep = useMigrationWizardStore((s) => s.setActiveStep);
   const migrationWizardStore = useMigrationWizardStore((s) => s);
   const edgeAdoptionState = useMigrationWizardStore((s) => s.edgeAdoptionState);
   const setEdgeAdoptionState = useMigrationWizardStore((s) => s.setEdgeAdoptionState);
@@ -49,11 +47,11 @@ export const MigrationWizardEdgeAdoptionStep = () => {
 
   const handleBack = () => {
     useMigrationWizardStore.getState().resetEdgeAdoptionState();
-    setActiveStep(MigrationWizardStep.Edge);
+    useMigrationWizardStore.getState().back();
   };
 
-  const handleNext = async () => {
-    setActiveStep(MigrationWizardStep.Confirmation);
+  const handleNext = () => {
+    useMigrationWizardStore.getState().next();
   };
 
   const steps: SetupStep[] = useMemo(

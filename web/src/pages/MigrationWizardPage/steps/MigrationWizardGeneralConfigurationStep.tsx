@@ -10,7 +10,6 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
-import { MigrationWizardStep } from '../types';
 
 type FormFields = StoreValues;
 
@@ -71,8 +70,8 @@ export const MigrationWizardGeneralConfigurationStep = () => {
         default_authentication_period_days: value.default_authentication,
         default_mfa_code_timeout_seconds: value.default_mfa_code_lifetime,
         public_proxy_url: value.public_proxy_url,
-        activeStep: MigrationWizardStep.Ca,
       });
+      useMigrationWizardStore.getState().next();
     },
   });
 
@@ -140,9 +139,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
               variant="outlined"
               text={m.controls_back()}
               onClick={() => {
-                useMigrationWizardStore.setState({
-                  isWelcome: true,
-                });
+                useMigrationWizardStore.getState().back();
               }}
             />
             <div className="right">

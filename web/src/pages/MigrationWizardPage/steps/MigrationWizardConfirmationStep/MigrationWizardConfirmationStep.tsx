@@ -1,5 +1,8 @@
+import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../../shared/constants';
@@ -16,10 +19,33 @@ import {
   ThemeSpacing,
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
+import { useMigrationWizardStore } from '../../store/useMigrationWizardStore';
 import prepareNetworkImage from './assets/prepare-network.png';
 
 export const MigrationWizardConfirmationStep = () => {
   const [confirm, setConfirm] = useState(false);
+  const navigate = useNavigate();
+
+  const { mutate: finish, isPending } = useMutation({
+    mutationFn: api.migration.finish,
+    onSuccess: async () => {
+      Snackbar.success(`Migration finished`);
+      await navigate({
+        to: '/vpn-overview',
+        replace: true,
+      });
+      setTimeout(() => {
+        useMigrationWizardStore.getState().resetState();
+      }, 500);
+    },
+    onError: (e) => {
+      Snackbar.error(`Finishing migration failed`);
+      console.error(e);
+    },
+    meta: {
+      invalidate: [['migration'], ['settings'], ['session-info']],
+    },
+  });
 
   return (
     <WizardCard>
@@ -72,8 +98,9 @@ export const MigrationWizardConfirmationStep = () => {
             variant="primary"
             text={m.controls_finish()}
             disabled={!confirm}
+            loading={isPending}
             onClick={() => {
-              Snackbar.default(`TODO`);
+              finish();
             }}
           />
         </div>
