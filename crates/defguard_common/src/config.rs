@@ -98,10 +98,6 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
-    #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse)]
-    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_url instead")]
-    pub grpc_url: Option<Url>,
-
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
     #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
     pub disable_stats_purge: Option<bool>,

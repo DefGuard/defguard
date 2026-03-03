@@ -188,7 +188,6 @@ pub struct Settings {
     // 1.6 config options
     pub secret_key: Option<String>,
     pub webauthn_rp_id: Option<String>,
-    pub grpc_url: String,
     pub disable_stats_purge: bool,
     auth_cookie_timeout_days: i32,
     stats_purge_frequency_hours: i32,
@@ -376,7 +375,7 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
-            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
+            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -471,14 +470,13 @@ impl Settings {
             auth_cookie_timeout_days = $60, \
             secret_key = $61, \
             webauthn_rp_id = $62, \
-            grpc_url = $63, \
-            disable_stats_purge = $64, \
-            stats_purge_frequency_hours = $65, \
-            stats_purge_threshold_days = $66, \
-            enrollment_token_timeout_hours = $67, \
-            password_reset_token_timeout_hours = $68, \
-            enrollment_session_timeout_minutes = $69, \
-            password_reset_session_timeout_minutes = $70 \
+            disable_stats_purge = $63, \
+            stats_purge_frequency_hours = $64, \
+            stats_purge_threshold_days = $65, \
+            enrollment_token_timeout_hours = $66, \
+            password_reset_token_timeout_hours = $67, \
+            enrollment_session_timeout_minutes = $68, \
+            password_reset_session_timeout_minutes = $69 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -542,7 +540,6 @@ impl Settings {
             self.auth_cookie_timeout_days,
             self.secret_key,
             self.webauthn_rp_id,
-            self.grpc_url,
             self.disable_stats_purge,
             self.stats_purge_frequency_hours,
             self.stats_purge_threshold_days,
@@ -702,9 +699,6 @@ impl Settings {
         if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
             self.webauthn_rp_id = Some(webauthn_rp_id.clone());
         }
-        if let Some(grpc_url) = &config.grpc_url {
-            self.grpc_url = grpc_url.to_string();
-        }
         if let Some(enrollment_url) = &config.enrollment_url {
             self.public_proxy_url = enrollment_url.to_string();
         }
@@ -742,7 +736,7 @@ impl Settings {
         update_current_settings(executor, self.clone()).await?;
 
         info!("Updated Settings from DefguardConfig: {config:?}");
-		Ok(())
+        Ok(())
     }
 }
 
