@@ -53,7 +53,9 @@ const AutoAdoptionFailedWelcomeContent = ({
     <div className="auto-adoption-welcome-content">
       <Divider spacing={ThemeSpacing.Xl} />
       <div className="summary">
-        <p className="summary-title">{m.initial_setup_auto_adoption_failed_summary_title()}</p>
+        <p className="summary-title">
+          {m.initial_setup_auto_adoption_failed_summary_title()}
+        </p>
         <SizedBox height={ThemeSpacing.Md} />
         <ul className="status-list">
           <li key={'ca'} className={'status-item success'}>
@@ -86,9 +88,11 @@ const AutoAdoptionFailedWelcomeContent = ({
                 {showErrorLog && (
                   <div className="component-error-log">
                     <CodeCard
-                      title={m.initial_setup_auto_adoption_failed_component_error_log_title({
-                        component: componentLabel(component),
-                      })}
+                      title={m.initial_setup_auto_adoption_failed_component_error_log_title(
+                        {
+                          component: componentLabel(component),
+                        },
+                      )}
                       value={componentLogs}
                       onCopy={() => {
                         void writeToClipboard(componentLogs);
@@ -149,9 +153,7 @@ const AutoAdoptionSuccessWelcomeContent = ({
     <Divider spacing={ThemeSpacing.Lg} />
     <p>{m.initial_setup_auto_adoption_success_guide_intro()}</p>
     <br />
-    <p>
-      {m.initial_setup_auto_adoption_success_guide_description()}
-    </p>
+    <p>{m.initial_setup_auto_adoption_success_guide_description()}</p>
     <SizedBox height={ThemeSpacing.Xl} />
     <Controls>
       <Button

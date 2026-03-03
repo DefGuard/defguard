@@ -78,13 +78,13 @@ export const AutoAdoptionSummaryStep = () => {
     <WizardCard className="auto-adoption-summary-step">
       <p className="thank-you">{m.initial_setup_auto_adoption_summary_thank_you()}</p>
       <Divider spacing={ThemeSpacing.Xl} />
-      <p className="note">
-        {m.initial_setup_auto_adoption_summary_note()}
-      </p>
+      <p className="note">{m.initial_setup_auto_adoption_summary_note()}</p>
       <SizedBox height={ThemeSpacing.Lg} />
       <ul>
         <li>{m.initial_setup_auto_adoption_summary_ports_http_https()}</li>
-        <li>{m.initial_setup_auto_adoption_summary_ports_wireguard({ port: wireguardPort })}</li>
+        <li>
+          {m.initial_setup_auto_adoption_summary_ports_wireguard({ port: wireguardPort })}
+        </li>
       </ul>
       <Divider spacing={ThemeSpacing.Xl2} />
       <p className="encourage">{m.initial_setup_auto_adoption_summary_encourage()}</p>
@@ -98,7 +98,9 @@ export const AutoAdoptionSummaryStep = () => {
           />
           <div className="recommendation-row">
             <div className="kicker-title">
-              <p className="kicker">{m.initial_setup_auto_adoption_summary_docs_kicker()}</p>
+              <p className="kicker">
+                {m.initial_setup_auto_adoption_summary_docs_kicker()}
+              </p>
               <p className="title">
                 {m.initial_setup_auto_adoption_summary_docs_title()}
               </p>
@@ -146,8 +148,12 @@ export const AutoAdoptionSummaryStep = () => {
           />
           <div className="recommendation-row">
             <div className="kicker-title">
-              <p className="kicker">{m.initial_setup_auto_adoption_summary_support_kicker()}</p>
-              <p className="title">{m.initial_setup_auto_adoption_summary_support_title()}</p>
+              <p className="kicker">
+                {m.initial_setup_auto_adoption_summary_support_kicker()}
+              </p>
+              <p className="title">
+                {m.initial_setup_auto_adoption_summary_support_title()}
+              </p>
             </div>
             <Button
               variant="outlined"

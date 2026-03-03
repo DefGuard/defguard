@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
-import { m } from '../../../../paraglide/messages';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
@@ -87,9 +87,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
         }}
       >
         <form.AppForm>
-          <p>
-            {m.initial_setup_auto_adoption_vpn_intro()}
-          </p>
+          <p>{m.initial_setup_auto_adoption_vpn_intro()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <div className="vpn-top-row">
             <form.AppField name="vpn_public_ip">
@@ -111,9 +109,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
             </form.AppField>
           </div>
           <Divider spacing={ThemeSpacing.Xl} />
-          <p>
-            {m.initial_setup_auto_adoption_vpn_gateway_description()}
-          </p>
+          <p>{m.initial_setup_auto_adoption_vpn_gateway_description()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_gateway_address">
             {(field) => (
@@ -124,23 +120,23 @@ export const AutoAdoptionVpnSettingsStep = () => {
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
-          <p>
-            {m.initial_setup_auto_adoption_vpn_allowed_ips_description()}
-          </p>
+          <p>{m.initial_setup_auto_adoption_vpn_allowed_ips_description()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_allowed_ips">
             {(field) => (
-              <field.FormInput label={m.initial_setup_auto_adoption_vpn_label_allowed_ips()} />
+              <field.FormInput
+                label={m.initial_setup_auto_adoption_vpn_label_allowed_ips()}
+              />
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
-          <p>
-            {m.initial_setup_auto_adoption_vpn_dns_description()}
-          </p>
+          <p>{m.initial_setup_auto_adoption_vpn_dns_description()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_dns_server_ip">
             {(field) => (
-              <field.FormInput label={m.initial_setup_auto_adoption_vpn_label_dns_server_ip()} />
+              <field.FormInput
+                label={m.initial_setup_auto_adoption_vpn_label_dns_server_ip()}
+              />
             )}
           </form.AppField>
           <ModalControls

@@ -89,9 +89,7 @@ export const AutoAdoptionUrlSettingsStep = () => {
         }}
       >
         <form.AppForm>
-          <p>
-            {m.initial_setup_auto_adoption_url_settings_defguard_description()}
-          </p>
+          <p>{m.initial_setup_auto_adoption_url_settings_defguard_description()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="defguard_url">
             {(field) => (
@@ -103,9 +101,7 @@ export const AutoAdoptionUrlSettingsStep = () => {
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
-          <p>
-            {m.initial_setup_auto_adoption_url_settings_public_proxy_description()}
-          </p>
+          <p>{m.initial_setup_auto_adoption_url_settings_public_proxy_description()}</p>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="public_proxy_url">
             {(field) => (
