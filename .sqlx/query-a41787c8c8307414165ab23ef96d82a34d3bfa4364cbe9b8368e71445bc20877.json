@@ -57,6 +57,11 @@
         "ordinal": 10,
         "name": "certificate",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "enabled",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -76,7 +81,8 @@
       true,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
   "hash": "a41787c8c8307414165ab23ef96d82a34d3bfa4364cbe9b8368e71445bc20877"

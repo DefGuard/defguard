@@ -2,6 +2,7 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use defguard_common::db::Id;
 
 use super::{ApiResponse, ApiResult, WebHookData};
 use crate::{
@@ -46,7 +47,7 @@ pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) 
 pub async fn get_webhook(
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
 ) -> ApiResult {
     match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => Ok(ApiResponse::json(webhook, StatusCode::OK)),
@@ -59,7 +60,7 @@ pub async fn change_webhook(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
     Json(data): Json<WebHookData>,
 ) -> ApiResult {
     debug!("User {} updating webhook {id}", session.user.username);
@@ -97,7 +98,7 @@ pub async fn delete_webhook(
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
@@ -125,7 +126,7 @@ pub async fn change_enabled(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
     Json(data): Json<ChangeStateData>,
 ) -> ApiResult {
     debug!(

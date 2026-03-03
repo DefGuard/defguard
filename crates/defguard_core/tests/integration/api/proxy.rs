@@ -55,6 +55,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     // Modify name
     let data = ProxyUpdateData {
         name: "modified".to_string(),
+        enabled: true,
     };
     let response = client
         .put(format!("/api/v1/proxy/{}", proxy.id))

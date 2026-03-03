@@ -20,6 +20,7 @@ pub struct Proxy<I = NoId> {
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
@@ -58,6 +59,7 @@ impl Proxy {
             certificate: None,
             certificate_expiry: None,
             version: None,
+            enabled: true,
             modified_by,
             modified_at: Utc::now().naive_utc(),
         }
@@ -65,6 +67,16 @@ impl Proxy {
 }
 
 impl Proxy<Id> {
+    /// Fetch all enabled Proxies.
+    pub async fn all_enabled<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
+    where
+        E: sqlx::PgExecutor<'e>,
+    {
+        sqlx::query_as!(Self, "SELECT * FROM proxy WHERE enabled")
+            .fetch_all(executor)
+            .await
+    }
+
     pub async fn find_by_address_port(
         pool: &PgPool,
         address: &str,
@@ -90,8 +102,8 @@ impl Proxy<Id> {
         .await
     }
 
-    pub async fn mark_connected(&mut self, pool: &PgPool, version: &str) -> sqlx::Result<()> {
-        self.version = Some(version.to_string());
+    pub async fn mark_connected(&mut self, pool: &PgPool, version: String) -> sqlx::Result<()> {
+        self.version = Some(version);
         self.connected_at = Some(Utc::now().naive_utc());
         self.save(pool).await?;
 
