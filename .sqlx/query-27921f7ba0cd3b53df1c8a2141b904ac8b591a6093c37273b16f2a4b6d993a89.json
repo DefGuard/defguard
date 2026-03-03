@@ -1,30 +1,25 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                migration_wizard_needed,\n                migration_wizard_in_progress,\n                migration_wizard_completed,\n                initial_wizard_in_progress,\n                initial_wizard_completed\n             FROM wizard\n             LIMIT 1",
+  "query": "SELECT\n                migration_wizard_in_progress,\n                migration_wizard_completed,\n                initial_wizard_in_progress,\n                initial_wizard_completed\n             FROM wizard\n             LIMIT 1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "migration_wizard_needed",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 1,
         "name": "migration_wizard_in_progress",
         "type_info": "Bool"
       },
       {
-        "ordinal": 2,
+        "ordinal": 1,
         "name": "migration_wizard_completed",
         "type_info": "Bool"
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "initial_wizard_in_progress",
         "type_info": "Bool"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "initial_wizard_completed",
         "type_info": "Bool"
       }
@@ -36,9 +31,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "9042a72c21aa8c26cd187c2d336c844a983d2f0697a7b937a94e3f00d0c7a830"
+  "hash": "27921f7ba0cd3b53df1c8a2141b904ac8b591a6093c37273b16f2a4b6d993a89"
 }

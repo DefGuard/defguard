@@ -44,8 +44,10 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 
-use crate::handlers::initial_wizard::{
-    create_ca, finish_setup, get_ca, set_general_config, setup_session, upload_ca,
+use crate::handlers::migration::{get_migration_state, set_general_config, update_migration_state};
+use crate::handlers::{
+    initial_wizard::{create_ca, get_ca, upload_ca},
+    migration::finish_setup,
 };
 
 pub fn build_migration_webapp(
@@ -108,14 +110,15 @@ pub fn build_migration_webapp(
                 .route("/auth/email/verify", post(email_mfa_code))
                 .route("/auth/recovery", post(recovery_code))
                 .nest(
-                    "/initial_setup",
+                    "/migration",
                     Router::new()
+                        .route(
+                            "/state",
+                            get(get_migration_state).put(update_migration_state),
+                        )
+                        .route("/general_config", post(set_general_config))
                         .route("/ca", post(create_ca).get(get_ca))
                         .route("/ca/upload", post(upload_ca))
-                        .route("/general_config", post(set_general_config))
-                        // .route("/admin", post(create_admin))
-                        // .route("/login", post(setup_login))
-                        .route("/session", get(setup_session))
                         .route("/finish", post(finish_setup)),
                 ),
         )

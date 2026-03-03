@@ -742,7 +742,7 @@ impl Settings {
         update_current_settings(executor, self.clone()).await?;
 
         info!("Updated Settings from DefguardConfig: {config:?}");
-		Ok(())
+        Ok(())
     }
 }
 

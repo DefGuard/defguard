@@ -1,3 +1,4 @@
+import type { MigrationWizardStepValue } from '../../pages/MigrationWizardPage/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -15,6 +16,10 @@ export type WizardFlags = {
   migration_wizard_completed: boolean;
   migration_wizard_in_progress: boolean;
 };
+
+export interface MigrationWizardApiState {
+  current_step: MigrationWizardStepValue;
+}
 
 export interface SessionInfo {
   authorized: boolean;

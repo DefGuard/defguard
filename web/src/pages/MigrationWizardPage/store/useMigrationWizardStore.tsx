@@ -11,16 +11,19 @@ import {
 interface StoreValues {
   isWelcome: boolean;
   activeStep: MigrationWizardStepValue;
+  // general config
   defguard_url: string;
   default_admin_group_name: string;
   default_authentication_period_days: number;
   default_mfa_code_timeout_seconds: number;
   public_proxy_url: string;
+  // ca
   ca_common_name: string;
   ca_email: string;
   ca_validity_period_years: number;
   ca_cert_file: File | null;
   ca_option: CAOptionType | null;
+  // edge config
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;

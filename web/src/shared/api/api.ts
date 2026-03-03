@@ -500,6 +500,18 @@ const api = {
       client.put(`/activity_log_stream/${id}`, data),
     deleteStream: (id: number) => client.delete(`/activity_log_stream/${id}`),
   },
+  migration: {
+    ca: {
+      createCA: (data: CreateCARequest) => client.post('/migration/ca', data),
+      getCA: () => client.get<GetCAResponse>('/migration/ca'),
+    },
+    state: {
+      getMigrationState: () => client.get(`/migration/state`),
+      updateMigrationState: () => client.put(`/migration/state`),
+    },
+    setGeneralConfig: (data: SetGeneralConfigRequest) =>
+      client.post(`/migration/general_config`, data),
+  },
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     client
