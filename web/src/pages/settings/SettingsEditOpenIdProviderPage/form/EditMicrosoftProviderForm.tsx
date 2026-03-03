@@ -47,7 +47,8 @@ export const EditMicrosoftProviderForm = ({
   onSubmit,
 }: EditProviderFormProps) => {
   const defaultValues = useMemo((): FormFields => {
-    const tenantId = provider.base_url.split('/')[provider.base_url.length - 2];
+    const urlParts = provider.base_url.split('/');
+    const tenantId = urlParts[urlParts.length - 2] ?? '';
     return {
       client_id: provider.client_id,
       client_secret: provider.client_secret,
