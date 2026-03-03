@@ -21,12 +21,9 @@ export const SetupConfirmationStep = () => {
   };
 
   const handleFinish = async () => {
-    const networkId = useGatewayWizardStore.getState().network_id;
-
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['gateway'] }),
       queryClient.invalidateQueries({ queryKey: ['network'] }),
-      queryClient.invalidateQueries({ queryKey: ['network', networkId, 'gateway'] }),
     ]);
 
     await navigate({ to: '/locations', replace: true });
