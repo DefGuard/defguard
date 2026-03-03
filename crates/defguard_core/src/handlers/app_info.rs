@@ -1,9 +1,8 @@
-use axum::{Extension, extract::State, http::StatusCode};
+use axum::{extract::State, http::StatusCode};
 use defguard_common::{
     VERSION,
     db::models::{Settings, WireguardNetwork, Wizard},
 };
-use sqlx::PgPool;
 
 use super::{ApiResponse, ApiResult};
 use crate::{

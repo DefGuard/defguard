@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { ApplicationInfo, SettingsEssentials } from '../api/types';
+import type { ApplicationInfo, SettingsEssentials, WizardState } from '../api/types';
 
 type StoreValues = {
   navigationOpen: boolean;
   appInfo: ApplicationInfo;
   settingsEssentials?: SettingsEssentials;
+  wizardState?: WizardState;
 };
 
 type Store = StoreValues;
@@ -22,6 +23,7 @@ const defaults: StoreValues = {
     version: '',
   },
   settingsEssentials: undefined,
+  wizardState: undefined,
 };
 
 export const useApp = create<Store>(() => ({ ...defaults }));

@@ -25,8 +25,8 @@ use tracing::{info, instrument};
 use crate::handlers::{
     auto_wizard::{get_auto_adoption_result, set_mfa_settings, set_url_settings, set_vpn_settings},
     initial_wizard::{
-        create_admin, create_ca, finish_setup, get_ca, set_general_config, setup_login,
-        setup_session, upload_ca,
+        create_admin, create_ca, finish_setup, get_ca, get_wizard_state, set_general_config,
+        setup_login, setup_session, upload_ca,
     },
 };
 
@@ -43,6 +43,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
             Router::<()>::new()
                 .route("/health", get(health_check))
                 .route("/settings_essentials", get(get_settings_essentials))
+                .route("/wizard", get(get_wizard_state))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .nest(
                     "/initial_setup",

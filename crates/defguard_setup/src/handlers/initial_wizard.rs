@@ -16,8 +16,8 @@ use defguard_common::db::models::{
     group::Group,
     settings::{InitialSetupStep, update_current_settings},
     setup_auto_adoption::AutoAdoptionWizardStep,
+    wizard::{InitialSetupState, Wizard},
 };
-use defguard_common::db::models::wizard::{InitialSetupState, Wizard};
 use defguard_core::{
     auth::{
         AdminOrSetupRole, SessionInfo,
@@ -45,19 +45,19 @@ async fn advance_setup_to_step(pool: &PgPool, step: InitialSetupStep) -> Result<
         return Ok(());
     }
 
-	let current_step = wizard
-		.initial_setup_state
-		.as_ref()
-		.map(|s| s.step)
-		.unwrap_or(InitialSetupStep::Welcome);
-	if current_step < step {
-		wizard.initial_setup_state = Some(InitialSetupState { step });
+    let current_step = wizard
+        .initial_setup_state
+        .as_ref()
+        .map(|s| s.step)
+        .unwrap_or(InitialSetupStep::Welcome);
+    if current_step < step {
+        wizard.initial_setup_state = Some(InitialSetupState { step });
         wizard.save(pool).await?;
         info!("Advanced initial wizard setup to step {:?}", step);
     } else {
         debug!(
             "Not advancing initial wizard setup step from {:?} to {:?} as it is not a forward step",
-		current_step, step
+            current_step, step
         );
     }
     Ok(())
@@ -246,10 +246,7 @@ pub async fn setup_login(
     Ok((cookies, ApiResponse::with_status(StatusCode::OK)))
 }
 
-pub async fn setup_session(
-    session: SessionInfo,
-    Extension(pool): Extension<PgPool>,
-) -> ApiResult {
+pub async fn setup_session(session: SessionInfo, Extension(pool): Extension<PgPool>) -> ApiResult {
     let wizard = Wizard::get(&pool).await?;
     if wizard.completed {
         return Err(WebError::Forbidden(
@@ -447,9 +444,9 @@ pub async fn finish_setup(
     info!("Finishing initial setup");
     use defguard_common::db::models::wizard::ActiveWizard;
     let mut wizard = Wizard::get(&pool).await?;
-	wizard.initial_setup_state = Some(InitialSetupState {
-		step: InitialSetupStep::Finished,
-	});
+    wizard.initial_setup_state = Some(InitialSetupState {
+        step: InitialSetupStep::Finished,
+    });
     wizard.completed = true;
     wizard.active_wizard = ActiveWizard::None;
     wizard.save(&pool).await?;
@@ -467,4 +464,12 @@ pub async fn finish_setup(
     }
 
     Ok(ApiResponse::with_status(StatusCode::OK))
+}
+
+/// Returns the full wizard state (active wizard, step states, etc.).
+/// Used by the frontend to determine which wizard
+/// to show and what step to resume.
+pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
+    let wizard = Wizard::get(&pool).await?;
+    Ok(ApiResponse::json(wizard, StatusCode::OK))
 }

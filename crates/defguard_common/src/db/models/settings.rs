@@ -524,8 +524,6 @@ impl Settings {
     }
 }
 
-use super::wizard::ActiveWizard;
-
 #[derive(Serialize)]
 pub struct SettingsEssentials {
     pub instance_name: String,
@@ -535,9 +533,7 @@ pub struct SettingsEssentials {
     pub webhooks_enabled: bool,
     pub worker_enabled: bool,
     pub openid_enabled: bool,
-    pub active_wizard: ActiveWizard,
     pub initial_setup_completed: bool,
-    pub initial_setup_step: InitialSetupStep,
 }
 
 impl SettingsEssentials {
@@ -549,9 +545,7 @@ impl SettingsEssentials {
 			SettingsEssentials,
 			"SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
 			s.webhooks_enabled, s.worker_enabled, s.openid_enabled, \
-			COALESCE(w.active_wizard, 'none') AS \"active_wizard!: ActiveWizard\", \
-			COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\", \
-			COALESCE((w.initial_setup_state->>'step')::initial_setup_step, 'finished') AS \"initial_setup_step!: InitialSetupStep\" \
+			COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\" \
 			FROM settings s \
 			LEFT JOIN wizard w ON TRUE \
 			WHERE s.id = 1 \

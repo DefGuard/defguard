@@ -105,6 +105,7 @@ import type {
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
   Webhook,
+  WizardState,
 } from './types';
 
 const api = {
@@ -131,6 +132,7 @@ const api = {
     session: () => client.get('/initial_setup/session'),
     getAutoAdoptionResult: () =>
       client.get<SetupAutoAdoptionResponse>('/initial_setup/auto_adoption'),
+    getWizardState: () => client.get<WizardState>('/wizard'),
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post('/initial_setup/general_config', data),
     setAutoAdoptionUrlSettings: (data: SetAutoAdoptionUrlSettingsRequest) =>

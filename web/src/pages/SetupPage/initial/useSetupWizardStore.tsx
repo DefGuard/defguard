@@ -14,7 +14,6 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 };
 
 type StoreValues = {
-  isAutoAdoptionPath: boolean;
   isOnWelcomePage: boolean;
   activeStep: SetupPageStepValue;
   // Admin config
@@ -45,15 +44,12 @@ type StoreValues = {
 type StoreMethods = {
   reset: () => void;
   start: (values?: Partial<StoreValues>) => void;
-  startInitialWizardFlow: () => void;
-  setAutoAdoptionPath: (isAutoAdoptionPath: boolean) => void;
   setActiveStep: (step: SetupPageStepValue) => void;
   resetEdgeAdoptionState: () => void;
   setEdgeAdoptionState: (state: Partial<EdgeAdoptionState>) => void;
 };
 
 const defaults: StoreValues = {
-  isAutoAdoptionPath: false,
   isOnWelcomePage: true,
   activeStep: SetupPageStep.AdminUser,
   // Admin config
@@ -97,14 +93,6 @@ export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
           activeStep: SetupPageStep.AdminUser,
         });
       },
-      startInitialWizardFlow: () =>
-        set({
-          activeStep: SetupPageStep.AdminUser,
-          isOnWelcomePage: true,
-          isAutoAdoptionPath: false,
-          edgeAdoptionState: { ...edgeAdoptionStateDefaults },
-        }),
-      setAutoAdoptionPath: (isAutoAdoptionPath) => set({ isAutoAdoptionPath }),
       setActiveStep: (step) => set({ activeStep: step }),
       resetEdgeAdoptionState: () =>
         set(() => ({
@@ -122,8 +110,6 @@ export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
         omit(state, [
           'reset',
           'start',
-          'startInitialWizardFlow',
-          'setAutoAdoptionPath',
           'setActiveStep',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',

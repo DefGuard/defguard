@@ -748,9 +748,24 @@ export type AutoAdoptionAdoptionStepValue =
 export type ActiveWizardValue = 'none' | 'initial' | 'auto_adoption' | 'migration';
 
 export interface SettingsEssentials {
-  active_wizard: ActiveWizardValue;
   initial_setup_completed: boolean;
-  initial_setup_step: InitialSetupStepValue;
+}
+
+export interface InitialSetupState {
+  step: InitialSetupStepValue;
+}
+
+export interface AutoAdoptionWizardState {
+  step: AutoAdoptionAdoptionStepValue;
+  adoption_result: Record<SetupAutoAdoptionComponentValue, AutoAdoptionComponentResult>;
+}
+
+export interface WizardState {
+  active_wizard: ActiveWizardValue;
+  completed: boolean;
+  initial_setup_state: InitialSetupState | null;
+  auto_adoption_state: AutoAdoptionWizardState | null;
+  migration_wizard_state: unknown;
 }
 
 export type SetupAutoAdoptionComponentValue = 'edge' | 'gateway';
