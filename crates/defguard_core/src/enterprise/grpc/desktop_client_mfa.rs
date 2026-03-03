@@ -1,6 +1,6 @@
+use defguard_common::{db::models::Settings, types::AuthFlowType};
 use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
 use openidconnect::{AuthorizationCode, Nonce};
-use reqwest::Url;
 use tonic::Status;
 
 use crate::{
@@ -84,10 +84,12 @@ impl ClientMfaServer {
         );
 
         let code = AuthorizationCode::new(request.code.clone());
-        let url = match Url::parse(&request.callback_url).map_err(|err| {
-            error!("Invalid redirect URL provided: {err}");
-            Status::invalid_argument("invalid redirect URL")
-        }) {
+        let url = match Settings::get_current_settings()
+            .edge_callback_url(AuthFlowType::Mfa)
+            .map_err(|err| {
+                error!("Invalid callback URL configuration: {err}");
+                Status::invalid_argument("invalid callback URL")
+            }) {
             Ok(url) => url,
             Err(status) => {
                 self.sessions
@@ -101,7 +103,7 @@ impl ClientMfaServer {
                             location: location.clone(),
                             device: device.clone(),
                             method,
-                            message: "provided invalid redirect URL".to_string(),
+                            message: "provided invalid callback URL".to_string(),
                         },
                     )),
                 })?;

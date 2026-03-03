@@ -3,3 +3,9 @@ pub mod proxy;
 pub mod user_info;
 
 pub type UrlParseError = url::ParseError;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AuthFlowType {
+    Enrollment,
+    Mfa,
+}

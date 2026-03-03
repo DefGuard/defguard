@@ -18,7 +18,7 @@ use crate::{
         firewall::try_get_location_firewall_config,
         is_business_license_active,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
-        limits::do_count_update,
+        limits::update_counts,
     },
     grpc::GatewayEvent,
     location_management::allowed_peers::get_location_allowed_peers,
@@ -26,7 +26,7 @@ use crate::{
 };
 
 // Times in seconds
-const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
+const UTILITY_THREAD_MAIN_SLEEP_TIME: Duration = Duration::from_secs(5);
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
@@ -58,7 +58,7 @@ pub async fn run_utility_thread(
     };
 
     let count_update_task = || async {
-        if let Err(e) = do_count_update(pool)
+        if let Err(e) = update_counts(pool)
             .instrument(info_span!("count_update_task"))
             .await
         {
@@ -100,7 +100,7 @@ pub async fn run_utility_thread(
     expired_acl_rules_task().await;
 
     loop {
-        sleep(Duration::from_secs(UTILITY_THREAD_MAIN_SLEEP_TIME)).await;
+        sleep(UTILITY_THREAD_MAIN_SLEEP_TIME).await;
 
         // Count update job for updating device/user/network counts
         if last_count_update.elapsed().as_secs() >= COUNT_UPDATE_INTERVAL {
@@ -135,14 +135,17 @@ pub async fn run_utility_thread(
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
             let new_enterprise_enabled = is_business_license_active();
-            if let Err(err) = enterprise_status_check(
-                pool,
-                wireguard_tx.clone(),
-                enterprise_enabled,
-                new_enterprise_enabled,
-            )
-            .instrument(info_span!("enterprise_status_check"))
-            .await
+            if new_enterprise_enabled == enterprise_enabled {
+                continue;
+            }
+            debug!(
+                "Enterprise feature status changed from {enterprise_enabled} to \
+                    {new_enterprise_enabled}"
+            );
+            if let Err(err) =
+                enterprise_status_check(pool, wireguard_tx.clone(), new_enterprise_enabled)
+                    .instrument(info_span!("enterprise_status_check"))
+                    .await
             {
                 error!("Failed to check enterprise status: {err}");
             } else {
@@ -158,70 +161,61 @@ pub async fn run_utility_thread(
 async fn enterprise_status_check(
     pool: &PgPool,
     wireguard_tx: Sender<GatewayEvent>,
-    current_enterprise_enabled: bool,
-    new_enterprise_enabled: bool,
+    enable_enterprise: bool,
 ) -> Result<(), anyhow::Error> {
-    if new_enterprise_enabled != current_enterprise_enabled {
-        debug!(
-            "Enterprise feature status changed from {current_enterprise_enabled} to \
-            {new_enterprise_enabled}"
-        );
+    // fetch all ACL-enabled networks
+    let locations = WireguardNetwork::all(pool)
+        .await?
+        .into_iter()
+        .filter(|location| location.acl_enabled)
+        .collect::<Vec<_>>();
 
-        // fetch all ACL-enabled networks
-        let locations: Vec<WireguardNetwork<Id>> = WireguardNetwork::all(pool)
-            .await?
-            .into_iter()
-            .filter(|location| location.acl_enabled)
-            .collect();
+    if enable_enterprise {
+        // handle switch from disabled -> enabled
+        debug!("Re-enabling gateway firewall configuration for ACL-enabled locations");
+        let mut transaction = pool.begin().await?;
+        for location in locations {
+            debug!("Re-enabling gateway firewall configuration for location {location:?}");
+            let firewall_config = try_get_location_firewall_config(&location, &mut transaction)
+                .await?
+                .expect("ACL-enabled location must have firewall config");
 
-        if new_enterprise_enabled {
-            // handle switch from disabled -> enabled
-            debug!("Re-enabling gateway firewall configuration for ACL-enabled locations");
-            let mut transaction = pool.begin().await?;
-            for location in locations {
-                debug!("Re-enabling gateway firewall configuration for location {location:?}");
-                let firewall_config = try_get_location_firewall_config(&location, &mut transaction)
-                    .await?
-                    .expect("ACL-enabled location must have firewall config");
-
-                // Handle service location update or just update the firewall
-                if location.service_location_mode == ServiceLocationMode::Disabled {
-                    wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
-                        location.id,
-                        firewall_config,
-                    ))?;
-                } else {
-                    let new_peers =
-                        get_location_allowed_peers(&location, &mut *transaction).await?;
-                    wireguard_tx.send(GatewayEvent::NetworkModified(
-                        location.id,
-                        location,
-                        new_peers,
-                        Some(firewall_config),
-                    ))?;
-                }
+            // Handle service location update or just update the firewall
+            if location.service_location_mode == ServiceLocationMode::Disabled {
+                wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                    location.id,
+                    firewall_config,
+                ))?;
+            } else {
+                let new_peers = get_location_allowed_peers(&location, &mut *transaction).await?;
+                wireguard_tx.send(GatewayEvent::NetworkModified(
+                    location.id,
+                    location,
+                    new_peers,
+                    Some(firewall_config),
+                ))?;
             }
-            transaction.commit().await?;
-        } else {
-            // handle switch from enabled -> disabled
-            debug!("Disabling gateway firewall configuration for ACL-enabled locations");
-            for location in locations {
-                if location.service_location_mode == ServiceLocationMode::Disabled {
-                    debug!("Disabling gateway firewall configuration for location {location:?}");
-                    wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
-                } else {
-                    debug!(
-                        "Disabling gateway firewall configuration and service location client \
-                        connections for location {location}"
-                    );
-                    wireguard_tx.send(GatewayEvent::NetworkModified(
-                        location.id,
-                        location,
-                        // Send empty peer list, we are disabling the service location
-                        Vec::new(),
-                        None,
-                    ))?;
-                }
+        }
+        transaction.commit().await?;
+    } else {
+        // handle switch from enabled -> disabled
+        debug!("Disabling gateway firewall configuration for ACL-enabled locations");
+        for location in locations {
+            if location.service_location_mode == ServiceLocationMode::Disabled {
+                debug!("Disabling gateway firewall configuration for location {location:?}");
+                wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+            } else {
+                debug!(
+                    "Disabling gateway firewall configuration and service location client \
+                    connections for location {location}"
+                );
+                wireguard_tx.send(GatewayEvent::NetworkModified(
+                    location.id,
+                    location,
+                    // Send empty peer list, we are disabling the service location
+                    Vec::new(),
+                    None,
+                ))?;
             }
         }
     }
@@ -240,7 +234,8 @@ async fn expired_acl_rules_check(
         "UPDATE aclrule SET state = 'expired'::aclrule_state \
         WHERE state = 'applied'::aclrule_state AND expires < NOW() \
         RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-        deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, \
+        deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, \
+        deny_all_network_devices, all_locations, \
         addresses, ports, protocols, enabled, expires, any_address, any_port, \
         any_protocol, use_manual_destination_settings"
     )

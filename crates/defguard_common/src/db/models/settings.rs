@@ -10,7 +10,7 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{db::Id, global_value, secret::SecretStringWrapper};
+use crate::{db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -522,6 +522,19 @@ impl Settings {
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
+
+    /// Returns configured Edge Component URL with the correct callback path appended depending on auth flow type.
+    pub fn edge_callback_url(&self, auth_flow_type: AuthFlowType) -> Result<Url, url::ParseError> {
+        let mut url = self.proxy_public_url()?;
+        // Append callback segments to the URL.
+        if let Ok(mut path_segments) = url.path_segments_mut() {
+            match auth_flow_type {
+                AuthFlowType::Enrollment => path_segments.extend(&["openid", "callback"]),
+                AuthFlowType::Mfa => path_segments.extend(&["openid", "mfa", "callback"]),
+            };
+        }
+        Ok(url)
+    }
 }
 
 #[derive(Serialize)]
@@ -653,6 +666,37 @@ mod test {
         assert_eq!(
             s.callback_url().unwrap().as_str(),
             "https://defguard.example.com:8443/path/auth/callback"
+        );
+    }
+
+    #[test]
+    fn test_edge_callback_url() {
+        let mut s = Settings {
+            public_proxy_url: "https://edge.example.com".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Enrollment)
+                .unwrap()
+                .as_str(),
+            "https://edge.example.com/openid/callback"
+        );
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Mfa).unwrap().as_str(),
+            "https://edge.example.com/openid/mfa/callback"
+        );
+
+        s.public_proxy_url = "https://edge.example.com:8443/path".into();
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Enrollment)
+                .unwrap()
+                .as_str(),
+            "https://edge.example.com:8443/path/openid/callback"
+        );
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Mfa).unwrap().as_str(),
+            "https://edge.example.com:8443/path/openid/mfa/callback"
         );
     }
 }

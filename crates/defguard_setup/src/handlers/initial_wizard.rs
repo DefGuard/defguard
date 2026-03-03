@@ -10,7 +10,7 @@ use axum_extra::{
     },
     headers::UserAgent,
 };
-use defguard_certs::{der_to_pem, parse_certificate_info, parse_pem_certificate};
+use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
 use defguard_common::db::models::{
     Session, SessionState, Settings, User,
     group::Group,
@@ -387,7 +387,7 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
     let settings = Settings::get_current_settings();
     if let Some(ca_cert_der) = settings.ca_cert_der {
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
-        let info = parse_certificate_info(&ca_cert_der)?;
+        let info = CertificateInfo::from_der(&ca_cert_der)?;
         let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
 
         debug!(
@@ -420,7 +420,7 @@ pub async fn upload_ca(
 ) -> ApiResult {
     info!("Uploading existing certificate authority");
     let cert_der = parse_pem_certificate(&ca_info.cert_file)?;
-    let expiry = parse_certificate_info(&cert_der)?.not_after;
+    let expiry = CertificateInfo::from_der(&cert_der)?.not_after;
 
     let mut settings = Settings::get_current_settings();
     settings.ca_cert_der = Some(cert_der.to_vec());

@@ -29,6 +29,8 @@ pub enum SessionManagerError {
     SessionDoesNotExistError(Id),
     #[error("Received out of order peer stats update")]
     PeerStatsUpdateOutOfOrderError,
+    #[error("Peer stats channel closed")]
+    PeerStatsChannelClosed,
     #[error("Failed to send session manager event: {0}")]
     SessionManagerEventError(Box<SendError<SessionManagerEvent>>),
     #[error("Failed to send gateway manager event: {0}")]
