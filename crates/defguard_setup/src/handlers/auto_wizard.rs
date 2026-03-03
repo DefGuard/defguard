@@ -36,7 +36,7 @@ pub(crate) async fn advance_auto_wizard_to_step(
     if auto_state.step < step {
         auto_state.step = step;
         wizard.save(pool).await?;
-        info!("Advanced auto wizard setup to step {:?}", step);
+        info!("Advanced auto wizard setup to step {step:?}");
     } else {
         debug!(
             "Not advancing auto wizard setup step from {:?} to {:?} as it is not a forward step",
