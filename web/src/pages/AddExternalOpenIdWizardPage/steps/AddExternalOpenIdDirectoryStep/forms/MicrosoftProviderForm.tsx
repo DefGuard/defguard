@@ -6,6 +6,7 @@ import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
+import { joinCsv, splitCsv } from '../../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -29,7 +30,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
   const defaultValues = useMemo(
     (): FormFields => ({
       directory_sync_admin_behavior: providerState.directory_sync_admin_behavior,
-      directory_sync_group_match: providerState.directory_sync_group_match ?? null,
+      directory_sync_group_match: joinCsv(providerState.directory_sync_group_match),
       directory_sync_interval: providerState.directory_sync_interval,
       directory_sync_target: providerState.directory_sync_target,
       directory_sync_user_behavior: providerState.directory_sync_user_behavior,
@@ -46,7 +47,10 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
       onChange: microsoftProviderSyncSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      await onSubmit({
+        ...value,
+        directory_sync_group_match: splitCsv(value.directory_sync_group_match ?? ''),
+      });
     },
   });
 
@@ -113,10 +117,20 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
         <ProviderFormControls
           loading={isPending}
           onBack={() => {
-            back(form.state.values);
+            back({
+              ...form.state.values,
+              directory_sync_group_match: splitCsv(
+                form.state.values.directory_sync_group_match ?? '',
+              ),
+            });
           }}
           onNext={() => {
-            mutate(form.state.values);
+            mutate({
+              ...form.state.values,
+              directory_sync_group_match: splitCsv(
+                form.state.values.directory_sync_group_match ?? '',
+              ),
+            });
           }}
         />
       </form.AppForm>

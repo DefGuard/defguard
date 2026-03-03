@@ -876,7 +876,7 @@ export interface OpenIdProvider {
   directory_sync_target: DirectorySyncTargetValue;
   okta_private_jwk?: string | null;
   okta_dirsync_client_id?: string | null;
-  directory_sync_group_match?: string | null;
+  directory_sync_group_match?: string[] | null;
   jumpcloud_api_key?: string | null;
   prefetch_users: boolean;
 }

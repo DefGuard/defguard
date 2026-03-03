@@ -9,6 +9,7 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { joinCsv, splitCsv } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -28,6 +29,7 @@ const basicSchema = z
       .string(m.form_error_required())
       .trim()
       .min(1, m.form_error_required()),
+    directory_sync_group_match: z.string().trim().optional(),
   })
   .extend(omit(baseExternalProviderConfigSchema.shape, ['base_url']));
 
@@ -60,7 +62,13 @@ export const EditMicrosoftProviderForm = ({
       directory_sync_target: provider.directory_sync_target,
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
-      directory_sync_group_match: provider.directory_sync_group_match ?? '',
+      directory_sync_group_match: joinCsv(
+        Array.isArray(provider.directory_sync_group_match)
+          ? provider.directory_sync_group_match
+          : provider.directory_sync_group_match
+            ? [provider.directory_sync_group_match]
+            : null,
+      ),
       microsoftTenantId: tenantId,
     };
   }, [provider]);
@@ -74,7 +82,11 @@ export const EditMicrosoftProviderForm = ({
     },
     onSubmit: async ({ value }) => {
       const base_url = formatMicrosoftBaseUrl(value.microsoftTenantId);
-      await onSubmit({ ...value, base_url });
+      await onSubmit({
+        ...value,
+        base_url,
+        directory_sync_group_match: splitCsv(value.directory_sync_group_match ?? ''),
+      });
     },
   });
 
