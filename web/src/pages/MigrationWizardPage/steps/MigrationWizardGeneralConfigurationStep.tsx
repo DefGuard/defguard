@@ -1,7 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -22,6 +24,13 @@ type StoreValues = {
 };
 
 export const MigrationWizardGeneralConfigurationStep = () => {
+  const { mutateAsync } = useMutation({
+    mutationFn: api.migration.setGeneralConfig,
+    meta: {
+      invalidate: [['settings'], ['migration', 'state']],
+    },
+  });
+
   const defaultValues = useMigrationWizardStore(
     useShallow(
       (s): FormFields => ({
@@ -63,7 +72,8 @@ export const MigrationWizardGeneralConfigurationStep = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
-    onSubmit: ({ value }) => {
+    onSubmit: async ({ value }) => {
+      await mutateAsync(value);
       useMigrationWizardStore.setState({
         defguard_url: value.defguard_url,
         default_admin_group_name: value.default_admin_group_name,
@@ -134,18 +144,27 @@ export const MigrationWizardGeneralConfigurationStep = () => {
               />
             )}
           </form.AppField>
-          <Controls>
-            <Button
-              variant="outlined"
-              text={m.controls_back()}
-              onClick={() => {
-                useMigrationWizardStore.getState().back();
-              }}
-            />
-            <div className="right">
-              <Button text={m.controls_continue()} type="submit" />
-            </div>
-          </Controls>
+          <form.Subscribe selector={(s) => s.isSubmitting}>
+            {(isSubmitting) => (
+              <Controls>
+                <Button
+                  variant="outlined"
+                  text={m.controls_back()}
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    useMigrationWizardStore.getState().back();
+                  }}
+                />
+                <div className="right">
+                  <Button
+                    text={m.controls_continue()}
+                    type="submit"
+                    loading={isSubmitting}
+                  />
+                </div>
+              </Controls>
+            )}
+          </form.Subscribe>
         </form.AppForm>
       </form>
     </WizardCard>

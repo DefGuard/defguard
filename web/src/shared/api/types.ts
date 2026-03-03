@@ -67,6 +67,11 @@ export interface SetGeneralConfigRequest {
   admin_username: string;
 }
 
+export type MigrationGeneralConfigRequest = Omit<
+  SetGeneralConfigRequest,
+  'admin_username'
+>;
+
 export interface ValidateDeviceIpsRequest {
   ips: string[];
   locationId: number;
