@@ -36,7 +36,10 @@ use tracing::{debug, info};
 
 use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
 
-async fn advance_setup_to_step(pool: &PgPool, step: InitialSetupStep) -> Result<(), WebError> {
+async fn advance_initial_wizard_to_step(
+    pool: &PgPool,
+    step: InitialSetupStep,
+) -> Result<(), WebError> {
     let mut wizard = Wizard::get(pool).await?;
 
     // Don't try to advance if setup is already completed
@@ -77,7 +80,7 @@ async fn advance_wizard_to_step(
     if let Some(initial_step) = initial_step
         && !is_auto_wizard_active(pool).await?
     {
-        advance_setup_to_step(pool, initial_step).await?;
+        advance_initial_wizard_to_step(pool, initial_step).await?;
     }
 
     Ok(())
@@ -338,7 +341,7 @@ pub async fn set_general_config(
 
     info!("Initial general configuration applied");
 
-    advance_setup_to_step(&pool, InitialSetupStep::Ca).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::Ca).await?;
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
@@ -377,7 +380,7 @@ pub async fn create_ca(
 
     info!("Certificate authority created and stored");
 
-    advance_setup_to_step(&pool, InitialSetupStep::CaSummary).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::CaSummary).await?;
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
@@ -395,7 +398,7 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
             info.subject_common_name, valid_for_days
         );
 
-        advance_setup_to_step(&pool, InitialSetupStep::EdgeComponent).await?;
+        advance_initial_wizard_to_step(&pool, InitialSetupStep::EdgeComponent).await?;
 
         Ok(ApiResponse::new(
             json!({ "ca_cert_pem": ca_pem, "subject_common_name": info.subject_common_name, "not_before": info.not_before, "not_after": info.not_after, "valid_for_days": valid_for_days }),
@@ -429,7 +432,7 @@ pub async fn upload_ca(
 
     update_current_settings(&pool, settings).await?;
 
-    advance_setup_to_step(&pool, InitialSetupStep::CaSummary).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::CaSummary).await?;
 
     info!("Certificate authority uploaded and stored");
 
