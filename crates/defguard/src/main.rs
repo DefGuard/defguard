@@ -9,14 +9,14 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{Settings, settings::initialize_current_settings},
+        models::{ActiveWizard, Settings, Wizard, settings::initialize_current_settings},
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, models::wizard_flags::WizardFlags},
+    db::AppEvent,
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -94,18 +94,16 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
-    let _wizard_flags = WizardFlags::init(&pool).await?;
-
     // initialize default settings
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
-    let mut settings = Settings::get_current_settings();
 
-    if !settings.initial_setup_completed {
-        let starting_with_auto_adoption =
-            config.adopt_edge.is_some() || config.adopt_gateway.is_some();
-        if starting_with_auto_adoption {
+    let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
+    let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
+
+    if !wizard.completed {
+        if wizard.active_wizard == ActiveWizard::AutoAdoption {
             if let Err(err) = attemp_auto_adoption(&pool, &config).await {
                 warn!("Failed to store startup auto-adoption states: {err}");
             }
@@ -116,9 +114,9 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Setup web server exited with error: {err}");
         }
-
-        settings = Settings::get_current_settings();
     }
+
+    let settings = Settings::get_current_settings();
 
     config.initialize_post_settings();
 

@@ -2,13 +2,11 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
 import { SetupLoginPage } from '../../pages/SetupPage/SetupLoginPage';
 import api from '../../shared/api/api';
-import type { InitialSetupStepValue } from '../../shared/api/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useApp } from '../../shared/hooks/useApp';
 import { getSettingsEssentialsQueryOptions } from '../../shared/query';
 
-const requiresSetupAuth = (step: InitialSetupStepValue) =>
-  step !== 'Welcome' && step !== 'AdminUser';
+const requiresSetupAuth = (step: string) => step !== 'welcome' && step !== 'admin_user';
 
 const hasSetupSession = async (): Promise<boolean> => {
   try {
@@ -39,7 +37,18 @@ export const Route = createFileRoute('/_wizard/setup-login')({
       throw redirect({ to: '/auth/login', replace: true });
     }
 
-    if (!requiresSetupAuth(settingsEssentials.initial_setup_step)) {
+    // Determine current step based on active wizard type.
+    let currentStep: string = settingsEssentials.initial_setup_step;
+    if (settingsEssentials.active_wizard === 'auto_adoption') {
+      try {
+        const autoAdoptionStatus = await api.initial_setup.getAutoAdoptionResult();
+        currentStep = autoAdoptionStatus.data.step;
+      } catch {
+        currentStep = 'welcome';
+      }
+    }
+
+    if (!requiresSetupAuth(currentStep)) {
       throw redirect({ to: '/setup', replace: true });
     }
 

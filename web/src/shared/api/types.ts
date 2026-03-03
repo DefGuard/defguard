@@ -727,14 +727,14 @@ export interface SettingsEnterprise {
 }
 
 export type InitialSetupStepValue =
-  | 'Welcome'
-  | 'AdminUser'
-  | 'GeneralConfiguration'
-  | 'Ca'
-  | 'CaSummary'
-  | 'EdgeComponent'
-  | 'Confirmation'
-  | 'Finished';
+  | 'welcome'
+  | 'admin_user'
+  | 'general_configuration'
+  | 'ca'
+  | 'ca_summary'
+  | 'edge_component'
+  | 'confirmation'
+  | 'finished';
 
 export type AutoAdoptionAdoptionStepValue =
   | 'welcome'
@@ -745,7 +745,10 @@ export type AutoAdoptionAdoptionStepValue =
   | 'summary'
   | 'finished';
 
+export type ActiveWizardValue = 'none' | 'initial' | 'auto_adoption' | 'migration';
+
 export interface SettingsEssentials {
+  active_wizard: ActiveWizardValue;
   initial_setup_completed: boolean;
   initial_setup_step: InitialSetupStepValue;
 }

@@ -21,8 +21,10 @@ import type {
 import { useApp } from '../../shared/hooks/useApp';
 import { getSettingsEssentialsQueryOptions } from '../../shared/query';
 
-const requiresSetupAuth = (step: InitialSetupStepValue) =>
-  step !== 'Welcome' && step !== 'AdminUser';
+/// Whether the current wizard step requires an authenticated setup session.
+/// Both initial and auto-adoption wizards allow unauthenticated access
+/// only on `welcome` and `admin_user` steps.
+const requiresSetupAuth = (step: string) => step !== 'welcome' && step !== 'admin_user';
 
 const handleWizardRedirect = async ({
   location,
@@ -30,8 +32,8 @@ const handleWizardRedirect = async ({
 }: {
   location: ParsedLocation;
   client: QueryClient;
-}): Promise<boolean> => {
-  // Always fetch fresh settings from the backend to get the current wizard step,
+}): Promise<void> => {
+  // Always fetch fresh settings from the backend to get the current wizard state,
   // bypassing any stale cached data.
   const settingsEssentials = (await client.fetchQuery(getSettingsEssentialsQueryOptions))
     .data;
@@ -41,19 +43,19 @@ const handleWizardRedirect = async ({
 
   const applyWizardStepFromServer = (step: InitialSetupStepValue) => {
     const stepMap: Record<InitialSetupStepValue, SetupPageStepValue> = {
-      Welcome: SetupPageStep.AdminUser,
-      AdminUser: SetupPageStep.AdminUser,
-      GeneralConfiguration: SetupPageStep.GeneralConfig,
-      Ca: SetupPageStep.CertificateAuthority,
-      CaSummary: SetupPageStep.CASummary,
-      EdgeComponent: SetupPageStep.EdgeComponent,
-      Confirmation: SetupPageStep.Confirmation,
-      Finished: SetupPageStep.Confirmation,
+      welcome: SetupPageStep.AdminUser,
+      admin_user: SetupPageStep.AdminUser,
+      general_configuration: SetupPageStep.GeneralConfig,
+      ca: SetupPageStep.CertificateAuthority,
+      ca_summary: SetupPageStep.CASummary,
+      edge_component: SetupPageStep.EdgeComponent,
+      confirmation: SetupPageStep.Confirmation,
+      finished: SetupPageStep.Confirmation,
     };
 
     useSetupWizardStore.setState({
       activeStep: stepMap[step],
-      isOnWelcomePage: step === 'Welcome',
+      isOnWelcomePage: step === 'welcome',
     });
   };
 
@@ -68,7 +70,6 @@ const handleWizardRedirect = async ({
       finished: AutoAdoptionSetupStep.Summary,
     };
 
-    // The Auto-adoption flow has been started if the server step is past "welcome".
     const isAutoAdoptionFlowStarted = step !== 'welcome';
 
     useAutoAdoptionSetupWizardStore.setState({
@@ -77,30 +78,28 @@ const handleWizardRedirect = async ({
     });
   };
 
-  // Tries to access setup wizard but setup is already completed
-  const setupCompletedButAccessingWizard =
-    settingsEssentials.initial_setup_completed && location.pathname.startsWith('/setup');
-
-  if (setupCompletedButAccessingWizard) {
+  // Setup already completed — redirect away from wizard.
+  if (
+    settingsEssentials.initial_setup_completed &&
+    location.pathname.startsWith('/setup')
+  ) {
     throw redirect({ to: '/auth/login', replace: true });
   }
 
-  let isAutoAdoptionPath = false;
-  let autoAdoptionStep: AutoAdoptionAdoptionStepValue | undefined;
-  if (!settingsEssentials.initial_setup_completed) {
+  // Determine the current wizard step based on active wizard type.
+  let currentStep: string = settingsEssentials.initial_setup_step;
+  if (settingsEssentials.active_wizard === 'auto_adoption') {
     try {
       const autoAdoptionStatus = await api.initial_setup.getAutoAdoptionResult();
-      const adoptionResult = autoAdoptionStatus.data.adoption_result;
-      isAutoAdoptionPath = Object.keys(adoptionResult ?? {}).length > 0;
-      if (isAutoAdoptionPath) {
-        autoAdoptionStep = autoAdoptionStatus.data.step;
-      }
+      currentStep = autoAdoptionStatus.data.step;
     } catch {
-      // Ignore auto-adoption status fetch failures and use the regular setup flow.
+      // If we can't fetch auto-adoption status, default to welcome (no auth needed).
+      currentStep = 'welcome';
     }
   }
 
-  if (requiresSetupAuth(settingsEssentials.initial_setup_step)) {
+  // Check if the current step requires setup authentication.
+  if (requiresSetupAuth(currentStep)) {
     try {
       await api.initial_setup.session();
     } catch (error) {
@@ -112,19 +111,14 @@ const handleWizardRedirect = async ({
     }
   }
 
-  if (isAutoAdoptionPath) {
+  // Use backend-provided active_wizard to decide which wizard flow to show.
+  if (settingsEssentials.active_wizard === 'auto_adoption') {
     useSetupWizardStore.getState().setAutoAdoptionPath(true);
-    if (autoAdoptionStep !== undefined) {
-      applyAutoAdoptionStepFromServer(autoAdoptionStep);
-    } else {
-      useAutoAdoptionSetupWizardStore.getState().startFlow();
-    }
+    applyAutoAdoptionStepFromServer(currentStep as AutoAdoptionAdoptionStepValue);
   } else {
     useSetupWizardStore.getState().startInitialWizardFlow();
     applyWizardStepFromServer(settingsEssentials.initial_setup_step);
   }
-
-  return isAutoAdoptionPath;
 };
 
 const SetupWizardRouter = () => {

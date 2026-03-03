@@ -1347,6 +1347,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_cbor_2",
+ "serde_json",
  "sqlx",
  "struct-patch",
  "thiserror 2.0.18",

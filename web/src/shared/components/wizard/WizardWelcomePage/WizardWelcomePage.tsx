@@ -34,7 +34,7 @@ export const WizardWelcomePage = ({
               {subtitle}
             </AppText>
             <div className="left">{content}</div>
-          </div>{' '}
+          </div>
           {displayDocs && (
             <div id="docs-card">
               <div className="image-track">

@@ -17,6 +17,7 @@ use defguard_common::db::models::{
     settings::{InitialSetupStep, update_current_settings},
     setup_auto_adoption::AutoAdoptionWizardStep,
 };
+use defguard_common::db::models::wizard::{InitialSetupState, Wizard};
 use defguard_core::{
     auth::{
         AdminOrSetupRole, SessionInfo,
@@ -36,22 +37,27 @@ use tracing::{debug, info};
 use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
 
 async fn advance_setup_to_step(pool: &PgPool, step: InitialSetupStep) -> Result<(), WebError> {
-    let mut settings = Settings::get_current_settings();
+    let mut wizard = Wizard::get(pool).await?;
 
     // Don't try to advance if setup is already completed
-    if settings.initial_setup_completed {
+    if wizard.completed {
         debug!("Not advancing setup step as initial setup is already completed");
         return Ok(());
     }
 
-    if settings.initial_setup_step < step {
-        settings.initial_setup_step = step;
-        update_current_settings(pool, settings).await?;
+	let current_step = wizard
+		.initial_setup_state
+		.as_ref()
+		.map(|s| s.step)
+		.unwrap_or(InitialSetupStep::Welcome);
+	if current_step < step {
+		wizard.initial_setup_state = Some(InitialSetupState { step });
+        wizard.save(pool).await?;
         info!("Advanced initial wizard setup to step {:?}", step);
     } else {
         debug!(
             "Not advancing initial wizard setup step from {:?} to {:?} as it is not a forward step",
-            settings.initial_setup_step, step
+		current_step, step
         );
     }
     Ok(())
@@ -188,12 +194,13 @@ pub async fn setup_login(
     Extension(failed_logins): Extension<Arc<Mutex<FailedLoginMap>>>,
     Json(login): Json<SetupLogin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
-    let settings = Settings::get_current_settings();
-    if settings.initial_setup_completed {
+    let wizard = Wizard::get(&pool).await?;
+    if wizard.completed {
         return Err(WebError::Forbidden(
             "Initial setup already completed".to_string(),
         ));
     }
+    let settings = Settings::get_current_settings();
     let default_admin_id = settings
         .default_admin_id
         .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
@@ -239,13 +246,17 @@ pub async fn setup_login(
     Ok((cookies, ApiResponse::with_status(StatusCode::OK)))
 }
 
-pub async fn setup_session(session: SessionInfo) -> ApiResult {
-    let settings = Settings::get_current_settings();
-    if settings.initial_setup_completed {
+pub async fn setup_session(
+    session: SessionInfo,
+    Extension(pool): Extension<PgPool>,
+) -> ApiResult {
+    let wizard = Wizard::get(&pool).await?;
+    if wizard.completed {
         return Err(WebError::Forbidden(
             "Initial setup already completed".to_string(),
         ));
     }
+    let settings = Settings::get_current_settings();
     let default_admin_id = settings
         .default_admin_id
         .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
@@ -434,10 +445,14 @@ pub async fn finish_setup(
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> ApiResult {
     info!("Finishing initial setup");
-    let mut settings = Settings::get_current_settings();
-    settings.initial_setup_step = InitialSetupStep::Finished;
-    settings.initial_setup_completed = true;
-    update_current_settings(&pool, settings).await?;
+    use defguard_common::db::models::wizard::ActiveWizard;
+    let mut wizard = Wizard::get(&pool).await?;
+	wizard.initial_setup_state = Some(InitialSetupState {
+		step: InitialSetupStep::Finished,
+	});
+    wizard.completed = true;
+    wizard.active_wizard = ActiveWizard::None;
+    wizard.save(&pool).await?;
     if let Some(tx) = setup_shutdown_tx
         .lock()
         .expect("Failed to lock setup shutdown sender")

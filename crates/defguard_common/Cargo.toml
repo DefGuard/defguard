@@ -28,6 +28,7 @@ rsa.workspace = true
 secrecy.workspace = true
 serde.workspace = true
 serde_cbor.workspace = true
+serde_json.workspace = true
 sqlx.workspace = true
 struct-patch.workspace = true
 thiserror.workspace = true

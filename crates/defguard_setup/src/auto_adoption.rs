@@ -9,13 +9,11 @@ use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     config::DefGuardConfig,
     db::models::{
-        Settings, User, WireguardNetwork,
+        Settings, WireguardNetwork,
         gateway::Gateway,
         proxy::Proxy,
         settings::update_current_settings,
-        setup_auto_adoption::{
-            AutoAdoptionComponentResult, AutoAdoptionWizardState, SetupAutoAdoptionComponent,
-        },
+        setup_auto_adoption::{AutoAdoptionComponentResult, SetupAutoAdoptionComponent},
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
             LocationMfaMode, ServiceLocationMode,
@@ -43,13 +41,15 @@ use tonic::{
     service::Interceptor,
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const STARTUP_ADOPTION_TIMEOUT: Duration = Duration::from_secs(10);
 const AUTO_ADOPTION_CA_COMMON_NAME: &str = "Defguard Automatic Setup CA";
 const AUTO_ADOPTION_CA_EMAIL: &str = "auto-adoption@defguard.local";
 const AUTO_ADOPTION_CA_VALIDITY_DAYS: u32 = 3650;
+const GATEWAY_NAME: &str = "Gateway";
+const PROXY_NAME: &str = "Edge";
 
 async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error> {
     let mut settings = Settings::get_current_settings();
@@ -119,20 +119,6 @@ fn parse_host_port(input: &str) -> Result<(String, u16), anyhow::Error> {
     ))
 }
 
-fn generated_name(prefix: &str, host: &str, port: u16) -> String {
-    let safe_host = host
-        .chars()
-        .map(|ch| match ch {
-            '.' | ':' | '[' | ']' => '-',
-            _ if ch.is_ascii_alphanumeric() || ch == '-' => ch,
-            _ => '-',
-        })
-        .collect::<String>()
-        .trim_matches('-')
-        .to_string();
-    format!("{prefix}-{safe_host}-{port}")
-}
-
 #[derive(Clone)]
 struct AuthInterceptor {
     token: String,
@@ -198,7 +184,6 @@ async fn run_edge_adoption_attempt(
     _pool: &PgPool,
     host: &str,
     port: u16,
-    common_name: &str,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
     let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -324,6 +309,7 @@ async fn run_edge_adoption_attempt(
     let _log_task_guard = TaskGuard(log_reader_task);
 
     let Some(hostname) = url.host_str() else {
+        error!("Failed to extract hostname from proxy URL");
         return adoption_failure_with_logs(&mut log_rx);
     };
 
@@ -335,6 +321,7 @@ async fn run_edge_adoption_attempt(
     {
         Ok(response) => response.into_inner(),
         Err(err) => {
+            error!("Failed to get CSR from proxy: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -342,6 +329,7 @@ async fn run_edge_adoption_attempt(
     let csr = match Csr::from_der(&csr_response.der_data) {
         Ok(csr) => csr,
         Err(err) => {
+            error!("Failed to parse CSR: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -356,6 +344,7 @@ async fn run_edge_adoption_attempt(
     let cert = match ca.sign_csr(&csr) {
         Ok(cert) => cert,
         Err(err) => {
+            error!("Failed to sign CSR: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -366,12 +355,14 @@ async fn run_edge_adoption_attempt(
         })
         .await
     {
+        error!("Failed to send certificate to proxy: {err}");
         return adoption_failure_with_logs(&mut log_rx);
     }
 
     let cert_info = match parse_certificate_info(cert.der()) {
         Ok(info) => info,
         Err(err) => {
+            error!("Failed to parse certificate info: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -387,7 +378,6 @@ async fn run_edge_adoption_attempt(
 async fn run_gateway_adoption_attempt(
     host: &str,
     port: u16,
-    common_name: &str,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
     let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -529,6 +519,7 @@ async fn run_gateway_adoption_attempt(
     {
         Ok(response) => response.into_inner(),
         Err(err) => {
+            error!("Failed to get CSR from gateway: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -536,6 +527,7 @@ async fn run_gateway_adoption_attempt(
     let csr = match Csr::from_der(&csr_response.der_data) {
         Ok(csr) => csr,
         Err(err) => {
+            error!("Failed to parse CSR: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -550,6 +542,7 @@ async fn run_gateway_adoption_attempt(
     let cert = match ca.sign_csr(&csr) {
         Ok(cert) => cert,
         Err(err) => {
+            error!("Failed to sign CSR: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -560,12 +553,14 @@ async fn run_gateway_adoption_attempt(
         })
         .await
     {
+        error!("Failed to send certificate to gateway: {err}");
         return adoption_failure_with_logs(&mut log_rx);
     }
 
     let cert_info = match parse_certificate_info(cert.der()) {
         Ok(info) => info,
         Err(err) => {
+            error!("Failed to parse certificate info: {err}");
             return adoption_failure_with_logs(&mut log_rx);
         }
     };
@@ -588,18 +583,12 @@ async fn process_startup_auto_adoption(
     pool: &PgPool,
     component: SetupAutoAdoptionComponent,
     endpoint: &str,
-    prefix: &str,
 ) -> Result<(), anyhow::Error> {
     let (host, port) = parse_host_port(endpoint)?;
-    let common_name = generated_name(prefix, &host, port);
 
     let (status, logs, cert_info) = match component {
-        SetupAutoAdoptionComponent::Edge => {
-            run_edge_adoption_attempt(pool, &host, port, &common_name).await
-        }
-        SetupAutoAdoptionComponent::Gateway => {
-            run_gateway_adoption_attempt(&host, port, &common_name).await
-        }
+        SetupAutoAdoptionComponent::Edge => run_edge_adoption_attempt(pool, &host, port).await,
+        SetupAutoAdoptionComponent::Gateway => run_gateway_adoption_attempt(&host, port).await,
     };
 
     // On successful adoption: create the relevant DB records.
@@ -608,7 +597,7 @@ async fn process_startup_auto_adoption(
             SetupAutoAdoptionComponent::Gateway => {
                 if let Some(cert_info) = cert_info {
                     if let Err(err) =
-                        create_network_and_gateway(pool, &host, port, &common_name, cert_info).await
+                        create_network_and_gateway(pool, &host, port, GATEWAY_NAME, cert_info).await
                     {
                         warn!(
                             "Gateway adoption TLS handshake succeeded but failed to persist \
@@ -619,8 +608,7 @@ async fn process_startup_auto_adoption(
             }
             SetupAutoAdoptionComponent::Edge => {
                 if let Some(cert_info) = cert_info {
-                    if let Err(err) = create_proxy(pool, &host, port, &common_name, cert_info).await
-                    {
+                    if let Err(err) = create_proxy(pool, &host, port, PROXY_NAME, cert_info).await {
                         warn!(
                             "Edge adoption TLS handshake succeeded but failed to persist \
                             proxy record: {err}"
@@ -631,21 +619,23 @@ async fn process_startup_auto_adoption(
         }
     }
 
-    let mut wizard_state = AutoAdoptionWizardState::load(pool)
+    let mut wizard = defguard_common::db::models::wizard::Wizard::get(pool)
         .await
-        .context("Failed to load auto-adoption wizard state")?;
+        .context("Failed to load wizard state")?;
 
-    wizard_state
-        .insert_component_result(
-            pool,
+    wizard
+        .auto_adoption_state
+        .get_or_insert_with(Default::default)
+        .adoption_result
+        .insert(
             component,
             AutoAdoptionComponentResult {
                 success: status,
                 logs: logs.clone(),
                 updated_at: chrono::Utc::now().naive_utc(),
             },
-        )
-        .await?;
+        );
+    wizard.save(pool).await?;
 
     Ok(())
 }
@@ -795,17 +785,16 @@ pub async fn attemp_auto_adoption(
     pool: &PgPool,
     config: &DefGuardConfig,
 ) -> Result<(), anyhow::Error> {
-    let mut wizard_state = AutoAdoptionWizardState::load(pool)
+    let mut wizard = defguard_common::db::models::wizard::Wizard::get(pool)
         .await
-        .context("Failed to load existing setup auto-adoption states")?;
+        .context("Failed to load wizard state")?;
 
-    let edge_already_succeeded = wizard_state
-        .adoption_result
-        .get(&SetupAutoAdoptionComponent::Edge)
+    let auto_state = wizard.auto_adoption_state.as_ref();
+    let edge_already_succeeded = auto_state
+        .and_then(|s| s.adoption_result.get(&SetupAutoAdoptionComponent::Edge))
         .map_or(false, |result| result.success);
-    let gateway_already_succeeded = wizard_state
-        .adoption_result
-        .get(&SetupAutoAdoptionComponent::Gateway)
+    let gateway_already_succeeded = auto_state
+        .and_then(|s| s.adoption_result.get(&SetupAutoAdoptionComponent::Gateway))
         .map_or(false, |result| result.success);
 
     let should_run_edge = config.adopt_edge.is_some() && !edge_already_succeeded;
@@ -822,25 +811,23 @@ pub async fn attemp_auto_adoption(
             );
         } else {
             info!("Starting startup auto-adoption for Edge component endpoint={endpoint}");
-            if let Err(err) = process_startup_auto_adoption(
-                pool,
-                SetupAutoAdoptionComponent::Edge,
-                endpoint,
-                "edge",
-            )
-            .await
+            if let Err(err) =
+                process_startup_auto_adoption(pool, SetupAutoAdoptionComponent::Edge, endpoint)
+                    .await
             {
-                wizard_state
-                    .insert_component_result(
-                        pool,
+                wizard
+                    .auto_adoption_state
+                    .get_or_insert_with(Default::default)
+                    .adoption_result
+                    .insert(
                         SetupAutoAdoptionComponent::Edge,
                         AutoAdoptionComponentResult {
                             success: false,
                             logs: vec![format!("Startup auto-adoption failed: {err}")],
                             updated_at: chrono::Utc::now().naive_utc(),
                         },
-                    )
-                    .await?;
+                    );
+                wizard.save(pool).await?;
             } else {
                 info!("Startup auto-adoption for Edge component completed endpoint={endpoint}");
             }
@@ -854,25 +841,23 @@ pub async fn attemp_auto_adoption(
             );
         } else {
             info!("Starting startup auto-adoption for Gateway component endpoint={endpoint}");
-            if let Err(err) = process_startup_auto_adoption(
-                pool,
-                SetupAutoAdoptionComponent::Gateway,
-                endpoint,
-                "gateway",
-            )
-            .await
+            if let Err(err) =
+                process_startup_auto_adoption(pool, SetupAutoAdoptionComponent::Gateway, endpoint)
+                    .await
             {
-                wizard_state
-                    .insert_component_result(
-                        pool,
+                wizard
+                    .auto_adoption_state
+                    .get_or_insert_with(Default::default)
+                    .adoption_result
+                    .insert(
                         SetupAutoAdoptionComponent::Gateway,
                         AutoAdoptionComponentResult {
                             success: false,
                             logs: vec![format!("Startup auto-adoption failed: {err}")],
                             updated_at: chrono::Utc::now().naive_utc(),
                         },
-                    )
-                    .await?;
+                    );
+                wizard.save(pool).await?;
             } else {
                 info!("Startup auto-adoption for Gateway component completed endpoint={endpoint}");
             }
