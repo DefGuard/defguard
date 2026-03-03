@@ -23,7 +23,6 @@ import {
   getLocationsQueryOptions,
   getSessionInfoQueryOptions,
 } from '../../../../shared/query';
-import { useMigrationWizardStore } from '../../store/useMigrationWizardStore';
 import prepareNetworkImage from './assets/prepare-network.png';
 
 export const MigrationWizardConfirmationStep = () => {
@@ -43,7 +42,7 @@ export const MigrationWizardConfirmationStep = () => {
       console.error(e);
     },
     meta: {
-      invalidate: [['migration'], ['settings'], ['session-info']],
+      invalidate: [['migration'], ['settings'], ['session-info'], ['me']],
     },
   });
 
@@ -51,9 +50,6 @@ export const MigrationWizardConfirmationStep = () => {
     if (sessionInfo?.wizard_flags) {
       if (sessionInfo.wizard_flags.migration_wizard_completed) {
         navigate({ to: '/vpn-overview', replace: true });
-        setTimeout(() => {
-          useMigrationWizardStore.getState().resetState();
-        }, 500);
       }
     }
   }, [sessionInfo, navigate]);

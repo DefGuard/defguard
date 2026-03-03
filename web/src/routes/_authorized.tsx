@@ -12,9 +12,8 @@ import { getSessionInfoQueryOptions } from '../shared/query';
 export const Route = createFileRoute('/_authorized')({
   component: RouteComponent,
   beforeLoad: async ({ context }) => {
-    const sessionInfo = (
-      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
-    ).data;
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
     if (!sessionInfo.authorized) {
       throw redirect({ to: '/auth/login', replace: true });
     }

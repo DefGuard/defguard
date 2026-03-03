@@ -94,15 +94,15 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
+    // initialize default settings
+    Settings::init_defaults(&pool).await?;
+
+    initialize_current_settings(&pool).await?;
+
     let wizard_flags = WizardFlags::init(&pool).await?;
     let mut ini_server_config = true;
 
-    // initialize default settings
-    Settings::init_defaults(&pool).await?;
-    // initialize global settings struct
-    initialize_current_settings(&pool).await?;
     Settings::ensure_secret_key(&pool, &config).await?;
-    let mut settings = Settings::get_current_settings();
 
     if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
         if let Err(err) =
@@ -110,9 +110,9 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Setup web server exited with error: {err}");
         }
-        settings = Settings::get_current_settings();
     } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
     {
+        let mut settings = Settings::get_current_settings();
         settings.update_from_config(&pool, &config).await?;
 
         config.initialize_post_settings();
@@ -127,7 +127,6 @@ async fn main() -> Result<(), anyhow::Error> {
         {
             anyhow::bail!("Migration web server exited with error: {err}");
         }
-        settings = Settings::get_current_settings();
     }
 
     if ini_server_config {
@@ -137,6 +136,8 @@ async fn main() -> Result<(), anyhow::Error> {
             .set(config.clone())
             .expect("Failed to initialize server config.");
     }
+
+    let settings = Settings::get_current_settings();
 
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
