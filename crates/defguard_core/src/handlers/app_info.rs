@@ -25,7 +25,6 @@ pub struct AppInfo {
     smtp_enabled: bool,
     ldap_info: LdapInfo,
     external_openid_enabled: bool,
-    initial_setup_completed: bool,
 }
 
 pub(crate) async fn get_app_info(
@@ -35,7 +34,6 @@ pub(crate) async fn get_app_info(
     // both `await`s are executed upfront to avoid holding license `RwLock` across an await point
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let external_openid_enabled = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
-    let wizard = Wizard::get(&appstate.pool).await?;
 
     let settings = Settings::get_current_settings();
 
@@ -48,7 +46,6 @@ pub(crate) async fn get_app_info(
             ad: settings.ldap_uses_ad,
         },
         external_openid_enabled,
-        initial_setup_completed: wizard.completed,
     };
 
     Ok(ApiResponse::json(res, StatusCode::OK))
