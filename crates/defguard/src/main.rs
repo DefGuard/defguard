@@ -101,7 +101,7 @@ async fn main() -> Result<(), anyhow::Error> {
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
-    Settings::ensure_secret_key(&pool, &config).await?;
+    Settings::ensure_secret_key(&pool).await?;
     let mut settings = Settings::get_current_settings();
 
     if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {

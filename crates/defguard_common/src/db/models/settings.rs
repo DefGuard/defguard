@@ -319,22 +319,8 @@ impl Settings {
         secret_key
     }
 
-    pub async fn ensure_secret_key(
-        pool: &PgPool,
-        config: &DefGuardConfig,
-    ) -> Result<(), anyhow::Error> {
+    pub async fn ensure_secret_key(pool: &PgPool) -> Result<(), anyhow::Error> {
         let mut settings = Settings::get_current_settings();
-
-        #[allow(deprecated)]
-        if let Some(secret_key) = &config.secret_key {
-            let secret_key = secret_key.expose_secret();
-            Settings::validate_secret_key(secret_key)?;
-            if settings.secret_key.as_deref() != Some(secret_key) {
-                settings.secret_key = Some(secret_key.to_string());
-                update_current_settings(pool, settings).await?;
-            }
-            return Ok(());
-        }
 
         if let Some(secret_key) = settings.secret_key.as_deref() {
             Settings::validate_secret_key(secret_key)?;
@@ -694,7 +680,15 @@ impl Settings {
             self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
         }
         if let Some(secret_key) = &config.secret_key {
-            self.secret_key = Some(secret_key.expose_secret().to_string());
+            let secret_key = secret_key.expose_secret();
+            if let Err(err) = Settings::validate_secret_key(secret_key) {
+                warn!(
+                    "Invalid secret_key provided in deprecated config, generating new one: {err}"
+                );
+                self.secret_key = Some(Settings::generate_secret_key());
+            } else {
+                self.secret_key = Some(secret_key.to_string());
+            }
         }
         if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
             self.webauthn_rp_id = Some(webauthn_rp_id.clone());
