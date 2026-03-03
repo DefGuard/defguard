@@ -6,8 +6,9 @@ use chrono::{DateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     config::server_config,
-    db::models::{Settings, settings::update_current_settings},
+    db::models::{Settings, gateway::Gateway, proxy::Proxy, settings::update_current_settings},
     global_value,
+    types::proxy::ProxyControlMessage,
 };
 use humantime::format_duration;
 use pgp::{
@@ -222,18 +223,23 @@ impl License {
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
                         warn!(
-                            "The provided license has expired and reached its maximum overdue time, please contact sales<at>defguard.net"
+                            "The provided license has expired and reached its maximum overdue time, \
+                            please contact sales<at>defguard.net"
                         );
                     } else {
                         warn!(
-                            "The provided license is about to expire and requires a renewal. An automatic renewal process will attempt to renew the license soon. Alternatively, automatic renewal attempt will be also performed at the next defguard start."
+                            "The provided license is about to expire and requires a renewal. An \
+                            automatic renewal process will attempt to renew the license soon. \
+                            Alternatively, automatic renewal attempt will be also performed at the \
+                            next Defguard start."
                         );
                     }
                 }
 
                 if !license.subscription && license.is_expired() {
                     warn!(
-                        "The provided license is not a subscription and has expired, please contact sales<at>defguard.net"
+                        "The provided license is not a subscription and has expired, please \
+                        contact sales<at>defguard.net"
                     );
                 }
 
@@ -260,8 +266,9 @@ impl License {
         }
     }
 
-    /// Try to load the license from the database, if the license requires a renewal, try to renew it.
-    /// If the renewal fails, it will return the old license for the renewal service to renew it later.
+    /// Try to load the license from the database, if the license requires a renewal, try to renew
+    /// it. If the renewal fails, it will return the old license for the renewal service to renew it
+    /// later.
     pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
         match Self::load()? {
             Some(license) => {
@@ -275,7 +282,8 @@ impl License {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
                                 info!(
-                                    "Successfully renewed and loaded the license, new license key saved to the database"
+                                    "Successfully renewed and loaded the license, new license key \
+                                    saved to the database"
                                 );
                                 Ok(Some(new_license))
                             }
@@ -349,7 +357,8 @@ impl License {
         if self.subscription {
             self.time_overdue() > MAX_OVERDUE_TIME
         } else {
-            // Non-subscription licenses are considered expired immediately, no grace period is required
+            // Non-subscription licenses are considered expired immediately, no grace period is
+            // required.
             self.is_expired()
         }
     }
@@ -484,8 +493,34 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
+async fn trim_gateways_and_edges(
+    pool: &PgPool,
+    proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
+) -> Result<(), LicenseError> {
+    Gateway::leave_one_enabled(pool).await?;
+
+    for mut edge in Proxy::leave_one_enabled(pool).await? {
+        edge.enabled = false;
+        edge.save(pool).await?;
+        if let Err(err) = proxy_control_tx
+            .send(ProxyControlMessage::ShutdownConnection(edge.id))
+            .await
+        {
+            error!(
+                "Failed to shutdown Proxy {}, it may be disconnected: {err:?}",
+                edge.id
+            );
+        }
+    }
+
+    Ok(())
+}
+
 #[instrument(skip_all)]
-pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseError> {
+pub async fn run_periodic_license_check(
+    pool: &PgPool,
+    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+) -> Result<(), LicenseError> {
     let config = server_config();
     let mut check_period: Duration = *config.check_period;
     info!(
@@ -504,8 +539,9 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
         // Check if the license requires renewal, uses the cached value to be more efficient
         // The block here is to avoid holding the lock through awaits
         //
-        // Multiple locks here may cause a race condition if the user decides to update the license key
-        // while the renewal is in progress. However this seems like a rare case and shouldn't be very problematic.
+        // Multiple locks here may cause a race condition if the user decides to update the license
+        // key while the renewal is in progress. However this seems like a rare case and shouldn't
+        // be very problematic.
         let requires_renewal = {
             let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
@@ -517,13 +553,18 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
                     if license.is_max_overdue() {
                         check_period = *config.check_period;
                         warn!(
-                            "Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net"
+                            "Your license has expired and reached its maximum overdue date, please \
+                            contact sales at sales<at>defguard.net"
                         );
                         debug!("Changing check period to {}", format_duration(check_period));
+
+                        trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+
                         false
                     } else {
                         debug!(
-                            "License requires renewal, as it is about to expire and is not past the maximum overdue time"
+                            "License requires renewal, as it is about to expire and is not past \
+                            the maximum overdue time"
                         );
                         true
                     }
@@ -556,8 +597,8 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
                     }
                     Err(err) => {
                         error!(
-                            "Couldn't save the newly fetched license key to the database, error: {}",
-                            err
+                            "Couldn't save the newly fetched license key to the database, error: \
+                            {err}"
                         );
                     }
                 },

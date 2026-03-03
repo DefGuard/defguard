@@ -204,7 +204,7 @@ async fn main() -> Result<(), anyhow::Error> {
             failed_logins,
             api_event_tx,
             incompatible_components,
-            proxy_control_tx
+            proxy_control_tx.clone()
         ) => error!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
@@ -212,7 +212,7 @@ async fn main() -> Result<(), anyhow::Error> {
             config.stats_purge_threshold.into()
         ), if !config.disable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
-        res = run_periodic_license_check(&pool) =>
+        res = run_periodic_license_check(&pool, proxy_control_tx) =>
             error!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, gateway_tx.clone()) =>
             error!("Utility thread returned early: {res:?}"),
