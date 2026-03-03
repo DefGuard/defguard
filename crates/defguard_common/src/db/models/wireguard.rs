@@ -444,7 +444,7 @@ impl WireguardNetwork<Id> {
             let wireguard_network_device = device
                 .assign_next_network_ip(&mut *transaction, self, &used_ips, None, None)
                 .await?;
-            used_ips.extend(device.wireguard_ips);
+            used_ips.extend(wireguard_network_device.wireguard_ips);
         }
         Ok(())
     }
