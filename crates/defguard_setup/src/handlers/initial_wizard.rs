@@ -16,7 +16,7 @@ use defguard_common::db::models::{
     group::Group,
     settings::{InitialSetupStep, update_current_settings},
     setup_auto_adoption::AutoAdoptionWizardStep,
-    wizard::{InitialSetupState, Wizard},
+    wizard::{ActiveWizard, InitialSetupState, Wizard},
 };
 use defguard_core::{
     auth::{
@@ -442,7 +442,7 @@ pub async fn finish_setup(
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> ApiResult {
     info!("Finishing initial setup");
-    use defguard_common::db::models::wizard::ActiveWizard;
+
     let mut wizard = Wizard::get(&pool).await?;
     wizard.initial_setup_state = Some(InitialSetupState {
         step: InitialSetupStep::Finished,
