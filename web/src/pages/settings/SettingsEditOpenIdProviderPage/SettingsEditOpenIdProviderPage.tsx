@@ -6,6 +6,7 @@ import { type AddOpenIdProvider, OpenIdProviderKind } from '../../../shared/api/
 import { EditPage } from '../../../shared/components/EditPage/EditPage';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getExternalProviderQueryOptions } from '../../../shared/query';
+import { joinCsv } from '../../../shared/utils/csv';
 import { EditCustomProviderForm } from './form/EditCustomProviderForm';
 import { EditGoogleProviderForm } from './form/EditGoogleProviderForm';
 import { EditJumpCloudProviderForm } from './form/EditJumpCloudProviderForm';
@@ -54,7 +55,11 @@ export const SettingsEditOpenIdProviderPage = () => {
   const handleSubmit = useCallback(
     async (values: Partial<AddOpenIdProvider>) => {
       if (isPresent(formData)) {
-        await mutateAsync({ ...formData, ...values });
+        const normalizedFormData = {
+          ...formData,
+          directory_sync_group_match: joinCsv(formData.directory_sync_group_match),
+        };
+        await mutateAsync({ ...normalizedFormData, ...values });
       }
     },
     [formData, mutateAsync],
