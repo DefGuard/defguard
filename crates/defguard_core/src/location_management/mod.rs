@@ -201,6 +201,8 @@ pub async fn process_device_access_changes(
                 device_network_config.device_id
             );
             device_network_config.delete(&mut *transaction).await?;
+            // Remove freed IPs so they can be reused by later assignments
+            used_ips.retain(|ip| !device_network_config.wireguard_ips.contains(ip));
             if let Some(device) =
                 Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
             {
