@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"location_id\",\"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"certificate\",\"certificate_expiry\",\"version\",\"modified_at\",\"modified_by\" FROM \"gateway\" WHERE id = $1",
+  "query": "SELECT id, \"location_id\",\"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"certificate\",\"certificate_expiry\",\"version\",\"enabled\",\"modified_at\",\"modified_by\" FROM \"gateway\"",
   "describe": {
     "columns": [
       {
@@ -55,19 +55,22 @@
       },
       {
         "ordinal": 10,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "modified_by",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -81,8 +84,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "c9ae7aea043b822a489deb2dcccaa834ecbdc4990149dd6ba61f34a96cbac235"
+  "hash": "0fc80b6949eaaeda77dabad7093bca70bd327c14eea4b8db1c9f11c722a00bf4"
 }

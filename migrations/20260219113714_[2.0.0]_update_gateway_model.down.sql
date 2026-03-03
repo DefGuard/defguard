@@ -1,4 +1,6 @@
 ALTER TABLE gateway
+    DROP CONSTRAINT modified_by_fkey,
+    DROP COLUMN enabled,
     DROP COLUMN address,
     DROP COLUMN port,
     DROP COLUMN modified_at,
@@ -7,4 +9,3 @@ ALTER TABLE gateway
     ADD COLUMN url text NOT NULL DEFAULT 'http://127.0.0.1:50051';
 
 ALTER TABLE gateway RENAME COLUMN location_id TO network_id;
-

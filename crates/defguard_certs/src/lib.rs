@@ -39,7 +39,7 @@ impl CertificateAuthority<'_> {
         let cert_der = CertificateDer::from_pem_slice(ca_cert_pem.as_bytes())
             .map_err(|e| CertificateError::ParsingError(e.to_string()))?;
         let issuer = Issuer::from_ca_cert_der(&cert_der, key_pair)?;
-        Ok(CertificateAuthority { issuer, cert_der })
+        Ok(Self { issuer, cert_der })
     }
 
     pub fn from_cert_der_key_pair(
@@ -49,7 +49,7 @@ impl CertificateAuthority<'_> {
         let key_pair = KeyPair::try_from(ca_key_pair)?;
         let cert_der = CertificateDer::from(ca_cert_der.to_vec());
         let issuer = Issuer::from_ca_cert_der(&cert_der, key_pair)?;
-        Ok(CertificateAuthority { issuer, cert_der })
+        Ok(Self { issuer, cert_der })
     }
 
     pub fn from_key_cert_params(
@@ -59,7 +59,7 @@ impl CertificateAuthority<'_> {
         let cert = ca_cert_params.self_signed(&key_pair)?;
         let issuer = Issuer::new(ca_cert_params, key_pair);
         let cert_der = cert.der().clone();
-        Ok(CertificateAuthority { issuer, cert_der })
+        Ok(Self { issuer, cert_der })
     }
 
     pub fn new(
@@ -86,7 +86,7 @@ impl CertificateAuthority<'_> {
 
         let ca_key_pair = KeyPair::generate()?;
 
-        CertificateAuthority::from_key_cert_params(ca_key_pair, ca_params)
+        Self::from_key_cert_params(ca_key_pair, ca_params)
     }
 
     pub fn sign_csr(&self, csr: &Csr) -> Result<Certificate, CertificateError> {

@@ -61,14 +61,16 @@
       {
         "ordinal": 11,
         "name": "modified_by",
-        "type_info": "Text"
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "enabled",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text",
-        "Int4"
-      ]
+      "Left": ["Text", "Int4"]
     },
     "nullable": [
       false,
@@ -79,6 +81,7 @@
       true,
       false,
       true,
+      false,
       false,
       false,
       false,

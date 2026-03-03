@@ -48,6 +48,7 @@ const formSchema = z.object({
   modified_at: z.string(),
   modified_by: z.string(),
   version: z.string().nullable(),
+  enabled: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -123,6 +124,10 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
             {(field) => <field.FormInput disabled label={m.edge_edit_port()} />}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="enabled">
+            {(field) => <field.FormCheckbox text={m.controls_enable()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
         </EditPageFormSection>

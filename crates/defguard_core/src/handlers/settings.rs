@@ -3,9 +3,12 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use defguard_common::db::models::{
-    Settings, SettingsEssentials,
-    settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+use defguard_common::db::{
+    Id,
+    models::{
+        Settings, SettingsEssentials,
+        settings::{LdapSyncStatus, SettingsPatch, update_current_settings},
+    },
 };
 use sqlx::PgPool;
 use struct_patch::Patch;
@@ -84,7 +87,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
 pub async fn set_default_branding(
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    Path(_id): Path<i64>, // TODO: check with front-end and remove.
+    Path(_id): Path<Id>, // TODO: check with front-end and remove.
     session: SessionInfo,
     context: ApiRequestContext,
 ) -> ApiResult {

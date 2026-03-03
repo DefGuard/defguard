@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM gateway WHERE location_id = $1 ORDER BY id",
+  "query": "SELECT * FROM proxy WHERE enabled",
   "describe": {
     "columns": [
       {
@@ -10,83 +10,77 @@
       },
       {
         "ordinal": 1,
-        "name": "location_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 2,
-        "name": "connected_at",
-        "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 3,
-        "name": "disconnected_at",
-        "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 4,
-        "name": "certificate_expiry",
-        "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 5,
-        "name": "version",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 6,
         "name": "name",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
-        "name": "certificate",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 8,
+        "ordinal": 2,
         "name": "address",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 3,
         "name": "port",
         "type_info": "Int4"
       },
       {
-        "ordinal": 10,
+        "ordinal": 4,
+        "name": "connected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "disconnected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "certificate_expiry",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
         "name": "modified_by",
         "type_info": "Int8"
       },
       {
-        "ordinal": 12,
+        "ordinal": 10,
+        "name": "certificate",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
         "name": "enabled",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": ["Int8"]
+      "Left": []
     },
     "nullable": [
       false,
       false,
+      false,
+      false,
       true,
       true,
       true,
       true,
       false,
+      false,
       true,
-      false,
-      false,
-      false,
-      false,
       false
     ]
   },
-  "hash": "3c6a119f2f10046bd9e42314df953a0a0b3b44d0a87d43f69425729c15e1a400"
+  "hash": "2ce93887379d80ff03753caaf94ec1ab4c6f0ead212fc74bb881e1d5c0d96080"
 }

@@ -350,7 +350,7 @@ pub(crate) async fn delete_acl_alias(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting ACL alias {id}", session.user.username);
     AclAlias::delete_from_api(&appstate.pool, id)

@@ -459,8 +459,8 @@ const api = {
     getGateways: () => client.get<GatewayInfo[]>('/gateway'),
     getGateway: (gatewayId: number | string) =>
       client.get<Gateway>(`/gateway/${gatewayId}`),
-    editGateway: (data: Gateway) =>
-      client.put(`/gateway/${data.id}`, { name: data.name }),
+    editGateway: (data: { id: number | string; name: string; enabled: boolean }) =>
+      client.put(`/gateway/${data.id}`, { name: data.name, enabled: data.enabled }),
     deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
   },
   acl: {

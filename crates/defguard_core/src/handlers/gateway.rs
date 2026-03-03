@@ -31,6 +31,7 @@ pub struct GatewayInfo {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub modified_at: NaiveDateTime,
     pub modified_by: String,
     pub location_name: String,
@@ -80,6 +81,7 @@ impl GatewayInfo {
 #[serde(deny_unknown_fields)]
 pub struct GatewayUpdateData {
     pub name: String,
+    pub enabled: bool,
 }
 
 #[utoipa::path(
@@ -124,7 +126,7 @@ pub(crate) async fn gateway_list(
     )
 )]
 pub(crate) async fn gateway_details(
-    Path(gateway_id): Path<i64>,
+    Path(gateway_id): Path<Id>,
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -164,7 +166,7 @@ pub(crate) async fn gateway_details(
 )]
 pub(crate) async fn update_gateway(
     _role: AdminRole,
-    Path(gateway_id): Path<i64>,
+    Path(gateway_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -192,6 +194,7 @@ pub(crate) async fn update_gateway(
     let before = gateway.clone();
 
     gateway.name = data.name;
+    gateway.enabled = data.enabled;
     gateway.save(&appstate.pool).await?;
 
     info!(
@@ -227,7 +230,7 @@ pub(crate) async fn update_gateway(
 )]
 pub(crate) async fn delete_gateway(
     _role: AdminRole,
-    Path(gateway_id): Path<i64>,
+    Path(gateway_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,

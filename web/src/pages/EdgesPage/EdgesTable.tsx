@@ -45,6 +45,29 @@ const isConnected = (edge: EdgeInfo) => {
 
 const displayModifiedBy = (edge: EdgeInfo) => `${edge.modified_by}`;
 
+const getStatusBadge = (edge: EdgeInfo) => {
+  if (!edge.enabled) {
+    return (
+      <Badge icon="disabled" showIcon variant="critical" text={m.state_disabled()} />
+    );
+  }
+
+  if (isConnected(edge)) {
+    return (
+      <Badge icon="check-filled" showIcon variant="success" text={m.edge_connected()} />
+    );
+  }
+
+  return (
+    <Badge
+      icon="status-important"
+      showIcon
+      variant="critical"
+      text={m.edge_disconnected()}
+    />
+  );
+};
+
 export const EdgesTable = () => {
   const { data: edges } = useSuspenseQuery(getEdgesQueryOptions);
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
@@ -53,6 +76,13 @@ export const EdgesTable = () => {
 
   const { mutate: deleteEdge } = useMutation({
     mutationFn: api.edge.deleteEdge,
+    meta: {
+      invalidate: ['edge'],
+    },
+  });
+
+  const { mutate: toggleEdge } = useMutation({
+    mutationFn: api.edge.editEdge,
     meta: {
       invalidate: ['edge'],
     },
@@ -162,26 +192,7 @@ export const EdgesTable = () => {
         minSize: 175,
         header: m.edges_col_status(),
         enableSorting: false,
-        cell: (info) => (
-          <TableCell>
-            {isConnected(info.row.original) && (
-              <Badge
-                icon="check-filled"
-                showIcon
-                variant="success"
-                text={m.edge_connected()}
-              />
-            )}
-            {!isConnected(info.row.original) && (
-              <Badge
-                icon="status-important"
-                showIcon
-                variant="critical"
-                text={m.edge_disconnected()}
-              />
-            )}
-          </TableCell>
-        ),
+        cell: (info) => <TableCell>{getStatusBadge(info.row.original)}</TableCell>,
       }),
       columnHelper.display({
         id: 'edit',
@@ -202,6 +213,16 @@ export const EdgesTable = () => {
                     navigate({
                       to: `/edge/$edgeId/edit`,
                       params: { edgeId: rowData.id.toString() },
+                    });
+                  },
+                },
+                {
+                  text: rowData.enabled ? m.controls_disable() : m.controls_enable(),
+                  icon: rowData.enabled ? 'disabled' : 'check-circle',
+                  onClick: () => {
+                    toggleEdge({
+                      ...rowData,
+                      enabled: !rowData.enabled,
                     });
                   },
                 },
@@ -229,7 +250,7 @@ export const EdgesTable = () => {
         },
       }),
     ],
-    [deleteEdge, navigate],
+    [deleteEdge, navigate, toggleEdge],
   );
 
   const table = useReactTable({

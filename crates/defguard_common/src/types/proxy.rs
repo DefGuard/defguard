@@ -20,6 +20,7 @@ pub struct ProxyInfo {
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
