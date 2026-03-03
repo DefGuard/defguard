@@ -846,7 +846,13 @@ Star us on GitHub! https://github.com/defguard/defguard\
 mod test {
     use std::str::FromStr;
 
+    use humantime::Duration;
+    use reqwest::Url;
+    use secrecy::SecretString;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
+    use crate::db::setup_pool;
 
     #[test]
     fn test_smtp_config() {
@@ -901,5 +907,183 @@ mod test {
             s.callback_url().unwrap().as_str(),
             "https://defguard.example.com:8443/path/auth/callback"
         );
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_maps_migrated_fields() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            webauthn_rp_id: Some("existing-rp".into()),
+            ..Default::default()
+        };
+        let mut config = DefGuardConfig::new_test_config();
+
+        config.auth_cookie_timeout = Some(Duration::from(std::time::Duration::from_secs(
+            3 * 24 * 3600,
+        )));
+        config.secret_key = Some(SecretString::from("a".repeat(64)));
+        config.webauthn_rp_id = Some("rp-from-config".into());
+        config.enrollment_url = Some(Url::parse("https://proxy.example.com").unwrap());
+        config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(75)));
+        config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
+            10 * 24 * 3600,
+        )));
+        config.disable_stats_purge = Some(true);
+        config.stats_purge_frequency =
+            Some(Duration::from(std::time::Duration::from_secs(5 * 3600)));
+        config.stats_purge_threshold = Some(Duration::from(std::time::Duration::from_secs(
+            12 * 24 * 3600,
+        )));
+        config.enrollment_token_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(7 * 3600)));
+        config.password_reset_token_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(9 * 3600)));
+        config.enrollment_session_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(15 * 60)));
+        config.password_reset_session_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(20 * 60)));
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(settings.auth_cookie_timeout_days, 3);
+        assert_eq!(
+            settings.secret_key.as_deref(),
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        );
+        assert_eq!(settings.webauthn_rp_id.as_deref(), Some("rp-from-config"));
+        assert_eq!(settings.public_proxy_url, "https://proxy.example.com/");
+        assert_eq!(settings.mfa_code_timeout_seconds, 75);
+        assert_eq!(settings.authentication_period_days, 10);
+        assert!(settings.disable_stats_purge);
+        assert_eq!(settings.stats_purge_frequency_hours, 5);
+        assert_eq!(settings.stats_purge_threshold_days, 12);
+        assert_eq!(settings.enrollment_token_timeout_hours, 7);
+        assert_eq!(settings.password_reset_token_timeout_hours, 9);
+        assert_eq!(settings.enrollment_session_timeout_minutes, 15);
+        assert_eq!(settings.password_reset_session_timeout_minutes, 20);
+    }
+
+    #[test]
+    fn test_apply_from_config_keeps_values_when_config_is_none() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            secret_key: Some("z".repeat(64)),
+            webauthn_rp_id: Some("already-set".into()),
+            public_proxy_url: "https://proxy.initial".into(),
+            mfa_code_timeout_seconds: 123,
+            authentication_period_days: 9,
+            disable_stats_purge: true,
+            ..Default::default()
+        };
+        let config = DefGuardConfig::new_test_config();
+        let existing_secret = "z".repeat(64);
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(
+            settings.secret_key.as_deref(),
+            Some(existing_secret.as_str())
+        );
+        assert_eq!(settings.webauthn_rp_id.as_deref(), Some("already-set"));
+        assert_eq!(settings.public_proxy_url, "https://proxy.initial");
+        assert_eq!(settings.mfa_code_timeout_seconds, 123);
+        assert_eq!(settings.authentication_period_days, 9);
+        assert!(settings.disable_stats_purge);
+    }
+
+    #[test]
+    fn test_apply_from_config_derives_webauthn_rp_id_from_defguard_url() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com:8443/path".into(),
+            webauthn_rp_id: None,
+            ..Default::default()
+        };
+        let config = DefGuardConfig::new_test_config();
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(
+            settings.webauthn_rp_id.as_deref(),
+            Some("defguard.example.com")
+        );
+    }
+
+    #[test]
+    fn test_apply_from_config_invalid_defguard_url_does_not_set_webauthn_rp_id() {
+        let mut settings = Settings {
+            defguard_url: "this is not an url".into(),
+            webauthn_rp_id: None,
+            ..Default::default()
+        };
+        let config = DefGuardConfig::new_test_config();
+
+        settings.apply_from_config(&config);
+
+        assert!(settings.webauthn_rp_id.is_none());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_invalid_secret_key_generates_new() {
+        let mut settings = Settings::default();
+        let mut config = DefGuardConfig::new_test_config();
+        config.secret_key = Some(SecretString::from(" short ".to_string()));
+
+        settings.apply_from_config(&config);
+
+        let generated = settings.secret_key.expect("secret key should be generated");
+        assert_eq!(generated.len(), 64);
+        assert_ne!(generated, " short ");
+        assert!(Settings::validate_secret_key(&generated).is_ok());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_valid_secret_key_is_used() {
+        let mut settings = Settings::default();
+        let mut config = DefGuardConfig::new_test_config();
+        let valid_secret = "b".repeat(64);
+        config.secret_key = Some(SecretString::from(valid_secret.clone()));
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(settings.secret_key.as_deref(), Some(valid_secret.as_str()));
+    }
+
+    #[sqlx::test]
+    #[allow(deprecated)]
+    async fn test_update_from_config_persists_and_updates_current_settings(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = "https://defguard.example.com".into();
+        update_current_settings(&pool, settings.clone())
+            .await
+            .unwrap();
+
+        let mut config = DefGuardConfig::new_test_config();
+        config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(90)));
+        config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
+            2 * 24 * 3600,
+        )));
+        config.disable_stats_purge = Some(true);
+
+        settings.update_from_config(&pool, &config).await.unwrap();
+
+        let current = Settings::get_current_settings();
+        let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+        assert_eq!(current.mfa_code_timeout_seconds, 90);
+        assert_eq!(current.authentication_period_days, 2);
+        assert!(current.disable_stats_purge);
+
+        assert_eq!(from_db.mfa_code_timeout_seconds, 90);
+        assert_eq!(from_db.authentication_period_days, 2);
+        assert!(from_db.disable_stats_purge);
     }
 }
