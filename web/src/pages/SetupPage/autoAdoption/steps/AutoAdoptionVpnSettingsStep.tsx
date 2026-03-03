@@ -20,19 +20,19 @@ const formSchema = z.object({
   vpn_public_ip: z
     .string()
     .trim()
-    .min(1, m.initial_setup_auto_adoption_vpn_error_required())
+    .min(1, m.form_error_required())
     .refine(
       (value) => Validate.any(value, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
       m.initial_setup_auto_adoption_vpn_error_invalid_value(),
     ),
   vpn_wireguard_port: z
     .number()
-    .min(1, m.initial_setup_auto_adoption_vpn_error_required())
+    .min(1, m.form_error_required())
     .max(65535, m.initial_setup_auto_adoption_vpn_error_port_too_large()),
   vpn_gateway_address: z
     .string()
     .trim()
-    .min(1, m.initial_setup_auto_adoption_vpn_error_required())
+    .min(1, m.form_error_required())
     .refine(
       (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
       m.initial_setup_auto_adoption_vpn_error_invalid_value(),

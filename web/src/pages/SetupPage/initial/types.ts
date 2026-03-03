@@ -16,14 +16,4 @@ export const CAOption = {
 
 export type SetupPageStepValue = (typeof SetupPageStep)[keyof typeof SetupPageStep];
 
-export const DefaultSetupSteps = [
-  SetupPageStep.AdminUser,
-  SetupPageStep.GeneralConfig,
-  SetupPageStep.CertificateAuthority,
-  SetupPageStep.CASummary,
-  SetupPageStep.EdgeComponent,
-  SetupPageStep.EdgeAdoption,
-  SetupPageStep.Confirmation,
-] as const;
-
 export type CAOptionType = (typeof CAOption)[keyof typeof CAOption];

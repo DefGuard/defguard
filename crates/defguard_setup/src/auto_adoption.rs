@@ -48,6 +48,7 @@ const AUTO_ADOPTION_CA_EMAIL: &str = "auto-adoption@defguard.local";
 const AUTO_ADOPTION_CA_VALIDITY_DAYS: u32 = 3650;
 const GATEWAY_NAME: &str = "Gateway";
 const PROXY_NAME: &str = "Edge";
+const KEEPALIVE_INTERVAL_SECONDS: Duration = Duration::from_secs(5);
 
 async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error> {
     let mut settings = Settings::get_current_settings();
@@ -213,8 +214,8 @@ async fn run_edge_adoption_attempt(
     };
 
     let base_endpoint = base_endpoint
-        .http2_keep_alive_interval(Duration::from_secs(5))
-        .tcp_keepalive(Some(Duration::from_secs(5)))
+        .http2_keep_alive_interval(KEEPALIVE_INTERVAL_SECONDS)
+        .tcp_keepalive(Some(KEEPALIVE_INTERVAL_SECONDS))
         .keep_alive_while_idle(true);
 
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
@@ -408,8 +409,8 @@ async fn run_gateway_adoption_attempt(
     };
 
     let base_endpoint = base_endpoint
-        .http2_keep_alive_interval(Duration::from_secs(5))
-        .tcp_keepalive(Some(Duration::from_secs(5)))
+        .http2_keep_alive_interval(KEEPALIVE_INTERVAL_SECONDS)
+        .tcp_keepalive(Some(KEEPALIVE_INTERVAL_SECONDS))
         .keep_alive_while_idle(true);
 
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
