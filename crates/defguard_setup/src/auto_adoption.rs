@@ -1,9 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Context;
-use defguard_certs::{
-    CertificateAuthority, CertificateInfo, Csr, PemLabel, der_to_pem, parse_certificate_info,
-};
+use defguard_certs::{CertificateAuthority, CertificateInfo, Csr, PemLabel, der_to_pem};
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
@@ -359,7 +357,7 @@ async fn run_edge_adoption_attempt(
         return adoption_failure_with_logs(&mut log_rx);
     }
 
-    let cert_info = match parse_certificate_info(cert.der()) {
+    let cert_info = match CertificateInfo::from_der(cert.der()) {
         Ok(info) => info,
         Err(err) => {
             error!("Failed to parse certificate info: {err}");
@@ -557,7 +555,7 @@ async fn run_gateway_adoption_attempt(
         return adoption_failure_with_logs(&mut log_rx);
     }
 
-    let cert_info = match parse_certificate_info(cert.der()) {
+    let cert_info = match CertificateInfo::from_der(cert.der()) {
         Ok(info) => info,
         Err(err) => {
             error!("Failed to parse certificate info: {err}");
