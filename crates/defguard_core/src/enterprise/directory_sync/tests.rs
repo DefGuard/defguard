@@ -14,7 +14,6 @@ mod test {
         },
     };
     use ipnetwork::IpNetwork;
-    use secrecy::ExposeSecret;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::broadcast;
 
@@ -231,7 +230,7 @@ mod test {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
-        User::init_admin_user(&pool, config.default_admin_password.expose_secret())
+        User::init_admin_user(&pool, "pass123")
             .await
             .unwrap();
 
@@ -296,7 +295,7 @@ mod test {
             false,
         )
         .await;
-        User::init_admin_user(&pool, config.default_admin_password.expose_secret())
+        User::init_admin_user(&pool, "pass123")
             .await
             .unwrap();
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();

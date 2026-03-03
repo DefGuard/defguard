@@ -76,16 +76,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_KEY")]
     pub grpc_key: Option<String>,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
-        default_value = "pass123"
-    )]
-    #[serde(skip_serializing)]
-    // TODO: Deprecate this, since we have initial setup now.
-    // We use it in some dev/test scenarios still so the approach will need to be changed there.
-    pub default_admin_password: SecretString,
-
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,

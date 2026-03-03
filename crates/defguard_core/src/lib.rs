@@ -675,6 +675,7 @@ pub async fn run_web_server(
 }
 
 /// Automates test objects creation to easily setup development environment.
+/// Admin password: pass123
 /// Test network keys:
 /// Public: zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=
 /// Private: MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=
@@ -694,7 +695,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     .await;
 
     // initialize admin user
-    User::init_admin_user(&pool, config.default_admin_password.expose_secret())
+    User::init_admin_user(&pool, "pass123")
         .await
         .expect("Failed to create admin user");
 

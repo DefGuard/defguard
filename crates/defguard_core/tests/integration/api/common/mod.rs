@@ -158,7 +158,7 @@ pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) 
         .expect("Could not bind ephemeral socket");
     let port = listener.local_addr().unwrap().port();
     let config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
-    initialize_users(&pool, &config).await;
+    initialize_users(&pool).await;
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");

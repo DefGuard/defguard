@@ -7,7 +7,6 @@ use defguard_common::{
 };
 use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
 use reqwest::Url;
-use secrecy::ExposeSecret;
 use sqlx::PgPool;
 
 fn set_test_license_business() {
@@ -49,8 +48,8 @@ pub(crate) async fn init_config(
     config
 }
 
-pub(crate) async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
-    User::init_admin_user(pool, config.default_admin_password.expose_secret())
+pub(crate) async fn initialize_users(pool: &PgPool) {
+    User::init_admin_user(pool, "pass123")
         .await
         .unwrap();
 
