@@ -18,6 +18,14 @@ export const Route = createFileRoute('/_authorized')({
     if (!sessionInfo.authorized) {
       throw redirect({ to: '/auth/login', replace: true });
     }
+    if (sessionInfo.wizard_flags) {
+      if (sessionInfo.wizard_flags.initial_wizard_in_progress) {
+        throw redirect({ to: '/setup', replace: true });
+      }
+      if (sessionInfo.wizard_flags.migration_wizard_in_progress) {
+        throw redirect({ to: '/migration', replace: true });
+      }
+    }
   },
 });
 

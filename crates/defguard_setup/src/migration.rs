@@ -22,7 +22,7 @@ use defguard_core::{
         },
         component_setup::setup_proxy_tls_stream,
         session_info::get_session_info,
-        settings::get_settings_essentials,
+        settings::{get_settings, get_settings_essentials, patch_settings},
     },
     health_check,
     version::IncompatibleComponents,
@@ -33,6 +33,7 @@ use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{broadcast, mpsc, oneshot::Sender},
+    task::spawn,
 };
 use tracing::{info, instrument};
 
@@ -70,6 +71,7 @@ pub fn build_migration_webapp(
     let (wireguard_tx, wireguard_rx) = broadcast::channel::<GatewayEvent>(64);
     let (proxy_control_tx, proxy_control_rx) = mpsc::channel(32);
     let incompatible_components = Arc::new(RwLock::new(IncompatibleComponents::default()));
+    spawn(async move { while event_rx.recv().await.is_some() {} });
     let key = Key::from(
         Settings::get_current_settings()
             .secret_key_required()
@@ -100,6 +102,7 @@ pub fn build_migration_webapp(
                 .route("/health", get(health_check))
                 .route("/session-info", get(get_session_info))
                 .route("/settings_essentials", get(get_settings_essentials))
+                .route("/settings", get(get_settings).patch(patch_settings))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .route("/auth", post(authenticate))
                 .route("/auth/logout", post(logout))

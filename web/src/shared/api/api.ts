@@ -73,6 +73,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  MigrationGeneralConfigRequest,
   MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
@@ -512,7 +513,7 @@ const api = {
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },
-    setGeneralConfig: (data: SetGeneralConfigRequest) =>
+    setGeneralConfig: (data: MigrationGeneralConfigRequest) =>
       client.post(`/migration/general_config`, data),
   },
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),

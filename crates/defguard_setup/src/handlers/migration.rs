@@ -123,6 +123,7 @@ pub struct GeneralConfig {
     default_admin_group_name: String,
     default_authentication: u32,
     default_mfa_code_lifetime: u32,
+    public_proxy_url: String,
 }
 
 pub async fn set_general_config(
@@ -132,14 +133,16 @@ pub async fn set_general_config(
 ) -> ApiResult {
     info!("Applying initial general configuration settings");
     debug!(
-        "General configuration received: defguard_url={}, default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}",
+        "General configuration received: defguard_url={}, default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}, public_proxy_url={}",
         general_config.defguard_url,
         general_config.default_admin_group_name,
         general_config.default_authentication,
         general_config.default_mfa_code_lifetime,
+        general_config.public_proxy_url,
     );
     let default_admin_group_name = general_config.default_admin_group_name.clone();
     let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = general_config.public_proxy_url;
     settings.defguard_url = general_config.defguard_url;
     settings.default_admin_group_name = general_config.default_admin_group_name;
     settings.authentication_period_days = general_config
