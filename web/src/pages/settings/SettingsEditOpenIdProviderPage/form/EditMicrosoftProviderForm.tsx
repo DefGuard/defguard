@@ -62,6 +62,7 @@ export const EditMicrosoftProviderForm = ({
       directory_sync_target: provider.directory_sync_target,
       directory_sync_user_behavior: provider.directory_sync_user_behavior,
       directory_sync_enabled: provider.directory_sync_enabled,
+      prefetch_users: provider.prefetch_users ?? false,
       directory_sync_group_match: joinCsv(
         Array.isArray(provider.directory_sync_group_match)
           ? provider.directory_sync_group_match
