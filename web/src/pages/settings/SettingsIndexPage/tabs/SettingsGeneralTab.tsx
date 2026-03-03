@@ -48,6 +48,22 @@ export const SettingsGeneralTab = () => {
           navigate({ to: '/settings/client' });
         }}
       />
+      <SizedBox height={ThemeSpacing.Xl} />
+      <Link to="/settings/vpn-stats">
+        <SectionSelect
+          image="vector"
+          title="VPN stats"
+          content="Configure VPN statistics cleanup behavior, including purge frequency and retention threshold."
+        />
+      </Link>
+      <SizedBox height={ThemeSpacing.Xl} />
+      <Link to="/settings/enrollment">
+        <SectionSelect
+          image="self-enrollment"
+          title="Enrollment"
+          content="Set enrollment and password reset token and session timeout values."
+        />
+      </Link>
     </SettingsLayout>
   );
 };

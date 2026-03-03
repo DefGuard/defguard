@@ -29,12 +29,12 @@ const breadcrumbs = [
   >
     General
   </Link>,
-  <Link to="/settings/instance" key={1}>
-    Instance settings
+  <Link to="/settings/vpn-stats" key={1}>
+    VPN stats
   </Link>,
 ];
 
-export const SettingsInstancePage = () => {
+export const SettingsVpnStatsPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
     <Page title="Settings">
@@ -42,8 +42,8 @@ export const SettingsInstancePage = () => {
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="Instance settings"
-          subtitle="Here you can configure general instance parameters."
+          title="VPN stats"
+          subtitle="Configure statistics purge behavior for VPN data."
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -56,18 +56,9 @@ export const SettingsInstancePage = () => {
 };
 
 const formSchema = z.object({
-  instance_name: z
-    .string(m.form_error_required())
-    .trim()
-    .min(1, m.form_error_required())
-    .min(
-      3,
-      m.form_error_min_len({
-        length: 3,
-      }),
-    )
-    .max(64, m.form_error_max_len({ length: 64 })),
-  auth_cookie_timeout_days: z.number(m.form_error_required()).int().min(1),
+  disable_stats_purge: z.boolean(),
+  stats_purge_frequency_hours: z.number(m.form_error_required()).int().min(1),
+  stats_purge_threshold_days: z.number(m.form_error_required()).int().min(1),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -82,8 +73,9 @@ const Content = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
-      instance_name: settings.instance_name ?? '',
-      auth_cookie_timeout_days: settings.auth_cookie_timeout_days ?? 7,
+      disable_stats_purge: settings.disable_stats_purge ?? false,
+      stats_purge_frequency_hours: settings.stats_purge_frequency_hours ?? 24,
+      stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
     }),
     [settings],
   );
@@ -109,13 +101,33 @@ const Content = ({ settings }: { settings: Settings }) => {
       }}
     >
       <form.AppForm>
-        <form.AppField name="instance_name">
-          {(field) => <field.FormInput required label="Instance name" />}
+        <form.AppField name="disable_stats_purge">
+          {(field) => (
+            <field.FormInteractiveBlock
+              variant="toggle"
+              title="Disable stats purge"
+              content="Disables automatic statistics cleanup task."
+            />
+          )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="auth_cookie_timeout_days">
+        <form.AppField name="stats_purge_frequency_hours">
           {(field) => (
-            <field.FormInput required label="Auth cookie timeout (days)" type="number" />
+            <field.FormInput
+              required
+              label="Stats purge frequency (hours)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="stats_purge_threshold_days">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Stats purge threshold (days)"
+              type="number"
+            />
           )}
         </form.AppField>
       </form.AppForm>

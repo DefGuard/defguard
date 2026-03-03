@@ -29,12 +29,12 @@ const breadcrumbs = [
   >
     General
   </Link>,
-  <Link to="/settings/instance" key={1}>
-    Instance settings
+  <Link to="/settings/enrollment" key={1}>
+    Enrollment
   </Link>,
 ];
 
-export const SettingsInstancePage = () => {
+export const SettingsEnrollmentPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
     <Page title="Settings">
@@ -42,8 +42,8 @@ export const SettingsInstancePage = () => {
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="Instance settings"
-          subtitle="Here you can configure general instance parameters."
+          title="Enrollment"
+          subtitle="Configure token and session timeouts for enrollment and password reset flows."
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -56,18 +56,10 @@ export const SettingsInstancePage = () => {
 };
 
 const formSchema = z.object({
-  instance_name: z
-    .string(m.form_error_required())
-    .trim()
-    .min(1, m.form_error_required())
-    .min(
-      3,
-      m.form_error_min_len({
-        length: 3,
-      }),
-    )
-    .max(64, m.form_error_max_len({ length: 64 })),
-  auth_cookie_timeout_days: z.number(m.form_error_required()).int().min(1),
+  enrollment_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  password_reset_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  enrollment_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
+  password_reset_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -82,8 +74,13 @@ const Content = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
-      instance_name: settings.instance_name ?? '',
-      auth_cookie_timeout_days: settings.auth_cookie_timeout_days ?? 7,
+      enrollment_token_timeout_hours: settings.enrollment_token_timeout_hours ?? 24,
+      password_reset_token_timeout_hours:
+        settings.password_reset_token_timeout_hours ?? 24,
+      enrollment_session_timeout_minutes:
+        settings.enrollment_session_timeout_minutes ?? 10,
+      password_reset_session_timeout_minutes:
+        settings.password_reset_session_timeout_minutes ?? 10,
     }),
     [settings],
   );
@@ -109,13 +106,43 @@ const Content = ({ settings }: { settings: Settings }) => {
       }}
     >
       <form.AppForm>
-        <form.AppField name="instance_name">
-          {(field) => <field.FormInput required label="Instance name" />}
+        <form.AppField name="enrollment_token_timeout_hours">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Enrollment token timeout (hours)"
+              type="number"
+            />
+          )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="auth_cookie_timeout_days">
+        <form.AppField name="password_reset_token_timeout_hours">
           {(field) => (
-            <field.FormInput required label="Auth cookie timeout (days)" type="number" />
+            <field.FormInput
+              required
+              label="Password reset token timeout (hours)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="enrollment_session_timeout_minutes">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Enrollment session timeout (minutes)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="password_reset_session_timeout_minutes">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Password reset session timeout (minutes)"
+              type="number"
+            />
           )}
         </form.AppField>
       </form.AppForm>
