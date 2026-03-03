@@ -101,8 +101,9 @@ use crate::{
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
-                add_openid_provider, delete_openid_provider, get_openid_provider,
-                list_openid_providers, modify_openid_provider, test_dirsync_connection,
+                add_openid_provider, delete_openid_provider, get_current_openid_provider,
+                get_openid_provider, list_openid_providers, modify_openid_provider,
+                test_dirsync_connection,
             },
         },
         snat::handlers::{
@@ -402,6 +403,7 @@ pub fn build_webapp(
                     .put(modify_openid_provider)
                     .delete(delete_openid_provider),
             )
+            .route("/provider/current", get(get_current_openid_provider))
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );

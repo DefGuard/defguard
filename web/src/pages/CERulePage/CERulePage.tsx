@@ -151,7 +151,7 @@ const Content = ({ rule: initialRule }: Props) => {
       invalidate: ['acl'],
     },
     onSuccess: () => {
-      Snackbar.success('Rule added');
+      Snackbar.default('Rules added to Pending tab and awaiting deployment.');
       router.history.back();
     },
   });
@@ -162,7 +162,7 @@ const Content = ({ rule: initialRule }: Props) => {
       invalidate: ['acl'],
     },
     onSuccess: () => {
-      Snackbar.success('Rule changed');
+      Snackbar.default('Rules added to Pending tab and awaiting deployment.');
       router.history.back();
     },
   });
