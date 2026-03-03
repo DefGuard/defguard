@@ -522,11 +522,6 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to finish setup");
     assert_eq!(response.status(), StatusCode::OK);
 
-    let settings = Settings::get(&pool)
-        .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-
     let wizard = Wizard::get(&pool)
         .await
         .expect("Failed to fetch wizard state");

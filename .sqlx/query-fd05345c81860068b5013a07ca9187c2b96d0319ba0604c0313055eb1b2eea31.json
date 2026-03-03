@@ -56,7 +56,7 @@
       {
         "ordinal": 10,
         "name": "modified_by",
-        "type_info": "Int8"
+        "type_info": "Text"
       }
     ],
     "parameters": {

@@ -20,7 +20,7 @@
         "Text",
         "Timestamp",
         "Timestamp",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
