@@ -741,7 +741,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     let used_ips = network
         .all_used_ips_for_network(&mut transaction)
         .await
-        .expect("Failed to query used ip's from database");
+        .expect("Failed to query used IPs from database");
     if Device::find_by_pubkey(
         &mut *transaction,
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",
