@@ -49,9 +49,7 @@ pub(crate) async fn init_config(
 }
 
 pub(crate) async fn initialize_users(pool: &PgPool) {
-    User::init_admin_user(pool, "pass123")
-        .await
-        .unwrap();
+    User::init_admin_user(pool, "pass123").await.unwrap();
 
     User::new(
         "hpotter",
