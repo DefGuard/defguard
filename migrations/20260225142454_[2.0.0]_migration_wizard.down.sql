@@ -18,7 +18,7 @@ ALTER TABLE proxy
 -- Reverse gateway modified_by: same as proxy
 ALTER TABLE gateway
     ALTER COLUMN modified_by TYPE bigint USING NULL,
-    ADD CONSTRAINT proxy_modified_by_fkey FOREIGN KEY (modified_by) REFERENCES "user"(id);
+    ADD CONSTRAINT modified_by_fkey FOREIGN KEY (modified_by) REFERENCES "user"(id);
 
 -- Drop wizard table and enum
 DROP TABLE wizard;

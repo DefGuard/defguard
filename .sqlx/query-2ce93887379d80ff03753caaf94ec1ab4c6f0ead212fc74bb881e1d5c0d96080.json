@@ -50,12 +50,12 @@
       },
       {
         "ordinal": 9,
-        "name": "modified_by",
-        "type_info": "Int8"
+        "name": "certificate",
+        "type_info": "Text"
       },
       {
         "ordinal": 10,
-        "name": "certificate",
+        "name": "modified_by",
         "type_info": "Text"
       },
       {
@@ -77,8 +77,8 @@
       true,
       true,
       false,
-      false,
       true,
+      false,
       false
     ]
   },

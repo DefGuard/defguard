@@ -54,19 +54,14 @@
         "type_info": "Text"
       },
       {
+        "ordinal": 10,
+        "name": "modified_by",
+        "type_info": "Text"
+      },
+      {
         "ordinal": 11,
         "name": "enabled",
         "type_info": "Bool"
-      },
-      {
-        "ordinal": 12,
-        "name": "modified_by_firstname",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 13,
-        "name": "modified_by_lastname",
-        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -83,7 +78,6 @@
       true,
       false,
       true,
-      false,
       false,
       false
     ]

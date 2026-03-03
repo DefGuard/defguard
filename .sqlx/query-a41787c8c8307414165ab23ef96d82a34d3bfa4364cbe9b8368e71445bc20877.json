@@ -65,7 +65,10 @@
       }
     ],
     "parameters": {
-      "Left": ["Text", "Int4"]
+      "Left": [
+        "Text",
+        "Int4"
+      ]
     },
     "nullable": [
       false,
@@ -77,8 +80,8 @@
       true,
       true,
       false,
-      false,
       true,
+      false,
       false
     ]
   },

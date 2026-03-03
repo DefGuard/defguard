@@ -35,6 +35,6 @@ ALTER TABLE proxy ALTER COLUMN modified_by SET NOT NULL;
 ALTER TABLE gateway ADD COLUMN modified_by_name text;
 UPDATE gateway SET modified_by_name = u.first_name || ' ' || u.last_name
     FROM "user" u WHERE u.id = gateway.modified_by;
-ALTER TABLE gateway DROP CONSTRAINT proxy_modified_by_fkey, DROP COLUMN modified_by;
+ALTER TABLE gateway DROP CONSTRAINT modified_by_fkey, DROP COLUMN modified_by;
 ALTER TABLE gateway RENAME COLUMN modified_by_name TO modified_by;
 ALTER TABLE gateway ALTER COLUMN modified_by SET NOT NULL;

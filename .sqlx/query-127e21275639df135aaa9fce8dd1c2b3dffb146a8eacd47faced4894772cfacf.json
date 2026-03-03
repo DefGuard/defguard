@@ -60,37 +60,29 @@
       },
       {
         "ordinal": 11,
-        "name": "modified_by",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 12,
         "name": "enabled",
         "type_info": "Bool"
       },
       {
+        "ordinal": 12,
+        "name": "modified_by",
+        "type_info": "Text"
+      },
+      {
         "ordinal": 13,
-        "name": "modified_by_firstname",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 14,
-        "name": "modified_by_lastname",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 15,
         "name": "connected!",
         "type_info": "Bool"
       },
       {
-        "ordinal": 16,
+        "ordinal": 14,
         "name": "location_name",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": ["Int8"]
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -101,8 +93,6 @@
       true,
       false,
       true,
-      false,
-      false,
       false,
       false,
       false,

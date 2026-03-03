@@ -1,7 +1,7 @@
 use axum::{extract::State, http::StatusCode};
 use defguard_common::{
     VERSION,
-    db::models::{Settings, WireguardNetwork, Wizard},
+    db::models::{Settings, WireguardNetwork},
 };
 
 use super::{ApiResponse, ApiResult};
