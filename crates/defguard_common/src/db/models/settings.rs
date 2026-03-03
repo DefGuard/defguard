@@ -661,18 +661,11 @@ impl Settings {
     }
 
     #[allow(deprecated)]
-    pub async fn update_from_config<'e, E>(
-        &mut self,
-        executor: E,
-        config: &DefGuardConfig,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        info!("Updating Settings from DefguardConfig: {config:?}");
+    fn apply_from_config(&mut self, config: &DefGuardConfig) {
         let minute = 60;
         let hour = minute * 60;
         let day = hour * 24;
+
         if let Some(auth_cookie_timeout) = config.auth_cookie_timeout {
             self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
         }
@@ -744,6 +737,18 @@ impl Settings {
                 }
             };
         }
+    }
+
+    pub async fn update_from_config<'e, E>(
+        &mut self,
+        executor: E,
+        config: &DefGuardConfig,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        info!("Updating Settings from DefguardConfig: {config:?}");
+        self.apply_from_config(config);
 
         update_current_settings(executor, self.clone()).await?;
 
