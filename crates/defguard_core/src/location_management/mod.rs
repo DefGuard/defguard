@@ -165,7 +165,7 @@ pub async fn process_device_access_changes(
     // Loop through current device configurations; remove no longer allowed, readdress
     // when necessary; remove processed entry from all devices list initial list should
     // now contain only devices to be added.
-    let used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
+    let mut used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
     let mut events: Vec<GatewayEvent> = Vec::new();
     for device_network_config in currently_configured_devices {
         // Device is allowed and an IP was already assigned
@@ -183,6 +183,7 @@ pub async fn process_device_access_changes(
                         Some(&device_network_config.wireguard_ips),
                     )
                     .await?;
+                used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
                 events.push(GatewayEvent::DeviceModified(DeviceInfo {
                     device,
                     network_info: vec![DeviceNetworkInfo {
@@ -224,6 +225,7 @@ pub async fn process_device_access_changes(
         let wireguard_network_device = device
             .assign_next_network_ip(&mut *transaction, location, &used_ips, reserved_ips, None)
             .await?;
+        used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
         events.push(GatewayEvent::DeviceCreated(DeviceInfo {
             device,
             network_info: vec![DeviceNetworkInfo {

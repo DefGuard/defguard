@@ -70,7 +70,7 @@ pub async fn generate_vpn_session_stats(
         let devices =
             prepare_user_devices(&pool, &mut rng, &user, config.devices_per_user as usize).await?;
 
-        let used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
+        let mut used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
         // assign devices to the network if not already assigned
         for device in &devices {
             if WireguardNetworkDevice::find(&mut *transaction, device.id, location.id)
@@ -81,9 +81,10 @@ pub async fn generate_vpn_session_stats(
                     "Assigning device {} to network {} with auto-generated IP",
                     device.name, location.name
                 );
-                device
+                let wireguard_network_device = device
                     .assign_next_network_ip(&mut transaction, &location, &used_ips, None, None)
                     .await?;
+                used_ips.extend(wireguard_network_device.wireguard_ips);
             } else {
                 info!(
                     "Device {} already assigned to network {}",
