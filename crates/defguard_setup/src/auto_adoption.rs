@@ -790,10 +790,10 @@ pub async fn attemp_auto_adoption(
     let auto_state = wizard.auto_adoption_state.as_ref();
     let edge_already_succeeded = auto_state
         .and_then(|s| s.adoption_result.get(&SetupAutoAdoptionComponent::Edge))
-        .map_or(false, |result| result.success);
+        .is_some_and(|result| result.success);
     let gateway_already_succeeded = auto_state
         .and_then(|s| s.adoption_result.get(&SetupAutoAdoptionComponent::Gateway))
-        .map_or(false, |result| result.success);
+        .is_some_and(|result| result.success);
 
     let should_run_edge = config.adopt_edge.is_some() && !edge_already_succeeded;
     let should_run_gateway = config.adopt_gateway.is_some() && !gateway_already_succeeded;
