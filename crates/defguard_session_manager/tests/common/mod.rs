@@ -1,13 +1,17 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use defguard_common::db::Id;
-use defguard_common::db::models::gateway::Gateway;
-use defguard_common::db::models::{
-    Device, DeviceType, User, WireguardNetwork,
-    device::WireguardNetworkDevice,
-    wireguard::{LocationMfaMode, ServiceLocationMode},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            device::WireguardNetworkDevice,
+            gateway::Gateway,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
+    },
+    messages::peer_stats_update::PeerStatsUpdate,
 };
-use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
 use defguard_session_manager::{SessionManager, events::SessionManagerEvent};
 use ipnetwork::IpNetwork;
 use tokio::sync::{broadcast, mpsc};

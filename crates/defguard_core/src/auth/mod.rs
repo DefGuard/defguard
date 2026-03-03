@@ -17,9 +17,8 @@ use defguard_common::db::{
         OAuth2Token, Session, SessionState, Settings,
         group::{Group, Permission},
         oauth2client::OAuth2Client,
-        settings::InitialSetupStep,
         user::User,
-        wizard::{ActiveWizard, Wizard},
+        wizard::Wizard,
     },
 };
 use sqlx::PgPool;
@@ -227,17 +226,8 @@ where
         })?;
         if !wizard.completed {
             // Allow unauthenticated access only up to the admin creation step.
-            if wizard.active_wizard == ActiveWizard::Initial
-                || wizard.active_wizard == ActiveWizard::AutoAdoption
-            {
-                let step = wizard
-                    .initial_setup_state
-                    .as_ref()
-                    .map(|s| s.step)
-                    .unwrap_or(InitialSetupStep::Welcome);
-                if step <= InitialSetupStep::AdminUser {
-                    return Ok(Self {});
-                }
+            if !wizard.requires_auth() {
+                return Ok(Self {});
             }
             let session_info = SessionInfo::from_request_parts(parts, state).await?;
             if !session_info.user.is_active {

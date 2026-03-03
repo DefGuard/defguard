@@ -5,8 +5,9 @@ use sqlx::{PgExecutor, Type, types::Json};
 use tracing::info;
 
 use super::{
-    migration_wizard::MigrationWizardState, settings::InitialSetupStep,
-    setup_auto_adoption::AutoAdoptionWizardState,
+    migration_wizard::MigrationWizardState,
+    settings::InitialSetupStep,
+    setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
 };
 
 /// Which wizard is currently active. Stored as a PostgreSQL enum column.
@@ -181,5 +182,34 @@ impl Wizard {
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.active_wizard != ActiveWizard::None
+    }
+
+    /// Returns `true` when the current wizard state requires authentication.
+    ///
+    /// During the Initial and AutoAdoption wizards, unauthenticated access is
+    /// allowed until the admin user has been created (i.e. the wizard step is
+    /// at or before `AdminUser`). All other wizard types (or steps past admin
+    /// creation) require a valid session.
+    #[must_use]
+    pub fn requires_auth(&self) -> bool {
+        match self.active_wizard {
+            ActiveWizard::Initial => {
+                let step = self
+                    .initial_setup_state
+                    .as_ref()
+                    .map(|s| s.step)
+                    .unwrap_or(InitialSetupStep::Welcome);
+                step > InitialSetupStep::AdminUser
+            }
+            ActiveWizard::AutoAdoption => {
+                let step = self
+                    .auto_adoption_state
+                    .as_ref()
+                    .map(|s| s.step)
+                    .unwrap_or(AutoAdoptionWizardStep::Welcome);
+                step > AutoAdoptionWizardStep::AdminUser
+            }
+            _ => true,
+        }
     }
 }

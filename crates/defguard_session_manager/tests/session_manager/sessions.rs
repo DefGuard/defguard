@@ -1,7 +1,11 @@
 use chrono::{TimeDelta, Utc};
-use defguard_common::db::models::vpn_client_session::{VpnClientSession, VpnClientSessionState};
-use defguard_common::db::setup_pool;
-use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
+use defguard_common::{
+    db::{
+        models::vpn_client_session::{VpnClientSession, VpnClientSessionState},
+        setup_pool,
+    },
+    messages::peer_stats_update::PeerStatsUpdate,
+};
 use defguard_session_manager::{SESSION_UPDATE_INTERVAL, run_session_manager_iteration};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::{Duration, interval};
