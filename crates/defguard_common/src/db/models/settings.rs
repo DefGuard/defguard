@@ -671,13 +671,25 @@ impl Settings {
         }
         if let Some(secret_key) = &config.secret_key {
             let secret_key = secret_key.expose_secret();
-            if let Err(err) = Settings::validate_secret_key(secret_key) {
-                warn!(
-                    "Invalid secret_key provided in deprecated config, generating new one: {err}"
-                );
-                self.secret_key = Some(Settings::generate_secret_key());
-            } else {
-                self.secret_key = Some(secret_key.to_string());
+            match Settings::validate_secret_key(secret_key) {
+                Ok(()) => {
+                    // Valid secret provided in deprecated config: use it.
+                    self.secret_key = Some(secret_key.to_string());
+                }
+                Err(err) => {
+                    if self.secret_key.is_none() {
+                        // No existing secret in DB: generate a new one to allow bootstrapping.
+                        warn!(
+                            "Invalid secret_key provided in deprecated config and no existing secret_key present, generating new one: {err}"
+                        );
+                        self.secret_key = Some(Settings::generate_secret_key());
+                    } else {
+                        // Existing DB secret present: keep it and ignore the invalid config value.
+                        warn!(
+                            "Invalid secret_key provided in deprecated config, keeping existing database secret_key: {err}"
+                        );
+                    }
+                }
             }
         }
         if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
