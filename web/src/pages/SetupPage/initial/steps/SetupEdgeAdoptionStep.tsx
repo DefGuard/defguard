@@ -9,7 +9,7 @@ import { ModalControls } from '../../../../shared/defguard-ui/components/ModalCo
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../../shared/hooks/useSSEController';
-import type { SetupEvent, SetupStep, SetupStepId } from '../../EdgeSetupPage/steps/types';
+import type { SetupEvent, SetupStep, SetupStepId } from '../../../EdgeSetupPage/steps/types';
 import { SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 
