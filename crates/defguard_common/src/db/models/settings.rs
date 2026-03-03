@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
 use rand::{RngCore, rngs::OsRng};
 use secrecy::ExposeSecret;
@@ -308,15 +309,11 @@ impl Settings {
         Ok(())
     }
 
+    /// Generates length 64 random base64 string.
     fn generate_secret_key() -> String {
-        let mut bytes = [0_u8; 32];
+        let mut bytes = [0_u8; 48];
         OsRng.fill_bytes(&mut bytes);
-        let mut secret_key = String::with_capacity(64);
-        for byte in bytes {
-            use std::fmt::Write as _;
-            let _ = write!(secret_key, "{byte:02x}");
-        }
-        secret_key
+        BASE64_STANDARD.encode(bytes)
     }
 
     pub async fn ensure_secret_key(pool: &PgPool) -> Result<(), anyhow::Error> {
