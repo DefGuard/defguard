@@ -1,5 +1,7 @@
-export const joinCsv = (values?: string[] | null): string => {
-  if (!values || values.length === 0) return '';
+export const joinCsv = (values?: string[] | string | null): string => {
+  if (!values) return '';
+  if (typeof values === 'string') return values;
+  if (values.length === 0) return '';
   return values.join(', ');
 };
 

@@ -888,7 +888,13 @@ export interface OpenIdProviders {
 
 export type OpenIdProvidersResponse = OpenIdProviders | undefined;
 
-export type AddOpenIdProvider = Omit<OpenIdProvider, 'id'> & OpenIdProviderSettings;
+export type AddOpenIdProvider = Omit<
+  OpenIdProvider,
+  'id' | 'directory_sync_group_match'
+> &
+  OpenIdProviderSettings & {
+    directory_sync_group_match?: string | null;
+  };
 
 export interface TestDirectorySyncResponse {
   success: boolean;

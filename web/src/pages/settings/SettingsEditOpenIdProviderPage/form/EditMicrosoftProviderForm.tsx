@@ -9,7 +9,7 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import { joinCsv, splitCsv } from '../../../../shared/utils/csv';
+import { joinCsv } from '../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -86,7 +86,7 @@ export const EditMicrosoftProviderForm = ({
       await onSubmit({
         ...value,
         base_url,
-        directory_sync_group_match: splitCsv(value.directory_sync_group_match ?? ''),
+        directory_sync_group_match: value.directory_sync_group_match ?? '',
       });
     },
   });

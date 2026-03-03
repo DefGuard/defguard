@@ -6,7 +6,7 @@ import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
-import { joinCsv, splitCsv } from '../../../../../shared/utils/csv';
+import { joinCsv } from '../../../../../shared/utils/csv';
 import {
   directorySyncBehaviorOptions,
   directorySyncTargetOptions,
@@ -49,7 +49,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
     onSubmit: async ({ value }) => {
       await onSubmit({
         ...value,
-        directory_sync_group_match: splitCsv(value.directory_sync_group_match ?? ''),
+        directory_sync_group_match: value.directory_sync_group_match ?? '',
       });
     },
   });
@@ -119,17 +119,15 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
           onBack={() => {
             back({
               ...form.state.values,
-              directory_sync_group_match: splitCsv(
+              directory_sync_group_match:
                 form.state.values.directory_sync_group_match ?? '',
-              ),
             });
           }}
           onNext={() => {
             mutate({
               ...form.state.values,
-              directory_sync_group_match: splitCsv(
+              directory_sync_group_match:
                 form.state.values.directory_sync_group_match ?? '',
-              ),
             });
           }}
         />
