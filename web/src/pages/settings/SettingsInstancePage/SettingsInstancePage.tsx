@@ -12,6 +12,8 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -65,6 +67,14 @@ const formSchema = z.object({
       }),
     )
     .max(64, m.form_error_max_len({ length: 64 })),
+  auth_cookie_timeout_days: z.number(m.form_error_required()).int().min(1),
+  disable_stats_purge: z.boolean(),
+  stats_purge_frequency_hours: z.number(m.form_error_required()).int().min(1),
+  stats_purge_threshold_days: z.number(m.form_error_required()).int().min(1),
+  enrollment_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  password_reset_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  enrollment_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
+  password_reset_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -80,8 +90,19 @@ const Content = ({ settings }: { settings: Settings }) => {
   const defaultValues = useMemo(
     (): FormFields => ({
       instance_name: settings.instance_name ?? '',
+      auth_cookie_timeout_days: settings.auth_cookie_timeout_days ?? 7,
+      disable_stats_purge: settings.disable_stats_purge ?? false,
+      stats_purge_frequency_hours: settings.stats_purge_frequency_hours ?? 24,
+      stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
+      enrollment_token_timeout_hours: settings.enrollment_token_timeout_hours ?? 24,
+      password_reset_token_timeout_hours:
+        settings.password_reset_token_timeout_hours ?? 24,
+      enrollment_session_timeout_minutes:
+        settings.enrollment_session_timeout_minutes ?? 10,
+      password_reset_session_timeout_minutes:
+        settings.password_reset_session_timeout_minutes ?? 10,
     }),
-    [settings.instance_name],
+    [settings],
   );
 
   const form = useAppForm({
@@ -107,6 +128,82 @@ const Content = ({ settings }: { settings: Settings }) => {
       <form.AppForm>
         <form.AppField name="instance_name">
           {(field) => <field.FormInput required label="Instance name" />}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="auth_cookie_timeout_days">
+          {(field) => (
+            <field.FormInput required label="Auth cookie timeout (days)" type="number" />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="disable_stats_purge">
+          {(field) => (
+            <field.FormInteractiveBlock
+              variant="toggle"
+              title="Disable stats purge"
+              content="Disables automatic statistics cleanup task."
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="stats_purge_frequency_hours">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Stats purge frequency (hours)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="stats_purge_threshold_days">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Stats purge threshold (days)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="enrollment_token_timeout_hours">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Enrollment token timeout (hours)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="password_reset_token_timeout_hours">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Password reset token timeout (hours)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="enrollment_session_timeout_minutes">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Enrollment session timeout (minutes)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="password_reset_session_timeout_minutes">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Password reset session timeout (minutes)"
+              type="number"
+            />
+          )}
         </form.AppField>
       </form.AppForm>
       <form.Subscribe
