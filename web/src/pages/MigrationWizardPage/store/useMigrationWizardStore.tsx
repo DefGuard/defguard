@@ -63,6 +63,7 @@ interface Store extends StoreValues {
   setState: (values: Partial<StoreValues>) => void;
   resetEdgeAdoptionState: () => void;
   setEdgeAdoptionState: (state: Partial<EdgeAdoptionState>) => void;
+  resetState: () => void;
 }
 
 export const useMigrationWizardStore = create<Store>()(
@@ -81,6 +82,9 @@ export const useMigrationWizardStore = create<Store>()(
         set((s) => ({
           edgeAdoptionState: { ...s.edgeAdoptionState, ...state },
         })),
+      resetState: () => {
+        set(defaults);
+      },
     }),
     {
       name: 'migration-wizard',
@@ -91,6 +95,7 @@ export const useMigrationWizardStore = create<Store>()(
           'setState',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',
+          'resetState',
         ]),
     },
   ),

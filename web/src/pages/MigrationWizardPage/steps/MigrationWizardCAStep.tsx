@@ -69,7 +69,7 @@ export const MigrationWizardCAStep = () => {
   );
 
   const { mutateAsync: createCA } = useMutation({
-    mutationFn: api.initial_setup.createCA,
+    mutationFn: api.migration.ca.createCA,
     onSuccess: () => {
       setActiveStep(MigrationWizardStep.CaSummary);
     },

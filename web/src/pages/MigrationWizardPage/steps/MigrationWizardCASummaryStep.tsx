@@ -19,8 +19,8 @@ export const MigrationWizardCASummaryStep = () => {
   const caOption = useMigrationWizardStore((s) => s.ca_option);
 
   const { data: caData, isFetching } = useQuery({
-    queryKey: ['initial_setup', 'ca'],
-    queryFn: api.initial_setup.getCA,
+    queryKey: ['migration', 'ca'],
+    queryFn: api.migration.ca.getCA,
     select: (resp) => resp.data,
   });
 

@@ -1,4 +1,5 @@
 export const MigrationWizardStep = {
+  Welcome: 'welcome',
   General: 'general',
   Ca: 'ca',
   CaSummary: 'caSummary',

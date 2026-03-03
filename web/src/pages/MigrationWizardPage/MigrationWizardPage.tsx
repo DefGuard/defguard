@@ -1,11 +1,16 @@
 import './style.scss';
-import { type ReactNode, useMemo } from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { type ReactNode, useEffect, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import type {
   WizardPageStep,
   WizardWelcomePageConfig,
 } from '../../shared/components/wizard/types';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
+import {
+  getMigrationStateQueryOptions,
+  getSettingsQueryOptions,
+} from '../../shared/query';
 import { MigrationWizardCAStep } from './steps/MigrationWizardCAStep';
 import { MigrationWizardCASummaryStep } from './steps/MigrationWizardCASummaryStep';
 import { MigrationWizardConfirmationStep } from './steps/MigrationWizardConfirmationStep/MigrationWizardConfirmationStep';
@@ -23,12 +28,15 @@ const welcomePageConfig: WizardWelcomePageConfig = {
   docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link bellow.`,
 } as const;
 
+type ConfigurableSteps = Exclude<MigrationWizardStepValue, 'welcome'>;
+
 export const MigrationWizardPage = () => {
-  const isWelcome = useMigrationWizardStore((s) => s.isWelcome);
+  const { data: wizardState } = useSuspenseQuery(getMigrationStateQueryOptions);
+  const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
   const activeStep = useMigrationWizardStore((s) => s.activeStep);
 
   const stepsConfig = useMemo(
-    (): Record<MigrationWizardStepValue, WizardPageStep> => ({
+    (): Record<ConfigurableSteps, WizardPageStep> => ({
       general: {
         id: MigrationWizardStep.General,
         order: 1,
@@ -77,9 +85,30 @@ export const MigrationWizardPage = () => {
       edge: <MigrationWizardEdgeComponentStep />,
       edgeAdoption: <MigrationWizardEdgeAdoptionStep />,
       confirmation: <MigrationWizardConfirmationStep />,
+      welcome: null,
     }),
     [],
   );
+
+  useEffect(() => {
+    if (wizardState) {
+      useMigrationWizardStore.setState({
+        activeStep: wizardState.current_step,
+      });
+    }
+  }, [wizardState]);
+
+  useEffect(() => {
+    if (settings) {
+      useMigrationWizardStore.setState({
+        defguard_url: settings.defguard_url,
+        default_admin_group_name: settings.default_admin_group_name,
+        default_authentication_period_days: settings.authentication_period_days,
+        default_mfa_code_timeout_seconds: settings.mfa_code_timeout_seconds,
+        public_proxy_url: settings.public_proxy_url,
+      });
+    }
+  }, [settings]);
 
   return (
     <WizardPage
@@ -88,7 +117,7 @@ export const MigrationWizardPage = () => {
       subtitle={m.migration_wizard_subtitle()}
       title={m.migration_wizard_title()}
       steps={stepsConfig}
-      isOnWelcomePage={isWelcome}
+      isOnWelcomePage={activeStep === MigrationWizardStep.Welcome}
       welcomePageConfig={welcomePageConfig}
     >
       {stepsComponents[activeStep]}

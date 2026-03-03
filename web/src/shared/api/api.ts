@@ -73,6 +73,7 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
   OpenIdAuthInfo,
@@ -506,8 +507,9 @@ const api = {
       getCA: () => client.get<GetCAResponse>('/migration/ca'),
     },
     state: {
-      getMigrationState: () => client.get(`/migration/state`),
-      updateMigrationState: () => client.put(`/migration/state`),
+      getMigrationState: () => client.get<MigrationWizardApiState>(`/migration/state`),
+      updateMigrationState: (data: MigrationWizardApiState) =>
+        client.put(`/migration/state`, data),
     },
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post(`/migration/general_config`, data),

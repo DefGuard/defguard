@@ -11,7 +11,8 @@ interface RouterContext {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
   pendingComponent: AppLoaderPage,
-  pendingMs: 100,
+  pendingMs: 500,
+  pendingMinMs: 250,
 });
 
 function RootComponent() {

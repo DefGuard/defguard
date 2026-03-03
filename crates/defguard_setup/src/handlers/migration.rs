@@ -23,9 +23,38 @@ pub struct MigrationWizardLocationState {
     pub current_location: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub enum MigrationWizardStep {
+    #[default]
+    #[serde(rename = "welcome")]
+    Welcome,
+    #[serde(rename = "general")]
+    General,
+    #[serde(rename = "ca")]
+    Ca,
+    #[serde(rename = "caSummary")]
+    CaSummary,
+    #[serde(rename = "edge")]
+    Edge,
+    #[serde(rename = "edgeAdoption")]
+    EdgeAdoption,
+    #[serde(rename = "confirmation")]
+    Confirmation,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MigrationWizardState {
+    pub current_step: MigrationWizardStep,
     pub location_state: Option<MigrationWizardLocationState>,
+}
+
+impl Default for MigrationWizardState {
+    fn default() -> Self {
+        Self {
+            current_step: MigrationWizardStep::Welcome,
+            location_state: None,
+        }
+    }
 }
 
 pub async fn get_migration_state(
@@ -43,9 +72,11 @@ pub async fn get_migration_state(
     .await?
     .flatten();
 
+    let default_state = MigrationWizardState::default();
+
     let migration_state = match raw_state {
         Some(state) => match serde_json::from_value::<MigrationWizardState>(state) {
-            Ok(parsed) => Some(parsed),
+            Ok(parsed) => parsed,
             Err(error) => {
                 warn!("Invalid migration_wizard_state format, resetting to NULL: {error}");
                 sqlx::query(
@@ -55,20 +86,15 @@ pub async fn get_migration_state(
                 )
                 .execute(&mut *transaction)
                 .await?;
-                None
+                default_state
             }
         },
-        None => None,
+        None => default_state,
     };
 
     transaction.commit().await?;
 
-    Ok(ApiResponse::new(
-        json!({
-            "migration_state": migration_state
-        }),
-        StatusCode::OK,
-    ))
+    Ok(ApiResponse::new(json!(migration_state), StatusCode::OK))
 }
 
 pub async fn update_migration_state(
@@ -97,7 +123,6 @@ pub struct GeneralConfig {
     default_admin_group_name: String,
     default_authentication: u32,
     default_mfa_code_lifetime: u32,
-    public_proxy_url: String,
 }
 
 pub async fn set_general_config(
@@ -107,12 +132,11 @@ pub async fn set_general_config(
 ) -> ApiResult {
     info!("Applying initial general configuration settings");
     debug!(
-        "General configuration received: defguard_url={}, default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}, public_proxy_url={}",
+        "General configuration received: defguard_url={}, default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}",
         general_config.defguard_url,
         general_config.default_admin_group_name,
         general_config.default_authentication,
         general_config.default_mfa_code_lifetime,
-        general_config.public_proxy_url,
     );
     let default_admin_group_name = general_config.default_admin_group_name.clone();
     let mut settings = Settings::get_current_settings();
@@ -128,7 +152,6 @@ pub async fn set_general_config(
         .default_mfa_code_lifetime
         .try_into()
         .map_err(|err| WebError::BadRequest(format!("Invalid MFA code timeout seconds: {err}")))?;
-    settings.public_proxy_url = general_config.public_proxy_url;
     update_current_settings(&pool, settings).await?;
     let settings = Settings::get_current_settings();
     debug!("Settings persisted");
