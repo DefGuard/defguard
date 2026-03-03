@@ -352,6 +352,38 @@ const Content = ({ rule: initialRule }: Props) => {
             }
           }
 
+          if (restrictUsers && !vals.deny_all_users && vals.denied_users.length === 0) {
+            ctx.addIssue({
+              path: ['denied_users'],
+              code: 'custom',
+              message: m.form_select_at_least_one(),
+            });
+          }
+
+          if (
+            restrictGroups &&
+            !vals.deny_all_groups &&
+            vals.denied_groups.length === 0
+          ) {
+            ctx.addIssue({
+              path: ['denied_groups'],
+              code: 'custom',
+              message: m.form_select_at_least_one(),
+            });
+          }
+
+          if (
+            restrictDevices &&
+            !vals.deny_all_network_devices &&
+            vals.denied_network_devices.length === 0
+          ) {
+            ctx.addIssue({
+              path: ['denied_network_devices'],
+              code: 'custom',
+              message: m.form_select_at_least_one(),
+            });
+          }
+
           // check if one of allowed users/groups/devices fields is set
           const isAllowConfigured =
             vals.allow_all_users ||
@@ -411,7 +443,7 @@ const Content = ({ rule: initialRule }: Props) => {
             });
           }
         }),
-    [],
+    [restrictDevices, restrictGroups, restrictUsers],
   );
 
   type FormFields = z.infer<typeof formSchema>;
