@@ -66,19 +66,19 @@ impl Wizard {
         let initial_setup_state = self
             .initial_setup_state
             .as_ref()
-            .map(|s| serde_json::to_value(s))
+            .map(serde_json::to_value)
             .transpose()
             .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
         let auto_adoption_state = self
             .auto_adoption_state
             .as_ref()
-            .map(|s| serde_json::to_value(s))
+            .map(serde_json::to_value)
             .transpose()
             .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
         let migration_wizard_state = self
             .migration_wizard_state
             .as_ref()
-            .map(|s| serde_json::to_value(s))
+            .map(serde_json::to_value)
             .transpose()
             .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
@@ -88,7 +88,7 @@ impl Wizard {
 			 migration_wizard_state = $5 \
 			 WHERE is_singleton = TRUE",
         )
-        .bind(&self.active_wizard)
+        .bind(self.active_wizard)
         .bind(self.completed)
         .bind(initial_setup_state)
         .bind(auto_adoption_state)
