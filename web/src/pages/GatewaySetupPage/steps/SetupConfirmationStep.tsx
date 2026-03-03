@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { m } from '../../../paraglide/messages';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
@@ -12,7 +11,6 @@ import { useGatewayWizardStore } from '../useGatewayWizardStore';
 
 export const SetupConfirmationStep = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const handleBack = () => {
     const networkId = useGatewayWizardStore.getState().network_id;
@@ -21,11 +19,6 @@ export const SetupConfirmationStep = () => {
   };
 
   const handleFinish = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['gateway'] }),
-      queryClient.invalidateQueries({ queryKey: ['network'] }),
-    ]);
-
     await navigate({ to: '/locations', replace: true });
     setTimeout(() => {
       useGatewayWizardStore.getState().reset();
