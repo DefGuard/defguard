@@ -191,6 +191,12 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_GRPC_BIND_ADDRESS")]
     pub grpc_bind_address: Option<IpAddr>,
+
+    #[arg(long, env = "DEFGUARD_ADOPT_GATEWAY")]
+    pub adopt_gateway: Option<String>,
+
+    #[arg(long, env = "DEFGUARD_ADOPT_EDGE")]
+    pub adopt_edge: Option<String>,
 }
 
 #[derive(Clone, Debug, Subcommand)]

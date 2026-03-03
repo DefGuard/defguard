@@ -24,7 +24,7 @@ pub struct Proxy<I = NoId> {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
-    pub modified_by: Id,
+    pub modified_by: String,
 }
 
 impl fmt::Display for Proxy<NoId> {
@@ -48,7 +48,7 @@ impl Proxy {
     /// - `port`: TCP port the proxy listens on.
     /// - `modified_by`: Identifier of the user who created or last modified this proxy.
     #[must_use]
-    pub fn new<S: Into<String>>(name: S, address: S, port: i32, modified_by: Id) -> Self {
+    pub fn new<S: Into<String>>(name: S, address: S, port: i32, modified_by: S) -> Self {
         Self {
             id: NoId,
             name: name.into(),
@@ -60,7 +60,7 @@ impl Proxy {
             certificate_expiry: None,
             version: None,
             enabled: true,
-            modified_by,
+            modified_by: modified_by.into(),
             modified_at: Utc::now().naive_utc(),
         }
     }
@@ -93,13 +93,9 @@ impl Proxy<Id> {
     }
 
     pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<ProxyInfo>> {
-        sqlx::query_as!(
-            ProxyInfo,
-            "SELECT proxy.*, u.first_name modified_by_firstname, u.last_name modified_by_lastname \
-            FROM proxy JOIN \"user\" u on proxy.modified_by = u.id",
-        )
-        .fetch_all(pool)
-        .await
+        sqlx::query_as!(ProxyInfo, "SELECT * FROM proxy",)
+            .fetch_all(pool)
+            .await
     }
 
     pub async fn mark_connected(&mut self, pool: &PgPool, version: String) -> sqlx::Result<()> {

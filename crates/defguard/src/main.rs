@@ -9,7 +9,7 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{Settings, settings::initialize_current_settings},
+        models::{ActiveWizard, Settings, Wizard, settings::initialize_current_settings},
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
@@ -33,7 +33,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::setup::run_setup_web_server;
+use defguard_setup::{auto_adoption::attemp_auto_adoption, setup_server::run_setup_web_server};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -98,17 +98,25 @@ async fn main() -> Result<(), anyhow::Error> {
     Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
-    let mut settings = Settings::get_current_settings();
 
-    if !settings.initial_setup_completed {
+    let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
+    let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
+
+    if !wizard.completed {
+        if wizard.active_wizard == ActiveWizard::AutoAdoption {
+            if let Err(err) = attemp_auto_adoption(&pool, &config).await {
+                warn!("Failed to store startup auto-adoption states: {err}");
+            }
+        }
+
         if let Err(err) =
             run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {
             anyhow::bail!("Setup web server exited with error: {err}");
         }
-
-        settings = Settings::get_current_settings();
     }
+
+    let settings = Settings::get_current_settings();
 
     config.initialize_post_settings();
 

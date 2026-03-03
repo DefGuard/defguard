@@ -1,18 +1,18 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { Icon } from '../../../shared/defguard-ui/components/Icon';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import location from '../assets/location.png';
+import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
+import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
+import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
+import { Icon } from '../../../../shared/defguard-ui/components/Icon';
+import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
+import location from '../../assets/location.png';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 
 export const SetupConfirmationStep = () => {

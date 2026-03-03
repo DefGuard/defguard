@@ -12,11 +12,13 @@ defguard_common.workspace = true
 anyhow.workspace = true
 axum.workspace = true
 defguard_web_ui.workspace = true
+ipnetwork.workspace = true
 semver.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 defguard_core.workspace = true
 defguard_certs.workspace = true
+defguard_proto.workspace = true
 reqwest.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
@@ -25,6 +27,7 @@ chrono.workspace = true
 defguard_version.workspace = true
 axum-extra.workspace = true
 axum-client-ip.workspace = true
+tonic.workspace = true
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = [

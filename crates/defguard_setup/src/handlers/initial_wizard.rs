@@ -15,6 +15,8 @@ use defguard_common::db::models::{
     Session, SessionState, Settings, User,
     group::Group,
     settings::{InitialSetupStep, update_current_settings},
+    setup_auto_adoption::AutoAdoptionWizardStep,
+    wizard::{ActiveWizard, InitialSetupState, Wizard},
 };
 use defguard_core::{
     auth::{
@@ -32,25 +34,54 @@ use sqlx::PgPool;
 use tokio::sync::oneshot;
 use tracing::{debug, info};
 
-async fn advance_setup_to_step(pool: &PgPool, step: InitialSetupStep) -> Result<(), WebError> {
-    let mut settings = Settings::get_current_settings();
+use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
+
+async fn advance_initial_wizard_to_step(
+    pool: &PgPool,
+    step: InitialSetupStep,
+) -> Result<(), WebError> {
+    let mut wizard = Wizard::get(pool).await?;
 
     // Don't try to advance if setup is already completed
-    if settings.initial_setup_completed {
+    if wizard.completed {
         debug!("Not advancing setup step as initial setup is already completed");
         return Ok(());
     }
 
-    if settings.initial_setup_step < step {
-        settings.initial_setup_step = step;
-        update_current_settings(pool, settings).await?;
+    let current_step = wizard
+        .initial_setup_state
+        .as_ref()
+        .map(|s| s.step)
+        .unwrap_or(InitialSetupStep::Welcome);
+    if current_step < step {
+        wizard.initial_setup_state = Some(InitialSetupState { step });
+        wizard.save(pool).await?;
         info!("Advanced initial wizard setup to step {:?}", step);
     } else {
         debug!(
-            "Not advancing initial wizard setup step from {:?} to {:?} as it is not a forward step",
-            settings.initial_setup_step, step
+            "Not advancing initial wizard setup step from {current_step:?} to {step:?} as it is not a forward step"
         );
     }
+    Ok(())
+}
+
+async fn advance_wizard_to_step(
+    pool: &PgPool,
+    initial_step: Option<InitialSetupStep>,
+    auto_step: Option<AutoAdoptionWizardStep>,
+) -> Result<(), WebError> {
+    if let Some(step) = auto_step
+        && is_auto_wizard_active(pool).await?
+    {
+        advance_auto_wizard_to_step(pool, step).await?;
+    }
+
+    if let Some(initial_step) = initial_step
+        && !is_auto_wizard_active(pool).await?
+    {
+        advance_initial_wizard_to_step(pool, initial_step).await?;
+    }
+
     Ok(())
 }
 
@@ -61,6 +92,8 @@ pub struct CreateAdmin {
     username: String,
     email: String,
     password: String,
+    #[serde(default)]
+    automatically_assign_group: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -76,7 +109,12 @@ pub async fn create_admin(
     Extension(pool): Extension<PgPool>,
     Json(admin): Json<CreateAdmin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
-    advance_setup_to_step(&pool, InitialSetupStep::AdminUser).await?;
+    advance_wizard_to_step(
+        &pool,
+        Some(InitialSetupStep::AdminUser),
+        Some(AutoAdoptionWizardStep::AdminUser),
+    )
+    .await?;
     info!(
         "Creating initial admin user {} ({})",
         admin.username, admin.email
@@ -98,6 +136,29 @@ pub async fn create_admin(
     update_current_settings(&pool, settings).await?;
     debug!("Initial admin user set as default admin in settings");
 
+    if admin.automatically_assign_group {
+        let settings = Settings::get_current_settings();
+        let default_admin_group_name = settings.default_admin_group_name;
+
+        let admin_group =
+            if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
+                group.is_admin = true;
+                group.save(&pool).await?;
+                group
+            } else {
+                let mut group = Group::new(&default_admin_group_name);
+                group.is_admin = true;
+                group.save(&pool).await?
+            };
+
+        user.add_to_group(&pool, &admin_group).await?;
+
+        debug!(
+            "Automatically assigned admin user {} to admin group {}",
+            user.username, admin_group.name
+        );
+    }
+
     let device_info = get_device_info(user_agent.as_str());
 
     Session::delete_expired(&pool).await?;
@@ -117,7 +178,12 @@ pub async fn create_admin(
 
     info!("Initial admin user created");
 
-    advance_setup_to_step(&pool, InitialSetupStep::GeneralConfiguration).await?;
+    advance_wizard_to_step(
+        &pool,
+        Some(InitialSetupStep::GeneralConfiguration),
+        Some(AutoAdoptionWizardStep::UrlSettings),
+    )
+    .await?;
 
     Ok((cookies, ApiResponse::with_status(StatusCode::CREATED)))
 }
@@ -130,12 +196,13 @@ pub async fn setup_login(
     Extension(failed_logins): Extension<Arc<Mutex<FailedLoginMap>>>,
     Json(login): Json<SetupLogin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
-    let settings = Settings::get_current_settings();
-    if settings.initial_setup_completed {
+    let wizard = Wizard::get(&pool).await?;
+    if wizard.completed {
         return Err(WebError::Forbidden(
             "Initial setup already completed".to_string(),
         ));
     }
+    let settings = Settings::get_current_settings();
     let default_admin_id = settings
         .default_admin_id
         .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
@@ -181,13 +248,14 @@ pub async fn setup_login(
     Ok((cookies, ApiResponse::with_status(StatusCode::OK)))
 }
 
-pub async fn setup_session(session: SessionInfo) -> ApiResult {
-    let settings = Settings::get_current_settings();
-    if settings.initial_setup_completed {
+pub async fn setup_session(session: SessionInfo, Extension(pool): Extension<PgPool>) -> ApiResult {
+    let wizard = Wizard::get(&pool).await?;
+    if wizard.completed {
         return Err(WebError::Forbidden(
             "Initial setup already completed".to_string(),
         ));
     }
+    let settings = Settings::get_current_settings();
     let default_admin_id = settings
         .default_admin_id
         .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
@@ -272,7 +340,7 @@ pub async fn set_general_config(
 
     info!("Initial general configuration applied");
 
-    advance_setup_to_step(&pool, InitialSetupStep::Ca).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::Ca).await?;
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
@@ -311,7 +379,7 @@ pub async fn create_ca(
 
     info!("Certificate authority created and stored");
 
-    advance_setup_to_step(&pool, InitialSetupStep::CaSummary).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::CaSummary).await?;
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
@@ -329,7 +397,7 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
             info.subject_common_name, valid_for_days
         );
 
-        advance_setup_to_step(&pool, InitialSetupStep::EdgeComponent).await?;
+        advance_initial_wizard_to_step(&pool, InitialSetupStep::EdgeComponent).await?;
 
         Ok(ApiResponse::new(
             json!({ "ca_cert_pem": ca_pem, "subject_common_name": info.subject_common_name, "not_before": info.not_before, "not_after": info.not_after, "valid_for_days": valid_for_days }),
@@ -363,7 +431,7 @@ pub async fn upload_ca(
 
     update_current_settings(&pool, settings).await?;
 
-    advance_setup_to_step(&pool, InitialSetupStep::CaSummary).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::CaSummary).await?;
 
     info!("Certificate authority uploaded and stored");
 
@@ -376,10 +444,14 @@ pub async fn finish_setup(
     Extension(setup_shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> ApiResult {
     info!("Finishing initial setup");
-    let mut settings = Settings::get_current_settings();
-    settings.initial_setup_step = InitialSetupStep::Finished;
-    settings.initial_setup_completed = true;
-    update_current_settings(&pool, settings).await?;
+
+    let mut wizard = Wizard::get(&pool).await?;
+    wizard.initial_setup_state = Some(InitialSetupState {
+        step: InitialSetupStep::Finished,
+    });
+    wizard.completed = true;
+    wizard.active_wizard = ActiveWizard::None;
+    wizard.save(&pool).await?;
     if let Some(tx) = setup_shutdown_tx
         .lock()
         .expect("Failed to lock setup shutdown sender")
@@ -394,4 +466,12 @@ pub async fn finish_setup(
     }
 
     Ok(ApiResponse::with_status(StatusCode::OK))
+}
+
+/// Returns the full wizard state (active wizard, step states, etc.).
+/// Used by the frontend to determine which wizard
+/// to show and what step to resume.
+pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
+    let wizard = Wizard::get(&pool).await?;
+    Ok(ApiResponse::json(wizard, StatusCode::OK))
 }

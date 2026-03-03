@@ -33,9 +33,7 @@ pub struct GatewayInfo {
     pub version: Option<String>,
     pub enabled: bool,
     pub modified_at: NaiveDateTime,
-    pub modified_by: Id,
-    pub modified_by_firstname: String,
-    pub modified_by_lastname: String,
+    pub modified_by: String,
     pub location_name: String,
 }
 
@@ -44,8 +42,6 @@ impl GatewayInfo {
         query_as!(
             Self,
             "SELECT gateway.*, \
-                u.first_name modified_by_firstname, \
-                u.last_name modified_by_lastname, \
                 CASE \
                     WHEN gateway.connected_at IS NULL THEN false \
                     WHEN gateway.disconnected_at IS NULL THEN true \
@@ -54,7 +50,6 @@ impl GatewayInfo {
                 END AS \"connected!\", \
                 wn.name AS location_name \
             FROM gateway \
-            JOIN \"user\" u on gateway.modified_by = u.id \
             JOIN wireguard_network wn ON gateway.location_id = wn.id",
         )
         .fetch_all(pool)
@@ -65,8 +60,6 @@ impl GatewayInfo {
         query_as!(
             Self,
             "SELECT gateway.*, \
-                u.first_name modified_by_firstname, \
-                u.last_name modified_by_lastname, \
                 CASE \
                     WHEN gateway.connected_at IS NULL THEN false \
                     WHEN gateway.disconnected_at IS NULL THEN true \
@@ -74,7 +67,7 @@ impl GatewayInfo {
                     ELSE false \
                 END AS \"connected!\", \
                 wn.name AS location_name \
-            FROM gateway JOIN \"user\" u on gateway.modified_by = u.id \
+            FROM gateway \
             JOIN wireguard_network wn ON gateway.location_id = wn.id \
             WHERE location_id = $1",
             location_id

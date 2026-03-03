@@ -18,6 +18,7 @@ export const WizardWelcomePage = ({
   media,
   docsLink = 'https://docs.defguard.net/',
   docsText = m.initial_setup_wizard_welcome_docs_description(),
+  displayDocs = true,
   onClose,
 }: Props) => {
   return (
@@ -34,19 +35,22 @@ export const WizardWelcomePage = ({
             </AppText>
             <div className="left">{content}</div>
           </div>
-          <div id="docs-card">
-            <div className="image-track">
-              <img src={fileIcon} alt={m.initial_setup_wizard_welcome_docs_alt()} />
-            </div>
-            <div className="content">
-              <p>{docsText}</p>
-              <div>
-                <ExternalLink href={docsLink}>
-                  {m.initial_setup_wizard_welcome_docs_link()}
-                </ExternalLink>
+          {displayDocs && (
+            <div id="docs-card">
+              <div className="image-track">
+                <img src={fileIcon} alt={m.initial_setup_wizard_welcome_docs_alt()} />
+              </div>
+
+              <div className="content">
+                <p>{docsText}</p>
+                <div>
+                  <ExternalLink href={docsLink}>
+                    {m.initial_setup_wizard_welcome_docs_link()}
+                  </ExternalLink>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
         <div className="media-track">{media}</div>
       </div>
