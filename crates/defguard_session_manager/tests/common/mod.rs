@@ -110,7 +110,7 @@ pub(crate) async fn attach_device_to_network(pool: &sqlx::PgPool, network_id: Id
 pub(crate) async fn create_gateway(
     pool: &sqlx::PgPool,
     network_id: Id,
-    modified_by: Id,
+    modified_by: String,
 ) -> Gateway<Id> {
     Gateway::new(
         network_id,

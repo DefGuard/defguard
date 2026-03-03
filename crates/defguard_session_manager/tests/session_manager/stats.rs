@@ -21,7 +21,7 @@ async fn test_session_manager_updates_stats(_: PgPoolOptions, options: PgConnect
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.id).await;
+    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
 
     let mut harness = SessionManagerHarness::new(pool.clone());
 
