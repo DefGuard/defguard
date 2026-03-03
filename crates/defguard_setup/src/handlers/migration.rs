@@ -1,9 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use axum::{Extension, Json};
-use defguard_common::db::models::{
-    Settings, User, group::Group, settings::update_current_settings,
-};
+use defguard_common::db::models::{Settings, group::Group, settings::update_current_settings};
 use defguard_core::{
     auth::AdminOrSetupRole,
     db::models::wizard_flags::WizardFlags,
@@ -156,40 +154,24 @@ pub async fn set_general_config(
         .try_into()
         .map_err(|err| WebError::BadRequest(format!("Invalid MFA code timeout seconds: {err}")))?;
     update_current_settings(&pool, settings).await?;
-    let settings = Settings::get_current_settings();
     debug!("Settings persisted");
 
-    let admin_group =
-        if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
-            debug!(
-                "Admin group {} found, marking as admin",
-                default_admin_group_name
-            );
-            group.is_admin = true;
-            group.save(&pool).await?;
-            group
-        } else {
-            debug!(
-                "Admin group {} not found, creating",
-                default_admin_group_name
-            );
-            let mut group = Group::new(&default_admin_group_name);
-            group.is_admin = true;
-            group.save(&pool).await?
-        };
-
-    let admin_id = settings
-        .default_admin_id
-        .ok_or_else(|| WebError::DbError("Default admin user ID not set in settings".into()))?;
-
-    let admin_user = User::find_by_id(&pool, admin_id).await?.ok_or_else(|| {
-        WebError::ObjectNotFound(format!("Admin user with ID '{admin_id}' not found"))
-    })?;
-    debug!(
-        "Assigning admin user {} to admin group {}",
-        admin_user.username, admin_group.name
-    );
-    admin_user.add_to_group(&pool, &admin_group).await?;
+    if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
+        debug!(
+            "Admin group {} found, marking as admin",
+            default_admin_group_name
+        );
+        group.is_admin = true;
+        group.save(&pool).await?;
+    } else {
+        debug!(
+            "Admin group {} not found, creating",
+            default_admin_group_name
+        );
+        let mut group = Group::new(&default_admin_group_name);
+        group.is_admin = true;
+        group.save(&pool).await?;
+    };
 
     info!("Initial general configuration applied");
 
