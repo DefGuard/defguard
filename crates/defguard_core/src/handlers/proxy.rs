@@ -124,7 +124,16 @@ pub(crate) async fn update_proxy(
     proxy.name = data.name;
     if proxy.enabled != data.enabled {
         if data.enabled {
-            // TODO: spawn Proxy
+            if let Err(err) = appstate
+                .proxy_control_tx
+                .send(ProxyControlMessage::StartConnection(proxy.id))
+                .await
+            {
+                error!(
+                    "Failed to start Proxy {}, it may be disconnected: {err:?}",
+                    proxy.id
+                );
+            }
         } else if let Err(err) = appstate
             .proxy_control_tx
             .send(ProxyControlMessage::ShutdownConnection(proxy.id))
