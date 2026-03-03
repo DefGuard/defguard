@@ -493,6 +493,7 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
+/// Scale down enabled Gateways and Edges to one (per component).
 async fn trim_gateways_and_edges(
     pool: &PgPool,
     proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
@@ -622,6 +623,11 @@ pub(crate) const PUBLIC_KEY: &[u8] = include_bytes!("test_key.asc");
 #[cfg(test)]
 mod test {
     use chrono::TimeZone;
+    use defguard_common::db::{
+        models::{User, WireguardNetwork},
+        setup_pool,
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
 
@@ -796,5 +802,60 @@ mod test {
         let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
         let enterprise_license = License::from_base64(enterprise_license).unwrap();
         assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
+    }
+
+    #[sqlx::test]
+    async fn test_trim_gateways_and_edges(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let location = WireguardNetwork::default().save(&pool).await.unwrap();
+        let user = User::new(
+            "tester",
+            Some("hunter2"),
+            "Tes",
+            "Ter",
+            "email@email.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        Gateway::new(location.id, "Gateway 1", "localhost", 8000, user.id)
+            .save(&pool)
+            .await
+            .unwrap();
+        Gateway::new(location.id, "Gateway 2", "localhost", 8001, user.id)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        Proxy::new("Proxy 1", "localhost", 9000, user.id)
+            .save(&pool)
+            .await
+            .unwrap();
+        Proxy::new("Proxy 2", "localhost", 9001, user.id)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let (proxy_control_tx, mut proxy_control_rx) =
+            tokio::sync::mpsc::channel::<ProxyControlMessage>(8);
+
+        trim_gateways_and_edges(&pool, &proxy_control_tx)
+            .await
+            .unwrap();
+
+        let all_gateways = Gateway::all(&pool).await.unwrap();
+        assert_eq!(1, all_gateways.iter().filter(|gw| gw.enabled).count());
+        assert_eq!(1, all_gateways.iter().filter(|gw| !gw.enabled).count());
+
+        let all_proxies = Proxy::all(&pool).await.unwrap();
+        assert_eq!(1, all_proxies.iter().filter(|gw| gw.enabled).count());
+        assert_eq!(1, all_proxies.iter().filter(|gw| !gw.enabled).count());
+
+        // Only one Proxy has to be shut down.
+        assert!(proxy_control_rx.try_recv().is_ok());
+        assert!(proxy_control_rx.try_recv().is_err());
     }
 }
