@@ -153,7 +153,7 @@ const FloatingMenu = ({
   const { mutate: removeGw } = useMutation({
     mutationFn: api.gateway.deleteGateway,
     meta: {
-      invalidate: ['network', locationId, 'gateways'],
+      invalidate: [['gateway'], ['network']],
     },
   });
 

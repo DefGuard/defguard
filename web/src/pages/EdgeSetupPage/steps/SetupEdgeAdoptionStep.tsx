@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -14,6 +15,7 @@ import { useEdgeWizardStore } from '../useEdgeWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';
 
 export const SetupEdgeAdoptionStep = () => {
+  const queryClient = useQueryClient();
   const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
   const edgeComponentWizardStore = useEdgeWizardStore((s) => s);
   const edgeAdoptionState = useEdgeWizardStore((s) => s.edgeAdoptionState);
@@ -32,8 +34,12 @@ export const SetupEdgeAdoptionStep = () => {
           : null,
         proxyLogs: event.logs && event.logs.length > 0 ? [...event.logs] : [],
       });
+
+      if (event.step === 'Done') {
+        void queryClient.invalidateQueries({ queryKey: ['edge'] });
+      }
     },
-    [setEdgeAdoptionState],
+    [queryClient, setEdgeAdoptionState],
   );
 
   const sse = useSSEController<SetupEvent>(

@@ -73,7 +73,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const { mutate: deleteGateway, isPending: deletePending } = useMutation({
     mutationFn: () => api.gateway.deleteGateway(gateway.id),
     meta: {
-      invalidate: ['gateway'],
+      invalidate: [['gateway'], ['network']],
     },
     onSuccess: () => {
       navigate({
