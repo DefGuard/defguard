@@ -733,6 +733,27 @@ impl Settings {
             self.password_reset_session_timeout_minutes =
                 (password_reset_session_timeout.as_secs() / minute) as i32;
         }
+
+        // Set webauthn_rp_id based on Settings::defguard_url
+        if self.webauthn_rp_id.is_none() {
+            self.webauthn_rp_id = match Url::parse(&self.defguard_url) {
+                Ok(url) => url.domain().map(ToString::to_string).or_else(|| {
+                    warn!(
+                        "Unable to derive webauthn_rp_id: defguard_url has no domain: {}",
+                        self.defguard_url
+                    );
+                    None
+                }),
+                Err(err) => {
+                    warn!(
+                        "Unable to derive webauthn_rp_id from defguard_url {}: {err}",
+                        self.defguard_url
+                    );
+                    None
+                }
+            };
+        }
+
         update_current_settings(executor, self.clone()).await?;
 
         info!("Updated Settings from DefguardConfig: {config:?}");

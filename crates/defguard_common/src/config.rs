@@ -248,20 +248,8 @@ impl DefGuardConfig {
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
         let url = Settings::url().expect("Unable to parse Defguard URL.");
-        // TODO(jck)
-        // self.initialize_rp_id(&url);
         self.initialize_cookie_domain(&url);
     }
-
-    // fn initialize_rp_id(&mut self, url: &Url) {
-    //     if self.webauthn_rp_id.is_none() {
-    //         self.webauthn_rp_id = Some(
-    //             url.domain()
-    //                 .expect("Unable to get domain for server URL.")
-    //                 .to_string(),
-    //         );
-    //     }
-    // }
 
     fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
