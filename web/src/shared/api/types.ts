@@ -889,6 +889,14 @@ export interface SettingsGatewayNotifications {
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 }
 
+export interface SettingsGeneral {
+  defguard_url: string;
+  default_admin_group_name: string;
+  authentication_period_days: number;
+  mfa_code_timeout_seconds: number;
+  public_proxy_url: string;
+}
+
 export type Settings = SettingsBranding &
   SettingsGatewayNotifications &
   SettingsEnterprise &
