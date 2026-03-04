@@ -3,6 +3,7 @@ import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-
 import { useCallback, useEffect } from 'react';
 import z from 'zod';
 import { queryClient } from '../app/query';
+import api from '../shared/api/api';
 import { type User, UserMfaMethod } from '../shared/api/types';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAuth } from '../shared/hooks/useAuth';
@@ -22,9 +23,8 @@ const mfaSchema = z.object({
 
 export const Route = createFileRoute('/auth')({
   beforeLoad: async ({ context }) => {
-    const sessionInfo = (
-      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
-    ).data;
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
     if (sessionInfo.wizard_flags?.initial_wizard_in_progress) {
       throw redirect({
         to: '/setup',
@@ -44,7 +44,7 @@ export const Route = createFileRoute('/auth')({
             replace: true,
           });
         } else {
-          const me = (await queryClient.ensureQueryData(getUserMeQueryOptions)).data;
+          const me = (await queryClient.fetchQuery(getUserMeQueryOptions)).data;
           throw redirect({
             to: '/user/$username',
             params: {
@@ -88,17 +88,18 @@ function RouteComponent() {
       const basicResponse = basicResult.data;
       if (isPresent(basicResponse) && basicResult.success) {
         useAuth.getState().setUser(basicResponse.user);
-        void queryClient.invalidateQueries({
-          queryKey: ['me'],
-        });
-        void queryClient.invalidateQueries({
-          queryKey: ['session-info'],
-        });
-        const sessionInfo = (
-          await queryClient.ensureQueryData(getSessionInfoQueryOptions)
-        ).data;
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['session-info'],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['me'],
+          }),
+        ]);
+        const { data: sessionInfo } = await api.getSessionInfo();
         if (sessionInfo.wizard_flags?.migration_wizard_in_progress) {
           navigate({ to: '/migration', replace: true });
+          return;
         }
         if (isPresent(basicResponse.url)) {
           window.location.replace(basicResponse.url);

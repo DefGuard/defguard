@@ -11,7 +11,6 @@ import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { validateIpOrDomain } from '../../../shared/validators';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
-import { MigrationWizardStep } from '../types';
 
 type FormFields = StoreValues;
 
@@ -22,8 +21,6 @@ type StoreValues = {
 };
 
 export const MigrationWizardEdgeComponentStep = () => {
-  const setActiveStep = useMigrationWizardStore((s) => s.setActiveStep);
-
   const defaultValues = useMigrationWizardStore(
     useShallow(
       (s): FormFields => ({
@@ -33,10 +30,6 @@ export const MigrationWizardEdgeComponentStep = () => {
       }),
     ),
   );
-
-  const handleNext = () => {
-    form.handleSubmit();
-  };
 
   const formSchema = useMemo(
     () =>
@@ -67,7 +60,7 @@ export const MigrationWizardEdgeComponentStep = () => {
       useMigrationWizardStore.setState({
         ...value,
       });
-      setActiveStep(MigrationWizardStep.EdgeAdoption);
+      useMigrationWizardStore.getState().next();
     },
   });
 
@@ -114,14 +107,12 @@ export const MigrationWizardEdgeComponentStep = () => {
             <Button
               variant="outlined"
               text={m.controls_back()}
-              onClick={() => setActiveStep(MigrationWizardStep.CaSummary)}
+              onClick={() => {
+                useMigrationWizardStore.getState().back();
+              }}
             />
             <div className="right">
-              <Button
-                text={m.edge_setup_component_controls_submit()}
-                onClick={handleNext}
-                type="submit"
-              />
+              <Button text={m.edge_setup_component_controls_submit()} type="submit" />
             </div>
           </Controls>
         </form.AppForm>

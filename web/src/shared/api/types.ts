@@ -1,3 +1,4 @@
+import type { MigrationWizardStepValue } from '../../pages/MigrationWizardPage/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -15,6 +16,10 @@ export type WizardFlags = {
   migration_wizard_completed: boolean;
   migration_wizard_in_progress: boolean;
 };
+
+export interface MigrationWizardApiState {
+  current_step: MigrationWizardStepValue;
+}
 
 export interface SessionInfo {
   authorized: boolean;
@@ -61,6 +66,11 @@ export interface SetGeneralConfigRequest {
   public_proxy_url: string;
   admin_username: string;
 }
+
+export type MigrationGeneralConfigRequest = Omit<
+  SetGeneralConfigRequest,
+  'admin_username'
+>;
 
 export interface ValidateDeviceIpsRequest {
   ips: string[];
@@ -816,6 +826,14 @@ export interface SettingsTimeoutsAndMaintenance {
   password_reset_session_timeout_minutes: number;
 }
 
+export interface SettingsGeneral {
+  defguard_url: string;
+  default_admin_group_name: string;
+  authentication_period_days: number;
+  mfa_code_timeout_seconds: number;
+  public_proxy_url: string;
+}
+
 export type Settings = SettingsBranding &
   SettingsGatewayNotifications &
   SettingsEnterprise &
@@ -825,7 +843,8 @@ export type Settings = SettingsBranding &
   SettingsOpenID &
   SettingsEnrollment &
   SettingsSMTP &
-  SettingsTimeoutsAndMaintenance;
+  SettingsTimeoutsAndMaintenance &
+  SettingsGeneral;
 
 export interface OpenIdProviderSettings {
   create_account: boolean;

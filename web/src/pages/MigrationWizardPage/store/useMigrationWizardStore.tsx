@@ -1,6 +1,7 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import api from '../../../shared/api/api';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import {
   type CAOptionType,
@@ -9,18 +10,20 @@ import {
 } from '../types';
 
 interface StoreValues {
-  isWelcome: boolean;
   activeStep: MigrationWizardStepValue;
+  // general config
   defguard_url: string;
   default_admin_group_name: string;
   default_authentication_period_days: number;
   default_mfa_code_timeout_seconds: number;
   public_proxy_url: string;
+  // ca
   ca_common_name: string;
   ca_email: string;
   ca_validity_period_years: number;
   ca_cert_file: File | null;
   ca_option: CAOptionType | null;
+  // edge config
   common_name: string;
   ip_or_domain: string;
   grpc_port: number;
@@ -37,7 +40,6 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 };
 
 const defaults: StoreValues = {
-  isWelcome: true,
   activeStep: MigrationWizardStep.General,
   defguard_url: '',
   default_admin_group_name: '',
@@ -56,17 +58,28 @@ const defaults: StoreValues = {
 };
 
 interface Store extends StoreValues {
-  setActiveStep: (step: MigrationWizardStepValue) => void;
   setState: (values: Partial<StoreValues>) => void;
   resetEdgeAdoptionState: () => void;
   setEdgeAdoptionState: (state: Partial<EdgeAdoptionState>) => void;
+  resetState: () => void;
+  next: () => void;
+  back: () => void;
 }
+
+const saveStep = (step: MigrationWizardStepValue) => {
+  void api.migration.state
+    .updateMigrationState({
+      current_step: step,
+    })
+    .catch((e) => {
+      console.error(e);
+    });
+};
 
 export const useMigrationWizardStore = create<Store>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...defaults,
-      setActiveStep: (step) => set({ activeStep: step }),
       setState: (newValues) => {
         set(newValues);
       },
@@ -78,16 +91,87 @@ export const useMigrationWizardStore = create<Store>()(
         set((s) => ({
           edgeAdoptionState: { ...s.edgeAdoptionState, ...state },
         })),
+      resetState: () => {
+        set(defaults);
+      },
+      back: () => {
+        const current = get().activeStep;
+        let stepToSet: MigrationWizardStepValue | null;
+        switch (current) {
+          case 'welcome':
+            stepToSet = null;
+            break;
+          case 'general':
+            stepToSet = MigrationWizardStep.Welcome;
+            break;
+          case 'ca':
+            stepToSet = MigrationWizardStep.General;
+            break;
+          case 'caSummary':
+            stepToSet = MigrationWizardStep.CaSummary;
+            break;
+          case 'edge':
+            stepToSet = MigrationWizardStep.CaSummary;
+            break;
+          case 'edgeAdoption':
+            stepToSet = MigrationWizardStep.Edge;
+            break;
+          case 'confirmation':
+            stepToSet = null;
+            break;
+        }
+        if (stepToSet) {
+          set({
+            activeStep: stepToSet,
+          });
+          saveStep(stepToSet);
+        }
+      },
+      next: () => {
+        const current = get().activeStep;
+        let stepToSet: MigrationWizardStepValue | null;
+        switch (current) {
+          case 'welcome':
+            stepToSet = MigrationWizardStep.General;
+            break;
+          case 'general':
+            stepToSet = MigrationWizardStep.Ca;
+            break;
+          case 'ca':
+            stepToSet = MigrationWizardStep.CaSummary;
+            break;
+          case 'caSummary':
+            stepToSet = MigrationWizardStep.Edge;
+            break;
+          case 'edge':
+            stepToSet = MigrationWizardStep.EdgeAdoption;
+            break;
+          case 'edgeAdoption':
+            stepToSet = MigrationWizardStep.Confirmation;
+            break;
+          case 'confirmation':
+            stepToSet = null;
+            break;
+        }
+        if (stepToSet) {
+          set({
+            activeStep: stepToSet,
+          });
+          saveStep(stepToSet);
+        }
+      },
     }),
     {
       name: 'migration-wizard',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) =>
         omit(state, [
-          'setActiveStep',
           'setState',
           'resetEdgeAdoptionState',
           'setEdgeAdoptionState',
+          'resetState',
+          'next',
+          'back',
         ]),
     },
   ),

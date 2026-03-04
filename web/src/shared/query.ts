@@ -251,8 +251,20 @@ export const getSettingsEssentialsQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
-export const getCaQueryOptions = queryOptions({
+export const getInitialSetupCaQueryOptions = queryOptions({
   queryFn: api.initial_setup.getCA,
   queryKey: ['initial_setup', 'ca'],
+  select: (resp) => resp.data,
+});
+
+export const getMigrationCaQueryOptions = queryOptions({
+  queryFn: api.migration.ca.getCA,
+  queryKey: ['migration', 'ca'],
+  select: (resp) => resp.data,
+});
+
+export const getMigrationStateQueryOptions = queryOptions({
+  queryFn: api.migration.state.getMigrationState,
+  queryKey: ['migration', 'state'],
   select: (resp) => resp.data,
 });

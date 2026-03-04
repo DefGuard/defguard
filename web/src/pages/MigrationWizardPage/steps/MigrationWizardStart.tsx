@@ -31,9 +31,7 @@ export const MigrationWizardStart = () => {
           <Button
             text="Start migration process"
             onClick={() => {
-              useMigrationWizardStore.setState({
-                isWelcome: false,
-              });
+              useMigrationWizardStore.getState().next();
             }}
           />
         </div>

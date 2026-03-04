@@ -1,3 +1,4 @@
+use defguard_common::db::models::{Settings, User, settings::update_current_settings};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, prelude::FromRow};
 
@@ -17,10 +18,10 @@ impl WizardFlags {
         sqlx::query(
             "UPDATE wizard
              SET
-                     migration_wizard_in_progress = $2,
-                     migration_wizard_completed = $3,
-                     initial_wizard_in_progress = $4,
-                     initial_wizard_completed = $5
+                     migration_wizard_in_progress = $1,
+                     migration_wizard_completed = $2,
+                     initial_wizard_in_progress = $3,
+                     initial_wizard_completed = $4
              WHERE is_singleton = TRUE",
         )
         .bind(self.migration_wizard_in_progress)
@@ -83,6 +84,15 @@ impl WizardFlags {
             .bind(is_fresh_instance)
             .execute(executor)
             .await?;
+
+            // default_admin needs to be set so it
+            if is_migration_needed {
+                let admin_user = User::find_admins(executor).await?.first().unwrap().clone();
+                let mut settings = Settings::get_current_settings();
+                settings.default_admin_id = Some(admin_user.id);
+                settings.save(executor).await?;
+                update_current_settings(executor, settings).await?;
+            }
 
             return Ok(Self {
                 migration_wizard_in_progress: is_migration_needed,

@@ -10,7 +10,7 @@ use axum::{
     serve,
 };
 use axum_extra::extract::cookie::Key;
-use defguard_common::{VERSION, db::models::Settings};
+use defguard_common::{VERSION, db::models::Settings, types::proxy::ProxyControlMessage};
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     handle_404,
@@ -22,7 +22,8 @@ use defguard_core::{
         },
         component_setup::setup_proxy_tls_stream,
         session_info::get_session_info,
-        settings::get_settings_essentials,
+        settings::{get_settings, get_settings_essentials, patch_settings},
+        wireguard::list_networks,
     },
     health_check,
     version::IncompatibleComponents,
@@ -44,20 +45,31 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 
-use crate::handlers::initial_wizard::{
-    create_ca, finish_setup, get_ca, set_general_config, setup_session, upload_ca,
+use crate::handlers::migration::{get_migration_state, set_general_config, update_migration_state};
+use crate::handlers::{
+    initial_wizard::{create_ca, get_ca, upload_ca},
+    migration::finish_setup,
 };
+
+/// FIXME: This is a workaround which enables us to reuse the same API handlers
+/// Helper struct which holds all the event receivers so that channels are not closed.
+pub struct MigrationWebapp {
+    pub router: Router,
+    _event_rx: mpsc::UnboundedReceiver<ApiEvent>,
+    _wireguard_rx: broadcast::Receiver<GatewayEvent>,
+    _proxy_control_rx: mpsc::Receiver<ProxyControlMessage>,
+}
 
 pub fn build_migration_webapp(
     pool: PgPool,
     version: Version,
     setup_shutdown_tx: Sender<()>,
-) -> Router {
+) -> MigrationWebapp {
     let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     let (webhook_tx, webhook_rx) = mpsc::unbounded_channel::<AppEvent>();
-    let (event_tx, _event_rx) = mpsc::unbounded_channel::<ApiEvent>();
-    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(64);
-    let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(32);
+    let (event_tx, event_rx) = mpsc::unbounded_channel::<ApiEvent>();
+    let (wireguard_tx, wireguard_rx) = broadcast::channel::<GatewayEvent>(64);
+    let (proxy_control_tx, proxy_control_rx) = mpsc::channel(32);
     let incompatible_components = Arc::new(RwLock::new(IncompatibleComponents::default()));
     let key = Key::from(
         Settings::get_current_settings()
@@ -69,15 +81,15 @@ pub fn build_migration_webapp(
         pool.clone(),
         webhook_tx,
         webhook_rx,
-        wireguard_tx,
+        wireguard_tx.clone(),
         key,
         failed_logins.clone(),
         event_tx,
         incompatible_components,
-        proxy_control_tx,
+        proxy_control_tx.clone(),
     );
 
-    Router::new()
+    let router = Router::new()
         .route("/", get(index))
         .route("/{*path}", get(index))
         .route("/fonts/{*path}", get(web_asset))
@@ -89,6 +101,7 @@ pub fn build_migration_webapp(
                 .route("/health", get(health_check))
                 .route("/session-info", get(get_session_info))
                 .route("/settings_essentials", get(get_settings_essentials))
+                .route("/settings", get(get_settings).patch(patch_settings))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .route("/auth", post(authenticate))
                 .route("/auth/logout", post(logout))
@@ -107,15 +120,17 @@ pub fn build_migration_webapp(
                 )
                 .route("/auth/email/verify", post(email_mfa_code))
                 .route("/auth/recovery", post(recovery_code))
+                .route("/network", get(list_networks))
                 .nest(
-                    "/initial_setup",
+                    "/migration",
                     Router::new()
+                        .route(
+                            "/state",
+                            get(get_migration_state).put(update_migration_state),
+                        )
+                        .route("/general_config", post(set_general_config))
                         .route("/ca", post(create_ca).get(get_ca))
                         .route("/ca/upload", post(upload_ca))
-                        .route("/general_config", post(set_general_config))
-                        // .route("/admin", post(create_admin))
-                        // .route("/login", post(setup_login))
-                        .route("/session", get(setup_session))
                         .route("/finish", post(finish_setup)),
                 ),
         )
@@ -131,6 +146,14 @@ pub fn build_migration_webapp(
         .layer(Extension(version))
         .layer(Extension(failed_logins))
         .layer(Extension(Arc::new(Mutex::new(Some(setup_shutdown_tx)))))
+        .layer(Extension(proxy_control_tx));
+
+    MigrationWebapp {
+        router,
+        _event_rx: event_rx,
+        _wireguard_rx: wireguard_rx,
+        _proxy_control_rx: proxy_control_rx,
+    }
 }
 
 #[instrument(skip_all)]
@@ -140,11 +163,12 @@ pub async fn run_migration_web_server(
     http_port: u16,
 ) -> Result<(), anyhow::Error> {
     let (setup_shutdown_tx, setup_shutdown_rx) = tokio::sync::oneshot::channel::<()>();
-    let setup_webapp = build_migration_webapp(
+    let migration_webapp = build_migration_webapp(
         pool.clone(),
         defguard_version::Version::parse(VERSION)?,
         setup_shutdown_tx,
     );
+    let router = migration_webapp.router;
 
     info!("Starting instance migration web server on port {http_port}");
     let addr = SocketAddr::new(
@@ -154,7 +178,7 @@ pub async fn run_migration_web_server(
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,
-        setup_webapp.into_make_service_with_connect_info::<SocketAddr>(),
+        router.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(async move {
         setup_shutdown_rx.await.ok();
