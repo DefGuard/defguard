@@ -820,20 +820,25 @@ impl Device<Id> {
     /// Assign the next available IP address in each subnet of the network to this device.
     ///
     /// For every CIDR block in `network.address`, this function:
-    /// 1. Iterates through the block's IPs in order.
-    /// 2. Skips any IP that:
-    ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or
-    ///    - Appears in the optional `reserved_ips`.
+    /// 1. If `current_ips` contains an IP that already falls within the subnet, reuses it
+    ///    immediately without consulting `used_ips` or scanning the address space.
+    /// 2. Otherwise, iterates through the block's IPs in order and skips any IP that is:
+    ///    - The network address, broadcast address, or the subnet's host IP (gateway), or
+    ///    - Present in `used_ips` (already assigned to another device), or
+    ///    - Present in the optional `reserved_ips`.
     /// 3. Selects the first remaining IP and records it.
     ///
     /// If any subnet has no valid, unassigned IP, the method returns `ModelError::CannotCreate`.
     ///
     /// # Parameters
     ///
-    /// - `transaction`: Active PostgreSQL connection to check and insert assignments.
+    /// - `transaction`: Active PostgreSQL connection used to persist the assignment.
     /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.
+    /// - `used_ips`: Set of IPs already assigned within the network (caller-maintained snapshot).
     /// - `reserved_ips`: Optional slice of IPs that must not be assigned, even if otherwise free.
-    /// - `current_ips`: Optional slice of IPs already assigned to the device - won't be reassigned if they are still valid.
+    /// - `current_ips`: Optional slice of IPs already assigned to this device. An IP that still
+    ///   falls within its subnet is reused as-is; only IPs that no longer fit their subnet are
+    ///   replaced.
     ///
     /// # Returns
     ///
