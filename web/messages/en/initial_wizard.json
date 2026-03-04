@@ -15,6 +15,8 @@
   "initial_setup_step_certificate_authority_description": "Securing component communication",
   "initial_setup_step_certificate_authority_summary_label": "Certificate Authority Summary",
   "initial_setup_step_certificate_authority_summary_description": "Securing component communication",
+  "initial_setup_step_edge_deploy_label": "Deploy Edge Component",
+  "initial_setup_step_edge_deploy_description": "Before we can adopt an Edge, this component needs to be launched.",
   "initial_setup_step_edge_component_label": "Edge Component",
   "initial_setup_step_edge_component_description": "Set up your VPN proxy quickly and ensure secure, optimized traffic flow for your users.",
   "initial_setup_step_edge_adoption_label": "Edge Component Adoption",
