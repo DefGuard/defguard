@@ -38,7 +38,7 @@ export const SetupCertificateAuthoritySummaryStep = () => {
   };
 
   const handleNext = () => {
-    setActiveStep(SetupPageStep.EdgeComponent);
+    setActiveStep(SetupPageStep.EdgeDeploy);
   };
 
   const downloadCA = () => {

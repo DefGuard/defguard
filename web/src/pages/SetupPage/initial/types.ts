@@ -4,6 +4,7 @@ export const SetupPageStep = {
   GeneralConfig: 'generalConfig',
   CertificateAuthority: 'certificateAuthority',
   CASummary: 'certificateAuthoritySummary',
+  EdgeDeploy: 'edgeDeploy',
   EdgeComponent: 'edgeComponent',
   EdgeAdoption: 'edgeAdoption',
   Confirmation: 'confirmation',
