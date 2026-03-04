@@ -102,8 +102,9 @@ use crate::{
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
-                add_openid_provider, delete_openid_provider, get_openid_provider,
-                list_openid_providers, modify_openid_provider, test_dirsync_connection,
+                add_openid_provider, delete_openid_provider, get_current_openid_provider,
+                get_openid_provider, list_openid_providers, modify_openid_provider,
+                test_dirsync_connection,
             },
         },
         snat::handlers::{
@@ -404,6 +405,7 @@ pub fn build_webapp(
                     .put(modify_openid_provider)
                     .delete(delete_openid_provider),
             )
+            .route("/provider/current", get(get_current_openid_provider))
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
@@ -708,11 +710,33 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.ca_cert_der = Some(ca.cert_der().to_vec());
     settings.ca_key_der = Some(ca.key_pair_der().to_vec());
     settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
-    settings.initial_setup_completed = true;
+    // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
+    settings.public_proxy_url = config.enrollment_url.to_string();
     settings.defguard_url = config.url.to_string();
     update_current_settings(&pool, settings)
         .await
         .expect("Failed to update settings");
+
+    // Mark wizard as completed for dev environment
+    use defguard_common::db::models::{
+        settings::InitialSetupStep,
+        wizard::{ActiveWizard, InitialSetupState, Wizard},
+    };
+    let wizard = Wizard {
+        active_wizard: ActiveWizard::None,
+        completed: true,
+        initial_setup_state: Some(InitialSetupState {
+            step: InitialSetupStep::Finished,
+        }),
+        auto_adoption_state: None,
+        migration_wizard_state: None,
+    };
+    // Ensure wizard is initialized, then overwrite with completed state
+    let _ = Wizard::init(&pool, false).await;
+    wizard
+        .save(&pool)
+        .await
+        .expect("Failed to save wizard state for dev env");
 
     let mut transaction = pool
         .begin()

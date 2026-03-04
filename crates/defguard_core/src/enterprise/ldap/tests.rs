@@ -5,19 +5,21 @@ use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
-use crate::enterprise::license::{License, LicenseTier, set_cached_license};
-use crate::enterprise::{
-    ldap::{
-        model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
-        sync::{
-            Authority, compute_group_sync_changes, compute_user_sync_changes,
-            extract_intersecting_users,
+use crate::{
+    enterprise::{
+        ldap::{
+            model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+            sync::{
+                Authority, compute_group_sync_changes, compute_user_sync_changes,
+                extract_intersecting_users,
+            },
+            test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
         },
-        test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
+        license::{License, LicenseTier, set_cached_license},
+        limits::get_counts,
     },
-    limits::get_counts,
+    grpc::proto::enterprise::license::LicenseLimits,
 };
-use crate::grpc::proto::enterprise::license::LicenseLimits;
 
 const PASSWORD: &str = "test_password";
 

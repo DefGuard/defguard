@@ -2,11 +2,14 @@ use std::str::FromStr;
 
 use axum::extract::{Path, Query, State};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::models::{
-    WireguardNetwork,
-    wireguard::{
-        DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
-        WireguardNetworkStats, networks_stats,
+use defguard_common::db::{
+    Id,
+    models::{
+        WireguardNetwork,
+        wireguard::{
+            DateTimeAggregation, LocationConnectedNetworkDevice, LocationConnectedUserStats,
+            WireguardNetworkStats, networks_stats,
+        },
     },
 };
 use reqwest::StatusCode;
@@ -73,7 +76,7 @@ pub(crate) async fn locations_overview_stats(
 pub(crate) async fn location_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     Query(query_from): Query<QueryFrom>,
 ) -> ApiResult {
     debug!("Displaying WireGuard network stats for location {network_id}");
@@ -99,7 +102,7 @@ pub(crate) async fn location_stats(
 pub(crate) async fn location_connected_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
-    Path(location_id): Path<i64>,
+    Path(location_id): Path<Id>,
     Query(query_from): Query<QueryFrom>,
     pagination: Query<PaginationParams>,
 ) -> PaginatedApiResult<LocationConnectedUserStats> {
@@ -140,7 +143,7 @@ pub(crate) async fn location_connected_users(
 pub(crate) async fn location_connected_network_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,
-    Path(location_id): Path<i64>,
+    Path(location_id): Path<Id>,
     Query(query_from): Query<QueryFrom>,
     pagination: Query<PaginationParams>,
 ) -> PaginatedApiResult<LocationConnectedNetworkDevice> {

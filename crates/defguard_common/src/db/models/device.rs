@@ -333,7 +333,7 @@ impl WireguardNetworkDevice {
             &self.ips_as_network(),
             self.is_authorized,
             self.authorized_at,
-            self.preshared_key
+            self.preshared_key,
         )
         .execute(executor)
         .await?;
@@ -510,6 +510,25 @@ impl WireguardNetworkDevice {
         )
         .fetch_one(executor)
         .await
+    }
+
+    /// Check if any device is assigned to a given network.
+    pub async fn has_devices_in_network<'e, E>(
+        executor: E,
+        network_id: Id,
+    ) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let result = query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM wireguard_network_device \
+            WHERE wireguard_network_id = $1)",
+            network_id
+        )
+        .fetch_one(executor)
+        .await?;
+
+        Ok(result.unwrap_or(false))
     }
 }
 

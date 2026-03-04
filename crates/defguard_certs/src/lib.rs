@@ -39,7 +39,7 @@ impl CertificateAuthority<'_> {
         let cert_der = CertificateDer::from_pem_slice(ca_cert_pem.as_bytes())
             .map_err(|e| CertificateError::ParsingError(e.to_string()))?;
         let issuer = Issuer::from_ca_cert_der(&cert_der, key_pair)?;
-        Ok(CertificateAuthority { issuer, cert_der })
+        Ok(Self { issuer, cert_der })
     }
 
     pub fn from_cert_der_key_pair(
@@ -49,7 +49,7 @@ impl CertificateAuthority<'_> {
         let key_pair = KeyPair::try_from(ca_key_pair)?;
         let cert_der = CertificateDer::from(ca_cert_der.to_vec());
         let issuer = Issuer::from_ca_cert_der(&cert_der, key_pair)?;
-        Ok(CertificateAuthority { issuer, cert_der })
+        Ok(Self { issuer, cert_der })
     }
 
     pub fn from_key_cert_params(
@@ -59,7 +59,7 @@ impl CertificateAuthority<'_> {
         let cert = ca_cert_params.self_signed(&key_pair)?;
         let issuer = Issuer::new(ca_cert_params, key_pair);
         let cert_der = cert.der().clone();
-        Ok(CertificateAuthority { issuer, cert_der })
+        Ok(Self { issuer, cert_der })
     }
 
     pub fn new(
@@ -86,7 +86,7 @@ impl CertificateAuthority<'_> {
 
         let ca_key_pair = KeyPair::generate()?;
 
-        CertificateAuthority::from_key_cert_params(ca_key_pair, ca_params)
+        Self::from_key_cert_params(ca_key_pair, ca_params)
     }
 
     pub fn sign_csr(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
@@ -137,7 +137,7 @@ impl CertificateAuthority<'_> {
     }
 
     pub fn expiry(&self) -> Result<NaiveDateTime, CertificateError> {
-        let CertificateInfo { not_after, .. } = parse_certificate_info(&self.cert_der)?;
+        let CertificateInfo { not_after, .. } = CertificateInfo::from_der(&self.cert_der)?;
         Ok(not_after)
     }
 }
@@ -149,44 +149,48 @@ pub struct CertificateInfo {
     pub serial: String,
 }
 
-pub fn parse_certificate_info(cert_der: &[u8]) -> Result<CertificateInfo, CertificateError> {
-    let (_, parsed) = parse_x509_certificate(cert_der)
-        .map_err(|e| CertificateError::ParsingError(format!("Failed to parse certificate: {e}")))?;
-
-    let subject = &parsed.tbs_certificate.subject;
-    let serial = parsed.raw_serial_as_string();
-
-    let cn = subject
-        .iter_common_name()
-        .next()
-        .ok_or_else(|| CertificateError::ParsingError("Common Name not found".to_string()))?
-        .as_str()
-        .map_err(|e| {
-            CertificateError::ParsingError(format!("Failed to parse CN as string: {e}"))
+impl CertificateInfo {
+    /// Parse certificate from DER-encoded bytes.
+    pub fn from_der(cert_der: &[u8]) -> Result<Self, CertificateError> {
+        let (_, parsed) = parse_x509_certificate(cert_der).map_err(|e| {
+            CertificateError::ParsingError(format!("Failed to parse certificate: {e}"))
         })?;
 
-    let validity = &parsed.tbs_certificate.validity;
-    let not_before = validity.not_before.to_datetime();
-    let not_after = validity.not_after.to_datetime();
+        let subject = &parsed.tbs_certificate.subject;
+        let serial = parsed.raw_serial_as_string();
 
-    Ok(CertificateInfo {
-        subject_common_name: cn.to_string(),
-        not_before: chrono::DateTime::from_timestamp(not_before.unix_timestamp(), 0)
-            .ok_or_else(|| {
-                CertificateError::ParsingError(format!(
-                    "Failed to convert certificate not_before {not_before} to NaiveDateTime",
-                ))
-            })?
-            .naive_utc(),
-        not_after: chrono::DateTime::from_timestamp(not_after.unix_timestamp(), 0)
-            .ok_or_else(|| {
-                CertificateError::ParsingError(format!(
-                    "Failed to convert certificate not_after {not_after} to NaiveDateTime",
-                ))
-            })?
-            .naive_utc(),
-        serial,
-    })
+        let cn = subject
+            .iter_common_name()
+            .next()
+            .ok_or_else(|| CertificateError::ParsingError("Common Name not found".to_string()))?
+            .as_str()
+            .map_err(|e| {
+                CertificateError::ParsingError(format!("Failed to parse CN as string: {e}"))
+            })?;
+
+        let validity = &parsed.tbs_certificate.validity;
+        let not_before = validity.not_before.to_datetime();
+        let not_after = validity.not_after.to_datetime();
+
+        Ok(Self {
+            subject_common_name: cn.to_string(),
+            not_before: chrono::DateTime::from_timestamp(not_before.unix_timestamp(), 0)
+                .ok_or_else(|| {
+                    CertificateError::ParsingError(format!(
+                        "Failed to convert certificate not_before {not_before} to NaiveDateTime",
+                    ))
+                })?
+                .naive_utc(),
+            not_after: chrono::DateTime::from_timestamp(not_after.unix_timestamp(), 0)
+                .ok_or_else(|| {
+                    CertificateError::ParsingError(format!(
+                        "Failed to convert certificate not_after {not_after} to NaiveDateTime",
+                    ))
+                })?
+                .naive_utc(),
+            serial,
+        })
+    }
 }
 
 pub struct Csr<'a> {

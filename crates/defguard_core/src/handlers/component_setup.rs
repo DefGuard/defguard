@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
-use defguard_certs::{der_to_pem, parse_certificate_info};
+use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
     auth::claims::Claims,
@@ -15,7 +15,8 @@ use defguard_common::{
             Settings,
             gateway::Gateway,
             proxy::Proxy,
-            settings::{InitialSetupStep, update_current_settings},
+            settings::InitialSetupStep,
+            wizard::{InitialSetupState, Wizard},
         },
     },
     types::proxy::ProxyControlMessage,
@@ -85,7 +86,8 @@ pub enum SetupStep {
 pub struct SetupResponse {
     #[serde(flatten)]
     pub step: SetupStep,
-    pub proxy_version: Option<String>,
+    /// Gateway or Edge version.
+    pub version: Option<String>,
     pub message: Option<String>,
     pub logs: Option<Vec<String>>,
     pub error: bool,
@@ -121,7 +123,7 @@ fn fallback_message(err: &str, last_step: SetupStep) -> String {
 fn error_message(message: &str, last_step: SetupStep, logs: Option<Vec<String>>) -> Event {
     let response = SetupResponse {
         step: last_step,
-        proxy_version: None,
+        version: None,
         message: Some(message.to_string()),
         logs,
         error: true,
@@ -136,7 +138,7 @@ fn error_message(message: &str, last_step: SetupStep, logs: Option<Vec<String>>)
 fn set_step_message(next_step: SetupStep) -> Event {
     let response = SetupResponse {
         step: next_step,
-        proxy_version: None,
+        version: None,
         message: None,
         logs: None,
         error: false,
@@ -200,10 +202,13 @@ pub async fn setup_proxy_tls_stream(
             match Proxy::list(&pool).await {
                 Ok(current_proxies) => {
                     if !current_proxies.is_empty() {
-                        yield Ok(flow.error("Enterprise license is required for connecting more then one edge."));
+                        yield Ok(flow.error(
+                            "Enterprise license is required for connecting more \
+                            then one Edge.",
+                        ));
                         return;
                     }
-                },
+                }
                 Err(e) => {
                     yield Ok(flow.error(&format!("Failed to query existing proxies: {e}")));
                     return;
@@ -212,21 +217,32 @@ pub async fn setup_proxy_tls_stream(
         }
 
         // Step 1: Check configuration
-        yield Ok(
-            flow.step(SetupStep::CheckingConfiguration)
-        );
+        yield Ok(flow.step(SetupStep::CheckingConfiguration));
 
-        match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
+        match Proxy::find_by_address_port(
+            &pool,
+            &request.ip_or_domain,
+            i32::from(request.grpc_port),
+        )
+        .await
+        {
             Ok(Some(proxy)) => {
-               yield Ok(flow.error(&format!("An edge Proxy with address {}:{} is already registered with name \"{}\".", request.ip_or_domain, request.grpc_port, proxy.name)));
-               return;
+                yield Ok(flow.error(&format!(
+                    "An edge Proxy with address {}:{} is already \
+                   registered with name \"{}\".",
+                    request.ip_or_domain, request.grpc_port, proxy.name
+                )));
+                return;
             }
             Ok(None) => {
-                debug!("Verified no existing proxy registration for {}:{}", request.ip_or_domain, request.grpc_port);
-            },
+                debug!(
+                    "Verified no existing proxy registration for {}:{}",
+                    request.ip_or_domain, request.grpc_port
+                );
+            }
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to query existing proxy: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to query existing proxy: {e}")));
+                return;
             }
         }
 
@@ -240,7 +256,7 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
-        debug!("Successfully validated proxy address: {}", url_str);
+        debug!("Successfully validated Edge address: {url_str}",);
 
         let endpoint = match Endpoint::from_shared(url_str) {
             Ok(e) => e,
@@ -282,7 +298,10 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
-        debug!("Prepared secure connection endpoint for proxy at {}:{}", request.ip_or_domain, request.grpc_port);
+        debug!(
+            "Prepared secure connection endpoint for Edge at {}:{}",
+            request.ip_or_domain, request.grpc_port
+        );
 
         let version = match Version::parse(VERSION) {
             Ok(v) => v,
@@ -293,10 +312,7 @@ pub async fn setup_proxy_tls_stream(
         };
 
         // Step 2: Check availability
-        yield Ok(
-            flow.step(SetupStep::CheckingAvailability)
-        );
-
+        yield Ok(flow.step(SetupStep::CheckingAvailability));
 
         let version_clone = version.clone();
 
@@ -315,7 +331,7 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
-        debug!("Generated secure setup token for proxy authentication");
+        debug!("Generated secure setup token for Edge authentication");
 
         let version_interceptor = ClientVersionInterceptor::new(version);
         let auth_interceptor = AuthInterceptor::new(token);
@@ -323,55 +339,59 @@ pub async fn setup_proxy_tls_stream(
         let mut client = ProxySetupClient::with_interceptor(
             endpoint.connect_lazy(),
             move |mut req: Request<()>| {
-            req = version_interceptor.clone().call(req)?;
-            auth_interceptor.clone().call(req)
-            }
+                req = version_interceptor.clone().call(req)?;
+                auth_interceptor.clone().call(req)
+            },
         );
 
-        debug!("Initiating connection to edge proxy at {}:{}", request.ip_or_domain, request.grpc_port);
+        debug!(
+            "Initiating connection to Edge at {}:{}",
+            request.ip_or_domain, request.grpc_port
+        );
 
-        let response_with_metadata = match tokio::time::timeout(
-            CONNECTION_TIMEOUT,
-            client.start(())
-        ).await {
-            Ok(Ok(r)) => r,
-            Ok(Err(e)) => {
-                match e.code() {
-                    tonic::Code::Unavailable => {
-                        let error_msg = e.to_string();
-                        if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
-                        yield Ok(flow.error(&format!(
-                            "Failed to connect to edge proxy at {}:{}: {}. This may indicate that the proxy is already configured with TLS. Please check if the proxy has already been set up.",
+        let response_with_metadata =
+            match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
+                Ok(Ok(r)) => r,
+                Ok(Err(e)) => {
+                    match e.code() {
+                        tonic::Code::Unavailable => {
+                            let error_msg = e.to_string();
+                            if error_msg.contains("h2 protocol error")
+                                || error_msg.contains("http2 error")
+                            {
+                                yield Ok(flow.error(&format!(
+                            "Failed to connect to Edge at {}:{}: {}. This may indicate that \
+                            the Edge is already configured with TLS. Please check if the Edge \
+                            has already been set up.",
                             request.ip_or_domain, request.grpc_port, e
                         )));
-                        } else {
-                        yield Ok(flow.error(&format!(
-                            "Failed to connect to edge proxy at {}:{}. Please ensure the address and port are correct and that the edge component is running.",
+                            } else {
+                                yield Ok(flow.error(&format!(
+                            "Failed to connect to Edge at {}:{}. Please ensure the address \
+                            and port are correct and that the Edge component is running.",
                             request.ip_or_domain, request.grpc_port
                         )));
+                            }
+                        }
+                        _ => {
+                            yield Ok(flow.error(&format!("Failed to connect to Edge: {e}")));
                         }
                     }
-                    _ => {
-                        yield Ok(flow.error(&format!("Failed to connect to edge proxy: {e}")));
-                    }
+                    return;
                 }
-                return;
-            }
-            Err(_) => {
-                yield Ok(flow.error(&format!(
-                    "Connection to edge proxy at {}:{} timed out after 10 seconds.",
-                    request.ip_or_domain, request.grpc_port
-                )));
-                return;
-            }
-        };
+                Err(_) => {
+                    yield Ok(flow.error(&format!(
+                        "Connection to Edge at {}:{} timed out after 10 seconds.",
+                        request.ip_or_domain, request.grpc_port
+                    )));
+                    return;
+                }
+            };
 
-        debug!("Successfully connected to edge proxy");
+        debug!("Successfully connected to Edge");
 
         // Step 3: Check version
-        yield Ok(
-            flow.step(SetupStep::CheckingVersion)
-        );
+        yield Ok(flow.step(SetupStep::CheckingVersion));
 
         let proxy_version = response_with_metadata
             .metadata()
@@ -381,22 +401,26 @@ pub async fn setup_proxy_tls_stream(
             .transpose()
             .unwrap_or(None);
 
-        debug!("Proxy metadata: {:?}", response_with_metadata.metadata());
-        debug!("Proxy version: {:?}", proxy_version);
+        debug!("Edge metadata: {:?}", response_with_metadata.metadata());
+        debug!("Edge version: {proxy_version:?}");
 
         if let Some(proxy_version) = proxy_version {
             if proxy_version < MIN_PROXY_VERSION {
                 yield Ok(flow.error(&format!(
-                    "Edge proxy version {proxy_version} is older than core version {version_clone}. Please update the edge component.",
+                    "Edge version {proxy_version} is older than Core version \
+                    {version_clone}. Please update the Edge component.",
                 )));
                 return;
             }
 
-            debug!("Edge proxy version {} is compatible with core version {}", proxy_version, version_clone);
+            debug!(
+                "Edge version {} is compatible with Core version {}",
+                proxy_version, version_clone
+            );
 
             let response = SetupResponse {
                 step: SetupStep::CheckingVersion,
-                proxy_version: Some(proxy_version.to_string()),
+                version: Some(proxy_version.to_string()),
                 message: None,
                 logs: None,
                 error: false,
@@ -404,17 +428,15 @@ pub async fn setup_proxy_tls_stream(
 
             match serde_json::to_string(&response) {
                 Ok(body) => {
-                    yield Ok(
-                        Event::default().data(body)
-                    );
-                },
+                    yield Ok(Event::default().data(body));
+                }
                 Err(e) => {
                     yield Ok(flow.error(&format!("Failed to serialize version response: {e}")));
                     return;
                 }
             }
         } else {
-            yield Ok(flow.error("Failed to determine edge proxy version"));
+            yield Ok(flow.error("Failed to determine Edge version"));
             return;
         }
 
@@ -423,26 +445,23 @@ pub async fn setup_proxy_tls_stream(
         let log_reader_task = tokio::spawn(async move {
             while let Some(log_entry) = response.next().await {
                 match log_entry {
-                Ok(entry) => {
-                    let level = entry.level
-                        .strip_prefix("Level(")
-                        .and_then(|s| s.strip_suffix(")"))
-                        .unwrap_or(&entry.level)
-                        .to_uppercase();
+                    Ok(entry) => {
+                        let level = entry
+                            .level
+                            .strip_prefix("Level(")
+                            .and_then(|s| s.strip_suffix(")"))
+                            .unwrap_or(&entry.level)
+                            .to_uppercase();
 
-
-                    let formatted = format!(
-                        "{} {} {}: message={}",
-                        entry.timestamp,
-                        level,
-                        entry.target,
-                        entry.message
-                    );
-                    if log_tx.send(formatted).is_err() {
-                    break;
+                        let formatted = format!(
+                            "{} {} {}: message={}",
+                            entry.timestamp, level, entry.target, entry.message
+                        );
+                        if log_tx.send(formatted).is_err() {
+                            break;
+                        }
                     }
-                }
-                Err(e) => {
+                    Err(e) => {
                         let _ = log_tx.send(format!("Error reading log: {e}"));
                         break;
                     }
@@ -463,26 +482,28 @@ pub async fn setup_proxy_tls_stream(
 
         let csr_response = match client
             .get_csr(CertificateInfo {
-            cert_hostname: hostname.to_string(),
+                cert_hostname: hostname.to_string(),
             })
             .await
         {
             Ok(r) => r.into_inner(),
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
+                return;
             }
         };
 
         let csr = match defguard_certs::Csr::from_der(&csr_response.der_data) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
+                return;
             }
         };
 
-        debug!("Received certificate signing request from edge proxy for hostname: {}", hostname);
+        debug!(
+            "Received certificate signing request from Edge for hostname: {hostname}"
+        );
 
         // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
@@ -505,8 +526,8 @@ pub async fn setup_proxy_tls_stream(
         ) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to create CA: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to create CA: {e}")));
+                return;
             }
         };
 
@@ -515,12 +536,12 @@ pub async fn setup_proxy_tls_stream(
         let cert = match ca.sign_csr(&csr) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
+                return;
             }
         };
 
-        debug!("Successfully signed certificate for edge proxy");
+        debug!("Successfully signed certificate for Edge");
 
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
@@ -534,64 +555,80 @@ pub async fn setup_proxy_tls_stream(
             return;
         }
 
-        debug!("Certificate successfully delivered to edge proxy");
+        debug!("Certificate successfully delivered to Edge");
 
         let defguard_certs::CertificateInfo {
             not_after: expiry,
             serial,
             ..
-        } = match parse_certificate_info(cert.der()) {
-            Ok(dt) => {
-            dt
-            },
+        } = match defguard_certs::CertificateInfo::from_der(cert.der()) {
+            Ok(dt) => dt,
             Err(err) => {
-            yield Ok(flow.error(&format!("Failed to get certificate expiry: {err}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to get certificate expiry: {err}")));
+                return;
             }
         };
 
-        debug!("Certificate expiry date determined: {}", expiry);
+        debug!("Certificate expiry date determined: {expiry}");
 
         let mut proxy = Proxy::new(
             &request.common_name,
             &request.ip_or_domain,
             i32::from(request.grpc_port),
-            session.user.id,
+            &session.user.fullname(),
         );
 
         proxy.certificate = Some(serial);
         proxy.certificate_expiry = Some(expiry);
 
-
         let proxy = match proxy.save(&pool).await {
             Ok(p) => p,
             Err(err) => {
-            yield Ok(flow.error(&format!("Failed to save proxy to database: {err}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to save Edge to database: {err}")));
+                return;
             }
         };
 
-        debug!("Edge proxy '{}' registered successfully with ID: {}", request.common_name, proxy.id);
-        debug!("Establishing connection to newly configured edge proxy");
+        debug!(
+            "Edge '{}' registered successfully with ID: {}",
+            request.common_name, proxy.id
+        );
+        debug!("Establishing connection to newly configured Edge");
         if let Some(proxy_control_tx) = proxy_control_tx {
-            if let Err(err) = proxy_control_tx.send(ProxyControlMessage::StartConnection(proxy.id)).await {
-                yield Ok(flow.error(&format!("Failed send message to connect to proxy after setup: {err}")));
+            if let Err(err) = proxy_control_tx
+                .send(ProxyControlMessage::StartConnection(proxy.id))
+                .await
+            {
+                yield Ok(flow.error(&format!(
+                    "Failed send message to connect to Edge after setup: {err}"
+                )));
                 return;
             }
         } else {
-            debug!("Proxy control channel not available; skipping connection initiation");
+            debug!("Edge control channel not available; skipping connection initiation");
         }
 
-        debug!("Edge proxy setup completed successfully");
+        debug!("Edge setup completed successfully");
 
-        let mut settings = Settings::get_current_settings();
-        if !settings.initial_setup_completed {
-            settings.initial_setup_step = InitialSetupStep::Confirmation;
-            if let Err(err) = update_current_settings(&pool, settings).await {
-                yield Ok(flow.error(&format!("Failed to update setup step in settings: {err}")));
-                return;
+        {
+            match Wizard::get(&pool).await {
+                Ok(mut wizard) => {
+                if !wizard.completed {
+                    wizard.initial_setup_state = Some(InitialSetupState {
+                        step: InitialSetupStep::Confirmation,
+                    });
+                        if let Err(err) = wizard.save(&pool).await {
+                            yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
+                            return;
+                        }
+                        debug!("Initial setup step advanced to 'Confirmation'");
+                    }
+                }
+                Err(err) => {
+                    yield Ok(flow.error(&format!("Failed to fetch wizard state: {err}")));
+                    return;
+                }
             }
-            debug!("Initial setup step advanced to 'Finished'");
         }
 
         // Step 7: Done
@@ -641,15 +678,17 @@ pub async fn setup_gateway_tls_stream(
 
         match Gateway::find_by_url(&pool, &request.ip_or_domain, request.grpc_port).await {
             Ok(Some(gateway)) => {
-               yield Ok(flow.error(&format!("A Gateway with URL {}:{} is already registered with name \"{}\".", request.ip_or_domain, request.grpc_port, gateway.name)));
+               yield Ok(flow.error(&format!("A Gateway with URL {}:{} is already registered with \
+                   name \"{}\".", request.ip_or_domain, request.grpc_port, gateway.name)));
                return;
             }
             Ok(None) => {
-                debug!("Verified no existing Gateway registration for {}:{}", request.ip_or_domain, request.grpc_port);
+                debug!("Verified no existing Gateway registration for {}:{}", request.ip_or_domain,
+                    request.grpc_port);
             },
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to query existing Gateway: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to query existing Gateway: {e}")));
+                return;
             }
         }
 
@@ -662,7 +701,7 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Successfully validated Gateway address: {}", url_str);
+        debug!("Successfully validated Gateway address: {url_str}");
 
         let endpoint = match Endpoint::from_shared(url.to_string()) {
             Ok(e) => e,
@@ -704,7 +743,8 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Prepared secure connection endpoint for Gateway at {}:{}", request.ip_or_domain, request.grpc_port);
+        debug!("Prepared secure connection endpoint for Gateway at {}:{}", request.ip_or_domain,
+            request.grpc_port);
 
         let version = match Version::parse(VERSION) {
             Ok(v) => v,
@@ -749,7 +789,8 @@ pub async fn setup_gateway_tls_stream(
             }
         );
 
-        debug!("Initiating connection to edge Gateway at {}:{}", request.ip_or_domain, request.grpc_port);
+        debug!("Initiating connection to Gateway at {}:{}", request.ip_or_domain,
+            request.grpc_port);
 
         let response_with_metadata = match tokio::time::timeout(
             CONNECTION_TIMEOUT,
@@ -761,13 +802,16 @@ pub async fn setup_gateway_tls_stream(
                     tonic::Code::Unavailable => {
                         let error_msg = e.to_string();
                         if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
-                        yield Ok(flow.error(&format!(
-                            "Failed to connect to Gateway at {}:{}: {}. This may indicate that the Gateway is already configured with TLS. Please check if the Gateway has already been set up.",
-                            request.ip_or_domain, request.grpc_port, e
-                        )));
+                            yield Ok(flow.error(&format!(
+                                "Failed to connect to Gateway at {}:{}: {e}. This may indicate \
+                                that the Gateway is already configured with TLS. Please check if \
+                                the Gateway has already been set up.",
+                                request.ip_or_domain, request.grpc_port,
+                            )));
                         } else {
                         yield Ok(flow.error(&format!(
-                            "Failed to connect to Gateway at {}:{}. Please ensure the address and port are correct and that the Gateway is running.",
+                            "Failed to connect to Gateway at {}:{}. Please ensure the address and \
+                            port are correct and that the Gateway is running.",
                             request.ip_or_domain, request.grpc_port
                         )));
                         }
@@ -794,7 +838,7 @@ pub async fn setup_gateway_tls_stream(
             flow.step(SetupStep::CheckingVersion)
         );
 
-        let proxy_version = response_with_metadata
+        let gateway_version = response_with_metadata
             .metadata()
             .get(defguard_version::VERSION_HEADER)
             .and_then(|v| v.to_str().ok())
@@ -802,22 +846,24 @@ pub async fn setup_gateway_tls_stream(
             .transpose()
             .unwrap_or(None);
 
-        debug!("Proxy metadata: {:?}", response_with_metadata.metadata());
-        debug!("Proxy version: {:?}", proxy_version);
+        debug!("Gateway metadata: {:?}", response_with_metadata.metadata());
+        debug!("Gateway version: {gateway_version:?}");
 
-        if let Some(proxy_version) = proxy_version {
-            if proxy_version < MIN_GATEWAY_VERSION {
+        if let Some(gateway_version) = gateway_version {
+            if gateway_version < MIN_GATEWAY_VERSION {
                 yield Ok(flow.error(&format!(
-                    "Gateway version {proxy_version} is older than core version {version_clone}. Please update the edge component.",
+                    "Gateway version {gateway_version} is older than Core version {version_clone}. \
+                    Please update the Gateway component.",
                 )));
                 return;
             }
 
-            debug!("Gateway version {} is compatible with core version {}", proxy_version, version_clone);
+            debug!("Gateway version {gateway_version} is compatible with Core version \
+                {version_clone}");
 
             let response = SetupResponse {
                 step: SetupStep::CheckingVersion,
-                proxy_version: Some(proxy_version.to_string()),
+                version: Some(gateway_version.to_string()),
                 message: None,
                 logs: None,
                 error: false,
@@ -844,26 +890,24 @@ pub async fn setup_gateway_tls_stream(
         let log_reader_task = tokio::spawn(async move {
             while let Some(log_entry) = response.next().await {
                 match log_entry {
-                Ok(entry) => {
-                    let level = entry.level
-                        .strip_prefix("Level(")
-                        .and_then(|s| s.strip_suffix(")"))
-                        .unwrap_or(&entry.level)
-                        .to_uppercase();
+                    Ok(entry) => {
+                        let level = entry.level
+                            .strip_prefix("Level(")
+                            .and_then(|s| s.strip_suffix(")"))
+                            .unwrap_or(&entry.level)
+                            .to_uppercase();
 
-
-                    let formatted = format!(
-                        "{} {} {}: message={}",
-                        entry.timestamp,
-                        level,
-                        entry.target,
-                        entry.message
-                    );
-                    if log_tx.send(formatted).is_err() {
-                    break;
+                        let formatted = format!(
+                            "{} {level} {}: message={}",
+                            entry.timestamp,
+                            entry.target,
+                            entry.message
+                        );
+                        if log_tx.send(formatted).is_err() {
+                            break;
+                        }
                     }
-                }
-                Err(e) => {
+                    Err(e) => {
                         let _ = log_tx.send(format!("Error reading log: {e}"));
                         break;
                     }
@@ -890,20 +934,20 @@ pub async fn setup_gateway_tls_stream(
         {
             Ok(r) => r.into_inner(),
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
+                return;
             }
         };
 
         let csr = match defguard_certs::Csr::from_der(&csr_response.der_data) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
+                return;
             }
         };
 
-        debug!("Received certificate signing request from Gateway for hostname: {}", hostname);
+        debug!("Received certificate signing request from Gateway for hostname: {hostname}");
 
         // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
@@ -926,8 +970,8 @@ pub async fn setup_gateway_tls_stream(
         ) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to create CA: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to create CA: {e}")));
+                return;
             }
         };
 
@@ -936,8 +980,8 @@ pub async fn setup_gateway_tls_stream(
         let cert = match ca.sign_csr(&csr) {
             Ok(c) => c,
             Err(e) => {
-            yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
-            return;
+                yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
+                return;
             }
         };
 
@@ -961,7 +1005,7 @@ pub async fn setup_gateway_tls_stream(
             not_after: expiry,
             serial,
             ..
-        } = match parse_certificate_info(cert.der()) {
+        } = match defguard_certs::CertificateInfo::from_der(cert.der()) {
             Ok(dt) => {
             dt
             },
@@ -971,14 +1015,14 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Certificate expiry date determined: {}", expiry);
+        debug!("Certificate expiry date determined: {expiry}");
 
         let mut gateway = Gateway::new(
             network_id,
             request.common_name,
             request.ip_or_domain,
             request.grpc_port.into(),
-            session.user.id,
+            session.user.fullname(),
         );
 
         gateway.certificate = Some(serial);

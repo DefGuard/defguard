@@ -118,7 +118,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
         });
       },
       initialize: (provider) => {
-        const initialProviderState = addExternalOpenIdStoreDefaults.providerState;
+        const initialProviderState = { ...addExternalOpenIdStoreDefaults.providerState };
         initialProviderState.name = provider;
         initialProviderState.kind = provider;
         if (provider !== OpenIdProviderKind.Custom) {
@@ -137,6 +137,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
             break;
         }
         set({
+          provider,
           activeStep: 'client-settings',
           providerState: initialProviderState,
         });

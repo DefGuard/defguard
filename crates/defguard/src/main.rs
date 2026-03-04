@@ -9,7 +9,7 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{Settings, settings::initialize_current_settings},
+        models::{ActiveWizard, Settings, Wizard, settings::initialize_current_settings},
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
@@ -33,7 +33,7 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::{migration::run_migration_web_server, setup::run_setup_web_server};
+use defguard_setup::{auto_adoption::attemp_auto_adoption, setup_server::run_setup_web_server, migration::run_migration_web_server,};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -96,15 +96,23 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // initialize default settings
     Settings::init_defaults(&pool).await?;
-
-    initialize_current_settings(&pool).await?;
-
+    Settings::ensure_secret_key(&pool, &config).await?;
     let wizard_flags = WizardFlags::init(&pool).await?;
     let mut ini_server_config = true;
+    // initialize global settings struct
+    initialize_current_settings(&pool).await?;
 
-    Settings::ensure_secret_key(&pool, &config).await?;
+    let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
+    let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
+    // FIXME: Merge logic conflict, migration wizard depended on WizardFlags, move this logic to Wizard
 
-    if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
+    if !wizard.completed {
+        if wizard.active_wizard == ActiveWizard::AutoAdoption {
+            if let Err(err) = attemp_auto_adoption(&pool, &config).await {
+                warn!("Failed to store startup auto-adoption states: {err}");
+            }
+        }
+
         if let Err(err) =
             run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
         {

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Suspense, useMemo, useState } from 'react';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
@@ -17,10 +18,12 @@ export const RulesPage = () => {
 
   const { data: rulesCount } = useQuery(getRulesCountQueryOptions);
 
+  const pendingCount = rulesCount?.pending ?? 0;
   const pendingTabTitle = useMemo(
-    () => `Pending${rulesCount?.pending ? ` (${rulesCount.pending})` : ''}`,
-    [rulesCount],
+    () => `Pending${pendingCount ? ` (${pendingCount})` : ''}`,
+    [pendingCount],
   );
+  const pendingIcon = pendingCount > 0 ? IconKind.AttentionFilled : undefined;
 
   const tabs = useMemo(
     (): TabsItem[] => [
@@ -33,13 +36,14 @@ export const RulesPage = () => {
       },
       {
         title: pendingTabTitle,
+        icon: pendingIcon,
         active: activeTab === RulesPageTab.Pending,
         onClick: () => {
           setActiveTab(RulesPageTab.Pending);
         },
       },
     ],
-    [activeTab, pendingTabTitle],
+    [activeTab, pendingIcon, pendingTabTitle],
   );
 
   return (

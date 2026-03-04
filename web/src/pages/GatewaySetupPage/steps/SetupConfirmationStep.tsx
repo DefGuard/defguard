@@ -18,12 +18,11 @@ export const SetupConfirmationStep = () => {
     useGatewayWizardStore.getState().start({ network_id: networkId });
   };
 
-  const handleFinish = () => {
-    navigate({ to: '/locations', replace: true }).then(() => {
-      setTimeout(() => {
-        useGatewayWizardStore.getState().reset();
-      }, 100);
-    });
+  const handleFinish = async () => {
+    await navigate({ to: '/locations', replace: true });
+    setTimeout(() => {
+      useGatewayWizardStore.getState().reset();
+    }, 100);
   };
 
   return (

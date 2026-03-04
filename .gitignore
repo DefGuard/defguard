@@ -16,3 +16,4 @@ ladle-build
 result/
 .aider*
 .env
+.zellij_layout.kdl

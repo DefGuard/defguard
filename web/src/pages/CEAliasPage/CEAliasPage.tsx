@@ -20,6 +20,7 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
@@ -141,6 +142,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       } else {
         await addAlias(toSend);
       }
+      Snackbar.default('Aliases added to Pending tab and awaiting deployment.');
       router.history.back();
     },
   });

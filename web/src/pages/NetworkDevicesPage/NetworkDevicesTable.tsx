@@ -46,7 +46,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
   const { mutate: deleteDevice } = useMutation({
     mutationFn: api.network_device.deleteDevice,
     meta: {
-      invalidate: ['device', 'network'],
+      invalidate: [['device', 'network'], ['network']],
     },
   });
 

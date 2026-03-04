@@ -45,8 +45,9 @@ const formSchema = z.object({
   port: z.number().nullable(),
   connected_at: z.string().nullable(),
   disconnected_at: z.string().nullable(),
+  enabled: z.boolean(),
   modified_at: z.string(),
-  modified_by: z.number(),
+  modified_by: z.string(),
   version: z.string().nullable(),
   location_id: z.number(),
 });
@@ -72,7 +73,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const { mutate: deleteGateway, isPending: deletePending } = useMutation({
     mutationFn: () => api.gateway.deleteGateway(gateway.id),
     meta: {
-      invalidate: ['gateway'],
+      invalidate: [['gateway'], ['network']],
     },
     onSuccess: () => {
       navigate({
@@ -97,8 +98,9 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
     },
     onSubmit: async ({ value }) => {
       await editGateway({
-        ...value,
         id: gateway.id,
+        name: value.name,
+        enabled: value.enabled,
       });
       form.reset(value);
     },
@@ -124,6 +126,10 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
             {(field) => <field.FormInput disabled label={m.gateway_edit_port()} />}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <form.AppField name="enabled">
+            {(field) => <field.FormCheckbox text={m.controls_enable()} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
         </EditPageFormSection>

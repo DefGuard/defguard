@@ -3,6 +3,7 @@ import { Suspense, useMemo, useState } from 'react';
 import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
@@ -16,6 +17,10 @@ export const DestinationsPage = () => {
   const [activeTab, setActiveTab] = useState<AclDeploymentStateValue>(
     AclDeploymentState.Applied,
   );
+
+  const pendingCount = destinationsCount?.pending ?? 0;
+  const pendingTitle = pendingCount ? `Pending (${pendingCount})` : 'Pending';
+  const pendingIcon = pendingCount > 0 ? IconKind.AttentionFilled : undefined;
 
   const tabs = useMemo(
     (): TabsItem[] => [
@@ -31,12 +36,11 @@ export const DestinationsPage = () => {
         onClick: () => {
           setActiveTab(AclDeploymentState.Modified);
         },
-        title: destinationsCount?.pending
-          ? `Pending (${destinationsCount.pending})`
-          : 'Pending',
+        title: pendingTitle,
+        icon: pendingIcon,
       },
     ],
-    [activeTab, destinationsCount],
+    [activeTab, pendingIcon, pendingTitle],
   );
 
   return (

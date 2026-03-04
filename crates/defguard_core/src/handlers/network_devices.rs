@@ -112,7 +112,7 @@ impl NetworkDeviceInfo {
 pub async fn download_network_device_config(
     _admin_role: AdminRole,
     State(appstate): State<AppState>,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
 ) -> Result<String, WebError> {
     debug!("Creating a WireGuard config for network device {device_id}.");
     let device =
@@ -145,7 +145,7 @@ pub async fn download_network_device_config(
 pub async fn get_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!(
@@ -233,7 +233,7 @@ impl IpAvailabilityCheckResult {
 
 pub(crate) async fn check_ip_availability(
     _admin_role: AdminRole,
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     State(appstate): State<AppState>,
     Json(check): Json<IpAvailabilityCheck>,
 ) -> ApiResult {
@@ -309,7 +309,7 @@ pub(crate) async fn check_ip_availability(
 
 pub(crate) async fn find_available_ips(
     _admin_role: AdminRole,
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id)
@@ -479,7 +479,7 @@ pub(crate) async fn start_network_device_setup(
 pub(crate) async fn start_network_device_setup_for_device(
     _admin_role: AdminRole,
     session: SessionInfo,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!(
@@ -673,7 +673,7 @@ pub async fn modify_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
     State(appstate): State<AppState>,
     Json(data): Json<ModifyNetworkDevice>,
 ) -> ApiResult {

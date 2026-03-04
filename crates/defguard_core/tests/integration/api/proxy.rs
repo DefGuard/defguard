@@ -17,7 +17,7 @@ async fn test_proxy_details(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051, 1)
+    let proxy = Proxy::new("test", "localhost", 50051, "admin")
         .save(&pool)
         .await
         .unwrap();
@@ -47,7 +47,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let mut proxy = Proxy::new("test", "localhost", 50051, 1)
+    let mut proxy = Proxy::new("test", "localhost", 50051, "DefGuard Administrator")
         .save(&pool)
         .await
         .unwrap();
@@ -55,6 +55,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     // Modify name
     let data = ProxyUpdateData {
         name: "modified".to_string(),
+        enabled: true,
     };
     let response = client
         .put(format!("/api/v1/proxy/{}", proxy.id))
@@ -97,7 +98,7 @@ async fn test_delete_proxy(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new proxy.
-    let proxy = Proxy::new("test", "localhost", 50051, 1)
+    let proxy = Proxy::new("test", "localhost", 50051, "admin")
         .save(&pool)
         .await
         .unwrap();

@@ -1,51 +1,86 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, type ParsedLocation, redirect } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
-import { SetupPage } from '../../pages/SetupPage/SetupPage';
-import { SetupPageStep, type SetupPageStepValue } from '../../pages/SetupPage/types';
-import { useSetupWizardStore } from '../../pages/SetupPage/useSetupWizardStore';
-import api from '../../shared/api/api';
-import type { InitialSetupStepValue } from '../../shared/api/types';
+import { AutoAdoptionSetupPage } from '../../pages/SetupPage/autoAdoption/AutoAdoptionSetupPage';
 import {
-  getSessionInfoQueryOptions,
-  getSettingsEssentialsQueryOptions,
-} from '../../shared/query';
+  AutoAdoptionSetupStep,
+  type AutoAdoptionSetupStepValue,
+} from '../../pages/SetupPage/autoAdoption/types';
+import { useAutoAdoptionSetupWizardStore } from '../../pages/SetupPage/autoAdoption/useAutoAdoptionSetupWizardStore';
+import { SetupPage } from '../../pages/SetupPage/initial/SetupPage';
+import {
+  SetupPageStep,
+  type SetupPageStepValue,
+} from '../../pages/SetupPage/initial/types';
+import { useSetupWizardStore } from '../../pages/SetupPage/initial/useSetupWizardStore';
+import api from '../../shared/api/api';
+import type {
+  AutoAdoptionAdoptionStepValue,
+  InitialSetupStepValue,
+} from '../../shared/api/types';
+import { useApp } from '../../shared/hooks/useApp';
+import { getSettingsEssentialsQueryOptions } from '../../shared/query';
 
-const requiresSetupAuth = (step: InitialSetupStepValue) =>
-  step !== 'Welcome' && step !== 'AdminUser';
+/// Whether the current wizard step requires an authenticated setup session.
+/// Both initial and auto-adoption wizards allow unauthenticated access
+/// only on `welcome` and `admin_user` steps.
+const requiresSetupAuth = (step: string) => step !== 'welcome' && step !== 'admin_user';
 
-const applyWizardStepFromServer = (step: InitialSetupStepValue) => {
-  const stepMap: Record<InitialSetupStepValue, SetupPageStepValue> = {
-    Welcome: SetupPageStep.AdminUser,
-    AdminUser: SetupPageStep.AdminUser,
-    GeneralConfiguration: SetupPageStep.GeneralConfig,
-    Ca: SetupPageStep.CertificateAuthority,
-    CaSummary: SetupPageStep.CASummary,
-    EdgeComponent: SetupPageStep.EdgeComponent,
-    Confirmation: SetupPageStep.Confirmation,
-    Finished: SetupPageStep.Confirmation,
-  };
-
-  useSetupWizardStore.setState({
-    activeStep: stepMap[step],
-    isOnWelcomePage: step === 'Welcome',
-  });
+/// Maps a backend initial-wizard step to the frontend step enum.
+const initialStepMap: Record<InitialSetupStepValue, SetupPageStepValue> = {
+  welcome: SetupPageStep.AdminUser,
+  admin_user: SetupPageStep.AdminUser,
+  general_configuration: SetupPageStep.GeneralConfig,
+  ca: SetupPageStep.CertificateAuthority,
+  ca_summary: SetupPageStep.CASummary,
+  edge_component: SetupPageStep.EdgeComponent,
+  confirmation: SetupPageStep.Confirmation,
+  finished: SetupPageStep.Confirmation,
 };
 
-const handleWizardRedirect = async ({ client }: { client: QueryClient }) => {
-  const sessionInfo = (await client.ensureQueryData(getSessionInfoQueryOptions)).data;
-  const settingsEssentials = (
-    await client.ensureQueryData(getSettingsEssentialsQueryOptions)
-  ).data;
+/// Maps a backend auto-adoption step to the frontend step enum.
+const autoAdoptionStepMap: Record<
+  AutoAdoptionAdoptionStepValue,
+  AutoAdoptionSetupStepValue
+> = {
+  welcome: AutoAdoptionSetupStep.AdminUser,
+  admin_user: AutoAdoptionSetupStep.AdminUser,
+  url_settings: AutoAdoptionSetupStep.UrlSettings,
+  vpn_settings: AutoAdoptionSetupStep.VpnSettings,
+  mfa_settings: AutoAdoptionSetupStep.MfaSetup,
+  summary: AutoAdoptionSetupStep.Summary,
+  finished: AutoAdoptionSetupStep.Summary,
+};
 
-  if (sessionInfo.wizard_flags?.initial_wizard_completed) {
-    throw redirect({
-      to: '/auth/login',
-      replace: true,
-    });
+const handleWizardRedirect = async ({
+  location,
+  client,
+}: {
+  location: ParsedLocation;
+  client: QueryClient;
+}): Promise<void> => {
+  const settingsEssentials = (await client.fetchQuery(getSettingsEssentialsQueryOptions))
+    .data;
+  useApp.setState({ settingsEssentials });
+
+  // Setup already completed, redirect away from wizard.
+  if (
+    settingsEssentials.initial_setup_completed &&
+    location.pathname.startsWith('/setup')
+  ) {
+    throw redirect({ to: '/auth/login', replace: true });
   }
 
-  if (requiresSetupAuth(settingsEssentials.initial_setup_step)) {
+  const { data: wizardState } = await api.initial_setup.getWizardState();
+  useApp.setState({ wizardState });
+
+  const isAutoAdoption = wizardState.active_wizard === 'auto_adoption';
+  const currentStep: string = isAutoAdoption
+    ? (wizardState.auto_adoption_state?.step ?? 'welcome')
+    : (wizardState.initial_setup_state?.step ?? 'welcome');
+
+  // Check if the current step requires setup authentication.
+  if (requiresSetupAuth(currentStep)) {
     try {
       await api.initial_setup.session();
     } catch (error) {
@@ -57,14 +92,38 @@ const handleWizardRedirect = async ({ client }: { client: QueryClient }) => {
     }
   }
 
-  applyWizardStepFromServer(settingsEssentials.initial_setup_step);
+  // Apply the server-provided step to the appropriate wizard store.
+  if (isAutoAdoption) {
+    useAutoAdoptionSetupWizardStore.setState({
+      activeStep: autoAdoptionStepMap[currentStep as AutoAdoptionAdoptionStepValue],
+      isAutoAdoptionFlowStarted: currentStep !== 'welcome',
+    });
+  } else {
+    const initialStep = (wizardState.initial_setup_state?.step ??
+      'welcome') as InitialSetupStepValue;
+    useSetupWizardStore.setState({
+      activeStep: initialStepMap[initialStep],
+      isOnWelcomePage: initialStep === 'welcome',
+    });
+  }
+};
+
+const SetupWizardRouter = () => {
+  const activeWizard = useApp((s) => s.wizardState?.active_wizard);
+
+  if (activeWizard === 'auto_adoption') {
+    return <AutoAdoptionSetupPage />;
+  }
+
+  return <SetupPage />;
 };
 
 export const Route = createFileRoute('/_wizard/setup')({
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     await handleWizardRedirect({
       client: context.queryClient,
+      location,
     });
   },
-  component: SetupPage,
+  component: SetupWizardRouter,
 });

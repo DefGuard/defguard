@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { ApplicationInfo, SessionInfo, SettingsEssentials } from '../api/types';
+import type { ApplicationInfo, SessionInfo, SettingsEssentials, WizardState } from '../api/types';
 
 type StoreValues = {
   navigationOpen: boolean;
   appInfo: ApplicationInfo;
   settingsEssentials?: SettingsEssentials;
   sessionInfo: SessionInfo;
+  wizardState?: WizardState;
 };
 
 type Store = StoreValues;
@@ -28,6 +29,7 @@ const defaults: StoreValues = {
     wizard_flags: null,
   },
   settingsEssentials: undefined,
+  wizardState: undefined,
 };
 
 export const useApp = create<Store>(() => ({ ...defaults }));
