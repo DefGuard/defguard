@@ -12,7 +12,9 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{config::DefGuardConfig,db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType};
+use crate::{
+    config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
+};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -90,23 +92,6 @@ impl LdapSyncStatus {
     pub fn is_out_of_sync(&self) -> bool {
         matches!(self, LdapSyncStatus::OutOfSync)
     }
-}
-
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type, PartialOrd)]
-#[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "initial_setup_step", rename_all = "snake_case")]
-pub enum InitialSetupStep {
-    #[default]
-    Welcome,
-    AdminUser,
-    GeneralConfiguration,
-    Ca,
-    CaSummary,
-    // Adoption is not present, since the proxy is saved
-    // only after completing adoption step.
-    EdgeComponent,
-    Confirmation,
-    Finished,
 }
 
 #[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
@@ -372,7 +357,7 @@ impl Settings {
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
+            public_proxy_url, \
             default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
@@ -457,25 +442,23 @@ impl Settings {
             ca_key_der = $49, \
             ca_cert_der = $50, \
             ca_expiry = $51, \
-            initial_setup_completed = $52, \
-            defguard_url = $53, \
-            default_admin_group_name = $54, \
-            authentication_period_days = $55, \
-            mfa_code_timeout_seconds = $56, \
-            public_proxy_url = $57, \
-            initial_setup_step = $58, \
-            default_admin_id = $59, \
-            auth_cookie_timeout_days = $60, \
-            secret_key = $61, \
-            webauthn_rp_id = $62, \
-            grpc_url = $63, \
-            disable_stats_purge = $64, \
-            stats_purge_frequency_hours = $65, \
-            stats_purge_threshold_days = $66, \
-            enrollment_token_timeout_hours = $67, \
-            password_reset_token_timeout_hours = $68, \
-            enrollment_session_timeout_minutes = $69, \
-            password_reset_session_timeout_minutes = $70 \
+            defguard_url = $52, \
+            default_admin_group_name = $53, \
+            authentication_period_days = $54, \
+            mfa_code_timeout_seconds = $55, \
+            public_proxy_url = $56, \
+            default_admin_id = $57, \
+            auth_cookie_timeout_days = $58, \
+            secret_key = $59, \
+            webauthn_rp_id = $60, \
+            grpc_url = $61, \
+            disable_stats_purge = $62, \
+            stats_purge_frequency_hours = $63, \
+            stats_purge_threshold_days = $64, \
+            enrollment_token_timeout_hours = $65, \
+            password_reset_token_timeout_hours = $66, \
+            enrollment_session_timeout_minutes = $67, \
+            password_reset_session_timeout_minutes = $68 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -688,9 +671,7 @@ impl Settings {
         let minute = 60;
         let hour = minute * 60;
         let day = hour * 24;
-        if let Some(auth_cookie_timeout) = config.auth_cookie_timeout {
-            self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
-        }
+        self.auth_cookie_timeout_days = (config.auth_cookie_timeout.as_secs() / day) as i32;
         if let Some(secret_key) = &config.secret_key {
             self.secret_key = Some(secret_key.expose_secret().to_string());
         }
@@ -738,19 +719,20 @@ impl Settings {
 
         info!("Updated Settings from DefguardConfig: {config:?}");
         Ok(())
-}
-
-/// Returns configured Edge Component URL with the correct callback path appended depending on auth flow type.
-pub fn edge_callback_url(&self, auth_flow_type: AuthFlowType) -> Result<Url, url::ParseError> {
-    let mut url = self.proxy_public_url()?;
-    // Append callback segments to the URL.
-    if let Ok(mut path_segments) = url.path_segments_mut() {
-        match auth_flow_type {
-            AuthFlowType::Enrollment => path_segments.extend(&["openid", "callback"]),
-            AuthFlowType::Mfa => path_segments.extend(&["openid", "mfa", "callback"]),
-        };
     }
-    Ok(url)
+
+    /// Returns configured Edge Component URL with the correct callback path appended depending on auth flow type.
+    pub fn edge_callback_url(&self, auth_flow_type: AuthFlowType) -> Result<Url, url::ParseError> {
+        let mut url = self.proxy_public_url()?;
+        // Append callback segments to the URL.
+        if let Ok(mut path_segments) = url.path_segments_mut() {
+            match auth_flow_type {
+                AuthFlowType::Enrollment => path_segments.extend(&["openid", "callback"]),
+                AuthFlowType::Mfa => path_segments.extend(&["openid", "mfa", "callback"]),
+            };
+        }
+        Ok(url)
+    }
 }
 
 #[derive(Serialize)]
@@ -762,7 +744,6 @@ pub struct SettingsEssentials {
     pub webhooks_enabled: bool,
     pub worker_enabled: bool,
     pub openid_enabled: bool,
-    pub initial_setup_completed: bool,
 }
 
 impl SettingsEssentials {
@@ -773,10 +754,8 @@ impl SettingsEssentials {
         query_as!(
             SettingsEssentials,
             "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
-			s.webhooks_enabled, s.worker_enabled, s.openid_enabled, \
-			COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\" \
+            s.webhooks_enabled, s.worker_enabled, s.openid_enabled \
 			FROM settings s \
-			LEFT JOIN wizard w ON TRUE \
 			WHERE s.id = 1 \
 			LIMIT 1"
         )

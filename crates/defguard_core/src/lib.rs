@@ -51,11 +51,11 @@ use handlers::{
     },
     updates::check_new_version,
     wireguard::all_gateways_status,
-    wizard::{get_migration_wizard_state, get_wizard_flags, update_migration_wizard_state},
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
 use regex::Regex;
+use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -245,11 +245,6 @@ pub fn build_webapp(
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
             .route("/updates", get(check_new_version))
-            .route("/wizard", get(get_wizard_flags))
-            .route(
-                "/wizard/migration",
-                get(get_migration_wizard_state).put(update_migration_wizard_state),
-            )
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -711,7 +706,11 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.ca_key_der = Some(ca.key_pair_der().to_vec());
     settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
     // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
-    settings.public_proxy_url = config.enrollment_url.to_string();
+    settings.public_proxy_url = config
+        .enrollment_url
+        .clone()
+        .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
+        .to_string();
     settings.defguard_url = config.url.to_string();
     update_current_settings(&pool, settings)
         .await
@@ -719,17 +718,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 
     // Mark wizard as completed for dev environment
     use defguard_common::db::models::{
-        settings::InitialSetupStep,
-        wizard::{ActiveWizard, InitialSetupState, Wizard},
+        initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+        wizard::{ActiveWizard, Wizard},
     };
     let wizard = Wizard {
         active_wizard: ActiveWizard::None,
         completed: true,
-        initial_setup_state: Some(InitialSetupState {
-            step: InitialSetupStep::Finished,
-        }),
-        auto_adoption_state: None,
-        migration_wizard_state: None,
     };
     // Ensure wizard is initialized, then overwrite with completed state
     let _ = Wizard::init(&pool, false).await;
@@ -737,6 +731,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .save(&pool)
         .await
         .expect("Failed to save wizard state for dev env");
+    InitialSetupState {
+        step: InitialSetupStep::Finished,
+    }
+    .save(&pool)
+    .await
+    .expect("Failed to save initial setup state for dev env");
 
     let mut transaction = pool
         .begin()

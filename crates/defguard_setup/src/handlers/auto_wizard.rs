@@ -3,7 +3,7 @@ use defguard_common::{
     db::models::{
         WireguardNetwork,
         settings::update_current_settings,
-        setup_auto_adoption::AutoAdoptionWizardStep,
+        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
         wireguard::LocationMfaMode,
         wizard::{ActiveWizard, Wizard},
     },
@@ -29,13 +29,10 @@ pub(crate) async fn advance_auto_wizard_to_step(
     pool: &PgPool,
     step: AutoAdoptionWizardStep,
 ) -> Result<(), WebError> {
-    let mut wizard = Wizard::get(pool).await?;
-    let auto_state = wizard
-        .auto_adoption_state
-        .get_or_insert_with(Default::default);
+    let mut auto_state = AutoAdoptionWizardState::get(pool).await?.unwrap_or_default();
     if auto_state.step < step {
         auto_state.step = step;
-        wizard.save(pool).await?;
+        auto_state.save(pool).await?;
         info!("Advanced auto wizard setup to step {step:?}");
     } else {
         debug!(
@@ -204,9 +201,6 @@ pub async fn set_mfa_settings(
 }
 
 pub async fn get_auto_adoption_result(Extension(pool): Extension<PgPool>) -> ApiResult {
-    let wizard = Wizard::get(&pool).await?;
-    Ok(ApiResponse::new(
-        json!(wizard.auto_adoption_state),
-        StatusCode::OK,
-    ))
+    let state = AutoAdoptionWizardState::get(&pool).await?;
+    Ok(ApiResponse::new(json!(state), StatusCode::OK))
 }

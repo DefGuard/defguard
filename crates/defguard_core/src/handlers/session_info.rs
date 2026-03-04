@@ -1,18 +1,15 @@
 use axum::{extract::State, http::StatusCode};
-use defguard_common::db::models::User;
+use defguard_common::db::models::{ActiveWizard, User, Wizard};
 use serde::Serialize;
 
 use super::{ApiResponse, ApiResult};
-use crate::{
-    appstate::AppState, auth::SessionExtractor, db::models::wizard_flags::WizardFlags,
-    error::WebError,
-};
+use crate::{appstate::AppState, auth::SessionExtractor, error::WebError};
 
 #[derive(Serialize)]
 struct SessionInfoResponse {
     authorized: bool,
     is_admin: bool,
-    wizard_flags: Option<WizardFlags>,
+    active_wizard: ActiveWizard,
 }
 
 pub async fn get_session_info(
@@ -20,18 +17,15 @@ pub async fn get_session_info(
     session: Result<SessionExtractor, WebError>,
 ) -> ApiResult {
     let pool = &appstate.pool;
-    let flags = WizardFlags::get(pool).await?;
+    let wizard = Wizard::get(pool).await?;
+    let active_wizard = wizard.active_wizard;
 
     let Ok(SessionExtractor(session)) = session else {
         return Ok(ApiResponse::json(
             SessionInfoResponse {
                 authorized: false,
                 is_admin: false,
-                wizard_flags: if flags.initial_wizard_in_progress {
-                    Some(flags)
-                } else {
-                    None
-                },
+                active_wizard,
             },
             StatusCode::OK,
         ));
@@ -42,7 +36,7 @@ pub async fn get_session_info(
             SessionInfoResponse {
                 authorized: false,
                 is_admin: false,
-                wizard_flags: None,
+                active_wizard,
             },
             StatusCode::OK,
         ));
@@ -54,7 +48,7 @@ pub async fn get_session_info(
         SessionInfoResponse {
             authorized: true,
             is_admin: user_admin,
-            wizard_flags: if user_admin { Some(flags) } else { None },
+            active_wizard: active_wizard,
         },
         StatusCode::OK,
     ))

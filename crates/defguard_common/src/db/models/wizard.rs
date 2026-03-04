@@ -1,12 +1,11 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, Type, types::Json};
+use sqlx::{PgExecutor, Type};
 use tracing::info;
 
 use super::{
-    migration_wizard::MigrationWizardState,
-    settings::InitialSetupStep,
+    initial_setup_wizard::{InitialSetupState, InitialSetupStep},
     setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
 };
 
@@ -32,11 +31,6 @@ impl fmt::Display for ActiveWizard {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InitialSetupState {
-    pub step: InitialSetupStep,
-}
-
 /// The wizard singleton row.
 ///
 /// `active_wizard` and `completed` are regular DB columns.
@@ -45,18 +39,6 @@ pub struct InitialSetupState {
 pub struct Wizard {
     pub active_wizard: ActiveWizard,
     pub completed: bool,
-    pub initial_setup_state: Option<InitialSetupState>,
-    pub auto_adoption_state: Option<AutoAdoptionWizardState>,
-    pub migration_wizard_state: Option<MigrationWizardState>,
-}
-
-/// Internal row type used for SQLx deserialization.
-struct WizardRow {
-    active_wizard: ActiveWizard,
-    completed: bool,
-    initial_setup_state: Option<Json<InitialSetupState>>,
-    auto_adoption_state: Option<Json<AutoAdoptionWizardState>>,
-    migration_wizard_state: Option<Json<MigrationWizardState>>,
 }
 
 impl Wizard {
@@ -64,36 +46,12 @@ impl Wizard {
     where
         E: PgExecutor<'e>,
     {
-        let initial_setup_state = self
-            .initial_setup_state
-            .as_ref()
-            .map(serde_json::to_value)
-            .transpose()
-            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
-        let auto_adoption_state = self
-            .auto_adoption_state
-            .as_ref()
-            .map(serde_json::to_value)
-            .transpose()
-            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
-        let migration_wizard_state = self
-            .migration_wizard_state
-            .as_ref()
-            .map(serde_json::to_value)
-            .transpose()
-            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
-
         sqlx::query(
-            "UPDATE wizard SET active_wizard = $1, completed = $2, \
-			 initial_setup_state = $3, auto_adoption_state = $4, \
-			 migration_wizard_state = $5 \
+            "UPDATE wizard SET active_wizard = $1, completed = $2
 			 WHERE is_singleton = TRUE",
         )
         .bind(self.active_wizard)
         .bind(self.completed)
-        .bind(initial_setup_state)
-        .bind(auto_adoption_state)
-        .bind(migration_wizard_state)
         .execute(executor)
         .await?;
 
@@ -104,13 +62,9 @@ impl Wizard {
     where
         E: PgExecutor<'e>,
     {
-        let row = sqlx::query_as!(
-            WizardRow,
+        let row = sqlx::query!(
             "SELECT active_wizard AS \"active_wizard!: ActiveWizard\", \
-			        completed, \
-			        initial_setup_state AS \"initial_setup_state: Json<InitialSetupState>\", \
-			        auto_adoption_state AS \"auto_adoption_state: Json<AutoAdoptionWizardState>\", \
-			        migration_wizard_state AS \"migration_wizard_state: Json<MigrationWizardState>\" \
+			        completed \
 			 FROM wizard \
 			 WHERE is_singleton = TRUE \
 			 LIMIT 1"
@@ -121,9 +75,6 @@ impl Wizard {
         Ok(Self {
             active_wizard: row.active_wizard,
             completed: row.completed,
-            initial_setup_state: row.initial_setup_state.map(|j| j.0),
-            auto_adoption_state: row.auto_adoption_state.map(|j| j.0),
-            migration_wizard_state: row.migration_wizard_state.map(|j| j.0),
         })
     }
 
@@ -191,25 +142,26 @@ impl Wizard {
     /// at or before `AdminUser`). All other wizard types (or steps past admin
     /// creation) require a valid session.
     #[must_use]
-    pub fn requires_auth(&self) -> bool {
+    pub async fn requires_auth<'e, E>(&self, executor: E) -> Result<bool, sqlx::Error>
+    where
+        E: PgExecutor<'e> + Copy,
+    {
         match self.active_wizard {
             ActiveWizard::Initial => {
-                let step = self
-                    .initial_setup_state
-                    .as_ref()
+                let step = InitialSetupState::get(executor)
+                    .await?
                     .map(|s| s.step)
                     .unwrap_or(InitialSetupStep::Welcome);
-                step > InitialSetupStep::AdminUser
+                Ok(step > InitialSetupStep::AdminUser)
             }
             ActiveWizard::AutoAdoption => {
-                let step = self
-                    .auto_adoption_state
-                    .as_ref()
+                let step = AutoAdoptionWizardState::get(executor)
+                    .await?
                     .map(|s| s.step)
                     .unwrap_or(AutoAdoptionWizardStep::Welcome);
-                step > AutoAdoptionWizardStep::AdminUser
+                Ok(step > AutoAdoptionWizardStep::AdminUser)
             }
-            _ => true,
+            _ => Ok(true),
         }
     }
 }
