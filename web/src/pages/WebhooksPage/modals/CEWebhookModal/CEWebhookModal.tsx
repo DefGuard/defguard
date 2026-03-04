@@ -77,13 +77,13 @@ const formSchema = z.object({
     ),
   token: z
     .string()
-    .min(1, m.form_error_required())
     .max(
       250,
       m.form_error_max_len({
         length: 250,
       }),
-    ),
+    )
+    .nullable(),
   enabled: z.boolean(),
   on_user_created: z.boolean(),
   on_user_deleted: z.boolean(),
@@ -98,7 +98,10 @@ const ModalContent = ({ webhook }: ModalData) => {
 
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(webhook)) {
-      return webhook;
+      return {
+        ...webhook,
+        token: webhook.token || null,
+      };
     }
     return {
       description: '',
@@ -107,7 +110,7 @@ const ModalContent = ({ webhook }: ModalData) => {
       on_user_created: false,
       on_user_deleted: false,
       on_user_modified: false,
-      token: '',
+      token: null,
       url: '',
     };
   }, [webhook]);
@@ -139,13 +142,14 @@ const ModalContent = ({ webhook }: ModalData) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      const payload = { ...value, token: value.token ?? '' };
       if (isEdit) {
         await editWebhook({
           id: webhook.id,
-          ...value,
+          ...payload,
         });
       } else {
-        await addWebhook(value);
+        await addWebhook(payload);
       }
     },
   });
@@ -172,7 +176,6 @@ const ModalContent = ({ webhook }: ModalData) => {
         <form.AppField name="token">
           {(field) => (
             <field.FormInput
-              required
               label={m.form_label_secret_token()}
               type="password"
             />
