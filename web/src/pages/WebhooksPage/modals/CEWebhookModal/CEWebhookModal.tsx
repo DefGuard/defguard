@@ -175,10 +175,7 @@ const ModalContent = ({ webhook }: ModalData) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="token">
           {(field) => (
-            <field.FormInput
-              label={m.form_label_secret_token()}
-              type="password"
-            />
+            <field.FormInput label={m.form_label_secret_token()} type="password" />
           )}
         </form.AppField>
         <Divider spacing={ThemeSpacing.Xl} />
