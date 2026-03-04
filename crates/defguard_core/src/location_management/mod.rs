@@ -165,6 +165,7 @@ pub async fn process_device_access_changes(
     // Loop through current device configurations; remove no longer allowed, readdress
     // when necessary; remove processed entry from all devices list initial list should
     // now contain only devices to be added.
+    let mut used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
     let mut events: Vec<GatewayEvent> = Vec::new();
     for device_network_config in currently_configured_devices {
         // Device is allowed and an IP was already assigned
@@ -177,10 +178,12 @@ pub async fn process_device_access_changes(
                     .assign_next_network_ip(
                         &mut *transaction,
                         location,
+                        &used_ips,
                         reserved_ips,
                         Some(&device_network_config.wireguard_ips),
                     )
                     .await?;
+                used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
                 events.push(GatewayEvent::DeviceModified(DeviceInfo {
                     device,
                     network_info: vec![DeviceNetworkInfo {
@@ -198,6 +201,8 @@ pub async fn process_device_access_changes(
                 device_network_config.device_id
             );
             device_network_config.delete(&mut *transaction).await?;
+            // Remove freed IPs so they can be reused by later assignments
+            used_ips.retain(|ip| !device_network_config.wireguard_ips.contains(ip));
             if let Some(device) =
                 Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
             {
@@ -217,12 +222,12 @@ pub async fn process_device_access_changes(
             }
         }
     }
-
     // Add configs for new allowed devices
     for device in allowed_devices.into_values() {
         let wireguard_network_device = device
-            .assign_next_network_ip(&mut *transaction, location, reserved_ips, None)
+            .assign_next_network_ip(&mut *transaction, location, &used_ips, reserved_ips, None)
             .await?;
+        used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
         events.push(GatewayEvent::DeviceCreated(DeviceInfo {
             device,
             network_info: vec![DeviceNetworkInfo {

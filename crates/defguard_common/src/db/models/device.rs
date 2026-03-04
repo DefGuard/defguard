@@ -1,4 +1,4 @@
-use std::{fmt, net::IpAddr};
+use std::{collections::HashSet, fmt, net::IpAddr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{NaiveDate, NaiveDateTime, Timelike, Utc};
@@ -820,20 +820,25 @@ impl Device<Id> {
     /// Assign the next available IP address in each subnet of the network to this device.
     ///
     /// For every CIDR block in `network.address`, this function:
-    /// 1. Iterates through the block's IPs in order.
-    /// 2. Skips any IP that:
-    ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or
-    ///    - Appears in the optional `reserved_ips`.
+    /// 1. If `current_ips` contains an IP that already falls within the subnet, reuses it
+    ///    immediately without consulting `used_ips` or scanning the address space.
+    /// 2. Otherwise, iterates through the block's IPs in order and skips any IP that is:
+    ///    - The network address, broadcast address, or the subnet's host IP (gateway), or
+    ///    - Present in `used_ips` (already assigned to another device), or
+    ///    - Present in the optional `reserved_ips`.
     /// 3. Selects the first remaining IP and records it.
     ///
     /// If any subnet has no valid, unassigned IP, the method returns `ModelError::CannotCreate`.
     ///
     /// # Parameters
     ///
-    /// - `transaction`: Active PostgreSQL connection to check and insert assignments.
+    /// - `transaction`: Active PostgreSQL connection used to persist the assignment.
     /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.
+    /// - `used_ips`: Set of IPs already assigned within the network (caller-maintained snapshot).
     /// - `reserved_ips`: Optional slice of IPs that must not be assigned, even if otherwise free.
-    /// - `current_ips`: Optional slice of IPs already assigned to the device - won't be reassigned if they are still valid.
+    /// - `current_ips`: Optional slice of IPs already assigned to this device. An IP that still
+    ///   falls within its subnet is reused as-is; only IPs that no longer fit their subnet are
+    ///   replaced.
     ///
     /// # Returns
     ///
@@ -843,6 +848,7 @@ impl Device<Id> {
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
+        used_ips: &HashSet<IpAddr>,
         reserved_ips: Option<&[IpAddr]>,
         current_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
@@ -872,15 +878,16 @@ impl Device<Id> {
             }
             let mut picked = None;
             for ip in address {
-                if network
-                    .can_assign_ips(transaction, &[ip], Some(self.id))
-                    .await
-                    .is_ok()
-                    && !reserved.contains(&ip)
-                {
-                    picked = Some(ip);
-                    break;
+                if ip == address.network() || ip == address.broadcast() || ip == address.ip() {
+                    continue;
                 }
+
+                if used_ips.contains(&ip) || reserved.contains(&ip) {
+                    continue;
+                }
+
+                picked = Some(ip);
+                break;
             }
 
             // Return error if no address can be assigned
@@ -1127,6 +1134,265 @@ mod test {
 
         let device = Device::new_with_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
         assert!(device.is_err());
+    }
+
+    /// Test that assign_next_network_ip correctly preserves or reassigns device IPs
+    /// when a network's address list changes.
+    /// Initial network: 10.0.0.0/8, 123.10.0.0/16, 123.123.123.0/24
+    /// Device IPs:      10.0.0.234,  123.10.33.44,  123.123.123.52
+    /// New network:     10.0.0.0/16, 123.12.0.0/16, 123.123.0.0/16
+    /// Expected:
+    ///  - 10.0.0.234     KEPT    (still within 10.0.0.0/16)
+    ///  - 123.10.33.44   CHANGED (not within 123.12.0.0/16)
+    ///  - 123.123.123.52 KEPT    (still within 123.123.0.0/16)
+    #[sqlx::test]
+    async fn test_assign_next_network_ip_preserves_matching_subnets(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let mut network = WireguardNetwork::default();
+        network
+            .try_set_address("10.0.0.1/8,123.10.0.1/16,123.123.123.1/24")
+            .unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "dev1".into(),
+            "key1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let ip = IpAddr::from_str("10.0.0.234").unwrap();
+        let ip2 = IpAddr::from_str("123.10.33.44").unwrap();
+        let ip3 = IpAddr::from_str("123.123.123.52").unwrap();
+        let initial_ips = vec![ip, ip2, ip3];
+
+        let mut conn = pool.acquire().await.unwrap();
+        WireguardNetworkDevice::new(network.id, device.id, initial_ips.clone())
+            .insert(&mut *conn)
+            .await
+            .unwrap();
+
+        let mut updated_network = network.clone();
+        updated_network.address = vec![
+            "10.0.0.0/16".parse::<IpNetwork>().unwrap(),
+            "123.12.0.0/16".parse::<IpNetwork>().unwrap(),
+            "123.123.0.0/16".parse::<IpNetwork>().unwrap(),
+        ];
+        updated_network.save(&mut *conn).await.unwrap();
+
+        let used_ips = updated_network
+            .all_used_ips_for_network(&mut conn)
+            .await
+            .unwrap();
+
+        let result = device
+            .assign_next_network_ip(
+                &mut conn,
+                &updated_network,
+                &used_ips,
+                None,
+                Some(&initial_ips),
+            )
+            .await
+            .unwrap();
+
+        let new_ips = &result.wireguard_ips;
+        assert_eq!(new_ips.len(), 3, "should have one IP per subnet");
+
+        assert!(
+            new_ips.contains(&ip),
+            "10.0.0.234 should be kept – it is still within 10.0.0.0/16; got {new_ips:?}"
+        );
+
+        assert!(
+            !new_ips.contains(&ip2),
+            "123.10.33.44 should be reassigned – not within 123.12.0.0/16; got {new_ips:?}"
+        );
+        let network: IpNetwork = "123.12.0.0/16".parse().unwrap();
+        assert!(
+            new_ips.iter().any(|ip| network.contains(*ip)),
+            "a new IP within 123.12.0.0/16 should be assigned; got {new_ips:?}"
+        );
+
+        assert!(
+            new_ips.contains(&ip3),
+            "123.123.123.52 should be kept – it is still within 123.123.0.0/16; got {new_ips:?}"
+        );
+    }
+    /// Initial:  10.0.0.0/8  | 10.1.0.5
+    /// Modified: 10.0.0.0/16 | 10.1.0.5 should be replaced with a 10.0.x.x address
+    #[sqlx::test]
+    async fn test_assign_next_network_ip_subnet_narrowed(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.0.0.1/8").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "dev1".into(),
+            "key1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let ip = IpAddr::from_str("10.1.0.5").unwrap();
+        let initial_ips = vec![ip];
+
+        let mut conn = pool.acquire().await.unwrap();
+        WireguardNetworkDevice::new(network.id, device.id, initial_ips.clone())
+            .insert(&mut *conn)
+            .await
+            .unwrap();
+
+        let mut updated_network = network.clone();
+        updated_network.address = vec!["10.0.0.0/16".parse::<IpNetwork>().unwrap()];
+        updated_network.save(&mut *conn).await.unwrap();
+
+        let used_ips = updated_network
+            .all_used_ips_for_network(&mut conn)
+            .await
+            .unwrap();
+
+        let result = device
+            .assign_next_network_ip(
+                &mut conn,
+                &updated_network,
+                &used_ips,
+                None,
+                Some(&initial_ips),
+            )
+            .await
+            .unwrap();
+
+        let new_ips = &result.wireguard_ips;
+        assert_eq!(new_ips.len(), 1, "should have one IP per subnet");
+
+        assert!(
+            !new_ips.contains(&ip),
+            "10.1.0.5 should be reassigned – outside narrowed 10.0.0.0/16; got {new_ips:?}"
+        );
+        let narrowed_net: IpNetwork = "10.0.0.0/16".parse().unwrap();
+        assert!(
+            new_ips.iter().all(|ip| narrowed_net.contains(*ip)),
+            "new IP must be within 10.0.0.0/16; got {new_ips:?}"
+        );
+    }
+
+    /// Initial:  123.123.123.0/24 | 123.123.123.254
+    /// Modified: 123.123.0.0/16   | 123.123.123.254 still fits
+    #[sqlx::test]
+    async fn test_assign_next_network_ip_still_valid_after_widening(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("123.123.123.1/24").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "dev1".into(),
+            "key1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let ip = IpAddr::from_str("123.123.123.254").unwrap();
+        let initial_ips = vec![ip];
+
+        let mut conn = pool.acquire().await.unwrap();
+        WireguardNetworkDevice::new(network.id, device.id, initial_ips.clone())
+            .insert(&mut *conn)
+            .await
+            .unwrap();
+
+        let mut updated_network = network.clone();
+        updated_network.address = vec!["123.123.0.0/16".parse::<IpNetwork>().unwrap()];
+        updated_network.save(&mut *conn).await.unwrap();
+
+        let used_ips = updated_network
+            .all_used_ips_for_network(&mut conn)
+            .await
+            .unwrap();
+
+        let result = device
+            .assign_next_network_ip(
+                &mut conn,
+                &updated_network,
+                &used_ips,
+                None,
+                Some(&initial_ips),
+            )
+            .await
+            .unwrap();
+
+        let new_ips = &result.wireguard_ips;
+        assert_eq!(new_ips.len(), 1, "should have one IP per subnet");
+
+        assert!(
+            new_ips.contains(&ip),
+            "123.123.123.254 should be preserved – still within widened 123.123.0.0/16; got {new_ips:?}"
+        );
     }
 
     #[test]

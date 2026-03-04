@@ -768,7 +768,10 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .await
             .expect("Could not save network")
     };
-
+    let used_ips = network
+        .all_used_ips_for_network(&mut transaction)
+        .await
+        .expect("Failed to query used IPs from database");
     if Device::find_by_pubkey(
         &mut *transaction,
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",
@@ -792,7 +795,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not save device");
         device
-            .assign_next_network_ip(&mut transaction, &network, None, None)
+            .assign_next_network_ip(&mut transaction, &network, &used_ips, None, None)
             .await
             .expect("Could not assign IP to device");
     }
