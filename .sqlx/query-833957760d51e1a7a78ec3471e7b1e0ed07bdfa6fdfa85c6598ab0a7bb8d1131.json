@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT active_wizard AS \"active_wizard!: ActiveWizard\", completed FROM wizard WHERE is_singleton = TRUE LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "active_wizard!: ActiveWizard",
+        "type_info": {
+          "Custom": {
+            "name": "active_wizard",
+            "kind": {
+              "Enum": [
+                "none",
+                "initial",
+                "auto_adoption",
+                "migration"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "completed",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "833957760d51e1a7a78ec3471e7b1e0ed07bdfa6fdfa85c6598ab0a7bb8d1131"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, s.webhooks_enabled, s.worker_enabled, s.openid_enabled, COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\" FROM settings s LEFT JOIN wizard w ON TRUE WHERE s.id = 1 LIMIT 1",
+  "query": "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, s.webhooks_enabled, s.worker_enabled, s.openid_enabled FROM settings s WHERE s.id = 1 LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -37,11 +37,6 @@
         "ordinal": 6,
         "name": "openid_enabled",
         "type_info": "Bool"
-      },
-      {
-        "ordinal": 7,
-        "name": "initial_setup_completed!",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -54,9 +49,8 @@
       false,
       false,
       false,
-      false,
-      null
+      false
     ]
   },
-  "hash": "e9121dafec5752d2941fb9bccdd7d229298a3cc2fb01f837be197c40ca4744fa"
+  "hash": "30a1277d09fa6fdceead2f1a8ef18c4b86cb921cb706d817caf3517c937486a0"
 }
