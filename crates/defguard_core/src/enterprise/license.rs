@@ -826,21 +826,22 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
+        let fullname = user.fullname();
 
-        Gateway::new(location.id, "Gateway 1", "localhost", 8000, user.id)
+        Gateway::new(location.id, "Gateway 1", "localhost", 8000, &fullname)
             .save(&pool)
             .await
             .unwrap();
-        Gateway::new(location.id, "Gateway 2", "localhost", 8001, user.id)
+        Gateway::new(location.id, "Gateway 2", "localhost", 8001, &fullname)
             .save(&pool)
             .await
             .unwrap();
 
-        Proxy::new("Proxy 1", "localhost", 9000, user.id)
+        Proxy::new("Proxy 1", "localhost", 9000, &fullname)
             .save(&pool)
             .await
             .unwrap();
-        Proxy::new("Proxy 2", "localhost", 9001, user.id)
+        Proxy::new("Proxy 2", "localhost", 9001, &fullname)
             .save(&pool)
             .await
             .unwrap();

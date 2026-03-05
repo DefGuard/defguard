@@ -51,8 +51,7 @@ async fn advance_initial_wizard_to_step(
     let current_step = wizard
         .initial_setup_state
         .as_ref()
-        .map(|s| s.step)
-        .unwrap_or(InitialSetupStep::Welcome);
+        .map_or(InitialSetupStep::Welcome, |s| s.step);
     if current_step < step {
         wizard.initial_setup_state = Some(InitialSetupState { step });
         wizard.save(pool).await?;

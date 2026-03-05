@@ -197,16 +197,14 @@ impl Wizard {
                 let step = self
                     .initial_setup_state
                     .as_ref()
-                    .map(|s| s.step)
-                    .unwrap_or(InitialSetupStep::Welcome);
+                    .map_or(InitialSetupStep::Welcome, |s| s.step);
                 step > InitialSetupStep::AdminUser
             }
             ActiveWizard::AutoAdoption => {
                 let step = self
                     .auto_adoption_state
                     .as_ref()
-                    .map(|s| s.step)
-                    .unwrap_or(AutoAdoptionWizardStep::Welcome);
+                    .map_or(AutoAdoptionWizardStep::Welcome, |s| s.step);
                 step > AutoAdoptionWizardStep::AdminUser
             }
             _ => true,

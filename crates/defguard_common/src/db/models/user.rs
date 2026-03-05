@@ -1160,6 +1160,7 @@ impl User<Id> {
         .await
     }
 
+    #[must_use] 
     pub fn fullname(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }

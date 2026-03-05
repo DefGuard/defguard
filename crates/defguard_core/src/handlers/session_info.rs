@@ -27,15 +27,14 @@ pub(crate) async fn get_session_info(
                 },
                 StatusCode::OK,
             ));
-        } else {
-            return Ok(ApiResponse::json(
-                SessionInfoResponse {
-                    authorized: false,
-                    wizard_flags: None,
-                },
-                StatusCode::OK,
-            ));
         }
+        return Ok(ApiResponse::json(
+            SessionInfoResponse {
+                authorized: false,
+                wizard_flags: None,
+            },
+            StatusCode::OK,
+        ));
     };
 
     let Some(user) = User::find_by_id(pool, session.user_id).await? else {
