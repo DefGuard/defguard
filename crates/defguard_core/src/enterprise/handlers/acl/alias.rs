@@ -82,6 +82,11 @@ pub struct ApiAclAlias {
     pub rules: Vec<Id>,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub(crate) struct ApplyAclAliasesData {
+    aliases: Vec<Id>,
+}
+
 impl ApiAclAlias {
     /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`].
     pub(crate) async fn create_from_api(
@@ -375,5 +380,38 @@ pub(crate) async fn delete_acl_alias(
             err
         })?;
     info!("User {} deleted ACL alias {id}", session.user.username);
+    Ok(ApiResponse::default())
+}
+
+/// Apply ACL aliases.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/alias/apply",
+    request_body = ApplyAclAliasesData,
+    responses(
+        (status = OK, description = "ACL alias"),
+    )
+)]
+pub(crate) async fn apply_acl_aliases(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApplyAclAliasesData>,
+) -> ApiResult {
+    debug!(
+        "User {} applying ACL aliases: {:?}",
+        session.user.username, data.aliases
+    );
+    AclAlias::apply_by_kind(&data.aliases, AliasKind::Component, &appstate)
+        .await
+        .map_err(|err| {
+            error!("Error applying ACL aliases {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} applied ACL aliases: {:?}",
+        session.user.username, data.aliases
+    );
     Ok(ApiResponse::default())
 }

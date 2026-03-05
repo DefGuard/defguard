@@ -16,7 +16,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::acl::{AclAlias, AclRule, AclRuleInfo, Protocol, RuleState},
+    enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol, RuleState},
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
@@ -204,10 +204,6 @@ pub(crate) struct ApplyAclRulesData {
     rules: Vec<Id>,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-pub(crate) struct ApplyAclAliasesData {
-    aliases: Vec<Id>,
-}
 
 #[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]
 pub struct AclStateCount {
@@ -440,39 +436,6 @@ pub(crate) async fn apply_acl_rules(
     info!(
         "User {} applied ACL rules: {:?}",
         session.user.username, data.rules
-    );
-    Ok(ApiResponse::default())
-}
-
-/// Apply ACL aliases.
-#[utoipa::path(
-    put,
-    path = "/api/v1/acl/alias/apply",
-    request_body = ApplyAclAliasesData,
-    responses(
-        (status = OK, description = "ACL alias"),
-    )
-)]
-pub(crate) async fn apply_acl_aliases(
-    _license: LicenseInfo,
-    _admin: AdminRole,
-    State(appstate): State<AppState>,
-    session: SessionInfo,
-    Json(data): Json<ApplyAclAliasesData>,
-) -> ApiResult {
-    debug!(
-        "User {} applying ACL aliases: {:?}",
-        session.user.username, data.aliases
-    );
-    AclAlias::apply_aliases(&data.aliases, &appstate)
-        .await
-        .map_err(|err| {
-            error!("Error applying ACL aliases {data:?}: {err}");
-            err
-        })?;
-    info!(
-        "User {} applied ACL aliases: {:?}",
-        session.user.username, data.aliases
     );
     Ok(ApiResponse::default())
 }

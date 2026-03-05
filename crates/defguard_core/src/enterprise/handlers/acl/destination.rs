@@ -96,6 +96,11 @@ pub struct ApiAclDestination {
     pub any_protocol: bool,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub(crate) struct ApplyAclDestinationsData {
+    destinations: Vec<Id>,
+}
+
 impl ApiAclDestination {
     /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`].
     pub(crate) async fn create_from_api(
@@ -409,6 +414,40 @@ pub(crate) async fn delete_acl_destination(
     info!(
         "User {} deleted ACL destination {id}",
         session.user.username
+    );
+    Ok(ApiResponse::default())
+}
+
+/// Apply ACL destinations.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/destination/apply",
+    request_body = ApplyAclDestinationsData,
+    responses(
+        (status = OK, description = "ACL destination"),
+    )
+)]
+pub(crate) async fn apply_acl_destinations(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApplyAclDestinationsData>,
+) -> ApiResult {
+    debug!(
+        "User {} applying ACL destinations: {:?}",
+        session.user.username, data.destinations
+    );
+
+    AclAlias::apply_by_kind(&data.destinations, AliasKind::Destination, &appstate)
+        .await
+        .map_err(|err| {
+            error!("Error applying ACL destinations {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} applied ACL destinations: {:?}",
+        session.user.username, data.destinations
     );
     Ok(ApiResponse::default())
 }

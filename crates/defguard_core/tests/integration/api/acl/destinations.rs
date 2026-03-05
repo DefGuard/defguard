@@ -384,16 +384,16 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
 
     // cannot apply already applied destination
     let response = client
-        .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": [1] }))
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [1] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // apply modification
     let response = client
-        .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": [2] }))
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [2] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -491,8 +491,8 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
 
     // apply multiple destinations
     let response = client
-        .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": [4, 6] }))
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [4, 6] }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -631,4 +631,24 @@ async fn test_destination_requires_any_or_values(_: PgPoolOptions, options: PgCo
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn test_destination_apply_rejects_alias(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool, config).await;
+    authenticate_admin(&mut client).await;
+
+    let alias = make_alias();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

@@ -57,6 +57,8 @@ pub enum AclError {
     RuleAlreadyAppliedError(Id),
     #[error("AliasAlreadyAppliedError: {0}")]
     AliasAlreadyAppliedError(Id),
+    #[error("AliasKindMismatchError: {0} is not {1:?}")]
+    AliasKindMismatchError(Id, AliasKind),
     #[error("AliasUsedByRulesError: {0}")]
     AliasUsedByRulesError(Id),
     #[error(transparent)]
@@ -1560,13 +1562,21 @@ impl AclAlias {
         Ok(())
     }
 
-    /// Applies pending changes for all specified aliases
+    /// Applies pending changes for all specified aliases of a given kind
     ///
     /// # Errors
     ///
     /// - `AclError::AliasNotFoundError`
-    pub(crate) async fn apply_aliases(aliases: &[Id], appstate: &AppState) -> Result<(), AclError> {
-        debug!("Applying {} ACL aliases: {aliases:?}", aliases.len());
+    pub(crate) async fn apply_by_kind(
+        aliases: &[Id],
+        kind: AliasKind,
+        appstate: &AppState,
+    ) -> Result<(), AclError> {
+        debug!(
+            "Applying {} ACL aliases of kind {:?}: {aliases:?}",
+            aliases.len(),
+            kind
+        );
         let mut transaction = appstate.pool.begin().await?;
 
         // prepare variable for collecting affected rules
@@ -1574,9 +1584,9 @@ impl AclAlias {
         let mut affected_rules = Vec::new();
 
         for id in aliases {
-            let alias = AclAlias::find_by_id(&mut *transaction, *id)
+            let alias = AclAlias::find_by_id_and_kind(&mut *transaction, *id, kind.clone())
                 .await?
-                .ok_or_else(|| AclError::AliasNotFoundError(*id))?;
+                .ok_or_else(|| AclError::AliasKindMismatchError(*id, kind.clone()))?;
             // run `apply` before fetching relations, since they'll get updated
             alias.clone().apply(&mut transaction).await?;
 

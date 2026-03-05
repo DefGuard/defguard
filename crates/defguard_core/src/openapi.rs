@@ -1,13 +1,13 @@
 use defguard_common::{
     db::models::{
-        Device,
         device::{AddDevice, ModifyDevice, UserDevice},
+        Device,
     },
     types::user_info::UserInfo,
 };
 use utoipa::{
-    Modify, OpenApi,
     openapi::security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme},
+    Modify, OpenApi,
 };
 
 use super::{
@@ -17,12 +17,13 @@ use super::{
     },
     error::WebError,
     handlers::{
-        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, auth,
+        auth,
         group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, UserDetails},
         wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
     },
 };
 
@@ -97,7 +98,7 @@ use super::{
 		acl::alias::get_acl_alias,
 		acl::alias::update_acl_alias,
 		acl::alias::delete_acl_alias,
-		acl::apply_acl_aliases,
+		acl::alias::apply_acl_aliases,
 		// /acl/destination
 		acl::destination::list_acl_destinations,
 		acl::destination::count_acl_destinations,
@@ -105,6 +106,7 @@ use super::{
 		acl::destination::get_acl_destination,
 		acl::destination::update_acl_destination,
 		acl::destination::delete_acl_destination,
+		acl::destination::apply_acl_destinations,
     ),
     components(
         schemas(

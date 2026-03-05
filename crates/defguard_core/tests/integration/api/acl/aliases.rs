@@ -393,3 +393,27 @@ async fn test_alias_requires_any_value(_: PgPoolOptions, options: PgConnectOptio
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
+
+#[sqlx::test]
+async fn test_alias_apply_rejects_destination(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool, config).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .put("/api/v1/acl/alias/apply")
+        .json(&json!({ "aliases": [1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
