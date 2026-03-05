@@ -2,12 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect } from 'react';
 import z from 'zod';
-import { queryClient } from '../app/query';
 import api from '../shared/api/api';
-import { type User, UserMfaMethod } from '../shared/api/types';
+import { ActiveWizard, type User, UserMfaMethod } from '../shared/api/types';
 import { isPresent } from '../shared/defguard-ui/utils/isPresent';
 import { useAuth } from '../shared/hooks/useAuth';
-import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../shared/query';
+import { getSessionInfoQueryOptions } from '../shared/query';
 
 const basicSchema = z.object({
   url: z.string().nullable().optional(),
@@ -25,34 +24,16 @@ export const Route = createFileRoute('/auth')({
   beforeLoad: async ({ context }) => {
     const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
       .data;
-    if (sessionInfo.wizard_flags?.initial_wizard_in_progress) {
-      throw redirect({
-        to: '/setup',
-        replace: true,
-      });
-    }
-    if (sessionInfo.authorized) {
-      if (sessionInfo.wizard_flags?.migration_wizard_in_progress) {
-        throw redirect({
-          to: '/migration',
-          replace: true,
-        });
-      } else {
-        if (sessionInfo.isAdmin) {
-          throw redirect({
-            to: '/vpn-overview',
-            replace: true,
-          });
-        } else {
-          const me = (await queryClient.fetchQuery(getUserMeQueryOptions)).data;
-          throw redirect({
-            to: '/user/$username',
-            params: {
-              username: me.username,
-            },
-            replace: true,
-          });
-        }
+    if (sessionInfo.active_wizard) {
+      switch (sessionInfo.active_wizard) {
+        case 'initial':
+        case 'auto_adoption':
+          throw redirect({ to: '/setup', replace: true });
+        case 'migration':
+          if (sessionInfo.authorized && sessionInfo.isAdmin) {
+            throw redirect({ to: '/migration', replace: true });
+          }
+          break;
       }
     }
   },
@@ -97,7 +78,10 @@ function RouteComponent() {
           }),
         ]);
         const { data: sessionInfo } = await api.getSessionInfo();
-        if (sessionInfo.wizard_flags?.migration_wizard_in_progress) {
+        if (
+          sessionInfo.active_wizard &&
+          sessionInfo.active_wizard === ActiveWizard.Migration
+        ) {
           navigate({ to: '/migration', replace: true });
           return;
         }

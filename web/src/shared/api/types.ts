@@ -9,14 +9,6 @@ export type Resource = object & { id: number };
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
-
-export type WizardFlags = {
-  initial_wizard_in_progress: boolean;
-  initial_wizard_completed: boolean;
-  migration_wizard_completed: boolean;
-  migration_wizard_in_progress: boolean;
-};
-
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
 }
@@ -24,7 +16,8 @@ export interface MigrationWizardApiState {
 export interface SessionInfo {
   authorized: boolean;
   isAdmin: boolean;
-  wizard_flags: WizardFlags | null;
+  // if it's not null then wizard is in progress / complete = false
+  active_wizard: ActiveWizardValue | null;
 }
 
 export interface GatewayTokenResponse {
@@ -768,11 +761,24 @@ export type AutoAdoptionAdoptionStepValue =
   | 'summary'
   | 'finished';
 
-export type ActiveWizardValue = 'none' | 'initial' | 'auto_adoption' | 'migration';
-
 export interface SettingsEssentials {
-  initial_setup_completed: boolean;
+  instance_name: string;
+  main_logo_url: string;
+  nav_logo_url: string;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+  openid_enabled: boolean;
 }
+
+export const ActiveWizard = {
+  None: 'none',
+  Initial: 'initial',
+  AutoAdoption: 'auto_adoption',
+  Migration: 'migration',
+} as const;
+
+export type ActiveWizardValue = (typeof ActiveWizard)[keyof typeof ActiveWizard];
 
 export interface InitialSetupState {
   step: InitialSetupStepValue;

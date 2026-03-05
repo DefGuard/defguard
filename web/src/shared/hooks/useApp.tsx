@@ -1,11 +1,10 @@
 import { create } from 'zustand';
-import type { ApplicationInfo, SessionInfo, SettingsEssentials, WizardState } from '../api/types';
+import type { ApplicationInfo, SettingsEssentials, WizardState } from '../api/types';
 
 type StoreValues = {
   navigationOpen: boolean;
   appInfo: ApplicationInfo;
   settingsEssentials?: SettingsEssentials;
-  sessionInfo: SessionInfo;
   wizardState?: WizardState;
 };
 
@@ -22,11 +21,6 @@ const defaults: StoreValues = {
     network_present: false,
     smtp_enabled: false,
     version: '',
-  },
-  sessionInfo: {
-    authorized: false,
-    isAdmin: false,
-    wizard_flags: null,
   },
   settingsEssentials: undefined,
   wizardState: undefined,

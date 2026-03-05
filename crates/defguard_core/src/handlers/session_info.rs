@@ -9,7 +9,7 @@ use crate::{appstate::AppState, auth::SessionExtractor, error::WebError};
 struct SessionInfoResponse {
     authorized: bool,
     is_admin: bool,
-    active_wizard: ActiveWizard,
+    active_wizard: Option<ActiveWizard>,
 }
 
 pub async fn get_session_info(
@@ -18,7 +18,11 @@ pub async fn get_session_info(
 ) -> ApiResult {
     let pool = &appstate.pool;
     let wizard = Wizard::get(pool).await?;
-    let active_wizard = wizard.active_wizard;
+    let active_wizard = if wizard.completed {
+        None
+    } else {
+        Some(wizard.active_wizard)
+    };
 
     let Ok(SessionExtractor(session)) = session else {
         return Ok(ApiResponse::json(
