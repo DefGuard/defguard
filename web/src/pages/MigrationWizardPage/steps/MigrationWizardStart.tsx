@@ -1,15 +1,10 @@
 import { Controls } from '../../../shared/components/Controls/Controls';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { IconKind } from '../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { RenderMarkdown } from '../../../shared/defguard-ui/components/RenderMarkdown/RenderMarkdown';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../shared/defguard-ui/types';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 export const MigrationWizardStart = () => {
@@ -22,9 +17,12 @@ export const MigrationWizardStart = () => {
         text={`IMPORTANT: Until you finish this migration process your VPN Locations will not work!.`}
       />
       <SizedBox height={ThemeSpacing.Lg} />
-      <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
-        <RenderMarkdown content={`${explain1}</br></br>${explain2}`} />
-      </AppText>
+      <RenderMarkdown
+        containerProps={{
+          id: 'migration-start-md-block',
+        }}
+        content={`${explain1}</br></br>${explain2}`}
+      />
       <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
         <div className="left">
