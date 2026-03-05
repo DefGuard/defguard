@@ -500,7 +500,9 @@ async fn trim_gateways_and_edges(
 ) -> Result<(), LicenseError> {
     Gateway::leave_one_enabled(pool).await?;
 
-    for mut edge in Proxy::leave_one_enabled(pool).await? {
+    let edges = Proxy::leave_one_enabled(pool).await?;
+    let count = edges.len();
+    for mut edge in edges {
         edge.enabled = false;
         edge.save(pool).await?;
         if let Err(err) = proxy_control_tx
@@ -513,6 +515,8 @@ async fn trim_gateways_and_edges(
             );
         }
     }
+
+    debug!("Disabled {count} Edges");
 
     Ok(())
 }
