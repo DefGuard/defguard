@@ -22,11 +22,11 @@ async fn test_gateway_crud(_: PgPoolOptions, options: PgConnectOptions) {
     client.drain_all_events();
     client.drain_all_events();
 
-    let gateway_1 = Gateway::new(network.id, "gateway1", "127.0.0.1", 50051, 1)
+    let gateway_1 = Gateway::new(network.id, "gateway1", "127.0.0.1", 50051, "admin")
         .save(&client_state.pool)
         .await
         .unwrap();
-    let gateway_2 = Gateway::new(network.id, "gateway2", "1.2.3.1", 55555, 1)
+    let gateway_2 = Gateway::new(network.id, "gateway2", "1.2.3.1", 55555, "admin")
         .save(&client_state.pool)
         .await
         .unwrap();
@@ -91,7 +91,7 @@ async fn test_gateway_endpoints_require_admin(_: PgPoolOptions, options: PgConne
     let response = make_network(&client, "network").await;
     let network: WireguardNetwork<Id> = response.json().await;
 
-    let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, 1)
+    let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, "admin")
         .save(&client_state.pool)
         .await
         .unwrap();
@@ -137,7 +137,7 @@ async fn test_gateway_update_rejects_unknown_fields(_: PgPoolOptions, options: P
     let response = make_network(&client, "network").await;
     let network: WireguardNetwork<Id> = response.json().await;
 
-    let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, 1)
+    let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, "admin")
         .save(&client_state.pool)
         .await
         .unwrap();

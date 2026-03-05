@@ -1,8 +1,7 @@
 use std::net::SocketAddr;
 
 use chrono::{TimeDelta, Utc};
-use defguard_common::db::setup_pool;
-use defguard_common::messages::peer_stats_update::PeerStatsUpdate;
+use defguard_common::{db::setup_pool, messages::peer_stats_update::PeerStatsUpdate};
 use defguard_session_manager::{
     SESSION_UPDATE_INTERVAL, events::SessionManagerEventType, run_session_manager_iteration,
 };
@@ -21,7 +20,7 @@ async fn test_session_manager_emits_connected_event(_: PgPoolOptions, options: P
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.id).await;
+    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
 
     let mut harness = SessionManagerHarness::new(pool);
 

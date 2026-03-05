@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -14,6 +15,7 @@ import { useGatewayWizardStore } from '../useGatewayWizardStore';
 import type { SetupEvent, SetupStep, SetupStepId } from './types';
 
 export const SetupGatewayAdoptionStep = () => {
+  const queryClient = useQueryClient();
   const setActiveStep = useGatewayWizardStore((s) => s.setActiveStep);
   const gatewayComponentWizardStore = useGatewayWizardStore((s) => s);
   const gatewayAdoptionState = useGatewayWizardStore((s) => s.gatewayAdoptionState);
@@ -34,8 +36,15 @@ export const SetupGatewayAdoptionStep = () => {
           : null,
         gatewayLogs: event.logs && event.logs.length > 0 ? [...event.logs] : [],
       });
+
+      if (event.step === 'Done') {
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['gateway'] }),
+          queryClient.invalidateQueries({ queryKey: ['network'] }),
+        ]);
+      }
     },
-    [setGatewayAdoptionState],
+    [queryClient, setGatewayAdoptionState],
   );
 
   const sse = useSSEController<SetupEvent>(

@@ -1,7 +1,7 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { EdgeAdoptionState } from '../EdgeSetupPage/types';
+import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import { type CAOptionType, SetupPageStep, type SetupPageStepValue } from './types';
 
 const edgeAdoptionStateDefaults: EdgeAdoptionState = {

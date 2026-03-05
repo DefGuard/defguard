@@ -15,7 +15,8 @@ use defguard_common::{
             Settings,
             gateway::Gateway,
             proxy::Proxy,
-            settings::{InitialSetupStep, update_current_settings},
+            settings::InitialSetupStep,
+            wizard::{InitialSetupState, Wizard},
         },
     },
     types::proxy::ProxyControlMessage,
@@ -574,7 +575,7 @@ pub async fn setup_proxy_tls_stream(
             &request.common_name,
             &request.ip_or_domain,
             i32::from(request.grpc_port),
-            session.user.id,
+            &session.user.fullname(),
         );
 
         proxy.certificate = Some(serial);
@@ -609,14 +610,25 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Edge setup completed successfully");
 
-        let mut settings = Settings::get_current_settings();
-        if !settings.initial_setup_completed {
-            settings.initial_setup_step = InitialSetupStep::Confirmation;
-            if let Err(err) = update_current_settings(&pool, settings).await {
-                yield Ok(flow.error(&format!("Failed to update setup step in settings: {err}")));
-                return;
+        {
+            match Wizard::get(&pool).await {
+                Ok(mut wizard) => {
+                if !wizard.completed {
+                    wizard.initial_setup_state = Some(InitialSetupState {
+                        step: InitialSetupStep::Confirmation,
+                    });
+                        if let Err(err) = wizard.save(&pool).await {
+                            yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
+                            return;
+                        }
+                        debug!("Initial setup step advanced to 'Confirmation'");
+                    }
+                }
+                Err(err) => {
+                    yield Ok(flow.error(&format!("Failed to fetch wizard state: {err}")));
+                    return;
+                }
             }
-            debug!("Initial setup step advanced to 'Finished'");
         }
 
         // Step 7: Done
@@ -1010,7 +1022,7 @@ pub async fn setup_gateway_tls_stream(
             request.common_name,
             request.ip_or_domain,
             request.grpc_port.into(),
-            session.user.id,
+            session.user.fullname(),
         );
 
         gateway.certificate = Some(serial);

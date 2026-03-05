@@ -8,5 +8,5 @@
   "add_location_mfa_external_content": "Requires configuring an external identity provider in the settings, such as Google, Microsoft Entra ID, Okta, or JumpCloud.",  "location_delete_success": "Location deleted",
   "location_delete_failed": "Failed to delete location",
   "location_edit_failed": "Failed to update location",
-  "location_edit_failed_has_devices": "Gateway VPN IP address and netmask can’t be changed while devices are active on this network. To proceed, remove all devices from the current network first."
+  "location_edit_addresses_rewrite_warning": "Changing the Gateway VPN IP address or netmask will automatically reassign any device addresses that fall outside the new network range to a randomly selected available IP address."
 }

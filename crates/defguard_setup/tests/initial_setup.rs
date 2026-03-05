@@ -12,11 +12,12 @@ use defguard_common::{
             Session, Settings, User,
             group::Group,
             settings::{InitialSetupStep, initialize_current_settings},
+            wizard::Wizard,
         },
         setup_pool,
     },
 };
-use defguard_setup::setup::build_setup_webapp;
+use defguard_setup::setup_server::build_setup_webapp;
 use reqwest::{
     Client, StatusCode,
     cookie::Jar,
@@ -34,14 +35,15 @@ use tokio::{
 const SESSION_COOKIE_NAME: &str = "defguard_session";
 
 async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
-    let settings = Settings::get(pool)
+    let wizard = Wizard::get(pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert_eq!(settings.initial_setup_step, expected);
-
-    let current_settings = Settings::get_current_settings();
-    assert_eq!(current_settings.initial_setup_step, expected);
+        .expect("Failed to fetch wizard state");
+    let step = wizard
+        .initial_setup_state
+        .as_ref()
+        .map(|s| s.step)
+        .unwrap_or(InitialSetupStep::Welcome);
+    assert_eq!(step, expected);
 }
 
 struct TestClient {
@@ -114,6 +116,9 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -160,11 +165,64 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_create_admin_with_automatic_group_assignment(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
+
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let default_admin_group_name = Settings::get_current_settings().default_admin_group_name;
+
+    let payload = json!({
+        "first_name": "Admin",
+        "last_name": "Admin",
+        "username": "admin1",
+        "email": "admin1@example.com",
+        "password": "Passw0rd!",
+        "automatically_assign_group": true
+    });
+
+    let response = client
+        .post("/api/v1/initial_setup/admin")
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to create admin user");
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let group = Group::find_by_name(&pool, &default_admin_group_name)
+        .await
+        .expect("Failed to fetch group")
+        .expect("Default admin group not created");
+    assert!(group.is_admin);
+
+    let admin = User::find_by_username(&pool, "admin1")
+        .await
+        .expect("Failed to fetch admin")
+        .expect("Admin user missing");
+    let groups = admin
+        .member_of_names(&pool)
+        .await
+        .expect("Failed to fetch group membership");
+    assert!(groups.contains(&default_admin_group_name));
+}
+
+#[sqlx::test]
 async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -212,6 +270,9 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -280,6 +341,9 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -328,6 +392,9 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -374,6 +441,9 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -425,6 +495,9 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
@@ -449,12 +522,14 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to finish setup");
     assert_eq!(response.status(), StatusCode::OK);
 
-    let settings = Settings::get(&pool)
+    let wizard = Wizard::get(&pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert!(settings.initial_setup_completed);
-    assert_eq!(settings.initial_setup_step, InitialSetupStep::Finished);
+        .expect("Failed to fetch wizard state");
+    assert!(wizard.completed);
+    assert_eq!(
+        wizard.initial_setup_state.as_ref().map(|s| s.step),
+        Some(InitialSetupStep::Finished)
+    );
 
     assert_setup_step(&pool, InitialSetupStep::Finished).await;
 
@@ -469,6 +544,9 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
+    Wizard::init(&pool, false)
+        .await
+        .expect("Failed to initialize wizard");
 
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
     let shutdown_notify = Arc::new(Notify::new());
@@ -572,7 +650,6 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch settings")
         .expect("Settings not found");
-    assert!(settings.initial_setup_completed);
     assert_eq!(settings.defguard_url, "https://example.com");
     assert_eq!(settings.default_admin_group_name, "admins");
     assert_eq!(settings.authentication_period_days, 14);
@@ -580,7 +657,15 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(settings.ca_cert_der.is_some());
     assert!(settings.ca_key_der.is_some());
     assert!(settings.ca_expiry.is_some());
-    assert_eq!(settings.initial_setup_step, InitialSetupStep::Finished);
+
+    let wizard = Wizard::get(&pool)
+        .await
+        .expect("Failed to fetch wizard state");
+    assert!(wizard.completed);
+    assert_eq!(
+        wizard.initial_setup_state.as_ref().map(|s| s.step),
+        Some(InitialSetupStep::Finished)
+    );
 
     let admin_group = Group::find_by_name(&pool, "admins")
         .await

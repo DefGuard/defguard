@@ -25,7 +25,7 @@ export const DeleteGatewayModal = () => {
   const { mutateAsync: deleteGateway, isPending } = useMutation({
     mutationFn: api.gateway.deleteGateway,
     meta: {
-      invalidate: ['gateway'],
+      invalidate: [['gateway'], ['network']],
     },
   });
 

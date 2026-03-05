@@ -22,7 +22,7 @@
         "Text",
         "Bool",
         "Timestamp",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [

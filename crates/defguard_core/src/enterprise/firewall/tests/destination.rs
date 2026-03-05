@@ -7,14 +7,13 @@ use defguard_proto::enterprise::firewall::{
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
+use super::{create_acl_rule, create_test_users_and_devices, set_test_license_business};
 use crate::enterprise::{
     db::models::acl::{
         AclAlias, AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AliasKind, RuleState,
     },
     firewall::{process_destination_addrs, try_get_location_firewall_config},
 };
-
-use super::{create_acl_rule, create_test_users_and_devices, set_test_license_business};
 
 #[test]
 fn test_process_destination_addrs_v4() {

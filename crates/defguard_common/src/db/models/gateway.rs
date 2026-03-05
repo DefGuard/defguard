@@ -21,7 +21,7 @@ pub struct Gateway<I = NoId> {
     pub version: Option<String>,
     pub enabled: bool,
     pub modified_at: NaiveDateTime,
-    pub modified_by: Id,
+    pub modified_by: String,
 }
 
 impl<I> Gateway<I> {
@@ -43,7 +43,7 @@ impl Gateway {
         name: S,
         address: S,
         port: i32,
-        modified_by: Id,
+        modified_by: S,
     ) -> Self {
         // FIXME: this is a workaround for reducing timestamp precision.
         // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
@@ -65,7 +65,7 @@ impl Gateway {
             certificate_expiry: None,
             version: None,
             enabled: true,
-            modified_by,
+            modified_by: modified_by.into(),
             modified_at,
         }
     }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, initial_setup_step \"initial_setup_step: InitialSetupStep\" FROM settings WHERE id = 1",
+  "query": "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, s.webhooks_enabled, s.worker_enabled, s.openid_enabled, COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\" FROM settings s LEFT JOIN wizard w ON TRUE WHERE s.id = 1 LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -40,29 +40,8 @@
       },
       {
         "ordinal": 7,
-        "name": "initial_setup_completed",
+        "name": "initial_setup_completed!",
         "type_info": "Bool"
-      },
-      {
-        "ordinal": 8,
-        "name": "initial_setup_step: InitialSetupStep",
-        "type_info": {
-          "Custom": {
-            "name": "initial_setup_step",
-            "kind": {
-              "Enum": [
-                "welcome",
-                "admin_user",
-                "general_configuration",
-                "ca",
-                "ca_summary",
-                "edge_component",
-                "confirmation",
-                "finished"
-              ]
-            }
-          }
-        }
       }
     ],
     "parameters": {
@@ -76,9 +55,8 @@
       false,
       false,
       false,
-      false,
-      false
+      null
     ]
   },
-  "hash": "6a2e1f77762591e0e33cbd6d37b9a51923add9a6ab6761cbdf04ada091ce80d5"
+  "hash": "e9121dafec5752d2941fb9bccdd7d229298a3cc2fb01f837be197c40ca4744fa"
 }

@@ -83,6 +83,7 @@ impl LdapSyncStatus {
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type, PartialOrd)]
+#[serde(rename_all = "snake_case")]
 #[sqlx(type_name = "initial_setup_step", rename_all = "snake_case")]
 pub enum InitialSetupStep {
     #[default]
@@ -166,14 +167,12 @@ pub struct Settings {
     pub ca_key_der: Option<Vec<u8>>,
     pub ca_cert_der: Option<Vec<u8>>,
     pub ca_expiry: Option<NaiveDateTime>,
-    // Initial setup, general settings
-    pub initial_setup_completed: bool,
+    // General settings
     pub defguard_url: String,
     pub default_admin_group_name: String,
     pub authentication_period_days: i32,
     pub mfa_code_timeout_seconds: i32,
     pub public_proxy_url: String,
-    pub initial_setup_step: InitialSetupStep,
     pub default_admin_id: Option<Id>,
 }
 
@@ -253,7 +252,6 @@ impl fmt::Debug for Settings {
                 &self.gateway_disconnect_notifications_reconnect_notification_enabled,
             )
             .field("ca_expiry", &self.ca_expiry)
-            .field("initial_setup_completed", &self.initial_setup_completed)
             .field("defguard_url", &self.defguard_url)
             .field("default_admin_group_name", &self.default_admin_group_name)
             .field(
@@ -262,7 +260,6 @@ impl fmt::Debug for Settings {
             )
             .field("mfa_code_timeout_seconds", &self.mfa_code_timeout_seconds)
             .field("public_proxy_url", &self.public_proxy_url)
-            .field("initial_setup_step", &self.initial_setup_step)
             .field("default_admin_id", &self.default_admin_id)
             .finish_non_exhaustive()
     }
@@ -294,9 +291,9 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
+            ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
+            public_proxy_url, \
             default_admin_id \
             FROM \"settings\" WHERE id = 1",
         )
@@ -378,14 +375,12 @@ impl Settings {
             ca_key_der = $49, \
             ca_cert_der = $50, \
             ca_expiry = $51, \
-            initial_setup_completed = $52, \
-            defguard_url = $53, \
-            default_admin_group_name = $54, \
-            authentication_period_days = $55, \
-            mfa_code_timeout_seconds = $56, \
-            public_proxy_url = $57, \
-            initial_setup_step = $58, \
-            default_admin_id = $59 \
+            defguard_url = $52, \
+            default_admin_group_name = $53, \
+            authentication_period_days = $54, \
+            mfa_code_timeout_seconds = $55, \
+            public_proxy_url = $56, \
+            default_admin_id = $57 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -438,13 +433,11 @@ impl Settings {
             &self.ca_key_der as &Option<Vec<u8>>,
             &self.ca_cert_der as &Option<Vec<u8>>,
             &self.ca_expiry as &Option<NaiveDateTime>,
-            self.initial_setup_completed,
             self.defguard_url,
             self.default_admin_group_name,
             self.authentication_period_days,
             self.mfa_code_timeout_seconds,
             self.public_proxy_url,
-            &self.initial_setup_step as &InitialSetupStep,
             self.default_admin_id,
         )
         .execute(executor)
@@ -554,7 +547,6 @@ pub struct SettingsEssentials {
     pub worker_enabled: bool,
     pub openid_enabled: bool,
     pub initial_setup_completed: bool,
-    pub initial_setup_step: InitialSetupStep,
 }
 
 impl SettingsEssentials {
@@ -564,29 +556,16 @@ impl SettingsEssentials {
     {
         query_as!(
             SettingsEssentials,
-            "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
-            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, \
-            initial_setup_step \"initial_setup_step: InitialSetupStep\" \
-            FROM settings WHERE id = 1"
+            "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
+			s.webhooks_enabled, s.worker_enabled, s.openid_enabled, \
+			COALESCE(w.completed, TRUE) AS \"initial_setup_completed!\" \
+			FROM settings s \
+			LEFT JOIN wizard w ON TRUE \
+			WHERE s.id = 1 \
+			LIMIT 1"
         )
         .fetch_one(executor)
         .await
-    }
-}
-
-impl From<Settings> for SettingsEssentials {
-    fn from(settings: Settings) -> Self {
-        SettingsEssentials {
-            webhooks_enabled: settings.webhooks_enabled,
-            wireguard_enabled: settings.wireguard_enabled,
-            worker_enabled: settings.worker_enabled,
-            openid_enabled: settings.openid_enabled,
-            nav_logo_url: settings.nav_logo_url,
-            instance_name: settings.instance_name,
-            main_logo_url: settings.main_logo_url,
-            initial_setup_completed: settings.initial_setup_completed,
-            initial_setup_step: settings.initial_setup_step,
-        }
     }
 }
 

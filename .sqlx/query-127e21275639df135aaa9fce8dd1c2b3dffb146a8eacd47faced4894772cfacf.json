@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT gateway.*, u.first_name modified_by_firstname, u.last_name modified_by_lastname, CASE WHEN gateway.connected_at IS NULL THEN false WHEN gateway.disconnected_at IS NULL THEN true WHEN gateway.connected_at >= gateway.disconnected_at THEN true ELSE false END AS \"connected!\", wn.name AS location_name FROM gateway JOIN \"user\" u on gateway.modified_by = u.id JOIN wireguard_network wn ON gateway.location_id = wn.id",
+  "query": "SELECT gateway.*, CASE WHEN gateway.connected_at IS NULL THEN false WHEN gateway.disconnected_at IS NULL THEN true WHEN gateway.connected_at >= gateway.disconnected_at THEN true ELSE false END AS \"connected!\", wn.name AS location_name FROM gateway JOIN wireguard_network wn ON gateway.location_id = wn.id WHERE location_id = $1",
   "describe": {
     "columns": [
       {
@@ -60,37 +60,29 @@
       },
       {
         "ordinal": 11,
-        "name": "modified_by",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 12,
         "name": "enabled",
         "type_info": "Bool"
       },
       {
+        "ordinal": 12,
+        "name": "modified_by",
+        "type_info": "Text"
+      },
+      {
         "ordinal": 13,
-        "name": "modified_by_firstname",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 14,
-        "name": "modified_by_lastname",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 15,
         "name": "connected!",
         "type_info": "Bool"
       },
       {
-        "ordinal": 16,
+        "ordinal": 14,
         "name": "location_name",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -106,11 +98,9 @@
       false,
       false,
       false,
-      false,
-      false,
       null,
       false
     ]
   },
-  "hash": "f22ab4ecf7a0146f3280290f55e9e989d80a8997c465cffadcc8dd6e587eb567"
+  "hash": "127e21275639df135aaa9fce8dd1c2b3dffb146a8eacd47faced4894772cfacf"
 }

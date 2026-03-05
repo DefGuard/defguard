@@ -1,4 +1,4 @@
-import './style.scss';
+import '../style.scss';
 
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
@@ -6,22 +6,20 @@ import clsx from 'clsx';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
-import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { Icon } from '../../../shared/defguard-ui/components/Icon';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { useAppForm, withForm } from '../../../shared/form';
-import { formChangeLogic } from '../../../shared/formLogic';
-import { SetupPageStep } from '../types';
-import { useSetupWizardStore } from '../useSetupWizardStore';
+import { m } from '../../../../paraglide/messages';
+import api from '../../../../shared/api/api';
+import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Icon } from '../../../../shared/defguard-ui/components/Icon';
+import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { useAppForm, withForm } from '../../../../shared/form';
+import { formChangeLogic } from '../../../../shared/formLogic';
+import { AutoAdoptionSetupStep } from '../types';
+import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 
-type FormFields = StoreValues;
-
-type StoreValues = {
+type FormFields = {
   first_name: string;
   last_name: string;
   username: string;
@@ -88,9 +86,9 @@ const passwordSchema = passwordRules.reduce(
   z.string(),
 );
 
-export const SetupAdminUserStep = () => {
-  const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
-  const defaultValues = useSetupWizardStore(
+export const AutoAdoptionAdminUserStep = () => {
+  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
+  const defaultValues = useAutoAdoptionSetupWizardStore(
     useShallow(
       (s): FormFields => ({
         first_name: s.admin_first_name,
@@ -126,7 +124,7 @@ export const SetupAdminUserStep = () => {
       invalidate: ['setupStatus'],
     },
     onSuccess: () => {
-      setActiveStep(SetupPageStep.GeneralConfig);
+      setActiveStep(AutoAdoptionSetupStep.UrlSettings);
     },
     onError: (error) => {
       Snackbar.error(m.initial_setup_admin_user_error_create_failed());
@@ -142,7 +140,7 @@ export const SetupAdminUserStep = () => {
       onChange: formSchema,
     },
     onSubmit: ({ value }) => {
-      useSetupWizardStore.setState({
+      useAutoAdoptionSetupWizardStore.setState({
         admin_first_name: value.first_name,
         admin_last_name: value.last_name,
         admin_username: value.username,
@@ -155,13 +153,10 @@ export const SetupAdminUserStep = () => {
         username: value.username,
         email: value.email,
         password: value.password,
+        automatically_assign_group: true,
       });
     },
   });
-
-  const handleNext = () => {
-    form.handleSubmit();
-  };
 
   return (
     <WizardCard>
@@ -230,7 +225,7 @@ export const SetupAdminUserStep = () => {
       <ModalControls
         submitProps={{
           text: m.controls_continue(),
-          onClick: handleNext,
+          onClick: form.handleSubmit,
           loading: isPending,
         }}
       />

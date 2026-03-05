@@ -24,7 +24,5 @@ pub struct ProxyInfo {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
-    pub modified_by: Id,
-    pub modified_by_firstname: String,
-    pub modified_by_lastname: String,
+    pub modified_by: String,
 }
