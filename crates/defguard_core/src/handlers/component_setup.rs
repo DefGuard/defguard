@@ -37,8 +37,11 @@ use tonic::{
     service::Interceptor,
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
+use tracing::Instrument;
+use uuid::Uuid;
 
 use crate::{
+    adoption_logs,
     auth::{AdminOrSetupRole, SessionInfo},
     enterprise::is_enterprise_license_active,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -152,13 +155,15 @@ fn set_step_message(next_step: SetupStep) -> Event {
 
 struct SetupFlow {
     last_step: SetupStep,
+    adoption_id: String,
     log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl SetupFlow {
-    const fn new(log_rx: tokio::sync::mpsc::UnboundedReceiver<String>) -> Self {
+    fn new(log_rx: tokio::sync::mpsc::UnboundedReceiver<String>, adoption_id: String) -> Self {
         Self {
             last_step: SetupStep::CheckingConfiguration,
+            adoption_id,
             log_rx,
         }
     }
@@ -169,7 +174,13 @@ impl SetupFlow {
     }
 
     fn error(&mut self, message: &str) -> Event {
-        let mut collected_logs = Vec::new();
+        error!(
+            adoption_id = %self.adoption_id,
+            step = ?self.last_step,
+            "{message}"
+        );
+
+        let mut collected_logs = adoption_logs::take_logs(&self.adoption_id);
         while let Ok(log) = self.log_rx.try_recv() {
             collected_logs.push(log);
         }
@@ -178,6 +189,7 @@ impl SetupFlow {
         } else {
             Some(collected_logs)
         };
+
         error_message(message, self.last_step, logs)
     }
 }
@@ -193,9 +205,12 @@ pub async fn setup_proxy_tls_stream(
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let adoption_id = Uuid::new_v4().to_string();
+    adoption_logs::start_adoption(&adoption_id);
+    let adoption_span = tracing::info_span!("proxy_adoption", adoption_id = %adoption_id);
 
-    let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx);
+    let inner_stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, adoption_id.clone());
 
         // check if tries to connect more then 1 proxy without active enterprise license
         if !is_enterprise_license_active() {
@@ -442,32 +457,35 @@ pub async fn setup_proxy_tls_stream(
 
         let mut response = response_with_metadata.into_inner();
 
-        let log_reader_task = tokio::spawn(async move {
-            while let Some(log_entry) = response.next().await {
-                match log_entry {
-                    Ok(entry) => {
-                        let level = entry
-                            .level
-                            .strip_prefix("Level(")
-                            .and_then(|s| s.strip_suffix(")"))
-                            .unwrap_or(&entry.level)
-                            .to_uppercase();
+        let log_reader_task = tokio::spawn(
+            async move {
+                while let Some(log_entry) = response.next().await {
+                    match log_entry {
+                        Ok(entry) => {
+                            let level = entry
+                                .level
+                                .strip_prefix("Level(")
+                                .and_then(|s| s.strip_suffix(")"))
+                                .unwrap_or(&entry.level)
+                                .to_uppercase();
 
-                        let formatted = format!(
-                            "{} {} {}: message={}",
-                            entry.timestamp, level, entry.target, entry.message
-                        );
-                        if log_tx.send(formatted).is_err() {
+                            let formatted = format!(
+                                "{} {} {}: message={}",
+                                entry.timestamp, level, entry.target, entry.message
+                            );
+                            if log_tx.send(formatted).is_err() {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            let _ = log_tx.send(format!("Error reading log: {e}"));
                             break;
                         }
                     }
-                    Err(e) => {
-                        let _ = log_tx.send(format!("Error reading log: {e}"));
-                        break;
-                    }
                 }
             }
-        });
+            .instrument(tracing::Span::current()),
+        );
 
         // Create guard to ensure task is aborted on all exit paths
         let _log_task_guard = TaskGuard(log_reader_task);
@@ -501,9 +519,7 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
-        debug!(
-            "Received certificate signing request from Edge for hostname: {hostname}"
-        );
+        debug!("Received certificate signing request from Edge for hostname: {hostname}");
 
         // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
@@ -634,6 +650,15 @@ pub async fn setup_proxy_tls_stream(
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
     };
+    let stream = async_stream::stream! {
+        tokio::pin!(inner_stream);
+        while let Some(item) = {
+            let _guard = adoption_span.enter();
+            inner_stream.next().await
+        } {
+            yield item;
+        }
+    };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
@@ -649,9 +674,12 @@ pub async fn setup_gateway_tls_stream(
     Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let adoption_id = Uuid::new_v4().to_string();
+    adoption_logs::start_adoption(&adoption_id);
+    let adoption_span = tracing::info_span!("gateway_adoption", adoption_id = %adoption_id);
 
-    let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx);
+    let inner_stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, adoption_id.clone());
 
         // check if tries to add more then 1 gateway to network without enterprise license
         if !is_enterprise_license_active() {
@@ -887,33 +915,35 @@ pub async fn setup_gateway_tls_stream(
 
         let mut response = response_with_metadata.into_inner();
 
-        let log_reader_task = tokio::spawn(async move {
-            while let Some(log_entry) = response.next().await {
-                match log_entry {
-                    Ok(entry) => {
-                        let level = entry.level
-                            .strip_prefix("Level(")
-                            .and_then(|s| s.strip_suffix(")"))
-                            .unwrap_or(&entry.level)
-                            .to_uppercase();
+        let log_reader_task = tokio::spawn(
+            async move {
+                while let Some(log_entry) = response.next().await {
+                    match log_entry {
+                        Ok(entry) => {
+                            let level = entry
+                                .level
+                                .strip_prefix("Level(")
+                                .and_then(|s| s.strip_suffix(")"))
+                                .unwrap_or(&entry.level)
+                                .to_uppercase();
 
-                        let formatted = format!(
-                            "{} {level} {}: message={}",
-                            entry.timestamp,
-                            entry.target,
-                            entry.message
-                        );
-                        if log_tx.send(formatted).is_err() {
+                            let formatted = format!(
+                                "{} {level} {}: message={}",
+                                entry.timestamp, entry.target, entry.message
+                            );
+                            if log_tx.send(formatted).is_err() {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            let _ = log_tx.send(format!("Error reading log: {e}"));
                             break;
                         }
                     }
-                    Err(e) => {
-                        let _ = log_tx.send(format!("Error reading log: {e}"));
-                        break;
-                    }
                 }
             }
-        });
+            .instrument(tracing::Span::current()),
+        );
 
         // Create guard to ensure task is aborted on all exit paths
         let _log_task_guard = TaskGuard(log_reader_task);
@@ -1037,6 +1067,15 @@ pub async fn setup_gateway_tls_stream(
 
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
+    };
+    let stream = async_stream::stream! {
+        tokio::pin!(inner_stream);
+        while let Some(item) = {
+            let _guard = adoption_span.enter();
+            inner_stream.next().await
+        } {
+            yield item;
+        }
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())

@@ -15,6 +15,7 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
+    adoption_logs::core_adoption_log_layer,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
@@ -40,7 +41,7 @@ use tokio::sync::{
     broadcast,
     mpsc::{channel, unbounded_channel},
 };
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -52,7 +53,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let mut config = DefGuardConfig::new();
 
-    let subscriber = tracing_subscriber::registry();
+    let subscriber = tracing_subscriber::registry().with(core_adoption_log_layer());
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
         &config.log_level,

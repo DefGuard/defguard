@@ -1429,6 +1429,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
+ "tracing-subscriber",
  "trait-variant",
  "uaparser",
  "utoipa",

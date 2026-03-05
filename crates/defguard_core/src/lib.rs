@@ -170,6 +170,7 @@ use crate::{
     version::IncompatibleComponents,
 };
 
+pub mod adoption_logs;
 pub mod appstate;
 pub mod auth;
 pub mod db;
