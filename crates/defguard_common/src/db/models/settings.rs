@@ -306,7 +306,7 @@ impl Settings {
         pool: &PgPool,
         config: &DefGuardConfig,
     ) -> Result<(), anyhow::Error> {
-        let mut settings = Settings::get_current_settings();
+        let mut settings = Settings::get(pool).await?.unwrap();
 
         #[allow(deprecated)]
         if let Some(secret_key) = &config.secret_key {
