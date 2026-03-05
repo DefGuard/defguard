@@ -3018,10 +3018,22 @@ fn test_as_ldap_mod_inetorgperson() {
     };
 
     let mods = user_as_ldap_mod(&user, &config);
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("mobile", hashset!["5551234"])));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mobile".to_string(),
+        hashset!["5551234".to_string()],
+    )));
 }
 
 #[test]
@@ -3043,10 +3055,19 @@ fn test_as_ldap_mod_with_empty_phone() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("mobile", HashSet::new())));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace("mobile".to_string(), HashSet::new(),)));
 }
 
 #[test]
@@ -3070,10 +3091,22 @@ fn test_as_ldap_mod_with_active_directory() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "sAMAccountName".to_string(),
+        hashset!["testuser".to_string()],
+    )));
 }
 
 #[test]
@@ -3096,11 +3129,26 @@ fn test_as_ldap_mod_with_custom_rdn() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("cn", hashset!["testuser"])));
-    assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "cn".to_string(),
+        hashset!["testuser".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "sAMAccountName".to_string(),
+        hashset!["testuser".to_string()],
+    )));
 }
 
 #[test]

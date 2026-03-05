@@ -225,7 +225,8 @@ impl LDAPConfig {
     /// Constructs user distinguished name.
     ///
     /// This function is used to construct the user's DN based on the RDN value and user path.
-    /// Prefer using `user_dn_from_user` method to ensure that the RDN value and user path are correctly derived from the user object.
+    /// Prefer using `user_dn_from_user` method to ensure that the RDN value and user path are
+    /// correctly derived from the user object.
     ///
     /// Use it only if you need to construct a user DN manually.
     #[must_use]
@@ -595,10 +596,10 @@ impl LDAPConnection {
     /// Returns an error if the user doesn't exist at the specified DN.
     pub async fn get_user_by_dn<I>(&mut self, user: &User<I>) -> Result<User, LdapError> {
         let dn = self.config.user_dn_from_user(user);
-        debug!("Trying to retrieve LDAP user with the following DN: {}", dn);
+        debug!("Trying to retrieve LDAP user with the following DN: {dn}");
         match self.get(&dn).await? {
             Some(entry) => {
-                info!("Found LDAP user with DN: {}", dn);
+                info!("Found LDAP user with DN: {dn}");
                 user_from_searchentry(&entry, &user.username, None)
             }
             None => Err(LdapError::ObjectNotFound(format!("User {dn} not found",))),
@@ -622,9 +623,9 @@ impl LDAPConnection {
             debug!("Using provided password for user {user}");
             password.to_string()
         } else {
-            // ldap may not accept no password, this is a workaround when we don't have access to the
-            // user's password
-            debug!("Generating random password for user {user}, as no password has been specified",);
+            // LDAP may not accept no password, this is a workaround when we don't have access to
+            // the user's password
+            debug!("Generating random password for user {user}, as no password has been specified");
             let random_password = rand::thread_rng()
                 .sample_iter(&rand::distributions::Alphanumeric)
                 .take(32)
@@ -704,8 +705,7 @@ impl LDAPConnection {
         };
         let old_dn = self.config.user_dn(old_rdn, user_dn_path);
         let new_dn = self.config.user_dn(new_rdn, user_dn_path);
-        let config = self.config.clone();
-        let mods = user_as_ldap_mod(user, &config);
+        let mods = user_as_ldap_mod(user, &self.config);
         self.modify(&old_dn, &new_dn, mods).await?;
         info!("Modified user {old_username} in LDAP");
 
@@ -839,7 +839,7 @@ impl LDAPConnection {
         group_name: &str,
         members: Vec<&User<I>>,
     ) -> Result<(), LdapError> {
-        debug!("Adding LDAP group {}", group_name);
+        debug!("Adding LDAP group {group_name}");
         let dn = self.config.group_dn(group_name);
         let group_obj_class = self.config.ldap_group_obj_class.clone();
         let groupname_attr = self.config.ldap_groupname_attr.clone();
@@ -853,7 +853,10 @@ impl LDAPConnection {
             .map(|member| self.config.user_dn_from_user(member))
             .collect::<Vec<_>>();
         let member_group_attr = self.config.ldap_group_member_attr.clone();
-        let member_refs: HashSet<&str> = member_dns.iter().map(String::as_str).collect();
+        let member_refs = member_dns
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
 
         for member_ref in member_refs {
             group_attrs.push((member_group_attr.as_str(), hashset![member_ref]));
@@ -861,8 +864,7 @@ impl LDAPConnection {
 
         self.add(&dn, group_attrs).await?;
         info!(
-            "Added LDAP group {} with members {}",
-            group_name,
+            "Added LDAP group {group_name} with members {}",
             member_dns
                 .iter()
                 .map(String::as_str)

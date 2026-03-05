@@ -105,22 +105,26 @@ pub(crate) fn update_from_ldap_user<I>(user: &mut User<I>, ldap_user: &User, con
     }
 }
 
+/// Return a vector of LDAP modifications for a given [`User`].
 #[must_use]
-pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec<Mod<&'a str>> {
+pub fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mod<String>> {
     let obj_classes = config.get_all_user_obj_classes();
-    let mut changes = vec![];
+    let mut changes = Vec::new();
     if obj_classes.contains(&UserObjectClass::InetOrgPerson.into())
         || obj_classes.contains(&UserObjectClass::User.into())
     {
         changes.extend_from_slice(&[
-            Mod::Replace("sn", hashset![user.last_name.as_str()]),
-            Mod::Replace("givenName", hashset![user.first_name.as_str()]),
-            Mod::Replace("mail", hashset![user.email.as_str()]),
+            Mod::Replace("sn".to_string(), hashset![user.last_name.clone()]),
+            Mod::Replace("givenName".to_string(), hashset![user.first_name.clone()]),
+            Mod::Replace("mail".to_string(), hashset![user.email.clone()]),
         ]);
 
         // Allow renaming the user if the CN is not a part of the RDN
         if !config.get_rdn_attr().eq_ignore_ascii_case("cn") {
-            changes.push(Mod::Replace("cn", hashset![user.username.as_str()]));
+            changes.push(Mod::Replace(
+                "cn".to_string(),
+                hashset![user.username.clone()],
+            ));
         }
 
         if !config.ldap_username_attr.eq_ignore_ascii_case("uid")
@@ -129,15 +133,21 @@ pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec
                 .as_ref()
                 .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case("uid"))
         {
-            changes.push(Mod::Replace("uid", hashset![user.username.as_str()]));
+            changes.push(Mod::Replace(
+                "uid".to_string(),
+                hashset![user.username.clone()],
+            ));
         }
 
         if let Some(phone) = &user.phone {
-            if phone.is_empty() {
-                changes.push(Mod::Replace("mobile", HashSet::new()));
-            } else {
-                changes.push(Mod::Replace("mobile", hashset![phone.as_str()]));
-            }
+            changes.push(Mod::Replace(
+                "mobile".to_string(),
+                if phone.is_empty() {
+                    HashSet::<String>::new()
+                } else {
+                    hashset![phone.clone()]
+                },
+            ));
         }
     } else {
         warn!(
@@ -148,8 +158,8 @@ pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec
 
     if config.ldap_uses_ad && !config.get_rdn_attr().eq_ignore_ascii_case("sAMAccountName") {
         changes.push(Mod::Replace(
-            "sAMAccountName",
-            hashset![user.username.as_str()],
+            "sAMAccountName".to_string(),
+            hashset![user.username.clone()],
         ));
     }
 
@@ -164,8 +174,8 @@ pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec
             .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case(username_attr))
     {
         changes.push(Mod::Replace(
-            username_attr,
-            hashset![user.username.as_str()],
+            username_attr.to_string(),
+            hashset![user.username.clone()],
         ));
     }
 
