@@ -16,7 +16,7 @@ use defguard_core::{
         handlers::acl::{
             ApiAclRule, EditAclRule,
             alias::{ApiAclAlias, EditAclAlias},
-            destination::EditAclDestination,
+            destination::{ApiAclDestination, EditAclDestination},
         },
         license::{get_cached_license, set_cached_license},
     },
@@ -175,5 +175,28 @@ fn edit_alias_data_into_api_response(
         ports: data.ports,
         protocols: data.protocols,
         rules,
+    }
+}
+
+fn edit_destination_data_into_api_response(
+    data: EditAclDestination,
+    id: Id,
+    parent_id: Option<Id>,
+    state: AliasState,
+    rules: Vec<Id>,
+) -> ApiAclDestination {
+    ApiAclDestination {
+        id,
+        parent_id,
+        state,
+        name: data.name,
+        kind: AliasKind::Destination,
+        addresses: data.addresses,
+        ports: data.ports,
+        protocols: data.protocols,
+        rules,
+        any_address: data.any_address,
+        any_port: data.any_port,
+        any_protocol: data.any_protocol,
     }
 }

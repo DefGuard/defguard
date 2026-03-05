@@ -80,7 +80,7 @@ impl EditAclDestination {
 /// API representation of [`AclAlias`] for "Destination" (not "Alias Component").
 /// All relations represented as arrays of IDs.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
-pub(crate) struct ApiAclDestination {
+pub struct ApiAclDestination {
     #[serde(default)]
     pub id: Id,
     pub parent_id: Option<Id>,
