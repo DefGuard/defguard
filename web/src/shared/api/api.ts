@@ -524,7 +524,8 @@ const api = {
       getCA: () => client.get<GetCAResponse>('/migration/ca'),
     },
     state: {
-      getMigrationState: () => client.get<MigrationWizardApiState>(`/migration/state`),
+      getMigrationState: () =>
+        client.get<MigrationWizardApiState | null>(`/migration/state`),
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },

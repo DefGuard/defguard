@@ -16,6 +16,7 @@ export const Route = createFileRoute('/_wizard/migration')({
       .data;
     if (
       !sessionInfo.authorized ||
+      !sessionInfo.active_wizard ||
       (sessionInfo.active_wizard && sessionInfo.active_wizard !== ActiveWizard.Migration)
     ) {
       throw redirect({
