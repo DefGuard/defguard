@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import SvgIconCheckmark from '../../../../../../../shared/components/svg/IconCheckmark';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormTextarea } from '../../../../../../../shared/defguard-ui/components/Form/FormTextarea/FormTextarea';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -74,7 +75,9 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
           .string({
             required_error: LL.form.error.required(),
           })
-          .trim(),
+          .trim()
+          .min(1, LL.form.error.required())
+          .min(50, LL.form.error.minimumLength()),
       }),
     [LL.form.error],
   );
@@ -89,7 +92,7 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
     const trimmed = trimObjectStrings(values);
     if (user) {
       mutate({
-        key: trimmed.keyValue.replace(/\r?\n|\r/g, ''),
+        key: trimmed.keyValue.replace(/[\r\n]+$/, ''),
         key_type: keyType,
         name: trimmed.title,
         username: user.username,
@@ -108,10 +111,9 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
         placeholder={localLL.placeholders.title()}
         autoComplete="off"
       />
-      <FormInput
+      <FormTextarea
         controller={{ control, name: 'keyValue' }}
         label={localLL.labels.key()}
-        autoComplete="off"
         placeholder={
           keyType === AuthenticationKeyType.SSH
             ? localLL.placeholders.key.ssh()
