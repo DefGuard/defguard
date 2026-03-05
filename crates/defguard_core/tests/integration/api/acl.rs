@@ -16,6 +16,7 @@ use defguard_core::{
         handlers::acl::{
             ApiAclRule, EditAclRule,
             alias::{ApiAclAlias, EditAclAlias},
+            destination::EditAclDestination,
         },
         license::{get_cached_license, set_cached_license},
     },
@@ -94,16 +95,23 @@ fn make_alias() -> EditAclAlias {
     }
 }
 
-fn make_destination() -> Value {
-    json!({
-        "name": "destination",
-        "addresses": "10.20.30.40, 10.0.0.1/24, 10.0.10.1-10.0.20.1",
-        "ports": "1, 2, 3, 10-20, 30-40",
-        "protocols": [6, 17],
-        "any_address": false,
-        "any_port": false,
-        "any_protocol": false
-    })
+fn make_destination() -> EditAclDestination {
+    EditAclDestination {
+        name: "destination".to_string(),
+        addresses: "10.20.30.40, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
+        ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        protocols: vec![6, 17],
+        any_address: false,
+        any_port: false,
+        any_protocol: false,
+    }
+}
+
+async fn count_destinations(pool: &PgPool) -> usize {
+    AclAlias::all_of_kind(pool, AliasKind::Destination)
+        .await
+        .unwrap()
+        .len()
 }
 
 fn edit_rule_data_into_api_response(
@@ -1230,6 +1238,96 @@ async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_destination_delete(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    // create destination
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let destination: Value = response.json().await;
+    let destination_id = destination["id"].as_i64().unwrap();
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    // use destination in a new rule
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = false;
+    rule.destinations = vec![destination_id];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // cannot delete destination if used by a rule
+    let response = client
+        .delete(format!("/api/v1/acl/destination/{destination_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    // remove destination from rule
+    rule.use_manual_destination_settings = true;
+    rule.destinations = Vec::new();
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // delete alias
+    let response = client
+        .delete(format!("/api/v1/acl/destination/{destination_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 0);
+
+    // create another destination
+    let mut destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    // modify destination
+    destination.name = "modified".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/2")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 2);
+
+    // delete pending modification
+    let response = client.delete("/api/v1/acl/destination/3").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    // modify destination again
+    destination.name = "modified again".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/2")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 2);
+
+    // delete original destination
+    let response = client.delete("/api/v1/acl/destination/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 0);
+}
+
+#[sqlx::test]
 async fn test_alias_duplication(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
@@ -1433,8 +1531,8 @@ async fn test_acl_count_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let mut destination_to_update = destination_1;
-    destination_to_update["name"] = json!("updated destination");
+    let mut destination_to_update = destination.clone();
+    destination_to_update.name = "updated destination".to_string();
     let response = client
         .put(format!("/api/v1/acl/destination/{destination_1_id}"))
         .json(&destination_to_update)

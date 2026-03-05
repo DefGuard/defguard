@@ -1,5 +1,5 @@
 pub mod alias;
-pub(crate) mod destination;
+pub mod destination;
 
 use axum::{
     Json,

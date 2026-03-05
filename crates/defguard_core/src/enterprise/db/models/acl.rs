@@ -1653,10 +1653,7 @@ impl TryFrom<&EditAclAlias> for AclAlias {
 
 impl AclAlias<Id> {
     /// Fetch [`AclAlias`] of a given kind.
-    pub(crate) async fn all_of_kind<'e, E>(
-        executor: E,
-        kind: AliasKind,
-    ) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn all_of_kind<'e, E>(executor: E, kind: AliasKind) -> Result<Vec<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
