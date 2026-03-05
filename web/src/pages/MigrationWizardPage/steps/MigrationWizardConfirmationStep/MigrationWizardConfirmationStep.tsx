@@ -47,10 +47,8 @@ export const MigrationWizardConfirmationStep = () => {
   });
 
   useEffect(() => {
-    if (sessionInfo?.wizard_flags) {
-      if (sessionInfo.wizard_flags.migration_wizard_completed) {
-        navigate({ to: '/vpn-overview', replace: true });
-      }
+    if (!sessionInfo?.active_wizard) {
+      navigate({ to: '/vpn-overview', replace: true });
     }
   }, [sessionInfo, navigate]);
 

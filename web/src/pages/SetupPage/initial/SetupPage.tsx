@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
@@ -7,8 +8,7 @@ import { WizardPage } from '../../../shared/components/wizard/WizardPage/WizardP
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { useApp } from '../../../shared/hooks/useApp';
+import { getSessionInfoQueryOptions } from '../../../shared/query';
 import worldMap from '../assets/world-map.png';
 import { SetupAdminUserStep } from './steps/SetupAdminUserStep';
 import { SetupCertificateAuthorityStep } from './steps/SetupCertificateAuthorityStep';
@@ -20,10 +20,27 @@ import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
 
+const handleStartWizard = () => {
+  useSetupWizardStore.getState().setActiveStep(SetupPageStep.AdminUser);
+  useSetupWizardStore.setState({ isOnWelcomePage: false });
+};
+
+const WelcomePageContent = () => (
+  <div className="left">
+    <SizedBox height={ThemeSpacing.Xl} />
+    <Controls>
+      <Button
+        text={m.initial_setup_welcome_button_configure()}
+        onClick={handleStartWizard}
+      />
+    </Controls>
+  </div>
+);
+
 export const SetupPage = () => {
   const activeStep = useSetupWizardStore((s) => s.activeStep);
-  const settingsEssentials = useApp((s) => s.settingsEssentials);
   const isOnWelcomePage = useSetupWizardStore((s) => s.isOnWelcomePage);
+  const { data: sessionInfo } = useQuery(getSessionInfoQueryOptions);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
@@ -87,28 +104,11 @@ export const SetupPage = () => {
     [],
   );
 
-  const handleStartWizard = () => {
-    useSetupWizardStore.getState().setActiveStep(SetupPageStep.AdminUser);
-    useSetupWizardStore.setState({ isOnWelcomePage: false });
-  };
-
-  const WelcomePageContent = () => (
-    <div className="left">
-      <SizedBox height={ThemeSpacing.Xl} />
-      <Controls>
-        <Button
-          text={m.initial_setup_welcome_button_configure()}
-          onClick={handleStartWizard}
-        />
-      </Controls>
-    </div>
-  );
-
   useEffect(() => {
-    if (isPresent(settingsEssentials) && settingsEssentials.initial_setup_completed) {
+    if (sessionInfo?.active_wizard === null) {
       navigate({ to: '/vpn-overview', replace: true });
     }
-  }, [settingsEssentials?.initial_setup_completed, navigate, settingsEssentials]);
+  }, [navigate, sessionInfo?.active_wizard]);
 
   return (
     <WizardPage
