@@ -94,15 +94,10 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
-    // initialize default settings
-    Settings::init_defaults(&pool).await?;
-
     initialize_current_settings(&pool).await?;
 
     let wizard_flags = WizardFlags::init(&pool).await?;
     let mut ini_server_config = true;
-
-    Settings::ensure_secret_key(&pool).await?;
 
     if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
         if let Err(err) =
@@ -114,6 +109,8 @@ async fn main() -> Result<(), anyhow::Error> {
     {
         let mut settings = Settings::get_current_settings();
         settings.update_from_config(&pool, &config).await?;
+
+        Settings::initialize_runtime_defaults(&pool).await?;
 
         config.initialize_post_settings();
         SERVER_CONFIG
@@ -128,6 +125,8 @@ async fn main() -> Result<(), anyhow::Error> {
             anyhow::bail!("Migration web server exited with error: {err}");
         }
     }
+
+    Settings::initialize_runtime_defaults(&pool).await?;
 
     if ini_server_config {
         config.initialize_post_settings();

@@ -43,7 +43,7 @@ mod test {
         target: DirectorySyncTarget,
         prefetch_users: bool,
     ) -> OpenIdProvider<Id> {
-        Settings::init_defaults(pool).await.unwrap();
+        Settings::initialize_runtime_defaults(pool).await.unwrap();
         initialize_current_settings(pool).await.unwrap();
 
         let current = OpenIdProvider::get_current(pool).await.unwrap();

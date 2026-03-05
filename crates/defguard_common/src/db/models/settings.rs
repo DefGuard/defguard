@@ -50,11 +50,17 @@ pub enum SettingsValidationError {
 }
 
 #[derive(Error, Debug)]
-pub enum SettingsRequiredValueError {
+pub enum SettingsInitializationError {
+    #[error(transparent)]
+    Db(#[from] sqlx::Error),
     #[error("Missing required setting: {0}")]
     Missing(&'static str),
     #[error("Invalid required setting `{0}`: {1}")]
     Invalid(&'static str, &'static str),
+    #[error("Unable to derive webauthn_rp_id from defguard_url {0}")]
+    InvalidDefguardUrl(String),
+    #[error("Unable to derive webauthn_rp_id: defguard_url has no domain: {0}")]
+    MissingDefguardDomain(String),
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
@@ -291,16 +297,16 @@ impl fmt::Debug for Settings {
 }
 
 impl Settings {
-    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsRequiredValueError> {
+    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsInitializationError> {
         if secret_key.trim().len() != secret_key.len() {
-            return Err(SettingsRequiredValueError::Invalid(
+            return Err(SettingsInitializationError::Invalid(
                 "secret_key",
                 "cannot have leading or trailing whitespace",
             ));
         }
 
         if secret_key.len() < 64 {
-            return Err(SettingsRequiredValueError::Invalid(
+            return Err(SettingsInitializationError::Invalid(
                 "secret_key",
                 "must be at least 64 characters long",
             ));
@@ -314,20 +320,6 @@ impl Settings {
         let mut bytes = [0_u8; 48];
         OsRng.fill_bytes(&mut bytes);
         BASE64_STANDARD.encode(bytes)
-    }
-
-    pub async fn ensure_secret_key(pool: &PgPool) -> Result<(), anyhow::Error> {
-        let mut settings = Settings::get_current_settings();
-
-        if let Some(secret_key) = settings.secret_key.as_deref() {
-            Settings::validate_secret_key(secret_key)?;
-            return Ok(());
-        }
-
-        settings.secret_key = Some(Settings::generate_secret_key());
-        update_current_settings(pool, settings).await?;
-
-        Ok(())
     }
 
     pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
@@ -549,8 +541,8 @@ impl Settings {
     // Set default values for settings if not set yet.
     // This is only relevant to a subset of settings which are nullable
     // and we want to initialize their values.
-    pub async fn init_defaults(pool: &PgPool) -> Result<(), sqlx::Error> {
-        info!("Initializing default settings");
+    pub async fn initialize_runtime_defaults(pool: &PgPool) -> Result<(), SettingsInitializationError> {
+        info!("Initializing runtime default settings");
 
         let default_settings = HashMap::from([
             ("enrollment_welcome_message", defaults::WELCOME_MESSAGE),
@@ -565,6 +557,28 @@ impl Settings {
             let query_string = format!("UPDATE settings SET {field} = $1 WHERE {field} IS NULL");
             query(&query_string).bind(value).execute(pool).await?;
         }
+
+        let mut settings = Settings::get_current_settings();
+
+        match settings.secret_key.as_deref() {
+            Some(secret_key) => {
+                Settings::validate_secret_key(secret_key)?;
+            }
+            None => {
+                settings.secret_key = Some(Settings::generate_secret_key());
+            }
+        }
+
+        if settings.webauthn_rp_id.is_none() {
+            let url = Url::parse(&settings.defguard_url)
+                .map_err(|_| SettingsInitializationError::InvalidDefguardUrl(settings.defguard_url.clone()))?;
+            let domain = url
+                .domain()
+                .ok_or_else(|| SettingsInitializationError::MissingDefguardDomain(settings.defguard_url.clone()))?;
+            settings.webauthn_rp_id = Some(domain.to_string());
+        }
+
+        update_current_settings(pool, settings).await?;
 
         Ok(())
     }
@@ -645,11 +659,11 @@ impl Settings {
         Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
     }
 
-    pub fn secret_key_required(&self) -> Result<&str, SettingsRequiredValueError> {
+    pub fn secret_key_required(&self) -> Result<&str, SettingsInitializationError> {
         let secret_key = self
             .secret_key
             .as_deref()
-            .ok_or(SettingsRequiredValueError::Missing("secret_key"))?;
+            .ok_or(SettingsInitializationError::Missing("secret_key"))?;
 
         Settings::validate_secret_key(secret_key)?;
 
@@ -718,25 +732,6 @@ impl Settings {
                 (password_reset_session_timeout.as_secs() / minute) as i32;
         }
 
-        // Set webauthn_rp_id based on Settings::defguard_url
-        if self.webauthn_rp_id.is_none() {
-            self.webauthn_rp_id = match Url::parse(&self.defguard_url) {
-                Ok(url) => url.domain().map(ToString::to_string).or_else(|| {
-                    warn!(
-                        "Unable to derive webauthn_rp_id: defguard_url has no domain: {}",
-                        self.defguard_url
-                    );
-                    None
-                }),
-                Err(err) => {
-                    warn!(
-                        "Unable to derive webauthn_rp_id from defguard_url {}: {err}",
-                        self.defguard_url
-                    );
-                    None
-                }
-            };
-        }
     }
 
     pub async fn update_from_config<'e, E>(

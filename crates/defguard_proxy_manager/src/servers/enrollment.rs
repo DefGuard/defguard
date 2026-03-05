@@ -1149,7 +1149,7 @@ mod test {
         );
 
         // initialize settings
-        Settings::init_defaults(&pool).await.unwrap();
+        Settings::initialize_runtime_defaults(&pool).await.unwrap();
         initialize_current_settings(&pool).await.unwrap();
 
         let mut settings = Settings::get(&pool).await.unwrap().unwrap();
