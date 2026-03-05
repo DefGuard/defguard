@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gateway SET enabled = false WHERE enabled AND id NOT IN (SELECT id FROM gateway WHERE enabled LIMIT 1\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "4b1b06bb9769c0237e467ee7cc5265d9b0c45a5b27368cffd634d858e974d8aa"
+}

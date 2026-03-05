@@ -102,7 +102,7 @@ async fn create_test_users_and_devices(
             let device = device.save(pool).await.unwrap();
 
             // Add device to locations' VPN network
-            for location in test_locations.iter() {
+            for location in &test_locations {
                 let wireguard_ips = location
                     .address
                     .iter()

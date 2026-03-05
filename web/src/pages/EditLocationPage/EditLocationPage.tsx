@@ -190,9 +190,9 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const defaultValues = useMemo(
     (): FormFields => ({
       name: location.name,
-      address: location.address.join(', '),
+      address: location.address.join(','),
       allowed_groups: location.allowed_groups,
-      allowed_ips: location.allowed_ips.join(', '),
+      allowed_ips: location.allowed_ips.join(','),
       dns: location.dns,
       endpoint: location.endpoint,
       keepalive_interval: location.keepalive_interval,
@@ -260,18 +260,14 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               <InfoBanner
                 icon="info-outlined"
                 variant="warning"
-                text={m.location_edit_failed_has_devices()}
+                text={m.location_edit_addresses_rewrite_warning()}
               />
               <SizedBox height={ThemeSpacing.Lg} />
             </>
           )}
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput
-                required
-                disabled={location.has_devices}
-                label="Gateway VPN IP address and netmask"
-              />
+              <field.FormInput required label="Gateway VPN IP address and netmask" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />

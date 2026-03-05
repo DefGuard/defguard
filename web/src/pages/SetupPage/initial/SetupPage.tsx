@@ -16,6 +16,7 @@ import { SetupCertificateAuthoritySummaryStep } from './steps/SetupCertificateAu
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
+import { SetupEdgeDeployStep } from './steps/SetupEdgeDeployStep';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
@@ -69,21 +70,27 @@ export const SetupPage = () => {
         label: m.initial_setup_step_certificate_authority_summary_label(),
         description: m.initial_setup_step_certificate_authority_summary_description(),
       },
+      edgeDeploy: {
+        id: SetupPageStep.EdgeDeploy,
+        order: 5,
+        label: m.initial_setup_step_edge_deploy_label(),
+        description: m.initial_setup_step_edge_deploy_description(),
+      },
       edgeComponent: {
         id: SetupPageStep.EdgeComponent,
-        order: 5,
+        order: 6,
         label: m.initial_setup_step_edge_component_label(),
         description: m.initial_setup_step_edge_component_description(),
       },
       edgeAdoption: {
         id: SetupPageStep.EdgeAdoption,
-        order: 6,
+        order: 7,
         label: m.initial_setup_step_edge_adoption_label(),
         description: m.initial_setup_step_edge_adoption_description(),
       },
       confirmation: {
         id: SetupPageStep.Confirmation,
-        order: 7,
+        order: 8,
         label: m.initial_setup_step_confirmation_label(),
         description: m.initial_setup_step_confirmation_description(),
       },
@@ -97,6 +104,7 @@ export const SetupPage = () => {
       generalConfig: <SetupGeneralConfigStep />,
       certificateAuthority: <SetupCertificateAuthorityStep />,
       certificateAuthoritySummary: <SetupCertificateAuthoritySummaryStep />,
+      edgeDeploy: <SetupEdgeDeployStep />,
       edgeComponent: <SetupEdgeComponentStep />,
       edgeAdoption: <SetupEdgeAdoptionStep />,
       confirmation: <SetupConfirmationStep />,

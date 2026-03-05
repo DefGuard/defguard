@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM proxy",
+  "query": "SELECT * FROM proxy WHERE enabled AND id NOT IN (SELECT id FROM proxy WHERE enabled LIMIT 1\n            )",
   "describe": {
     "columns": [
       {
@@ -82,5 +82,5 @@
       false
     ]
   },
-  "hash": "472e3903cf3df3c5938527c5584a5a53edc5b492a6bb12eac3d97f3ebc5f8506"
+  "hash": "27e7e18a7014af541fe5f8f051f78d61eebe6a79945324e98ca452b50d6abc90"
 }
