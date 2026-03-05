@@ -4342,7 +4342,10 @@ async fn test_destination_alias_mixed_ip_versions(_: PgPoolOptions, options: PgC
         id: NoId,
         name: "dual stack alias".to_string(),
         kind: AliasKind::Destination,
-        destination: vec!["192.168.1.0/24".parse().unwrap(), "fc00::/112".parse().unwrap()],
+        destination: vec![
+            "192.168.1.0/24".parse().unwrap(),
+            "fc00::/112".parse().unwrap(),
+        ],
         ports: vec![PortRange::new(123, 123).into()],
         protocols: vec![Protocol::Udp.into()],
         ..Default::default()
@@ -4678,10 +4681,12 @@ async fn test_destination_alias_empty_destination_with_ports_protocols(
             port: Some(PortInner::SinglePort(53))
         }]
     );
-    assert!(allow_rule
-        .protocols
-        .iter()
-        .all(|proto| [Protocol::Tcp as i32, Protocol::Udp as i32].contains(proto)));
+    assert!(
+        allow_rule
+            .protocols
+            .iter()
+            .all(|proto| [Protocol::Tcp as i32, Protocol::Udp as i32].contains(proto))
+    );
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
@@ -4825,7 +4830,10 @@ async fn test_component_alias_combines_with_manual_destinations(
             address: Some(Address::IpSubnet("fc00::/112".to_string()))
         }]
     );
-    assert_eq!(allow_rule_ipv6.destination_ports, allow_rule_ipv4.destination_ports);
+    assert_eq!(
+        allow_rule_ipv6.destination_ports,
+        allow_rule_ipv4.destination_ports
+    );
 
     let deny_rule_ipv4 = &generated_firewall_rules[2];
     assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
