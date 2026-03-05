@@ -92,7 +92,7 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
     const trimmed = trimObjectStrings(values);
     if (user) {
       mutate({
-        key: trimmed.keyValue.replace(/\r?\n|\r/g, ''),
+        key: trimmed.keyValue.replace(/[\r\n]+$/, ''),
         key_type: keyType,
         name: trimmed.title,
         username: user.username,
