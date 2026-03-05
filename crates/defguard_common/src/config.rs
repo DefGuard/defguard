@@ -37,7 +37,7 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT")]
+    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
     #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
     pub auth_cookie_timeout: Duration,
