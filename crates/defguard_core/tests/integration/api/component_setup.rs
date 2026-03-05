@@ -1,6 +1,6 @@
 use std::sync::Once;
 
-use defguard_core::adoption_logs::core_adoption_log_layer;
+use defguard_core::handlers::component_setup::core_setup_log_layer;
 use reqwest::StatusCode;
 use serde_json::Value;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -12,7 +12,7 @@ fn init_tracing_once() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
         tracing_subscriber::registry()
-            .with(core_adoption_log_layer())
+            .with(core_setup_log_layer())
             .try_init()
             .ok();
     });

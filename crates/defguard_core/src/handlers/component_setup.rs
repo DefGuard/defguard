@@ -1,4 +1,11 @@
-use std::{convert::Infallible, time::Duration};
+use std::{
+    cell::RefCell,
+    convert::Infallible,
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context as TaskContext, Poll},
+    time::Duration,
+};
 
 use axum::{
     Extension,
@@ -38,10 +45,14 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
 use tracing::Instrument;
-use uuid::Uuid;
+use tracing::{Event as TracingEvent, Subscriber};
+use tracing_subscriber::{
+    Layer,
+    layer::Context,
+    registry::{LookupSpan, SpanRef},
+};
 
 use crate::{
-    adoption_logs,
     auth::{AdminOrSetupRole, SessionInfo},
     enterprise::is_enterprise_license_active,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -49,6 +60,143 @@ use crate::{
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_CORE_LOG_LINES: usize = 200;
+
+#[derive(Clone)]
+struct CoreLogBuffer(Arc<Mutex<Vec<String>>>);
+
+#[derive(Clone)]
+pub struct CoreSetupLogLayer;
+
+thread_local! {
+    static ACTIVE_CORE_LOG_BUFFER: RefCell<Option<Arc<Mutex<Vec<String>>>>> = const { RefCell::new(None) };
+}
+
+#[must_use]
+pub fn core_setup_log_layer() -> CoreSetupLogLayer {
+    CoreSetupLogLayer
+}
+
+struct SpanStream<S> {
+    inner: Pin<Box<S>>,
+    span: tracing::Span,
+}
+
+impl<S> SpanStream<S> {
+    fn new(inner: S, span: tracing::Span) -> Self {
+        Self {
+            inner: Box::pin(inner),
+            span,
+        }
+    }
+}
+
+impl<S> Stream for SpanStream<S>
+where
+    S: Stream,
+{
+    type Item = S::Item;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut TaskContext<'_>) -> Poll<Option<Self::Item>> {
+        let span = self.span.clone();
+        let _entered = span.enter();
+        self.inner.as_mut().poll_next(cx)
+    }
+}
+
+impl<S> Layer<S> for CoreSetupLogLayer
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    fn on_new_span(
+        &self,
+        attrs: &tracing::span::Attributes<'_>,
+        id: &tracing::span::Id,
+        ctx: Context<'_, S>,
+    ) {
+        if attrs.metadata().name() != "proxy_adoption" {
+            return;
+        }
+
+        let Some(buffer) = ACTIVE_CORE_LOG_BUFFER.with(|active| active.borrow().clone()) else {
+            return;
+        };
+
+        if let Some(span) = ctx.span(id) {
+            span.extensions_mut().insert(CoreLogBuffer(buffer));
+        }
+    }
+
+    fn on_event(&self, event: &TracingEvent<'_>, ctx: Context<'_, S>) {
+        let Some(buffer) = find_log_buffer_in_scope(&ctx, event) else {
+            return;
+        };
+
+        let mut visitor = MessageVisitor::default();
+        event.record(&mut visitor);
+
+        let metadata = event.metadata();
+        let message = visitor.message.unwrap_or_default();
+        let mut guard = buffer.lock().expect("core log buffer mutex poisoned");
+        if guard.len() >= MAX_CORE_LOG_LINES {
+            guard.remove(0);
+        }
+        guard.push(format!(
+            "{} {}: {}",
+            metadata.level(),
+            metadata.target(),
+            message
+        ));
+    }
+}
+
+fn with_active_core_log_buffer<R>(buffer: Arc<Mutex<Vec<String>>>, f: impl FnOnce() -> R) -> R {
+    ACTIVE_CORE_LOG_BUFFER.with(|active| {
+        let previous = active.replace(Some(buffer));
+        let result = f();
+        active.replace(previous);
+        result
+    })
+}
+
+fn find_log_buffer_in_scope<S>(
+    ctx: &Context<'_, S>,
+    event: &TracingEvent<'_>,
+) -> Option<Arc<Mutex<Vec<String>>>>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    let scope = ctx.event_scope(event)?;
+    scope.from_root().filter_map(log_buffer_from_span).last()
+}
+
+fn log_buffer_from_span<S>(span: SpanRef<'_, S>) -> Option<Arc<Mutex<Vec<String>>>>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    span.extensions()
+        .get::<CoreLogBuffer>()
+        .map(|buffer| buffer.0.clone())
+}
+
+#[derive(Default)]
+struct MessageVisitor {
+    message: Option<String>,
+}
+
+impl tracing::field::Visit for MessageVisitor {
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "message" {
+            self.message = Some(value.to_owned());
+        }
+    }
+
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.message = Some(format!("{value:?}"));
+        }
+    }
+}
 
 /// Guard that aborts a tokio task when dropped
 struct TaskGuard(tokio::task::JoinHandle<()>);
@@ -155,15 +303,18 @@ fn set_step_message(next_step: SetupStep) -> Event {
 
 struct SetupFlow {
     last_step: SetupStep,
-    adoption_id: String,
+    core_log_buffer: Option<Arc<Mutex<Vec<String>>>>,
     log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl SetupFlow {
-    fn new(log_rx: tokio::sync::mpsc::UnboundedReceiver<String>, adoption_id: String) -> Self {
+    fn new(
+        log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+        core_log_buffer: Option<Arc<Mutex<Vec<String>>>>,
+    ) -> Self {
         Self {
             last_step: SetupStep::CheckingConfiguration,
-            adoption_id,
+            core_log_buffer,
             log_rx,
         }
     }
@@ -174,13 +325,16 @@ impl SetupFlow {
     }
 
     fn error(&mut self, message: &str) -> Event {
-        error!(
-            adoption_id = %self.adoption_id,
-            step = ?self.last_step,
-            "{message}"
-        );
+        error!(step = ?self.last_step, "{message}");
 
-        let mut collected_logs = adoption_logs::take_logs(&self.adoption_id);
+        let mut collected_logs = self
+            .core_log_buffer
+            .as_ref()
+            .map(|buffer| {
+                let mut guard = buffer.lock().expect("core log buffer mutex poisoned");
+                std::mem::take(&mut *guard)
+            })
+            .unwrap_or_default();
         while let Ok(log) = self.log_rx.try_recv() {
             collected_logs.push(log);
         }
@@ -205,12 +359,13 @@ pub async fn setup_proxy_tls_stream(
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let adoption_id = Uuid::new_v4().to_string();
-    adoption_logs::start_adoption(&adoption_id);
-    let adoption_span = tracing::info_span!("proxy_adoption", adoption_id = %adoption_id);
+    let core_log_buffer = Arc::new(Mutex::new(Vec::new()));
+    let adoption_span = with_active_core_log_buffer(core_log_buffer.clone(), || {
+        tracing::info_span!("proxy_adoption")
+    });
 
     let inner_stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, adoption_id.clone());
+        let mut flow = SetupFlow::new(log_rx, Some(core_log_buffer.clone()));
 
         // check if tries to connect more then 1 proxy without active enterprise license
         if !is_enterprise_license_active() {
@@ -364,6 +519,9 @@ pub async fn setup_proxy_tls_stream(
             request.ip_or_domain, request.grpc_port
         );
 
+        info!("Info test");
+        warn!("warn test");
+        error!("error test");
         let response_with_metadata =
             match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
                 Ok(Ok(r)) => r,
@@ -650,15 +808,7 @@ pub async fn setup_proxy_tls_stream(
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
     };
-    let stream = async_stream::stream! {
-        tokio::pin!(inner_stream);
-        while let Some(item) = {
-            let _guard = adoption_span.enter();
-            inner_stream.next().await
-        } {
-            yield item;
-        }
-    };
+    let stream = SpanStream::new(inner_stream, adoption_span);
 
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
@@ -674,12 +824,8 @@ pub async fn setup_gateway_tls_stream(
     Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let adoption_id = Uuid::new_v4().to_string();
-    adoption_logs::start_adoption(&adoption_id);
-    let adoption_span = tracing::info_span!("gateway_adoption", adoption_id = %adoption_id);
-
-    let inner_stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, adoption_id.clone());
+    let stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, None);
 
         // check if tries to add more then 1 gateway to network without enterprise license
         if !is_enterprise_license_active() {
@@ -1067,15 +1213,6 @@ pub async fn setup_gateway_tls_stream(
 
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
-    };
-    let stream = async_stream::stream! {
-        tokio::pin!(inner_stream);
-        while let Some(item) = {
-            let _guard = adoption_span.enter();
-            inner_stream.next().await
-        } {
-            yield item;
-        }
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())

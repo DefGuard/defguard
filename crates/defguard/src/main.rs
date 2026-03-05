@@ -15,7 +15,6 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
-    adoption_logs::core_adoption_log_layer,
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
@@ -25,6 +24,7 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent},
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
+    handlers::component_setup::core_setup_log_layer,
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
@@ -53,7 +53,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let mut config = DefGuardConfig::new();
 
-    let subscriber = tracing_subscriber::registry().with(core_adoption_log_layer());
+    let subscriber = tracing_subscriber::registry().with(core_setup_log_layer());
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
         &config.log_level,
