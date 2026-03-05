@@ -25,8 +25,9 @@ use crate::{
     },
     enterprise::{
         db::models::acl::{
-            AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
-            AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
+            AclAlias, AclAliasDestinationRange, AclRule, AclRuleAlias, AclRuleDestinationRange,
+            AclRuleDevice, AclRuleGroup, AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind,
+            PortRange, RuleState,
         },
         firewall::{get_source_addrs, get_source_network_devices},
     },
@@ -54,6 +55,272 @@ fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
     device.id = id;
     device.device_type = DeviceType::Network;
     device
+}
+
+async fn create_location_with_addresses(
+    pool: &PgPool,
+    addresses: Vec<IpNetwork>,
+    acl_default_allow: Option<bool>,
+) -> WireguardNetwork<Id> {
+    let mut location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: addresses,
+        ..Default::default()
+    };
+    if let Some(default_allow) = acl_default_allow {
+        location.acl_default_allow = default_allow;
+    }
+    location.save(pool).await.unwrap()
+}
+
+async fn create_location_ipv4(
+    pool: &PgPool,
+    acl_default_allow: Option<bool>,
+) -> WireguardNetwork<Id> {
+    create_location_with_addresses(
+        pool,
+        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+        acl_default_allow,
+    )
+    .await
+}
+
+async fn create_location_ipv6(
+    pool: &PgPool,
+    acl_default_allow: Option<bool>,
+) -> WireguardNetwork<Id> {
+    create_location_with_addresses(
+        pool,
+        vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+        acl_default_allow,
+    )
+    .await
+}
+
+async fn create_location_dual_stack(
+    pool: &PgPool,
+    acl_default_allow: Option<bool>,
+) -> WireguardNetwork<Id> {
+    create_location_with_addresses(
+        pool,
+        vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
+            IpNetwork::new(
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+                64,
+            )
+            .unwrap(),
+        ],
+        acl_default_allow,
+    )
+    .await
+}
+
+async fn create_user(pool: &PgPool) -> User<Id> {
+    let mut rng = thread_rng();
+    let user: User<NoId> = rng.r#gen();
+    user.save(pool).await.unwrap()
+}
+
+async fn create_user_device(pool: &PgPool, user: &User<Id>, name: String) -> Device<Id> {
+    let device = Device {
+        id: NoId,
+        name,
+        user_id: user.id,
+        device_type: DeviceType::User,
+        description: None,
+        wireguard_pubkey: Default::default(),
+        created: Default::default(),
+        configured: true,
+    };
+    device.save(pool).await.unwrap()
+}
+
+async fn create_user_device_assigned(
+    pool: &PgPool,
+    location: &WireguardNetwork<Id>,
+) -> (User<Id>, Device<Id>) {
+    let user = create_user(pool).await;
+    let device = create_user_device(pool, &user, format!("device-{}", user.id)).await;
+    let mut conn = pool.acquire().await.unwrap();
+    location
+        .add_device_to_network(&mut conn, &device, None)
+        .await
+        .unwrap();
+    (user, device)
+}
+
+async fn attach_rule_to_location(pool: &PgPool, rule_id: Id, location_id: Id) {
+    let obj = AclRuleNetwork {
+        id: NoId,
+        rule_id,
+        network_id: location_id,
+    };
+    obj.save(pool).await.unwrap();
+}
+
+async fn attach_alias_to_rule(pool: &PgPool, rule_id: Id, alias_id: Id) {
+    let obj = AclRuleAlias {
+        id: NoId,
+        rule_id,
+        alias_id,
+    };
+    obj.save(pool).await.unwrap();
+}
+
+async fn create_acl_rule_basic(
+    pool: &PgPool,
+    name: &str,
+    destination: Vec<IpNetwork>,
+    ports: Vec<PortRange>,
+    protocols: Vec<i32>,
+    allow_all_users: bool,
+    deny_all_users: bool,
+    all_networks: bool,
+) -> AclRule<Id> {
+    let acl_rule = AclRule {
+        id: NoId,
+        name: name.to_string(),
+        all_networks,
+        expires: None,
+        allow_all_users,
+        deny_all_users,
+        allow_all_network_devices: false,
+        deny_all_network_devices: false,
+        destination,
+        ports: ports.into_iter().map(Into::into).collect(),
+        protocols,
+        enabled: true,
+        parent_id: None,
+        state: RuleState::Applied,
+    };
+    acl_rule.save(pool).await.unwrap()
+}
+
+async fn create_destination_alias(
+    pool: &PgPool,
+    name: &str,
+    destination: Vec<IpNetwork>,
+    ports: Vec<PortRange>,
+    protocols: Vec<i32>,
+) -> AclAlias<Id> {
+    let alias = AclAlias {
+        id: NoId,
+        name: name.to_string(),
+        kind: AliasKind::Destination,
+        destination,
+        ports: ports.into_iter().map(Into::into).collect(),
+        protocols,
+        ..Default::default()
+    };
+    alias.save(pool).await.unwrap()
+}
+
+async fn create_component_alias(
+    pool: &PgPool,
+    name: &str,
+    destination: Vec<IpNetwork>,
+    ports: Vec<PortRange>,
+    protocols: Vec<i32>,
+) -> AclAlias<Id> {
+    let alias = AclAlias {
+        id: NoId,
+        name: name.to_string(),
+        kind: AliasKind::Component,
+        destination,
+        ports: ports.into_iter().map(Into::into).collect(),
+        protocols,
+        ..Default::default()
+    };
+    alias.save(pool).await.unwrap()
+}
+
+async fn add_alias_destination_range(pool: &PgPool, alias_id: Id, start: IpAddr, end: IpAddr) {
+    AclAliasDestinationRange {
+        id: NoId,
+        alias_id,
+        start,
+        end,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+}
+
+async fn fetch_firewall_rules(
+    pool: &PgPool,
+    location: &WireguardNetwork<Id>,
+) -> Vec<defguard_proto::enterprise::firewall::FirewallRule> {
+    let mut conn = pool.acquire().await.unwrap();
+    location
+        .try_get_firewall_config(&mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules
+}
+
+async fn seed_users_with_devices_for_locations(
+    pool: &PgPool,
+    locations: &[&WireguardNetwork<Id>],
+    users: usize,
+    devices_per_user: u8,
+) -> Vec<User<Id>> {
+    let mut rng = thread_rng();
+    let mut result = Vec::with_capacity(users);
+    for _ in 0..users {
+        let user: User<NoId> = rng.r#gen();
+        let user = user.save(pool).await.unwrap();
+
+        for device_num in 1..=devices_per_user {
+            let device = Device {
+                id: NoId,
+                name: format!("device-{}-{device_num}", user.id),
+                user_id: user.id,
+                device_type: DeviceType::User,
+                description: None,
+                wireguard_pubkey: Default::default(),
+                created: Default::default(),
+                configured: true,
+            };
+            let device = device.save(pool).await.unwrap();
+
+            for location in locations {
+                let mut wireguard_ips = Vec::new();
+                let has_ipv4 = location.address.iter().any(IpNetwork::is_ipv4);
+                let has_ipv6 = location.address.iter().any(IpNetwork::is_ipv6);
+                if has_ipv4 {
+                    wireguard_ips.push(IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num)));
+                }
+                if has_ipv6 {
+                    wireguard_ips.push(IpAddr::V6(Ipv6Addr::new(
+                        0xff00,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        user.id as u16,
+                        device_num as u16,
+                    )));
+                }
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location.id,
+                    wireguard_ips,
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(pool).await.unwrap();
+            }
+        }
+
+        result.push(user);
+    }
+
+    result
 }
 
 #[test]
@@ -3798,8 +4065,6 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let mut rng = thread_rng();
-
     // Create test location
     let location = WireguardNetwork {
         id: NoId,
@@ -3811,106 +4076,45 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     .unwrap();
 
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.r#gen();
-    let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.r#gen();
-    let user_2 = user_2.save(&pool).await.unwrap();
-
-    for user in [&user_1, &user_2] {
-        // Create 2 devices per user
-        for device_num in 1..3 {
-            let device = Device {
-                id: NoId,
-                name: format!("device-{}-{device_num}", user.id),
-                user_id: user.id,
-                device_type: DeviceType::User,
-                description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
-                configured: true,
-            };
-            let device = device.save(&pool).await.unwrap();
-
-            // Add device to location's VPN network
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location.id,
-                wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
-                    10,
-                    0,
-                    user.id as u8,
-                    device_num as u8,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-        }
-    }
+    seed_users_with_devices_for_locations(&pool, &[&location], 2, 2).await;
 
     // create ACL rule without manually configured destination
-    let acl_rule = AclRule {
-        id: NoId,
-        name: "test rule".to_string(),
-        expires: None,
-        enabled: true,
-        state: RuleState::Applied,
-        destination: Vec::new(),
-        allow_all_users: true,
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "test rule",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
 
     // create different kinds of aliases and add them to the rule
-    let destination_alias_1 = AclAlias {
-        id: NoId,
-        name: "postgres".to_string(),
-        kind: AliasKind::Destination,
-        destination: vec!["10.0.2.3".parse().unwrap()],
-        ports: vec![PortRange::new(5432, 5432).into()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let destination_alias_2 = AclAlias {
-        id: NoId,
-        name: "redis".to_string(),
-        kind: AliasKind::Destination,
-        destination: vec!["10.0.2.4".parse().unwrap()],
-        ports: vec![PortRange::new(6379, 6379).into()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    for alias in [&destination_alias_1, &destination_alias_2] {
-        let obj = AclRuleAlias {
-            id: NoId,
-            rule_id: acl_rule.id,
-            alias_id: alias.id,
-        };
-        obj.save(&pool).await.unwrap();
-    }
+    let destination_alias_1 = create_destination_alias(
+        &pool,
+        "postgres",
+        vec!["10.0.2.3".parse().unwrap()],
+        vec![PortRange::new(5432, 5432)],
+        Vec::new(),
+    )
+    .await;
+    let destination_alias_2 = create_destination_alias(
+        &pool,
+        "redis",
+        vec!["10.0.2.4".parse().unwrap()],
+        vec![PortRange::new(6379, 6379)],
+        Vec::new(),
+    )
+    .await;
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias_1.id).await;
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias_2.id).await;
 
     // assign rule to location
-    let obj = AclRuleNetwork {
-        id: NoId,
-        rule_id: acl_rule.id,
-        network_id: location.id,
-    };
-    obj.save(&pool).await.unwrap();
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
 
-    let mut conn = pool.acquire().await.unwrap();
-    let generated_firewall_rules = location
-        .try_get_firewall_config(&mut conn)
-        .await
-        .unwrap()
-        .unwrap()
-        .rules;
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
 
     // check generated rules
     assert_eq!(generated_firewall_rules.len(), 4);
@@ -4005,213 +4209,360 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 }
 
 #[sqlx::test]
-async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_empty_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-
-    let mut rng = thread_rng();
-
-    // Create test location with both IPv4 and IPv6 subnet
-    let location = WireguardNetwork {
-        id: NoId,
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
-            IpNetwork::new(
-                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
-                64,
-            )
-            .unwrap(),
-        ],
-        ..Default::default()
-    };
-    let location = location.save(&pool).await.unwrap();
-
-    // setup user & device
-    let user: User<NoId> = rng.r#gen();
-    let user = user.save(&pool).await.unwrap();
-
-    let device = Device {
-        id: NoId,
-        name: format!("device-{}", user.id),
-        user_id: user.id,
-        device_type: DeviceType::User,
-        description: None,
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
-        configured: true,
-    };
-    let device = device.save(&pool).await.unwrap();
-
-    // assign network address to device
-    let mut conn = pool.acquire().await.unwrap();
-    location
-        .add_device_to_network(&mut conn, &device, None)
-        .await
-        .unwrap();
-
-    // create a rule with only an IPv4 destination
-    let acl_rule = AclRule {
-        id: NoId,
-        name: "Web Access".into(),
-        all_networks: true,
-        expires: None,
-        allow_all_users: true,
-        deny_all_users: false,
-        allow_all_network_devices: false,
-        deny_all_network_devices: false,
-        destination: vec!["192.168.1.0/24".parse().unwrap()],
-        ports: vec![
-            PortRange::new(80, 80).into(),
-            PortRange::new(443, 443).into(),
-        ],
-        protocols: vec![Protocol::Tcp.into()],
-        enabled: true,
-        parent_id: None,
-        state: RuleState::Applied,
-    };
-    acl_rule.save(&pool).await.unwrap();
-
-    // verify only IPv4 rules are created
-    let generated_firewall_config = location
-        .try_get_firewall_config(&mut conn)
-        .await
-        .unwrap()
-        .unwrap();
-    let generated_firewall_rules = generated_firewall_config.rules;
-    assert_eq!(generated_firewall_rules.len(), 2);
-
-    let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv4));
-
-    let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv4));
-}
-
-#[sqlx::test]
-async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let pool = setup_pool(options).await;
-
-    let mut rng = thread_rng();
-
-    // Create test location with both IPv4 and IPv6 subnet
-    let location = WireguardNetwork {
-        id: NoId,
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
-            IpNetwork::new(
-                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
-                64,
-            )
-            .unwrap(),
-        ],
-        ..Default::default()
-    };
-    let location = location.save(&pool).await.unwrap();
-
-    // setup user & device
-    let user: User<NoId> = rng.r#gen();
-    let user = user.save(&pool).await.unwrap();
-
-    let device = Device {
-        id: NoId,
-        name: format!("device-{}", user.id),
-        user_id: user.id,
-        device_type: DeviceType::User,
-        description: None,
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
-        configured: true,
-    };
-    let device = device.save(&pool).await.unwrap();
-
-    // assign network address to device
-    let mut conn = pool.acquire().await.unwrap();
-    location
-        .add_device_to_network(&mut conn, &device, None)
-        .await
-        .unwrap();
-
-    // create a rule with only an IPv4 destination
-    let acl_rule = AclRule {
-        id: NoId,
-        name: "Web Access".into(),
-        all_networks: true,
-        expires: None,
-        allow_all_users: true,
-        deny_all_users: false,
-        allow_all_network_devices: false,
-        deny_all_network_devices: false,
-        destination: vec!["fc00::0/112".parse().unwrap()],
-        ports: vec![
-            PortRange::new(80, 80).into(),
-            PortRange::new(443, 443).into(),
-        ],
-        protocols: vec![Protocol::Tcp.into()],
-        enabled: true,
-        parent_id: None,
-        state: RuleState::Applied,
-    };
-    acl_rule.save(&pool).await.unwrap();
-
-    // verify only IPv4 rules are created
-    let generated_firewall_config = location
-        .try_get_firewall_config(&mut conn)
-        .await
-        .unwrap()
-        .unwrap();
-    let generated_firewall_rules = generated_firewall_config.rules;
-    assert_eq!(generated_firewall_rules.len(), 2);
-
-    let allow_rule = &generated_firewall_rules[0];
-    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
-
-    let deny_rule = &generated_firewall_rules[1];
-    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
-}
-
-#[sqlx::test]
-async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
-    let pool = setup_pool(options).await;
-
-    let mut rng = thread_rng();
 
     // Create test locations with IPv4 and IPv6 addresses
-    let location_ipv4 = WireguardNetwork {
-        id: NoId,
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let location_ipv6 = WireguardNetwork {
-        id: NoId,
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let location_ipv4_and_ipv6 = WireguardNetwork {
-        id: NoId,
-        acl_enabled: true,
-        address: vec![
+    let location_ipv4 = create_location_ipv4(&pool, None).await;
+    let location_ipv6 = create_location_ipv6(&pool, None).await;
+    let location_ipv4_and_ipv6 = create_location_with_addresses(
+        &pool,
+        vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
             IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
         ],
+        None,
+    )
+    .await;
+
+    // Setup some test users and their devices
+    seed_users_with_devices_for_locations(
+        &pool,
+        &[&location_ipv4, &location_ipv6, &location_ipv4_and_ipv6],
+        2,
+        2,
+    )
+    .await;
+
+    // create ACL rule without manually configured destination
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "test rule",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    // create empty destination alias and add it to the rule
+    let destination_alias = create_destination_alias(
+        &pool,
+        "empty destination alias",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
+
+    // assign rule to all locations
+    for location in [&location_ipv4, &location_ipv6, &location_ipv4_and_ipv6] {
+        attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+    }
+
+    let expected_source_addrs_ipv4 = vec![
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.1.1".to_string(),
+                end: "10.0.1.2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.2.1".to_string(),
+                end: "10.0.2.2".to_string(),
+            })),
+        },
+    ];
+    let expected_source_addrs_ipv6 = vec![
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "ff00::1:1".to_string(),
+                end: "ff00::1:2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "ff00::2:1".to_string(),
+                end: "ff00::2:2".to_string(),
+            })),
+        },
+    ];
+
+    // check generated rules for IPv4 only location
+    let generated_firewall_rules_ipv4 = fetch_firewall_rules(&pool, &location_ipv4).await;
+
+    assert_eq!(generated_firewall_rules_ipv4.len(), 2);
+    let allow_rule_ipv4 = &generated_firewall_rules_ipv4[0];
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
+    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+
+    let deny_rule_ipv4 = &generated_firewall_rules_ipv4[1];
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv4.source_addrs.is_empty());
+    assert!(deny_rule_ipv4.destination_addrs.is_empty());
+
+    // check generated rules for IPv6 only location
+    let generated_firewall_rules_ipv6 = fetch_firewall_rules(&pool, &location_ipv6).await;
+
+    assert_eq!(generated_firewall_rules_ipv6.len(), 2);
+    let allow_rule_ipv6 = &generated_firewall_rules_ipv6[0];
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
+    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+
+    let deny_rule_ipv6 = &generated_firewall_rules_ipv6[1];
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv6.source_addrs.is_empty());
+    assert!(deny_rule_ipv6.destination_addrs.is_empty());
+
+    // check generated rules for IPv4 and IPv6 location
+    let generated_firewall_rules_ipv4_and_ipv6 =
+        fetch_firewall_rules(&pool, &location_ipv4_and_ipv6).await;
+
+    assert_eq!(generated_firewall_rules_ipv4_and_ipv6.len(), 4);
+    let allow_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[0];
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.source_addrs, expected_source_addrs_ipv4);
+    assert!(allow_rule_ipv4.destination_addrs.is_empty());
+
+    let allow_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[1];
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.source_addrs, expected_source_addrs_ipv6);
+    assert!(allow_rule_ipv6.destination_addrs.is_empty());
+
+    let deny_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[2];
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv4.source_addrs.is_empty());
+    assert!(deny_rule_ipv4.destination_addrs.is_empty());
+
+    let deny_rule_ipv6 = &generated_firewall_rules_ipv4_and_ipv6[3];
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule_ipv6.source_addrs.is_empty());
+    assert!(deny_rule_ipv6.destination_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_destination_alias_mixed_ip_versions(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = create_location_dual_stack(&pool, Some(false)).await;
+
+    // setup user & device
+    create_user_device_assigned(&pool, &location).await;
+
+    // create ACL rule with no manual destination and attach destination alias
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "Alias Mixed",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    let destination_alias = create_destination_alias(
+        &pool,
+        "dual stack alias",
+        vec![
+            "192.168.1.0/24".parse().unwrap(),
+            "fc00::/112".parse().unwrap(),
+        ],
+        vec![PortRange::new(123, 123)],
+        vec![Protocol::Udp.into()],
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
+
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    // verify IPv4 and IPv6 rules are created and destinations are family-specific
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 4);
+
+    let allow_rule_ipv4 = &generated_firewall_rules[0];
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(
+        allow_rule_ipv4.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+        }]
+    );
+
+    let allow_rule_ipv6 = &generated_firewall_rules[1];
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(
+        allow_rule_ipv6.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("fc00::/112".to_string()))
+        }]
+    );
+
+    let deny_rule_ipv4 = &generated_firewall_rules[2];
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(
+        deny_rule_ipv4.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+        }]
+    );
+
+    let deny_rule_ipv6 = &generated_firewall_rules[3];
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(
+        deny_rule_ipv6.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("fc00::/112".to_string()))
+        }]
+    );
+}
+
+#[sqlx::test]
+async fn test_destination_alias_ranges_only(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let mut rng = thread_rng();
+
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        acl_default_allow: false,
+        address: vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
+            IpNetwork::new(
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+                64,
+            )
+            .unwrap(),
+        ],
+        ..Default::default()
+    };
+    let location = location.save(&pool).await.unwrap();
+
+    // setup user & device
+    let user: User<NoId> = rng.r#gen();
+    let user = user.save(&pool).await.unwrap();
+
+    let device = Device {
+        id: NoId,
+        name: format!("device-{}", user.id),
+        user_id: user.id,
+        device_type: DeviceType::User,
+        description: None,
+        wireguard_pubkey: Default::default(),
+        created: Default::default(),
+        configured: true,
+    };
+    let device = device.save(&pool).await.unwrap();
+
+    // assign network address to device
+    let mut conn = pool.acquire().await.unwrap();
+    location
+        .add_device_to_network(&mut conn, &device, None)
+        .await
+        .unwrap();
+
+    // create ACL rule with no manual destination and attach destination alias
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "Alias Ranges",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    let destination_alias = create_destination_alias(
+        &pool,
+        "range alias",
+        Vec::new(),
+        vec![PortRange::new(123, 123)],
+        vec![Protocol::Udp.into()],
+    )
+    .await;
+
+    add_alias_destination_range(
+        &pool,
+        destination_alias.id,
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)),
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)),
+    )
+    .await;
+    add_alias_destination_range(
+        &pool,
+        destination_alias.id,
+        IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 1)),
+        IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 10)),
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
+
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    // verify IPv4 and IPv6 rules are created from ranges only
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 4);
+
+    let allow_rule_ipv4 = &generated_firewall_rules[0];
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert!(!allow_rule_ipv4.destination_addrs.is_empty());
+
+    let allow_rule_ipv6 = &generated_firewall_rules[1];
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert!(!allow_rule_ipv6.destination_addrs.is_empty());
+
+    let deny_rule_ipv4 = &generated_firewall_rules[2];
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert!(!deny_rule_ipv4.destination_addrs.is_empty());
+
+    let deny_rule_ipv6 = &generated_firewall_rules[3];
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert!(!deny_rule_ipv6.destination_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_destination_alias_empty_destination_with_ports_protocols(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Create test location
+    let location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
         ..Default::default()
     }
     .save(&pool)
@@ -4219,117 +4570,536 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     .unwrap();
 
     // Setup some test users and their devices
-    let user_1: User<NoId> = rng.r#gen();
-    let user_1 = user_1.save(&pool).await.unwrap();
-    let user_2: User<NoId> = rng.r#gen();
-    let user_2 = user_2.save(&pool).await.unwrap();
+    seed_users_with_devices_for_locations(&pool, &[&location], 2, 2).await;
 
-    for user in [&user_1, &user_2] {
-        // Create 2 devices per user
-        for device_num in 1..3 {
-            let device = Device {
-                id: NoId,
-                name: format!("device-{}-{device_num}", user.id),
-                user_id: user.id,
-                device_type: DeviceType::User,
-                description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
-                configured: true,
-            };
-            let device = device.save(&pool).await.unwrap();
+    // create ACL rule without manually configured destination
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "test rule",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
 
-            // Add device to all locations' VPN networks
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_ipv4.id,
-                wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
-                    10,
-                    0,
-                    user.id as u8,
-                    device_num as u8,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_ipv6.id,
-                wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
-                    0xff00,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    user.id as u16,
-                    device_num as u16,
-                ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-            let network_device = WireguardNetworkDevice {
-                device_id: device.id,
-                wireguard_network_id: location_ipv4_and_ipv6.id,
-                wireguard_ips: vec![
-                    IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
-                    IpAddr::V6(Ipv6Addr::new(
-                        0xff00,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        user.id as u16,
-                        device_num as u16,
-                    )),
-                ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
-            };
-            network_device.insert(&pool).await.unwrap();
-        }
-    }
+    // create empty destination alias with ports and protocols
+    let destination_alias = create_destination_alias(
+        &pool,
+        "empty destination with ports",
+        Vec::new(),
+        vec![PortRange::new(53, 53)],
+        vec![Protocol::Udp.into(), Protocol::Tcp.into()],
+    )
+    .await;
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
 
-    // create ACL rule without manually configured destination and no aliases
-    let acl_rule = AclRule {
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+
+    // should still match any destination, but include ports and protocols
+    assert_eq!(generated_firewall_rules.len(), 2);
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert!(allow_rule.destination_addrs.is_empty());
+    assert_eq!(
+        allow_rule.destination_ports,
+        vec![Port {
+            port: Some(PortInner::SinglePort(53))
+        }]
+    );
+    assert!(
+        allow_rule
+            .protocols
+            .iter()
+            .all(|proto| [Protocol::Tcp as i32, Protocol::Udp as i32].contains(proto))
+    );
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.destination_addrs.is_empty());
+    assert!(deny_rule.destination_ports.is_empty());
+    assert!(deny_rule.protocols.is_empty());
+}
+
+#[sqlx::test]
+async fn test_component_alias_combines_with_manual_destinations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = create_location_dual_stack(&pool, Some(false)).await;
+
+    // setup user & device
+    create_user_device_assigned(&pool, &location).await;
+
+    // create ACL rule with manual destination
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "Manual with Component",
+        vec!["192.168.1.0/24".parse().unwrap()],
+        vec![PortRange::new(80, 80)],
+        vec![Protocol::Tcp.into()],
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    let component_alias = create_component_alias(
+        &pool,
+        "component alias",
+        vec!["fc00::/112".parse().unwrap()],
+        vec![PortRange::new(443, 443)],
+        vec![Protocol::Tcp.into()],
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, component_alias.id).await;
+
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    // verify both IPv4 and IPv6 rules are created with merged destinations/ports
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 4);
+
+    let allow_rule_ipv4 = &generated_firewall_rules[0];
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(
+        allow_rule_ipv4.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+        }]
+    );
+    assert_eq!(
+        allow_rule_ipv4.destination_ports,
+        vec![
+            Port {
+                port: Some(PortInner::SinglePort(80))
+            },
+            Port {
+                port: Some(PortInner::SinglePort(443))
+            }
+        ]
+    );
+
+    let allow_rule_ipv6 = &generated_firewall_rules[1];
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(
+        allow_rule_ipv6.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("fc00::/112".to_string()))
+        }]
+    );
+    assert_eq!(
+        allow_rule_ipv6.destination_ports,
+        allow_rule_ipv4.destination_ports
+    );
+
+    let deny_rule_ipv4 = &generated_firewall_rules[2];
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(
+        deny_rule_ipv4.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+        }]
+    );
+
+    let deny_rule_ipv6 = &generated_firewall_rules[3];
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(
+        deny_rule_ipv6.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("fc00::/112".to_string()))
+        }]
+    );
+}
+
+#[sqlx::test]
+async fn test_acl_with_no_allow_sources_creates_only_deny_rules(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Create test location
+    let location = WireguardNetwork {
         id: NoId,
-        name: "test rule".to_string(),
-        expires: None,
-        enabled: true,
-        state: RuleState::Applied,
-        destination: Vec::new(),
-        allow_all_users: true,
+        acl_enabled: true,
         ..Default::default()
     }
     .save(&pool)
     .await
     .unwrap();
 
+    // create ACL rule that denies all users and does not allow any
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "deny all",
+        vec!["10.0.0.0/24".parse().unwrap()],
+        Vec::new(),
+        Vec::new(),
+        false,
+        true,
+        false,
+    )
+    .await;
+
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+
+    // Only deny rules should be created since there are no allowed sources
+    assert_eq!(generated_firewall_rules.len(), 1);
+    let deny_rule = &generated_firewall_rules[0];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert!(!deny_rule.destination_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_manual_and_destination_aliases_create_separate_rules(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    // Create test location
+    let location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Setup some test users and their devices
+    seed_users_with_devices_for_locations(&pool, &[&location], 1, 2).await;
+
+    // create ACL rule with manual destination
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "manual + alias",
+        vec!["10.0.2.3/32".parse().unwrap()],
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    // create destination alias and attach to rule
+    let destination_alias = create_destination_alias(
+        &pool,
+        "alias",
+        vec!["10.0.2.4/32".parse().unwrap()],
+        vec![PortRange::new(22, 22)],
+        Vec::new(),
+    )
+    .await;
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
+
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+
+    // manual destinations and alias destinations should produce separate rules
+    assert_eq!(generated_firewall_rules.len(), 4);
+    let allow_manual = &generated_firewall_rules[0];
+    assert_eq!(allow_manual.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(
+        allow_manual.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::Ip("10.0.2.3".to_string()))
+        }]
+    );
+
+    let allow_alias = &generated_firewall_rules[1];
+    assert_eq!(allow_alias.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(
+        allow_alias.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::Ip("10.0.2.4".to_string()))
+        }]
+    );
+
+    let deny_manual = &generated_firewall_rules[2];
+    assert_eq!(deny_manual.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(
+        deny_manual.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::Ip("10.0.2.3".to_string()))
+        }]
+    );
+
+    let deny_alias = &generated_firewall_rules[3];
+    assert_eq!(deny_alias.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(
+        deny_alias.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::Ip("10.0.2.4".to_string()))
+        }]
+    );
+}
+
+#[sqlx::test]
+async fn test_gh1868_ipv6_firewall_rule_is_not_created_for_v4_only_destination_in_rule(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = create_location_dual_stack(&pool, None).await;
+
+    // setup user & device
+    create_user_device_assigned(&pool, &location).await;
+
+    // create a rule with only an IPv4 destination
+    create_acl_rule_basic(
+        &pool,
+        "Web Access",
+        vec!["192.168.1.0/24".parse().unwrap()],
+        vec![PortRange::new(80, 80), PortRange::new(443, 443)],
+        vec![Protocol::Tcp.into()],
+        true,
+        false,
+        true,
+    )
+    .await;
+
+    // verify only IPv4 rules are created
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv4));
+    assert!(!allow_rule.destination_addrs.is_empty());
+    assert!(!allow_rule.source_addrs.is_empty());
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv4));
+    assert!(!deny_rule.destination_addrs.is_empty());
+    assert!(deny_rule.source_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_gh1868_ipv4_firewall_rule_is_not_created_for_v6_only_destination_in_rule(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = create_location_dual_stack(&pool, None).await;
+
+    // setup user & device
+    create_user_device_assigned(&pool, &location).await;
+
+    // create a rule with only an IPv6 destination
+    create_acl_rule_basic(
+        &pool,
+        "Web Access",
+        vec!["fc00::0/112".parse().unwrap()],
+        vec![PortRange::new(80, 80), PortRange::new(443, 443)],
+        vec![Protocol::Tcp.into()],
+        true,
+        false,
+        true,
+    )
+    .await;
+
+    // verify only IPv6 rules are created
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert!(!allow_rule.destination_addrs.is_empty());
+    assert!(!allow_rule.source_addrs.is_empty());
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert!(!deny_rule.destination_addrs.is_empty());
+    assert!(deny_rule.source_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_gh2117_ipv6_firewall_rule_is_not_created_for_v4_only_destination_in_alias(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = create_location_dual_stack(&pool, Some(false)).await;
+
+    // setup user & device
+    create_user_device_assigned(&pool, &location).await;
+
+    // create ACL rule with no manual destination and attach destination alias
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "Alias Only",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    // set only IPv4 destination
+    let destination_alias = create_destination_alias(
+        &pool,
+        "internal ntp",
+        vec!["192.168.1.0/24".parse().unwrap()],
+        vec![PortRange::new(123, 123)],
+        vec![Protocol::Udp.into()],
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
+
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    // verify only IPv4 rules are created
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv4));
+    assert!(!allow_rule.destination_addrs.is_empty());
+    assert!(!allow_rule.source_addrs.is_empty());
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv4));
+    assert!(!deny_rule.destination_addrs.is_empty());
+    assert!(deny_rule.source_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_gh2117_ipv4_firewall_rule_is_not_created_for_v6_only_destination_in_alias(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    // Create test location with both IPv4 and IPv6 subnet
+    let location = create_location_dual_stack(&pool, Some(false)).await;
+
+    // setup user & device
+    create_user_device_assigned(&pool, &location).await;
+
+    // create ACL rule with no manual destination and attach destination alias
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "Alias Only",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    // set only IPv6 destination
+    let destination_alias = create_destination_alias(
+        &pool,
+        "internal ntp",
+        vec!["fc00::0/112".parse().unwrap()],
+        vec![PortRange::new(123, 123)],
+        vec![Protocol::Udp.into()],
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, destination_alias.id).await;
+
+    // assign rule to location
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    // verify only IPv6 rules are created
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert!(!allow_rule.destination_addrs.is_empty());
+    assert!(!allow_rule.source_addrs.is_empty());
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert!(!deny_rule.destination_addrs.is_empty());
+    assert!(deny_rule.source_addrs.is_empty());
+}
+
+#[sqlx::test]
+async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    // Create test locations with IPv4 and IPv6 addresses
+    let location_ipv4 = create_location_ipv4(&pool, None).await;
+    let location_ipv6 = create_location_ipv6(&pool, None).await;
+    let location_ipv4_and_ipv6 = create_location_with_addresses(
+        &pool,
+        vec![
+            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+        ],
+        None,
+    )
+    .await;
+
+    // Setup some test users and their devices
+    seed_users_with_devices_for_locations(
+        &pool,
+        &[&location_ipv4, &location_ipv6, &location_ipv4_and_ipv6],
+        2,
+        2,
+    )
+    .await;
+
+    // create ACL rule without manually configured destination and no aliases
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "test rule",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
     // assign rule to all locations
     for location in [&location_ipv4, &location_ipv6, &location_ipv4_and_ipv6] {
-        let obj = AclRuleNetwork {
-            id: NoId,
-            rule_id: acl_rule.id,
-            network_id: location.id,
-        };
-        obj.save(&pool).await.unwrap();
+        attach_rule_to_location(&pool, acl_rule.id, location.id).await;
     }
 
-    let mut conn = pool.acquire().await.unwrap();
-
     // check generated rules for IPv4 only location
-    let generated_firewall_rules_ipv4 = location_ipv4
-        .try_get_firewall_config(&mut conn)
-        .await
-        .unwrap()
-        .unwrap()
-        .rules;
+    let generated_firewall_rules_ipv4 = fetch_firewall_rules(&pool, &location_ipv4).await;
 
     assert_eq!(generated_firewall_rules_ipv4.len(), 2);
     let expected_source_addrs_ipv4 = vec![
@@ -4359,12 +5129,7 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     assert!(deny_rule_ipv4.destination_addrs.is_empty());
 
     // check generated rules for IPv6 only location
-    let generated_firewall_rules_ipv6 = location_ipv6
-        .try_get_firewall_config(&mut conn)
-        .await
-        .unwrap()
-        .unwrap()
-        .rules;
+    let generated_firewall_rules_ipv6 = fetch_firewall_rules(&pool, &location_ipv6).await;
 
     assert_eq!(generated_firewall_rules_ipv6.len(), 2);
     let expected_source_addrs_ipv6 = vec![
@@ -4394,12 +5159,8 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     assert!(deny_rule_ipv6.destination_addrs.is_empty());
 
     // check generated rules for IPv4 and IPv6 location
-    let generated_firewall_rules_ipv4_and_ipv6 = location_ipv4_and_ipv6
-        .try_get_firewall_config(&mut conn)
-        .await
-        .unwrap()
-        .unwrap()
-        .rules;
+    let generated_firewall_rules_ipv4_and_ipv6 =
+        fetch_firewall_rules(&pool, &location_ipv4_and_ipv6).await;
 
     assert_eq!(generated_firewall_rules_ipv4_and_ipv6.len(), 4);
     let allow_rule_ipv4 = &generated_firewall_rules_ipv4_and_ipv6[0];

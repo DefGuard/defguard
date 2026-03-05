@@ -228,7 +228,10 @@ pub async fn generate_firewall_rules_from_acls(
                 "ACL {} - {}, ALIAS {} - {}",
                 acl.id, acl.name, alias.id, alias.name
             );
-            if location_has_ipv4_addresses {
+            let has_v4_destination = !dest_addrs_v4.is_empty();
+            let has_v6_destination = !dest_addrs_v6.is_empty();
+            let has_no_destination_address = !(has_v4_destination || has_v6_destination);
+            if location_has_ipv4_addresses && (has_v4_destination || has_no_destination_address) {
                 // create IPv4 rules
                 let ipv4_rules = create_rules(
                     alias.id,
@@ -245,7 +248,7 @@ pub async fn generate_firewall_rules_from_acls(
                 deny_rules.push(ipv4_rules.1);
             }
 
-            if location_has_ipv6_addresses {
+            if location_has_ipv6_addresses && (has_v6_destination || has_no_destination_address) {
                 // create IPv6 rules
                 let ipv6_rules = create_rules(
                     alias.id,
