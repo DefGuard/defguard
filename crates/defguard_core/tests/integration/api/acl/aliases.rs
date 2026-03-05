@@ -415,5 +415,5 @@ async fn test_alias_apply_rejects_destination(_: PgPoolOptions, options: PgConne
         .json(&json!({ "aliases": [1] }))
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }

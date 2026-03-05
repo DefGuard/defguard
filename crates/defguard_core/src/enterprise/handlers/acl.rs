@@ -204,7 +204,6 @@ pub(crate) struct ApplyAclRulesData {
     rules: Vec<Id>,
 }
 
-
 #[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]
 pub struct AclStateCount {
     pub applied: i64,

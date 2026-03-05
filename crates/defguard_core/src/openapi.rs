@@ -1,13 +1,13 @@
 use defguard_common::{
     db::models::{
-        device::{AddDevice, ModifyDevice, UserDevice},
         Device,
+        device::{AddDevice, ModifyDevice, UserDevice},
     },
     types::user_info::UserInfo,
 };
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
+    openapi::security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme},
 };
 
 use super::{
@@ -17,13 +17,12 @@ use super::{
     },
     error::WebError,
     handlers::{
-        auth,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, auth,
         group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, UserDetails},
         wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
-        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
     },
 };
 

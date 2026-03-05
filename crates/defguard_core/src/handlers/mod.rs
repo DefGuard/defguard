@@ -168,16 +168,26 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Alias {id} not found")}),
                     StatusCode::NOT_FOUND,
                 ),
+                AclError::DestinationNotFoundError(id) => ApiResponse::new(
+                    json!({"msg": format!("Destination {id} not found")}),
+                    StatusCode::NOT_FOUND,
+                ),
                 AclError::AliasAlreadyAppliedError(id) => ApiResponse::new(
                     json!({"msg": format!("Alias {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::AliasKindMismatchError(id, kind) => ApiResponse::new(
-                    json!({"msg": format!("Alias {id} is not {kind:?}")}),
+                AclError::DestinationAlreadyAppliedError(id) => ApiResponse::new(
+                    json!({"msg": format!("Destination {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
                 AclError::AliasUsedByRulesError(id) => ApiResponse::new(
                     json!({"msg": format!("Alias {id} is used by some existing ACL rules")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+                AclError::DestinationUsedByRulesError(id) => ApiResponse::new(
+                    json!({
+                        "msg": format!("Destination {id} is used by some existing ACL rules")
+                    }),
                     StatusCode::BAD_REQUEST,
                 ),
                 AclError::DbError(_) | AclError::FirewallError(_) => {

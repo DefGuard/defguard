@@ -650,5 +650,5 @@ async fn test_destination_apply_rejects_alias(_: PgPoolOptions, options: PgConne
         .json(&json!({ "destinations": [1] }))
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }

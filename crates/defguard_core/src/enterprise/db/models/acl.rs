@@ -53,14 +53,18 @@ pub enum AclError {
     RuleNotFoundError(Id),
     #[error("AliasNotFoundError: {0}")]
     AliasNotFoundError(Id),
+    #[error("DestinationNotFoundError: {0}")]
+    DestinationNotFoundError(Id),
     #[error("RuleAlreadyAppliedError: {0}")]
     RuleAlreadyAppliedError(Id),
     #[error("AliasAlreadyAppliedError: {0}")]
     AliasAlreadyAppliedError(Id),
-    #[error("AliasKindMismatchError: {0} is not {1:?}")]
-    AliasKindMismatchError(Id, AliasKind),
+    #[error("DestinationAlreadyAppliedError: {0}")]
+    DestinationAlreadyAppliedError(Id),
     #[error("AliasUsedByRulesError: {0}")]
     AliasUsedByRulesError(Id),
+    #[error("DestinationUsedByRulesError: {0}")]
+    DestinationUsedByRulesError(Id),
     #[error(transparent)]
     FirewallError(#[from] FirewallError),
     #[error("InvalidIpRangeError: {0}")]
@@ -1522,16 +1526,23 @@ impl AclAlias {
     ///   2. The alias itself is deleted from the database
     ///
     /// Since these aliases were not yet applied, we can safely remove them.
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
-        debug!("Deleting alias {id}");
+    pub(crate) async fn delete_by_kind(
+        pool: &PgPool,
+        id: Id,
+        kind: AliasKind,
+    ) -> Result<(), AclError> {
+        debug!("Deleting alias {id} of kind {kind:?}");
         let mut transaction = pool.begin().await?;
 
         // find the existing alias
-        let existing_alias = AclAlias::find_by_id(&mut *transaction, id)
+        let existing_alias = AclAlias::find_by_id_and_kind(&mut *transaction, id, kind.clone())
             .await?
             .ok_or_else(|| {
                 error!("Deletion of nonexistent alias ({id}) failed");
-                AclError::AliasNotFoundError(id)
+                match kind {
+                    AliasKind::Component => AclError::AliasNotFoundError(id),
+                    AliasKind::Destination => AclError::DestinationNotFoundError(id),
+                }
             })?;
 
         // check if any rules are using this alias
@@ -1540,7 +1551,10 @@ impl AclAlias {
             error!(
                 "Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}"
             );
-            return Err(AclError::AliasUsedByRulesError(id));
+            return Err(match kind {
+                AliasKind::Component => AclError::AliasUsedByRulesError(id),
+                AliasKind::Destination => AclError::DestinationUsedByRulesError(id),
+            });
         }
 
         // delete all modifications of this alias if any exist
@@ -1586,7 +1600,10 @@ impl AclAlias {
         for id in aliases {
             let alias = AclAlias::find_by_id_and_kind(&mut *transaction, *id, kind.clone())
                 .await?
-                .ok_or_else(|| AclError::AliasKindMismatchError(*id, kind.clone()))?;
+                .ok_or_else(|| match kind {
+                    AliasKind::Component => AclError::AliasNotFoundError(*id),
+                    AliasKind::Destination => AclError::DestinationNotFoundError(*id),
+                })?;
             // run `apply` before fetching relations, since they'll get updated
             alias.clone().apply(&mut transaction).await?;
 
@@ -1851,7 +1868,10 @@ impl AclAlias<Id> {
             }
             AliasState::Applied => {
                 error!("ACL alias {alias_id} already applied");
-                return Err(AclError::AliasAlreadyAppliedError(self.id));
+                return Err(match self.kind {
+                    AliasKind::Component => AclError::AliasAlreadyAppliedError(self.id),
+                    AliasKind::Destination => AclError::DestinationAlreadyAppliedError(self.id),
+                });
             }
         }
 
