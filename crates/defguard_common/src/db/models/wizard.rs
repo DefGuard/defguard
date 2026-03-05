@@ -141,7 +141,6 @@ impl Wizard {
     /// allowed until the admin user has been created (i.e. the wizard step is
     /// at or before `AdminUser`). All other wizard types (or steps past admin
     /// creation) require a valid session.
-    #[must_use]
     pub async fn requires_auth<'e, E>(&self, executor: E) -> Result<bool, sqlx::Error>
     where
         E: PgExecutor<'e> + Copy,

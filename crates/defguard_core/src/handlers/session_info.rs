@@ -48,7 +48,7 @@ pub async fn get_session_info(
         SessionInfoResponse {
             authorized: true,
             is_admin: user_admin,
-            active_wizard: active_wizard,
+            active_wizard,
         },
         StatusCode::OK,
     ))

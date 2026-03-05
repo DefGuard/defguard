@@ -16,7 +16,7 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, models::wizard_flags::WizardFlags},
+    db::AppEvent,
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -33,7 +33,10 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::{auto_adoption::attemp_auto_adoption, setup_server::run_setup_web_server, migration::run_migration_web_server,};
+use defguard_setup::{
+    auto_adoption::attempt_auto_adoption, migration::run_migration_web_server,
+    setup_server::run_setup_web_server,
+};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -97,7 +100,6 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize default settings
     Settings::init_defaults(&pool).await?;
     Settings::ensure_secret_key(&pool, &config).await?;
-    let wizard_flags = WizardFlags::init(&pool).await?;
     let mut ini_server_config = true;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
@@ -107,33 +109,42 @@ async fn main() -> Result<(), anyhow::Error> {
     // FIXME: Merge logic conflict, migration wizard depended on WizardFlags, move this logic to Wizard
 
     if !wizard.completed {
-        if wizard.active_wizard == ActiveWizard::AutoAdoption {
-            if let Err(err) = attemp_auto_adoption(&pool, &config).await {
-                warn!("Failed to store startup auto-adoption states: {err}");
+        match wizard.active_wizard {
+            ActiveWizard::None => {}
+            ActiveWizard::Initial | ActiveWizard::AutoAdoption => {
+                if wizard.active_wizard == ActiveWizard::AutoAdoption {
+                    if let Err(err) = attempt_auto_adoption(&pool, &config).await {
+                        warn!("Failed to store startup auto-adoption states: {err}");
+                    }
+                }
+                if let Err(err) =
+                    run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
+                        .await
+                {
+                    anyhow::bail!("Setup web server exited with error: {err}");
+                }
             }
-        }
+            ActiveWizard::Migration => {
+                let mut settings = Settings::get_current_settings();
+                settings.update_from_config(&pool, &config).await?;
 
-        if let Err(err) =
-            run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
-        {
-            anyhow::bail!("Setup web server exited with error: {err}");
-        }
-    } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
-    {
-        let mut settings = Settings::get_current_settings();
-        settings.update_from_config(&pool, &config).await?;
+                config.initialize_post_settings();
+                SERVER_CONFIG
+                    .set(config.clone())
+                    .expect("Failed to initialize server config.");
 
-        config.initialize_post_settings();
-        SERVER_CONFIG
-            .set(config.clone())
-            .expect("Failed to initialize server config.");
+                ini_server_config = false;
 
-        ini_server_config = false;
-
-        if let Err(err) =
-            run_migration_web_server(pool.clone(), config.http_bind_address, config.http_port).await
-        {
-            anyhow::bail!("Migration web server exited with error: {err}");
+                if let Err(err) = run_migration_web_server(
+                    pool.clone(),
+                    config.http_bind_address,
+                    config.http_port,
+                )
+                .await
+                {
+                    anyhow::bail!("Migration web server exited with error: {err}");
+                }
+            }
         }
     }
 

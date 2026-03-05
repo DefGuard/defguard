@@ -44,8 +44,8 @@ impl AutoAdoptionWizardState {
     where
         E: PgExecutor<'e>,
     {
-        let auto_adoption_state = serde_json::to_value(self)
-            .map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+        let auto_adoption_state =
+            serde_json::to_value(self).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
         query(
             "UPDATE wizard SET auto_adoption_state = $1
@@ -72,5 +72,20 @@ impl AutoAdoptionWizardState {
         .await?;
 
         Ok(state.map(|j| j.0))
+    }
+
+    pub async fn clear<'e, E>(executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query(
+            "UPDATE wizard
+             SET auto_adoption_state = NULL
+             WHERE is_singleton = TRUE",
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
     }
 }

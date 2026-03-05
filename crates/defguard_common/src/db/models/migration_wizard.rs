@@ -26,19 +26,10 @@ pub struct MigrationWizardLocationState {
     pub(crate) current_location: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct MigrationWizardState {
     pub current_step: MigrationWizardStep,
     pub location_state: Option<MigrationWizardLocationState>,
-}
-
-impl Default for MigrationWizardState {
-    fn default() -> Self {
-        Self {
-            current_step: Default::default(),
-            location_state: None,
-        }
-    }
 }
 
 impl MigrationWizardState {

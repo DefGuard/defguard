@@ -24,7 +24,6 @@ use defguard_core::{
         AdminOrSetupRole, SessionInfo,
         failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
     },
-    db::models::wizard_flags::WizardFlags,
     error::WebError,
     handlers::{ApiResponse, ApiResult, SESSION_COOKIE_NAME},
     headers::get_device_info,
@@ -42,7 +41,7 @@ async fn advance_initial_wizard_to_step(
     pool: &PgPool,
     step: InitialSetupStep,
 ) -> Result<(), WebError> {
-    let mut wizard = Wizard::get(pool).await?;
+    let wizard = Wizard::get(pool).await?;
 
     // Don't try to advance if setup is already completed
     if wizard.completed {
@@ -379,10 +378,10 @@ pub async fn create_ca(
 
     info!("Certificate authority created and stored");
 
-    let wizard_flags = WizardFlags::get(&pool).await?;
+    let wizard = Wizard::get(&pool).await?;
 
-    if wizard_flags.initial_wizard_in_progress {
-        advance_setup_to_step(&pool, InitialSetupStep::CaSummary).await?;
+    if wizard.active_wizard == ActiveWizard::Initial {
+        InitialSetupState::set_step(&pool, InitialSetupStep::CaSummary).await?;
     }
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
@@ -391,7 +390,7 @@ pub async fn create_ca(
 pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Fetching certificate authority details");
     let settings = Settings::get_current_settings();
-    let wizard_flags = WizardFlags::get(&pool).await?;
+    let wizard = Wizard::get(&pool).await?;
     if let Some(ca_cert_der) = settings.ca_cert_der {
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
         let info = CertificateInfo::from_der(&ca_cert_der)?;
@@ -402,8 +401,8 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
             info.subject_common_name, valid_for_days
         );
 
-        if wizard_flags.initial_wizard_in_progress {
-            advance_setup_to_step(&pool, InitialSetupStep::EdgeComponent).await?;
+        if wizard.active_wizard == ActiveWizard::Initial {
+            InitialSetupState::set_step(&pool, InitialSetupStep::EdgeComponent).await?;
         }
 
         Ok(ApiResponse::new(

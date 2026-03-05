@@ -29,7 +29,9 @@ pub(crate) async fn advance_auto_wizard_to_step(
     pool: &PgPool,
     step: AutoAdoptionWizardStep,
 ) -> Result<(), WebError> {
-    let mut auto_state = AutoAdoptionWizardState::get(pool).await?.unwrap_or_default();
+    let mut auto_state = AutoAdoptionWizardState::get(pool)
+        .await?
+        .unwrap_or_default();
     if auto_state.step < step {
         auto_state.step = step;
         auto_state.save(pool).await?;

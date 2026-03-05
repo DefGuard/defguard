@@ -24,6 +24,19 @@ pub struct InitialSetupState {
 }
 
 impl InitialSetupState {
+    pub async fn set_step<'e, E>(executor: E, step: InitialSetupStep) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e> + Copy,
+    {
+        let mut state = Self::get(executor).await?.unwrap_or(Self {
+            step: InitialSetupStep::Welcome,
+        });
+        state.step = step;
+        state.save(executor).await?;
+
+        Ok(())
+    }
+
     pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
@@ -56,5 +69,20 @@ impl InitialSetupState {
         .await?;
 
         Ok(state.map(|j| j.0))
+    }
+
+    pub async fn clear<'e, E>(executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query(
+            "UPDATE wizard
+             SET initial_setup_state = NULL
+             WHERE is_singleton = TRUE",
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
     }
 }

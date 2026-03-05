@@ -779,7 +779,7 @@ async fn create_proxy(
 }
 
 /// Stores and updates startup auto-adoption states for components requested via CLI flags.
-pub async fn attemp_auto_adoption(
+pub async fn attempt_auto_adoption(
     pool: &PgPool,
     config: &DefGuardConfig,
 ) -> Result<(), anyhow::Error> {

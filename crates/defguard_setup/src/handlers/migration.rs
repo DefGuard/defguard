@@ -112,7 +112,7 @@ pub async fn finish_setup(
     wizard.active_wizard = ActiveWizard::None;
     wizard.completed = true;
     wizard.save(&mut *transaction).await?;
-    MigrationWizardState::clear(&mut *transaction);
+    MigrationWizardState::clear(&mut *transaction).await?;
     transaction.commit().await?;
 
     if let Some(tx) = setup_shutdown_tx
