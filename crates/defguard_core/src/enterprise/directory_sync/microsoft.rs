@@ -581,7 +581,7 @@ mod tests {
             "client_id".to_string(),
             "client_secret".to_string(),
             "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
-            vec![],
+            Vec::new(),
         );
         let tenant = provider.extract_tenant().unwrap();
         assert_eq!(tenant, "tenant-id-123");
@@ -593,7 +593,7 @@ mod tests {
             "id".to_string(),
             "secret".to_string(),
             "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
-            vec![],
+            Vec::new(),
         );
 
         // no token
@@ -644,12 +644,12 @@ mod tests {
                     display_name: "User 1".to_string(),
                     mail: Some("email@email.com".to_string()),
                     account_enabled: true,
-                    other_mails: vec![],
+                    other_mails: Vec::new(),
                     id: "user1-id".into(),
                     given_name: Some("User".into()),
                     surname: Some("One".into()),
                     mobile_phone: Some("555555555".into()),
-                    business_phones: vec![],
+                    business_phones: Vec::new(),
                 },
                 User {
                     display_name: "User 2".to_string(),
@@ -660,18 +660,18 @@ mod tests {
                     given_name: Some("User".into()),
                     surname: Some("Two".into()),
                     mobile_phone: None,
-                    business_phones: vec![],
+                    business_phones: Vec::new(),
                 },
                 User {
                     display_name: "User 3".to_string(),
                     mail: None,
                     account_enabled: true,
-                    other_mails: vec![],
+                    other_mails: Vec::new(),
                     id: "user3-id".into(),
                     given_name: Some("User".into()),
                     surname: Some("Three".into()),
                     mobile_phone: None,
-                    business_phones: vec![],
+                    business_phones: Vec::new(),
                 },
             ],
         };
@@ -691,12 +691,12 @@ mod tests {
                     display_name: "User 1".to_string(),
                     mail: Some("email@email.com".to_string()),
                     account_enabled: true,
-                    other_mails: vec![],
+                    other_mails: Vec::new(),
                     id: "user1-id".into(),
                     given_name: Some("User".into()),
                     surname: None,
                     mobile_phone: None,
-                    business_phones: vec![],
+                    business_phones: Vec::new(),
                 },
                 User {
                     display_name: "User 2".to_string(),
@@ -707,18 +707,18 @@ mod tests {
                     given_name: None,
                     surname: None,
                     mobile_phone: Some("555555555".into()),
-                    business_phones: vec![],
+                    business_phones: Vec::new(),
                 },
                 User {
                     display_name: "User 3".to_string(),
                     mail: None,
                     account_enabled: true,
-                    other_mails: vec![],
+                    other_mails: Vec::new(),
                     id: "user3-id".into(),
                     given_name: Some("User".into()),
                     surname: Some("Three".into()),
                     mobile_phone: Some("555555555".into()),
-                    business_phones: vec![],
+                    business_phones: Vec::new(),
                 },
             ],
         };

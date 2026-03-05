@@ -406,8 +406,8 @@ pub(super) fn extract_intersecting_users(
     ldap_users: &mut Vec<User>,
     ldap_config: &LDAPConfig,
 ) -> Vec<(User, User<Id>)> {
-    let mut intersecting_users = vec![];
-    let mut intersecting_users_ldap = vec![];
+    let mut intersecting_users = Vec::new();
+    let mut intersecting_users_ldap = Vec::new();
 
     for defguard_user in defguard_users.iter() {
         if let Some(ldap_user) = ldap_users

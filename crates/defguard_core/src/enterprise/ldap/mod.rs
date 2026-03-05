@@ -36,21 +36,6 @@ pub mod sync;
 pub mod test_client;
 pub mod utils;
 
-#[cfg(test)]
-fn set_test_license_business() {
-    use crate::enterprise::license::set_cached_license;
-
-    let license = crate::enterprise::license::License {
-        customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
-        limits: None,
-        subscription: false,
-        tier: crate::enterprise::license::LicenseTier::Enterprise,
-        valid_until: None,
-        version_date_limit: None,
-    };
-    set_cached_license(Some(license));
-}
-
 /// Performs LDAP synchronization if enabled and enterprise features are available.
 ///
 /// This function may trigger either full and incremental sync based on the current sync status.
@@ -196,7 +181,7 @@ impl Default for LDAPConfig {
             ldap_groupname_attr: "cn".to_string(),
             ldap_group_member_attr: "uniqueMember".to_string(),
             ldap_member_attr: "memberOf".to_string(),
-            ldap_user_auxiliary_obj_classes: vec![],
+            ldap_user_auxiliary_obj_classes: Vec::new(),
             ldap_uses_ad: false,
             ldap_user_rdn_attr: None,
             ldap_sync_groups: Vec::new(),
@@ -424,13 +409,14 @@ impl LDAPConnection {
     }
 
     /// Checks if user belongs to one of the defined sync groups in the LDAP server.
-    /// Returns true if no sync groups are defined (sync all users) or if user is in at least one sync group.
+    /// Returns `true` if no sync groups are defined (sync all users) or if user is in at least one
+    /// sync group.
     async fn user_in_ldap_sync_groups<I>(&mut self, user: &User<I>) -> Result<bool, LdapError> {
         debug!("Checking if user {user} is in LDAP sync groups");
 
-        // Sync groups empty, we should sync all users
+        // Sync groups are empty, we should sync all users.
         if self.config.ldap_sync_groups.is_empty() {
-            debug!("Sync groups were not defined, user {user} will be synced");
+            debug!("Sync groups are not defined, user {user} will be synced");
             return Ok(true);
         }
 

@@ -203,7 +203,7 @@ pub fn user_as_ldap_attrs<'a, I>(
     username_attr: &'a str,
     rdn_attr: &'a str,
 ) -> Vec<(&'a str, HashSet<&'a str>)> {
-    let mut attrs = vec![];
+    let mut attrs = Vec::new();
     attrs.push((rdn_attr, hashset![user.ldap_rdn_value()]));
     if object_classes.contains(UserObjectClass::InetOrgPerson.into())
         || object_classes.contains(UserObjectClass::User.into())
@@ -379,7 +379,7 @@ mod tests {
         assert!(!in_attrs(&attrs, "uid"));
 
         // Test empty attributes vector
-        let empty_attrs = vec![];
+        let empty_attrs = Vec::new();
         assert!(!in_attrs(&empty_attrs, "cn"));
         assert!(!in_attrs(&empty_attrs, "any"));
 

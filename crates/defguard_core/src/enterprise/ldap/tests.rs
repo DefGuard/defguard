@@ -5,16 +5,16 @@ use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
+use super::{
+    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+    sync::{
+        Authority, compute_group_sync_changes, compute_user_sync_changes,
+        extract_intersecting_users,
+    },
+    test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
+};
 use crate::{
     enterprise::{
-        ldap::{
-            model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
-            sync::{
-                Authority, compute_group_sync_changes, compute_user_sync_changes,
-                extract_intersecting_users,
-            },
-            test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
-        },
         license::{License, LicenseTier, set_cached_license},
         limits::get_counts,
     },
@@ -39,6 +39,18 @@ fn make_test_user(
     user.ldap_rdn = ldap_rdn;
     user.ldap_user_path = ldap_user_path;
     user
+}
+
+fn set_test_license_business() {
+    let license = License {
+        customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
+        limits: None,
+        subscription: false,
+        tier: LicenseTier::Enterprise,
+        valid_until: None,
+        version_date_limit: None,
+    };
+    set_cached_license(Some(license));
 }
 
 #[test]
@@ -164,12 +176,12 @@ fn test_get_all_user_obj_classes() {
     };
     let obj_classes = config.get_all_user_obj_classes();
     assert_eq!(obj_classes.len(), 2);
-    assert!(obj_classes.contains(&"inetOrgPerson".to_string()));
-    assert!(obj_classes.contains(&"simpleSecurityObject".to_string()));
+    assert!(obj_classes.iter().any(|e| e == "inetOrgPerson"));
+    assert!(obj_classes.iter().any(|e| e == "simpleSecurityObject"));
 
     // Should always include the base object class even with no auxiliaries
     let config = LDAPConfig {
-        ldap_user_auxiliary_obj_classes: vec![],
+        ldap_user_auxiliary_obj_classes: Vec::new(),
         ..LDAPConfig::default()
     };
     let obj_classes = config.get_all_user_obj_classes();
@@ -183,8 +195,8 @@ fn test_get_all_user_obj_classes() {
     };
     let obj_classes = config.get_all_user_obj_classes();
     assert_eq!(obj_classes.len(), 2);
-    assert!(obj_classes.contains(&"inetOrgPerson".to_string()));
-    assert!(obj_classes.contains(&"customUser".to_string()));
+    assert!(obj_classes.iter().any(|e| e == "inetOrgPerson"));
+    assert!(obj_classes.iter().any(|e| e == "customUser"));
 
     // Multiple auxiliary classes
     let config = LDAPConfig {
@@ -197,10 +209,10 @@ fn test_get_all_user_obj_classes() {
     };
     let obj_classes = config.get_all_user_obj_classes();
     assert_eq!(obj_classes.len(), 4);
-    assert!(obj_classes.contains(&"inetOrgPerson".to_string()));
-    assert!(obj_classes.contains(&"posixAccount".to_string()));
-    assert!(obj_classes.contains(&"mailUser".to_string()));
-    assert!(obj_classes.contains(&"customAttribute".to_string()));
+    assert!(obj_classes.iter().any(|e| e == "inetOrgPerson"));
+    assert!(obj_classes.iter().any(|e| e == "posixAccount"));
+    assert!(obj_classes.iter().any(|e| e == "mailUser"));
+    assert!(obj_classes.iter().any(|e| e == "customAttribute"));
 }
 
 #[test]
@@ -680,8 +692,8 @@ async fn test_user_in_ldap_sync_groups() {
 
 #[test]
 fn test_compute_user_sync_changes_empty_lists() {
-    let mut ldap_users: Vec<User> = vec![];
-    let mut defguard_users: Vec<User<Id>> = vec![];
+    let mut ldap_users: Vec<User> = Vec::new();
+    let mut defguard_users: Vec<User<Id>> = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -709,7 +721,7 @@ fn test_ldap_authority_add_to_defguard() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = vec![];
+    let mut defguard_users: Vec<User<Id>> = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -742,7 +754,7 @@ fn test_ldap_authority_delete_from_defguard(_: PgPoolOptions, options: PgConnect
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = vec![];
+    let mut ldap_users: Vec<User> = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -776,7 +788,7 @@ fn test_defguard_authority_add_to_ldap(_: PgPoolOptions, options: PgConnectOptio
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = vec![];
+    let mut ldap_users: Vec<User> = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -806,7 +818,7 @@ fn test_defguard_authority_delete_from_ldap() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = vec![];
+    let mut defguard_users: Vec<User<Id>> = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -2431,12 +2443,12 @@ async fn test_sync_group_membership_with_intersecting_users(
     );
 
     let user1_groups = updated_user1.member_of_names(&pool).await.unwrap();
-    assert!(user1_groups.contains(&"engineering".to_string()));
-    assert!(user1_groups.contains(&"management".to_string())); // Added from LDAP
+    assert!(user1_groups.iter().any(|e| e == "engineering"));
+    assert!(user1_groups.iter().any(|e| e == "management")); // Added from LDAP
 
     let user2_groups = updated_user2.member_of_names(&pool).await.unwrap();
-    assert!(user2_groups.contains(&"management".to_string()));
-    assert!(!user2_groups.contains(&"engineering".to_string())); // Removed from LDAP
+    assert!(user2_groups.iter().any(|e| e == "management"));
+    assert!(!user2_groups.iter().any(|e| e == "engineering")); // Removed from LDAP
     assert!(ldap_conn.test_client.get_events().is_empty());
 }
 
@@ -2707,7 +2719,7 @@ fn test_from_searchentry() {
     // empty attribute values
     {
         let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec![]);
+        attrs.insert("sn".to_string(), Vec::new());
         attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
         attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
 

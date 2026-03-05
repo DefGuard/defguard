@@ -163,8 +163,9 @@ impl Object {
 /// LDAP operations don't actually modify any data, but emit corresponding events that may
 /// be verified using the `events_match` method.
 ///
-/// To modify (setup) the mock data, use the `add_test_user`, `add_test_group`, and `add_test_membership` methods.
-#[derive(Debug, Default)]
+/// To modify (setup) the mock data, use the `add_test_user`, `add_test_group`, and
+/// `add_test_membership` methods.
+#[derive(Default)]
 pub struct TestClient {
     events: Vec<LdapEvent>,
     // DN: Object
@@ -374,7 +375,7 @@ impl super::LDAPConnection {
 
             return Ok(groups);
         }
-        Ok(vec![])
+        Ok(Vec::new())
     }
 
     pub(super) async fn add(

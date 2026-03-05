@@ -70,7 +70,7 @@ impl super::LDAPConnection {
                 Ok((mut rs, res)) => {
                     debug!("LDAP search result: {res:?}");
                     if let Some(entry) = rs.pop() {
-                        debug!("Found LDAP object with DN {dn}: {:?}", entry);
+                        debug!("Found LDAP object with DN {dn}: {entry:?}");
                         Ok(Some(SearchEntry::construct(entry)))
                     } else {
                         debug!("No LDAP object found with DN {dn}");
@@ -78,14 +78,14 @@ impl super::LDAPConnection {
                     }
                 }
                 // LDAP returns Error if no entries found, so we should handle it gracefully
-                Err(e) => {
-                    debug!("LDAP search failed for DN {dn}: {e:?}");
+                Err(err) => {
+                    debug!("LDAP search failed for DN {dn}: {err:?}");
                     Ok(None)
                 }
             },
-            Err(e) => {
-                debug!("LDAP connection/search error for DN {dn}: {e:?}");
-                Err(LdapError::from(e))
+            Err(err) => {
+                debug!("LDAP connection/search error for DN {dn}: {err:?}");
+                Err(LdapError::from(err))
             }
         }
     }
@@ -106,22 +106,19 @@ impl super::LDAPConnection {
         Ok(())
     }
 
-    // Check what groups user is member of
+    /// Returns groups that the given user is a member of.
     pub(super) async fn get_user_groups(
         &mut self,
         user_dn: &str,
     ) -> Result<Vec<SearchEntry>, LdapError> {
         let user_dn_escaped = ldap_escape(user_dn);
-        let filter = format!(
-            "({}={})",
-            self.config.ldap_group_member_attr, user_dn_escaped
-        );
+        let filter = format!("({}={user_dn_escaped})", self.config.ldap_group_member_attr);
         let (rs, res) = self
             .ldap
             .search(
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
-                filter.as_str(),
+                &filter,
                 vec![&self.config.ldap_groupname_attr],
             )
             .await?
@@ -258,12 +255,10 @@ impl super::LDAPConnection {
         let user_dn_escaped = ldap_escape(user_dn);
         let groupname_escaped = ldap_escape(groupname);
         let filter = format!(
-            "(&(objectClass={})({}={})({}={}))",
+            "(&(objectClass={})({}={groupname_escaped})({}={user_dn_escaped}))",
             self.config.ldap_group_obj_class,
             self.config.ldap_groupname_attr,
-            groupname_escaped,
             self.config.ldap_group_member_attr,
-            user_dn_escaped
         );
         debug!(
             "Using the following filter for group search: {filter} and base: {}",
@@ -287,7 +282,7 @@ impl super::LDAPConnection {
         &mut self,
         groupname: &str,
     ) -> Result<Vec<String>, LdapError> {
-        debug!("Searching for group memberships for group {}", groupname);
+        debug!("Searching for group memberships for group {groupname}");
         let groupname_escaped = ldap_escape(groupname);
         let filter = format!(
             "(&(objectClass={})({}={}))",
@@ -324,10 +319,7 @@ impl super::LDAPConnection {
                 })
             })
             .unwrap_or_default();
-        debug!(
-            "Performed LDAP group memberships search for group {}",
-            groupname
-        );
+        debug!("Performed LDAP group memberships search for group {groupname}");
 
         Ok(members)
     }
@@ -341,7 +333,7 @@ impl super::LDAPConnection {
                 "LDAP sync groups are defined, filtering users by those groups: {:?}",
                 self.config.ldap_sync_groups
             );
-            let mut group_filters = vec![];
+            let mut group_filters = Vec::new();
             for group in &self.config.ldap_sync_groups {
                 let group_dn = self.config.group_dn(group);
                 let group_dn_escaped = ldap_escape(&group_dn);
@@ -350,10 +342,7 @@ impl super::LDAPConnection {
                     self.config.ldap_member_attr, group_dn_escaped
                 ));
             }
-            debug!(
-                "Using the following group filters for user search: {:?}",
-                group_filters
-            );
+            debug!("Using the following group filters for user search: {group_filters:?}");
             format!(
                 "(&(objectClass={})(|{}))",
                 self.config.ldap_user_obj_class,
@@ -377,7 +366,7 @@ impl super::LDAPConnection {
             )
             .await?;
 
-        let mut entries = vec![];
+        let mut entries = Vec::new();
         while let Some(entry) = search_stream.next().await? {
             entries.push(SearchEntry::construct(entry));
         }

@@ -626,7 +626,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 
     // remove user from allowed group
     let mut user_details = fetch_user_details(&client, "hpotter").await;
-    user_details.user.groups = vec![];
+    user_details.user.groups = Vec::new();
     let response = client
         .put("/api/v1/user/hpotter")
         .json(&user_details.user)
@@ -646,7 +646,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 
     // remove user from unrelated group
     let mut user_details = fetch_user_details(&client, "ssnape").await;
-    user_details.user.groups = vec![];
+    user_details.user.groups = Vec::new();
     let response = client
         .put("/api/v1/user/ssnape")
         .json(&user_details.user)
