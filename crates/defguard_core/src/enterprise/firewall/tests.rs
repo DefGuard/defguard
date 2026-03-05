@@ -5141,7 +5141,6 @@ async fn test_gh1868_ipv6_firewall_rule_is_not_created_for_v4_only_destination_i
     assert!(!allow_rule.source_addrs.is_empty());
 
     let deny_rule = &generated_firewall_rules[1];
-    println!("{deny_rule:#?}");
     assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
     assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv4));
     assert!(!deny_rule.destination_addrs.is_empty());
