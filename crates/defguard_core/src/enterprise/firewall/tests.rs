@@ -5307,7 +5307,7 @@ async fn test_gh2117_ipv6_firewall_rule_is_not_created_for_v4_only_destination_i
     };
     let acl_rule = acl_rule.save(&pool).await.unwrap();
 
-    // set only IPv4 dsestination
+    // set only IPv4 destination
     let destination_alias = AclAlias {
         id: NoId,
         name: "internal ntp".to_string(),
@@ -5472,7 +5472,7 @@ async fn test_gh2117_ipv4_firewall_rule_is_not_created_for_v6_only_destination_i
 
     let deny_rule = &generated_firewall_rules[1];
     assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
-    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv6));
     assert!(!deny_rule.destination_addrs.is_empty());
     assert!(deny_rule.source_addrs.is_empty());
 }
