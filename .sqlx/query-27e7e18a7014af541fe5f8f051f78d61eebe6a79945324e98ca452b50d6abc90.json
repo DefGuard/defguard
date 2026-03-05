@@ -50,18 +50,18 @@
       },
       {
         "ordinal": 9,
-        "name": "modified_by",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 10,
         "name": "certificate",
         "type_info": "Text"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "enabled",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_by",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -77,8 +77,8 @@
       true,
       true,
       false,
-      false,
       true,
+      false,
       false
     ]
   },

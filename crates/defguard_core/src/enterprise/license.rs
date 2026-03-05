@@ -550,11 +550,11 @@ pub async fn run_periodic_license_check(
         // Multiple locks here may cause a race condition if the user decides to update the license
         // key while the renewal is in progress. However this seems like a rare case and shouldn't
         // be very problematic.
-        let requires_renewal = {
-            let license = get_cached_license();
-            debug!("Checking if the license {license:?} requires a renewal...");
+        let (requires_renewal, trim_components) = {
+            let cached_license = get_cached_license();
+            debug!("Checking if the license {cached_license:?} requires a renewal");
 
-            if let Some(license) = license.as_ref() {
+            if let Some(license) = cached_license.as_ref() {
                 if license.requires_renewal() {
                     // check if we are pass the maximum expiration date, after which we don't
                     // want to try to renew the license anymore
@@ -565,16 +565,13 @@ pub async fn run_periodic_license_check(
                             contact sales at sales<at>defguard.net"
                         );
                         debug!("Changing check period to {}", format_duration(check_period));
-
-                        trim_gateways_and_edges(pool, &proxy_control_tx).await?;
-
-                        false
+                        (false, true)
                     } else {
                         debug!(
                             "License requires renewal, as it is about to expire and is not past \
                             the maximum overdue time"
                         );
-                        true
+                        (true, false)
                     }
                 } else {
                     // This if is only for logging purposes, to provide more detailed information
@@ -583,16 +580,17 @@ pub async fn run_periodic_license_check(
                     } else {
                         debug!("License is not a subscription, skipping renewal check");
                     }
-                    false
+                    (false, false)
                 }
             } else {
                 debug!("No license found, skipping license check");
-
-                trim_gateways_and_edges(pool, &proxy_control_tx).await?;
-
-                false
+                (false, true)
             }
         };
+
+        if trim_components {
+            trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+        }
 
         if requires_renewal {
             info!("License requires renewal, renewing license...");
