@@ -10,13 +10,13 @@ use ldap3::{
     ldap_escape,
 };
 
-use super::error::LdapError;
+use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::extract_rdn_value;
 
-impl super::LDAPConnection {
-    pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
+impl LDAPConnection {
+    pub(crate) async fn create() -> Result<Self, LdapError> {
         let settings = Settings::get_current_settings();
-        let config = super::LDAPConfig::try_from(settings.clone())?;
+        let config = LDAPConfig::try_from(settings.clone())?;
         let url = settings.ldap_url.ok_or(LdapError::MissingSettings(
             "LDAP URL is required for LDAP configuration to work".to_string(),
         ))?;

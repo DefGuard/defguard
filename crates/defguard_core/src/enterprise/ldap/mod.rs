@@ -566,7 +566,7 @@ impl LDAPConnection {
             user_from_searchentry(&entry, username, None)
         } else {
             Err(LdapError::ObjectNotFound(format!(
-                "User {username} not found",
+                "User {username} not found"
             )))
         }
     }
@@ -760,7 +760,8 @@ impl LDAPConnection {
             if self
                 .config
                 .ldap_user_auxiliary_obj_classes
-                .contains(&UserObjectClass::SimpleSecurityObject.into())
+                .iter()
+                .any(|e| e == UserObjectClass::SimpleSecurityObject.name())
             {
                 mods.push(Mod::Replace(
                     "userPassword",
@@ -771,7 +772,8 @@ impl LDAPConnection {
             if self
                 .config
                 .ldap_user_auxiliary_obj_classes
-                .contains(&UserObjectClass::SambaSamAccount.into())
+                .iter()
+                .any(|e| e == UserObjectClass::SambaSamAccount.name())
             {
                 mods.push(Mod::Replace(
                     "sambaNTPassword",

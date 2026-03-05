@@ -7,7 +7,7 @@ use std::{
 use defguard_common::db::models::{User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
-use super::error::LdapError;
+use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{extract_rdn_value, user_as_ldap_attrs};
 
 /// Extract attribute value from LDAP filter
@@ -133,7 +133,7 @@ pub(super) enum Object {
 }
 
 impl Object {
-    fn to_search_entry(&self, dn: &str, config: &super::LDAPConfig) -> SearchEntry {
+    fn to_search_entry(&self, dn: &str, config: &LDAPConfig) -> SearchEntry {
         match self {
             Object::User(user) => SearchEntry {
                 dn: dn.to_string(),
@@ -192,29 +192,24 @@ impl TestClient {
         self.events.clear();
     }
 
-    pub(super) fn add_test_user(&mut self, user: &User, config: &super::LDAPConfig) {
+    pub(super) fn add_test_user(&mut self, user: &User, config: &LDAPConfig) {
         let dn = config.user_dn_from_user(user);
         self.objects
             .insert(dn, Object::User(Box::new(user.clone())));
     }
 
-    pub(super) fn remove_test_user(&mut self, user: &User, config: &super::LDAPConfig) {
+    pub(super) fn remove_test_user(&mut self, user: &User, config: &LDAPConfig) {
         let dn = config.user_dn_from_user(user);
         self.objects.remove(&dn);
     }
 
-    pub(super) fn add_test_group(&mut self, group: &Group, config: &super::LDAPConfig) {
+    pub(super) fn add_test_group(&mut self, group: &Group, config: &LDAPConfig) {
         let dn = config.group_dn(&group.name);
         self.objects
             .insert(dn, Object::Group(Box::new(group.clone())));
     }
 
-    pub(super) fn add_test_membership(
-        &mut self,
-        group: &Group,
-        user: &User,
-        config: &super::LDAPConfig,
-    ) {
+    pub(super) fn add_test_membership(&mut self, group: &Group, user: &User, config: &LDAPConfig) {
         let group_dn = config.group_dn(&group.name);
         let user_dn = config.user_dn_from_user(user);
         self.memberships
@@ -227,7 +222,7 @@ impl TestClient {
         &mut self,
         group: &Group,
         user: &User,
-        config: &super::LDAPConfig,
+        config: &LDAPConfig,
     ) {
         let group_dn = config.group_dn(&group.name);
         let user_dn = config.user_dn_from_user(user);
@@ -244,10 +239,10 @@ impl TestClient {
     }
 }
 
-impl super::LDAPConnection {
-    pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
+impl LDAPConnection {
+    pub(crate) async fn create() -> Result<LDAPConnection, LdapError> {
         Ok(Self {
-            config: super::LDAPConfig::default(),
+            config: LDAPConfig::default(),
             url: String::new(),
             test_client: TestClient::default(),
         })
@@ -551,7 +546,7 @@ impl super::LDAPConnection {
 pub(super) fn user_to_test_attrs<I>(
     user: &User<I>,
     password: Option<&str>,
-    config: &super::LDAPConfig,
+    config: &LDAPConfig,
 ) -> Vec<(String, HashSet<String>)> {
     let rdn_attr = config
         .ldap_user_rdn_attr
@@ -590,7 +585,7 @@ pub(super) fn user_to_test_attrs<I>(
 #[cfg(test)]
 pub(super) fn group_to_test_attrs<I>(
     group: &Group<I>,
-    config: &super::LDAPConfig,
+    config: &LDAPConfig,
     members: Option<&Vec<&User<I>>>,
 ) -> Vec<(String, HashSet<String>)> {
     use crate::hashset;
@@ -618,11 +613,11 @@ pub(super) fn group_to_test_attrs<I>(
 
 #[cfg(test)]
 mod tests {
-    use defguard_common::db::models::User;
+    use super::*;
 
     #[tokio::test]
     async fn test_search_users_by_username() {
-        let mut ldap_conn = super::super::LDAPConnection::create().await.unwrap();
+        let mut ldap_conn = LDAPConnection::create().await.unwrap();
         let config = ldap_conn.config.clone();
 
         let test_user = User::new(
@@ -648,7 +643,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_search_users_compound_filter() {
-        let mut ldap_conn = super::super::LDAPConnection::create().await.unwrap();
+        let mut ldap_conn = LDAPConnection::create().await.unwrap();
         let config = ldap_conn.config.clone();
 
         let test_user = User::new(
@@ -674,7 +669,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_search_users_no_match() {
-        let mut ldap_conn = super::super::LDAPConnection::create().await.unwrap();
+        let mut ldap_conn = LDAPConnection::create().await.unwrap();
         let config = ldap_conn.config.clone();
 
         let test_user = User::new(

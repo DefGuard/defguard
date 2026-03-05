@@ -481,7 +481,7 @@ async fn test_get_user() {
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
 
     ldap_conn.config = LDAPConfig {
-        ldap_user_auxiliary_obj_classes: vec![UserObjectClass::InetOrgPerson.into()],
+        ldap_user_auxiliary_obj_classes: vec![UserObjectClass::InetOrgPerson.name().to_string()],
         ..ldap_conn.config
     };
 
@@ -2927,7 +2927,7 @@ fn test_as_ldap_attrs() {
         &user,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::InetOrgPerson.into()],
+        hashset![UserObjectClass::InetOrgPerson.name()],
         false,
         "uid",
         "cn",
@@ -2945,7 +2945,7 @@ fn test_as_ldap_attrs() {
         &user,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::User.into()],
+        hashset![UserObjectClass::User.name()],
         true,
         "uid",
         "cn",
@@ -2959,8 +2959,8 @@ fn test_as_ldap_attrs() {
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![
-            UserObjectClass::SimpleSecurityObject.into(),
-            UserObjectClass::SambaSamAccount.into()
+            UserObjectClass::SimpleSecurityObject.name(),
+            UserObjectClass::SambaSamAccount.name()
         ],
         false,
         "uid",
@@ -2976,7 +2976,7 @@ fn test_as_ldap_attrs() {
         &user,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::User.into()],
+        hashset![UserObjectClass::User.name()],
         false,
         "uid",
         "customRDN",
@@ -2999,7 +2999,7 @@ fn test_as_ldap_attrs() {
         &user_no_phone,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::InetOrgPerson.into()],
+        hashset![UserObjectClass::InetOrgPerson.name()],
         false,
         "uid",
         "cn",

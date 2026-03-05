@@ -17,33 +17,20 @@ pub(crate) enum UserObjectClass {
     User,
 }
 
-impl<'a> From<&'a UserObjectClass> for &'static str {
-    fn from(obj_class: &'a UserObjectClass) -> &'static str {
-        match obj_class {
-            UserObjectClass::SambaSamAccount => "sambaSamAccount",
-            UserObjectClass::InetOrgPerson => "inetOrgPerson",
-            UserObjectClass::SimpleSecurityObject => "simpleSecurityObject",
-            UserObjectClass::User => "user",
+impl UserObjectClass {
+    pub(crate) fn name(&self) -> &'static str {
+        match self {
+            Self::SambaSamAccount => "sambaSamAccount",
+            Self::InetOrgPerson => "inetOrgPerson",
+            Self::SimpleSecurityObject => "simpleSecurityObject",
+            Self::User => "user",
         }
-    }
-}
-
-impl From<UserObjectClass> for &'static str {
-    fn from(obj_class: UserObjectClass) -> &'static str {
-        (&obj_class).into()
-    }
-}
-
-impl From<UserObjectClass> for String {
-    fn from(obj_class: UserObjectClass) -> String {
-        let str: &str = obj_class.into();
-        str.to_string()
     }
 }
 
 impl PartialEq<&str> for UserObjectClass {
     fn eq(&self, other: &&str) -> bool {
-        let str: &str = self.into();
+        let str: &str = self.name();
         str == *other
     }
 }
@@ -110,8 +97,12 @@ pub(crate) fn update_from_ldap_user<I>(user: &mut User<I>, ldap_user: &User, con
 pub fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mod<String>> {
     let obj_classes = config.get_all_user_obj_classes();
     let mut changes = Vec::new();
-    if obj_classes.contains(&UserObjectClass::InetOrgPerson.into())
-        || obj_classes.contains(&UserObjectClass::User.into())
+    if obj_classes
+        .iter()
+        .any(|e| e == UserObjectClass::InetOrgPerson.name())
+        || obj_classes
+            .iter()
+            .any(|e| e == UserObjectClass::User.name())
     {
         changes.extend_from_slice(&[
             Mod::Replace("sn".to_string(), hashset![user.last_name.clone()]),
@@ -205,8 +196,8 @@ pub fn user_as_ldap_attrs<'a, I>(
 ) -> Vec<(&'a str, HashSet<&'a str>)> {
     let mut attrs = Vec::new();
     attrs.push((rdn_attr, hashset![user.ldap_rdn_value()]));
-    if object_classes.contains(UserObjectClass::InetOrgPerson.into())
-        || object_classes.contains(UserObjectClass::User.into())
+    if object_classes.contains(UserObjectClass::InetOrgPerson.name())
+        || object_classes.contains(UserObjectClass::User.name())
     {
         attrs.extend_from_slice(&[
             ("sn", hashset![user.last_name.as_str()]),
@@ -228,11 +219,11 @@ pub fn user_as_ldap_attrs<'a, I>(
             }
         }
     }
-    if object_classes.contains(UserObjectClass::SimpleSecurityObject.into()) {
+    if object_classes.contains(UserObjectClass::SimpleSecurityObject.name()) {
         // simpleSecurityObject
         attrs.push(("userPassword", hashset![ssha_password]));
     }
-    if object_classes.contains(UserObjectClass::SambaSamAccount.into()) {
+    if object_classes.contains(UserObjectClass::SambaSamAccount.name()) {
         // sambaSamAccount
         attrs.push(("sambaSID", hashset!["0"]));
         attrs.push(("sambaNTPassword", hashset![nt_password]));
