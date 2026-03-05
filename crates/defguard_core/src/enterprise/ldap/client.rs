@@ -110,10 +110,10 @@ impl super::LDAPConnection {
     pub(super) async fn get_user_groups(
         &mut self,
         user_dn: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    ) -> Result<Vec<String>, LdapError> {
         let user_dn_escaped = ldap_escape(user_dn);
         let filter = format!("({}={user_dn_escaped})", self.config.ldap_group_member_attr);
-        let (rs, res) = self
+        let (entries, result) = self
             .ldap
             .search(
                 &self.config.ldap_group_search_base,
@@ -123,10 +123,21 @@ impl super::LDAPConnection {
             )
             .await?
             .success()?;
-        debug!("LDAP user groups search result: {res}");
+        debug!("LDAP user groups search result: {result}");
         debug!("Performed LDAP group search with filter = {filter}");
-        debug!("Found groups: {rs:?}");
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+        debug!("Found groups: {entries:?}");
+
+        let mut groups = Vec::new();
+        for entry in entries {
+            let se = SearchEntry::construct(entry);
+            for (key, mut values) in se.attrs {
+                if key.eq_ignore_ascii_case(&self.config.ldap_groupname_attr) {
+                    groups.append(&mut values);
+                }
+            }
+        }
+
+        Ok(groups)
     }
 
     /// Searches LDAP for groups.

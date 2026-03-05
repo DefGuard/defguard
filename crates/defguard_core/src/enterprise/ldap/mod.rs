@@ -10,7 +10,7 @@ use defguard_common::db::{
 };
 #[cfg(not(test))]
 use ldap3::Ldap;
-use ldap3::{Mod, SearchEntry, ldap_escape};
+use ldap3::{Mod, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
@@ -61,7 +61,8 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
 
     if !is_business_license_active() {
         info!(
-            "Enterprise features are disabled, not performing LDAP sync and automatically disabling it"
+            "Enterprise features are disabled, not performing LDAP sync and automatically \
+            disabling it"
         );
         settings.ldap_sync_enabled = false;
         update_current_settings(pool, settings).await?;
@@ -351,10 +352,12 @@ pub struct LDAPConnection {
 
 impl LDAPConnection {
     /// Updates user state in LDAP based on the following rules:
-    /// - If the user is disabled in Defguard, he will be removed from LDAP
-    /// - If there are no sync groups defined or the user is in them but doesn't exist yet in LDAP, he will be added to LDAP and assigned to his groups
+    /// - If the user is disabled in Defguard, he will be removed from LDAP.
+    /// - If there are no sync groups defined, or the user is in them but doesn't exist yet in LDAP,
+    ///   the user will be added to LDAP and assigned to its groups.
     ///
-    /// Make sure to call this every time one of the above conditions changes (e.g. group addition, user disabling)
+    /// Make sure to call this every time one of the above conditions changes (e.g. group addition,
+    /// user disabling).
     pub(crate) async fn update_users_state(
         &mut self,
         users: Vec<&mut User<Id>>,
@@ -394,8 +397,8 @@ impl LDAPConnection {
                 continue;
             }
 
-            // We may bring user into the synchronization scope, sync his data (email, groups, etc.) based on
-            // the authority
+            // We may bring user into the synchronization scope, sync his data (email, groups, etc.)
+            // based on the authority.
             if user_exists_in_ldap {
                 debug!(
                     "User {user} is in LDAP and is allowed to be synced, synchronizing his data"
@@ -427,25 +430,15 @@ impl LDAPConnection {
             return Ok(false);
         }
 
-        let user_groups_entries = self.get_user_groups(&dn).await?;
-        let user_groups_names = user_groups_entries
-            .iter()
-            .filter_map(|entry| {
-                entry
-                    .attrs
-                    .get(&self.config.ldap_groupname_attr)
-                    .and_then(|v| v.first())
-            })
-            .collect::<Vec<_>>();
-
+        let user_groups = self.get_user_groups(&dn).await?;
         debug!(
-            "User groups: {user_groups_names:?}, sync groups: {:?}",
+            "User groups: {user_groups:?}, sync groups: {:?}",
             self.config.ldap_sync_groups
         );
 
-        if user_groups_names
+        if user_groups
             .into_iter()
-            .any(|group| self.config.ldap_sync_groups.contains(group))
+            .any(|group| self.config.ldap_sync_groups.contains(&group))
         {
             debug!("User {user} is in sync groups, syncing user");
             Ok(true)
@@ -668,7 +661,8 @@ impl LDAPConnection {
         user: &User<Id>,
     ) -> Result<(), LdapError> {
         debug!("Modifying user {old_username} in LDAP");
-        // If we're using the username as the RDN, also update the RDN value on user if his username has been changed
+        // If we're using the username as the RDN, also update the RDN value on user if his username
+        // has been changed.
         let old_rdn = if self.config.using_username_as_rdn() {
             old_username
         } else {
@@ -698,21 +692,6 @@ impl LDAPConnection {
         Ok(())
     }
 
-    /// Extracts group name from LDAP group search entry.
-    /// Returns an error if the group name attribute is not found.
-    fn group_entry_to_name(&self, entry: SearchEntry) -> Result<String, LdapError> {
-        entry
-            .attrs
-            .get(&self.config.ldap_groupname_attr)
-            .and_then(|v| v.first())
-            .map(ToString::to_string)
-            .ok_or_else(|| {
-                LdapError::ObjectNotFound(format!(
-                    "Couldn't extract a group name from searchentry {entry:?}."
-                ))
-            })
-    }
-
     /// Deletes user from LDAP.
     /// First removes the user from all group memberships (if any), then deletes the user entry.
     pub async fn delete_user<I>(&mut self, user: &User<I>) -> Result<(), LdapError> {
@@ -721,17 +700,10 @@ impl LDAPConnection {
         debug!("Removing group memberships first...");
         let user_groups = self.get_user_groups(&dn).await?;
         debug!("Removing user from groups: {user_groups:?}");
-        for group in user_groups {
-            debug!("Removing user from group {group:?}");
-            match self.group_entry_to_name(group) {
-                Ok(groupname) => {
-                    self.remove_user_from_group(user, &groupname).await?;
-                    debug!("Removed user from group {groupname}");
-                }
-                Err(e) => {
-                    warn!("Failed to remove user from group: {e}");
-                }
-            }
+        for groupname in user_groups {
+            debug!("Removing user from group {groupname:?}");
+            self.remove_user_from_group(user, &groupname).await?;
+            debug!("Removed user from group {groupname}");
         }
         self.delete(&dn).await?;
         info!("Deleted user {user}");
@@ -740,7 +712,8 @@ impl LDAPConnection {
     }
 
     /// Activates an Active Directory user account.
-    /// Sets userAccountControl to enable the account and pwdLastSet to avoid password change requirement.
+    /// Sets userAccountControl to enable the account and pwdLastSet to avoid password change
+    /// requirement.
     pub async fn activate_ad_user(&mut self, user_dn: &str) -> Result<(), LdapError> {
         debug!("Activating user {user_dn}");
         self.modify(
@@ -760,7 +733,8 @@ impl LDAPConnection {
     }
 
     /// Changes user password in LDAP.
-    /// Handles both Active Directory (unicodePwd) and standard LDAP (userPassword/sambaNTPassword) formats.
+    /// Handles both Active Directory (unicodePwd) and standard LDAP (userPassword/sambaNTPassword)
+    /// formats.
     pub async fn set_password<I>(
         &mut self,
         user: &User<I>,
@@ -807,7 +781,8 @@ impl LDAPConnection {
 
             if mods.is_empty() {
                 return Err(LdapError::MissingSettings(format!(
-                    "Can't set password as no password object class has been defined for the user {user}."
+                    "Can't set password as no password object class has been defined for user \
+                    {user}."
                 )));
             }
 
@@ -906,9 +881,7 @@ impl LDAPConnection {
         user: &User<I>,
         groupname: &str,
     ) -> Result<(), LdapError> {
-        debug!(
-            "Adding user {user} to group {groupname} in LDAP, checking if that group exists first..."
-        );
+        debug!("Adding user {user} to group {groupname} in LDAP, checking if that group exists...");
         let user_dn = self.config.user_dn_from_user(user);
         if self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is already a member of group {groupname}, skipping");

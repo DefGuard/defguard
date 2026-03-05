@@ -500,18 +500,7 @@ impl super::LDAPConnection {
         let user_dn = self.config.user_dn_from_user(user);
         let ldap_user = self.get_user_by_dn(user).await?;
         let defguard_groups = user.member_of_names(pool).await?;
-        let mut ldap_groups = Vec::new();
-        for group_entry in self.get_user_groups(&user_dn).await? {
-            match self.group_entry_to_name(group_entry) {
-                Ok(group_name) => ldap_groups.push(group_name),
-                Err(err) => {
-                    warn!(
-                        "Failed to convert group entry to name during user synchronization: \
-                        {err}. This group will be skipped"
-                    );
-                }
-            }
-        }
+        let ldap_groups = self.get_user_groups(&user_dn).await?;
 
         debug!("User {user} is a member of the following groups in Defguard: {defguard_groups:?}");
         debug!("User {user} is a member of the following groups in LDAP: {ldap_groups:?}");

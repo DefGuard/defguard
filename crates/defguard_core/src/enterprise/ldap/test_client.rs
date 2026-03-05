@@ -127,11 +127,9 @@ impl PartialEq for LdapEvent {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub(super) enum Object {
-    User(User),
-    Group(Group),
+    User(Box<User>),
+    Group(Box<Group>),
 }
 
 impl Object {
@@ -196,7 +194,8 @@ impl TestClient {
 
     pub(super) fn add_test_user(&mut self, user: &User, config: &super::LDAPConfig) {
         let dn = config.user_dn_from_user(user);
-        self.objects.insert(dn, Object::User(user.clone()));
+        self.objects
+            .insert(dn, Object::User(Box::new(user.clone())));
     }
 
     pub(super) fn remove_test_user(&mut self, user: &User, config: &super::LDAPConfig) {
@@ -206,7 +205,8 @@ impl TestClient {
 
     pub(super) fn add_test_group(&mut self, group: &Group, config: &super::LDAPConfig) {
         let dn = config.group_dn(&group.name);
-        self.objects.insert(dn, Object::Group(group.clone()));
+        self.objects
+            .insert(dn, Object::Group(Box::new(group.clone())));
     }
 
     pub(super) fn add_test_membership(
@@ -351,7 +351,9 @@ impl super::LDAPConnection {
     pub(super) async fn get_user_groups(
         &mut self,
         user_dn: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    ) -> Result<Vec<String>, LdapError> {
+        let mut groups = Vec::new();
+
         if let Some(Object::User(_)) = self.test_client.objects.get(user_dn) {
             let group_dns = self
                 .test_client
@@ -366,16 +368,14 @@ impl super::LDAPConnection {
                 })
                 .collect::<Vec<_>>();
 
-            let mut groups = Vec::new();
             for group_dn in group_dns {
-                if let Some(group_object) = self.test_client.objects.get(group_dn) {
-                    groups.push(group_object.to_search_entry(group_dn, &self.config));
+                if let Some(Object::Group(group)) = self.test_client.objects.get(group_dn) {
+                    groups.push(group.name.clone());
                 }
             }
-
-            return Ok(groups);
         }
-        Ok(Vec::new())
+
+        Ok(groups)
     }
 
     pub(super) async fn add(
