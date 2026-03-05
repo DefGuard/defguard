@@ -41,8 +41,12 @@ async fn test_destination_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response_destination, expected_response);
 
     // update
-    let mut destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let mut destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     destination.name = "modified".to_string();
     let response = client
         .put("/api/v1/acl/destination/1")
@@ -51,8 +55,12 @@ async fn test_destination_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_destination: ApiAclDestination = response.json().await;
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/2").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(response_destination, destination);
 
     // delete
@@ -94,10 +102,7 @@ async fn test_destination_enterprise(_: PgPoolOptions, options: PgConnectOptions
     // GET should be allowed
     let response = client.get("/api/v1/acl/destination").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response = client
-        .delete("/api/v1/acl/destination/1")
-        .send()
-        .await;
+    let response = client.delete("/api/v1/acl/destination/1").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // restore valid license and try again
@@ -114,18 +119,19 @@ async fn test_destination_enterprise(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(response_destinations.len(), 1);
     let response = client.get("/api/v1/acl/destination").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response = client
-        .delete("/api/v1/acl/destination/1")
-        .send()
-        .await;
+    let response = client.delete("/api/v1/acl/destination/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }
 
@@ -146,17 +152,20 @@ async fn test_destination_create_modify_state(_: PgPoolOptions, options: PgConne
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let dbdestination =
-        AclAlias::find_by_id_and_kind(&pool, 1, AliasKind::Destination)
-            .await
-            .unwrap()
-            .unwrap();
+    let dbdestination = AclAlias::find_by_id_and_kind(&pool, 1, AliasKind::Destination)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(dbdestination.state, AliasState::Applied);
     assert_eq!(dbdestination.parent_id, None);
 
     // test APPLIED destination modification
-    let destination_before_mods: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let destination_before_mods: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     let mut destination_modified = destination_before_mods.clone();
     let response = client
         .put("/api/v1/acl/destination/1")
@@ -165,10 +174,18 @@ async fn test_destination_create_modify_state(_: PgPoolOptions, options: PgConne
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(count_destinations(&pool).await, 2);
-    let destination_parent: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
-    let destination_child: ApiAclDestination =
-        client.get("/api/v1/acl/destination/2").send().await.json().await;
+    let destination_parent: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    let destination_child: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination_parent, destination_before_mods);
     assert_eq!(destination_parent.state, AliasState::Applied);
     destination_modified.id = 2;
@@ -288,8 +305,12 @@ async fn test_destination_duplication(_: PgPoolOptions, options: PgConnectOption
 
     // ensure we don't duplicate already modified / deleted destinations
     assert_eq!(count_destinations(&pool).await, 1);
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)
@@ -327,8 +348,12 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify initial status
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.state, AliasState::Applied);
 
     // use destination in a new rule
@@ -339,8 +364,12 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify rule assignment
-    let mut destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let mut destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.rules, vec![1]);
 
     // modify destination
@@ -370,8 +399,12 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::OK);
 
     // verify destination was applied
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/2").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.state, AliasState::Applied);
     assert_eq!(destination.parent_id, None);
     assert_eq!(destination.rules, vec![1]);
@@ -415,8 +448,12 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // modify destinations
-    let mut destination_1: ApiAclDestination =
-        client.get("/api/v1/acl/destination/1").send().await.json().await;
+    let mut destination_1: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
     destination_1.name = "modified 1".to_string();
     let response = client
         .put("/api/v1/acl/destination/1")
@@ -424,8 +461,12 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let mut destination_2: ApiAclDestination =
-        client.get("/api/v1/acl/destination/2").send().await.json().await;
+    let mut destination_2: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
     destination_2.name = "modified 2".to_string();
     let response = client
         .put("/api/v1/acl/destination/2")
@@ -433,8 +474,12 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let mut destination_3: ApiAclDestination =
-        client.get("/api/v1/acl/destination/3").send().await.json().await;
+    let mut destination_3: ApiAclDestination = client
+        .get("/api/v1/acl/destination/3")
+        .send()
+        .await
+        .json()
+        .await;
     destination_3.name = "modified 3".to_string();
     let response = client
         .put("/api/v1/acl/destination/3")
@@ -454,17 +499,33 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
     assert_eq!(count_destinations(&pool).await, 4);
 
     // verify destination state
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/2").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.state, AliasState::Applied);
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/4").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/4")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.state, AliasState::Applied);
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/5").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/5")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.state, AliasState::Modified);
-    let destination: ApiAclDestination =
-        client.get("/api/v1/acl/destination/6").send().await.json().await;
+    let destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/6")
+        .send()
+        .await
+        .json()
+        .await;
     assert_eq!(destination.state, AliasState::Applied);
 }
 
