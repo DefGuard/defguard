@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, Type};
+use sqlx::{FromRow, PgExecutor, Type};
 use tracing::info;
 
 use crate::db::models::{
@@ -42,8 +42,8 @@ pub struct Wizard {
     pub completed: bool,
 }
 
-/// Internal row type used for SQLx deserialization.
-struct WizardRow {
+#[derive(Debug, FromRow)]
+struct WizardDbRow {
     active_wizard: ActiveWizard,
     completed: bool,
 }
@@ -54,9 +54,7 @@ impl Wizard {
         E: PgExecutor<'e>,
     {
         sqlx::query(
-            "UPDATE wizard SET active_wizard = $1, completed = $2, \
-			 initial_setup_state = $3, auto_adoption_state = $4, \
-			 migration_wizard_state = $5 \
+            "UPDATE wizard SET active_wizard = $1, completed = $2 \
 			 WHERE is_singleton = TRUE",
         )
         .bind(self.active_wizard)
@@ -71,13 +69,11 @@ impl Wizard {
     where
         E: PgExecutor<'e>,
     {
-        let row = sqlx::query_as!(
-            WizardRow,
-            "SELECT active_wizard AS \"active_wizard!: ActiveWizard\", \
-			        completed \
+        let row = sqlx::query_as::<_, WizardDbRow>(
+            "SELECT active_wizard, completed \
 			 FROM wizard \
 			 WHERE is_singleton = TRUE \
-			 LIMIT 1"
+			 LIMIT 1",
         )
         .fetch_one(executor)
         .await?;
