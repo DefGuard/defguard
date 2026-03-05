@@ -18,7 +18,7 @@ pub enum InitialSetupStep {
     Finished,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct InitialSetupState {
     pub step: InitialSetupStep,
 }

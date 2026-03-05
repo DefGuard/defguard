@@ -226,10 +226,7 @@ where
         })?;
         if !wizard.completed {
             // Allow unauthenticated access only up to the admin creation step.
-            if !wizard.requires_auth(&pool).await.map_err(|err| {
-                error!("Failed to evaluate wizard auth requirement: {err}");
-                WebError::DbError("Failed to evaluate wizard auth requirement".into())
-            })? {
+            if !wizard.requires_auth(&pool).await? {
                 return Ok(Self {});
             }
             let session_info = SessionInfo::from_request_parts(parts, state).await?;
