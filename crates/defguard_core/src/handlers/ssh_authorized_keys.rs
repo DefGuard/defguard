@@ -7,6 +7,7 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, AuthenticationKeyType},
 };
+use pgp::composed::{Deserializable, SignedPublicKey};
 use serde_json::json;
 use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
@@ -181,8 +182,12 @@ pub async fn add_authentication_key(
                 return Err(WebError::BadRequest("SSH key failed verification.".into()));
             }
         }
-        // FIXME: verify GPG key
-        AuthenticationKeyType::Gpg => {}
+        AuthenticationKeyType::Gpg => {
+            if SignedPublicKey::from_string(trimmed_key).is_err() {
+                error!("User {username} tried to insert invalid GPG key: {data:?}");
+                return Err(WebError::BadRequest("GPG key failed verification.".into()));
+            }
+        }
     }
 
     // check if exists

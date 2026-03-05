@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import SvgIconCheckmark from '../../../../../../../shared/components/svg/IconCheckmark';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormTextarea } from '../../../../../../../shared/defguard-ui/components/Form/FormTextarea/FormTextarea';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -110,10 +111,9 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
         placeholder={localLL.placeholders.title()}
         autoComplete="off"
       />
-      <FormInput
+      <FormTextarea
         controller={{ control, name: 'keyValue' }}
         label={localLL.labels.key()}
-        autoComplete="off"
         placeholder={
           keyType === AuthenticationKeyType.SSH
             ? localLL.placeholders.key.ssh()
