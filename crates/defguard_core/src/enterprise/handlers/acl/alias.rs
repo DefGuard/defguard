@@ -16,6 +16,7 @@ use crate::{
         AclAlias, AclAliasDestinationRange, AclAliasInfo, AclError, AliasKind, AliasState,
         Protocol, acl_delete_related_objects, parse_destination_addresses,
     },
+    error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -29,6 +30,18 @@ pub struct EditAclAlias {
 }
 
 impl EditAclAlias {
+    fn validate(&self) -> Result<(), WebError> {
+        if self.addresses.trim().is_empty()
+            && self.ports.trim().is_empty()
+            && self.protocols.is_empty()
+        {
+            return Err(WebError::BadRequest(
+                "Must provide alias addresses, ports, or protocols".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Creates relation objects for a given [`AclAlias`] based on [`AclAliasInfo`] object.
     pub(crate) async fn create_related_objects(
         &self,
@@ -289,6 +302,7 @@ pub(crate) async fn create_acl_alias(
     Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
     debug!("User {} creating ACL alias {data:?}", session.user.username);
+    data.validate()?;
     let alias = ApiAclAlias::create_from_api(&appstate.pool, &data)
         .await
         .map_err(|err| {
@@ -324,6 +338,7 @@ pub(crate) async fn update_acl_alias(
     Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
     debug!("User {} updating ACL alias {data:?}", session.user.username);
+    data.validate()?;
     let alias = ApiAclAlias::update_from_api(&appstate.pool, id, &data)
         .await
         .map_err(|err| {

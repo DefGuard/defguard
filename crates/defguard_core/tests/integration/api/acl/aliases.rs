@@ -356,3 +356,40 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
     let alias: ApiAclAlias = client.get("/api/v1/acl/alias/6").send().await.json().await;
     assert_eq!(alias.state, AliasState::Applied);
 }
+
+#[sqlx::test]
+async fn test_alias_requires_any_value(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // all fields empty
+    let mut alias = make_alias();
+    alias.addresses = String::new();
+    alias.ports = String::new();
+    alias.protocols = Vec::new();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // only addresses set
+    let mut alias = make_alias();
+    alias.ports = String::new();
+    alias.protocols = Vec::new();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // only ports set
+    let mut alias = make_alias();
+    alias.addresses = String::new();
+    alias.protocols = Vec::new();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // only protocols set
+    let mut alias = make_alias();
+    alias.addresses = String::new();
+    alias.ports = String::new();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
