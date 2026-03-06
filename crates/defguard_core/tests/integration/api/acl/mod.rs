@@ -44,7 +44,7 @@ async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");
-    initialize_users(&pool, &config).await;
+    initialize_users(&pool).await;
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");
