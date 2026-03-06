@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use axum_extra::extract::cookie::Key;
 use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
 use sqlx::PgPool;
@@ -40,6 +41,7 @@ pub struct ProxyManager {
     tx: ProxyTxSet,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control: Receiver<ProxyControlMessage>,
+    proxy_cookie_key: Key,
 }
 
 impl ProxyManager {
@@ -48,12 +50,14 @@ impl ProxyManager {
         tx: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         proxy_control_rx: Receiver<ProxyControlMessage>,
+        core_secret_key: String,
     ) -> Self {
         Self {
             pool,
             tx,
             incompatible_components,
             proxy_control: proxy_control_rx,
+            proxy_cookie_key: Key::derive_from(core_secret_key.as_bytes()),
         }
     }
 
@@ -89,6 +93,7 @@ impl ProxyManager {
                     Arc::clone(&remote_mfa_responses),
                     Arc::clone(&sessions),
                     Arc::new(Mutex::new(shutdown_rx)),
+                    self.proxy_cookie_key.clone(),
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -136,6 +141,7 @@ impl ProxyManager {
                                     Arc::clone(&remote_mfa_responses),
                                     Arc::clone(&sessions),
                                     Arc::new(Mutex::new(shutdown_rx)),
+                                    self.proxy_cookie_key.clone(),
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);

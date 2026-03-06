@@ -30,9 +30,9 @@ export const SetupConfirmationStep = () => {
 
     while (Date.now() - startedAt < timeoutMs) {
       try {
-        const response = await api.settings.getSettingsEssentials();
+        const response = await api.getSessionInfo();
 
-        if (isPresent(response.data) && response.data.initial_setup_completed) {
+        if (isPresent(response.data) && response.data.active_wizard === null) {
           return;
         }
       } catch (_error) {

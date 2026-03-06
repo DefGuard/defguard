@@ -34,3 +34,6 @@ migrate:
 # update sqlx query data
 query-data:
     cargo sqlx prepare --workspace -- --all-targets --tests
+
+fix-clippy:
+    cargo clippy --all-targets --all-features --fix --allow-dirty

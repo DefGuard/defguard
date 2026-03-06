@@ -1,28 +1,24 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { isPresent } from '../shared/defguard-ui/utils/isPresent';
-import { useAuth } from '../shared/hooks/useAuth';
+import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../shared/query';
 
 export const Route = createFileRoute('/404')({
-  beforeLoad: () => {
-    const state = useAuth.getState();
-    if (state.isAuthenticated && isPresent(state.user)) {
-      if (state.user.is_admin) {
-        throw redirect({
-          to: '/vpn-overview',
-          replace: true,
-        });
-      } else {
-        throw redirect({
-          to: '/user/$username',
-          params: {
-            username: state.user?.username,
-          },
-          replace: true,
-        });
-      }
-    } else {
-      throw redirect({ to: '/auth/login', replace: true });
+  beforeLoad: async ({ context }) => {
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
+    if (!sessionInfo.authorized) {
+      throw redirect({ to: '/auth', replace: true });
     }
+    if (sessionInfo.isAdmin) {
+      throw redirect({ to: '/vpn-overview', replace: true });
+    }
+    const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;
+    throw redirect({
+      to: '/user/$username',
+      params: {
+        username: me.username,
+      },
+      replace: true,
+    });
   },
   component: RouteComponent,
 });

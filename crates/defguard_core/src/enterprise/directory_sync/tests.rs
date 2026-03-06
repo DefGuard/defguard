@@ -14,7 +14,6 @@ mod test {
         },
     };
     use ipnetwork::IpNetwork;
-    use secrecy::ExposeSecret;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::broadcast;
 
@@ -44,7 +43,7 @@ mod test {
         target: DirectorySyncTarget,
         prefetch_users: bool,
     ) -> OpenIdProvider<Id> {
-        Settings::init_defaults(pool).await.unwrap();
+        Settings::initialize_runtime_defaults(pool).await.unwrap();
         initialize_current_settings(pool).await.unwrap();
 
         let current = OpenIdProvider::get_current(pool).await.unwrap();
@@ -231,9 +230,7 @@ mod test {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
-        User::init_admin_user(&pool, config.default_admin_password.expose_secret())
-            .await
-            .unwrap();
+        User::init_admin_user(&pool, "pass123").await.unwrap();
 
         let _ = make_test_provider(
             &pool,
@@ -296,9 +293,7 @@ mod test {
             false,
         )
         .await;
-        User::init_admin_user(&pool, config.default_admin_password.expose_secret())
-            .await
-            .unwrap();
+        User::init_admin_user(&pool, "pass123").await.unwrap();
         let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 

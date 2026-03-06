@@ -11,6 +11,7 @@ use axum::{
     routing::{delete, get, post, put},
     serve,
 };
+use axum_extra::extract::cookie::Key;
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
@@ -50,11 +51,11 @@ use handlers::{
     },
     updates::check_new_version,
     wireguard::all_gateways_status,
-    wizard::{get_migration_wizard_state, get_wizard_flags, update_migration_wizard_state},
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
 use regex::Regex;
+use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -220,6 +221,7 @@ pub fn build_webapp(
     wireguard_tx: Sender<GatewayEvent>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
+    key: Key,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
     version: Version,
@@ -243,11 +245,6 @@ pub fn build_webapp(
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
             .route("/updates", get(check_new_version))
-            .route("/wizard", get(get_wizard_flags))
-            .route(
-                "/wizard/migration",
-                get(get_migration_wizard_state).put(update_migration_wizard_state),
-            )
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -606,6 +603,7 @@ pub fn build_webapp(
             webhook_tx,
             webhook_rx,
             wireguard_tx,
+            key,
             failed_logins,
             event_tx,
             incompatible_components,
@@ -640,12 +638,16 @@ pub async fn run_web_server(
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
+    let settings = Settings::get_current_settings();
+    let key = Key::from(settings.secret_key_required()?.as_bytes());
+
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
         worker_state,
         pool,
+        key,
         failed_logins,
         event_tx,
         Version::parse(VERSION)?,
@@ -670,6 +672,7 @@ pub async fn run_web_server(
 }
 
 /// Automates test objects creation to easily setup development environment.
+/// Admin password: pass123
 /// Test network keys:
 /// Public: zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=
 /// Private: MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=
@@ -689,7 +692,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     .await;
 
     // initialize admin user
-    User::init_admin_user(&pool, config.default_admin_password.expose_secret())
+    User::init_admin_user(&pool, "pass123")
         .await
         .expect("Failed to create admin user");
 
@@ -704,7 +707,11 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.ca_key_der = Some(ca.key_pair_der().to_vec());
     settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
     // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
-    settings.public_proxy_url = config.enrollment_url.to_string();
+    settings.public_proxy_url = config
+        .enrollment_url
+        .clone()
+        .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
+        .to_string();
     settings.defguard_url = config.url.to_string();
     update_current_settings(&pool, settings)
         .await
@@ -712,17 +719,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 
     // Mark wizard as completed for dev environment
     use defguard_common::db::models::{
-        settings::InitialSetupStep,
-        wizard::{ActiveWizard, InitialSetupState, Wizard},
+        initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+        wizard::{ActiveWizard, Wizard},
     };
     let wizard = Wizard {
         active_wizard: ActiveWizard::None,
         completed: true,
-        initial_setup_state: Some(InitialSetupState {
-            step: InitialSetupStep::Finished,
-        }),
-        auto_adoption_state: None,
-        migration_wizard_state: None,
     };
     // Ensure wizard is initialized, then overwrite with completed state
     let _ = Wizard::init(&pool, false).await;
@@ -730,6 +732,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .save(&pool)
         .await
         .expect("Failed to save wizard state for dev env");
+    InitialSetupState {
+        step: InitialSetupStep::Finished,
+    }
+    .save(&pool)
+    .await
+    .expect("Failed to save initial setup state for dev env");
 
     let mut transaction = pool
         .begin()

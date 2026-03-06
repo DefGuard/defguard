@@ -34,9 +34,9 @@ export const AutoAdoptionSummaryStep = () => {
 
     while (Date.now() - startedAt < timeoutMs) {
       try {
-        const response = await api.settings.getSettingsEssentials();
+        const response = await api.getSessionInfo();
 
-        if (isPresent(response.data) && response.data.initial_setup_completed) {
+        if (isPresent(response.data) && response.data.active_wizard === null) {
           return;
         }
       } catch (_error) {
@@ -53,7 +53,7 @@ export const AutoAdoptionSummaryStep = () => {
     mutationKey: ['finish-setup'],
     mutationFn: api.initial_setup.finishSetup,
     meta: {
-      invalidate: ['settings_essentials'],
+      invalidate: [['settings_essentials'], ['session-info']],
     },
   });
 

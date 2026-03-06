@@ -807,7 +807,7 @@ impl LDAPConnection {
         ];
         // Extend the group attr with multiple members.
         let member_dns = members
-            .into_iter()
+            .iter()
             .map(|member| self.config.user_dn_from_user(member))
             .collect::<Vec<_>>();
         let member_group_attr = self.config.ldap_group_member_attr.clone();

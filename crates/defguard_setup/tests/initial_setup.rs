@@ -11,7 +11,8 @@ use defguard_common::{
         models::{
             Session, Settings, User,
             group::Group,
-            settings::{InitialSetupStep, initialize_current_settings},
+            initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+            settings::initialize_current_settings,
             wizard::Wizard,
         },
         setup_pool,
@@ -35,12 +36,9 @@ use tokio::{
 const SESSION_COOKIE_NAME: &str = "defguard_session";
 
 async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
-    let wizard = Wizard::get(pool)
+    let step = InitialSetupState::get(pool)
         .await
-        .expect("Failed to fetch wizard state");
-    let step = wizard
-        .initial_setup_state
-        .as_ref()
+        .expect("Failed to fetch initial setup state")
         .map_or(InitialSetupStep::Welcome, |s| s.step);
     assert_eq!(step, expected);
 }
@@ -525,8 +523,11 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch wizard state");
     assert!(wizard.completed);
+    let setup_state = InitialSetupState::get(&pool)
+        .await
+        .expect("Failed to fetch initial setup state");
     assert_eq!(
-        wizard.initial_setup_state.as_ref().map(|s| s.step),
+        setup_state.as_ref().map(|s| s.step),
         Some(InitialSetupStep::Finished)
     );
 
@@ -661,8 +662,11 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch wizard state");
     assert!(wizard.completed);
+    let setup_state = InitialSetupState::get(&pool)
+        .await
+        .expect("Failed to fetch initial setup state");
     assert_eq!(
-        wizard.initial_setup_state.as_ref().map(|s| s.step),
+        setup_state.as_ref().map(|s| s.step),
         Some(InitialSetupStep::Finished)
     );
 

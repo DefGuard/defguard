@@ -55,13 +55,13 @@
       },
       {
         "ordinal": 10,
-        "name": "enabled",
-        "type_info": "Bool"
+        "name": "modified_by",
+        "type_info": "Text"
       },
       {
         "ordinal": 11,
-        "name": "modified_by",
-        "type_info": "Text"
+        "name": "enabled",
+        "type_info": "Bool"
       }
     ],
     "parameters": {

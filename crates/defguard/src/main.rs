@@ -33,7 +33,10 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::{auto_adoption::attemp_auto_adoption, setup_server::run_setup_web_server};
+use defguard_setup::{
+    auto_adoption::attempt_auto_adoption, migration::run_migration_web_server,
+    setup_server::run_setup_web_server,
+};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -94,35 +97,66 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
-    // initialize default settings
-    Settings::init_defaults(&pool).await?;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
+    let mut ini_server_config = true;
 
     if !wizard.completed {
-        if wizard.active_wizard == ActiveWizard::AutoAdoption {
-            if let Err(err) = attemp_auto_adoption(&pool, &config).await {
-                warn!("Failed to store startup auto-adoption states: {err}");
+        match wizard.active_wizard {
+            ActiveWizard::None => {}
+            ActiveWizard::Initial | ActiveWizard::AutoAdoption => {
+                if wizard.active_wizard == ActiveWizard::AutoAdoption {
+                    if let Err(err) = attempt_auto_adoption(&pool, &config).await {
+                        warn!("Failed to store startup auto-adoption states: {err}");
+                    }
+                }
+                if let Err(err) =
+                    run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
+                        .await
+                {
+                    anyhow::bail!("Setup web server exited with error: {err}");
+                }
             }
-        }
+            ActiveWizard::Migration => {
+                let mut settings = Settings::get_current_settings();
+                settings.update_from_config(&pool, &config).await?;
 
-        if let Err(err) =
-            run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
-        {
-            anyhow::bail!("Setup web server exited with error: {err}");
+                Settings::initialize_runtime_defaults(&pool).await?;
+
+                config.initialize_post_settings();
+                SERVER_CONFIG
+                    .set(config.clone())
+                    .expect("Failed to initialize server config.");
+
+                ini_server_config = false;
+
+                if let Err(err) = run_migration_web_server(
+                    pool.clone(),
+                    config.http_bind_address,
+                    config.http_port,
+                )
+                .await
+                {
+                    anyhow::bail!("Migration web server exited with error: {err}");
+                }
+            }
         }
     }
 
+    Settings::initialize_runtime_defaults(&pool).await?;
+
+    if ini_server_config {
+        config.initialize_post_settings();
+
+        SERVER_CONFIG
+            .set(config.clone())
+            .expect("Failed to initialize server config.");
+    }
+
     let settings = Settings::get_current_settings();
-
-    config.initialize_post_settings();
-
-    SERVER_CONFIG
-        .set(config.clone())
-        .expect("Failed to initialize server config.");
 
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
@@ -149,7 +183,7 @@ async fn main() -> Result<(), anyhow::Error> {
         anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
     }
 
-    // read grpc TLS cert and key
+    // read grpc TLS cert and key from legacy config values
     let grpc_cert = config
         .grpc_cert
         .as_ref()
@@ -180,11 +214,13 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
+    let proxy_secret_key = settings.secret_key_required()?.to_string();
     let proxy_manager = ProxyManager::new(
         pool.clone(),
         ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone()),
         Arc::clone(&incompatible_components),
         proxy_control_rx,
+        proxy_secret_key,
     );
 
     let mut gateway_manager = GatewayManager::new(
@@ -216,9 +252,9 @@ async fn main() -> Result<(), anyhow::Error> {
         ) => error!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
-            config.stats_purge_frequency.into(),
-            config.stats_purge_threshold.into()
-        ), if !config.disable_stats_purge =>
+            settings.stats_purge_frequency(),
+            settings.stats_purge_threshold()
+        ), if !settings.disable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool, proxy_control_tx) =>
             error!("Periodic license check task returned early: {res:?}"),

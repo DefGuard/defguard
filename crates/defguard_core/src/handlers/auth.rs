@@ -136,7 +136,7 @@ pub async fn create_session(
         (status = CREATED, description = "User authenticated, but an additional authentication factor is required"),
     ),
 )]
-pub(crate) async fn authenticate(
+pub async fn authenticate(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
     user_agent: TypedHeader<UserAgent>,
@@ -309,7 +309,7 @@ pub(crate) async fn authenticate(
         (status = OK, description = "User logged out"),
     ),
 )]
-pub(crate) async fn logout(
+pub async fn logout(
     cookies: CookieJar,
     SessionExtractor(session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,

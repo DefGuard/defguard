@@ -226,7 +226,7 @@ where
         })?;
         if !wizard.completed {
             // Allow unauthenticated access only up to the admin creation step.
-            if !wizard.requires_auth() {
+            if !wizard.requires_auth(&pool).await? {
                 return Ok(Self {});
             }
             let session_info = SessionInfo::from_request_parts(parts, state).await?;

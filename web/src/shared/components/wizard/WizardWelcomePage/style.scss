@@ -21,6 +21,7 @@
     overflow: hidden;
     width: 100%;
     max-width: 1110px;
+    min-height: 657px;
 
     & > .main-track {
       box-sizing: border-box;
@@ -46,6 +47,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      background: linear-gradient(157deg, #e6e6ff -2.15%, #8cadff 102.56%);
+      background-repeat: no-repeat;
+      background-size: cover;
 
       img {
         width: 100%;

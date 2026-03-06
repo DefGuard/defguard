@@ -69,7 +69,7 @@ async fn test_ldap(_: PgPoolOptions, options: PgConnectOptions) {
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
     ldap_conn.config.ldap_sync_groups = vec![String::from("testers")];
     // Try to remove user first, in case the previous test run failed.
-    let _ = ldap_conn.delete_user(&mut user).await;
+    let _ = ldap_conn.delete_user(&user).await;
 
     // Add user to LDAP.
     ldap_conn
@@ -108,5 +108,5 @@ async fn test_ldap(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Cleanup
     ldap_conn.delete_group(&group.name).await.unwrap();
-    ldap_conn.delete_user(&mut user).await.unwrap();
+    ldap_conn.delete_user(&user).await.unwrap();
 }

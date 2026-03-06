@@ -5,13 +5,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use axum_extra::extract::cookie::Key;
 pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
     config::DefGuardConfig,
     db::{
         Id,
-        models::{Device, User, WireguardNetwork, settings::initialize_current_settings},
+        models::{Device, Settings, User, WireguardNetwork, settings::initialize_current_settings},
     },
 };
 use defguard_core::{
@@ -123,12 +124,20 @@ pub(crate) async fn make_base_client(
     //     .with(tracing_subscriber::fmt::layer())
     //     .init();
 
+    let key = Key::from(
+        Settings::get_current_settings()
+            .secret_key_required()
+            .unwrap()
+            .as_bytes(),
+    );
+
     let webapp = build_webapp(
         tx,
         rx,
         wg_tx,
         worker_state,
         pool,
+        key,
         failed_logins,
         api_event_tx,
         Version::parse(VERSION).unwrap(),
@@ -149,7 +158,7 @@ pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) 
         .expect("Could not bind ephemeral socket");
     let port = listener.local_addr().unwrap().port();
     let config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
-    initialize_users(&pool, &config).await;
+    initialize_users(&pool).await;
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");

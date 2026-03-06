@@ -26,7 +26,7 @@ export const TotpLogin = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.auth.mfa.totp.verify,
     meta: {
-      invalidate: [['me']],
+      invalidate: [['me'], ['session-info']],
     },
     onSuccess: (response) => {
       useAuth.getState().authSubject.next(response.data);
