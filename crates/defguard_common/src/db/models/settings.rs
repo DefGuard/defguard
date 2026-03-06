@@ -536,7 +536,7 @@ impl Settings {
             query(&query_string).bind(value).execute(pool).await?;
         }
 
-        let mut settings = Settings::get_current_settings();
+        let mut settings = Settings::get(pool).await?.unwrap_or_default();
 
         match settings.secret_key.as_deref() {
             Some(secret_key) => {
@@ -962,23 +962,6 @@ mod test {
     }
 
     #[test]
-    fn test_apply_from_config_derives_webauthn_rp_id_from_defguard_url() {
-        let mut settings = Settings {
-            defguard_url: "https://defguard.example.com:8443/path".into(),
-            webauthn_rp_id: None,
-            ..Default::default()
-        };
-        let config = DefGuardConfig::new_test_config();
-
-        settings.apply_from_config(&config);
-
-        assert_eq!(
-            settings.webauthn_rp_id.as_deref(),
-            Some("defguard.example.com")
-        );
-    }
-
-    #[test]
     fn test_apply_from_config_invalid_defguard_url_does_not_set_webauthn_rp_id() {
         let mut settings = Settings {
             defguard_url: "this is not an url".into(),
@@ -1056,6 +1039,30 @@ mod test {
         assert!(from_db.disable_stats_purge);
     }
 
+    #[sqlx::test]
+    async fn test_initialize_runtime_defaults_derives_webauthn_rp_id_from_defguard_url(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = "https://defguard.example.com:8443/path".into();
+        settings.webauthn_rp_id = None;
+        settings.secret_key = Some("a".repeat(64));
+        update_current_settings(&pool, settings).await.unwrap();
+
+        Settings::initialize_runtime_defaults(&pool).await.unwrap();
+
+        let current = Settings::get_current_settings();
+        let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+        assert_eq!(current.webauthn_rp_id.as_deref(), Some("defguard.example.com"));
+        assert_eq!(from_db.webauthn_rp_id.as_deref(), Some("defguard.example.com"));
+    }
+
+    #[test]
     fn test_edge_callback_url() {
         let mut s = Settings {
             public_proxy_url: "https://edge.example.com".into(),
