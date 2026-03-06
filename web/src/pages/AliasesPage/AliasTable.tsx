@@ -20,6 +20,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { resourceById } from '../../shared/utils/resourceById';
+import { DeleteConfirmModal } from '../Acl/components/DeleteConfirmModal/DeleteConfirmModal';
 import { DeletionBlockedModal } from '../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type RowData = AclAlias;
@@ -54,6 +55,11 @@ export const AliasTable = ({ data: rowData }: Props) => {
     title: string;
     description: string;
     rules: string[];
+  } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{
+    title: string;
+    description: string;
+    aliasId: number;
   } | null>(null);
 
   const { mutate: deleteAlias } = useMutation({
@@ -176,7 +182,12 @@ export const AliasTable = ({ data: rowData }: Props) => {
                         });
                         return;
                       }
-                      deleteAlias(row.id);
+                      setDeleteModal({
+                        title: 'Delete alias',
+                        description:
+                          "Are you sure you want to delete this alias? This action can't be undone.",
+                        aliasId: row.id,
+                      });
                     });
                   },
                 },
@@ -212,7 +223,6 @@ export const AliasTable = ({ data: rowData }: Props) => {
       rulesById,
       rulesReady,
       applyAliases,
-      deleteAlias,
       navigate,
       isLicenseFetching,
       licenseInfo,
@@ -247,6 +257,17 @@ export const AliasTable = ({ data: rowData }: Props) => {
         description={blockedModal?.description ?? ''}
         rules={blockedModal?.rules ?? []}
         onClose={() => setBlockedModal(null)}
+      />
+      <DeleteConfirmModal
+        isOpen={deleteModal !== null}
+        title={deleteModal?.title ?? ''}
+        description={deleteModal?.description ?? ''}
+        onConfirm={() => {
+          if (!deleteModal) return;
+          deleteAlias(deleteModal.aliasId);
+          setDeleteModal(null);
+        }}
+        onClose={() => setDeleteModal(null)}
       />
     </>
   );

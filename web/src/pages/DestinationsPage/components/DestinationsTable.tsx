@@ -24,6 +24,7 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
+import { DeleteConfirmModal } from '../../Acl/components/DeleteConfirmModal/DeleteConfirmModal';
 import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type Props = {
@@ -56,6 +57,11 @@ export const DestinationsTable = ({
     title: string;
     description: string;
     rules: string[];
+  } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{
+    title: string;
+    description: string;
+    destinationId: number;
   } | null>(null);
 
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
@@ -187,7 +193,12 @@ export const DestinationsTable = ({
                         });
                         return;
                       }
-                      deleteDestination(row.id);
+                      setDeleteModal({
+                        title: 'Delete destination',
+                        description:
+                          "Are you sure you want to delete this destination? This action can't be undone.",
+                        destinationId: row.id,
+                      });
                     });
                   },
                 },
@@ -206,7 +217,7 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [navigate, deleteDestination, rulesById, rulesReady, licenseFetching, licenseInfo],
+    [navigate, rulesById, rulesReady, licenseFetching, licenseInfo],
   );
 
   const transformedData = useMemo(() => {
@@ -253,6 +264,17 @@ export const DestinationsTable = ({
         description={blockedModal?.description ?? ''}
         rules={blockedModal?.rules ?? []}
         onClose={() => setBlockedModal(null)}
+      />
+      <DeleteConfirmModal
+        isOpen={deleteModal !== null}
+        title={deleteModal?.title ?? ''}
+        description={deleteModal?.description ?? ''}
+        onConfirm={() => {
+          if (!deleteModal) return;
+          deleteDestination(deleteModal.destinationId);
+          setDeleteModal(null);
+        }}
+        onClose={() => setDeleteModal(null)}
       />
     </>
   );
