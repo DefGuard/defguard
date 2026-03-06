@@ -6,7 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName } from '../../shared/api/types';
@@ -19,6 +19,8 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { resourceById } from '../../shared/utils/resourceById';
+import { DeletionBlockedModal } from '../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type RowData = AclAlias;
 
@@ -35,11 +37,24 @@ export const AliasTable = ({ data: rowData }: Props) => {
     getLicenseInfoQueryOptions,
   );
 
-  const { data: rules } = useQuery({
+  const {
+    data: rules,
+    isLoading: rulesLoading,
+    isFetching: rulesFetching,
+  } = useQuery({
     queryFn: api.acl.rule.getRules,
     queryKey: ['acl', 'rule'],
     select: (resp) => resp.data,
   });
+
+  const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
+  const rulesById = useMemo(() => resourceById(rules), [rules]);
+
+  const [blockedModal, setBlockedModal] = useState<{
+    title: string;
+    description: string;
+    rules: string[];
+  } | null>(null);
 
   const { mutate: deleteAlias } = useMutation({
     mutationFn: api.acl.alias.deleteAlias,
@@ -145,9 +160,22 @@ export const AliasTable = ({ data: rowData }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  disabled: !rulesReady,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                      if (row.rules.length > 0) {
+                        const ruleNames = row.rules.map(
+                          (ruleId) => rulesById?.[ruleId]?.name ?? `Rule ${ruleId}`,
+                        );
+                        setBlockedModal({
+                          title: 'Deletion blocked',
+                          description:
+                            'This alias is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
+                          rules: ruleNames,
+                        });
+                        return;
+                      }
                       deleteAlias(row.id);
                     });
                   },
@@ -179,7 +207,16 @@ export const AliasTable = ({ data: rowData }: Props) => {
         },
       }),
     ],
-    [rules, applyAliases, deleteAlias, navigate, isLicenseFetching, licenseInfo],
+    [
+      rules,
+      rulesById,
+      rulesReady,
+      applyAliases,
+      deleteAlias,
+      navigate,
+      isLicenseFetching,
+      licenseInfo,
+    ],
   );
 
   const table = useReactTable({
@@ -201,5 +238,16 @@ export const AliasTable = ({ data: rowData }: Props) => {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  return <TableBody table={table} />;
+  return (
+    <>
+      <TableBody table={table} />
+      <DeletionBlockedModal
+        isOpen={blockedModal !== null}
+        title={blockedModal?.title ?? ''}
+        description={blockedModal?.description ?? ''}
+        rules={blockedModal?.rules ?? []}
+        onClose={() => setBlockedModal(null)}
+      />
+    </>
+  );
 };

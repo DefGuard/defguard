@@ -20,9 +20,11 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
+import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type Props = {
   title: string;
@@ -41,10 +43,20 @@ export const DestinationsTable = ({
   title,
   search,
 }: Props) => {
-  const { data: rules } = useQuery(getRulesQueryOptions);
+  const {
+    data: rules,
+    isLoading: rulesLoading,
+    isFetching: rulesFetching,
+  } = useQuery(getRulesQueryOptions);
+  const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
   const rulesById = useMemo(() => resourceById(rules), [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
   const navigate = useNavigate();
+  const [blockedModal, setBlockedModal] = useState<{
+    title: string;
+    description: string;
+    rules: string[];
+  } | null>(null);
 
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
@@ -157,9 +169,24 @@ export const DestinationsTable = ({
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  disabled: !rulesReady,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                      if (row.rules.length > 0) {
+                        const ruleNames = rulesById
+                          ? row.rules.map(
+                              (ruleId) => rulesById[ruleId]?.name ?? `Rule ${ruleId}`,
+                            )
+                          : row.rules.map((ruleId) => `Rule ${ruleId}`);
+                        setBlockedModal({
+                          title: 'Deletion blocked',
+                          description:
+                            'This destination is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
+                          rules: ruleNames,
+                        });
+                        return;
+                      }
                       deleteDestination(row.id);
                     });
                   },
@@ -179,7 +206,7 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [navigate, deleteDestination, rulesById, licenseFetching, licenseInfo],
+    [navigate, deleteDestination, rulesById, rulesReady, licenseFetching, licenseInfo],
   );
 
   const transformedData = useMemo(() => {
@@ -220,6 +247,13 @@ export const DestinationsTable = ({
           subtitle={m.search_empty_common_subtitle()}
         />
       )}
+      <DeletionBlockedModal
+        isOpen={blockedModal !== null}
+        title={blockedModal?.title ?? ''}
+        description={blockedModal?.description ?? ''}
+        rules={blockedModal?.rules ?? []}
+        onClose={() => setBlockedModal(null)}
+      />
     </>
   );
 };
