@@ -383,19 +383,19 @@ mod tests {
 
         // No requested scopes
         let all_scopes = vec!["email".to_string(), "profile".to_string()];
-        let requested_scopes = vec![];
+        let requested_scopes = Vec::new();
         let result = get_available_scopes(&all_scopes, &requested_scopes);
         assert_eq!(result, Vec::<&str>::new());
 
         // No available scopes
-        let all_scopes = vec![];
+        let all_scopes = Vec::new();
         let requested_scopes = vec!["email".to_string(), "profile".to_string()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
         assert_eq!(result, Vec::<&str>::new());
 
         // Both empty
-        let all_scopes = vec![];
-        let requested_scopes = vec![];
+        let all_scopes = Vec::new();
+        let requested_scopes = Vec::new();
         let result = get_available_scopes(&all_scopes, &requested_scopes);
         assert_eq!(result, Vec::<&str>::new());
 

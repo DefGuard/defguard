@@ -39,8 +39,7 @@ async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
     let step = InitialSetupState::get(pool)
         .await
         .expect("Failed to fetch initial setup state")
-        .map(|s| s.step)
-        .unwrap_or(InitialSetupStep::Welcome);
+        .map_or(InitialSetupStep::Welcome, |s| s.step);
     assert_eq!(step, expected);
 }
 

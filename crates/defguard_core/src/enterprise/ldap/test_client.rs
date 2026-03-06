@@ -7,7 +7,7 @@ use std::{
 use defguard_common::db::models::{User, group::Group};
 use ldap3::{Mod, SearchEntry};
 
-use super::error::LdapError;
+use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::{extract_rdn_value, user_as_ldap_attrs};
 
 /// Extract attribute value from LDAP filter
@@ -127,15 +127,13 @@ impl PartialEq for LdapEvent {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub(super) enum Object {
-    User(User),
-    Group(Group),
+    User(Box<User>),
+    Group(Box<Group>),
 }
 
 impl Object {
-    fn to_search_entry(&self, dn: &str, config: &super::LDAPConfig) -> SearchEntry {
+    fn to_search_entry(&self, dn: &str, config: &LDAPConfig) -> SearchEntry {
         match self {
             Object::User(user) => SearchEntry {
                 dn: dn.to_string(),
@@ -163,8 +161,9 @@ impl Object {
 /// LDAP operations don't actually modify any data, but emit corresponding events that may
 /// be verified using the `events_match` method.
 ///
-/// To modify (setup) the mock data, use the `add_test_user`, `add_test_group`, and `add_test_membership` methods.
-#[derive(Debug, Default)]
+/// To modify (setup) the mock data, use the `add_test_user`, `add_test_group`, and
+/// `add_test_membership` methods.
+#[derive(Default)]
 pub struct TestClient {
     events: Vec<LdapEvent>,
     // DN: Object
@@ -180,9 +179,8 @@ impl TestClient {
 
     pub(super) fn events_match(&self, expected: &[LdapEvent], order_matters: bool) -> bool {
         if self.events.len() != expected.len() {
-            return false;
-        }
-        if order_matters {
+            false
+        } else if order_matters {
             self.events == expected
         } else {
             vecs_equal_unordered(&self.events, expected)
@@ -193,27 +191,24 @@ impl TestClient {
         self.events.clear();
     }
 
-    pub(super) fn add_test_user(&mut self, user: &User, config: &super::LDAPConfig) {
+    pub(super) fn add_test_user(&mut self, user: &User, config: &LDAPConfig) {
         let dn = config.user_dn_from_user(user);
-        self.objects.insert(dn, Object::User(user.clone()));
+        self.objects
+            .insert(dn, Object::User(Box::new(user.clone())));
     }
 
-    pub(super) fn remove_test_user(&mut self, user: &User, config: &super::LDAPConfig) {
+    pub(super) fn remove_test_user(&mut self, user: &User, config: &LDAPConfig) {
         let dn = config.user_dn_from_user(user);
         self.objects.remove(&dn);
     }
 
-    pub(super) fn add_test_group(&mut self, group: &Group, config: &super::LDAPConfig) {
+    pub(super) fn add_test_group(&mut self, group: &Group, config: &LDAPConfig) {
         let dn = config.group_dn(&group.name);
-        self.objects.insert(dn, Object::Group(group.clone()));
+        self.objects
+            .insert(dn, Object::Group(Box::new(group.clone())));
     }
 
-    pub(super) fn add_test_membership(
-        &mut self,
-        group: &Group,
-        user: &User,
-        config: &super::LDAPConfig,
-    ) {
+    pub(super) fn add_test_membership(&mut self, group: &Group, user: &User, config: &LDAPConfig) {
         let group_dn = config.group_dn(&group.name);
         let user_dn = config.user_dn_from_user(user);
         self.memberships
@@ -226,7 +221,7 @@ impl TestClient {
         &mut self,
         group: &Group,
         user: &User,
-        config: &super::LDAPConfig,
+        config: &LDAPConfig,
     ) {
         let group_dn = config.group_dn(&group.name);
         let user_dn = config.user_dn_from_user(user);
@@ -243,10 +238,10 @@ impl TestClient {
     }
 }
 
-impl super::LDAPConnection {
-    pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
+impl LDAPConnection {
+    pub async fn create() -> Result<LDAPConnection, LdapError> {
         Ok(Self {
-            config: super::LDAPConfig::default(),
+            config: LDAPConfig::default(),
             url: String::new(),
             test_client: TestClient::default(),
         })
@@ -347,10 +342,9 @@ impl super::LDAPConnection {
         Ok(())
     }
 
-    pub(super) async fn get_user_groups(
-        &mut self,
-        user_dn: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<String>, LdapError> {
+        let mut groups = Vec::new();
+
         if let Some(Object::User(_)) = self.test_client.objects.get(user_dn) {
             let group_dns = self
                 .test_client
@@ -365,16 +359,14 @@ impl super::LDAPConnection {
                 })
                 .collect::<Vec<_>>();
 
-            let mut groups = Vec::new();
             for group_dn in group_dns {
-                if let Some(group_object) = self.test_client.objects.get(group_dn) {
-                    groups.push(group_object.to_search_entry(group_dn, &self.config));
+                if let Some(Object::Group(group)) = self.test_client.objects.get(group_dn) {
+                    groups.push(group.name.clone());
                 }
             }
-
-            return Ok(groups);
         }
-        Ok(vec![])
+
+        Ok(groups)
     }
 
     pub(super) async fn add(
@@ -406,7 +398,7 @@ impl super::LDAPConnection {
     where
         S: AsRef<[u8]> + Eq + Hash,
     {
-        let to_string = |s: S| String::from_utf8(s.as_ref().to_vec()).unwrap();
+        let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_string();
         let mods = mods
             .into_iter()
             .map(|modification| match modification {
@@ -550,7 +542,7 @@ impl super::LDAPConnection {
 pub(super) fn user_to_test_attrs<I>(
     user: &User<I>,
     password: Option<&str>,
-    config: &super::LDAPConfig,
+    config: &LDAPConfig,
 ) -> Vec<(String, HashSet<String>)> {
     let rdn_attr = config
         .ldap_user_rdn_attr
@@ -589,8 +581,8 @@ pub(super) fn user_to_test_attrs<I>(
 #[cfg(test)]
 pub(super) fn group_to_test_attrs<I>(
     group: &Group<I>,
-    config: &super::LDAPConfig,
-    members: Option<&Vec<&User<I>>>,
+    config: &LDAPConfig,
+    members: Option<&[&User<I>]>,
 ) -> Vec<(String, HashSet<String>)> {
     use crate::hashset;
 
@@ -617,11 +609,11 @@ pub(super) fn group_to_test_attrs<I>(
 
 #[cfg(test)]
 mod tests {
-    use defguard_common::db::models::User;
+    use super::*;
 
     #[tokio::test]
     async fn test_search_users_by_username() {
-        let mut ldap_conn = super::super::LDAPConnection::create().await.unwrap();
+        let mut ldap_conn = LDAPConnection::create().await.unwrap();
         let config = ldap_conn.config.clone();
 
         let test_user = User::new(
@@ -647,7 +639,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_search_users_compound_filter() {
-        let mut ldap_conn = super::super::LDAPConnection::create().await.unwrap();
+        let mut ldap_conn = LDAPConnection::create().await.unwrap();
         let config = ldap_conn.config.clone();
 
         let test_user = User::new(
@@ -673,7 +665,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_search_users_no_match() {
-        let mut ldap_conn = super::super::LDAPConnection::create().await.unwrap();
+        let mut ldap_conn = LDAPConnection::create().await.unwrap();
         let config = ldap_conn.config.clone();
 
         let test_user = User::new(

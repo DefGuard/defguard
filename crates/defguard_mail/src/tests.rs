@@ -39,7 +39,7 @@ async fn set_smtp_settings(pool: &PgPool) {
     set_settings(Some(settings));
 }
 
-#[ignore]
+#[ignore = "Requires SMTP server"]
 #[sqlx::test]
 fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -63,7 +63,7 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
-#[ignore]
+#[ignore = "Requires SMTP server"]
 #[sqlx::test]
 fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -98,7 +98,7 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
-#[ignore]
+#[ignore = "Requires SMTP server"]
 #[sqlx::test]
 fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -121,7 +121,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
-#[ignore]
+#[ignore = "Requires SMTP server"]
 #[sqlx::test]
 fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;

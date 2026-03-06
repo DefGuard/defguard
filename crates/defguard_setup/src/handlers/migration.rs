@@ -91,7 +91,7 @@ pub async fn set_general_config(
         let mut group = Group::new(&default_admin_group_name);
         group.is_admin = true;
         group.save(&pool).await?;
-    };
+    }
 
     info!("Initial general configuration applied");
 

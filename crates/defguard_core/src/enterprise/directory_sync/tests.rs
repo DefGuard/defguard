@@ -89,7 +89,7 @@ mod test {
             target,
             None,
             None,
-            vec![],
+            Vec::new(),
             None,
             prefetch_users,
         )

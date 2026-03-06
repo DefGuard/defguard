@@ -258,7 +258,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 Ok(())
             }
 
-            pub async fn save<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+            pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
             where
                 E: sqlx::PgExecutor<'e>
             {

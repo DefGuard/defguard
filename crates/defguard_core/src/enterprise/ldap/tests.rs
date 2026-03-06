@@ -5,16 +5,16 @@ use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
+use super::{
+    model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
+    sync::{
+        Authority, compute_group_sync_changes, compute_user_sync_changes,
+        extract_intersecting_users,
+    },
+    test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
+};
 use crate::{
     enterprise::{
-        ldap::{
-            model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
-            sync::{
-                Authority, compute_group_sync_changes, compute_user_sync_changes,
-                extract_intersecting_users,
-            },
-            test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
-        },
         license::{License, LicenseTier, set_cached_license},
         limits::get_counts,
     },
@@ -29,16 +29,28 @@ fn make_test_user(
     ldap_user_path: Option<String>,
 ) -> User {
     let mut user = User::new(
-        username,
+        username.to_string(),
         Some(PASSWORD),
-        "last name",
-        "first name",
-        format!("{username}@example.com").as_str(),
+        "last name".to_string(),
+        "first name".to_string(),
+        format!("{username}@example.com"),
         None,
     );
     user.ldap_rdn = ldap_rdn;
     user.ldap_user_path = ldap_user_path;
     user
+}
+
+fn set_test_license_business() {
+    let license = License {
+        customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
+        limits: None,
+        subscription: false,
+        tier: LicenseTier::Enterprise,
+        valid_until: None,
+        version_date_limit: None,
+    };
+    set_cached_license(Some(license));
 }
 
 #[test]
@@ -164,12 +176,12 @@ fn test_get_all_user_obj_classes() {
     };
     let obj_classes = config.get_all_user_obj_classes();
     assert_eq!(obj_classes.len(), 2);
-    assert!(obj_classes.contains(&"inetOrgPerson".to_string()));
-    assert!(obj_classes.contains(&"simpleSecurityObject".to_string()));
+    assert!(obj_classes.iter().any(|e| e == "inetOrgPerson"));
+    assert!(obj_classes.iter().any(|e| e == "simpleSecurityObject"));
 
     // Should always include the base object class even with no auxiliaries
     let config = LDAPConfig {
-        ldap_user_auxiliary_obj_classes: vec![],
+        ldap_user_auxiliary_obj_classes: Vec::new(),
         ..LDAPConfig::default()
     };
     let obj_classes = config.get_all_user_obj_classes();
@@ -183,8 +195,8 @@ fn test_get_all_user_obj_classes() {
     };
     let obj_classes = config.get_all_user_obj_classes();
     assert_eq!(obj_classes.len(), 2);
-    assert!(obj_classes.contains(&"inetOrgPerson".to_string()));
-    assert!(obj_classes.contains(&"customUser".to_string()));
+    assert!(obj_classes.iter().any(|e| e == "inetOrgPerson"));
+    assert!(obj_classes.iter().any(|e| e == "customUser"));
 
     // Multiple auxiliary classes
     let config = LDAPConfig {
@@ -197,10 +209,10 @@ fn test_get_all_user_obj_classes() {
     };
     let obj_classes = config.get_all_user_obj_classes();
     assert_eq!(obj_classes.len(), 4);
-    assert!(obj_classes.contains(&"inetOrgPerson".to_string()));
-    assert!(obj_classes.contains(&"posixAccount".to_string()));
-    assert!(obj_classes.contains(&"mailUser".to_string()));
-    assert!(obj_classes.contains(&"customAttribute".to_string()));
+    assert!(obj_classes.iter().any(|e| e == "inetOrgPerson"));
+    assert!(obj_classes.iter().any(|e| e == "posixAccount"));
+    assert!(obj_classes.iter().any(|e| e == "mailUser"));
+    assert!(obj_classes.iter().any(|e| e == "customAttribute"));
 }
 
 #[test]
@@ -342,11 +354,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(ldap_conn.test_client.events_match(
         &[LdapEvent::ObjectAdded {
             dn: ldap_conn.config.group_dn(&group.name),
-            attrs: group_to_test_attrs(
-                &group,
-                &ldap_conn.config,
-                Some(&vec![&active_user_in_ldap])
-            ),
+            attrs: group_to_test_attrs(&group, &ldap_conn.config, Some(&[&active_user_in_ldap])),
         }],
         false
     ));
@@ -469,7 +477,7 @@ async fn test_get_user() {
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
 
     ldap_conn.config = LDAPConfig {
-        ldap_user_auxiliary_obj_classes: vec![UserObjectClass::InetOrgPerson.into()],
+        ldap_user_auxiliary_obj_classes: vec![UserObjectClass::InetOrgPerson.name().to_string()],
         ..ldap_conn.config
     };
 
@@ -680,8 +688,8 @@ async fn test_user_in_ldap_sync_groups() {
 
 #[test]
 fn test_compute_user_sync_changes_empty_lists() {
-    let mut ldap_users: Vec<User> = vec![];
-    let mut defguard_users: Vec<User<Id>> = vec![];
+    let mut ldap_users: Vec<User> = Vec::new();
+    let mut defguard_users: Vec<User<Id>> = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -709,7 +717,7 @@ fn test_ldap_authority_add_to_defguard() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = vec![];
+    let mut defguard_users: Vec<User<Id>> = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -742,7 +750,7 @@ fn test_ldap_authority_delete_from_defguard(_: PgPoolOptions, options: PgConnect
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = vec![];
+    let mut ldap_users: Vec<User> = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -776,7 +784,7 @@ fn test_defguard_authority_add_to_ldap(_: PgPoolOptions, options: PgConnectOptio
     .await
     .unwrap();
 
-    let mut ldap_users: Vec<User> = vec![];
+    let mut ldap_users: Vec<User> = Vec::new();
     let mut defguard_users = vec![defguard_user];
 
     let changes = compute_user_sync_changes(
@@ -806,7 +814,7 @@ fn test_defguard_authority_delete_from_ldap() {
     );
 
     let mut ldap_users = vec![ldap_user];
-    let mut defguard_users: Vec<User<Id>> = vec![];
+    let mut defguard_users: Vec<User<Id>> = Vec::new();
 
     let changes = compute_user_sync_changes(
         &mut ldap_users,
@@ -884,7 +892,7 @@ fn test_compute_group_sync_changes_empty_maps() {
     let ldap_memberships = HashMap::new();
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -908,7 +916,7 @@ fn test_ldap_authority_add_group_to_defguard() {
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -939,7 +947,7 @@ fn test_ldap_authority_delete_group_from_defguard(_: PgPoolOptions, options: PgC
     let ldap_memberships = HashMap::new();
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -970,7 +978,7 @@ fn test_defguard_authority_add_group_to_ldap(_: PgPoolOptions, options: PgConnec
     let ldap_memberships = HashMap::new();
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -997,7 +1005,7 @@ fn test_defguard_authority_delete_group_from_ldap() {
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1031,7 +1039,7 @@ fn test_matching_groups_no_changes(_: PgPoolOptions, options: PgConnectOptions) 
 
     // Test both authority directions with identical group memberships
     let changes_ldap = compute_group_sync_changes(
-        defguard_memberships.clone(),
+        &defguard_memberships,
         ldap_memberships.clone(),
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1051,7 +1059,7 @@ fn test_matching_groups_no_changes(_: PgPoolOptions, options: PgConnectOptions) 
     assert!(changes_ldap.add_ldap.is_empty() || changes_ldap.add_ldap["test_group"].is_empty());
 
     let changes_defguard = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1092,7 +1100,7 @@ fn test_ldap_authority_add_users_to_group(_: PgPoolOptions, options: PgConnectOp
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1128,7 +1136,7 @@ fn test_ldap_authority_remove_users_from_group(_: PgPoolOptions, options: PgConn
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1180,7 +1188,7 @@ fn test_multiple_groups_ldap_authority(_: PgPoolOptions, options: PgConnectOptio
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1251,7 +1259,7 @@ fn test_multiple_groups_defguard_authority(_: PgPoolOptions, options: PgConnectO
     ldap_memberships.insert("group2".to_string(), HashSet::from_iter(vec![&user3]));
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1289,7 +1297,7 @@ fn test_empty_groups() {
     ldap_memberships.insert("empty_group2".to_string(), HashSet::new());
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1360,7 +1368,7 @@ fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Test with LDAP as authority
     let changes_ldap = compute_group_sync_changes(
-        defguard_memberships.clone(),
+        &defguard_memberships,
         ldap_memberships.clone(),
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1394,7 +1402,7 @@ fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Test with Defguard as authority
     let changes_defguard = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -2431,12 +2439,12 @@ async fn test_sync_group_membership_with_intersecting_users(
     );
 
     let user1_groups = updated_user1.member_of_names(&pool).await.unwrap();
-    assert!(user1_groups.contains(&"engineering".to_string()));
-    assert!(user1_groups.contains(&"management".to_string())); // Added from LDAP
+    assert!(user1_groups.iter().any(|e| e == "engineering"));
+    assert!(user1_groups.iter().any(|e| e == "management")); // Added from LDAP
 
     let user2_groups = updated_user2.member_of_names(&pool).await.unwrap();
-    assert!(user2_groups.contains(&"management".to_string()));
-    assert!(!user2_groups.contains(&"engineering".to_string())); // Removed from LDAP
+    assert!(user2_groups.iter().any(|e| e == "management"));
+    assert!(!user2_groups.iter().any(|e| e == "engineering")); // Removed from LDAP
     assert!(ldap_conn.test_client.get_events().is_empty());
 }
 
@@ -2707,7 +2715,7 @@ fn test_from_searchentry() {
     // empty attribute values
     {
         let mut attrs = HashMap::new();
-        attrs.insert("sn".to_string(), vec![]);
+        attrs.insert("sn".to_string(), Vec::new());
         attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
         attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
 
@@ -2915,7 +2923,7 @@ fn test_as_ldap_attrs() {
         &user,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::InetOrgPerson.into()],
+        hashset![UserObjectClass::InetOrgPerson.name()],
         false,
         "uid",
         "cn",
@@ -2933,7 +2941,7 @@ fn test_as_ldap_attrs() {
         &user,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::User.into()],
+        hashset![UserObjectClass::User.name()],
         true,
         "uid",
         "cn",
@@ -2947,8 +2955,8 @@ fn test_as_ldap_attrs() {
         "{SSHA}hashedpw",
         "NT_HASH",
         hashset![
-            UserObjectClass::SimpleSecurityObject.into(),
-            UserObjectClass::SambaSamAccount.into()
+            UserObjectClass::SimpleSecurityObject.name(),
+            UserObjectClass::SambaSamAccount.name()
         ],
         false,
         "uid",
@@ -2964,7 +2972,7 @@ fn test_as_ldap_attrs() {
         &user,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::User.into()],
+        hashset![UserObjectClass::User.name()],
         false,
         "uid",
         "customRDN",
@@ -2987,7 +2995,7 @@ fn test_as_ldap_attrs() {
         &user_no_phone,
         "{SSHA}hashedpw",
         "NT_HASH",
-        hashset![UserObjectClass::InetOrgPerson.into()],
+        hashset![UserObjectClass::InetOrgPerson.name()],
         false,
         "uid",
         "cn",
@@ -3018,10 +3026,22 @@ fn test_as_ldap_mod_inetorgperson() {
     };
 
     let mods = user_as_ldap_mod(&user, &config);
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("mobile", hashset!["5551234"])));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mobile".to_string(),
+        hashset!["5551234".to_string()],
+    )));
 }
 
 #[test]
@@ -3043,10 +3063,19 @@ fn test_as_ldap_mod_with_empty_phone() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("mobile", HashSet::new())));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace("mobile".to_string(), HashSet::new(),)));
 }
 
 #[test]
@@ -3070,10 +3099,22 @@ fn test_as_ldap_mod_with_active_directory() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "sAMAccountName".to_string(),
+        hashset!["testuser".to_string()],
+    )));
 }
 
 #[test]
@@ -3096,11 +3137,26 @@ fn test_as_ldap_mod_with_custom_rdn() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
-    assert!(mods.contains(&Mod::Replace("givenName", hashset!["John"])));
-    assert!(mods.contains(&Mod::Replace("mail", hashset!["john.smith@example.com"])));
-    assert!(mods.contains(&Mod::Replace("cn", hashset!["testuser"])));
-    assert!(mods.contains(&Mod::Replace("sAMAccountName", hashset!["testuser"])));
+    assert!(mods.contains(&Mod::Replace(
+        "sn".to_string(),
+        hashset!["Smith".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "givenName".to_string(),
+        hashset!["John".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "mail".to_string(),
+        hashset!["john.smith@example.com".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "cn".to_string(),
+        hashset!["testuser".to_string()],
+    )));
+    assert!(mods.contains(&Mod::Replace(
+        "sAMAccountName".to_string(),
+        hashset!["testuser".to_string()],
+    )));
 }
 
 #[test]

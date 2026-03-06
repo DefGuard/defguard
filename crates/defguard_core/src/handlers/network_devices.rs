@@ -176,7 +176,7 @@ pub(crate) async fn list_network_devices(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("Listing all network devices");
-    let mut devices_response: Vec<NetworkDeviceInfo> = vec![];
+    let mut devices_response: Vec<NetworkDeviceInfo> = Vec::new();
     let mut transaction = appstate.pool.begin().await?;
     let devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
     for device in devices {

@@ -731,7 +731,7 @@ mod tests {
         let group_empty_ldap = UserGroup {
             id: "group789".to_string(),
             compiled_attributes: CompiledAttributes {
-                ldap_groups: vec![],
+                ldap_groups: Vec::new(),
             },
         };
         let directory_group_empty_ldap: DirectoryGroup = group_empty_ldap.into();
@@ -743,7 +743,7 @@ mod tests {
     fn test_response_collection_conversions() {
         // Test empty UsersResponse conversion
         let empty_users_response = UsersResponse {
-            results: vec![],
+            results: Vec::new(),
             total_count: 0,
         };
         let empty_directory_users: Vec<DirectoryUser> = empty_users_response.into();

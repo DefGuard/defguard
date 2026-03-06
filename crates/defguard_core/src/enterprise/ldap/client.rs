@@ -10,13 +10,15 @@ use ldap3::{
     ldap_escape,
 };
 
-use super::error::LdapError;
+use super::{LDAPConfig, LDAPConnection, error::LdapError};
 use crate::enterprise::ldap::model::extract_rdn_value;
 
-impl super::LDAPConnection {
-    pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
+const STREAMING_PAGE_SIZE: i32 = 500;
+
+impl LDAPConnection {
+    pub async fn create() -> Result<Self, LdapError> {
         let settings = Settings::get_current_settings();
-        let config = super::LDAPConfig::try_from(settings.clone())?;
+        let config = LDAPConfig::try_from(settings.clone())?;
         let url = settings.ldap_url.ok_or(LdapError::MissingSettings(
             "LDAP URL is required for LDAP configuration to work".to_string(),
         ))?;
@@ -34,7 +36,7 @@ impl super::LDAPConnection {
             .await?
             .success()?;
 
-        Ok(Self { config, ldap, url })
+        Ok(Self { config, url, ldap })
     }
 
     /// Searches LDAP for users.
@@ -42,35 +44,36 @@ impl super::LDAPConnection {
         &mut self,
         filter: &str,
     ) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, res) = self
+        debug!("Performing LDAP user search with filter: {filter}");
+        let (entries, result) = self
             .ldap
             .search(
                 &self.config.ldap_user_search_base,
                 Scope::Subtree,
                 filter,
-                vec!["*", &self.config.ldap_member_attr],
+                &["*", &self.config.ldap_member_attr],
             )
             .await?
             .success()?;
-        debug!("LDAP user search result: {res:?}");
-        debug!("Performed LDAP user search with filter = {filter}");
+        debug!("LDAP user search result: {result:?}");
+        debug!("Found users: {entries:?}");
 
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+        Ok(entries.into_iter().map(SearchEntry::construct).collect())
     }
 
     pub(crate) async fn get(&mut self, dn: &str) -> Result<Option<SearchEntry>, LdapError> {
         debug!("Searching for LDAP object with DN {dn}");
         let search_result = self
             .ldap
-            .search(dn, Scope::Base, "(objectClass=*)", vec!["*"])
+            .search(dn, Scope::Base, "(objectClass=*)", &["*"])
             .await;
 
         match search_result {
             Ok(ldap_result) => match ldap_result.success() {
-                Ok((mut rs, res)) => {
-                    debug!("LDAP search result: {res:?}");
-                    if let Some(entry) = rs.pop() {
-                        debug!("Found LDAP object with DN {dn}: {:?}", entry);
+                Ok((mut entries, result)) => {
+                    debug!("LDAP search result: {result:?}");
+                    if let Some(entry) = entries.pop() {
+                        debug!("Found LDAP object with DN {dn}: {entry:?}");
                         Ok(Some(SearchEntry::construct(entry)))
                     } else {
                         debug!("No LDAP object found with DN {dn}");
@@ -78,14 +81,14 @@ impl super::LDAPConnection {
                     }
                 }
                 // LDAP returns Error if no entries found, so we should handle it gracefully
-                Err(e) => {
-                    debug!("LDAP search failed for DN {dn}: {e:?}");
+                Err(err) => {
+                    debug!("LDAP search failed for DN {dn}: {err:?}");
                     Ok(None)
                 }
             },
-            Err(e) => {
-                debug!("LDAP connection/search error for DN {dn}: {e:?}");
-                Err(LdapError::from(e))
+            Err(err) => {
+                debug!("LDAP connection/search error for DN {dn}: {err:?}");
+                Err(LdapError::from(err))
             }
         }
     }
@@ -106,30 +109,35 @@ impl super::LDAPConnection {
         Ok(())
     }
 
-    // Check what groups user is member of
-    pub(super) async fn get_user_groups(
-        &mut self,
-        user_dn: &str,
-    ) -> Result<Vec<SearchEntry>, LdapError> {
+    /// Returns groups that the given user is a member of.
+    pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<String>, LdapError> {
         let user_dn_escaped = ldap_escape(user_dn);
-        let filter = format!(
-            "({}={})",
-            self.config.ldap_group_member_attr, user_dn_escaped
-        );
-        let (rs, res) = self
+        let filter = format!("({}={user_dn_escaped})", self.config.ldap_group_member_attr);
+        debug!("Performing LDAP group search with filter: {filter}");
+        let (entries, result) = self
             .ldap
             .search(
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
-                filter.as_str(),
-                vec![&self.config.ldap_groupname_attr],
+                &filter,
+                &[&self.config.ldap_groupname_attr],
             )
             .await?
             .success()?;
-        debug!("LDAP user groups search result: {res}");
-        debug!("Performed LDAP group search with filter = {filter}");
-        debug!("Found groups: {rs:?}");
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+        debug!("LDAP user groups search result: {result}");
+        debug!("Found groups: {entries:?}");
+
+        let mut groups = Vec::new();
+        for entry in entries {
+            let se = SearchEntry::construct(entry);
+            for (key, mut values) in se.attrs {
+                if key.eq_ignore_ascii_case(&self.config.ldap_groupname_attr) {
+                    groups.append(&mut values);
+                }
+            }
+        }
+
+        Ok(groups)
     }
 
     /// Searches LDAP for groups.
@@ -143,7 +151,7 @@ impl super::LDAPConnection {
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
                 filter,
-                vec![
+                &[
                     &self.config.ldap_username_attr,
                     &self.config.ldap_group_member_attr,
                 ],
@@ -209,7 +217,7 @@ impl super::LDAPConnection {
     ) -> Result<HashMap<String, HashSet<&'a User>>, LdapError> {
         debug!("Retrieving LDAP group memberships");
         let mut membership_entries = self.list_group_memberships().await?;
-        let mut memberships: HashMap<String, HashSet<&User>> = HashMap::new();
+        let mut memberships = HashMap::new();
         // dn: user map
         let dn_map = all_ldap_users
             .iter()
@@ -231,7 +239,8 @@ impl super::LDAPConnection {
                                 Some(*user)
                             } else {
                                 debug!(
-                                    "LDAP group {groupname} contains member {v} that does not belong to the filtered LDAP users list, skipping"
+                                    "LDAP group {groupname} contains member {v} that does not \
+                                    belong to the filtered LDAP users list; skipping"
                                 );
                                 None
                             }
@@ -258,36 +267,34 @@ impl super::LDAPConnection {
         let user_dn_escaped = ldap_escape(user_dn);
         let groupname_escaped = ldap_escape(groupname);
         let filter = format!(
-            "(&(objectClass={})({}={})({}={}))",
+            "(&(objectClass={})({}={groupname_escaped})({}={user_dn_escaped}))",
             self.config.ldap_group_obj_class,
             self.config.ldap_groupname_attr,
-            groupname_escaped,
             self.config.ldap_group_member_attr,
-            user_dn_escaped
         );
         debug!(
             "Using the following filter for group search: {filter} and base: {}",
             self.config.ldap_group_search_base
         );
-        let (rs, res) = self
+        let (entries, result) = self
             .ldap
             .search(
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
-                filter.as_str(),
-                vec!["*"],
+                &filter,
+                &["*"],
             )
             .await?
             .success()?;
-        debug!("LDAP group membership search result: {res:?}");
-        Ok(!rs.is_empty())
+        debug!("LDAP group membership search result: {result:?}");
+        Ok(!entries.is_empty())
     }
 
     pub(super) async fn get_group_members(
         &mut self,
         groupname: &str,
     ) -> Result<Vec<String>, LdapError> {
-        debug!("Searching for group memberships for group {}", groupname);
+        debug!("Searching for group memberships for group {groupname}");
         let groupname_escaped = ldap_escape(groupname);
         let filter = format!(
             "(&(objectClass={})({}={}))",
@@ -297,14 +304,15 @@ impl super::LDAPConnection {
             "Using the following filter for group search: {filter} and base: {}",
             self.config.ldap_group_search_base
         );
+        let attrs = [&self.config.ldap_group_member_attr];
         let mut search_stream = self
             .ldap
             .streaming_search_with(
-                PagedResults::new(500),
+                PagedResults::new(STREAMING_PAGE_SIZE),
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
-                filter.as_str(),
-                vec![&self.config.ldap_group_member_attr],
+                &filter,
+                &attrs,
             )
             .await?;
 
@@ -324,10 +332,7 @@ impl super::LDAPConnection {
                 })
             })
             .unwrap_or_default();
-        debug!(
-            "Performed LDAP group memberships search for group {}",
-            groupname
-        );
+        debug!("Performed LDAP group memberships search for group {groupname}");
 
         Ok(members)
     }
@@ -341,7 +346,7 @@ impl super::LDAPConnection {
                 "LDAP sync groups are defined, filtering users by those groups: {:?}",
                 self.config.ldap_sync_groups
             );
-            let mut group_filters = vec![];
+            let mut group_filters = Vec::new();
             for group in &self.config.ldap_sync_groups {
                 let group_dn = self.config.group_dn(group);
                 let group_dn_escaped = ldap_escape(&group_dn);
@@ -350,10 +355,7 @@ impl super::LDAPConnection {
                     self.config.ldap_member_attr, group_dn_escaped
                 ));
             }
-            debug!(
-                "Using the following group filters for user search: {:?}",
-                group_filters
-            );
+            debug!("Using the following group filters for user search: {group_filters:?}");
             format!(
                 "(&(objectClass={})(|{}))",
                 self.config.ldap_user_obj_class,
@@ -365,19 +367,19 @@ impl super::LDAPConnection {
             "Using the following filter for user search: {filter} and base: {}",
             self.config.ldap_user_search_base
         );
-
+        let attrs = ["*", &self.config.ldap_member_attr];
         let mut search_stream = self
             .ldap
             .streaming_search_with(
-                PagedResults::new(500),
+                PagedResults::new(STREAMING_PAGE_SIZE),
                 &self.config.ldap_user_search_base,
                 Scope::Subtree,
                 &filter,
-                vec!["*", &self.config.ldap_member_attr],
+                &attrs,
             )
             .await?;
 
-        let mut entries = vec![];
+        let mut entries = Vec::new();
         while let Some(entry) = search_stream.next().await? {
             entries.push(SearchEntry::construct(entry));
         }
@@ -397,17 +399,18 @@ impl super::LDAPConnection {
             "Using the following filter for group search: {filter} and base: {}",
             self.config.ldap_group_search_base
         );
+        let attrs = [
+            &self.config.ldap_groupname_attr,
+            &self.config.ldap_group_member_attr,
+        ];
         let mut search_stream = self
             .ldap
             .streaming_search_with(
-                PagedResults::new(500),
+                PagedResults::new(STREAMING_PAGE_SIZE),
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
-                filter.as_str(),
-                vec![
-                    &self.config.ldap_groupname_attr,
-                    &self.config.ldap_group_member_attr,
-                ],
+                &filter,
+                &attrs,
             )
             .await?;
 

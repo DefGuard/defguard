@@ -17,40 +17,14 @@ pub(crate) enum UserObjectClass {
     User,
 }
 
-impl<'a> From<&'a UserObjectClass> for &'static str {
-    fn from(obj_class: &'a UserObjectClass) -> &'static str {
-        match obj_class {
-            UserObjectClass::SambaSamAccount => "sambaSamAccount",
-            UserObjectClass::InetOrgPerson => "inetOrgPerson",
-            UserObjectClass::SimpleSecurityObject => "simpleSecurityObject",
-            UserObjectClass::User => "user",
+impl UserObjectClass {
+    pub(crate) fn name(&self) -> &'static str {
+        match self {
+            Self::SambaSamAccount => "sambaSamAccount",
+            Self::InetOrgPerson => "inetOrgPerson",
+            Self::SimpleSecurityObject => "simpleSecurityObject",
+            Self::User => "user",
         }
-    }
-}
-
-impl From<UserObjectClass> for &'static str {
-    fn from(obj_class: UserObjectClass) -> &'static str {
-        (&obj_class).into()
-    }
-}
-
-impl From<UserObjectClass> for String {
-    fn from(obj_class: UserObjectClass) -> String {
-        let str: &str = obj_class.into();
-        str.to_string()
-    }
-}
-
-impl PartialEq<&str> for UserObjectClass {
-    fn eq(&self, other: &&str) -> bool {
-        let str: &str = self.into();
-        str == *other
-    }
-}
-
-impl PartialEq<UserObjectClass> for &str {
-    fn eq(&self, other: &UserObjectClass) -> bool {
-        other == self
     }
 }
 
@@ -81,8 +55,8 @@ pub(crate) fn user_from_searchentry(
     // Print the warning only if everything else checks out
     if check_username(username).is_err() {
         warn!(
-            "LDAP User \"{username}\" has username that cannot be used in Defguard, \
-                change the LDAP username attribute or change the username in LDAP to a valid one",
+            "LDAP User \"{username}\" has username that cannot be used in Defguard; change the \
+            LDAP username attribute or change the username in LDAP to a valid one"
         );
         return Err(LdapError::InvalidUsername(username.to_string()));
     }
@@ -105,22 +79,30 @@ pub(crate) fn update_from_ldap_user<I>(user: &mut User<I>, ldap_user: &User, con
     }
 }
 
+/// Return a vector of LDAP modifications for a given [`User`].
 #[must_use]
-pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec<Mod<&'a str>> {
+pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mod<String>> {
     let obj_classes = config.get_all_user_obj_classes();
-    let mut changes = vec![];
-    if obj_classes.contains(&UserObjectClass::InetOrgPerson.into())
-        || obj_classes.contains(&UserObjectClass::User.into())
+    let mut changes = Vec::new();
+    if obj_classes
+        .iter()
+        .any(|e| e == UserObjectClass::InetOrgPerson.name())
+        || obj_classes
+            .iter()
+            .any(|e| e == UserObjectClass::User.name())
     {
         changes.extend_from_slice(&[
-            Mod::Replace("sn", hashset![user.last_name.as_str()]),
-            Mod::Replace("givenName", hashset![user.first_name.as_str()]),
-            Mod::Replace("mail", hashset![user.email.as_str()]),
+            Mod::Replace("sn".to_string(), hashset![user.last_name.clone()]),
+            Mod::Replace("givenName".to_string(), hashset![user.first_name.clone()]),
+            Mod::Replace("mail".to_string(), hashset![user.email.clone()]),
         ]);
 
         // Allow renaming the user if the CN is not a part of the RDN
         if !config.get_rdn_attr().eq_ignore_ascii_case("cn") {
-            changes.push(Mod::Replace("cn", hashset![user.username.as_str()]));
+            changes.push(Mod::Replace(
+                "cn".to_string(),
+                hashset![user.username.clone()],
+            ));
         }
 
         if !config.ldap_username_attr.eq_ignore_ascii_case("uid")
@@ -129,15 +111,21 @@ pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec
                 .as_ref()
                 .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case("uid"))
         {
-            changes.push(Mod::Replace("uid", hashset![user.username.as_str()]));
+            changes.push(Mod::Replace(
+                "uid".to_string(),
+                hashset![user.username.clone()],
+            ));
         }
 
         if let Some(phone) = &user.phone {
-            if phone.is_empty() {
-                changes.push(Mod::Replace("mobile", HashSet::new()));
-            } else {
-                changes.push(Mod::Replace("mobile", hashset![phone.as_str()]));
-            }
+            changes.push(Mod::Replace(
+                "mobile".to_string(),
+                if phone.is_empty() {
+                    HashSet::<String>::new()
+                } else {
+                    hashset![phone.clone()]
+                },
+            ));
         }
     } else {
         warn!(
@@ -148,8 +136,8 @@ pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec
 
     if config.ldap_uses_ad && !config.get_rdn_attr().eq_ignore_ascii_case("sAMAccountName") {
         changes.push(Mod::Replace(
-            "sAMAccountName",
-            hashset![user.username.as_str()],
+            "sAMAccountName".to_string(),
+            hashset![user.username.clone()],
         ));
     }
 
@@ -164,8 +152,8 @@ pub fn user_as_ldap_mod<'a, I>(user: &'a User<I>, config: &'a LDAPConfig) -> Vec
             .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case(username_attr))
     {
         changes.push(Mod::Replace(
-            username_attr,
-            hashset![user.username.as_str()],
+            username_attr.to_string(),
+            hashset![user.username.clone()],
         ));
     }
 
@@ -184,7 +172,7 @@ fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool 
 }
 
 #[must_use]
-pub fn user_as_ldap_attrs<'a, I>(
+pub(crate) fn user_as_ldap_attrs<'a, I>(
     user: &'a User<I>,
     ssha_password: &'a str,
     nt_password: &'a str,
@@ -193,10 +181,10 @@ pub fn user_as_ldap_attrs<'a, I>(
     username_attr: &'a str,
     rdn_attr: &'a str,
 ) -> Vec<(&'a str, HashSet<&'a str>)> {
-    let mut attrs = vec![];
+    let mut attrs = Vec::new();
     attrs.push((rdn_attr, hashset![user.ldap_rdn_value()]));
-    if object_classes.contains(UserObjectClass::InetOrgPerson.into())
-        || object_classes.contains(UserObjectClass::User.into())
+    if object_classes.contains(UserObjectClass::InetOrgPerson.name())
+        || object_classes.contains(UserObjectClass::User.name())
     {
         attrs.extend_from_slice(&[
             ("sn", hashset![user.last_name.as_str()]),
@@ -218,11 +206,11 @@ pub fn user_as_ldap_attrs<'a, I>(
             }
         }
     }
-    if object_classes.contains(UserObjectClass::SimpleSecurityObject.into()) {
+    if object_classes.contains(UserObjectClass::SimpleSecurityObject.name()) {
         // simpleSecurityObject
         attrs.push(("userPassword", hashset![ssha_password]));
     }
-    if object_classes.contains(UserObjectClass::SambaSamAccount.into()) {
+    if object_classes.contains(UserObjectClass::SambaSamAccount.name()) {
         // sambaSamAccount
         attrs.push(("sambaSID", hashset!["0"]));
         attrs.push(("sambaNTPassword", hashset![nt_password]));
@@ -369,7 +357,7 @@ mod tests {
         assert!(!in_attrs(&attrs, "uid"));
 
         // Test empty attributes vector
-        let empty_attrs = vec![];
+        let empty_attrs = Vec::new();
         assert!(!in_attrs(&empty_attrs, "cn"));
         assert!(!in_attrs(&empty_attrs, "any"));
 
