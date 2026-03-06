@@ -37,6 +37,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY .git .git
 COPY .sqlx .sqlx
 COPY crates crates
+COPY tools tools
 COPY proto proto
 COPY migrations migrations
 RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
