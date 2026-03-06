@@ -328,11 +328,83 @@ pub(crate) async fn modify_openid_provider(
     let mut transaction = appstate.pool.begin().await?;
     let provider = OpenIdProvider::find_by_name(&mut *transaction, &provider_data.name).await?;
     if let Some(mut provider) = provider {
+        let private_key = match &provider_data.google_service_account_key {
+            Some(key) => {
+                if RsaPrivateKey::from_pkcs8_pem(key).is_ok() {
+                    debug!(
+                        "User {} provided a valid RSA private key for provider's directory sync. Using it.",
+                        session.user.username
+                    );
+                    provider_data.google_service_account_key.clone()
+                } else {
+                    debug!(
+                        "User {} did not provide a valid RSA private key for provider's directory sync or the key did not change. Using the existing key",
+                        session.user.username
+                    );
+                    provider.google_service_account_key.clone()
+                }
+            }
+            None => provider.google_service_account_key.clone(),
+        };
+
+        let okta_private_jwk = match &provider_data.okta_private_jwk {
+            Some(key) => {
+                if serde_json::from_str::<serde_json::Value>(key).is_ok() {
+                    debug!(
+                        "User {} provided a valid JWK private key for provider's Okta directory sync. Using it.",
+                        session.user.username
+                    );
+                    provider_data.okta_private_jwk.clone()
+                } else {
+                    debug!(
+                        "User {} did not provide a valid JWK private key for provider's Okta directory sync or the key did not change. Using the existing key.",
+                        session.user.username
+                    );
+                    provider.okta_private_jwk.clone()
+                }
+            }
+            None => provider.okta_private_jwk.clone(),
+        };
+
+        let mut settings = Settings::get_current_settings();
+        settings.openid_create_account = provider_data.create_account;
+        settings.openid_username_handling = provider_data.username_handling;
+        update_current_settings(&appstate.pool, settings).await?;
+
+        let group_match = if let Some(group_match) = provider_data.directory_sync_group_match {
+            if group_match.is_empty() {
+                Vec::new()
+            } else {
+                group_match
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect()
+            }
+        } else {
+            Vec::new()
+        };
+
         provider.base_url = provider_data.base_url;
         provider.kind = provider_data.kind;
         provider.client_id = provider_data.client_id;
         provider.client_secret = provider_data.client_secret;
+        provider.display_name = provider_data.display_name;
+        provider.google_service_account_key = private_key;
+        provider.google_service_account_email = provider_data.google_service_account_email;
+        provider.admin_email = provider_data.admin_email;
+        provider.directory_sync_enabled = provider_data.directory_sync_enabled;
+        provider.directory_sync_interval = provider_data.directory_sync_interval;
+        provider.directory_sync_user_behavior = provider_data.directory_sync_user_behavior.into();
+        provider.directory_sync_admin_behavior = provider_data.directory_sync_admin_behavior.into();
+        provider.directory_sync_target = provider_data.directory_sync_target.into();
+        provider.okta_private_jwk = okta_private_jwk;
+        provider.okta_dirsync_client_id = provider_data.okta_dirsync_client_id;
+        provider.directory_sync_group_match = group_match;
+        provider.jumpcloud_api_key = provider_data.jumpcloud_api_key;
+        provider.prefetch_users = provider_data.prefetch_users;
         provider.save(&mut *transaction).await?;
+        transaction.commit().await?;
+
         info!(
             "User {} modified OpenID client {}",
             session.user.username, provider.name
@@ -370,6 +442,45 @@ pub(crate) async fn list_openid_providers(
 ) -> ApiResult {
     let providers = OpenIdProvider::all(&appstate.pool).await?;
     Ok(ApiResponse::json(providers, StatusCode::OK))
+}
+
+/// Get current OpenID provider.
+///
+/// # Returns
+/// - HTTP Status "OK" on success.
+#[utoipa::path(
+    get,
+    path = "/api/v1/openid/provider/current",
+    tag = "OpenID",
+    responses(
+        (status = OK, description = "Get current OpenID provider"),
+    ),
+    params(
+        ("name" = String, Path, description = "The name of a provider",)
+    )
+)]
+pub(crate) async fn get_current_openid_provider(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    let settings = Settings::get_current_settings();
+    let settings_json = json!({"create_account": settings.openid_create_account,
+        "username_handling": settings.openid_username_handling});
+    match OpenIdProvider::get_current(&appstate.pool).await? {
+        Some(mut provider) => {
+            // Get rid of it, it should stay on the backend only.
+            provider.google_service_account_key = None;
+            provider.okta_private_jwk = None;
+            Ok(ApiResponse::new(
+                json!({"provider": provider, "settings": settings_json}),
+                StatusCode::OK,
+            ))
+        }
+        None => Ok(ApiResponse::new(
+            json!({"provider": null, "settings": settings_json}),
+            StatusCode::NO_CONTENT,
+        )),
+    }
 }
 
 pub(crate) async fn test_dirsync_connection(

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import { CounterLabel } from '../../defguard-ui/components/CounterLabel/CounterLabel';
 import { Icon, IconKind } from '../../defguard-ui/components/Icon';
 import type { IconKindValue } from '../../defguard-ui/components/Icon/icon-types';
 import { IconButton } from '../../defguard-ui/components/IconButton/IconButton';
@@ -16,7 +17,12 @@ import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipCont
 import { TooltipTrigger } from '../../defguard-ui/providers/tooltip/TooltipTrigger';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import { useTheme } from '../../hooks/theme/useTheme';
-import { getLicenseInfoQueryOptions } from '../../query';
+import {
+  getAliasesCountQueryOptions,
+  getDestinationsCountQueryOptions,
+  getLicenseInfoQueryOptions,
+  getRulesCountQueryOptions,
+} from '../../query';
 import { canUseBusinessFeature } from '../../utils/license';
 
 interface NavGroupProps {
@@ -34,6 +40,7 @@ interface NavItemProps {
   licenseTier?: LicenseTierValue;
   license?: LicenseInfo | null;
   testId?: string;
+  pendingCount?: number;
 }
 
 const navigationConfig: NavGroupProps[] = [
@@ -160,6 +167,37 @@ export const Navigation = () => {
     enabled: isAdmin,
   });
 
+  const { data: rulesCount } = useQuery({
+    ...getRulesCountQueryOptions,
+    enabled: isAdmin,
+  });
+
+  const { data: destinationsCount } = useQuery({
+    ...getDestinationsCountQueryOptions,
+    enabled: isAdmin,
+  });
+
+  const { data: aliasesCount } = useQuery({
+    ...getAliasesCountQueryOptions,
+    enabled: isAdmin,
+  });
+
+  const navigationGroups = useMemo(() => {
+    const pendingCounts = {
+      rules: rulesCount?.pending,
+      destinations: destinationsCount?.pending,
+      aliases: aliasesCount?.pending,
+    };
+
+    return navigationConfig.map((group) => ({
+      ...group,
+      items: group.items.map((item) => ({
+        ...item,
+        pendingCount: pendingCounts[item.id as keyof typeof pendingCounts],
+      })),
+    }));
+  }, [aliasesCount, destinationsCount, rulesCount]);
+
   if (!isAdmin || !isOpen) return null;
   return (
     <div className="navigation">
@@ -177,7 +215,7 @@ export const Navigation = () => {
         </div>
       </div>
       <div className="groups">
-        {navigationConfig.map((group) => (
+        {navigationGroups.map((group) => (
           <NavGroup key={group.id} {...group} licenseInfo={licenseInfo} />
         ))}
       </div>
@@ -212,7 +250,15 @@ const NavGroup = ({ items, label, licenseInfo }: NavGroupProps) => {
   );
 };
 
-const NavItem = ({ icon, link, label, testId, license, licenseTier }: NavItemProps) => {
+const NavItem = ({
+  icon,
+  link,
+  label,
+  testId,
+  license,
+  licenseTier,
+  pendingCount,
+}: NavItemProps) => {
   const showLock = useMemo(() => {
     if (licenseTier === undefined) {
       return isPresent(licenseTier);
@@ -229,20 +275,26 @@ const NavItem = ({ icon, link, label, testId, license, licenseTier }: NavItemPro
     return false;
   }, [license, licenseTier]);
 
+  const showPending = isPresent(pendingCount) && pendingCount > 0;
+  const showRight = showPending || (showLock && isPresent(licenseTier));
+
   return (
     <Link to={link} className="nav-item" data-testid={testId}>
       <Icon icon={icon} />
       <span>{label}</span>
-      {showLock && isPresent(licenseTier) && (
+      {showRight && (
         <div className="right">
-          <TooltipProvider>
-            <TooltipTrigger>
-              <Icon icon={IconKind.LockClosed} size={16} />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{`This is ${licenseTier ?? 'Unknown tier'} feature`}</p>
-            </TooltipContent>
-          </TooltipProvider>
+          {showPending && <CounterLabel value={pendingCount} variant="warning" />}
+          {showLock && isPresent(licenseTier) && (
+            <TooltipProvider>
+              <TooltipTrigger>
+                <Icon icon={IconKind.LockClosed} size={16} />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{`This is ${licenseTier ?? 'Unknown tier'} feature`}</p>
+              </TooltipContent>
+            </TooltipProvider>
+          )}
         </div>
       )}
     </Link>

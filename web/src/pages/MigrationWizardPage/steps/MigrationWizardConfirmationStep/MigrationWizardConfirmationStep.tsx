@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { Controls } from '../../../../shared/components/Controls/Controls';
@@ -19,40 +19,44 @@ import {
   ThemeSpacing,
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
-import {
-  getLocationsQueryOptions,
-  getSessionInfoQueryOptions,
-} from '../../../../shared/query';
+import { getLocationsQueryOptions } from '../../../../shared/query';
+import { delay } from '../../../../shared/utils/delay';
 import prepareNetworkImage from './assets/prepare-network.png';
+
+// This waits until new core server starts up and respond with
+const finishPromise = async (): Promise<void> => {
+  await api.migration.finish();
+  while (true) {
+    await delay(250);
+    try {
+      const sessionInfo = (await api.getSessionInfo()).data;
+      if (sessionInfo.active_wizard === null) {
+        break;
+      }
+    } catch (_) {}
+  }
+};
 
 export const MigrationWizardConfirmationStep = () => {
   const [confirm, setConfirm] = useState(false);
   const navigate = useNavigate();
 
-  const { data: sessionInfo } = useQuery(getSessionInfoQueryOptions);
   const { data: locations } = useQuery(getLocationsQueryOptions);
 
   const { mutate: finish, isPending } = useMutation({
-    mutationFn: api.migration.finish,
+    mutationFn: finishPromise,
     onSuccess: async () => {
       Snackbar.success(`Migration finished`);
+      navigate({ to: '/vpn-overview', replace: true });
     },
     onError: (e) => {
       Snackbar.error(`Finishing migration failed`);
       console.error(e);
     },
     meta: {
-      invalidate: [['migration'], ['settings'], ['session-info'], ['me']],
+      invalidate: [['settings'], ['session-info'], ['me']],
     },
   });
-
-  useEffect(() => {
-    if (sessionInfo?.wizard_flags) {
-      if (sessionInfo.wizard_flags.migration_wizard_completed) {
-        navigate({ to: '/vpn-overview', replace: true });
-      }
-    }
-  }, [sessionInfo, navigate]);
 
   return (
     <WizardCard>

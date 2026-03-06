@@ -84,10 +84,14 @@ import type {
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   SessionInfo,
+  SetAutoAdoptionMfaSettingsRequest,
+  SetAutoAdoptionUrlSettingsRequest,
+  SetAutoAdoptionVpnSettingsRequest,
   SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
   SettingsEssentials,
+  SetupAutoAdoptionResponse,
   StartEnrollmentRequest,
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
@@ -104,6 +108,7 @@ import type {
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
   Webhook,
+  WizardState,
 } from './types';
 
 const api = {
@@ -128,8 +133,17 @@ const api = {
       client.post('/initial_setup/admin', data),
     login: (data: LoginRequest) => client.post('/initial_setup/login', data),
     session: () => client.get('/initial_setup/session'),
+    getAutoAdoptionResult: () =>
+      client.get<SetupAutoAdoptionResponse>('/initial_setup/auto_adoption'),
+    getWizardState: () => client.get<WizardState>('/wizard'),
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post('/initial_setup/general_config', data),
+    setAutoAdoptionUrlSettings: (data: SetAutoAdoptionUrlSettingsRequest) =>
+      client.post('/initial_setup/auto_wizard/url_settings', data),
+    setAutoAdoptionVpnSettings: (data: SetAutoAdoptionVpnSettingsRequest) =>
+      client.post('/initial_setup/auto_wizard/vpn_settings', data),
+    setAutoAdoptionMfaSettings: (data: SetAutoAdoptionMfaSettingsRequest) =>
+      client.post('/initial_setup/auto_wizard/mfa_settings', data),
     finishSetup: () => client.post('/initial_setup/finish'),
   },
   openid: {
@@ -427,7 +441,8 @@ const api = {
     getLdapConnectionStatus: () => client.get(`/ldap/test`),
   },
   openIdProvider: {
-    getOpenIdProvider: () => client.get<OpenIdProvidersResponse>('/openid/provider'),
+    getOpenIdProvider: () =>
+      client.get<OpenIdProvidersResponse>('/openid/provider/current'),
     addOpenIdProvider: (data: AddOpenIdProvider) => client.post('/openid/provider', data),
     deleteOpenIdProvider: (name: string) => client.delete(`/openid/provider/${name}`),
     editOpenIdProvider: (data: AddOpenIdProvider) =>
@@ -448,8 +463,8 @@ const api = {
     getGateways: () => client.get<GatewayInfo[]>('/gateway'),
     getGateway: (gatewayId: number | string) =>
       client.get<Gateway>(`/gateway/${gatewayId}`),
-    editGateway: (data: Gateway) =>
-      client.put(`/gateway/${data.id}`, { name: data.name }),
+    editGateway: (data: { id: number | string; name: string; enabled: boolean }) =>
+      client.put(`/gateway/${data.id}`, { name: data.name, enabled: data.enabled }),
     deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
   },
   acl: {
@@ -509,7 +524,8 @@ const api = {
       getCA: () => client.get<GetCAResponse>('/migration/ca'),
     },
     state: {
-      getMigrationState: () => client.get<MigrationWizardApiState>(`/migration/state`),
+      getMigrationState: () =>
+        client.get<MigrationWizardApiState | null>(`/migration/state`),
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },

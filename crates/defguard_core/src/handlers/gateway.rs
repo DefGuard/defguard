@@ -1,7 +1,6 @@
 use axum::{
     Json,
-    extract::rejection::JsonRejection,
-    extract::{Path, State},
+    extract::{Path, State, rejection::JsonRejection},
 };
 use chrono::NaiveDateTime;
 use defguard_common::db::{Id, models::gateway::Gateway};
@@ -32,10 +31,9 @@ pub struct GatewayInfo {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub modified_at: NaiveDateTime,
-    pub modified_by: Id,
-    pub modified_by_firstname: String,
-    pub modified_by_lastname: String,
+    pub modified_by: String,
     pub location_name: String,
 }
 
@@ -44,8 +42,6 @@ impl GatewayInfo {
         query_as!(
             Self,
             "SELECT gateway.*, \
-                u.first_name modified_by_firstname, \
-                u.last_name modified_by_lastname, \
                 CASE \
                     WHEN gateway.connected_at IS NULL THEN false \
                     WHEN gateway.disconnected_at IS NULL THEN true \
@@ -54,7 +50,6 @@ impl GatewayInfo {
                 END AS \"connected!\", \
                 wn.name AS location_name \
             FROM gateway \
-            JOIN \"user\" u on gateway.modified_by = u.id \
             JOIN wireguard_network wn ON gateway.location_id = wn.id",
         )
         .fetch_all(pool)
@@ -65,8 +60,6 @@ impl GatewayInfo {
         query_as!(
             Self,
             "SELECT gateway.*, \
-                u.first_name modified_by_firstname, \
-                u.last_name modified_by_lastname, \
                 CASE \
                     WHEN gateway.connected_at IS NULL THEN false \
                     WHEN gateway.disconnected_at IS NULL THEN true \
@@ -74,7 +67,7 @@ impl GatewayInfo {
                     ELSE false \
                 END AS \"connected!\", \
                 wn.name AS location_name \
-            FROM gateway JOIN \"user\" u on gateway.modified_by = u.id \
+            FROM gateway \
             JOIN wireguard_network wn ON gateway.location_id = wn.id \
             WHERE location_id = $1",
             location_id
@@ -88,6 +81,7 @@ impl GatewayInfo {
 #[serde(deny_unknown_fields)]
 pub struct GatewayUpdateData {
     pub name: String,
+    pub enabled: bool,
 }
 
 #[utoipa::path(
@@ -132,7 +126,7 @@ pub(crate) async fn gateway_list(
     )
 )]
 pub(crate) async fn gateway_details(
-    Path(gateway_id): Path<i64>,
+    Path(gateway_id): Path<Id>,
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -172,7 +166,7 @@ pub(crate) async fn gateway_details(
 )]
 pub(crate) async fn update_gateway(
     _role: AdminRole,
-    Path(gateway_id): Path<i64>,
+    Path(gateway_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -200,6 +194,7 @@ pub(crate) async fn update_gateway(
     let before = gateway.clone();
 
     gateway.name = data.name;
+    gateway.enabled = data.enabled;
     gateway.save(&appstate.pool).await?;
 
     info!(
@@ -235,7 +230,7 @@ pub(crate) async fn update_gateway(
 )]
 pub(crate) async fn delete_gateway(
     _role: AdminRole,
-    Path(gateway_id): Path<i64>,
+    Path(gateway_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,

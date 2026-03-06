@@ -17,8 +17,8 @@ use defguard_common::db::{
         OAuth2Token, Session, SessionState, Settings,
         group::{Group, Permission},
         oauth2client::OAuth2Client,
-        settings::InitialSetupStep,
         user::User,
+        wizard::Wizard,
     },
 };
 use sqlx::PgPool;
@@ -219,16 +219,21 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let settings = Settings::get_current_settings();
-        if !settings.initial_setup_completed {
+        let pool = extract_pool(parts, state).await?;
+        let wizard = Wizard::get(&pool).await.map_err(|err| {
+            error!("Failed to fetch wizard state: {err}");
+            WebError::DbError("Failed to fetch wizard state".into())
+        })?;
+        if !wizard.completed {
             // Allow unauthenticated access only up to the admin creation step.
-            if settings.initial_setup_step <= InitialSetupStep::AdminUser {
+            if !wizard.requires_auth(&pool).await? {
                 return Ok(Self {});
             }
             let session_info = SessionInfo::from_request_parts(parts, state).await?;
             if !session_info.user.is_active {
                 return Err(WebError::Forbidden("user is disabled".into()));
             }
+            let settings = Settings::get_current_settings();
             if let Some(default_admin_id) = settings.default_admin_id {
                 if session_info.user.id == default_admin_id {
                     return Ok(Self {});

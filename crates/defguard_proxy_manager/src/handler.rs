@@ -11,6 +11,7 @@ use defguard_common::{
         Id,
         models::{Settings, proxy::Proxy},
     },
+    types::AuthFlowType,
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
@@ -33,8 +34,8 @@ use defguard_core::{
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, InitialInfo,
-    core_request, core_response, proxy_client::ProxyClient,
+    AuthCallbackResponse, AuthFlowType as ProtoAuthFlowType, AuthInfoResponse, CoreError,
+    CoreRequest, CoreResponse, InitialInfo, core_request, core_response, proxy_client::ProxyClient,
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
@@ -66,7 +67,7 @@ use crate::{
     servers::{EnrollmentServer, PasswordResetServer},
 };
 
-static VERSION_ZERO: Version = Version::new(0, 0, 0);
+const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 
@@ -141,10 +142,10 @@ impl ProxyHandler {
     async fn mark_connected(&self, version: &Version) -> Result<(), ProxyError> {
         if let Some(mut proxy) = Proxy::find_by_id(&self.pool, self.proxy_id).await? {
             proxy
-                .mark_connected(&self.pool, &version.to_string())
+                .mark_connected(&self.pool, version.to_string())
                 .await?;
         } else {
-            warn!("Couldn't find proxy by id, URL: {}", self.url);
+            warn!("Couldn't find Proxy by ID for URL: {}", self.url);
         }
 
         Ok(())
@@ -173,9 +174,9 @@ impl ProxyHandler {
     fn endpoint(&self) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
-        // Using http here because the connector upgrades to TLS internally.
+        // Using HTTP here because the connector upgrades to TLS internally.
         url.set_scheme("http").map_err(|()| {
-            ProxyError::UrlError(format!("Failed to set http scheme on URL {url}"))
+            ProxyError::UrlError(format!("Failed to set HTTP scheme on URL {url}"))
         })?;
         let endpoint = Endpoint::from_shared(url.to_string())?;
         let endpoint = endpoint
@@ -197,6 +198,7 @@ impl ProxyHandler {
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<(), ProxyError> {
+        let parsed_version = Version::parse(VERSION)?;
         loop {
             let endpoint = self.endpoint()?;
             let settings = Settings::get_current_settings();
@@ -215,7 +217,7 @@ impl ProxyHandler {
             let connector = HttpsSchemeConnector::new(connector);
 
             debug!("Connecting to proxy at {}", endpoint.uri());
-            let interceptor = ClientVersionInterceptor::new(Version::parse(VERSION)?);
+            let interceptor = ClientVersionInterceptor::new(parsed_version.clone());
             let channel = endpoint.connect_with_connector_lazy(connector);
             let mut client = ProxyClient::with_interceptor(channel, interceptor);
             self.client = Some(client.clone());
@@ -617,76 +619,96 @@ impl ProxyHandler {
                             }
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
-                            if !is_business_license_active() {
+                            if is_business_license_active() {
+                                let redirect_url = match request.auth_flow_type() {
+                                    ProtoAuthFlowType::Enrollment => {
+                                        let settings = Settings::get_current_settings();
+                                        settings.edge_callback_url(AuthFlowType::Enrollment)
+                                    }
+                                    ProtoAuthFlowType::Mfa => {
+                                        let settings = Settings::get_current_settings();
+                                        settings.edge_callback_url(AuthFlowType::Mfa)
+                                    }
+                                    // fall back for legacy pre-2.0 clients
+                                    ProtoAuthFlowType::Unspecified =>
+                                    {
+                                        #[allow(deprecated)]
+                                        Url::parse(&request.redirect_url)
+                                    }
+                                };
+
+                                if let Ok(redirect_url) = redirect_url {
+                                    if let Some(provider) =
+                                        OpenIdProvider::get_current(&pool).await?
+                                    {
+                                        match make_oidc_client(redirect_url, &provider).await {
+                                            Ok((_client_id, client)) => {
+                                                let mut authorize_url_builder = client
+                                                    .authorize_url(
+                                                        CoreAuthenticationFlow::AuthorizationCode,
+                                                        || build_state(request.state),
+                                                        Nonce::new_random,
+                                                    )
+                                                    .add_scope(Scope::new("email".to_string()))
+                                                    .add_scope(Scope::new("profile".to_string()));
+
+                                                if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
+                                                    .iter()
+                                                    .all(|p| p.eq_ignore_ascii_case(&provider.name))
+                                                {
+                                                    authorize_url_builder = authorize_url_builder
+                                                        .add_prompt(
+                                                            openidconnect::core::CoreAuthPrompt::SelectAccount,
+                                                        );
+                                                }
+                                                let (url, csrf_token, nonce) =
+                                                    authorize_url_builder.url();
+
+                                                Some(core_response::Payload::AuthInfo(
+                                                    AuthInfoResponse {
+                                                        url: url.into(),
+                                                        csrf_token: csrf_token.secret().to_owned(),
+                                                        nonce: nonce.secret().to_owned(),
+                                                        button_display_name: provider.display_name,
+                                                    },
+                                                ))
+                                            }
+                                            Err(err) => {
+                                                error!(
+                                                    "Failed to setup external OIDC provider client: {err}"
+                                                );
+                                                Some(core_response::Payload::CoreError(CoreError {
+                                                    status_code: Code::Internal as i32,
+                                                    message: "failed to build OIDC client".into(),
+                                                }))
+                                            }
+                                        }
+                                    } else {
+                                        error!("Failed to get current OpenID provider");
+                                        Some(core_response::Payload::CoreError(CoreError {
+                                            status_code: Code::NotFound as i32,
+                                            message: "failed to get current OpenID provider".into(),
+                                        }))
+                                    }
+                                } else {
+                                    error!("Invalid redirect URL in authentication info request");
+                                    Some(core_response::Payload::CoreError(CoreError {
+                                        status_code: Code::Internal as i32,
+                                        message: "invalid redirect URL".into(),
+                                    }))
+                                }
+                            } else {
                                 warn!("Enterprise license required");
                                 Some(core_response::Payload::CoreError(CoreError {
                                     status_code: Code::FailedPrecondition as i32,
                                     message: "no valid license".into(),
                                 }))
-                            } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
-                                if let Some(provider) = OpenIdProvider::get_current(&pool).await? {
-                                    match make_oidc_client(redirect_url, &provider).await {
-                                        Ok((_client_id, client)) => {
-                                            let mut authorize_url_builder = client
-                                                .authorize_url(
-                                                    CoreAuthenticationFlow::AuthorizationCode,
-                                                    || build_state(request.state),
-                                                    Nonce::new_random,
-                                                )
-                                                .add_scope(Scope::new("email".to_string()))
-                                                .add_scope(Scope::new("profile".to_string()));
-
-                                            if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
-                                                .iter()
-                                                .all(|p| p.eq_ignore_ascii_case(&provider.name))
-                                            {
-                                                authorize_url_builder = authorize_url_builder
-                                                .add_prompt(
-                                                openidconnect::core::CoreAuthPrompt::SelectAccount,
-                                            );
-                                            }
-                                            let (url, csrf_token, nonce) =
-                                                authorize_url_builder.url();
-
-                                            Some(core_response::Payload::AuthInfo(
-                                                AuthInfoResponse {
-                                                    url: url.into(),
-                                                    csrf_token: csrf_token.secret().to_owned(),
-                                                    nonce: nonce.secret().to_owned(),
-                                                    button_display_name: provider.display_name,
-                                                },
-                                            ))
-                                        }
-                                        Err(err) => {
-                                            error!(
-                                                "Failed to setup external OIDC provider client: {err}"
-                                            );
-                                            Some(core_response::Payload::CoreError(CoreError {
-                                                status_code: Code::Internal as i32,
-                                                message: "failed to build OIDC client".into(),
-                                            }))
-                                        }
-                                    }
-                                } else {
-                                    error!("Failed to get current OpenID provider");
-                                    Some(core_response::Payload::CoreError(CoreError {
-                                        status_code: Code::NotFound as i32,
-                                        message: "failed to get current OpenID provider".into(),
-                                    }))
-                                }
-                            } else {
-                                error!(
-                                    "Invalid redirect URL in authentication info request: {}",
-                                    request.redirect_url
-                                );
-                                Some(core_response::Payload::CoreError(CoreError {
-                                    status_code: Code::Internal as i32,
-                                    message: "invalid redirect URL".into(),
-                                }))
                             }
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {
-                            match Url::parse(&request.callback_url) {
+                            match Settings::get_current_settings()
+                                .edge_callback_url(AuthFlowType::Enrollment)
+                            {
                                 Ok(callback_url) => {
                                     let code = AuthorizationCode::new(request.code);
                                     match user_from_claims(
@@ -757,8 +779,7 @@ impl ProxyHandler {
                                 Err(err) => {
                                     error!(
                                         "Proxy requested an OpenID authentication info for a callback \
-                                    URL ({}) that couldn't be parsed. Details: {err}",
-                                        request.callback_url
+                                    URL that couldn't be built. Details: {err}"
                                     );
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,

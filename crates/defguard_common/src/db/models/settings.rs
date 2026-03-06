@@ -13,7 +13,9 @@ use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper};
+use crate::{
+    config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
+};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -99,22 +101,6 @@ impl LdapSyncStatus {
     }
 }
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type, PartialOrd)]
-#[sqlx(type_name = "initial_setup_step", rename_all = "snake_case")]
-pub enum InitialSetupStep {
-    #[default]
-    Welcome,
-    AdminUser,
-    GeneralConfiguration,
-    Ca,
-    CaSummary,
-    // Adoption is not present, since the proxy is saved
-    // only after completing adoption step.
-    EdgeComponent,
-    Confirmation,
-    Finished,
-}
-
 #[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
@@ -183,14 +169,12 @@ pub struct Settings {
     pub ca_key_der: Option<Vec<u8>>,
     pub ca_cert_der: Option<Vec<u8>>,
     pub ca_expiry: Option<NaiveDateTime>,
-    // Initial setup, general settings
-    pub initial_setup_completed: bool,
+    // General settings
     pub defguard_url: String,
     pub default_admin_group_name: String,
     pub authentication_period_days: i32,
     pub mfa_code_timeout_seconds: i32,
     pub public_proxy_url: String,
-    pub initial_setup_step: InitialSetupStep,
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     pub secret_key: Option<String>,
@@ -281,7 +265,6 @@ impl fmt::Debug for Settings {
                 &self.gateway_disconnect_notifications_reconnect_notification_enabled,
             )
             .field("ca_expiry", &self.ca_expiry)
-            .field("initial_setup_completed", &self.initial_setup_completed)
             .field("defguard_url", &self.defguard_url)
             .field("default_admin_group_name", &self.default_admin_group_name)
             .field(
@@ -290,7 +273,6 @@ impl fmt::Debug for Settings {
             )
             .field("mfa_code_timeout_seconds", &self.mfa_code_timeout_seconds)
             .field("public_proxy_url", &self.public_proxy_url)
-            .field("initial_setup_step", &self.initial_setup_step)
             .field("default_admin_id", &self.default_admin_id)
             .finish_non_exhaustive()
     }
@@ -347,9 +329,9 @@ impl Settings {
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
             ldap_user_rdn_attr, ldap_sync_groups, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
-            ca_key_der, ca_cert_der, ca_expiry, initial_setup_completed, defguard_url, \
+            ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
-            public_proxy_url, initial_setup_step \"initial_setup_step: InitialSetupStep\", \
+            public_proxy_url, \
             default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
@@ -434,24 +416,22 @@ impl Settings {
             ca_key_der = $49, \
             ca_cert_der = $50, \
             ca_expiry = $51, \
-            initial_setup_completed = $52, \
-            defguard_url = $53, \
-            default_admin_group_name = $54, \
-            authentication_period_days = $55, \
-            mfa_code_timeout_seconds = $56, \
-            public_proxy_url = $57, \
-            initial_setup_step = $58, \
-            default_admin_id = $59, \
-            auth_cookie_timeout_days = $60, \
-            secret_key = $61, \
-            webauthn_rp_id = $62, \
-            disable_stats_purge = $63, \
-            stats_purge_frequency_hours = $64, \
-            stats_purge_threshold_days = $65, \
-            enrollment_token_timeout_hours = $66, \
-            password_reset_token_timeout_hours = $67, \
-            enrollment_session_timeout_minutes = $68, \
-            password_reset_session_timeout_minutes = $69 \
+            defguard_url = $52, \
+            default_admin_group_name = $53, \
+            authentication_period_days = $54, \
+            mfa_code_timeout_seconds = $55, \
+            public_proxy_url = $56, \
+            default_admin_id = $57, \
+            auth_cookie_timeout_days = $58, \
+            secret_key = $59, \
+            webauthn_rp_id = $60, \
+            disable_stats_purge = $61, \
+            stats_purge_frequency_hours = $62, \
+            stats_purge_threshold_days = $63, \
+            enrollment_token_timeout_hours = $64, \
+            password_reset_token_timeout_hours = $65, \
+            enrollment_session_timeout_minutes = $66, \
+            password_reset_session_timeout_minutes = $67 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -504,13 +484,11 @@ impl Settings {
             &self.ca_key_der as &Option<Vec<u8>>,
             &self.ca_cert_der as &Option<Vec<u8>>,
             &self.ca_expiry as &Option<NaiveDateTime>,
-            self.initial_setup_completed,
             self.defguard_url,
             self.default_admin_group_name,
             self.authentication_period_days,
             self.mfa_code_timeout_seconds,
             self.public_proxy_url,
-            &self.initial_setup_step as &InitialSetupStep,
             self.default_admin_id,
             self.auth_cookie_timeout_days,
             self.secret_key,
@@ -750,6 +728,19 @@ impl Settings {
         info!("Updated Settings from DefguardConfig: {config:?}");
         Ok(())
     }
+
+    /// Returns configured Edge Component URL with the correct callback path appended depending on auth flow type.
+    pub fn edge_callback_url(&self, auth_flow_type: AuthFlowType) -> Result<Url, url::ParseError> {
+        let mut url = self.proxy_public_url()?;
+        // Append callback segments to the URL.
+        if let Ok(mut path_segments) = url.path_segments_mut() {
+            match auth_flow_type {
+                AuthFlowType::Enrollment => path_segments.extend(&["openid", "callback"]),
+                AuthFlowType::Mfa => path_segments.extend(&["openid", "mfa", "callback"]),
+            };
+        }
+        Ok(url)
+    }
 }
 
 #[derive(Serialize)]
@@ -761,8 +752,6 @@ pub struct SettingsEssentials {
     pub webhooks_enabled: bool,
     pub worker_enabled: bool,
     pub openid_enabled: bool,
-    pub initial_setup_completed: bool,
-    pub initial_setup_step: InitialSetupStep,
 }
 
 impl SettingsEssentials {
@@ -772,29 +761,14 @@ impl SettingsEssentials {
     {
         query_as!(
             SettingsEssentials,
-            "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
-            webhooks_enabled, worker_enabled, openid_enabled, initial_setup_completed, \
-            initial_setup_step \"initial_setup_step: InitialSetupStep\" \
-            FROM settings WHERE id = 1"
+            "SELECT s.instance_name, s.main_logo_url, s.nav_logo_url, s.wireguard_enabled, \
+            s.webhooks_enabled, s.worker_enabled, s.openid_enabled \
+			FROM settings s \
+			WHERE s.id = 1 \
+			LIMIT 1"
         )
         .fetch_one(executor)
         .await
-    }
-}
-
-impl From<Settings> for SettingsEssentials {
-    fn from(settings: Settings) -> Self {
-        SettingsEssentials {
-            webhooks_enabled: settings.webhooks_enabled,
-            wireguard_enabled: settings.wireguard_enabled,
-            worker_enabled: settings.worker_enabled,
-            openid_enabled: settings.openid_enabled,
-            nav_logo_url: settings.nav_logo_url,
-            instance_name: settings.instance_name,
-            main_logo_url: settings.main_logo_url,
-            initial_setup_completed: settings.initial_setup_completed,
-            initial_setup_step: settings.initial_setup_step,
-        }
     }
 }
 
@@ -1080,5 +1054,35 @@ mod test {
         assert_eq!(from_db.mfa_code_timeout_seconds, 90);
         assert_eq!(from_db.authentication_period_days, 2);
         assert!(from_db.disable_stats_purge);
+    }
+
+    fn test_edge_callback_url() {
+        let mut s = Settings {
+            public_proxy_url: "https://edge.example.com".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Enrollment)
+                .unwrap()
+                .as_str(),
+            "https://edge.example.com/openid/callback"
+        );
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Mfa).unwrap().as_str(),
+            "https://edge.example.com/openid/mfa/callback"
+        );
+
+        s.public_proxy_url = "https://edge.example.com:8443/path".into();
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Enrollment)
+                .unwrap()
+                .as_str(),
+            "https://edge.example.com:8443/path/openid/callback"
+        );
+        assert_eq!(
+            s.edge_callback_url(AuthFlowType::Mfa).unwrap().as_str(),
+            "https://edge.example.com:8443/path/openid/mfa/callback"
+        );
     }
 }

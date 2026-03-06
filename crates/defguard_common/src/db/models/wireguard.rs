@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::{self, Display},
     iter::zip,
     net::{IpAddr, Ipv4Addr},
@@ -438,11 +438,13 @@ impl WireguardNetwork<Id> {
             "Assigning IPs in network {} for all existing devices ",
             self
         );
+        let mut used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
-            device
-                .assign_next_network_ip(&mut *transaction, self, None, None)
+            let wireguard_network_device = device
+                .assign_next_network_ip(&mut *transaction, self, &used_ips, None, None)
                 .await?;
+            used_ips.extend(wireguard_network_device.wireguard_ips);
         }
         Ok(())
     }
@@ -457,9 +459,11 @@ impl WireguardNetwork<Id> {
         info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
+        let used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
+
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, reserved_ips, None)
+                .assign_next_network_ip(&mut *transaction, self, &used_ips, reserved_ips, None)
                 .await?;
             Ok(wireguard_network_device)
         } else {
@@ -533,9 +537,7 @@ impl WireguardNetwork<Id> {
         // split into separate stats for each device
         let mut device_stats: HashMap<Id, Vec<WireguardDeviceTransferRow>> =
             stats.into_iter().fold(HashMap::new(), |mut acc, item| {
-                acc.entry(item.device_id)
-                    .or_insert_with(Vec::new)
-                    .push(item);
+                acc.entry(item.device_id).or_default().push(item);
                 acc
             });
 
@@ -1353,6 +1355,20 @@ impl WireguardNetwork<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    /// Obtain all used IP addresses for network.
+    pub async fn all_used_ips_for_network(
+        &self,
+        transaction: &mut PgConnection,
+    ) -> Result<HashSet<IpAddr>, SqlxError> {
+        let all_devices =
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
+        let used_ips: HashSet<IpAddr> = all_devices
+            .into_iter()
+            .flat_map(|device| device.wireguard_ips)
+            .collect();
+        Ok(used_ips)
     }
 }
 

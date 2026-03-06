@@ -86,25 +86,7 @@ impl GatewayManager {
                     TriggerOperation::Insert => {
                         if let Some(new) = gateway_notification.new {
                             let id = new.id;
-                            let abort_handle =
-                                self.run_handler(new, Arc::clone(&self.clients), certs_rx.clone())?;
-                            abort_handles.insert(id, abort_handle);
-                        }
-                    }
-                    TriggerOperation::Update => {
-                        if let (Some(old), Some(new)) =
-                            (gateway_notification.old, gateway_notification.new)
-                        {
-                            if old.address == new.address && old.port == new.port {
-                                debug!(
-                                    "Gateway URL didn't change. Keeping the current gateway handler"
-                                );
-                            } else if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                                info!(
-                                    "Aborting connection to {old}, it has changed in the database"
-                                );
-                                abort_handle.abort();
-                                let id = new.id;
+                            if new.enabled {
                                 let abort_handle = self.run_handler(
                                     new,
                                     Arc::clone(&self.clients),
@@ -112,8 +94,39 @@ impl GatewayManager {
                                 )?;
                                 abort_handles.insert(id, abort_handle);
                             } else {
-                                warn!("Cannot find {old} on the list of connected gateways");
+                                debug!("New Gateway is disabled, so it won't be handled");
                             }
+                        }
+                    }
+                    TriggerOperation::Update => {
+                        let (Some(old), Some(new)) =
+                            (gateway_notification.old, gateway_notification.new)
+                        else {
+                            continue;
+                        };
+                        if old.address == new.address
+                            && old.port == new.port
+                            && old.enabled == new.enabled
+                        {
+                            debug!("Gateway address/port/state didn't change");
+                            continue;
+                        }
+                        if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                            info!(
+                                "Aborting connection to Gateway {old}, it has changed in the \
+                                database"
+                            );
+                            abort_handle.abort();
+                        } else if old.enabled {
+                            warn!("Cannot find Gateway {old} on the list of connected gateways");
+                        }
+                        if new.enabled {
+                            let id = new.id;
+                            let abort_handle =
+                                self.run_handler(new, Arc::clone(&self.clients), certs_rx.clone())?;
+                            abort_handles.insert(id, abort_handle);
+                        } else {
+                            debug!("Updated Gateway is disabled, so it won't be handled");
                         }
                     }
                     TriggerOperation::Delete => {
@@ -121,7 +134,7 @@ impl GatewayManager {
                             continue;
                         };
 
-                        // Send purge request to the gateway.
+                        // Send purge request to Gateway.
                         let maybe_client = {
                             self.clients
                                 .lock()
@@ -130,26 +143,27 @@ impl GatewayManager {
                         };
 
                         if let Some(mut client) = maybe_client {
-                            debug!("Sending purge request to gateway {old}");
+                            debug!("Sending purge request to Gateway {old}");
                             if let Err(err) = client.purge(Request::new(())).await {
-                                error!("Error sending purge request to gateway {old}: {err}");
+                                error!("Error sending purge request to Gateway {old}: {err}");
                             } else {
-                                info!("Sent purge request to gateway {old}");
+                                info!("Sent purge request to Gateway {old}");
                             }
                         } else {
                             warn!(
-                                "Cannot find gRPC client for gateway {old}, won't send purge request"
+                                "Cannot find gRPC client for Gateway {old}; skipping purge request"
                             );
                         }
 
                         // Kill the `GatewayHandler` and the connection.
                         if let Some(abort_handle) = abort_handles.remove(&old.id) {
                             info!(
-                                "Aborting connection to gateway {old}, it has disappeard from the database"
+                                "Aborting connection to Gateway {old}, it has disappeard from the \
+                                database"
                             );
                             abort_handle.abort();
-                        } else {
-                            warn!("Cannot find abort handle for gateway {old}");
+                        } else if old.enabled {
+                            warn!("Cannot find Gateway {old} on the list of connected gateways");
                         }
                     }
                 },

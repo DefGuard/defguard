@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import { LocationMfaMode, type NetworkLocation } from '../../../shared/api/types';
+import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Input } from '../../../shared/defguard-ui/components/Input/Input';
+import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
-import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature } from '../../../shared/utils/license';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
@@ -20,6 +24,11 @@ const schema = z
 export const AddLocationMfaStep = () => {
   const [error, setError] = useState<string | null>(null);
   const [disconnect, setDisconnect] = useState<number | null>(300);
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const canUseFeature = useMemo(() => {
+    if (licenseInfo === undefined) return undefined;
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [licenseInfo]);
 
   const [choice, setChoice] = useState<NetworkLocation['location_mfa_mode']>(
     LocationMfaMode.Disabled,
@@ -49,25 +58,31 @@ export const AddLocationMfaStep = () => {
 
   return (
     <WizardCard>
-      <Radio
-        active={choice === LocationMfaMode.Disabled}
+      <InteractiveBlock
+        value={choice === LocationMfaMode.Disabled}
         onClick={() => setChoice(LocationMfaMode.Disabled)}
-        text="Do not enforce MFA"
-        testId="do-not-enforce-mfa"
+        title={m.add_location_mfa_disabled_title()}
+        data-testid="do-not-enforce-mfa"
       />
-      <SizedBox height={ThemeSpacing.Md} />
-      <Radio
-        active={choice === LocationMfaMode.Internal}
+      <SizedBox height={ThemeSpacing.Xl} />
+      <InteractiveBlock
+        value={choice === LocationMfaMode.Internal}
         onClick={() => setChoice(LocationMfaMode.Internal)}
-        text="Internal MFA"
-        testId="enforce-internal-mfa"
+        title={m.add_location_mfa_internal_title()}
+        content={m.add_location_mfa_internal_content()}
+        data-testid="enforce-internal-mfa"
       />
-      <SizedBox height={ThemeSpacing.Md} />
-      <Radio
-        active={choice === LocationMfaMode.External}
+      <SizedBox height={ThemeSpacing.Xl} />
+      <InteractiveBlock
+        value={choice === LocationMfaMode.External}
         onClick={() => setChoice(LocationMfaMode.External)}
-        text="External MFA"
-        testId="enforce-external-mfa"
+        title={m.add_location_mfa_external_title()}
+        content={m.add_location_mfa_external_content()}
+        disabled={isPresent(canUseFeature) && !canUseFeature}
+        badge={
+          isPresent(canUseFeature) && !canUseFeature ? businessBadgeProps : undefined
+        }
+        data-testid="enforce-external-mfa"
       />
       {choice !== LocationMfaMode.Disabled && (
         <>

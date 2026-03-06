@@ -89,7 +89,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
     mutationFn: api.user.changePassword,
     onSuccess,
     meta: {
-      invalidate: [['me'], ['user', user.username]],
+      invalidate: [['me'], ['user', user.username], ['session-info']],
     },
   });
 

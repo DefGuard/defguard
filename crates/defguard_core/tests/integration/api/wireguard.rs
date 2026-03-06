@@ -486,7 +486,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
     // network details
     let response = client.get("/api/v1/network/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let network_from_details: WireguardNetwork<Id> = response.json().await;
+    let network_details: serde_json::Value = response.json().await;
+    let network_id = network_details["id"].as_i64().unwrap();
 
     // create devices
     let device = json!({
@@ -499,6 +500,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let device1: serde_json::Value = response.json().await;
+    let device1_id = device1["device"]["id"].as_i64().unwrap();
     let device = json!({
         "name": "device2",
         "wireguard_pubkey": "ZqDlG4LQZRO9v57Sd27AHdtTLxegbMp5oVThjYrg21I=",
@@ -509,9 +512,11 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let device2: serde_json::Value = response.json().await;
+    let device2_id = device2["device"]["id"].as_i64().unwrap();
 
     // ensure IPs were assigned for new devices
-    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device1_id)
         .await
         .unwrap()
         .unwrap();
@@ -519,7 +524,7 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         network_devices[0].wireguard_ips,
         vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2))],
     );
-    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 2)
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device2_id)
         .await
         .unwrap()
         .unwrap();
@@ -528,13 +533,9 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         vec![IpAddr::V4(Ipv4Addr::new(10, 1, 1, 3))],
     );
 
-    // delete the first device
-    let response = client.delete("/api/v1/device/1").json(&device).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // modify network addresses
+    // trying to modify network addresses while devices exist shouldn't fail
     let network = json!({
-        "id": network_from_details.id,
+        "id": network_id,
         "name": "network",
         "address": "10.1.1.1/24,fc00::1/112",
         "port": 55555,
@@ -552,21 +553,46 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "service_location_mode": "disabled"
     });
     let response = client
-        .put(format!("/api/v1/network/{}", network_from_details.id))
+        .put(format!("/api/v1/network/{network_id}"))
         .json(&network)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // ensure IPv4 address wasn't reassigned
-    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 2)
+    // delete both devices
+    let response = client
+        .delete(format!("/api/v1/device/{device1_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client
+        .delete(format!("/api/v1/device/{device2_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // re-create a device and verify it gets IPs in both subnets
+    let device = json!({
+        "name": "device3",
+        "wireguard_pubkey": "o/8q3kmv5nnbrcb/7aceQWGE44a0yI707wObXRyyWGU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device3: serde_json::Value = response.json().await;
+    let device3_id = device3["device"]["id"].as_i64().unwrap();
+
+    let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, device3_id)
         .await
         .unwrap()
         .unwrap();
     assert_eq!(
         network_devices[0].wireguard_ips,
         vec![
-            IpAddr::V4(Ipv4Addr::new(10, 1, 1, 3)),
+            IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2)),
             IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 2)),
         ],
     );
@@ -834,65 +860,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::OK);
     let network_from_details: WireguardNetwork<Id> = response.json().await;
 
-    // create devices
-    let device = json!({
-        "name": "device1",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
-    });
-    let response = client
-        .post("/api/v1/device/admin")
-        .json(&device)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let device = json!({
-        "name": "device2",
-        "wireguard_pubkey": "ZqDlG4LQZRO9v57Sd27AHdtTLxegbMp5oVThjYrg21I=",
-    });
-    let response = client
-        .post("/api/v1/device/admin")
-        .json(&device)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let device = json!({
-        "name": "device3",
-        "wireguard_pubkey": "o/8q3kmv5nnbrcb/7aceQWGE44a0yI707wObXRyyWGU=",
-    });
-    let response = client
-        .post("/api/v1/device/admin")
-        .json(&device)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-
-    // try to add subnet with not enough IPs
-    let network = json!({
-        "id": network_from_details.id,
-        "name": "network",
-        "address": "10.1.1.1/24,10.2.1.1/30",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "mtu": 1420,
-        "fwmark": 0,
-        "allowed_groups": [],
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 300,
-        "acl_enabled": false,
-        "acl_default_allow": false,
-        "location_mfa_mode": "disabled",
-        "service_location_mode": "disabled"
-    });
-    let response = client
-        .put(format!("/api/v1/network/{}", network_from_details.id))
-        .json(&network)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    // try to add subnet with invalid mask
+    // try to add subnet with invalid mask (/0)
     let network = json!({
         "id": network_from_details.id,
         "name": "network",
@@ -918,7 +886,7 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // try to add no network
+    // try to add no network (empty address)
     let network = json!({
         "id": network_from_details.id,
         "name": "network",

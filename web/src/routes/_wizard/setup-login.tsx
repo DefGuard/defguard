@@ -2,13 +2,10 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import type { AxiosError } from 'axios';
 import { SetupLoginPage } from '../../pages/SetupPage/SetupLoginPage';
 import api from '../../shared/api/api';
-import type { InitialSetupStepValue } from '../../shared/api/types';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useApp } from '../../shared/hooks/useApp';
-import { getSettingsEssentialsQueryOptions } from '../../shared/query';
+import { getSessionInfoQueryOptions } from '../../shared/query';
 
-const requiresSetupAuth = (step: InitialSetupStepValue) =>
-  step !== 'Welcome' && step !== 'AdminUser';
+const requiresSetupAuth = (step: string) => step !== 'welcome' && step !== 'admin_user';
 
 const hasSetupSession = async (): Promise<boolean> => {
   try {
@@ -25,21 +22,22 @@ const hasSetupSession = async (): Promise<boolean> => {
 
 export const Route = createFileRoute('/_wizard/setup-login')({
   beforeLoad: async ({ context }) => {
-    let settingsEssentials = useApp.getState().settingsEssentials;
-    if (!isPresent(settingsEssentials)) {
-      settingsEssentials = (
-        await context.queryClient.ensureQueryData(getSettingsEssentialsQueryOptions)
-      ).data;
-      useApp.setState({
-        settingsEssentials,
-      });
-    }
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
 
-    if (settingsEssentials.initial_setup_completed) {
+    if (!sessionInfo.active_wizard) {
       throw redirect({ to: '/auth/login', replace: true });
     }
 
-    if (!requiresSetupAuth(settingsEssentials.initial_setup_step)) {
+    const { data: wizardState } = await api.initial_setup.getWizardState();
+    useApp.setState({ wizardState });
+
+    const currentStep: string =
+      wizardState.active_wizard === 'auto_adoption'
+        ? (wizardState.auto_adoption_state?.step ?? 'welcome')
+        : (wizardState.initial_setup_state?.step ?? 'welcome');
+
+    if (!requiresSetupAuth(currentStep)) {
       throw redirect({ to: '/setup', replace: true });
     }
 

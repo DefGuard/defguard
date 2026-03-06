@@ -45,7 +45,7 @@ export const ProfileAuthCard = () => {
   );
 
   const invalidateAfterMfaChange = useMemo(() => {
-    const res: QueryKey[] = [];
+    const res: QueryKey[] = [['session-info']];
     if (user.username === authUsername) {
       res.push(['me']);
     }

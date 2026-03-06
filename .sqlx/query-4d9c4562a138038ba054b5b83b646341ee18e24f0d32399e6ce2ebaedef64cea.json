@@ -60,8 +60,13 @@
       },
       {
         "ordinal": 11,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
         "name": "modified_by",
-        "type_info": "Int8"
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -79,6 +84,7 @@
       true,
       false,
       true,
+      false,
       false,
       false,
       false,

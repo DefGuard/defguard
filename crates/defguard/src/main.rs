@@ -9,14 +9,14 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{Settings, settings::initialize_current_settings},
+        models::{ActiveWizard, Settings, Wizard, settings::initialize_current_settings},
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, models::wizard_flags::WizardFlags},
+    db::AppEvent,
     enterprise::{
         activity_log_stream::activity_log_stream_manager::run_activity_log_stream_manager,
         license::{License, run_periodic_license_check, set_cached_license},
@@ -33,7 +33,10 @@ use defguard_event_router::{RouterReceiverSet, run_event_router};
 use defguard_gateway_manager::{GatewayManager, GatewayTxSet};
 use defguard_proxy_manager::{ProxyManager, ProxyTxSet};
 use defguard_session_manager::{events::SessionManagerEvent, run_session_manager};
-use defguard_setup::{migration::run_migration_web_server, setup::run_setup_web_server};
+use defguard_setup::{
+    auto_adoption::attempt_auto_adoption, migration::run_migration_web_server,
+    setup_server::run_setup_web_server,
+};
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
 use tokio::sync::{
@@ -96,33 +99,49 @@ async fn main() -> Result<(), anyhow::Error> {
 
     initialize_current_settings(&pool).await?;
 
-    let wizard_flags = WizardFlags::init(&pool).await?;
+    let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
+    let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 
-    if wizard_flags.initial_wizard_in_progress && !wizard_flags.initial_wizard_completed {
-        if let Err(err) =
-            run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port).await
-        {
-            anyhow::bail!("Setup web server exited with error: {err}");
-        }
-    } else if wizard_flags.migration_wizard_in_progress && !wizard_flags.migration_wizard_completed
-    {
-        let mut settings = Settings::get_current_settings();
-        settings.update_from_config(&pool, &config).await?;
+    if !wizard.completed {
+        match wizard.active_wizard {
+            ActiveWizard::None => {}
+            ActiveWizard::Initial | ActiveWizard::AutoAdoption => {
+                if wizard.active_wizard == ActiveWizard::AutoAdoption {
+                    if let Err(err) = attempt_auto_adoption(&pool, &config).await {
+                        warn!("Failed to store startup auto-adoption states: {err}");
+                    }
+                }
+                if let Err(err) =
+                    run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
+                        .await
+                {
+                    anyhow::bail!("Setup web server exited with error: {err}");
+                }
+            }
+            ActiveWizard::Migration => {
+                let mut settings = Settings::get_current_settings();
+                settings.update_from_config(&pool, &config).await?;
 
-        Settings::initialize_runtime_defaults(&pool).await?;
+                Settings::initialize_runtime_defaults(&pool).await?;
 
-        config.initialize_post_settings();
-        SERVER_CONFIG
-            .set(config.clone())
-            .expect("Failed to initialize server config.");
+                config.initialize_post_settings();
+                SERVER_CONFIG
+                    .set(config.clone())
+                    .expect("Failed to initialize server config.");
 
-        ini_server_config = false;
+                ini_server_config = false;
 
-        if let Err(err) =
-            run_migration_web_server(pool.clone(), config.http_bind_address, config.http_port).await
-        {
-            anyhow::bail!("Migration web server exited with error: {err}");
+                if let Err(err) = run_migration_web_server(
+                    pool.clone(),
+                    config.http_bind_address,
+                    config.http_port,
+                )
+                .await
+                {
+                    anyhow::bail!("Migration web server exited with error: {err}");
+                }
+            }
         }
     }
 
@@ -228,7 +247,7 @@ async fn main() -> Result<(), anyhow::Error> {
             failed_logins,
             api_event_tx,
             incompatible_components,
-            proxy_control_tx
+            proxy_control_tx.clone()
         ) => error!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
@@ -236,7 +255,7 @@ async fn main() -> Result<(), anyhow::Error> {
             settings.stats_purge_threshold()
         ), if !settings.disable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
-        res = run_periodic_license_check(&pool) =>
+        res = run_periodic_license_check(&pool, proxy_control_tx) =>
             error!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, gateway_tx.clone()) =>
             error!("Utility thread returned early: {res:?}"),

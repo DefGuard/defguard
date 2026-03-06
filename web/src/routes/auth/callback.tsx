@@ -21,6 +21,9 @@ export const Route = createFileRoute('/auth/callback')({
         void context.queryClient.invalidateQueries({
           queryKey: ['me'],
         });
+        void context.queryClient.invalidateQueries({
+          queryKey: ['session-info'],
+        });
         useAuth.getState().authSubject.next(response.data);
       }, 1000);
     } catch (_) {

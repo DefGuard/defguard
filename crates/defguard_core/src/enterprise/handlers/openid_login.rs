@@ -605,7 +605,11 @@ pub async fn auth_callback(
     let (session, user_info, mfa_info) =
         create_session(&appstate.pool, insecure_ip, user_agent.as_str(), &mut user).await?;
 
-    let max_age = Duration::seconds(settings.auth_cookie_timeout().as_secs() as i64);
+    let timeout = Settings::get_current_settings().authentication_timeout();
+    let max_age = Duration::try_from(timeout).map_err(|err| {
+        error!("Failed to convert authentication timeout for cookie max-age: {err}");
+        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+    })?;
     let cookie_domain = config
         .cookie_domain
         .as_ref()
@@ -672,6 +676,7 @@ pub async fn auth_callback(
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::{
         enterprise::{
             license::{License, LicenseTier, set_cached_license},
@@ -679,8 +684,6 @@ mod test {
         },
         grpc::proto::enterprise::license::LicenseLimits,
     };
-
-    use super::*;
 
     #[test]
     fn test_prune_username() {

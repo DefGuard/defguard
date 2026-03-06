@@ -86,6 +86,7 @@ impl VpnSessionStats<Id> {
     }
 }
 
+#[must_use]
 pub fn endpoint_without_port(endpoint: &str) -> Option<String> {
     // Remove port part
     let mut addr = endpoint.rsplit_once(':')?.0;

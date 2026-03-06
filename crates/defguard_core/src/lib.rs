@@ -51,11 +51,11 @@ use handlers::{
     },
     updates::check_new_version,
     wireguard::all_gateways_status,
-    wizard::{get_migration_wizard_state, get_wizard_flags, update_migration_wizard_state},
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
 use regex::Regex;
+use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -102,8 +102,9 @@ use crate::{
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
-                add_openid_provider, delete_openid_provider, get_openid_provider,
-                list_openid_providers, modify_openid_provider, test_dirsync_connection,
+                add_openid_provider, delete_openid_provider, get_current_openid_provider,
+                get_openid_provider, list_openid_providers, modify_openid_provider,
+                test_dirsync_connection,
             },
         },
         snat::handlers::{
@@ -244,11 +245,6 @@ pub fn build_webapp(
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
             .route("/updates", get(check_new_version))
-            .route("/wizard", get(get_wizard_flags))
-            .route(
-                "/wizard/migration",
-                get(get_migration_wizard_state).put(update_migration_wizard_state),
-            )
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -404,6 +400,7 @@ pub fn build_webapp(
                     .put(modify_openid_provider)
                     .delete(delete_openid_provider),
             )
+            .route("/provider/current", get(get_current_openid_provider))
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
@@ -709,11 +706,38 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.ca_cert_der = Some(ca.cert_der().to_vec());
     settings.ca_key_der = Some(ca.key_pair_der().to_vec());
     settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
-    settings.initial_setup_completed = true;
+    // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
+    settings.public_proxy_url = config
+        .enrollment_url
+        .clone()
+        .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
+        .to_string();
     settings.defguard_url = config.url.to_string();
     update_current_settings(&pool, settings)
         .await
         .expect("Failed to update settings");
+
+    // Mark wizard as completed for dev environment
+    use defguard_common::db::models::{
+        initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+        wizard::{ActiveWizard, Wizard},
+    };
+    let wizard = Wizard {
+        active_wizard: ActiveWizard::None,
+        completed: true,
+    };
+    // Ensure wizard is initialized, then overwrite with completed state
+    let _ = Wizard::init(&pool, false).await;
+    wizard
+        .save(&pool)
+        .await
+        .expect("Failed to save wizard state for dev env");
+    InitialSetupState {
+        step: InitialSetupStep::Finished,
+    }
+    .save(&pool)
+    .await
+    .expect("Failed to save initial setup state for dev env");
 
     let mut transaction = pool
         .begin()
@@ -752,7 +776,10 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             .await
             .expect("Could not save network")
     };
-
+    let used_ips = network
+        .all_used_ips_for_network(&mut transaction)
+        .await
+        .expect("Failed to query used IPs from database");
     if Device::find_by_pubkey(
         &mut *transaction,
         "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=",
@@ -776,7 +803,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not save device");
         device
-            .assign_next_network_ip(&mut transaction, &network, None, None)
+            .assign_next_network_ip(&mut transaction, &network, &used_ips, None, None)
             .await
             .expect("Could not assign IP to device");
     }

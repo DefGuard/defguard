@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{NaiveDateTime, Timelike, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query, query_as};
+use sqlx::{PgExecutor, query, query_as, query_scalar};
 
 use crate::db::{Id, NoId};
 
@@ -19,8 +19,9 @@ pub struct Gateway<I = NoId> {
     pub certificate: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
+    pub enabled: bool,
     pub modified_at: NaiveDateTime,
-    pub modified_by: Id,
+    pub modified_by: String,
 }
 
 impl<I> Gateway<I> {
@@ -42,7 +43,7 @@ impl Gateway {
         name: S,
         address: S,
         port: i32,
-        modified_by: Id,
+        modified_by: S,
     ) -> Self {
         // FIXME: this is a workaround for reducing timestamp precision.
         // `chrono` has nanosecond precision by default, while Postgres only does microseconds.
@@ -63,7 +64,8 @@ impl Gateway {
             certificate: None,
             certificate_expiry: None,
             version: None,
-            modified_by,
+            enabled: true,
+            modified_by: modified_by.into(),
             modified_at,
         }
     }
@@ -87,7 +89,7 @@ impl Gateway<Id> {
     }
 
     /// Update `connected_at` to the current time and save it to the database.
-    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -104,7 +106,7 @@ impl Gateway<Id> {
     }
 
     /// Set `disconnected_at` to the current time and save it to the database.
-    pub async fn touch_disconnected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn touch_disconnected<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -120,11 +122,11 @@ impl Gateway<Id> {
         Ok(())
     }
 
-    pub async fn delete_by_id<'e, E>(executor: E, id: Id) -> Result<(), sqlx::Error>
+    pub async fn delete_by_id<'e, E>(executor: E, id: Id) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query!("DELETE FROM \"gateway\" WHERE id = $1", id,)
+        query!("DELETE FROM \"gateway\" WHERE id = $1", id,)
             .execute(executor)
             .await?;
 
@@ -136,7 +138,7 @@ impl Gateway<Id> {
         executor: E,
         address: &str,
         port: u16,
-    ) -> Result<Option<Self>, sqlx::Error>
+    ) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -152,9 +154,28 @@ impl Gateway<Id> {
         Ok(record)
     }
 
+    /// Return address and port as URL with HTTP scheme.
     #[must_use]
     pub fn url(&self) -> String {
         format!("http://{}:{}", self.address, self.port)
+    }
+
+    /// Disable all Gateways except one. Used for expired licence.
+    pub async fn leave_one_enabled<'e, E>(executor: E) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        let result = query_scalar!(
+            "UPDATE gateway SET enabled = false WHERE enabled AND id NOT IN (\
+                SELECT id FROM gateway WHERE enabled LIMIT 1
+            )"
+        )
+        .execute(executor)
+        .await?;
+
+        tracing::debug!("Disabled {} Gateways", result.rows_affected());
+
+        Ok(())
     }
 }
 

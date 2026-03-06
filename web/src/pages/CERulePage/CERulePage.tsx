@@ -30,13 +30,16 @@ import type {
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
+import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
+import { FieldError } from '../../shared/defguard-ui/components/FieldError/FieldError';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
 import { Icon, type IconKindValue } from '../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { useFormFieldError } from '../../shared/defguard-ui/hooks/useFormFieldError';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
@@ -148,7 +151,7 @@ const Content = ({ rule: initialRule }: Props) => {
       invalidate: ['acl'],
     },
     onSuccess: () => {
-      Snackbar.success('Rule added');
+      Snackbar.default('Rules added to Pending tab and awaiting deployment.');
       router.history.back();
     },
   });
@@ -159,7 +162,7 @@ const Content = ({ rule: initialRule }: Props) => {
       invalidate: ['acl'],
     },
     onSuccess: () => {
-      Snackbar.success('Rule changed');
+      Snackbar.default('Rules added to Pending tab and awaiting deployment.');
       router.history.back();
     },
   });
@@ -253,8 +256,22 @@ const Content = ({ rule: initialRule }: Props) => {
     return [];
   }, [networkDevices]);
 
-  const [_restrictionsPresent, _setRestrictionsPresent] = useState(false);
-  // const [manualDestination, setManualDestination] = useState(false);
+  const [restrictUsers, setRestrictUsers] = useState(() =>
+    isPresent(initialRule)
+      ? initialRule.deny_all_users || initialRule.denied_users.length > 0
+      : false,
+  );
+  const [restrictGroups, setRestrictGroups] = useState(() =>
+    isPresent(initialRule)
+      ? initialRule.deny_all_groups || initialRule.denied_groups.length > 0
+      : false,
+  );
+  const [restrictDevices, setRestrictDevices] = useState(() =>
+    isPresent(initialRule)
+      ? initialRule.deny_all_network_devices ||
+        initialRule.denied_network_devices.length > 0
+      : false,
+  );
 
   const formSchema = useMemo(
     () =>
@@ -335,6 +352,38 @@ const Content = ({ rule: initialRule }: Props) => {
             }
           }
 
+          if (restrictUsers && !vals.deny_all_users && vals.denied_users.length === 0) {
+            ctx.addIssue({
+              path: ['denied_users'],
+              code: 'custom',
+              message: m.form_select_at_least_one(),
+            });
+          }
+
+          if (
+            restrictGroups &&
+            !vals.deny_all_groups &&
+            vals.denied_groups.length === 0
+          ) {
+            ctx.addIssue({
+              path: ['denied_groups'],
+              code: 'custom',
+              message: m.form_select_at_least_one(),
+            });
+          }
+
+          if (
+            restrictDevices &&
+            !vals.deny_all_network_devices &&
+            vals.denied_network_devices.length === 0
+          ) {
+            ctx.addIssue({
+              path: ['denied_network_devices'],
+              code: 'custom',
+              message: m.form_select_at_least_one(),
+            });
+          }
+
           // check if one of allowed users/groups/devices fields is set
           const isAllowConfigured =
             vals.allow_all_users ||
@@ -361,8 +410,40 @@ const Content = ({ rule: initialRule }: Props) => {
               message,
             });
           }
+
+          if (vals.use_manual_destination_settings) {
+            const message =
+              'Manual destination is enabled. Provide a value or enable Any.';
+            if (!vals.any_address && vals.addresses.trim().length === 0) {
+              ctx.addIssue({
+                path: ['addresses'],
+                code: 'custom',
+                message,
+              });
+            }
+            if (!vals.any_port && vals.ports.trim().length === 0) {
+              ctx.addIssue({
+                path: ['ports'],
+                code: 'custom',
+                message,
+              });
+            }
+            if (!vals.any_protocol && vals.protocols.size === 0) {
+              ctx.addIssue({
+                path: ['protocols'],
+                code: 'custom',
+                message,
+              });
+            }
+          } else if (vals.destinations.size === 0) {
+            ctx.addIssue({
+              path: ['destinations'],
+              code: 'custom',
+              message: m.form_error_required(),
+            });
+          }
         }),
-    [],
+    [restrictDevices, restrictGroups, restrictUsers],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -417,13 +498,18 @@ const Content = ({ rule: initialRule }: Props) => {
     },
     onSubmit: async ({ value }) => {
       const toSend = cloneDeep(value);
-      // FIXME: When restrictions section is reworked
-      toSend.deny_all_network_devices = false;
-      toSend.deny_all_users = false;
-      toSend.deny_all_groups = false;
-      toSend.denied_network_devices = [];
-      toSend.denied_groups = [];
-      toSend.denied_users = [];
+      if (!restrictUsers) {
+        toSend.deny_all_users = false;
+        toSend.denied_users = [];
+      }
+      if (!restrictGroups) {
+        toSend.deny_all_groups = false;
+        toSend.denied_groups = [];
+      }
+      if (!restrictDevices) {
+        toSend.deny_all_network_devices = false;
+        toSend.denied_network_devices = [];
+      }
       if (isPresent(initialRule)) {
         await editRule({
           ...toSend,
@@ -531,6 +617,7 @@ const Content = ({ rule: initialRule }: Props) => {
                         });
                       }}
                     />
+                    <DestinationSelectionError />
                     {selectedDestinations.length > 0 && (
                       <div className="selected-destinations">
                         <div className="top">
@@ -797,66 +884,172 @@ const Content = ({ rule: initialRule }: Props) => {
             </form.Subscribe>
           )}
         </MarkedSection>
-        {/* <Divider spacing={ThemeSpacing.Xl2} />
+        <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="lock-closed">
           <AppText font={TextStyle.TBodyPrimary600}>{`Restrictions`}</AppText>
           <SizedBox height={ThemeSpacing.Xl} />
-          <DescriptionBlock title="Restrict access">
-            <p>{`If needed, you may exclude specific users, groups, or devices from accessing this location.`}</p>
+          <DescriptionBlock title="Limit access">
+            <p>{`Choose who or what should be blocked from accessing this location.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
-          <Checkbox
-            active={restrictionsPresent}
-            onClick={() => {
-              setRestrictionsPresent((s) => !s);
-            }}
-            text="Add restriction settings"
-          />
-          <Fold open={restrictionsPresent}>
-            <SizedBox height={ThemeSpacing.Xl2} />
-            {isPresent(usersOptions) && (
-              <form.AppField name="denied_users">
-                {(field) => (
-                  <field.FormSelectMultiple
-                    toggleText="Exclude specific users"
-                    counterText={(counter) => `Users ${counter}`}
-                    editText={`Edit users`}
-                    modalTitle="Select restricted users"
-                    options={usersOptions}
-                  />
-                )}
-              </form.AppField>
-            )}
-            <Divider spacing={ThemeSpacing.Lg} />
-            {isPresent(groupsOptions) && (
-              <form.AppField name="denied_groups">
-                {(field) => (
-                  <field.FormSelectMultiple
-                    options={groupsOptions}
-                    counterText={(counter) => `Groups ${counter}`}
-                    editText="Edit groups"
-                    modalTitle="Select restricted groups"
-                    toggleText="Exclude specific groups"
-                  />
-                )}
-              </form.AppField>
-            )}
-            <Divider spacing={ThemeSpacing.Lg} />
-            {isPresent(networkDevicesOptions) && (
-              <form.AppField name="denied_devices">
-                {(field) => (
-                  <field.FormSelectMultiple
-                    options={networkDevicesOptions}
-                    counterText={(counter) => `Devices ${counter}`}
-                    editText="Edit devices"
-                    modalTitle="Select restricted devices"
-                    toggleText="Exclude specific network devices"
-                  />
-                )}
-              </form.AppField>
-            )}
-          </Fold>
-        </MarkedSection> */}
+          {isPresent(usersOptions) && (
+            <div className="restriction-block">
+              <div className="restriction-toggle">
+                <Checkbox
+                  active={restrictUsers}
+                  onClick={() => {
+                    setRestrictUsers((current) => !current);
+                  }}
+                  text="Limit access for users"
+                />
+              </div>
+              <Fold open={restrictUsers}>
+                <div className="restriction-body">
+                  <div className="restriction-radio">
+                    <form.AppField name="deny_all_users">
+                      {(field) => (
+                        <field.FormRadio text="Exclude all users" value={true} />
+                      )}
+                    </form.AppField>
+                    <form.AppField name="deny_all_users">
+                      {(field) => (
+                        <field.FormRadio text="Exclude specific users" value={false} />
+                      )}
+                    </form.AppField>
+                  </div>
+                  <form.Subscribe
+                    selector={(s) => s.values.deny_all_users === false && restrictUsers}
+                  >
+                    {(open) => (
+                      <Fold open={open}>
+                        {isPresent(usersOptions) && (
+                          <form.AppField name="denied_users">
+                            {(field) => (
+                              <field.FormSelectMultiple
+                                toggleValue={!open}
+                                onToggleChange={() => {}}
+                                counterText={(counter) => `Users ${counter}`}
+                                editText="Edit users"
+                                modalTitle="Select restricted users"
+                                options={usersOptions}
+                              />
+                            )}
+                          </form.AppField>
+                        )}
+                      </Fold>
+                    )}
+                  </form.Subscribe>
+                </div>
+              </Fold>
+            </div>
+          )}
+          <Divider spacing={ThemeSpacing.Lg} />
+          {isPresent(groupsOptions) && (
+            <div className="restriction-block">
+              <div className="restriction-toggle">
+                <Checkbox
+                  active={restrictGroups}
+                  onClick={() => {
+                    setRestrictGroups((current) => !current);
+                  }}
+                  text="Limit access for groups"
+                />
+              </div>
+              <Fold open={restrictGroups}>
+                <div className="restriction-body">
+                  <div className="restriction-radio">
+                    <form.AppField name="deny_all_groups">
+                      {(field) => (
+                        <field.FormRadio text="Exclude all groups" value={true} />
+                      )}
+                    </form.AppField>
+                    <form.AppField name="deny_all_groups">
+                      {(field) => (
+                        <field.FormRadio text="Exclude specific groups" value={false} />
+                      )}
+                    </form.AppField>
+                  </div>
+                  <form.Subscribe
+                    selector={(s) => s.values.deny_all_groups === false && restrictGroups}
+                  >
+                    {(open) => (
+                      <Fold open={open}>
+                        {isPresent(groupsOptions) && (
+                          <form.AppField name="denied_groups">
+                            {(field) => (
+                              <field.FormSelectMultiple
+                                toggleValue={!open}
+                                onToggleChange={() => {}}
+                                counterText={(counter) => `Groups ${counter}`}
+                                editText="Edit groups"
+                                modalTitle="Select restricted groups"
+                                options={groupsOptions}
+                              />
+                            )}
+                          </form.AppField>
+                        )}
+                      </Fold>
+                    )}
+                  </form.Subscribe>
+                </div>
+              </Fold>
+            </div>
+          )}
+          <Divider spacing={ThemeSpacing.Lg} />
+          {isPresent(networkDevicesOptions) && (
+            <div className="restriction-block">
+              <div className="restriction-toggle">
+                <Checkbox
+                  active={restrictDevices}
+                  onClick={() => {
+                    setRestrictDevices((current) => !current);
+                  }}
+                  text="Limit access for devices"
+                />
+              </div>
+              <Fold open={restrictDevices}>
+                <div className="restriction-body">
+                  <div className="restriction-radio">
+                    <form.AppField name="deny_all_network_devices">
+                      {(field) => (
+                        <field.FormRadio text="Exclude all devices" value={true} />
+                      )}
+                    </form.AppField>
+                    <form.AppField name="deny_all_network_devices">
+                      {(field) => (
+                        <field.FormRadio text="Exclude specific devices" value={false} />
+                      )}
+                    </form.AppField>
+                  </div>
+                  <form.Subscribe
+                    selector={(s) =>
+                      s.values.deny_all_network_devices === false && restrictDevices
+                    }
+                  >
+                    {(open) => (
+                      <Fold open={open}>
+                        {isPresent(networkDevicesOptions) && (
+                          <form.AppField name="denied_network_devices">
+                            {(field) => (
+                              <field.FormSelectMultiple
+                                toggleValue={!open}
+                                onToggleChange={() => {}}
+                                counterText={(counter) => `Devices ${counter}`}
+                                editText="Edit devices"
+                                modalTitle="Select restricted devices"
+                                options={networkDevicesOptions}
+                              />
+                            )}
+                          </form.AppField>
+                        )}
+                      </Fold>
+                    )}
+                  </form.Subscribe>
+                </div>
+              </Fold>
+            </div>
+          )}
+        </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting })}>
           {({ isSubmitting }) => (
@@ -908,5 +1101,13 @@ const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
         )}
       </div>
     </div>
+  );
+};
+
+const DestinationSelectionError = () => {
+  const error = useFormFieldError();
+  if (!error) return null;
+  return (
+    <FieldError error="Manual destination is disabled. Select a predefined destination or enable manual config." />
   );
 };

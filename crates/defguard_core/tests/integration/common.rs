@@ -7,6 +7,7 @@ use defguard_common::{
 };
 use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
 use reqwest::Url;
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::PgPool;
 
 fn set_test_license_business() {
@@ -31,6 +32,7 @@ pub(crate) async fn init_config(
     let test_secret_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     let webauthn_rp_id = Url::parse(url).unwrap().domain().unwrap().to_string();
     let mut config = DefGuardConfig::new_test_config();
+    config.default_admin_password = SecretString::new("pass123".into());
     initialize_current_settings(pool)
         .await
         .expect("Could not initialize current settings in the database");

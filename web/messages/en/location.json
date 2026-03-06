@@ -1,5 +1,12 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "location_delete_success": "Location deleted",
-  "location_delete_failed": "Failed to delete location"
+  "add_location_firewall_no_license_subtitle": "Firewall is available only in Business and Enterprise plans. You can still create location now and activate Firewall later by upgrading your plan.",
+  "add_location_internal_vpn_allowed_ips_from_firewall_rules": "Allowed IPs are generated automatically from firewall rules",  "add_location_mfa_disabled_title": "Do not enforce MFA",
+  "add_location_mfa_internal_title": "Internal Defguard Multi-Factor Authentication",
+  "add_location_mfa_internal_content": "Uses the MFA methods configured in your Defguard profile.",
+  "add_location_mfa_external_title": "External Identity Provider Authentication",
+  "add_location_mfa_external_content": "Requires configuring an external identity provider in the settings, such as Google, Microsoft Entra ID, Okta, or JumpCloud.",  "location_delete_success": "Location deleted",
+  "location_delete_failed": "Failed to delete location",
+  "location_edit_failed": "Failed to update location",
+  "location_edit_addresses_rewrite_warning": "Changing the Gateway VPN IP address or netmask will automatically reassign any device addresses that fall outside the new network range to a randomly selected available IP address."
 }

@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"proxy\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"connected_at\" = $5,\"disconnected_at\" = $6,\"version\" = $7,\"enabled\" = $8,\"certificate\" = $9,\"certificate_expiry\" = $10,\"modified_at\" = $11,\"modified_by\" = $12 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Timestamp",
+        "Timestamp",
+        "Text",
+        "Bool",
+        "Text",
+        "Timestamp",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "780d66e4628d13c6c2f489cc87c7358945b93628104ac57aac207b8ec74be08a"
+}

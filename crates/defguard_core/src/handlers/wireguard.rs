@@ -50,6 +50,7 @@ pub(crate) struct WireguardNetworkInfo {
     network: WireguardNetwork<Id>,
     gateways: Vec<GatewayInfo>,
     allowed_groups: Vec<String>,
+    has_devices: bool,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -295,7 +296,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
 )]
 pub(crate) async fn modify_network(
     _role: AdminRole,
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -325,8 +326,9 @@ pub(crate) async fn modify_network(
     let mut network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
-    network.address = data.parse_addresses()?;
+    let new_addresses = data.parse_addresses()?;
 
+    network.address = new_addresses;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -409,7 +411,7 @@ pub(crate) async fn modify_network(
 )]
 pub(crate) async fn delete_network(
     _role: AdminRole,
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     State(appstate): State<AppState>,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -473,10 +475,13 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
     for network in networks {
         let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
         let gateways = GatewayInfo::find_by_location_id(&appstate.pool, network.id).await?;
+        let has_devices =
+            WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network.id).await?;
         network_info.push(WireguardNetworkInfo {
             network,
             gateways,
             allowed_groups,
+            has_devices,
         });
     }
     debug!("Listed WireGuard networks");
@@ -508,7 +513,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
     )
 )]
 pub(crate) async fn network_details(
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     _role: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -519,10 +524,13 @@ pub(crate) async fn network_details(
         Some(network) => {
             let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
             let gateways = GatewayInfo::find_by_location_id(&appstate.pool, network_id).await?;
+            let has_devices =
+                WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network_id).await?;
             let network_info = WireguardNetworkInfo {
                 network,
                 gateways,
                 allowed_groups,
+                has_devices,
             };
             ApiResponse::json(network_info, StatusCode::OK)
         }
@@ -538,7 +546,7 @@ pub(crate) async fn network_details(
 /// # Returns
 /// Returns `Vec<Gateway>` for requested network.
 pub(crate) async fn gateway_status(
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     _role: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -627,7 +635,7 @@ pub(crate) async fn add_user_devices(
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(network_id): Path<i64>,
+    Path(network_id): Path<Id>,
     Json(request_data): Json<MappedDevices>,
 ) -> ApiResult {
     let mapped_devices = request_data.devices.clone();
@@ -938,7 +946,7 @@ pub(crate) async fn modify_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     context: ApiRequestContext,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
     State(appstate): State<AppState>,
     Json(data): Json<ModifyDevice>,
 ) -> ApiResult {
@@ -1055,7 +1063,7 @@ pub(crate) async fn modify_device(
 )]
 pub(crate) async fn get_device(
     session: SessionInfo,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("Retrieving device with id: {device_id}");
@@ -1093,7 +1101,7 @@ pub(crate) async fn delete_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     context: ApiRequestContext,
-    Path(device_id): Path<i64>,
+    Path(device_id): Path<Id>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     // bind username to a variable for easier reference

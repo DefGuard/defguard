@@ -84,7 +84,9 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
     #[deprecated(since = "2.0.0", note = "Use Settings.webauthn_rp_id instead")]
     pub webauthn_rp_id: Option<String>,
+
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
+    #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
@@ -102,7 +104,8 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_threshold instead")]
     pub stats_purge_threshold: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse)]
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
     pub enrollment_url: Option<Url>,
 
@@ -181,6 +184,12 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_GRPC_BIND_ADDRESS")]
     pub grpc_bind_address: Option<IpAddr>,
+
+    #[arg(long, env = "DEFGUARD_ADOPT_GATEWAY")]
+    pub adopt_gateway: Option<String>,
+
+    #[arg(long, env = "DEFGUARD_ADOPT_EDGE")]
+    pub adopt_edge: Option<String>,
 }
 
 #[derive(Clone, Debug, Subcommand)]
