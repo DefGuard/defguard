@@ -336,17 +336,12 @@ impl TryFrom<Settings> for LDAPConfig {
     }
 }
 
-#[cfg(not(test))]
 pub struct LDAPConnection {
     pub config: LDAPConfig,
+    pub url: String,
+    #[cfg(not(test))]
     pub ldap: Ldap,
-    pub url: String,
-}
-
-#[cfg(test)]
-pub struct LDAPConnection {
-    pub config: LDAPConfig,
-    pub url: String,
+    #[cfg(test)]
     pub test_client: test_client::TestClient,
 }
 
@@ -810,7 +805,7 @@ impl LDAPConnection {
             ("objectClass", hashset![group_obj_class.as_str()]),
             (groupname_attr.as_str(), hashset![group_name]),
         ];
-        //   extent the group attr with multiple members
+        // Extend the group attr with multiple members.
         let member_dns = members
             .into_iter()
             .map(|member| self.config.user_dn_from_user(member))
@@ -828,11 +823,7 @@ impl LDAPConnection {
         self.add(&dn, group_attrs).await?;
         info!(
             "Added LDAP group {group_name} with members {}",
-            member_dns
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>()
-                .join(", ")
+            member_dns.join(", ")
         );
 
         Ok(())

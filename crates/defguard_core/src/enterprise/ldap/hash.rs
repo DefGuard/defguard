@@ -1,4 +1,4 @@
-use base64::Engine;
+use base64::{Engine, prelude::BASE64_STANDARD};
 use defguard_common::hex::to_lower_hex;
 use md4::Md4;
 use rand::{RngCore, rngs::OsRng};
@@ -22,10 +22,7 @@ pub fn salted_sha1_hash(password: &str) -> String {
     #[allow(deprecated)]
     let checksum = checksum.concat(GenericArray::from(salt));
 
-    format!(
-        "{{SSHA}}{}",
-        base64::prelude::BASE64_STANDARD.encode(checksum)
-    )
+    format!("{{SSHA}}{}", BASE64_STANDARD.encode(checksum))
 }
 
 /// Calculate Windows NT-HASH; used for `sambaNTPassword`.
@@ -42,9 +39,7 @@ pub fn nthash(password: &str) -> String {
 #[must_use]
 pub fn unicode_pwd(password: &str) -> Vec<u8> {
     let quoted = format!("\"{password}\"");
-    let utf16_bytes: Vec<u8> = quoted.encode_utf16().flat_map(u16::to_le_bytes).collect();
-
-    utf16_bytes
+    quoted.encode_utf16().flat_map(u16::to_le_bytes).collect()
 }
 
 #[cfg(test)]
@@ -54,7 +49,7 @@ mod tests {
     #[test]
     fn test_unicode_pwd() {
         let encoded = unicode_pwd("newPassword");
-        let res = base64::prelude::BASE64_STANDARD.encode(encoded);
+        let res = BASE64_STANDARD.encode(encoded);
         assert_eq!(res, "IgBuAGUAdwBQAGEAcwBzAHcAbwByAGQAIgA=");
     }
 

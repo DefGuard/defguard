@@ -533,9 +533,7 @@ pub async fn webauthn_end(
             Ok(auth_result) => {
                 if auth_result.needs_update() {
                     // Find `Passkey` and try to update its credentials
-                    for mut webauthn in
-                        WebAuthn::all_for_user(&appstate.pool, session.user_id).await?
-                    {
+                    for webauthn in WebAuthn::all_for_user(&appstate.pool, session.user_id).await? {
                         if let Some(true) = webauthn.passkey()?.update_credential(&auth_result) {
                             webauthn.save(&appstate.pool).await?;
                         }

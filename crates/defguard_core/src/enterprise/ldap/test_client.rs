@@ -402,7 +402,7 @@ impl LDAPConnection {
     where
         S: AsRef<[u8]> + Eq + Hash,
     {
-        let to_string = |s: S| String::from_utf8(s.as_ref().to_vec()).unwrap();
+        let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_string();
         let mods = mods
             .into_iter()
             .map(|modification| match modification {
@@ -586,7 +586,7 @@ pub(super) fn user_to_test_attrs<I>(
 pub(super) fn group_to_test_attrs<I>(
     group: &Group<I>,
     config: &LDAPConfig,
-    members: Option<&Vec<&User<I>>>,
+    members: Option<&[&User<I>]>,
 ) -> Vec<(String, HashSet<String>)> {
     use crate::hashset;
 

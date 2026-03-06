@@ -28,19 +28,6 @@ impl UserObjectClass {
     }
 }
 
-impl PartialEq<&str> for UserObjectClass {
-    fn eq(&self, other: &&str) -> bool {
-        let str: &str = self.name();
-        str == *other
-    }
-}
-
-impl PartialEq<UserObjectClass> for &str {
-    fn eq(&self, other: &UserObjectClass) -> bool {
-        other == self
-    }
-}
-
 pub(crate) fn user_from_searchentry(
     entry: &SearchEntry,
     username: &str,
@@ -68,8 +55,8 @@ pub(crate) fn user_from_searchentry(
     // Print the warning only if everything else checks out
     if check_username(username).is_err() {
         warn!(
-            "LDAP User \"{username}\" has username that cannot be used in Defguard, \
-                change the LDAP username attribute or change the username in LDAP to a valid one",
+            "LDAP User \"{username}\" has username that cannot be used in Defguard; change the \
+            LDAP username attribute or change the username in LDAP to a valid one"
         );
         return Err(LdapError::InvalidUsername(username.to_string()));
     }
@@ -94,7 +81,7 @@ pub(crate) fn update_from_ldap_user<I>(user: &mut User<I>, ldap_user: &User, con
 
 /// Return a vector of LDAP modifications for a given [`User`].
 #[must_use]
-pub fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mod<String>> {
+pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mod<String>> {
     let obj_classes = config.get_all_user_obj_classes();
     let mut changes = Vec::new();
     if obj_classes
@@ -185,7 +172,7 @@ fn in_attrs<'a>(attrs: &'a Vec<(&'a str, HashSet<&'a str>)>, key: &str) -> bool 
 }
 
 #[must_use]
-pub fn user_as_ldap_attrs<'a, I>(
+pub(crate) fn user_as_ldap_attrs<'a, I>(
     user: &'a User<I>,
     ssha_password: &'a str,
     nt_password: &'a str,

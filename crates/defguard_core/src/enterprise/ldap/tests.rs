@@ -896,7 +896,7 @@ fn test_compute_group_sync_changes_empty_maps() {
     let ldap_memberships = HashMap::new();
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -920,7 +920,7 @@ fn test_ldap_authority_add_group_to_defguard() {
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -951,7 +951,7 @@ fn test_ldap_authority_delete_group_from_defguard(_: PgPoolOptions, options: PgC
     let ldap_memberships = HashMap::new();
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -982,7 +982,7 @@ fn test_defguard_authority_add_group_to_ldap(_: PgPoolOptions, options: PgConnec
     let ldap_memberships = HashMap::new();
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1009,7 +1009,7 @@ fn test_defguard_authority_delete_group_from_ldap() {
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1043,7 +1043,7 @@ fn test_matching_groups_no_changes(_: PgPoolOptions, options: PgConnectOptions) 
 
     // Test both authority directions with identical group memberships
     let changes_ldap = compute_group_sync_changes(
-        defguard_memberships.clone(),
+        &defguard_memberships,
         ldap_memberships.clone(),
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1063,7 +1063,7 @@ fn test_matching_groups_no_changes(_: PgPoolOptions, options: PgConnectOptions) 
     assert!(changes_ldap.add_ldap.is_empty() || changes_ldap.add_ldap["test_group"].is_empty());
 
     let changes_defguard = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1104,7 +1104,7 @@ fn test_ldap_authority_add_users_to_group(_: PgPoolOptions, options: PgConnectOp
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1140,7 +1140,7 @@ fn test_ldap_authority_remove_users_from_group(_: PgPoolOptions, options: PgConn
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1192,7 +1192,7 @@ fn test_multiple_groups_ldap_authority(_: PgPoolOptions, options: PgConnectOptio
     );
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1263,7 +1263,7 @@ fn test_multiple_groups_defguard_authority(_: PgPoolOptions, options: PgConnectO
     ldap_memberships.insert("group2".to_string(), HashSet::from_iter(vec![&user3]));
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),
@@ -1301,7 +1301,7 @@ fn test_empty_groups() {
     ldap_memberships.insert("empty_group2".to_string(), HashSet::new());
 
     let changes = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1372,7 +1372,7 @@ fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Test with LDAP as authority
     let changes_ldap = compute_group_sync_changes(
-        defguard_memberships.clone(),
+        &defguard_memberships,
         ldap_memberships.clone(),
         Authority::LDAP,
         &LDAPConfig::default(),
@@ -1406,7 +1406,7 @@ fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Test with Defguard as authority
     let changes_defguard = compute_group_sync_changes(
-        defguard_memberships,
+        &defguard_memberships,
         ldap_memberships,
         Authority::Defguard,
         &LDAPConfig::default(),

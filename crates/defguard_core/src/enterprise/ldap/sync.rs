@@ -5,52 +5,68 @@
 //!
 //! # Sync status
 //!
-//! The sync status is stored in the database and can be either `InSync` or `OutOfSync`. The status is used to determine
-//! whether the full sync should be performed or not. The status is set to `OutOfSync` when some Defguard changes
-//! couldn't be propagated to LDAP (e.g. LDAP outage). The status is set to `InSync` when the sync is completed successfully.
+//! The sync status is stored in the database and can be either `InSync` or `OutOfSync`. The status
+//! is used to determine whether the full sync should be performed or not. The status is set to
+//! `OutOfSync` when some Defguard changes couldn't be propagated to LDAP (e.g. LDAP outage). The
+//! status is set to `InSync` when the sync is completed successfully.
 //!
 //! # Full synchronization
 //!
-//! The full synchronization takes all objects (users, groups and their memberships) from one source,
-//! compares it with the other one and computes appropriate changes to make the two sources roughly equal.
+//! The full synchronization takes all objects (users, groups and their memberships) from one
+//! source, compares it with the other one and computes appropriate changes to make the two sources
+//! roughly equal.
 //!
 //! The full sync is performed only when the sync status is set to `OutOfSync`.
 //!
-//! The changes are computed with regard to a specified authority, which determines which source is considered to
-//! be the more important one and which is expected to be edited more often. The authority can be either LDAP or Defguard.
+//! The changes are computed with regard to a specified authority, which determines which source is
+//! considered to be the more important one and which is expected to be edited more often. The
+//! authority can be either LDAP or Defguard.
 //!
-//! The authority has been introduced to solve the problem of ambiguity when some object is not present in one of the sources.
-//! Such scenario may occur when a user is deleted from one of the sources OR when a user is added to one of the sources.
-//! In each case, a different action should be taken to make the two sources equal (deletion or addition). For example:
+//! The authority has been introduced to solve the problem of ambiguity when some object is not
+//! present in one of the sources. Such scenario may occur when a user is deleted from one of the
+//! sources OR when a user is added to one of the sources. In each case, a different action should
+//! be taken to make the two sources equal (deletion or addition). For example:
 //! - User is not present in LDAP but is present in Defguard
-//! - Did we just add the user to Defguard but couldn't propagate that change or did we delete the user from LDAP?
-//! - If the authority is LDAP, we should delete the user from Defguard, as we assume that it was more probable that the change was made in LDAP.
-//! - If the authority is Defguard, we should add the user to LDAP, as we assume that it was more probable that the change was made in Defguard.
+//! - Did we just add the user to Defguard but couldn't propagate that change or did we delete the
+//!   user from LDAP?
+//! - If the authority is LDAP, we should delete the user from Defguard, as we assume that it was
+//!   more probable that the change was made in LDAP.
+//! - If the authority is Defguard, we should add the user to LDAP, as we assume that it was more
+//!   probable that the change was made in Defguard.
 //!
-//! If the LDAP connection is never lost and no other issues arise, the full sync should be performed only once, when the LDAP sync is enabled.
-//! So this is a more of a damage control mechanism rather than something that should be invoked regularly.
+//! If the LDAP connection is never lost and no other issues arise, the full sync should be
+//! performed only once, when the LDAP sync is enabled. So this is a more of a damage control
+//! mechanism rather than something that should be invoked regularly.
 //!
 //! # Incremental synchronization
 //!
-//! The incremental synchronization is a regular synchronization operation which comes in two varieties: synchronous and asynchronous.
+//! The incremental synchronization is a regular synchronization operation which comes in two
+//! varieties: synchronous and asynchronous.
 //!
-//! Changes from Defguard are propagated to LDAP in real-time, synchronously, to keep LDAP up-to-date with Defguard instantly. This is done by
-//! calling appropriate LDAP operations after each change in Defguard. Changes other way around (from LDAP to Defguard) are pulled asynchronously
-//! at regular intervals (every 5 minutes by default). Implementation-wise it's done by running a full sync with LDAP authority, as it has the same effect
-//! when we consider that LDAP has the most recent Defguard changes (due to synchronous change propagation).
+//! Changes from Defguard are propagated to LDAP in real-time, synchronously, to keep LDAP
+//! up-to-date with Defguard instantly. This is done by calling appropriate LDAP operations after
+//! each change in Defguard. Changes other way around (from LDAP to Defguard) are pulled
+//! asynchronously at regular intervals (every 5 minutes by default). Implementation-wise it's done
+//! by running a full sync with LDAP authority, as it has the same effect when we consider that LDAP
+//! has the most recent Defguard changes (due to synchronous change propagation).
 //!
 //! This synchronization should work reliably most of the time, given that:
 //! - LDAP connection is stable
 //! - The LDAP change pull is performed relatively often
-//! - One object is not changed in both sources between two asynchronous syncs (may cause overwriting of changes), but this sounds like an unlikely scenario
+//! - One object is not changed in both sources between two asynchronous syncs (may cause
+//! overwriting of changes), but this sounds like an unlikely scenario
 //!
 //! # Potential improvements and issues
 //!
-//! - Some optimizations could be made using the implementation-specific object modification/creation timestamps in LDAP. Currently everything is compared
-//!   as is, without any regard to the time of the change. We could skip some operations on objects that haven't changed since the last sync. There is however
-//!   still an issue with objects that have been deleted, LDAP doesn't store deleted objects by default, so we may still need to compare full object lists.
-//! - There is no real pagination and everything is loaded into the memory at once. This may be an issue at some point. 10k LDAP records wasn't a problem in testing.
-//!   We may have bigger issues with other parts of Defguard with that user count though.
+//! - Some optimizations could be made using the implementation-specific object
+//!   modification/creation timestamps in LDAP. Currently everything is compared as is, without any
+//!   regard to the time of the change. We could skip some operations on objects that haven't
+//!   changed since the last sync. There is however still an issue with objects that have been
+//!   deleted, LDAP doesn't store deleted objects by default, so we may still need to compare full
+//!   object lists.
+//! - There is no real pagination and everything is loaded into the memory at once. This may be an
+//!   issue at some point. 10k LDAP records wasn't a problem in testing. We may have bigger issues
+//!   with other parts of Defguard with that user count though.
 //!
 use std::collections::{HashMap, HashSet};
 
@@ -147,8 +163,8 @@ pub(super) fn compute_user_sync_changes(
         .map(|u| ldap_config.user_dn_from_user(u))
         .collect::<HashSet<_>>();
 
-    trace!("Defguard identifiers: {:?}", defguard_identifiers);
-    trace!("LDAP identifiers: {:?}", ldap_identifiers);
+    trace!("Defguard identifiers: {defguard_identifiers:?}");
+    trace!("LDAP identifiers: {ldap_identifiers:?}");
 
     for user in all_ldap_users.drain(..) {
         ldap_identifiers.insert(ldap_config.user_dn_from_user(&user));
@@ -225,7 +241,7 @@ pub(super) struct GroupSyncChanges<'a> {
 
 /// Computes what groups should be added/deleted and where
 pub(super) fn compute_group_sync_changes<'a>(
-    defguard_memberships: HashMap<String, HashSet<User<Id>>>,
+    defguard_memberships: &HashMap<String, HashSet<User<Id>>>,
     ldap_memberships: HashMap<String, HashSet<&'a User>>,
     authority: Authority,
     ldap_config: &LDAPConfig,
@@ -236,9 +252,9 @@ pub(super) fn compute_group_sync_changes<'a>(
     let mut delete_ldap = HashMap::new();
     let mut add_ldap = HashMap::new();
 
-    for (group, members) in defguard_memberships.clone() {
+    for (group, members) in defguard_memberships {
         debug!("Checking group {} for changes", group);
-        if let Some(ldap_members) = ldap_memberships.get(&group) {
+        if let Some(ldap_members) = ldap_memberships.get(group) {
             debug!("Group {group:?} found in LDAP, checking for membership differences");
             let missing_from_defguard = ldap_members
                 .iter()
@@ -261,7 +277,8 @@ pub(super) fn compute_group_sync_changes<'a>(
                 .collect::<HashSet<_>>();
 
             trace!(
-                "Group {group:?} members missing from Defguard: {missing_from_defguard:?}, missing from LDAP: {missing_from_ldap:?}"
+                "Group {group:?} members missing from Defguard: {missing_from_defguard:?}, missing \
+                from LDAP: {missing_from_ldap:?}"
             );
 
             if missing_from_defguard.is_empty() {
@@ -270,13 +287,15 @@ pub(super) fn compute_group_sync_changes<'a>(
                 match authority {
                     Authority::Defguard => {
                         debug!(
-                            "Group {group:?} has members missing from Defguard, marking them for deletion in LDAP: {missing_from_defguard:?}"
+                            "Group {group:?} has members missing from Defguard, marking them for \
+                            deletion in LDAP: {missing_from_defguard:?}"
                         );
                         delete_ldap.insert(group.clone(), missing_from_defguard);
                     }
                     Authority::LDAP => {
                         debug!(
-                            "Group {group:?} has members missing from Defguard, marking them for addition in Defguard: {missing_from_defguard:?}"
+                            "Group {group:?} has members missing from Defguard, marking them for \
+                            addition in Defguard: {missing_from_defguard:?}"
                         );
                         add_defguard.insert(group.clone(), missing_from_defguard);
                     }
@@ -289,13 +308,15 @@ pub(super) fn compute_group_sync_changes<'a>(
                 match authority {
                     Authority::Defguard => {
                         debug!(
-                            "Group {group:?} has members missing from LDAP, marking them for addition to LDAP: {missing_from_ldap:?}"
+                            "Group {group:?} has members missing from LDAP, marking them for \
+                            addition to LDAP: {missing_from_ldap:?}"
                         );
                         add_ldap.insert(group.clone(), missing_from_ldap);
                     }
                     Authority::LDAP => {
                         debug!(
-                            "Group {group:?} has members missing from LDAP, marking them for deletion in Defguard: {missing_from_ldap:?}"
+                            "Group {group:?} has members missing from LDAP, marking them for \
+                            deletion in Defguard: {missing_from_ldap:?}"
                         );
                         delete_defguard.insert(group.clone(), missing_from_ldap);
                     }
@@ -305,15 +326,17 @@ pub(super) fn compute_group_sync_changes<'a>(
             match authority {
                 Authority::Defguard => {
                     debug!(
-                        "Group {group:?} is missing from LDAP, marking it for addition to LDAP along with all members due to Defguard authority"
+                        "Group {group:?} is missing from LDAP, marking it for addition to LDAP \
+                        along with all members due to Defguard authority"
                     );
-                    add_ldap.insert(group.clone(), members);
+                    add_ldap.insert(group.clone(), members.clone());
                 }
                 Authority::LDAP => {
                     debug!(
-                        "Group {group:?} is missing from LDAP, marking all its member for deletion from Defguard due to LDAP authority"
+                        "Group {group:?} is missing from LDAP, marking all its member for deletion \
+                        from Defguard due to LDAP authority"
                     );
-                    delete_defguard.insert(group.clone(), members);
+                    delete_defguard.insert(group.clone(), members.clone());
                 }
             }
         }
@@ -324,13 +347,15 @@ pub(super) fn compute_group_sync_changes<'a>(
             match authority {
                 Authority::Defguard => {
                     debug!(
-                        "Group {group:?} is missing from Defguard, marking all its member for deletion from LDAP due to Defguard authority"
+                        "Group {group:?} is missing from Defguard, marking all its member for \
+                        deletion from LDAP due to Defguard authority"
                     );
                     delete_ldap.insert(group, members);
                 }
                 Authority::LDAP => {
                     debug!(
-                        "Group {group:?} is missing from Defguard, marking all its member for addition to Defguard due to LDAP authority"
+                        "Group {group:?} is missing from Defguard, marking all its member for \
+                        addition to Defguard due to LDAP authority"
                     );
                     add_defguard.insert(group, members);
                 }
@@ -400,7 +425,8 @@ fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConf
     different
 }
 
-/// Extracts users that are in both sources for later comparison and attritubte modification (emails, phone numbers)
+/// Extracts users that are in both sources for later comparison and attritubte modification
+/// (emails, phone numbers).
 pub(super) fn extract_intersecting_users(
     defguard_users: &mut Vec<User<Id>>,
     ldap_users: &mut Vec<User>,
@@ -479,9 +505,10 @@ impl super::LDAPConnection {
         Ok(())
     }
 
-    /// Allows to synchronize user data (e.g. email, groups) between Defguard and LDAP based on the authority for a single user
+    /// Allows to synchronize user data (e.g. email, groups) between Defguard and LDAP based on the
+    /// authority for a single user.
     ///
-    /// Does nothing if the two way sync is disabled
+    /// Does nothing if the two way sync is disabled.
     pub(crate) async fn sync_user_data(
         &mut self,
         user: &User<Id>,
@@ -490,7 +517,8 @@ impl super::LDAPConnection {
         debug!("Syncing user data for {user}");
         let settings = Settings::get_current_settings();
 
-        // Force update user data in LDAP if the two-way sync is disabled, otherwise respect the authority
+        // Force update user data in LDAP if the two-way sync is disabled, otherwise respect the
+        // authority.
         let authority = if !settings.ldap_sync_enabled || !settings.ldap_is_authoritative {
             Authority::Defguard
         } else {
@@ -507,7 +535,7 @@ impl super::LDAPConnection {
 
         let intersecting_users = vec![(ldap_user.clone(), user.clone())];
 
-        // create a hashmap for the calculate group membership changes function
+        // Create a hashmap for the calculated group membership changes function.
         let defguard_memberships = defguard_groups
             .iter()
             .map(|g| (g.clone(), hashset![user.clone()]))
@@ -522,7 +550,7 @@ impl super::LDAPConnection {
             .await?;
 
         let changes = compute_group_sync_changes(
-            defguard_memberships,
+            &defguard_memberships,
             ldap_memberships,
             authority,
             &self.config,
@@ -533,12 +561,14 @@ impl super::LDAPConnection {
     }
 
     /// Fixes users with missing LDAP path
-    /// This is for compatibility with older Defguard versions that didn't store LDAP paths in the database
-    /// It will try to fetch the LDAP path from the LDAP server for users that have it missing
-    /// If the user is not found in LDAP, it will skip fixing that user
+    /// This is for compatibility with older Defguard versions that didn't store LDAP paths in the
+    /// database.
+    /// It will try to fetch the LDAP path from the LDAP server for users that have it missing.
+    /// If the user is not found in LDAP, it will skip fixing that user.
     ///
-    /// This function matches the user by username first, as those should be unique in both Defguard and LDAP.
-    /// Then, just to make sure the user wasn't renamed, it checks if the RDN values match.
+    /// This function matches the user by username first, as those should be unique in both Defguard
+    /// and LDAP. Then, just to make sure the user wasn't renamed, it checks if the RDN values
+    /// match.
     pub(crate) async fn fix_missing_user_path(&mut self, pool: &PgPool) -> Result<(), LdapError> {
         debug!("Fixing missing user path in LDAP");
 
@@ -566,10 +596,10 @@ impl super::LDAPConnection {
 
                         if defguard_user_rdn != ldap_user_rdn {
                             warn!(
-                                "User {} has different RDN in Defguard ({}) and LDAP ({}), \
-                                cannot fix missing LDAP path. Please update their username manually, so
-                                they match in both sources.",
-                                defguard_user.username, defguard_user_rdn, ldap_user_rdn
+                                "User {} has different RDN in Defguard ({defguard_user_rdn}) and \
+                                LDAP ({ldap_user_rdn}), cannot fix missing LDAP path. Please, \
+                                update the username manually, so it matches in both sources.",
+                                defguard_user.username,
                             );
                             continue;
                         }
@@ -583,14 +613,16 @@ impl super::LDAPConnection {
                             defguard_user.save(&mut *transaction).await?;
                         } else {
                             warn!(
-                                "User {} has no LDAP path in LDAP, skipping fixing their path in Defguard",
+                                "User {} has no LDAP path in LDAP, skipping fixing their path in \
+                                Defguard",
                                 defguard_user.username
                             );
                         }
                     }
                     Err(err) => {
                         debug!(
-                            "Failed to get user {} from LDAP: {err}, cannot update their DN in Defguard",
+                            "Failed to get user {} from LDAP: {err}, cannot update their DN in \
+                            Defguard",
                             defguard_user.username
                         );
                     }
@@ -632,8 +664,8 @@ impl super::LDAPConnection {
         }
 
         debug!(
-            "The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced",
-            sync_groups
+            "The following groups were defined for sync: {sync_groups:?}, only Defguard users \
+            belonging to these groups will be synced"
         );
         let mut sync_group_members = HashSet::new();
         for sync_group in &sync_groups {
@@ -696,7 +728,7 @@ impl super::LDAPConnection {
         );
 
         let membership_changes = compute_group_sync_changes(
-            defguard_memberships,
+            &defguard_memberships,
             ldap_memberships,
             authority,
             &self.config,
@@ -838,10 +870,10 @@ impl super::LDAPConnection {
                     );
                 } else {
                     warn!(
-                        "LDAP user with username {} already exists in Defguard. \
-                        Those users have different DNs: {} (Defguard) vs {} (LDAP). \
-                        All usernames must be unique, so this LDAP user will not be added to Defguard.",
-                        user.username, ldap_user_dn, defguard_user_dn
+                        "LDAP user with username {} already exists in Defguard. Those users have \
+                        different DNs: {ldap_user_dn} (Defguard) vs {defguard_user_dn} (LDAP). All \
+                        usernames must be unique, so this LDAP user will not be added to Defguard.",
+                        user.username,
                     );
                 }
             } else {
@@ -902,7 +934,8 @@ impl super::LDAPConnection {
                 Ok(user) => all_users.push(user),
                 Err(err) => {
                     warn!(
-                        "Failed to create user {username} from LDAP entry, error: {err}. The user will be skipped during sync"
+                        "Failed to create user {username} from LDAP entry, error: {err}. The user \
+                        will be skipped during sync"
                     );
                     debug!("Skipping user {username} due to error: {err}");
                 }
