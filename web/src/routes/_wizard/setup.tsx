@@ -19,7 +19,10 @@ import type {
   InitialSetupStepValue,
 } from '../../shared/api/types';
 import { useApp } from '../../shared/hooks/useApp';
-import { getSettingsEssentialsQueryOptions } from '../../shared/query';
+import {
+  getSessionInfoQueryOptions,
+  getSettingsEssentialsQueryOptions,
+} from '../../shared/query';
 
 /// Whether the current wizard step requires an authenticated setup session.
 /// Both initial and auto-adoption wizards allow unauthenticated access
@@ -53,21 +56,17 @@ const autoAdoptionStepMap: Record<
 };
 
 const handleWizardRedirect = async ({
-  location,
   client,
 }: {
   location: ParsedLocation;
   client: QueryClient;
 }): Promise<void> => {
+  const sessionInfo = (await client.fetchQuery(getSessionInfoQueryOptions)).data;
   const settingsEssentials = (await client.fetchQuery(getSettingsEssentialsQueryOptions))
     .data;
   useApp.setState({ settingsEssentials });
 
-  // Setup already completed, redirect away from wizard.
-  if (
-    settingsEssentials.initial_setup_completed &&
-    location.pathname.startsWith('/setup')
-  ) {
+  if (sessionInfo.active_wizard === null) {
     throw redirect({ to: '/auth/login', replace: true });
   }
 

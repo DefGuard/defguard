@@ -31,7 +31,7 @@ export const LoginEmail = () => {
   const { mutateAsync } = useMutation({
     mutationFn: api.auth.mfa.email.verify,
     meta: {
-      invalidate: ['me'],
+      invalidate: [['me'], ['session-info']],
     },
     onSuccess: (response) => {
       useAuth.getState().authSubject.next(response.data);

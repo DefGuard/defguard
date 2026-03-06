@@ -467,7 +467,7 @@ pub(crate) async fn delete_network(
         ("api_token" = [])
     )
 )]
-pub(crate) async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing WireGuard networks");
     let mut network_info = Vec::new();
     let networks = WireguardNetwork::all(&appstate.pool).await?;

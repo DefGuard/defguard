@@ -131,8 +131,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
-    let config = init_config(None, pool).await;
-    initialize_users(pool, &config).await;
+    initialize_users(pool).await;
     initialize_current_settings(pool)
         .await
         .expect("Could not initialize settings");

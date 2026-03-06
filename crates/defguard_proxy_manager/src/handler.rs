@@ -7,7 +7,6 @@ use std::{
 use axum_extra::extract::cookie::Key;
 use defguard_common::{
     VERSION,
-    config::server_config,
     db::{
         Id,
         models::{Settings, proxy::Proxy},
@@ -44,7 +43,6 @@ use defguard_version::{
 use hyper_rustls::HttpsConnectorBuilder;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
-use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
 use tokio::{
@@ -88,10 +86,12 @@ pub(super) struct ProxyHandler {
     pub(super) url: Url,
     shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
     proxy_id: Id,
+    proxy_cookie_key: Key,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
 }
 
 impl ProxyHandler {
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
         pool: PgPool,
         url: Url,
@@ -100,6 +100,7 @@ impl ProxyHandler {
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
+        proxy_cookie_key: Key,
     ) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
@@ -110,6 +111,7 @@ impl ProxyHandler {
             url,
             shutdown_signal,
             proxy_id,
+            proxy_cookie_key,
             client: None,
         }
     }
@@ -121,6 +123,7 @@ impl ProxyHandler {
         remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
+        proxy_cookie_key: Key,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -132,6 +135,7 @@ impl ProxyHandler {
             sessions,
             shutdown_signal,
             proxy_id,
+            proxy_cookie_key,
         ))
     }
 
@@ -198,14 +202,13 @@ impl ProxyHandler {
         loop {
             let endpoint = self.endpoint()?;
             let settings = Settings::get_current_settings();
-            let Some(ca_cert_der) = settings.ca_cert_der else {
+            let Some(ref ca_cert_der) = settings.ca_cert_der else {
                 return Err(ProxyError::MissingConfiguration(
                     "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
                 ));
             };
-            let tls_config =
-                tls_certs::client_config(&ca_cert_der, certs_rx.clone(), self.proxy_id)
-                    .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+            let tls_config = tls_certs::client_config(ca_cert_der, certs_rx.clone(), self.proxy_id)
+                .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
             let connector = HttpsConnectorBuilder::new()
                 .with_tls_config(tls_config)
                 .https_only()
@@ -272,13 +275,9 @@ impl ProxyHandler {
             info!("Connected to proxy at {}", endpoint.uri());
             let mut resp_stream = response.into_inner();
 
-            // Derive proxy cookie key from core secret to avoid transmitting it over gRPC.
-            let config = server_config();
-            let proxy_cookie_key = Key::derive_from(config.secret_key.expose_secret().as_bytes());
-
             // Send initial info with private cookies key.
             let initial_info = InitialInfo {
-                private_cookies_key: proxy_cookie_key.master().to_vec(),
+                private_cookies_key: self.proxy_cookie_key.master().to_vec(),
             };
             let _ = tx.send(CoreResponse {
                 id: 0,
@@ -744,12 +743,12 @@ impl ProxyHandler {
                                             as a result of proxy OpenID auth callback.",
                                                 user.username
                                             );
-                                            let config = server_config();
+                                            let settings = Settings::get_current_settings();
                                             let desktop_configuration = Token::new(
                                                 user.id,
                                                 Some(user.id),
                                                 Some(user.email),
-                                                config.enrollment_token_timeout.as_secs(),
+                                                settings.enrollment_token_timeout().as_secs(),
                                                 Some(ENROLLMENT_TOKEN_TYPE.to_string()),
                                             );
                                             debug!("Saving a new desktop configuration token...");
@@ -758,7 +757,6 @@ impl ProxyHandler {
                                                 "Saved desktop configuration token. Responding to \
                                             proxy with the token."
                                             );
-                                            let settings = Settings::get_current_settings();
                                             let public_proxy_url = settings.proxy_public_url()?;
 
                                             Some(core_response::Payload::AuthCallback(

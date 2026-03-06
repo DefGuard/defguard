@@ -68,6 +68,7 @@ const formSchema = z.object({
       }),
     )
     .max(64, m.form_error_max_len({ length: 64 })),
+  auth_cookie_timeout_days: z.number(m.form_error_required()).int().min(1),
   public_proxy_url: z
     .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
     .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
@@ -115,6 +116,7 @@ const Content = ({ settings }: { settings: Settings }) => {
   const defaultValues = useMemo(
     (): FormFields => ({
       instance_name: settings.instance_name ?? '',
+      auth_cookie_timeout_days: settings.auth_cookie_timeout_days ?? 7,
       public_proxy_url: settings.public_proxy_url ?? '',
       authentication_period_days: settings.authentication_period_days ?? 7,
     }),
@@ -122,6 +124,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       settings.instance_name,
       settings.public_proxy_url,
       settings.authentication_period_days,
+      settings.auth_cookie_timeout_days,
     ],
   );
 
@@ -168,6 +171,16 @@ const Content = ({ settings }: { settings: Settings }) => {
               required
               label={m.settings_instance_label_session_duration()}
               options={sessionDurationOptions}
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="auth_cookie_timeout_days">
+          {(field) => (
+            <field.FormInput
+              required
+              label={m.settings_instance_label_auth_cookie_timeout_days()}
+              type="number"
             />
           )}
         </form.AppField>
