@@ -38,5 +38,9 @@
   "cmp_sync_behavior_target_users": "Users",
   "cmp_sync_behavior_target_groups": "Groups",
   "cmp_copy_button": "Copy to clipboard",
-  "cmp_copy_button_tooltip": "Content copied to clipboard."
+  "cmp_copy_button_tooltip": "Content copied to clipboard.",
+  "acl_alias_delete_success": "Alias deleted",
+  "acl_alias_delete_failed": "Failed to delete alias",
+  "acl_destination_delete_success": "Destination deleted",
+  "acl_destination_delete_failed": "Failed to delete destination"
 }

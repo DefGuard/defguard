@@ -17,10 +17,11 @@ import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/c
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { resourceById } from '../../shared/utils/resourceById';
-import { DeleteConfirmModal } from '../Acl/components/DeleteConfirmModal/DeleteConfirmModal';
 import { DeletionBlockedModal } from '../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type RowData = AclAlias;
@@ -70,18 +71,6 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
     description: string;
     rules: string[];
   } | null>(null);
-  const [deleteModal, setDeleteModal] = useState<{
-    title: string;
-    description: string;
-    aliasId: number;
-  } | null>(null);
-
-  const { mutateAsync: deleteAlias, isPending: deleteAliasPending } = useMutation({
-    mutationFn: api.acl.alias.deleteAlias,
-    meta: {
-      invalidate: ['acl'],
-    },
-  });
 
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
@@ -195,11 +184,13 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
                         });
                         return;
                       }
-                      setDeleteModal({
-                        title: 'Delete alias',
-                        description:
-                          "Are you sure you want to delete this alias? This action can't be undone.",
-                        aliasId: row.id,
+                      openModal(ModalName.DeleteAliasDestinationConfirm, {
+                        title: m.modal_delete_acl_alias_title(),
+                        description: m.modal_delete_acl_alias_body(),
+                        target: {
+                          kind: 'alias',
+                          id: row.id,
+                        },
                       });
                     });
                   },
@@ -271,24 +262,6 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
         description={blockedModal?.description ?? ''}
         rules={blockedModal?.rules ?? []}
         onClose={() => setBlockedModal(null)}
-      />
-      <DeleteConfirmModal
-        isOpen={deleteModal !== null}
-        title={deleteModal?.title ?? ''}
-        description={deleteModal?.description ?? ''}
-        onConfirm={() => {
-          if (!deleteModal) return;
-          void (async () => {
-            try {
-              await deleteAlias(deleteModal.aliasId);
-              setDeleteModal(null);
-            } catch {
-              return;
-            }
-          })();
-        }}
-        onClose={() => setDeleteModal(null)}
-        isPending={deleteAliasPending}
       />
     </>
   );

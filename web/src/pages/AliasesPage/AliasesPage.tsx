@@ -9,6 +9,7 @@ import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getAliasesCountQueryOptions } from '../../shared/query';
+import { DeleteAliasDestinationConfirmModal } from '../Acl/components/DeleteAliasDestinationConfirmModal/DeleteAliasDestinationConfirmModal';
 import { AliasesDeployedTab } from './tabs/AliasesDeployedTab';
 import { AliasesPendingTab } from './tabs/AliasesPendingTab';
 
@@ -52,6 +53,7 @@ export const AliasesPage = () => {
           {activeTab === AclDeploymentState.Applied && <AliasesDeployedTab />}
           {activeTab === AclDeploymentState.Modified && <AliasesPendingTab />}
         </Suspense>
+        <DeleteAliasDestinationConfirmModal />
       </TablePageLayout>
     </Page>
   );

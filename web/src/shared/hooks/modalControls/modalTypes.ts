@@ -11,6 +11,7 @@ import type {
   OpenCEGroupModal,
   OpenCEOpenIdClientModal,
   OpenCEWebhookModal,
+  OpenDeleteAliasDestinationConfirmModal,
   OpenDeleteGatewayModal,
   OpenDeleteLocationModal,
   OpenDisplayListModal,
@@ -34,6 +35,7 @@ export const ModalName = {
   SendTestMail: 'sendTestMail',
   GatewaySetup: 'gatewaySetup',
   DisplayList: 'displayList',
+  DeleteAliasDestinationConfirm: 'deleteAliasDestinationConfirm',
   ChangePassword: 'changePassword',
   TotpSetup: 'totpSetup',
   RecoveryCodes: 'recoveryCodes',
@@ -153,6 +155,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.DisplayList),
     data: z.custom<OpenDisplayListModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeleteAliasDestinationConfirm),
+    data: z.custom<OpenDeleteAliasDestinationConfirmModal>(),
   }),
   z.object({
     name: z.literal(ModalName.AddLocation),

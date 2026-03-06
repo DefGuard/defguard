@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -7,7 +7,6 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
 import { type AclDestination, AclProtocolName } from '../../../shared/api/types';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -21,10 +20,11 @@ import { TableBody } from '../../../shared/defguard-ui/components/table/TableBod
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
-import { DeleteConfirmModal } from '../../Acl/components/DeleteConfirmModal/DeleteConfirmModal';
 import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type Props = {
@@ -73,23 +73,10 @@ export const DestinationsTable = ({
     description: string;
     rules: string[];
   } | null>(null);
-  const [deleteModal, setDeleteModal] = useState<{
-    title: string;
-    description: string;
-    destinationId: number;
-  } | null>(null);
 
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
   );
-
-  const { mutateAsync: deleteDestination, isPending: deleteDestinationPending } =
-    useMutation({
-      mutationFn: api.acl.destination.deleteDestination,
-      meta: {
-        invalidate: ['acl', 'destination'],
-      },
-    });
 
   const columns = useMemo(
     () => [
@@ -213,11 +200,13 @@ export const DestinationsTable = ({
                         });
                         return;
                       }
-                      setDeleteModal({
-                        title: 'Delete destination',
-                        description:
-                          "Are you sure you want to delete this destination? This action can't be undone.",
-                        destinationId: row.id,
+                      openModal(ModalName.DeleteAliasDestinationConfirm, {
+                        title: m.modal_delete_acl_destination_title(),
+                        description: m.modal_delete_acl_destination_body(),
+                        target: {
+                          kind: 'destination',
+                          id: row.id,
+                        },
                       });
                     });
                   },
@@ -292,24 +281,6 @@ export const DestinationsTable = ({
         description={blockedModal?.description ?? ''}
         rules={blockedModal?.rules ?? []}
         onClose={() => setBlockedModal(null)}
-      />
-      <DeleteConfirmModal
-        isOpen={deleteModal !== null}
-        title={deleteModal?.title ?? ''}
-        description={deleteModal?.description ?? ''}
-        onConfirm={() => {
-          if (!deleteModal) return;
-          void (async () => {
-            try {
-              await deleteDestination(deleteModal.destinationId);
-              setDeleteModal(null);
-            } catch {
-              return;
-            }
-          })();
-        }}
-        onClose={() => setDeleteModal(null)}
-        isPending={deleteDestinationPending}
       />
     </>
   );
