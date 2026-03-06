@@ -25,7 +25,6 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
-import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type Props = {
   title: string;
@@ -68,11 +67,6 @@ export const DestinationsTable = ({
   }, [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
   const navigate = useNavigate();
-  const [blockedModal, setBlockedModal] = useState<{
-    title: string;
-    description: string;
-    rules: string[];
-  } | null>(null);
 
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
@@ -192,7 +186,7 @@ export const DestinationsTable = ({
                               (ruleId) => rulesById[ruleId]?.name ?? `Rule ${ruleId}`,
                             )
                           : row.rules.map((ruleId) => `Rule ${ruleId}`);
-                        setBlockedModal({
+                        openModal(ModalName.DeleteAliasDestinationBlocked, {
                           title: 'Deletion blocked',
                           description:
                             'This destination is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
@@ -275,13 +269,6 @@ export const DestinationsTable = ({
           subtitle={m.search_empty_common_subtitle()}
         />
       )}
-      <DeletionBlockedModal
-        isOpen={blockedModal !== null}
-        title={blockedModal?.title ?? ''}
-        description={blockedModal?.description ?? ''}
-        rules={blockedModal?.rules ?? []}
-        onClose={() => setBlockedModal(null)}
-      />
     </>
   );
 };

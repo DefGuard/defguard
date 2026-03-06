@@ -111,6 +111,12 @@ export interface OpenDeleteAliasDestinationConfirmModal {
   };
 }
 
+export interface OpenDeleteAliasDestinationBlockedModal {
+  title: string;
+  description: string;
+  rules: string[];
+}
+
 export interface OpenSettingsLicenseModal {
   license?: string | null;
 }

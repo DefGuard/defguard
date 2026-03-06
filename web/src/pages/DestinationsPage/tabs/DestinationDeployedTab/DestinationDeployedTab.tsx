@@ -15,6 +15,7 @@ import {
   canUseBusinessFeature,
   licenseActionCheck,
 } from '../../../../shared/utils/license';
+import { DeletionBlockedModal } from '../../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
 export const DestinationDeployedTab = () => {
@@ -74,6 +75,7 @@ export const DestinationDeployedTab = () => {
           {!rulesReady && <TableSkeleton />}
         </>
       )}
+      <DeletionBlockedModal />
     </>
   );
 };

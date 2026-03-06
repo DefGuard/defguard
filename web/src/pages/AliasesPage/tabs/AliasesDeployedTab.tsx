@@ -16,6 +16,7 @@ import {
   getRulesQueryOptions,
 } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 import { AliasTable } from '../AliasTable';
 
 export const AliasesDeployedTab = () => {
@@ -98,6 +99,7 @@ export const AliasesDeployedTab = () => {
           )}
         </>
       )}
+      <DeletionBlockedModal />
     </>
   );
 };

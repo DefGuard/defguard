@@ -6,7 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName } from '../../shared/api/types';
@@ -22,7 +22,6 @@ import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 import { resourceById } from '../../shared/utils/resourceById';
-import { DeletionBlockedModal } from '../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 
 type RowData = AclAlias;
 
@@ -65,12 +64,6 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
     });
     return map;
   }, [rules]);
-
-  const [blockedModal, setBlockedModal] = useState<{
-    title: string;
-    description: string;
-    rules: string[];
-  } | null>(null);
 
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
@@ -176,7 +169,7 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
                         const ruleNames = row.rules.map(
                           (ruleId) => rulesById?.[ruleId]?.name ?? `Rule ${ruleId}`,
                         );
-                        setBlockedModal({
+                        openModal(ModalName.DeleteAliasDestinationBlocked, {
                           title: 'Deletion blocked',
                           description:
                             'This alias is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
@@ -253,16 +246,5 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  return (
-    <>
-      <TableBody table={table} />
-      <DeletionBlockedModal
-        isOpen={blockedModal !== null}
-        title={blockedModal?.title ?? ''}
-        description={blockedModal?.description ?? ''}
-        rules={blockedModal?.rules ?? []}
-        onClose={() => setBlockedModal(null)}
-      />
-    </>
-  );
+  return <TableBody table={table} />;
 };
