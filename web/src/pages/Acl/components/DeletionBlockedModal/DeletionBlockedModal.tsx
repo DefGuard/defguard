@@ -42,9 +42,11 @@ export const DeletionBlockedModal = () => {
       onClose={() => setOpen(false)}
       afterClose={() => setModalData(null)}
     >
-      <div className="deletion-blocked-modal-content">
-        <AppText font={TextStyle.TBodySm400}>{modalData?.description ?? ''}</AppText>
-        <ul className="deletion-blocked-modal-list">
+      <div className="content">
+        <AppText className="description" font={TextStyle.TBodySm400}>
+          {modalData?.description ?? ''}
+        </AppText>
+        <ul className="rules-list">
           {(modalData?.rules ?? []).map((rule, index) => (
             <li key={`${rule}-${index}`}>{rule}</li>
           ))}

@@ -1,27 +1,25 @@
-.deletion-blocked-modal-content {
-  display: flex;
-  flex-direction: column;
-}
+#deletion-blocked-modal .modal-content {
+  .content {
+    display: flex;
+    flex-direction: column;
+  }
 
-.deletion-blocked-modal-description {
-  margin: 0 0 var(--spacing-lg) 0;
-  font: var(--t-body-sm-400);
-  color: var(--fg-default);
-}
+  .description {
+    margin: 0 0 var(--spacing-lg) 0;
+  }
 
-.deletion-blocked-modal-list {
-  display: flex;
-  flex-flow: column;
-  row-gap: var(--spacing-sm);
-  margin: 0;
-  padding: 0 0 0 var(--spacing-lg);
-  list-style: disc;
-  overflow: hidden auto;
-}
+  .rules-list {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+    margin: 0;
+    padding: 0 0 0 var(--spacing-lg);
+    list-style: disc;
+    overflow: hidden auto;
 
-.deletion-blocked-modal-list li {
-  margin: 0;
-  padding: 0;
-  font: var(--t-body-sm-400);
-  color: var(--fg-default);
+    li {
+      margin: 0;
+      padding: 0;
+    }
+  }
 }
