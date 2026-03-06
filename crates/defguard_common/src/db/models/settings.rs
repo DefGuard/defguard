@@ -519,7 +519,9 @@ impl Settings {
     // Set default values for settings if not set yet.
     // This is only relevant to a subset of settings which are nullable
     // and we want to initialize their values.
-    pub async fn initialize_runtime_defaults(pool: &PgPool) -> Result<(), SettingsInitializationError> {
+    pub async fn initialize_runtime_defaults(
+        pool: &PgPool,
+    ) -> Result<(), SettingsInitializationError> {
         info!("Initializing runtime default settings");
 
         let default_settings = HashMap::from([
@@ -548,11 +550,12 @@ impl Settings {
         }
 
         if settings.webauthn_rp_id.is_none() {
-            let url = Url::parse(&settings.defguard_url)
-                .map_err(|_| SettingsInitializationError::InvalidDefguardUrl(settings.defguard_url.clone()))?;
-            let domain = url
-                .domain()
-                .ok_or_else(|| SettingsInitializationError::MissingDefguardDomain(settings.defguard_url.clone()))?;
+            let url = Url::parse(&settings.defguard_url).map_err(|_| {
+                SettingsInitializationError::InvalidDefguardUrl(settings.defguard_url.clone())
+            })?;
+            let domain = url.domain().ok_or_else(|| {
+                SettingsInitializationError::MissingDefguardDomain(settings.defguard_url.clone())
+            })?;
             settings.webauthn_rp_id = Some(domain.to_string());
         }
 
@@ -709,7 +712,6 @@ impl Settings {
             self.password_reset_session_timeout_minutes =
                 (password_reset_session_timeout.as_secs() / minute) as i32;
         }
-
     }
 
     pub async fn update_from_config<'e, E>(
@@ -1058,8 +1060,14 @@ mod test {
         let current = Settings::get_current_settings();
         let from_db = Settings::get(&pool).await.unwrap().unwrap();
 
-        assert_eq!(current.webauthn_rp_id.as_deref(), Some("defguard.example.com"));
-        assert_eq!(from_db.webauthn_rp_id.as_deref(), Some("defguard.example.com"));
+        assert_eq!(
+            current.webauthn_rp_id.as_deref(),
+            Some("defguard.example.com")
+        );
+        assert_eq!(
+            from_db.webauthn_rp_id.as_deref(),
+            Some("defguard.example.com")
+        );
     }
 
     #[test]
