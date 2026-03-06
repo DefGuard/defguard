@@ -54,7 +54,7 @@
 //! - LDAP connection is stable
 //! - The LDAP change pull is performed relatively often
 //! - One object is not changed in both sources between two asynchronous syncs (may cause
-//! overwriting of changes), but this sounds like an unlikely scenario
+//!   overwriting of changes), but this sounds like an unlikely scenario
 //!
 //! # Potential improvements and issues
 //!
