@@ -29,9 +29,10 @@ const columnHelper = createColumnHelper<RowData>();
 
 type Props = {
   data: RowData[];
+  disableBlockedModal?: boolean;
 };
 
-export const AliasTable = ({ data: rowData }: Props) => {
+export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: isLicenseFetching } = useQuery(
@@ -128,13 +129,13 @@ export const AliasTable = ({ data: rowData }: Props) => {
         size: 400,
         enableSorting: false,
         cell: (info) => {
-          const value = info.getValue();
-          let inRules: string[] = [];
-          if (isPresent(rules)) {
-            inRules = rules
-              .filter((rule) => value.includes(rule.id))
-              .map((rule) => rule.name);
-          }
+          const row = info.row.original;
+          const aliasId = row.parent_id ?? row.id;
+          const inRules = isPresent(rules)
+            ? rules
+                .filter((rule) => rule.aliases.includes(aliasId))
+                .map((rule) => rule.name)
+            : [];
           return <TableValuesListCell values={inRules} />;
         },
       }),
@@ -171,6 +172,9 @@ export const AliasTable = ({ data: rowData }: Props) => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
                       if (row.rules.length > 0) {
+                        if (disableBlockedModal) {
+                          return;
+                        }
                         const ruleNames = row.rules.map(
                           (ruleId) => rulesById?.[ruleId]?.name ?? `Rule ${ruleId}`,
                         );
@@ -223,6 +227,7 @@ export const AliasTable = ({ data: rowData }: Props) => {
       rulesById,
       rulesReady,
       applyAliases,
+      disableBlockedModal,
       navigate,
       isLicenseFetching,
       licenseInfo,

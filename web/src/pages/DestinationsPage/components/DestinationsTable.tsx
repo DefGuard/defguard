@@ -32,6 +32,7 @@ type Props = {
   destinations: AclDestination[];
   primaryProps: ButtonProps;
   search?: boolean;
+  disableBlockedModal?: boolean;
 };
 
 type RowData = AclDestination;
@@ -43,6 +44,7 @@ export const DestinationsTable = ({
   destinations,
   title,
   search,
+  disableBlockedModal,
 }: Props) => {
   const {
     data: rules,
@@ -142,7 +144,11 @@ export const DestinationsTable = ({
         cell: (info) => {
           if (!rulesById) return null;
           const row = info.row.original;
-          const display = row.rules.map((ruleId) => rulesById[ruleId]?.name ?? '');
+          const destinationId = row.parent_id ?? row.id;
+          const display = Object.values(rulesById)
+            .filter(isPresent)
+            .filter((rule) => rule.destinations.includes(destinationId))
+            .map((rule) => rule.name);
           return <TableValuesListCell values={display} />;
         },
       }),
@@ -180,6 +186,9 @@ export const DestinationsTable = ({
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
                       if (row.rules.length > 0) {
+                        if (disableBlockedModal) {
+                          return;
+                        }
                         const ruleNames = rulesById
                           ? row.rules.map(
                               (ruleId) => rulesById[ruleId]?.name ?? `Rule ${ruleId}`,
@@ -217,7 +226,7 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [navigate, rulesById, rulesReady, licenseFetching, licenseInfo],
+    [navigate, rulesById, rulesReady, licenseFetching, licenseInfo, disableBlockedModal],
   );
 
   const transformedData = useMemo(() => {

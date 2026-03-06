@@ -60,6 +60,7 @@ export const DestinationPendingTab = () => {
             destinations={destinations}
             primaryProps={deployPending}
             title="Pending destinations"
+            disableBlockedModal
           />
         ) : (
           <TableSkeleton />

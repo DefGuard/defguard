@@ -52,7 +52,11 @@ export const AliasesPendingTab = () => {
               />
             )}
           </TableTop>
-          {rulesReady ? <AliasTable data={aliases} /> : <TableSkeleton />}
+          {rulesReady ? (
+            <AliasTable data={aliases} disableBlockedModal />
+          ) : (
+            <TableSkeleton />
+          )}
         </>
       )}
     </>
