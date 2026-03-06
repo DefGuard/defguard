@@ -1,5 +1,5 @@
 use axum::{extract::State, http::StatusCode};
-use defguard_common::db::models::{User, Wizard};
+use defguard_common::db::models::{ActiveWizard, User, Wizard};
 use serde::Serialize;
 
 use super::{ApiResponse, ApiResult};
@@ -8,60 +8,51 @@ use crate::{appstate::AppState, auth::SessionExtractor, error::WebError};
 #[derive(Serialize)]
 struct SessionInfoResponse {
     authorized: bool,
-    wizard_flags: Option<Wizard>,
+    is_admin: bool,
+    active_wizard: Option<ActiveWizard>,
 }
 
-pub(crate) async fn get_session_info(
+pub async fn get_session_info(
     State(appstate): State<AppState>,
     session: Result<SessionExtractor, WebError>,
 ) -> ApiResult {
     let pool = &appstate.pool;
     let wizard = Wizard::get(pool).await?;
+    let active_wizard = if wizard.completed {
+        None
+    } else {
+        Some(wizard.active_wizard)
+    };
 
     let Ok(SessionExtractor(session)) = session else {
-        if wizard.is_active() {
-            return Ok(ApiResponse::json(
-                SessionInfoResponse {
-                    authorized: false,
-                    wizard_flags: Some(wizard),
-                },
-                StatusCode::OK,
-            ));
-        } else {
-            return Ok(ApiResponse::json(
-                SessionInfoResponse {
-                    authorized: false,
-                    wizard_flags: None,
-                },
-                StatusCode::OK,
-            ));
-        }
+        return Ok(ApiResponse::json(
+            SessionInfoResponse {
+                authorized: false,
+                is_admin: false,
+                active_wizard,
+            },
+            StatusCode::OK,
+        ));
     };
 
     let Some(user) = User::find_by_id(pool, session.user_id).await? else {
         return Ok(ApiResponse::json(
             SessionInfoResponse {
                 authorized: false,
-                wizard_flags: None,
+                is_admin: false,
+                active_wizard,
             },
             StatusCode::OK,
         ));
     };
 
-    if !user.is_admin(pool).await? {
-        return Ok(ApiResponse::json(
-            SessionInfoResponse {
-                authorized: true,
-                wizard_flags: None,
-            },
-            StatusCode::OK,
-        ));
-    }
+    let user_admin = user.is_admin(pool).await?;
 
     Ok(ApiResponse::json(
         SessionInfoResponse {
             authorized: true,
-            wizard_flags: Some(wizard),
+            is_admin: user_admin,
+            active_wizard,
         },
         StatusCode::OK,
     ))

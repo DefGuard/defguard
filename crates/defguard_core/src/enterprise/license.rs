@@ -6,8 +6,9 @@ use chrono::{DateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     config::server_config,
-    db::models::{Settings, settings::update_current_settings},
+    db::models::{Settings, gateway::Gateway, proxy::Proxy, settings::update_current_settings},
     global_value,
+    types::proxy::ProxyControlMessage,
 };
 use humantime::format_duration;
 use pgp::{
@@ -222,18 +223,23 @@ impl License {
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
                         warn!(
-                            "The provided license has expired and reached its maximum overdue time, please contact sales<at>defguard.net"
+                            "The provided license has expired and reached its maximum overdue time, \
+                            please contact sales<at>defguard.net"
                         );
                     } else {
                         warn!(
-                            "The provided license is about to expire and requires a renewal. An automatic renewal process will attempt to renew the license soon. Alternatively, automatic renewal attempt will be also performed at the next defguard start."
+                            "The provided license is about to expire and requires a renewal. An \
+                            automatic renewal process will attempt to renew the license soon. \
+                            Alternatively, automatic renewal attempt will be also performed at the \
+                            next Defguard start."
                         );
                     }
                 }
 
                 if !license.subscription && license.is_expired() {
                     warn!(
-                        "The provided license is not a subscription and has expired, please contact sales<at>defguard.net"
+                        "The provided license is not a subscription and has expired, please \
+                        contact sales<at>defguard.net"
                     );
                 }
 
@@ -260,8 +266,9 @@ impl License {
         }
     }
 
-    /// Try to load the license from the database, if the license requires a renewal, try to renew it.
-    /// If the renewal fails, it will return the old license for the renewal service to renew it later.
+    /// Try to load the license from the database, if the license requires a renewal, try to renew
+    /// it. If the renewal fails, it will return the old license for the renewal service to renew it
+    /// later.
     pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
         match Self::load()? {
             Some(license) => {
@@ -275,7 +282,8 @@ impl License {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
                                 info!(
-                                    "Successfully renewed and loaded the license, new license key saved to the database"
+                                    "Successfully renewed and loaded the license, new license key \
+                                    saved to the database"
                                 );
                                 Ok(Some(new_license))
                             }
@@ -349,7 +357,8 @@ impl License {
         if self.subscription {
             self.time_overdue() > MAX_OVERDUE_TIME
         } else {
-            // Non-subscription licenses are considered expired immediately, no grace period is required
+            // Non-subscription licenses are considered expired immediately, no grace period is
+            // required.
             self.is_expired()
         }
     }
@@ -484,8 +493,39 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
+/// Scale down enabled Gateways and Edges to one (per component).
+async fn trim_gateways_and_edges(
+    pool: &PgPool,
+    proxy_control_tx: &tokio::sync::mpsc::Sender<ProxyControlMessage>,
+) -> Result<(), LicenseError> {
+    Gateway::leave_one_enabled(pool).await?;
+
+    let edges = Proxy::leave_one_enabled(pool).await?;
+    let count = edges.len();
+    for mut edge in edges {
+        edge.enabled = false;
+        edge.save(pool).await?;
+        if let Err(err) = proxy_control_tx
+            .send(ProxyControlMessage::ShutdownConnection(edge.id))
+            .await
+        {
+            error!(
+                "Failed to shutdown Proxy {}, it may be disconnected: {err:?}",
+                edge.id
+            );
+        }
+    }
+
+    debug!("Disabled {count} Edges");
+
+    Ok(())
+}
+
 #[instrument(skip_all)]
-pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseError> {
+pub async fn run_periodic_license_check(
+    pool: &PgPool,
+    proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+) -> Result<(), LicenseError> {
     let config = server_config();
     let mut check_period: Duration = *config.check_period;
     info!(
@@ -497,6 +537,9 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
         // Check if the license is present in the mutex, if not skip the check
         if get_cached_license().is_none() {
             debug!("No license found, skipping license check");
+
+            trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+
             sleep(*config.check_period_no_license).await;
             continue;
         }
@@ -504,28 +547,31 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
         // Check if the license requires renewal, uses the cached value to be more efficient
         // The block here is to avoid holding the lock through awaits
         //
-        // Multiple locks here may cause a race condition if the user decides to update the license key
-        // while the renewal is in progress. However this seems like a rare case and shouldn't be very problematic.
-        let requires_renewal = {
-            let license = get_cached_license();
-            debug!("Checking if the license {license:?} requires a renewal...");
+        // Multiple locks here may cause a race condition if the user decides to update the license
+        // key while the renewal is in progress. However this seems like a rare case and shouldn't
+        // be very problematic.
+        let (requires_renewal, trim_components) = {
+            let cached_license = get_cached_license();
+            debug!("Checking if the license {cached_license:?} requires a renewal");
 
-            if let Some(license) = license.as_ref() {
+            if let Some(license) = cached_license.as_ref() {
                 if license.requires_renewal() {
                     // check if we are pass the maximum expiration date, after which we don't
                     // want to try to renew the license anymore
                     if license.is_max_overdue() {
                         check_period = *config.check_period;
                         warn!(
-                            "Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net"
+                            "Your license has expired and reached its maximum overdue date, please \
+                            contact sales at sales<at>defguard.net"
                         );
                         debug!("Changing check period to {}", format_duration(check_period));
-                        false
+                        (false, true)
                     } else {
                         debug!(
-                            "License requires renewal, as it is about to expire and is not past the maximum overdue time"
+                            "License requires renewal, as it is about to expire and is not past \
+                            the maximum overdue time"
                         );
-                        true
+                        (true, false)
                     }
                 } else {
                     // This if is only for logging purposes, to provide more detailed information
@@ -534,13 +580,17 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
                     } else {
                         debug!("License is not a subscription, skipping renewal check");
                     }
-                    false
+                    (false, false)
                 }
             } else {
                 debug!("No license found, skipping license check");
-                false
+                (false, true)
             }
         };
+
+        if trim_components {
+            trim_gateways_and_edges(pool, &proxy_control_tx).await?;
+        }
 
         if requires_renewal {
             info!("License requires renewal, renewing license...");
@@ -556,8 +606,8 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
                     }
                     Err(err) => {
                         error!(
-                            "Couldn't save the newly fetched license key to the database, error: {}",
-                            err
+                            "Couldn't save the newly fetched license key to the database, error: \
+                            {err}"
                         );
                     }
                 },
@@ -581,6 +631,11 @@ pub(crate) const PUBLIC_KEY: &[u8] = include_bytes!("test_key.asc");
 #[cfg(test)]
 mod test {
     use chrono::TimeZone;
+    use defguard_common::db::{
+        models::{User, WireguardNetwork},
+        setup_pool,
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
 
@@ -755,5 +810,61 @@ mod test {
         let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
         let enterprise_license = License::from_base64(enterprise_license).unwrap();
         assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
+    }
+
+    #[sqlx::test]
+    async fn test_trim_gateways_and_edges(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let location = WireguardNetwork::default().save(&pool).await.unwrap();
+        let user = User::new(
+            "tester",
+            Some("hunter2"),
+            "Tes",
+            "Ter",
+            "email@email.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let fullname = user.fullname();
+
+        Gateway::new(location.id, "Gateway 1", "localhost", 8000, &fullname)
+            .save(&pool)
+            .await
+            .unwrap();
+        Gateway::new(location.id, "Gateway 2", "localhost", 8001, &fullname)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        Proxy::new("Proxy 1", "localhost", 9000, &fullname)
+            .save(&pool)
+            .await
+            .unwrap();
+        Proxy::new("Proxy 2", "localhost", 9001, &fullname)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let (proxy_control_tx, mut proxy_control_rx) =
+            tokio::sync::mpsc::channel::<ProxyControlMessage>(8);
+
+        trim_gateways_and_edges(&pool, &proxy_control_tx)
+            .await
+            .unwrap();
+
+        let all_gateways = Gateway::all(&pool).await.unwrap();
+        assert_eq!(1, all_gateways.iter().filter(|gw| gw.enabled).count());
+        assert_eq!(1, all_gateways.iter().filter(|gw| !gw.enabled).count());
+
+        let all_proxies = Proxy::all(&pool).await.unwrap();
+        assert_eq!(1, all_proxies.iter().filter(|gw| gw.enabled).count());
+        assert_eq!(1, all_proxies.iter().filter(|gw| !gw.enabled).count());
+
+        // Only one Proxy has to be shut down.
+        assert!(proxy_control_rx.try_recv().is_ok());
+        assert!(proxy_control_rx.try_recv().is_err());
     }
 }

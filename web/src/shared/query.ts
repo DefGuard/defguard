@@ -65,7 +65,7 @@ export const getNetworkDevicesQueryOptions = queryOptions({
 });
 
 export const getUserMeQueryOptions = queryOptions({
-  queryFn: () => api.user.getMe,
+  queryFn: api.user.getMe,
   queryKey: ['me'],
   staleTime: 60_000,
   throwOnError: false,
@@ -231,6 +231,15 @@ export const getActivityLogStreamsQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getSessionInfoQueryOptions = queryOptions({
+  queryFn: api.getSessionInfo,
+  queryKey: ['session-info'],
+  select: (resp) => resp.data,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+  refetchOnWindowFocus: false,
+});
+
 export const getSettingsEssentialsQueryOptions = queryOptions({
   queryFn: api.settings.getSettingsEssentials,
   queryKey: ['settings_essentials'],
@@ -239,5 +248,23 @@ export const getSettingsEssentialsQueryOptions = queryOptions({
   refetchOnMount: true,
   refetchOnReconnect: true,
   staleTime: 60_000,
+  select: (resp) => resp.data,
+});
+
+export const getInitialSetupCaQueryOptions = queryOptions({
+  queryFn: api.initial_setup.getCA,
+  queryKey: ['initial_setup', 'ca'],
+  select: (resp) => resp.data,
+});
+
+export const getMigrationCaQueryOptions = queryOptions({
+  queryFn: api.migration.ca.getCA,
+  queryKey: ['migration', 'ca'],
+  select: (resp) => resp.data,
+});
+
+export const getMigrationStateQueryOptions = queryOptions({
+  queryFn: api.migration.state.getMigrationState,
+  queryKey: ['migration', 'state'],
   select: (resp) => resp.data,
 });

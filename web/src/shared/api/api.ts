@@ -73,6 +73,8 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
+  MigrationGeneralConfigRequest,
+  MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
   OpenIdAuthInfo,
@@ -81,6 +83,7 @@ import type {
   PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  SessionInfo,
   SetAutoAdoptionMfaSettingsRequest,
   SetAutoAdoptionUrlSettingsRequest,
   SetAutoAdoptionVpnSettingsRequest,
@@ -514,6 +517,22 @@ const api = {
       client.put(`/activity_log_stream/${id}`, data),
     deleteStream: (id: number) => client.delete(`/activity_log_stream/${id}`),
   },
+  migration: {
+    finish: () => client.post(`/migration/finish`),
+    ca: {
+      createCA: (data: CreateCARequest) => client.post('/migration/ca', data),
+      getCA: () => client.get<GetCAResponse>('/migration/ca'),
+    },
+    state: {
+      getMigrationState: () =>
+        client.get<MigrationWizardApiState | null>(`/migration/state`),
+      updateMigrationState: (data: MigrationWizardApiState) =>
+        client.put(`/migration/state`, data),
+    },
+    setGeneralConfig: (data: MigrationGeneralConfigRequest) =>
+      client.post(`/migration/general_config`, data),
+  },
+  getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     client
       .get<PaginatedResponse<ActivityLogEvent>>(`/activity_log`, {

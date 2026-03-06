@@ -2,6 +2,7 @@ import { OpenIdProviderKind, type OpenIdProviderKindValue } from './api/types';
 
 export const externalLink = {
   defguard: {
+    docs: 'https://docs.defguard.net',
     pricing: 'https://defguard.net/pricing',
     download: 'https://defguard.net/download',
   },

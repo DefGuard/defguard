@@ -2488,9 +2488,7 @@ async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
 
     assert!(
         user_count_after_sync <= user_limit,
-        "LDAP sync exceeded user license limit: users={}, limit={}",
-        user_count_after_sync,
-        user_limit
+        "LDAP sync exceeded user license limit: users={user_count_after_sync}, limit={user_limit}"
     );
 
     let skipped_user = User::find_by_username(&pool, "ldap_only_user_limit")

@@ -1,3 +1,4 @@
+import type { MigrationWizardStepValue } from '../../pages/MigrationWizardPage/types';
 import type {
   ActivityLogEventTypeValue,
   ActivityLogModuleValue,
@@ -8,6 +9,16 @@ export type Resource = object & { id: number };
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
+export interface MigrationWizardApiState {
+  current_step: MigrationWizardStepValue;
+}
+
+export interface SessionInfo {
+  authorized: boolean;
+  isAdmin: boolean;
+  // if it's not null then wizard is in progress / complete = false
+  active_wizard: ActiveWizardValue | null;
+}
 
 export interface GatewayTokenResponse {
   grpc_url: string;
@@ -49,6 +60,11 @@ export interface SetGeneralConfigRequest {
   public_proxy_url: string;
   admin_username: string;
 }
+
+export type MigrationGeneralConfigRequest = Omit<
+  SetGeneralConfigRequest,
+  'admin_username'
+>;
 
 export interface SetAutoAdoptionUrlSettingsRequest {
   defguard_url: string;
@@ -493,7 +509,6 @@ export interface Webhook {
   on_user_created: boolean;
   on_user_deleted: boolean;
   on_user_modified: boolean;
-  on_hwkey_provision: boolean;
 }
 
 export type AddWebhookRequest = Omit<Webhook, 'id'>;
@@ -745,11 +760,24 @@ export type AutoAdoptionAdoptionStepValue =
   | 'summary'
   | 'finished';
 
-export type ActiveWizardValue = 'none' | 'initial' | 'auto_adoption' | 'migration';
-
 export interface SettingsEssentials {
-  initial_setup_completed: boolean;
+  instance_name: string;
+  main_logo_url: string;
+  nav_logo_url: string;
+  wireguard_enabled: boolean;
+  webhooks_enabled: boolean;
+  worker_enabled: boolean;
+  openid_enabled: boolean;
 }
+
+export const ActiveWizard = {
+  None: 'none',
+  Initial: 'initial',
+  AutoAdoption: 'auto_adoption',
+  Migration: 'migration',
+} as const;
+
+export type ActiveWizardValue = (typeof ActiveWizard)[keyof typeof ActiveWizard];
 
 export interface InitialSetupState {
   step: InitialSetupStepValue;
@@ -815,6 +843,7 @@ export interface SettingsEnrollment {
   enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
 }
+
 export interface SettingsModules {
   openid_enabled: boolean;
   wireguard_enabled: boolean;
@@ -866,9 +895,23 @@ export interface SettingsGatewayNotifications {
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 }
 
+export interface SettingsTimeoutsAndMaintenance {
+  auth_cookie_timeout_days: number;
+  disable_stats_purge: boolean;
+  stats_purge_frequency_hours: number;
+  stats_purge_threshold_days: number;
+  enrollment_token_timeout_hours: number;
+  password_reset_token_timeout_hours: number;
+  enrollment_session_timeout_minutes: number;
+  password_reset_session_timeout_minutes: number;
+}
+
 export interface SettingsGeneral {
-  public_proxy_url: string;
+  defguard_url: string;
+  default_admin_group_name: string;
   authentication_period_days: number;
+  mfa_code_timeout_seconds: number;
+  public_proxy_url: string;
 }
 
 export type Settings = SettingsBranding &
@@ -880,6 +923,7 @@ export type Settings = SettingsBranding &
   SettingsOpenID &
   SettingsEnrollment &
   SettingsSMTP &
+  SettingsTimeoutsAndMaintenance &
   SettingsGeneral;
 
 export interface OpenIdProviderSettings {
