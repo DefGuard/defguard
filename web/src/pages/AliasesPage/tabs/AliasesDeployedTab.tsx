@@ -3,13 +3,11 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import { AclStatus } from '../../../shared/api/types';
-import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getAliasesQueryOptions,
   getLicenseInfoQueryOptions,
@@ -30,12 +28,7 @@ export const AliasesDeployedTab = () => {
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
   );
-  const {
-    data: rules,
-    isLoading: rulesLoading,
-    isFetching: rulesFetching,
-  } = useQuery(getRulesQueryOptions);
-  const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
+  const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -88,8 +81,7 @@ export const AliasesDeployedTab = () => {
             />
             <Button {...addButtonProps} />
           </TableTop>
-          {!visibleEmpty && rulesReady && <AliasTable data={aliases} />}
-          {!visibleEmpty && !rulesReady && <TableSkeleton />}
+          {!visibleEmpty && <AliasTable data={aliases} rules={rules} />}
           {visibleEmpty && (
             <EmptyStateFlexible
               icon="search"

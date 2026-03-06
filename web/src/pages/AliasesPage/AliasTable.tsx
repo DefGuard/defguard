@@ -9,14 +9,13 @@ import {
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { type AclAlias, AclProtocolName } from '../../shared/api/types';
+import { type AclAlias, AclProtocolName, type AclRule } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
@@ -29,27 +28,17 @@ const columnHelper = createColumnHelper<RowData>();
 
 type Props = {
   data: RowData[];
+  rules: AclRule[];
   disableBlockedModal?: boolean;
 };
 
-export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
+export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: isLicenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
   );
 
-  const {
-    data: rules,
-    isLoading: rulesLoading,
-    isFetching: rulesFetching,
-  } = useQuery({
-    queryFn: api.acl.rule.getRules,
-    queryKey: ['acl', 'rule'],
-    select: (resp) => resp.data,
-  });
-
-  const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
   const rulesById = useMemo(() => resourceById(rules), [rules]);
   const rulesByAliasId = useMemo(() => {
     if (!rules) return {} as Record<number, string[]>;
@@ -158,7 +147,7 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
-                  disabled: !rulesReady || (disableBlockedModal && row.rules.length > 0),
+                  disabled: disableBlockedModal && row.rules.length > 0,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -218,7 +207,6 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
     [
       rulesById,
       rulesByAliasId,
-      rulesReady,
       applyAliases,
       disableBlockedModal,
       navigate,

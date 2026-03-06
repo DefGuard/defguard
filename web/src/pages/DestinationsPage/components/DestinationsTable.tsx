@@ -7,7 +7,11 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import { type AclDestination, AclProtocolName } from '../../../shared/api/types';
+import {
+  type AclDestination,
+  AclProtocolName,
+  type AclRule,
+} from '../../../shared/api/types';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -19,16 +23,16 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
-import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
 
 type Props = {
   title: string;
   destinations: AclDestination[];
+  rules: AclRule[];
   primaryProps: ButtonProps;
   search?: boolean;
   disableBlockedModal?: boolean;
@@ -41,16 +45,11 @@ const columnHelper = createColumnHelper<RowData>();
 export const DestinationsTable = ({
   primaryProps,
   destinations,
+  rules,
   title,
   search,
   disableBlockedModal,
 }: Props) => {
-  const {
-    data: rules,
-    isLoading: rulesLoading,
-    isFetching: rulesFetching,
-  } = useQuery(getRulesQueryOptions);
-  const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
   const rulesById = useMemo(() => resourceById(rules), [rules]);
   const rulesByDestinationId = useMemo(() => {
     if (!rules) return {} as Record<number, string[]>;
@@ -173,7 +172,7 @@ export const DestinationsTable = ({
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
-                  disabled: !rulesReady || (disableBlockedModal && row.rules.length > 0),
+                  disabled: disableBlockedModal && row.rules.length > 0,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -224,7 +223,6 @@ export const DestinationsTable = ({
       navigate,
       rulesById,
       rulesByDestinationId,
-      rulesReady,
       licenseFetching,
       licenseInfo,
       disableBlockedModal,
