@@ -32,7 +32,7 @@ export const DeletionBlockedModal = ({
         ))}
       </ul>
       <ModalControls
-        submitProps={{
+        cancelProps={{
           text: 'Close',
           onClick: onClose,
         }}
