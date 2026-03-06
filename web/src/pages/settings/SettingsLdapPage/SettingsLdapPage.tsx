@@ -316,7 +316,7 @@ const PageForm = () => {
         <MarkedSection icon={IconKind.Sync}>
           <MarkedSectionHeader
             title="LDAP synchronization"
-            description="Control how Defguard synchronizes users with LDAP — disable sync, import users from LDAP, or keep both systems updated automatically."
+            description="Control how Defguard synchronizes users with LDAP."
           />
           <form.AppField name="ldap_sync_enabled">
             {(field) => (
@@ -324,7 +324,7 @@ const PageForm = () => {
                 variant={'radio'}
                 value={false}
                 title={`One-way synchronization`}
-                content={`Users are imported from LDAP into Defguard. LDAP remains the source of truth and updates in the directory overwrite local data in Defguard.`}
+                content={`Changes made to users in Defguard are propagated to your LDAP directory.`}
               />
             )}
           </form.AppField>

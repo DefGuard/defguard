@@ -53,7 +53,7 @@ export const CeOpenIdClientModal = () => {
   return (
     <Modal
       id="ce-openid-client-modal"
-      title={'Add OpenID application'}
+      title={modalData?.openIdClient ? m.openid_edit() : m.openid_add()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
