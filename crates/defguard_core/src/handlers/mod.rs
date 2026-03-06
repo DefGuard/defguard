@@ -42,7 +42,7 @@ pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub mod proxy;
-pub(crate) mod session_info;
+pub mod session_info;
 pub mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod static_ips;
@@ -51,7 +51,6 @@ pub(crate) mod updates;
 pub mod user;
 pub(crate) mod webhooks;
 pub mod wireguard;
-pub(crate) mod wizard;
 pub mod worker;
 pub(crate) mod yubikey;
 

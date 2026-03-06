@@ -88,7 +88,6 @@ const formSchema = z.object({
   on_user_created: z.boolean(),
   on_user_deleted: z.boolean(),
   on_user_modified: z.boolean(),
-  on_hwkey_provision: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -106,7 +105,6 @@ const ModalContent = ({ webhook }: ModalData) => {
     return {
       description: '',
       enabled: true,
-      on_hwkey_provision: false,
       on_user_created: false,
       on_user_deleted: false,
       on_user_modified: false,
@@ -192,9 +190,6 @@ const ModalContent = ({ webhook }: ModalData) => {
           </form.AppField>
           <form.AppField name="on_user_deleted">
             {(field) => <field.FormCheckbox text={m.cmp_webhook_event_user_delete()} />}
-          </form.AppField>
-          <form.AppField name="on_hwkey_provision">
-            {(field) => <field.FormCheckbox text={m.cmp_webhook_event_user_hw()} />}
           </form.AppField>
         </div>
         <ModalControls

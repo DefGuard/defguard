@@ -11,7 +11,9 @@ use defguard_common::{
         gateway::Gateway,
         proxy::Proxy,
         settings::update_current_settings,
-        setup_auto_adoption::{AutoAdoptionComponentResult, SetupAutoAdoptionComponent},
+        setup_auto_adoption::{
+            AutoAdoptionComponentResult, AutoAdoptionWizardState, SetupAutoAdoptionComponent,
+        },
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
             LocationMfaMode, ServiceLocationMode,
@@ -618,23 +620,20 @@ async fn process_startup_auto_adoption(
         }
     }
 
-    let mut wizard = defguard_common::db::models::wizard::Wizard::get(pool)
+    let mut auto_state = AutoAdoptionWizardState::get(pool)
         .await
-        .context("Failed to load wizard state")?;
+        .context("Failed to load auto-adoption wizard state")?
+        .unwrap_or_default();
 
-    wizard
-        .auto_adoption_state
-        .get_or_insert_with(Default::default)
-        .adoption_result
-        .insert(
-            component,
-            AutoAdoptionComponentResult {
-                success: status,
-                logs: logs.clone(),
-                updated_at: chrono::Utc::now().naive_utc(),
-            },
-        );
-    wizard.save(pool).await?;
+    auto_state.adoption_result.insert(
+        component,
+        AutoAdoptionComponentResult {
+            success: status,
+            logs: logs.clone(),
+            updated_at: chrono::Utc::now().naive_utc(),
+        },
+    );
+    auto_state.save(pool).await?;
 
     Ok(())
 }
@@ -780,20 +779,22 @@ async fn create_proxy(
 }
 
 /// Stores and updates startup auto-adoption states for components requested via CLI flags.
-pub async fn attemp_auto_adoption(
+pub async fn attempt_auto_adoption(
     pool: &PgPool,
     config: &DefGuardConfig,
 ) -> Result<(), anyhow::Error> {
-    let mut wizard = defguard_common::db::models::wizard::Wizard::get(pool)
+    let mut auto_state = AutoAdoptionWizardState::get(pool)
         .await
-        .context("Failed to load wizard state")?;
+        .context("Failed to load auto-adoption wizard state")?
+        .unwrap_or_default();
 
-    let auto_state = wizard.auto_adoption_state.as_ref();
     let edge_already_succeeded = auto_state
-        .and_then(|s| s.adoption_result.get(&SetupAutoAdoptionComponent::Edge))
+        .adoption_result
+        .get(&SetupAutoAdoptionComponent::Edge)
         .is_some_and(|result| result.success);
     let gateway_already_succeeded = auto_state
-        .and_then(|s| s.adoption_result.get(&SetupAutoAdoptionComponent::Gateway))
+        .adoption_result
+        .get(&SetupAutoAdoptionComponent::Gateway)
         .is_some_and(|result| result.success);
 
     let should_run_edge = config.adopt_edge.is_some() && !edge_already_succeeded;
@@ -814,19 +815,15 @@ pub async fn attemp_auto_adoption(
                 process_startup_auto_adoption(pool, SetupAutoAdoptionComponent::Edge, endpoint)
                     .await
             {
-                wizard
-                    .auto_adoption_state
-                    .get_or_insert_with(Default::default)
-                    .adoption_result
-                    .insert(
-                        SetupAutoAdoptionComponent::Edge,
-                        AutoAdoptionComponentResult {
-                            success: false,
-                            logs: vec![format!("Startup auto-adoption failed: {err}")],
-                            updated_at: chrono::Utc::now().naive_utc(),
-                        },
-                    );
-                wizard.save(pool).await?;
+                auto_state.adoption_result.insert(
+                    SetupAutoAdoptionComponent::Edge,
+                    AutoAdoptionComponentResult {
+                        success: false,
+                        logs: vec![format!("Startup auto-adoption failed: {err}")],
+                        updated_at: chrono::Utc::now().naive_utc(),
+                    },
+                );
+                auto_state.save(pool).await?;
             } else {
                 info!("Startup auto-adoption for Edge component completed endpoint={endpoint}");
             }
@@ -844,19 +841,15 @@ pub async fn attemp_auto_adoption(
                 process_startup_auto_adoption(pool, SetupAutoAdoptionComponent::Gateway, endpoint)
                     .await
             {
-                wizard
-                    .auto_adoption_state
-                    .get_or_insert_with(Default::default)
-                    .adoption_result
-                    .insert(
-                        SetupAutoAdoptionComponent::Gateway,
-                        AutoAdoptionComponentResult {
-                            success: false,
-                            logs: vec![format!("Startup auto-adoption failed: {err}")],
-                            updated_at: chrono::Utc::now().naive_utc(),
-                        },
-                    );
-                wizard.save(pool).await?;
+                auto_state.adoption_result.insert(
+                    SetupAutoAdoptionComponent::Gateway,
+                    AutoAdoptionComponentResult {
+                        success: false,
+                        logs: vec![format!("Startup auto-adoption failed: {err}")],
+                        updated_at: chrono::Utc::now().naive_utc(),
+                    },
+                );
+                auto_state.save(pool).await?;
             } else {
                 info!("Startup auto-adoption for Gateway component completed endpoint={endpoint}");
             }

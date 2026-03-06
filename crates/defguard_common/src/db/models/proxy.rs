@@ -112,4 +112,19 @@ impl Proxy<Id> {
 
         Ok(())
     }
+
+    /// Fetch all enabled, but one. Used for expired licence.
+    pub async fn leave_one_enabled<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
+    where
+        E: sqlx::PgExecutor<'e>,
+    {
+        sqlx::query_as!(
+            Self,
+            "SELECT * FROM proxy WHERE enabled AND id NOT IN (\
+                SELECT id FROM proxy WHERE enabled LIMIT 1
+            )"
+        )
+        .fetch_all(executor)
+        .await
+    }
 }

@@ -14,9 +14,9 @@ use defguard_common::{
         models::{
             Settings,
             gateway::Gateway,
+            initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             proxy::Proxy,
-            settings::InitialSetupStep,
-            wizard::{InitialSetupState, Wizard},
+            wizard::Wizard,
         },
     },
     types::proxy::ProxyControlMessage,
@@ -612,12 +612,12 @@ pub async fn setup_proxy_tls_stream(
 
         {
             match Wizard::get(&pool).await {
-                Ok(mut wizard) => {
+                Ok(wizard) => {
                 if !wizard.completed {
-                    wizard.initial_setup_state = Some(InitialSetupState {
+                    let state = InitialSetupState {
                         step: InitialSetupStep::Confirmation,
-                    });
-                        if let Err(err) = wizard.save(&pool).await {
+                    };
+                        if let Err(err) = state.save(&pool).await {
                             yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
                             return;
                         }

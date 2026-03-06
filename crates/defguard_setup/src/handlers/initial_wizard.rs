@@ -14,9 +14,10 @@ use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
 use defguard_common::db::models::{
     Session, SessionState, Settings, User,
     group::Group,
-    settings::{InitialSetupStep, update_current_settings},
-    setup_auto_adoption::AutoAdoptionWizardStep,
-    wizard::{ActiveWizard, InitialSetupState, Wizard},
+    initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+    settings::update_current_settings,
+    setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+    wizard::{ActiveWizard, Wizard},
 };
 use defguard_core::{
     auth::{
@@ -40,7 +41,7 @@ async fn advance_initial_wizard_to_step(
     pool: &PgPool,
     step: InitialSetupStep,
 ) -> Result<(), WebError> {
-    let mut wizard = Wizard::get(pool).await?;
+    let wizard = Wizard::get(pool).await?;
 
     // Don't try to advance if setup is already completed
     if wizard.completed {
@@ -48,14 +49,12 @@ async fn advance_initial_wizard_to_step(
         return Ok(());
     }
 
-    let current_step = wizard
-        .initial_setup_state
-        .as_ref()
+    let current_step = InitialSetupState::get(pool)
+        .await?
         .map(|s| s.step)
         .unwrap_or(InitialSetupStep::Welcome);
     if current_step < step {
-        wizard.initial_setup_state = Some(InitialSetupState { step });
-        wizard.save(pool).await?;
+        InitialSetupState { step }.save(pool).await?;
         info!("Advanced initial wizard setup to step {:?}", step);
     } else {
         debug!(
@@ -379,7 +378,11 @@ pub async fn create_ca(
 
     info!("Certificate authority created and stored");
 
-    advance_initial_wizard_to_step(&pool, InitialSetupStep::CaSummary).await?;
+    let wizard = Wizard::get(&pool).await?;
+
+    if wizard.active_wizard == ActiveWizard::Initial {
+        InitialSetupState::set_step(&pool, InitialSetupStep::CaSummary).await?;
+    }
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }
@@ -387,6 +390,7 @@ pub async fn create_ca(
 pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Fetching certificate authority details");
     let settings = Settings::get_current_settings();
+    let wizard = Wizard::get(&pool).await?;
     if let Some(ca_cert_der) = settings.ca_cert_der {
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
         let info = CertificateInfo::from_der(&ca_cert_der)?;
@@ -397,7 +401,9 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
             info.subject_common_name, valid_for_days
         );
 
-        advance_initial_wizard_to_step(&pool, InitialSetupStep::EdgeComponent).await?;
+        if wizard.active_wizard == ActiveWizard::Initial {
+            InitialSetupState::set_step(&pool, InitialSetupStep::EdgeComponent).await?;
+        }
 
         Ok(ApiResponse::new(
             json!({ "ca_cert_pem": ca_pem, "subject_common_name": info.subject_common_name, "not_before": info.not_before, "not_after": info.not_after, "valid_for_days": valid_for_days }),
@@ -446,9 +452,11 @@ pub async fn finish_setup(
     info!("Finishing initial setup");
 
     let mut wizard = Wizard::get(&pool).await?;
-    wizard.initial_setup_state = Some(InitialSetupState {
+    InitialSetupState {
         step: InitialSetupStep::Finished,
-    });
+    }
+    .save(&pool)
+    .await?;
     wizard.completed = true;
     wizard.active_wizard = ActiveWizard::None;
     wizard.save(&pool).await?;
@@ -473,5 +481,21 @@ pub async fn finish_setup(
 /// to show and what step to resume.
 pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
     let wizard = Wizard::get(&pool).await?;
-    Ok(ApiResponse::json(wizard, StatusCode::OK))
+    #[derive(Serialize)]
+    struct WizardStateResponse {
+        active_wizard: ActiveWizard,
+        completed: bool,
+        initial_setup_state: Option<InitialSetupState>,
+        auto_adoption_state: Option<AutoAdoptionWizardState>,
+    }
+
+    Ok(ApiResponse::json(
+        WizardStateResponse {
+            active_wizard: wizard.active_wizard,
+            completed: wizard.completed,
+            initial_setup_state: InitialSetupState::get(&pool).await?,
+            auto_adoption_state: AutoAdoptionWizardState::get(&pool).await?,
+        },
+        StatusCode::OK,
+    ))
 }

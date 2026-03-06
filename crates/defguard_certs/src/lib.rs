@@ -391,7 +391,7 @@ mod tests {
         let days = (not_after - not_before).whole_days();
 
         assert!(
-            (valid_days as i64 - 1..=valid_days as i64 + 1).contains(&days),
+            (i64::from(valid_days) - 1..=i64::from(valid_days) + 1).contains(&days),
             "expected validity of {valid_days} days (±1), got {days} days"
         );
         assert!(
@@ -448,8 +448,7 @@ mod tests {
 
         assert!(
             email_found,
-            "Email '{}' should be present in Subject Alternative Names",
-            expected_email
+            "Email '{expected_email}' should be present in Subject Alternative Names"
         );
     }
 

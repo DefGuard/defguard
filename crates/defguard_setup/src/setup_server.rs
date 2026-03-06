@@ -28,6 +28,7 @@ use crate::handlers::{
         create_admin, create_ca, finish_setup, get_ca, get_wizard_state, set_general_config,
         setup_login, setup_session, upload_ca,
     },
+    session_info::get_session_info,
 };
 
 pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
@@ -43,6 +44,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
             Router::<()>::new()
                 .route("/health", get(health_check))
                 .route("/settings_essentials", get(get_settings_essentials))
+                .route("/session-info", get(get_session_info))
                 .route("/wizard", get(get_wizard_state))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .nest(
