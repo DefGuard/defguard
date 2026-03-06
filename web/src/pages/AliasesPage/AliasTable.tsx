@@ -51,6 +51,19 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
 
   const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
   const rulesById = useMemo(() => resourceById(rules), [rules]);
+  const rulesByAliasId = useMemo(() => {
+    if (!rules) return {} as Record<number, string[]>;
+    const map: Record<number, string[]> = {};
+    rules.forEach((rule) => {
+      rule.aliases.forEach((aliasId) => {
+        if (!map[aliasId]) {
+          map[aliasId] = [];
+        }
+        map[aliasId].push(rule.name);
+      });
+    });
+    return map;
+  }, [rules]);
 
   const [blockedModal, setBlockedModal] = useState<{
     title: string;
@@ -63,7 +76,7 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
     aliasId: number;
   } | null>(null);
 
-  const { mutate: deleteAlias } = useMutation({
+  const { mutateAsync: deleteAlias, isPending: deleteAliasPending } = useMutation({
     mutationFn: api.acl.alias.deleteAlias,
     meta: {
       invalidate: ['acl'],
@@ -131,11 +144,7 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
         cell: (info) => {
           const row = info.row.original;
           const aliasId = row.parent_id ?? row.id;
-          const inRules = isPresent(rules)
-            ? rules
-                .filter((rule) => rule.aliases.includes(aliasId))
-                .map((rule) => rule.name)
-            : [];
+          const inRules = rulesByAliasId[aliasId] ?? [];
           return <TableValuesListCell values={inRules} />;
         },
       }),
@@ -167,7 +176,7 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
-                  disabled: !rulesReady,
+                  disabled: !rulesReady || (disableBlockedModal && row.rules.length > 0),
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -223,8 +232,8 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
       }),
     ],
     [
-      rules,
       rulesById,
+      rulesByAliasId,
       rulesReady,
       applyAliases,
       disableBlockedModal,
@@ -269,10 +278,17 @@ export const AliasTable = ({ data: rowData, disableBlockedModal }: Props) => {
         description={deleteModal?.description ?? ''}
         onConfirm={() => {
           if (!deleteModal) return;
-          deleteAlias(deleteModal.aliasId);
-          setDeleteModal(null);
+          void (async () => {
+            try {
+              await deleteAlias(deleteModal.aliasId);
+              setDeleteModal(null);
+            } catch {
+              return;
+            }
+          })();
         }}
         onClose={() => setDeleteModal(null)}
+        isPending={deleteAliasPending}
       />
     </>
   );

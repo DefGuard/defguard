@@ -53,6 +53,19 @@ export const DestinationsTable = ({
   } = useQuery(getRulesQueryOptions);
   const rulesReady = !rulesLoading && !rulesFetching && isPresent(rules);
   const rulesById = useMemo(() => resourceById(rules), [rules]);
+  const rulesByDestinationId = useMemo(() => {
+    if (!rules) return {} as Record<number, string[]>;
+    const map: Record<number, string[]> = {};
+    rules.forEach((rule) => {
+      rule.destinations.forEach((destinationId) => {
+        if (!map[destinationId]) {
+          map[destinationId] = [];
+        }
+        map[destinationId].push(rule.name);
+      });
+    });
+    return map;
+  }, [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
   const navigate = useNavigate();
   const [blockedModal, setBlockedModal] = useState<{
@@ -70,12 +83,13 @@ export const DestinationsTable = ({
     getLicenseInfoQueryOptions,
   );
 
-  const { mutate: deleteDestination } = useMutation({
-    mutationFn: api.acl.destination.deleteDestination,
-    meta: {
-      invalidate: ['acl', 'destination'],
-    },
-  });
+  const { mutateAsync: deleteDestination, isPending: deleteDestinationPending } =
+    useMutation({
+      mutationFn: api.acl.destination.deleteDestination,
+      meta: {
+        invalidate: ['acl', 'destination'],
+      },
+    });
 
   const columns = useMemo(
     () => [
@@ -145,10 +159,7 @@ export const DestinationsTable = ({
           if (!rulesById) return null;
           const row = info.row.original;
           const destinationId = row.parent_id ?? row.id;
-          const display = Object.values(rulesById)
-            .filter(isPresent)
-            .filter((rule) => rule.destinations.includes(destinationId))
-            .map((rule) => rule.name);
+          const display = rulesByDestinationId[destinationId] ?? [];
           return <TableValuesListCell values={display} />;
         },
       }),
@@ -181,7 +192,7 @@ export const DestinationsTable = ({
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
-                  disabled: !rulesReady,
+                  disabled: !rulesReady || (disableBlockedModal && row.rules.length > 0),
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
@@ -226,7 +237,15 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [navigate, rulesById, rulesReady, licenseFetching, licenseInfo, disableBlockedModal],
+    [
+      navigate,
+      rulesById,
+      rulesByDestinationId,
+      rulesReady,
+      licenseFetching,
+      licenseInfo,
+      disableBlockedModal,
+    ],
   );
 
   const transformedData = useMemo(() => {
@@ -280,10 +299,17 @@ export const DestinationsTable = ({
         description={deleteModal?.description ?? ''}
         onConfirm={() => {
           if (!deleteModal) return;
-          deleteDestination(deleteModal.destinationId);
-          setDeleteModal(null);
+          void (async () => {
+            try {
+              await deleteDestination(deleteModal.destinationId);
+              setDeleteModal(null);
+            } catch {
+              return;
+            }
+          })();
         }}
         onClose={() => setDeleteModal(null)}
+        isPending={deleteDestinationPending}
       />
     </>
   );

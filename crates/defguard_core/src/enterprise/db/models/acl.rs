@@ -1587,9 +1587,8 @@ impl AclAlias {
         appstate: &AppState,
     ) -> Result<(), AclError> {
         debug!(
-            "Applying {} ACL aliases of kind {:?}: {aliases:?}",
+            "Applying {} ACL aliases of kind {kind:?}: {aliases:?}",
             aliases.len(),
-            kind
         );
         let mut transaction = appstate.pool.begin().await?;
 

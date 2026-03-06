@@ -27,8 +27,8 @@ export const DeletionBlockedModal = ({
     <div className="deletion-blocked-modal-content">
       <p className="deletion-blocked-modal-description">{description}</p>
       <ul className="deletion-blocked-modal-list">
-        {rules.map((rule) => (
-          <li key={rule}>{rule}</li>
+        {rules.map((rule, index) => (
+          <li key={`${rule}-${index}`}>{rule}</li>
         ))}
       </ul>
       <ModalControls
