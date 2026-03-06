@@ -41,8 +41,7 @@ async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
     let step = wizard
         .initial_setup_state
         .as_ref()
-        .map(|s| s.step)
-        .unwrap_or(InitialSetupStep::Welcome);
+        .map_or(InitialSetupStep::Welcome, |s| s.step);
     assert_eq!(step, expected);
 }
 

@@ -357,7 +357,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
             attrs: group_to_test_attrs(
                 &group,
                 &ldap_conn.config,
-                Some(&vec![&active_user_in_ldap])
+                Some(&[&active_user_in_ldap])
             ),
         }],
         false
