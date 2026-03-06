@@ -102,6 +102,21 @@ export interface OpenDisplayListModal {
   data: string[];
 }
 
+export interface OpenDeleteAliasDestinationConfirmModal {
+  title: string;
+  description: string;
+  target: {
+    kind: 'alias' | 'destination';
+    id: number;
+  };
+}
+
+export interface OpenDeleteAliasDestinationBlockedModal {
+  title: string;
+  description: string;
+  rules: string[];
+}
+
 export interface OpenSettingsLicenseModal {
   license?: string | null;
 }

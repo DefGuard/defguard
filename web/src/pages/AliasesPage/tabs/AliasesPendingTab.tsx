@@ -4,7 +4,7 @@ import { AclStatus } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { getAliasesQueryOptions } from '../../../shared/query';
+import { getAliasesQueryOptions, getRulesQueryOptions } from '../../../shared/query';
 import { AliasTable } from '../AliasTable';
 
 export const AliasesPendingTab = () => {
@@ -12,6 +12,7 @@ export const AliasesPendingTab = () => {
     ...getAliasesQueryOptions,
     select: (resp) => resp.data.filter((alias) => alias.state !== AclStatus.Applied),
   });
+  const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
   const isEmpty = aliases.length === 0;
   const { mutate: applyAliases, isPending } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
@@ -44,7 +45,7 @@ export const AliasesPendingTab = () => {
               />
             )}
           </TableTop>
-          <AliasTable data={aliases} />
+          <AliasTable data={aliases} rules={rules} disableBlockedModal />
         </>
       )}
     </>

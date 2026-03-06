@@ -82,14 +82,14 @@ use crate::{
         handlers::{
             acl::{
                 alias::{
-                    count_acl_aliases, create_acl_alias, delete_acl_alias, get_acl_alias,
-                    list_acl_aliases, update_acl_alias,
+                    apply_acl_aliases, count_acl_aliases, create_acl_alias, delete_acl_alias,
+                    get_acl_alias, list_acl_aliases, update_acl_alias,
                 },
-                apply_acl_aliases, apply_acl_rules, count_acl_rules, create_acl_rule,
-                delete_acl_rule,
+                apply_acl_rules, count_acl_rules, create_acl_rule, delete_acl_rule,
                 destination::{
-                    count_acl_destinations, create_acl_destination, delete_acl_destination,
-                    get_acl_destination, list_acl_destinations, update_acl_destination,
+                    apply_acl_destinations, count_acl_destinations, create_acl_destination,
+                    delete_acl_destination, get_acl_destination, list_acl_destinations,
+                    update_acl_destination,
                 },
                 get_acl_rule, list_acl_rules, update_acl_rule,
             },
@@ -479,7 +479,8 @@ pub fn build_webapp(
                 get(get_acl_destination)
                     .put(update_acl_destination)
                     .delete(delete_acl_destination),
-            ),
+            )
+            .route("/destination/apply", put(apply_acl_destinations)),
     );
 
     let webapp = webapp.nest(

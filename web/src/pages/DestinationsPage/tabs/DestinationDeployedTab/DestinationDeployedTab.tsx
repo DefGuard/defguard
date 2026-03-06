@@ -7,11 +7,13 @@ import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/Em
 import {
   getDestinationsQueryOptions,
   getLicenseInfoQueryOptions,
+  getRulesQueryOptions,
 } from '../../../../shared/query';
 import {
   canUseBusinessFeature,
   licenseActionCheck,
 } from '../../../../shared/utils/license';
+import { DeletionBlockedModal } from '../../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
 export const DestinationDeployedTab = () => {
@@ -23,6 +25,7 @@ export const DestinationDeployedTab = () => {
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching } = useQuery(getLicenseInfoQueryOptions);
+  const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -56,10 +59,12 @@ export const DestinationDeployedTab = () => {
         <DestinationsTable
           title="Deployed destinations"
           destinations={destinations}
+          rules={rules}
           primaryProps={addButtonProps}
           search
         />
       )}
+      <DeletionBlockedModal />
     </>
   );
 };

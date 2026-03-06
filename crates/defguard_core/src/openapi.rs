@@ -97,7 +97,7 @@ use super::{
 		acl::alias::get_acl_alias,
 		acl::alias::update_acl_alias,
 		acl::alias::delete_acl_alias,
-		acl::apply_acl_aliases,
+		acl::alias::apply_acl_aliases,
 		// /acl/destination
 		acl::destination::list_acl_destinations,
 		acl::destination::count_acl_destinations,
@@ -105,6 +105,7 @@ use super::{
 		acl::destination::get_acl_destination,
 		acl::destination::update_acl_destination,
 		acl::destination::delete_acl_destination,
+		acl::destination::apply_acl_destinations,
     ),
     components(
         schemas(

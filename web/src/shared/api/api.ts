@@ -479,8 +479,8 @@ const api = {
       deleteDestination: (destinationId: number | string) =>
         client.delete(`/acl/destination/${destinationId}`),
       applyDestinations: (destinations: number[]) =>
-        client.put(`/acl/alias/apply`, {
-          aliases: destinations,
+        client.put(`/acl/destination/apply`, {
+          destinations,
         }),
     },
     alias: {

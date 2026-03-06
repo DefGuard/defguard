@@ -9,16 +9,18 @@ import {
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { type AclAlias, AclProtocolName } from '../../shared/api/types';
+import { type AclAlias, AclProtocolName, type AclRule } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { resourceById } from '../../shared/utils/resourceById';
 
 type RowData = AclAlias;
 
@@ -26,27 +28,31 @@ const columnHelper = createColumnHelper<RowData>();
 
 type Props = {
   data: RowData[];
+  rules: AclRule[];
+  disableBlockedModal?: boolean;
 };
 
-export const AliasTable = ({ data: rowData }: Props) => {
+export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: isLicenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
   );
 
-  const { data: rules } = useQuery({
-    queryFn: api.acl.rule.getRules,
-    queryKey: ['acl', 'rule'],
-    select: (resp) => resp.data,
-  });
-
-  const { mutate: deleteAlias } = useMutation({
-    mutationFn: api.acl.alias.deleteAlias,
-    meta: {
-      invalidate: ['acl'],
-    },
-  });
+  const rulesById = useMemo(() => resourceById(rules), [rules]);
+  const rulesByAliasId = useMemo(() => {
+    if (!rules) return {} as Record<number, string[]>;
+    const map: Record<number, string[]> = {};
+    rules.forEach((rule) => {
+      rule.aliases.forEach((aliasId) => {
+        if (!map[aliasId]) {
+          map[aliasId] = [];
+        }
+        map[aliasId].push(rule.name);
+      });
+    });
+    return map;
+  }, [rules]);
 
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
@@ -107,13 +113,9 @@ export const AliasTable = ({ data: rowData }: Props) => {
         size: 400,
         enableSorting: false,
         cell: (info) => {
-          const value = info.getValue();
-          let inRules: string[] = [];
-          if (isPresent(rules)) {
-            inRules = rules
-              .filter((rule) => value.includes(rule.id))
-              .map((rule) => rule.name);
-          }
+          const row = info.row.original;
+          const aliasId = row.parent_id ?? row.id;
+          const inRules = rulesByAliasId[aliasId] ?? [];
           return <TableValuesListCell values={inRules} />;
         },
       }),
@@ -145,10 +147,30 @@ export const AliasTable = ({ data: rowData }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  disabled: disableBlockedModal && row.rules.length > 0,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
-                      deleteAlias(row.id);
+                      if (row.rules.length > 0) {
+                        const ruleNames = row.rules.map(
+                          (ruleId) => rulesById?.[ruleId]?.name ?? `Rule ${ruleId}`,
+                        );
+                        openModal(ModalName.DeleteAliasDestinationBlocked, {
+                          title: 'Deletion blocked',
+                          description:
+                            'This alias is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
+                          rules: ruleNames,
+                        });
+                        return;
+                      }
+                      openModal(ModalName.DeleteAliasDestinationConfirm, {
+                        title: m.modal_delete_acl_alias_title(),
+                        description: m.modal_delete_acl_alias_body(),
+                        target: {
+                          kind: 'alias',
+                          id: row.id,
+                        },
+                      });
                     });
                   },
                 },
@@ -179,7 +201,15 @@ export const AliasTable = ({ data: rowData }: Props) => {
         },
       }),
     ],
-    [rules, applyAliases, deleteAlias, navigate, isLicenseFetching, licenseInfo],
+    [
+      rulesById,
+      rulesByAliasId,
+      applyAliases,
+      disableBlockedModal,
+      navigate,
+      isLicenseFetching,
+      licenseInfo,
+    ],
   );
 
   const table = useReactTable({

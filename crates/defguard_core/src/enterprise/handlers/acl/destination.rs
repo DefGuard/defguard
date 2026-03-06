@@ -22,7 +22,7 @@ use crate::{
 
 /// API representation of [`AclAlias`] used in API requests for modification operations
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema)]
-pub(crate) struct EditAclDestination {
+pub struct EditAclDestination {
     pub name: String,
     pub addresses: String,
     pub ports: String,
@@ -80,7 +80,7 @@ impl EditAclDestination {
 /// API representation of [`AclAlias`] for "Destination" (not "Alias Component").
 /// All relations represented as arrays of IDs.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, ToSchema)]
-pub(crate) struct ApiAclDestination {
+pub struct ApiAclDestination {
     #[serde(default)]
     pub id: Id,
     pub parent_id: Option<Id>,
@@ -94,6 +94,11 @@ pub(crate) struct ApiAclDestination {
     pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub(crate) struct ApplyAclDestinationsData {
+    destinations: Vec<Id>,
 }
 
 impl ApiAclDestination {
@@ -400,7 +405,7 @@ pub(crate) async fn delete_acl_destination(
         "User {} deleting ACL destination {id}",
         session.user.username
     );
-    AclAlias::delete_from_api(&appstate.pool, id)
+    AclAlias::delete_by_kind(&appstate.pool, id, AliasKind::Destination)
         .await
         .map_err(|err| {
             error!("Error deleting ACL destination {id}: {err}");
@@ -409,6 +414,40 @@ pub(crate) async fn delete_acl_destination(
     info!(
         "User {} deleted ACL destination {id}",
         session.user.username
+    );
+    Ok(ApiResponse::default())
+}
+
+/// Apply ACL destinations.
+#[utoipa::path(
+    put,
+    path = "/api/v1/acl/destination/apply",
+    request_body = ApplyAclDestinationsData,
+    responses(
+        (status = OK, description = "ACL destination"),
+    )
+)]
+pub(crate) async fn apply_acl_destinations(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApplyAclDestinationsData>,
+) -> ApiResult {
+    debug!(
+        "User {} applying ACL destinations: {:?}",
+        session.user.username, data.destinations
+    );
+
+    AclAlias::apply_by_kind(&data.destinations, AliasKind::Destination, &appstate)
+        .await
+        .map_err(|err| {
+            error!("Error applying ACL destinations {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} applied ACL destinations: {:?}",
+        session.user.username, data.destinations
     );
     Ok(ApiResponse::default())
 }

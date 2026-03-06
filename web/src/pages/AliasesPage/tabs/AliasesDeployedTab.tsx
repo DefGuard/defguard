@@ -11,8 +11,10 @@ import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/
 import {
   getAliasesQueryOptions,
   getLicenseInfoQueryOptions,
+  getRulesQueryOptions,
 } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import { DeletionBlockedModal } from '../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
 import { AliasTable } from '../AliasTable';
 
 export const AliasesDeployedTab = () => {
@@ -26,6 +28,7 @@ export const AliasesDeployedTab = () => {
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
   );
+  const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -78,7 +81,7 @@ export const AliasesDeployedTab = () => {
             />
             <Button {...addButtonProps} />
           </TableTop>
-          {!visibleEmpty && <AliasTable data={aliases} />}
+          {!visibleEmpty && <AliasTable data={aliases} rules={rules} />}
           {visibleEmpty && (
             <EmptyStateFlexible
               icon="search"
@@ -88,6 +91,7 @@ export const AliasesDeployedTab = () => {
           )}
         </>
       )}
+      <DeletionBlockedModal />
     </>
   );
 };

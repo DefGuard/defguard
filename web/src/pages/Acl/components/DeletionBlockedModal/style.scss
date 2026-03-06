@@ -1,0 +1,25 @@
+#deletion-blocked-modal .modal-content {
+  .content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .description {
+    margin: 0 0 var(--spacing-lg) 0;
+  }
+
+  .rules-list {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+    margin: 0;
+    padding: 0 0 0 var(--spacing-lg);
+    list-style: disc;
+    overflow: hidden auto;
+
+    li {
+      margin: 0;
+      padding: 0;
+    }
+  }
+}

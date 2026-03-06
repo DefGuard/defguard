@@ -1061,6 +1061,7 @@ export interface AclCount {
 
 export interface AclDestination {
   id: number;
+  parent_id: number | null;
   name: string;
   state: AclDeploymentStateValue;
   addresses: string;
@@ -1072,12 +1073,16 @@ export interface AclDestination {
   any_protocol: boolean;
 }
 
-export type AddAclDestination = Omit<AclDestination, 'id' | 'state' | 'rules'>;
+export type AddAclDestination = Omit<
+  AclDestination,
+  'id' | 'state' | 'rules' | 'parent_id'
+>;
 
-export type EditAclDestination = Omit<AclDestination, 'state' | 'rules'>;
+export type EditAclDestination = Omit<AclDestination, 'state' | 'rules' | 'parent_id'>;
 
 export interface AclAlias {
   id: number;
+  parent_id: number | null;
   name: string;
   state: AclDeploymentStateValue;
   addresses: string;
@@ -1086,9 +1091,9 @@ export interface AclAlias {
   rules: number[];
 }
 
-export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules'>;
+export type AddAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'rules' | 'parent_id'>;
 
-export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules'>;
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'rules' | 'parent_id'>;
 
 export interface AclRule {
   id: number;

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -7,8 +7,11 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import { type AclDestination, AclProtocolName } from '../../../shared/api/types';
+import {
+  type AclDestination,
+  AclProtocolName,
+  type AclRule,
+} from '../../../shared/api/types';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -20,15 +23,19 @@ import { tableEditColumnSize } from '../../../shared/defguard-ui/components/tabl
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
+import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
+import { getLicenseInfoQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { resourceById } from '../../../shared/utils/resourceById';
 
 type Props = {
   title: string;
   destinations: AclDestination[];
+  rules: AclRule[];
   primaryProps: ButtonProps;
   search?: boolean;
+  disableBlockedModal?: boolean;
 };
 
 type RowData = AclDestination;
@@ -38,24 +45,31 @@ const columnHelper = createColumnHelper<RowData>();
 export const DestinationsTable = ({
   primaryProps,
   destinations,
+  rules,
   title,
   search,
+  disableBlockedModal,
 }: Props) => {
-  const { data: rules } = useQuery(getRulesQueryOptions);
   const rulesById = useMemo(() => resourceById(rules), [rules]);
+  const rulesByDestinationId = useMemo(() => {
+    if (!rules) return {} as Record<number, string[]>;
+    const map: Record<number, string[]> = {};
+    rules.forEach((rule) => {
+      rule.destinations.forEach((destinationId) => {
+        if (!map[destinationId]) {
+          map[destinationId] = [];
+        }
+        map[destinationId].push(rule.name);
+      });
+    });
+    return map;
+  }, [rules]);
   const [searchValue, setSearchValue] = useState<string>('');
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
     getLicenseInfoQueryOptions,
   );
-
-  const { mutate: deleteDestination } = useMutation({
-    mutationFn: api.acl.destination.deleteDestination,
-    meta: {
-      invalidate: ['acl', 'destination'],
-    },
-  });
 
   const columns = useMemo(
     () => [
@@ -124,7 +138,8 @@ export const DestinationsTable = ({
         cell: (info) => {
           if (!rulesById) return null;
           const row = info.row.original;
-          const display = row.rules.map((ruleId) => rulesById[ruleId]?.name ?? '');
+          const destinationId = row.parent_id ?? row.id;
+          const display = rulesByDestinationId[destinationId] ?? [];
           return <TableValuesListCell values={display} />;
         },
       }),
@@ -157,10 +172,32 @@ export const DestinationsTable = ({
                   text: m.controls_delete(),
                   icon: 'delete',
                   variant: 'danger',
+                  disabled: disableBlockedModal && row.rules.length > 0,
                   onClick: () => {
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
-                      deleteDestination(row.id);
+                      if (row.rules.length > 0) {
+                        const ruleNames = rulesById
+                          ? row.rules.map(
+                              (ruleId) => rulesById[ruleId]?.name ?? `Rule ${ruleId}`,
+                            )
+                          : row.rules.map((ruleId) => `Rule ${ruleId}`);
+                        openModal(ModalName.DeleteAliasDestinationBlocked, {
+                          title: 'Deletion blocked',
+                          description:
+                            'This destination is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
+                          rules: ruleNames,
+                        });
+                        return;
+                      }
+                      openModal(ModalName.DeleteAliasDestinationConfirm, {
+                        title: m.modal_delete_acl_destination_title(),
+                        description: m.modal_delete_acl_destination_body(),
+                        target: {
+                          kind: 'destination',
+                          id: row.id,
+                        },
+                      });
                     });
                   },
                 },
@@ -179,7 +216,14 @@ export const DestinationsTable = ({
         },
       }),
     ],
-    [navigate, deleteDestination, rulesById, licenseFetching, licenseInfo],
+    [
+      navigate,
+      rulesById,
+      rulesByDestinationId,
+      licenseFetching,
+      licenseInfo,
+      disableBlockedModal,
+    ],
   );
 
   const transformedData = useMemo(() => {

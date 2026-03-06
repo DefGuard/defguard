@@ -4,7 +4,10 @@ import api from '../../../../shared/api/api';
 import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { getDestinationsQueryOptions } from '../../../../shared/query';
+import {
+  getDestinationsQueryOptions,
+  getRulesQueryOptions,
+} from '../../../../shared/query';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
 export const DestinationPendingTab = () => {
@@ -13,6 +16,7 @@ export const DestinationPendingTab = () => {
     select: (resp) =>
       resp.data.filter((destination) => destination.state !== AclStatus.Applied),
   });
+  const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.acl.destination.applyDestinations,
@@ -46,8 +50,10 @@ export const DestinationPendingTab = () => {
       {destinations.length > 0 && (
         <DestinationsTable
           destinations={destinations}
+          rules={rules}
           primaryProps={deployPending}
           title="Pending destinations"
+          disableBlockedModal
         />
       )}
     </>

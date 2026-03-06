@@ -8,6 +8,7 @@ import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getDestinationsCountQueryOptions } from '../../shared/query';
+import { DeleteAliasDestinationConfirmModal } from '../Acl/components/DeleteAliasDestinationConfirmModal/DeleteAliasDestinationConfirmModal';
 import { DestinationDeployedTab } from './tabs/DestinationDeployedTab/DestinationDeployedTab';
 import { DestinationPendingTab } from './tabs/DestinationPendingTab/DestinationPendingTab';
 
@@ -51,6 +52,7 @@ export const DestinationsPage = () => {
           {activeTab === AclDeploymentState.Applied && <DestinationDeployedTab />}
           {activeTab === AclDeploymentState.Modified && <DestinationPendingTab />}
         </Suspense>
+        <DeleteAliasDestinationConfirmModal />
       </TablePageLayout>
     </Page>
   );
