@@ -97,16 +97,12 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
-    // initialize default settings
-    Settings::init_defaults(&pool).await?;
-    Settings::ensure_secret_key(&pool, &config).await?;
-    let mut ini_server_config = true;
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
-    // FIXME: Merge logic conflict, migration wizard depended on WizardFlags, move this logic to Wizard
+    let mut ini_server_config = true;
 
     if !wizard.completed {
         match wizard.active_wizard {
@@ -128,6 +124,8 @@ async fn main() -> Result<(), anyhow::Error> {
                 let mut settings = Settings::get_current_settings();
                 settings.update_from_config(&pool, &config).await?;
 
+                Settings::initialize_runtime_defaults(&pool).await?;
+
                 config.initialize_post_settings();
                 SERVER_CONFIG
                     .set(config.clone())
@@ -147,6 +145,8 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     }
+
+    Settings::initialize_runtime_defaults(&pool).await?;
 
     if ini_server_config {
         config.initialize_post_settings();

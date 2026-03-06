@@ -13,7 +13,6 @@ import { SettingsHeader } from '../../../shared/components/SettingsHeader/Settin
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
@@ -28,23 +27,23 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    {m.settings_breadcrumb_general()}
+    General
   </Link>,
-  <Link to="/settings/instance" key={1}>
-    {m.settings_breadcrumb_instance()}
+  <Link to="/settings/enrollment" key={1}>
+    Enrollment
   </Link>,
 ];
 
-export const SettingsInstancePage = () => {
+export const SettingsEnrollmentPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
-    <Page title={m.settings_page_title()}>
+    <Page title="Settings">
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title={m.settings_instance_title()}
-          subtitle={m.settings_instance_subtitle()}
+          title="Enrollment"
+          subtitle="Configure token and session timeouts for enrollment and password reset flows."
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -57,47 +56,13 @@ export const SettingsInstancePage = () => {
 };
 
 const formSchema = z.object({
-  instance_name: z
-    .string(m.form_error_required())
-    .trim()
-    .min(1, m.form_error_required())
-    .min(
-      3,
-      m.form_error_min_len({
-        length: 3,
-      }),
-    )
-    .max(64, m.form_error_max_len({ length: 64 })),
-  auth_cookie_timeout_days: z.number(m.form_error_required()).int().min(1),
-  public_proxy_url: z
-    .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
-    .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
-  authentication_period_days: z.number().min(1, m.form_error_invalid()),
+  enrollment_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  password_reset_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  enrollment_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
+  password_reset_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
 });
 
 type FormFields = z.infer<typeof formSchema>;
-
-const sessionDurationOptions = [
-  { key: 1, value: 1, label: m.settings_instance_session_duration_1() },
-  { key: 2, value: 2, label: m.settings_instance_session_duration_2() },
-  { key: 3, value: 3, label: m.settings_instance_session_duration_3() },
-  { key: 7, value: 7, label: m.settings_instance_session_duration_7() },
-  {
-    key: 10,
-    value: 10,
-    label: m.settings_instance_session_duration_10(),
-  },
-  {
-    key: 14,
-    value: 14,
-    label: m.settings_instance_session_duration_14(),
-  },
-  {
-    key: 30,
-    value: 30,
-    label: m.settings_instance_session_duration_30(),
-  },
-];
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -105,27 +70,19 @@ const Content = ({ settings }: { settings: Settings }) => {
     meta: {
       invalidate: ['settings'],
     },
-    onSuccess: () => {
-      Snackbar.success(m.settings_msg_saved());
-    },
-    onError: () => {
-      Snackbar.error(m.settings_msg_save_failed());
-    },
   });
 
   const defaultValues = useMemo(
     (): FormFields => ({
-      instance_name: settings.instance_name ?? '',
-      auth_cookie_timeout_days: settings.auth_cookie_timeout_days ?? 7,
-      public_proxy_url: settings.public_proxy_url ?? '',
-      authentication_period_days: settings.authentication_period_days ?? 7,
+      enrollment_token_timeout_hours: settings.enrollment_token_timeout_hours ?? 24,
+      password_reset_token_timeout_hours:
+        settings.password_reset_token_timeout_hours ?? 24,
+      enrollment_session_timeout_minutes:
+        settings.enrollment_session_timeout_minutes ?? 10,
+      password_reset_session_timeout_minutes:
+        settings.password_reset_session_timeout_minutes ?? 10,
     }),
-    [
-      settings.instance_name,
-      settings.public_proxy_url,
-      settings.authentication_period_days,
-      settings.auth_cookie_timeout_days,
-    ],
+    [settings],
   );
 
   const form = useAppForm({
@@ -150,36 +107,41 @@ const Content = ({ settings }: { settings: Settings }) => {
       }}
     >
       <form.AppForm>
-        <form.AppField name="instance_name">
-          {(field) => (
-            <field.FormInput required label={m.settings_instance_label_name()} />
-          )}
-        </form.AppField>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="public_proxy_url">
+        <form.AppField name="enrollment_token_timeout_hours">
           {(field) => (
             <field.FormInput
               required
-              label={m.settings_instance_label_public_proxy_url()}
+              label="Enrollment token timeout (hours)"
+              type="number"
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="authentication_period_days">
+        <form.AppField name="password_reset_token_timeout_hours">
           {(field) => (
-            <field.FormSelect
+            <field.FormInput
               required
-              label={m.settings_instance_label_session_duration()}
-              options={sessionDurationOptions}
+              label="Password reset token timeout (hours)"
+              type="number"
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="auth_cookie_timeout_days">
+        <form.AppField name="enrollment_session_timeout_minutes">
           {(field) => (
             <field.FormInput
               required
-              label={m.settings_instance_label_auth_cookie_timeout_days()}
+              label="Enrollment session timeout (minutes)"
+              type="number"
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="password_reset_session_timeout_minutes">
+          {(field) => (
+            <field.FormInput
+              required
+              label="Password reset session timeout (minutes)"
               type="number"
             />
           )}
@@ -189,16 +151,15 @@ const Content = ({ settings }: { settings: Settings }) => {
         selector={(s) => ({
           isDefault: s.isDefaultValue || s.isPristine,
           isSubmitting: s.isSubmitting,
-          canSubmit: s.canSubmit,
         })}
       >
-        {({ isDefault, isSubmitting, canSubmit }) => (
+        {({ isDefault, isSubmitting }) => (
           <Controls>
             <div className="right">
               <Button
                 variant="primary"
                 text={m.controls_save_changes()}
-                disabled={isDefault || !canSubmit}
+                disabled={isDefault}
                 loading={isSubmitting}
                 type="submit"
                 onClick={() => {

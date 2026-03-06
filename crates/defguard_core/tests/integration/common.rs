@@ -6,7 +6,7 @@ use defguard_common::{
     },
 };
 use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
-use secrecy::{ExposeSecret, SecretString};
+use reqwest::Url;
 use sqlx::PgPool;
 
 fn set_test_license_business() {
@@ -28,13 +28,16 @@ pub(crate) async fn init_config(
     pool: &PgPool,
 ) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
+    let test_secret_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    let webauthn_rp_id = Url::parse(url).unwrap().domain().unwrap().to_string();
     let mut config = DefGuardConfig::new_test_config();
-    config.default_admin_password = SecretString::new("pass123".into());
     initialize_current_settings(pool)
         .await
         .expect("Could not initialize current settings in the database");
     let mut settings = Settings::get_current_settings();
     settings.defguard_url = url.to_string();
+    settings.secret_key = Some(test_secret_key.to_string());
+    settings.webauthn_rp_id = Some(webauthn_rp_id);
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");
@@ -45,10 +48,8 @@ pub(crate) async fn init_config(
     config
 }
 
-pub(crate) async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
-    User::init_admin_user(pool, config.default_admin_password.expose_secret())
-        .await
-        .unwrap();
+pub(crate) async fn initialize_users(pool: &PgPool) {
+    User::init_admin_user(pool, "pass123").await.unwrap();
 
     User::new(
         "hpotter",

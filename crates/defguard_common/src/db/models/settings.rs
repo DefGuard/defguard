@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt, time::Duration};
 
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
 use rand::{RngCore, rngs::OsRng};
 use secrecy::ExposeSecret;
@@ -51,11 +52,17 @@ pub enum SettingsValidationError {
 }
 
 #[derive(Error, Debug)]
-pub enum SettingsRequiredValueError {
+pub enum SettingsInitializationError {
+    #[error(transparent)]
+    Db(#[from] sqlx::Error),
     #[error("Missing required setting: {0}")]
     Missing(&'static str),
     #[error("Invalid required setting `{0}`: {1}")]
     Invalid(&'static str, &'static str),
+    #[error("Unable to derive webauthn_rp_id from defguard_url {0}")]
+    InvalidDefguardUrl(String),
+    #[error("Unable to derive webauthn_rp_id: defguard_url has no domain: {0}")]
+    MissingDefguardDomain(String),
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
@@ -172,7 +179,6 @@ pub struct Settings {
     // 1.6 config options
     pub secret_key: Option<String>,
     pub webauthn_rp_id: Option<String>,
-    pub grpc_url: String,
     pub disable_stats_purge: bool,
     auth_cookie_timeout_days: i32,
     stats_purge_frequency_hours: i32,
@@ -273,16 +279,16 @@ impl fmt::Debug for Settings {
 }
 
 impl Settings {
-    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsRequiredValueError> {
+    pub(crate) fn validate_secret_key(secret_key: &str) -> Result<(), SettingsInitializationError> {
         if secret_key.trim().len() != secret_key.len() {
-            return Err(SettingsRequiredValueError::Invalid(
+            return Err(SettingsInitializationError::Invalid(
                 "secret_key",
                 "cannot have leading or trailing whitespace",
             ));
         }
 
         if secret_key.len() < 64 {
-            return Err(SettingsRequiredValueError::Invalid(
+            return Err(SettingsInitializationError::Invalid(
                 "secret_key",
                 "must be at least 64 characters long",
             ));
@@ -291,43 +297,11 @@ impl Settings {
         Ok(())
     }
 
+    /// Generates length 64 random base64 string.
     fn generate_secret_key() -> String {
-        let mut bytes = [0_u8; 32];
+        let mut bytes = [0_u8; 48];
         OsRng.fill_bytes(&mut bytes);
-        let mut secret_key = String::with_capacity(64);
-        for byte in bytes {
-            use std::fmt::Write as _;
-            let _ = write!(secret_key, "{byte:02x}");
-        }
-        secret_key
-    }
-
-    pub async fn ensure_secret_key(
-        pool: &PgPool,
-        config: &DefGuardConfig,
-    ) -> Result<(), anyhow::Error> {
-        let mut settings = Settings::get(pool).await?.unwrap();
-
-        #[allow(deprecated)]
-        if let Some(secret_key) = &config.secret_key {
-            let secret_key = secret_key.expose_secret();
-            Settings::validate_secret_key(secret_key)?;
-            if settings.secret_key.as_deref() != Some(secret_key) {
-                settings.secret_key = Some(secret_key.to_string());
-                update_current_settings(pool, settings).await?;
-            }
-            return Ok(());
-        }
-
-        if let Some(secret_key) = settings.secret_key.as_deref() {
-            Settings::validate_secret_key(secret_key)?;
-            return Ok(());
-        }
-
-        settings.secret_key = Some(Settings::generate_secret_key());
-        update_current_settings(pool, settings).await?;
-
-        Ok(())
+        BASE64_STANDARD.encode(bytes)
     }
 
     pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
@@ -358,7 +332,7 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, \
-            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, grpc_url, disable_stats_purge, \
+            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -451,14 +425,13 @@ impl Settings {
             auth_cookie_timeout_days = $58, \
             secret_key = $59, \
             webauthn_rp_id = $60, \
-            grpc_url = $61, \
-            disable_stats_purge = $62, \
-            stats_purge_frequency_hours = $63, \
-            stats_purge_threshold_days = $64, \
-            enrollment_token_timeout_hours = $65, \
-            password_reset_token_timeout_hours = $66, \
-            enrollment_session_timeout_minutes = $67, \
-            password_reset_session_timeout_minutes = $68 \
+            disable_stats_purge = $61, \
+            stats_purge_frequency_hours = $62, \
+            stats_purge_threshold_days = $63, \
+            enrollment_token_timeout_hours = $64, \
+            password_reset_token_timeout_hours = $65, \
+            enrollment_session_timeout_minutes = $66, \
+            password_reset_session_timeout_minutes = $67 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -520,7 +493,6 @@ impl Settings {
             self.auth_cookie_timeout_days,
             self.secret_key,
             self.webauthn_rp_id,
-            self.grpc_url,
             self.disable_stats_purge,
             self.stats_purge_frequency_hours,
             self.stats_purge_threshold_days,
@@ -547,8 +519,10 @@ impl Settings {
     // Set default values for settings if not set yet.
     // This is only relevant to a subset of settings which are nullable
     // and we want to initialize their values.
-    pub async fn init_defaults(pool: &PgPool) -> Result<(), sqlx::Error> {
-        info!("Initializing default settings");
+    pub async fn initialize_runtime_defaults(
+        pool: &PgPool,
+    ) -> Result<(), SettingsInitializationError> {
+        info!("Initializing runtime default settings");
 
         let default_settings = HashMap::from([
             ("enrollment_welcome_message", defaults::WELCOME_MESSAGE),
@@ -563,6 +537,29 @@ impl Settings {
             let query_string = format!("UPDATE settings SET {field} = $1 WHERE {field} IS NULL");
             query(&query_string).bind(value).execute(pool).await?;
         }
+
+        let mut settings = Settings::get(pool).await?.unwrap_or_default();
+
+        match settings.secret_key.as_deref() {
+            Some(secret_key) => {
+                Settings::validate_secret_key(secret_key)?;
+            }
+            None => {
+                settings.secret_key = Some(Settings::generate_secret_key());
+            }
+        }
+
+        if settings.webauthn_rp_id.is_none() {
+            let url = Url::parse(&settings.defguard_url).map_err(|_| {
+                SettingsInitializationError::InvalidDefguardUrl(settings.defguard_url.clone())
+            })?;
+            let domain = url.domain().ok_or_else(|| {
+                SettingsInitializationError::MissingDefguardDomain(settings.defguard_url.clone())
+            })?;
+            settings.webauthn_rp_id = Some(domain.to_string());
+        }
+
+        update_current_settings(pool, settings).await?;
 
         Ok(())
     }
@@ -643,11 +640,11 @@ impl Settings {
         Duration::from_secs(self.password_reset_session_timeout_minutes as u64 * 60)
     }
 
-    pub fn secret_key_required(&self) -> Result<&str, SettingsRequiredValueError> {
+    pub fn secret_key_required(&self) -> Result<&str, SettingsInitializationError> {
         let secret_key = self
             .secret_key
             .as_deref()
-            .ok_or(SettingsRequiredValueError::Missing("secret_key"))?;
+            .ok_or(SettingsInitializationError::Missing("secret_key"))?;
 
         Settings::validate_secret_key(secret_key)?;
 
@@ -659,27 +656,27 @@ impl Settings {
     }
 
     #[allow(deprecated)]
-    pub async fn update_from_config<'e, E>(
-        &mut self,
-        executor: E,
-        config: &DefGuardConfig,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        info!("Updating Settings from DefguardConfig: {config:?}");
+    fn apply_from_config(&mut self, config: &DefGuardConfig) {
         let minute = 60;
         let hour = minute * 60;
         let day = hour * 24;
-        self.auth_cookie_timeout_days = (config.auth_cookie_timeout.as_secs() / day) as i32;
+
+        if let Some(auth_cookie_timeout) = config.auth_cookie_timeout {
+            self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
+        }
         if let Some(secret_key) = &config.secret_key {
-            self.secret_key = Some(secret_key.expose_secret().to_string());
+            let secret_key = secret_key.expose_secret();
+            if let Err(err) = Settings::validate_secret_key(secret_key) {
+                warn!(
+                    "Invalid secret_key provided in deprecated config, generating new one: {err}"
+                );
+                self.secret_key = Some(Settings::generate_secret_key());
+            } else {
+                self.secret_key = Some(secret_key.to_string());
+            }
         }
         if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
             self.webauthn_rp_id = Some(webauthn_rp_id.clone());
-        }
-        if let Some(grpc_url) = &config.grpc_url {
-            self.grpc_url = grpc_url.to_string();
         }
         if let Some(enrollment_url) = &config.enrollment_url {
             self.public_proxy_url = enrollment_url.to_string();
@@ -715,6 +712,19 @@ impl Settings {
             self.password_reset_session_timeout_minutes =
                 (password_reset_session_timeout.as_secs() / minute) as i32;
         }
+    }
+
+    pub async fn update_from_config<'e, E>(
+        &mut self,
+        executor: E,
+        config: &DefGuardConfig,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        info!("Updating Settings from DefguardConfig: {config:?}");
+        self.apply_from_config(config);
+
         update_current_settings(executor, self.clone()).await?;
 
         info!("Updated Settings from DefguardConfig: {config:?}");
@@ -807,7 +817,13 @@ Star us on GitHub! https://github.com/defguard/defguard\
 mod test {
     use std::str::FromStr;
 
+    use humantime::Duration;
+    use reqwest::Url;
+    use secrecy::SecretString;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
+    use crate::db::setup_pool;
 
     #[test]
     fn test_smtp_config() {
@@ -861,6 +877,196 @@ mod test {
         assert_eq!(
             s.callback_url().unwrap().as_str(),
             "https://defguard.example.com:8443/path/auth/callback"
+        );
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_maps_migrated_fields() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            webauthn_rp_id: Some("existing-rp".into()),
+            ..Default::default()
+        };
+        let mut config = DefGuardConfig::new_test_config();
+
+        config.auth_cookie_timeout = Some(Duration::from(std::time::Duration::from_secs(
+            3 * 24 * 3600,
+        )));
+        config.secret_key = Some(SecretString::from("a".repeat(64)));
+        config.webauthn_rp_id = Some("rp-from-config".into());
+        config.enrollment_url = Some(Url::parse("https://proxy.example.com").unwrap());
+        config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(75)));
+        config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
+            10 * 24 * 3600,
+        )));
+        config.disable_stats_purge = Some(true);
+        config.stats_purge_frequency =
+            Some(Duration::from(std::time::Duration::from_secs(5 * 3600)));
+        config.stats_purge_threshold = Some(Duration::from(std::time::Duration::from_secs(
+            12 * 24 * 3600,
+        )));
+        config.enrollment_token_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(7 * 3600)));
+        config.password_reset_token_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(9 * 3600)));
+        config.enrollment_session_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(15 * 60)));
+        config.password_reset_session_timeout =
+            Some(Duration::from(std::time::Duration::from_secs(20 * 60)));
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(settings.auth_cookie_timeout_days, 3);
+        assert_eq!(
+            settings.secret_key.as_deref(),
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        );
+        assert_eq!(settings.webauthn_rp_id.as_deref(), Some("rp-from-config"));
+        assert_eq!(settings.public_proxy_url, "https://proxy.example.com/");
+        assert_eq!(settings.mfa_code_timeout_seconds, 75);
+        assert_eq!(settings.authentication_period_days, 10);
+        assert!(settings.disable_stats_purge);
+        assert_eq!(settings.stats_purge_frequency_hours, 5);
+        assert_eq!(settings.stats_purge_threshold_days, 12);
+        assert_eq!(settings.enrollment_token_timeout_hours, 7);
+        assert_eq!(settings.password_reset_token_timeout_hours, 9);
+        assert_eq!(settings.enrollment_session_timeout_minutes, 15);
+        assert_eq!(settings.password_reset_session_timeout_minutes, 20);
+    }
+
+    #[test]
+    fn test_apply_from_config_keeps_values_when_config_is_none() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            secret_key: Some("z".repeat(64)),
+            webauthn_rp_id: Some("already-set".into()),
+            public_proxy_url: "https://proxy.initial".into(),
+            mfa_code_timeout_seconds: 123,
+            authentication_period_days: 9,
+            disable_stats_purge: true,
+            ..Default::default()
+        };
+        let config = DefGuardConfig::new_test_config();
+        let existing_secret = "z".repeat(64);
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(
+            settings.secret_key.as_deref(),
+            Some(existing_secret.as_str())
+        );
+        assert_eq!(settings.webauthn_rp_id.as_deref(), Some("already-set"));
+        assert_eq!(settings.public_proxy_url, "https://proxy.initial");
+        assert_eq!(settings.mfa_code_timeout_seconds, 123);
+        assert_eq!(settings.authentication_period_days, 9);
+        assert!(settings.disable_stats_purge);
+    }
+
+    #[test]
+    fn test_apply_from_config_invalid_defguard_url_does_not_set_webauthn_rp_id() {
+        let mut settings = Settings {
+            defguard_url: "this is not an url".into(),
+            webauthn_rp_id: None,
+            ..Default::default()
+        };
+        let config = DefGuardConfig::new_test_config();
+
+        settings.apply_from_config(&config);
+
+        assert!(settings.webauthn_rp_id.is_none());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_invalid_secret_key_generates_new() {
+        let mut settings = Settings::default();
+        let mut config = DefGuardConfig::new_test_config();
+        config.secret_key = Some(SecretString::from(" short ".to_string()));
+
+        settings.apply_from_config(&config);
+
+        let generated = settings.secret_key.expect("secret key should be generated");
+        assert_eq!(generated.len(), 64);
+        assert_ne!(generated, " short ");
+        assert!(Settings::validate_secret_key(&generated).is_ok());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_valid_secret_key_is_used() {
+        let mut settings = Settings::default();
+        let mut config = DefGuardConfig::new_test_config();
+        let valid_secret = "b".repeat(64);
+        config.secret_key = Some(SecretString::from(valid_secret.clone()));
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(settings.secret_key.as_deref(), Some(valid_secret.as_str()));
+    }
+
+    #[sqlx::test]
+    #[allow(deprecated)]
+    async fn test_update_from_config_persists_and_updates_current_settings(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = "https://defguard.example.com".into();
+        update_current_settings(&pool, settings.clone())
+            .await
+            .unwrap();
+
+        let mut config = DefGuardConfig::new_test_config();
+        config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(90)));
+        config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
+            2 * 24 * 3600,
+        )));
+        config.disable_stats_purge = Some(true);
+
+        settings.update_from_config(&pool, &config).await.unwrap();
+
+        let current = Settings::get_current_settings();
+        let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+        assert_eq!(current.mfa_code_timeout_seconds, 90);
+        assert_eq!(current.authentication_period_days, 2);
+        assert!(current.disable_stats_purge);
+
+        assert_eq!(from_db.mfa_code_timeout_seconds, 90);
+        assert_eq!(from_db.authentication_period_days, 2);
+        assert!(from_db.disable_stats_purge);
+    }
+
+    #[sqlx::test]
+    async fn test_initialize_runtime_defaults_derives_webauthn_rp_id_from_defguard_url(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = "https://defguard.example.com:8443/path".into();
+        settings.webauthn_rp_id = None;
+        settings.secret_key = Some("a".repeat(64));
+        update_current_settings(&pool, settings).await.unwrap();
+
+        Settings::initialize_runtime_defaults(&pool).await.unwrap();
+
+        let current = Settings::get_current_settings();
+        let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+        assert_eq!(
+            current.webauthn_rp_id.as_deref(),
+            Some("defguard.example.com")
+        );
+        assert_eq!(
+            from_db.webauthn_rp_id.as_deref(),
+            Some("defguard.example.com")
         );
     }
 

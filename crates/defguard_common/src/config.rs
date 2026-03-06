@@ -37,10 +37,10 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
+    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT")]
     #[serde(skip_serializing)]
-    #[deprecated(since = "2.0.0", note = "Use Settings.default_authentication instead")]
-    pub auth_cookie_timeout: Duration,
+    #[deprecated(since = "2.0.0", note = "Use Settings.auth_cookie_timeout instead")]
+    pub auth_cookie_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
@@ -76,16 +76,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_KEY")]
     pub grpc_key: Option<String>,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
-        default_value = "pass123"
-    )]
-    #[serde(skip_serializing)]
-    // TODO: Deprecate this, since we have initial setup now.
-    // We use it in some dev/test scenarios still so the approach will need to be changed there.
-    pub default_admin_password: SecretString,
-
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
@@ -99,10 +89,6 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
-
-    #[arg(long, env = "DEFGUARD_GRPC_URL", value_parser = Url::parse)]
-    #[deprecated(since = "2.0.0", note = "Use Settings.grpc_url instead")]
-    pub grpc_url: Option<Url>,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
     #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
@@ -118,7 +104,7 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.stats_purge_threshold instead")]
     pub stats_purge_threshold: Option<Duration>,
 
-    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse, default_value = "http://localhost:8080")]
+    #[arg(long, env = "DEFGUARD_ENROLLMENT_URL", value_parser = Url::parse)]
     #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
     pub enrollment_url: Option<Url>,
@@ -261,20 +247,8 @@ impl DefGuardConfig {
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
         let url = Settings::url().expect("Unable to parse Defguard URL.");
-        // TODO(jck)
-        // self.initialize_rp_id(&url);
         self.initialize_cookie_domain(&url);
     }
-
-    // fn initialize_rp_id(&mut self, url: &Url) {
-    //     if self.webauthn_rp_id.is_none() {
-    //         self.webauthn_rp_id = Some(
-    //             url.domain()
-    //                 .expect("Unable to get domain for server URL.")
-    //                 .to_string(),
-    //         );
-    //     }
-    // }
 
     fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
@@ -324,30 +298,6 @@ mod tests {
         use clap::CommandFactory;
         DefGuardConfig::command().debug_assert();
     }
-
-    // #[test]
-    // fn test_generate_rp_id() {
-    //     unsafe {
-    //         env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-    //     }
-
-    //     let url = Url::parse("https://defguard.example.com").unwrap();
-    //     let mut config = DefGuardConfig::new();
-    //     config.initialize_rp_id(&url);
-
-    //     assert_eq!(
-    //         config.webauthn_rp_id,
-    //         Some("defguard.example.com".to_string())
-    //     );
-
-    //     unsafe {
-    //         env::set_var("DEFGUARD_WEBAUTHN_RP_ID", "example.com");
-    //     }
-
-    //     let config = DefGuardConfig::new();
-
-    //     assert_eq!(config.webauthn_rp_id, Some("example.com".to_string()));
-    // }
 
     #[test]
     fn test_generate_cookie_domain() {

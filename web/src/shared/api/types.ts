@@ -844,6 +844,7 @@ export interface SettingsEnrollment {
   enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
 }
+
 export interface SettingsModules {
   openid_enabled: boolean;
   wireguard_enabled: boolean;
@@ -895,6 +896,17 @@ export interface SettingsGatewayNotifications {
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 }
 
+export interface SettingsTimeoutsAndMaintenance {
+  auth_cookie_timeout_days: number;
+  disable_stats_purge: boolean;
+  stats_purge_frequency_hours: number;
+  stats_purge_threshold_days: number;
+  enrollment_token_timeout_hours: number;
+  password_reset_token_timeout_hours: number;
+  enrollment_session_timeout_minutes: number;
+  password_reset_session_timeout_minutes: number;
+}
+
 export interface SettingsGeneral {
   defguard_url: string;
   default_admin_group_name: string;
@@ -912,6 +924,7 @@ export type Settings = SettingsBranding &
   SettingsOpenID &
   SettingsEnrollment &
   SettingsSMTP &
+  SettingsTimeoutsAndMaintenance &
   SettingsGeneral;
 
 export interface OpenIdProviderSettings {
