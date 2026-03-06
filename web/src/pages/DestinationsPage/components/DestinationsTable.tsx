@@ -177,9 +177,6 @@ export const DestinationsTable = ({
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
                       if (row.rules.length > 0) {
-                        if (disableBlockedModal) {
-                          return;
-                        }
                         const ruleNames = rulesById
                           ? row.rules.map(
                               (ruleId) => rulesById[ruleId]?.name ?? `Rule ${ruleId}`,

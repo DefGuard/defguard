@@ -152,9 +152,6 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
                     if (licenseInfo === undefined) return;
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
                       if (row.rules.length > 0) {
-                        if (disableBlockedModal) {
-                          return;
-                        }
                         const ruleNames = row.rules.map(
                           (ruleId) => rulesById?.[ruleId]?.name ?? `Rule ${ruleId}`,
                         );
