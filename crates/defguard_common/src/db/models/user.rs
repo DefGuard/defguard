@@ -145,7 +145,7 @@ pub struct User<I = NoId> {
 }
 
 // TODO: Refactor the user struct to use SecretStringWrapper instead of this
-impl<I: std::fmt::Debug> fmt::Debug for User<I> {
+impl<I: fmt::Debug> fmt::Debug for User<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self {
             id,

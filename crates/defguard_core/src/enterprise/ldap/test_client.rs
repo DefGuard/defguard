@@ -179,9 +179,8 @@ impl TestClient {
 
     pub(super) fn events_match(&self, expected: &[LdapEvent], order_matters: bool) -> bool {
         if self.events.len() != expected.len() {
-            return false;
-        }
-        if order_matters {
+            false
+        } else if order_matters {
             self.events == expected
         } else {
             vecs_equal_unordered(&self.events, expected)
@@ -240,7 +239,7 @@ impl TestClient {
 }
 
 impl LDAPConnection {
-    pub(crate) async fn create() -> Result<LDAPConnection, LdapError> {
+    pub async fn create() -> Result<LDAPConnection, LdapError> {
         Ok(Self {
             config: LDAPConfig::default(),
             url: String::new(),
@@ -343,10 +342,7 @@ impl LDAPConnection {
         Ok(())
     }
 
-    pub(super) async fn get_user_groups(
-        &mut self,
-        user_dn: &str,
-    ) -> Result<Vec<String>, LdapError> {
+    pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<String>, LdapError> {
         let mut groups = Vec::new();
 
         if let Some(Object::User(_)) = self.test_client.objects.get(user_dn) {

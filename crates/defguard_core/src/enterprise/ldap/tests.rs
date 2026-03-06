@@ -29,11 +29,11 @@ fn make_test_user(
     ldap_user_path: Option<String>,
 ) -> User {
     let mut user = User::new(
-        username,
+        username.to_string(),
         Some(PASSWORD),
-        "last name",
-        "first name",
-        format!("{username}@example.com").as_str(),
+        "last name".to_string(),
+        "first name".to_string(),
+        format!("{username}@example.com"),
         None,
     );
     user.ldap_rdn = ldap_rdn;
@@ -354,11 +354,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(ldap_conn.test_client.events_match(
         &[LdapEvent::ObjectAdded {
             dn: ldap_conn.config.group_dn(&group.name),
-            attrs: group_to_test_attrs(
-                &group,
-                &ldap_conn.config,
-                Some(&[&active_user_in_ldap])
-            ),
+            attrs: group_to_test_attrs(&group, &ldap_conn.config, Some(&[&active_user_in_ldap])),
         }],
         false
     ));

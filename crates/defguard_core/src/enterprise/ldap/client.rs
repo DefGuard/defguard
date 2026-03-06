@@ -16,7 +16,7 @@ use crate::enterprise::ldap::model::extract_rdn_value;
 const STREAMING_PAGE_SIZE: i32 = 500;
 
 impl LDAPConnection {
-    pub(crate) async fn create() -> Result<Self, LdapError> {
+    pub async fn create() -> Result<Self, LdapError> {
         let settings = Settings::get_current_settings();
         let config = LDAPConfig::try_from(settings.clone())?;
         let url = settings.ldap_url.ok_or(LdapError::MissingSettings(
@@ -110,10 +110,7 @@ impl LDAPConnection {
     }
 
     /// Returns groups that the given user is a member of.
-    pub(super) async fn get_user_groups(
-        &mut self,
-        user_dn: &str,
-    ) -> Result<Vec<String>, LdapError> {
+    pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<String>, LdapError> {
         let user_dn_escaped = ldap_escape(user_dn);
         let filter = format!("({}={user_dn_escaped})", self.config.ldap_group_member_attr);
         debug!("Performing LDAP group search with filter: {filter}");

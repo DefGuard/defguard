@@ -275,7 +275,7 @@ impl TryFrom<Settings> for LDAPConfig {
     fn try_from(settings: Settings) -> Result<LDAPConfig, LdapError> {
         /// Helper function to validate non-empty string settings.
         /// Returns an error if the setting is None or is an empty string.
-        /// This is to prevent constructing an invalid LDAPConfig
+        /// This is to prevent constructing an invalid LDAPConfig.
         fn validate_string_setting(
             value: Option<String>,
             setting_name: &str,
@@ -795,7 +795,7 @@ impl LDAPConnection {
     pub async fn add_group_with_members<I>(
         &mut self,
         group_name: &str,
-        members: Vec<&User<I>>,
+        members: &[&User<I>],
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP group {group_name}");
         let dn = self.config.group_dn(group_name);
@@ -895,7 +895,7 @@ impl LDAPConnection {
             debug!("Added user {user} to group {groupname} in LDAP");
         } else {
             debug!("Group {groupname} doesn't exist in LDAP, creating it");
-            self.add_group_with_members(groupname, vec![user]).await?;
+            self.add_group_with_members(groupname, &[user]).await?;
             debug!("Group {groupname} created and member added in LDAP");
         }
         info!("Added user {user} to group {groupname} in LDAP");
