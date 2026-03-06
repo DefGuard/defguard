@@ -1,6 +1,6 @@
 use std::sync::Once;
 
-use defguard_core::handlers::component_setup::core_setup_log_layer;
+use defguard_core::setup_logs::core_setup_log_layer;
 use reqwest::StatusCode;
 use serde_json::Value;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};

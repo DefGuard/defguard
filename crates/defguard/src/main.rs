@@ -24,8 +24,8 @@ use defguard_core::{
     },
     events::{ApiEvent, BidiStreamEvent},
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
-    handlers::component_setup::core_setup_log_layer,
     init_dev_env, init_vpn_location, run_web_server,
+    setup_logs::core_setup_log_layer,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
