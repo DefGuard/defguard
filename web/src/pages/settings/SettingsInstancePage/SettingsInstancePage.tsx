@@ -177,7 +177,11 @@ const Content = ({ settings }: { settings: Settings }) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="auth_cookie_timeout_days">
           {(field) => (
-            <field.FormInput required label="Auth cookie timeout (days)" type="number" />
+            <field.FormInput
+              required
+              label={m.settings_instance_label_auth_cookie_timeout_days()}
+              type="number"
+            />
           )}
         </form.AppField>
       </form.AppForm>

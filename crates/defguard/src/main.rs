@@ -97,6 +97,7 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
+    // initialize global settings struct
     initialize_current_settings(&pool).await?;
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
