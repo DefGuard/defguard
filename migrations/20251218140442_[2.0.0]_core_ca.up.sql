@@ -75,14 +75,14 @@ ALTER TABLE gateway DROP CONSTRAINT gateway_network_id_fkey;
 ALTER TABLE gateway RENAME COLUMN network_id TO location_id;
 
 ALTER TABLE gateway
-    ADD COLUMN name text,
-    ADD COLUMN address text,
-    ADD COLUMN port integer,
-    ADD COLUMN certificate text,
     ADD COLUMN certificate_expiry timestamp without time zone NULL,
     ADD COLUMN version text,
-    ADD COLUMN enabled bool NOT NULL DEFAULT true,
+    ADD COLUMN name text,
+    ADD COLUMN certificate text,
+    ADD COLUMN address text DEFAULT '127.0.0.1',
+    ADD COLUMN port integer DEFAULT 50051,
     ADD COLUMN modified_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN enabled bool NOT NULL DEFAULT true,
     ADD COLUMN modified_by text NOT NULL DEFAULT 'System';
 
 UPDATE gateway
@@ -121,12 +121,12 @@ CREATE TABLE proxy (
     port integer NOT NULL,
     connected_at timestamp without time zone NULL,
     disconnected_at timestamp without time zone NULL,
-    version text,
-    enabled boolean NOT NULL DEFAULT true,
-    certificate text,
     certificate_expiry timestamp without time zone NULL,
+    version text,
     modified_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    certificate text,
     modified_by text NOT NULL DEFAULT 'System',
+    enabled boolean NOT NULL DEFAULT true,
     CONSTRAINT unique_address_port UNIQUE (address, port)
 );
 
