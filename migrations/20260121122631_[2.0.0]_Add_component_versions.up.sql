@@ -1,2 +1,0 @@
-ALTER TABLE proxy ADD COLUMN version TEXT;
-ALTER TABLE gateway ADD COLUMN version TEXT;
