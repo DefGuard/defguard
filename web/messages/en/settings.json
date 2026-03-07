@@ -8,7 +8,6 @@
   "settings_instance_label_name": "Instance name",
   "settings_instance_label_public_proxy_url": "Public Edge Component URL",
   "settings_instance_label_session_duration": "Session duration",
-  "settings_instance_label_auth_cookie_timeout_days": "Auth cookie timeout (days)",
   "settings_instance_session_duration_1": "1 day",
   "settings_instance_session_duration_2": "2 days",
   "settings_instance_session_duration_3": "3 days",

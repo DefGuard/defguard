@@ -1,5 +1,4 @@
 ALTER TABLE settings
-    ADD COLUMN auth_cookie_timeout_days int4 NOT NULL DEFAULT 7,
     ADD COLUMN secret_key text,
     ADD COLUMN openid_signing_key text,
     ADD COLUMN webauthn_rp_id text,

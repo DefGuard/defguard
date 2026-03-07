@@ -896,7 +896,6 @@ export interface SettingsGatewayNotifications {
 }
 
 export interface SettingsTimeoutsAndMaintenance {
-  auth_cookie_timeout_days: number;
   disable_stats_purge: boolean;
   stats_purge_frequency_hours: number;
   stats_purge_threshold_days: number;

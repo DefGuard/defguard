@@ -3,13 +3,13 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
@@ -36,11 +36,6 @@ pub struct DefGuardConfig {
     // TODO: restore file logging, seems to have vanished during the switch to tracing
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
-
-    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT")]
-    #[serde(skip_serializing)]
-    #[deprecated(since = "2.0.0", note = "Use Settings.auth_cookie_timeout instead")]
-    pub auth_cookie_timeout: Option<Duration>,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]

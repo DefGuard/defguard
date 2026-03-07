@@ -11,11 +11,6 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
-import {
-  createNumericSelectOptions,
-  formatDaySelectLabel,
-  withNumericFallbackOption,
-} from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -73,7 +68,6 @@ const formSchema = z.object({
       }),
     )
     .max(64, m.form_error_max_len({ length: 64 })),
-  auth_cookie_timeout_days: z.number(m.form_error_required()).int().min(1),
   public_proxy_url: z
     .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
     .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
@@ -104,11 +98,6 @@ const sessionDurationOptions = [
   },
 ];
 
-const authCookieTimeoutBaseOptions = createNumericSelectOptions(
-  [1, 2, 3, 7, 10, 14, 30],
-  formatDaySelectLabel,
-);
-
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -124,28 +113,16 @@ const Content = ({ settings }: { settings: Settings }) => {
   });
 
   const defaultValues = useMemo(
-    (): FormFields => ({
-      instance_name: settings.instance_name ?? '',
-      auth_cookie_timeout_days: settings.auth_cookie_timeout_days ?? 7,
-      public_proxy_url: settings.public_proxy_url ?? '',
-      authentication_period_days: settings.authentication_period_days ?? 7,
-    }),
+      (): FormFields => ({
+        instance_name: settings.instance_name ?? '',
+        public_proxy_url: settings.public_proxy_url ?? '',
+        authentication_period_days: settings.authentication_period_days ?? 7,
+      }),
     [
       settings.instance_name,
       settings.public_proxy_url,
       settings.authentication_period_days,
-      settings.auth_cookie_timeout_days,
     ],
-  );
-
-  const authCookieTimeoutOptions = useMemo(
-    () =>
-      withNumericFallbackOption(
-        authCookieTimeoutBaseOptions,
-        defaultValues.auth_cookie_timeout_days,
-        formatDaySelectLabel,
-      ),
-    [defaultValues.auth_cookie_timeout_days],
   );
 
   const form = useAppForm({
@@ -191,16 +168,6 @@ const Content = ({ settings }: { settings: Settings }) => {
               required
               label={m.settings_instance_label_session_duration()}
               options={sessionDurationOptions}
-            />
-          )}
-        </form.AppField>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="auth_cookie_timeout_days">
-          {(field) => (
-            <field.FormSelect
-              required
-              label={m.settings_instance_label_auth_cookie_timeout_days()}
-              options={authCookieTimeoutOptions}
             />
           )}
         </form.AppField>
