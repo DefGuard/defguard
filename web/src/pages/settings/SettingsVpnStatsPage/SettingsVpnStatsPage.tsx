@@ -11,6 +11,12 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
+import {
+  createNumericSelectOptions,
+  formatDaySelectLabel,
+  formatHourSelectLabel,
+  withNumericFallbackOption,
+} from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -63,6 +69,16 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+const statsPurgeFrequencyBaseOptions = createNumericSelectOptions(
+  [1, 6, 12, 24, 48, 72, 168],
+  formatHourSelectLabel,
+);
+
+const statsPurgeThresholdBaseOptions = createNumericSelectOptions(
+  [1, 7, 14, 30, 60, 90, 180, 365],
+  formatDaySelectLabel,
+);
+
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -78,6 +94,26 @@ const Content = ({ settings }: { settings: Settings }) => {
       stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
     }),
     [settings],
+  );
+
+  const statsPurgeFrequencyOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        statsPurgeFrequencyBaseOptions,
+        defaultValues.stats_purge_frequency_hours,
+        formatHourSelectLabel,
+      ),
+    [defaultValues.stats_purge_frequency_hours],
+  );
+
+  const statsPurgeThresholdOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        statsPurgeThresholdBaseOptions,
+        defaultValues.stats_purge_threshold_days,
+        formatDaySelectLabel,
+      ),
+    [defaultValues.stats_purge_threshold_days],
   );
 
   const form = useAppForm({
@@ -114,20 +150,20 @@ const Content = ({ settings }: { settings: Settings }) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="stats_purge_frequency_hours">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
               label="Stats purge frequency (hours)"
-              type="number"
+              options={statsPurgeFrequencyOptions}
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="stats_purge_threshold_days">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
               label="Stats purge threshold (days)"
-              type="number"
+              options={statsPurgeThresholdOptions}
             />
           )}
         </form.AppField>

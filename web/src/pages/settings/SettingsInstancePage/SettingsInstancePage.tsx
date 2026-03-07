@@ -11,6 +11,11 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
+import {
+  createNumericSelectOptions,
+  formatDaySelectLabel,
+  withNumericFallbackOption,
+} from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -99,6 +104,11 @@ const sessionDurationOptions = [
   },
 ];
 
+const authCookieTimeoutBaseOptions = createNumericSelectOptions(
+  [1, 2, 3, 7, 10, 14, 30],
+  formatDaySelectLabel,
+);
+
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -126,6 +136,16 @@ const Content = ({ settings }: { settings: Settings }) => {
       settings.authentication_period_days,
       settings.auth_cookie_timeout_days,
     ],
+  );
+
+  const authCookieTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        authCookieTimeoutBaseOptions,
+        defaultValues.auth_cookie_timeout_days,
+        formatDaySelectLabel,
+      ),
+    [defaultValues.auth_cookie_timeout_days],
   );
 
   const form = useAppForm({
@@ -177,10 +197,10 @@ const Content = ({ settings }: { settings: Settings }) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="auth_cookie_timeout_days">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
               label={m.settings_instance_label_auth_cookie_timeout_days()}
-              type="number"
+              options={authCookieTimeoutOptions}
             />
           )}
         </form.AppField>
