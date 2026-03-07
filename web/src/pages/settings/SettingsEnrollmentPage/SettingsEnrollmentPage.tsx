@@ -12,9 +12,9 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import {
-  createNumericSelectOptions,
   formatHourSelectLabel,
   formatMinuteSelectLabel,
+  type NumericSelectOption,
   withNumericFallbackOption,
 } from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -70,15 +70,18 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const enrollmentTokenTimeoutBaseOptions = createNumericSelectOptions(
-  [1, 2, 4, 8, 12, 24, 48, 72, 168],
-  formatHourSelectLabel,
-);
+const enrollmentTokenTimeoutBaseOptions: NumericSelectOption[] = [
+  { key: 1, value: 1, label: '1 hour' },
+  { key: 12, value: 12, label: '12 hours' },
+  { key: 24, value: 24, label: '1 day' },
+  { key: 168, value: 168, label: '1 week' },
+];
 
-const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions(
-  [5, 10, 15, 30, 45, 60],
-  formatMinuteSelectLabel,
-);
+const enrollmentSessionTimeoutBaseOptions: NumericSelectOption[] = [
+  { key: 10, value: 10, label: '10 minutes' },
+  { key: 30, value: 30, label: '30 minutes' },
+  { key: 60, value: 60, label: '1 hour' },
+];
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({

@@ -113,11 +113,11 @@ const Content = ({ settings }: { settings: Settings }) => {
   });
 
   const defaultValues = useMemo(
-      (): FormFields => ({
-        instance_name: settings.instance_name ?? '',
-        public_proxy_url: settings.public_proxy_url ?? '',
-        authentication_period_days: settings.authentication_period_days ?? 7,
-      }),
+    (): FormFields => ({
+      instance_name: settings.instance_name ?? '',
+      public_proxy_url: settings.public_proxy_url ?? '',
+      authentication_period_days: settings.authentication_period_days ?? 7,
+    }),
     [
       settings.instance_name,
       settings.public_proxy_url,

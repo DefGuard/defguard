@@ -15,6 +15,7 @@ import {
   createNumericSelectOptions,
   formatDaySelectLabel,
   formatHourSelectLabel,
+  type NumericSelectOption,
   withNumericFallbackOption,
 } from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -69,13 +70,17 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const statsPurgeFrequencyBaseOptions = createNumericSelectOptions(
-  [1, 6, 12, 24, 48, 72, 168],
-  formatHourSelectLabel,
-);
+const statsPurgeFrequencyBaseOptions: NumericSelectOption[] = [
+  { key: 1, value: 1, label: '1h' },
+  { key: 12, value: 12, label: '12h' },
+  { key: 24, value: 24, label: '1 day' },
+  { key: 48, value: 48, label: '2 days' },
+  { key: 168, value: 168, label: '1 week' },
+  { key: 720, value: 720, label: '1 month' },
+];
 
 const statsPurgeThresholdBaseOptions = createNumericSelectOptions(
-  [1, 7, 14, 30, 60, 90, 180, 365],
+  [1, 7, 14, 30, 90],
   formatDaySelectLabel,
 );
 
