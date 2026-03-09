@@ -116,19 +116,17 @@ export const RulesTable = ({
           </TableCell>
         );
       }
-      const displayValues: string[][] = [];
-      if (!permissionGroup) {
-        displayValues.push(includedGroups.map((groupId) => groups[groupId]?.name ?? ''));
-      }
-      if (!permissionUsers) {
-        displayValues.push(includedUsers.map((userId) => displayUser(users[userId])));
-      }
-      if (!permissionDevice) {
-        displayValues.push(
-          includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
-        );
-      }
-      const display = flat(displayValues).filter((value) => value.length > 0);
+      const display = flat([
+        permissionUsers
+          ? ['All users']
+          : includedUsers.map((userId) => displayUser(users[userId])),
+        permissionGroup
+          ? ['All groups']
+          : includedGroups.map((groupId) => groups[groupId]?.name ?? ''),
+        permissionDevice
+          ? ['All network devices']
+          : includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
+      ]).filter((value) => value.length > 0);
 
       return <TableValuesListCell values={display} />;
     },
