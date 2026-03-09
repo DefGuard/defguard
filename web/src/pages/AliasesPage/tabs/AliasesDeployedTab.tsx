@@ -47,7 +47,7 @@ export const AliasesDeployedTab = () => {
     [navigate, licenseFetching, licenseInfo],
   );
 
-  const distilledAliases = useMemo(() => {
+  const filteredAliases = useMemo(() => {
     let res = aliases;
     if (search?.length) {
       res = res.filter((alias) =>
@@ -57,7 +57,7 @@ export const AliasesDeployedTab = () => {
     return res;
   }, [aliases, search]);
 
-  const visibleEmpty = distilledAliases.length === 0;
+  const visibleEmpty = filteredAliases.length === 0;
 
   return (
     <>
@@ -81,7 +81,7 @@ export const AliasesDeployedTab = () => {
             />
             <Button {...addButtonProps} />
           </TableTop>
-          {!visibleEmpty && <AliasTable data={aliases} rules={rules} />}
+          {!visibleEmpty && <AliasTable data={filteredAliases} rules={rules} />}
           {visibleEmpty && (
             <EmptyStateFlexible
               icon="search"
