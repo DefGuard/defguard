@@ -1,6 +1,6 @@
 import './style.scss';
 import { useNavigate } from '@tanstack/react-router';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useEffect, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
@@ -19,8 +19,18 @@ import { useGatewayWizardStore } from './useGatewayWizardStore';
 export const GatewaySetupPage = () => {
   const activeStep = useGatewayWizardStore((s) => s.activeStep);
   const isOnWelcomePage = useGatewayWizardStore((s) => s.isOnWelcomePage);
+  const networkId = useGatewayWizardStore((s) => s.network_id);
   const setIsOnWelcomePage = useGatewayWizardStore((s) => s.setisOnWelcomePage);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (networkId !== null) {
+      return;
+    }
+
+    useGatewayWizardStore.getState().reset();
+    void navigate({ to: '/locations', replace: true });
+  }, [navigate, networkId]);
 
   const stepsConfig = useMemo(
     (): Record<GatewaySetupStepValue, WizardPageStep> => ({
@@ -77,6 +87,7 @@ export const GatewaySetupPage = () => {
   );
 
   return (
+    networkId === null ? null : (
     <WizardPage
       activeStep={activeStep}
       onClose={() => {
@@ -109,5 +120,6 @@ export const GatewaySetupPage = () => {
     >
       {stepsComponents[activeStep]}
     </WizardPage>
+    )
   );
 };

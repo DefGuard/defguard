@@ -66,3 +66,45 @@ async fn test_proxy_setup_error_includes_core_logs(_: PgPoolOptions, options: Pg
         "expected at least one captured Core tracing line in error logs"
     );
 }
+
+#[sqlx::test]
+async fn test_gateway_setup_error_includes_core_logs(_: PgPoolOptions, options: PgConnectOptions) {
+    init_tracing_once();
+
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .get("/api/v1/network/1/gateways/setup?ip_or_domain=bad%20host&grpc_port=50051&common_name=gateway")
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.text().await;
+    let events = parse_sse_data_events(&body);
+
+    let error_event = events
+        .iter()
+        .find(|event| event.get("error") == Some(&Value::Bool(true)))
+        .unwrap();
+
+    let logs = error_event
+        .get("logs")
+        .and_then(Value::as_array)
+        .expect("expected `logs` array in gateway setup error event");
+    assert!(
+        !logs.is_empty(),
+        "expected Core logs to be present in gateway setup error event"
+    );
+
+    let has_core_error = logs.iter().filter_map(Value::as_str).any(|line| {
+        line.contains("ERROR") && line.contains("defguard_core::handlers::component_setup")
+    });
+    assert!(
+        has_core_error,
+        "expected at least one captured Core tracing line in error logs"
+    );
+}

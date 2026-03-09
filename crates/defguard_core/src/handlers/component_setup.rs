@@ -629,8 +629,9 @@ pub async fn setup_gateway_tls_stream(
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
     let log_buffer = Arc::new(Mutex::new(Vec::new()));
-    let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, log_buffer);
+    let inner_log_buffer = Arc::clone(&log_buffer);
+    let inner_stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
         // check if tries to add more then 1 gateway to network without enterprise license
         if !is_enterprise_license_active() {
@@ -866,8 +867,9 @@ pub async fn setup_gateway_tls_stream(
 
         let mut response = response_with_metadata.into_inner();
 
+        let spawn_log_buffer = inner_log_buffer.clone();
         let log_reader_task = tokio::spawn(
-            async move {
+            scope_setup_logs(spawn_log_buffer, async move {
                 while let Some(log_entry) = response.next().await {
                     match log_entry {
                         Ok(entry) => {
@@ -892,7 +894,7 @@ pub async fn setup_gateway_tls_stream(
                         }
                     }
                 }
-            }
+            })
             .instrument(tracing::Span::current()),
         );
 
@@ -1018,6 +1020,16 @@ pub async fn setup_gateway_tls_stream(
 
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
+    };
+
+    let stream = async_stream::stream! {
+        tokio::pin!(inner_stream);
+        while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
+            .instrument(tracing::info_span!("gateway_adoption"))
+            .await
+        {
+            yield item;
+        }
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
