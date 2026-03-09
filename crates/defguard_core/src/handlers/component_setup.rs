@@ -235,6 +235,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("License check passed");
 
+        // Step 1: Check configuration
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
         match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
@@ -322,6 +323,7 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
+        // Step 2: Check availability
         yield Ok(flow.step(SetupStep::CheckingAvailability));
 
         let version_clone = version.clone();
@@ -389,6 +391,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Successfully connected to Edge");
 
+        // Step 3: Check version
         yield Ok(flow.step(SetupStep::CheckingVersion));
 
         let proxy_version = response_with_metadata
@@ -469,6 +472,7 @@ pub async fn setup_proxy_tls_stream(
 
         let _log_task_guard = TaskGuard(log_reader_task);
 
+        // Step 4: Obtain CSR
         yield Ok(flow.step(SetupStep::ObtainingCsr));
 
         let Some(hostname) = url.host_str() else {
@@ -494,6 +498,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Received certificate signing request from Edge for hostname: {hostname}");
 
+        // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
 
         let settings = Settings::get_current_settings();
@@ -526,6 +531,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Successfully signed certificate for Edge");
 
+        // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
         if let Err(e) = client.send_cert(DerPayload { der_data: cert.der().to_vec() }).await {
@@ -601,6 +607,7 @@ pub async fn setup_proxy_tls_stream(
             }
         }
 
+        // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
     };
 
