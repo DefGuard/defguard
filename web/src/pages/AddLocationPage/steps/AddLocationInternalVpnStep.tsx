@@ -3,10 +3,10 @@ import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
 import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
@@ -119,15 +119,7 @@ export const AddLocationInternalVpnStep = () => {
           <form.AppField name="dns">
             {(field) => <field.FormInput label={'DNS'} />}
           </form.AppField>
-          <ModalControls
-            submitProps={{
-              text: m.controls_continue(),
-              testId: 'continue',
-              onClick: () => {
-                form.handleSubmit();
-              },
-            }}
-          >
+          <Controls>
             <Button
               variant="outlined"
               text={m.controls_back()}
@@ -138,7 +130,16 @@ export const AddLocationInternalVpnStep = () => {
                 });
               }}
             />
-          </ModalControls>
+            <div className="right">
+              <Button
+                text={m.controls_continue()}
+                testId="continue"
+                onClick={() => {
+                  form.handleSubmit();
+                }}
+              />
+            </div>
+          </Controls>
         </form.AppForm>
       </form>
     </WizardCard>

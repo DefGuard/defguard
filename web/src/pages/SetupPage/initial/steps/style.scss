@@ -9,21 +9,6 @@
     }
   }
 
-  .modal-controls {
-    & > .buttons {
-      width: 100%;
-      display: flex;
-      justify-content: flex-end;
-      gap: var(--spacing-md);
-
-      // 1 button = align to right
-      // 2 buttons = space between
-      &:has(button:nth-child(2)) {
-        justify-content: space-between;
-      }
-    }
-  }
-
   .content {
     .controls {
       padding-top: 0;
@@ -140,12 +125,6 @@
           color: var(--fg-neutral);
           font: var(--t-body-sm-500);
         }
-      }
-    }
-
-    .modal-controls {
-      & > .buttons:has(button:nth-child(2)) {
-        justify-content: flex-end;
       }
     }
   }

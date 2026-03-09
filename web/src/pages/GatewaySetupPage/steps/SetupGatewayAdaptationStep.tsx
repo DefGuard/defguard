@@ -6,7 +6,6 @@ import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep'
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
@@ -186,19 +185,23 @@ export const SetupGatewayAdoptionStep = () => {
           </LoadingStep>
         ))}
       </div>
-      <ModalControls
-        cancelProps={{
-          text: m.gateway_setup_adoption_controls_back(),
-          onClick: handleBack,
-          disabled: gatewayAdoptionState.isProcessing || gatewayAdoptionState.isComplete,
-          variant: 'outlined',
-        }}
-        submitProps={{
-          text: m.gateway_setup_adoption_controls_continue(),
-          onClick: handleNext,
-          disabled: !gatewayAdoptionState.isComplete || gatewayAdoptionState.isProcessing,
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.gateway_setup_adoption_controls_back()}
+          onClick={handleBack}
+          disabled={gatewayAdoptionState.isProcessing || gatewayAdoptionState.isComplete}
+          variant="outlined"
+        />
+        <div className="right">
+          <Button
+            text={m.gateway_setup_adoption_controls_continue()}
+            onClick={handleNext}
+            disabled={
+              !gatewayAdoptionState.isComplete || gatewayAdoptionState.isProcessing
+            }
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

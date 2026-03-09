@@ -6,9 +6,10 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { MigrationWizardLocationState } from '../../../shared/api/types';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -83,17 +84,19 @@ export const SetupConfirmationStep = () => {
         subtitle={m.gateway_setup_add_multiple_gateways_subtitle()}
         imageSrc={addMoreImage}
       />
-      <ModalControls
-        cancelProps={{
-          text: m.gateway_setup_controls_add_another_gateway(),
-          onClick: handleBack,
-          variant: 'outlined',
-        }}
-        submitProps={{
-          text: m.gateway_setup_controls_go_to_locations(),
-          onClick: handleFinish,
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.gateway_setup_controls_add_another_gateway()}
+          onClick={handleBack}
+          variant="outlined"
+        />
+        <div className="right">
+          <Button
+            text={m.gateway_setup_controls_go_to_locations()}
+            onClick={handleFinish}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

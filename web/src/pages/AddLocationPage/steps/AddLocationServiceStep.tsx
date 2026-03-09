@@ -4,11 +4,11 @@ import {
   LocationServiceMode,
   type LocationServiceModeValue,
 } from '../../../shared/api/types';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { AddLocationPageStep } from '../types';
@@ -44,17 +44,7 @@ export const AddLocationServiceStep = () => {
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <Divider />
-      <ModalControls
-        submitProps={{
-          text: m.controls_continue(),
-          testId: 'continue',
-          onClick: () => {
-            useAddLocationStore.setState({
-              activeStep: AddLocationPageStep.AccessControl,
-            });
-          },
-        }}
-      >
+      <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
@@ -64,7 +54,18 @@ export const AddLocationServiceStep = () => {
             });
           }}
         />
-      </ModalControls>
+        <div className="right">
+          <Button
+            text={m.controls_continue()}
+            testId="continue"
+            onClick={() => {
+              useAddLocationStore.setState({
+                activeStep: AddLocationPageStep.AccessControl,
+              });
+            }}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };
