@@ -1,4 +1,23 @@
 services:
+  proxy:
+    image: ghcr.io/defguard/defguard-proxy:dev
+    ports:
+      - "50051:50051"
+
+  openldap:
+    image: bitnamilegacy/openldap:2.6
+    user: root
+    restart: unless-stopped
+    environment:
+      LDAP_ADMIN_PASSWORD: "pass123"
+    ports:
+      - "389:1389"
+    volumes:
+      - ./ldap/entrypoint:/docker-entrypoint-initdb.d:ro
+      - ./ldap/init.ldif:/ldifs/init.ldif:ro
+      - ./ldap/custom.ldif:/schema/custom.ldif:ro
+      - ./.volumes/openldap:/bitnami/openldap
+
   core:
     image: ghcr.io/defguard/defguard
     build:
@@ -50,6 +69,11 @@ services:
       - ./.volumes/db:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
 
   device:
     build:

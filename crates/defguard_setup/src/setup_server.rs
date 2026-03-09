@@ -13,7 +13,10 @@ use defguard_common::VERSION;
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     handle_404,
-    handlers::{component_setup::setup_proxy_tls_stream, settings::get_settings_essentials},
+    handlers::{
+        component_setup::setup_proxy_tls_stream, resource_display::get_locations_display,
+        settings::get_settings_essentials,
+    },
     health_check,
 };
 use defguard_web_ui::{index, svg, web_asset};
@@ -45,6 +48,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
                 .route("/health", get(health_check))
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/session-info", get(get_session_info))
+                .route("/network/display", get(get_locations_display))
                 .route("/wizard", get(get_wizard_state))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .nest(

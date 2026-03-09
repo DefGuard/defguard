@@ -141,6 +141,7 @@ use crate::{
             userinfo,
         },
         proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
+        resource_display::get_locations_display,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -533,6 +534,7 @@ pub fn build_webapp(
                 post(start_network_device_setup_for_device),
             )
             .route("/network", post(create_network).get(list_networks))
+            .route("/network/display", get(get_locations_display))
             .route("/network/import", post(import_network))
             .route("/network/stats", get(locations_overview_stats))
             .route("/network/gateways", get(all_gateways_status))

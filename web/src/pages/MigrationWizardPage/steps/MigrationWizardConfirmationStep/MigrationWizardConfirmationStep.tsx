@@ -1,8 +1,14 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
+import type { MigrationWizardApiState } from '../../../../shared/api/types';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../../shared/constants';
@@ -19,35 +25,38 @@ import {
   ThemeSpacing,
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
-import { getLocationsQueryOptions } from '../../../../shared/query';
-import { delay } from '../../../../shared/utils/delay';
+import {
+  getLocationsQueryOptions,
+  getMigrationStateQueryOptions,
+} from '../../../../shared/query';
+import { migrationWizardFinishPromise } from '../../../../shared/wizard/migrationWizardFinishPromise';
+import { useMigrationWizardStore } from '../../store/useMigrationWizardStore';
+import { MigrationWizardStep } from '../../types';
 import prepareNetworkImage from './assets/prepare-network.png';
 
-// This waits until new core server starts up and respond with
-const finishPromise = async (): Promise<void> => {
-  await api.migration.finish();
-  while (true) {
-    await delay(250);
-    try {
-      const sessionInfo = (await api.getSessionInfo()).data;
-      if (sessionInfo.active_wizard === null) {
-        break;
-      }
-    } catch (_) {}
-  }
-};
+const qOptions = queryOptions({
+  queryKey: getLocationsQueryOptions.queryKey,
+  queryFn: api.location.getLocationsDisplay,
+  select: (resp) => resp.data,
+});
 
 export const MigrationWizardConfirmationStep = () => {
+  const queryClient = useQueryClient();
   const [confirm, setConfirm] = useState(false);
   const navigate = useNavigate();
 
-  const { data: locations } = useQuery(getLocationsQueryOptions);
+  const { data: locationsDisplay } = useSuspenseQuery(qOptions);
 
-  const { mutate: finish, isPending } = useMutation({
-    mutationFn: finishPromise,
+  const locationsMigrationNeeded = locationsDisplay.length === 0;
+
+  const { mutate: finish, isPending: finishPending } = useMutation({
+    mutationFn: migrationWizardFinishPromise,
     onSuccess: async () => {
       Snackbar.success(`Migration finished`);
-      navigate({ to: '/vpn-overview', replace: true });
+      await navigate({ to: '/vpn-overview', replace: true });
+      setTimeout(() => {
+        useMigrationWizardStore.getState().resetState();
+      }, 2500);
     },
     onError: (e) => {
       Snackbar.error(`Finishing migration failed`);
@@ -57,6 +66,27 @@ export const MigrationWizardConfirmationStep = () => {
       invalidate: [['settings'], ['session-info'], ['me']],
     },
   });
+
+  const { mutate: startLocationsMigration, isPending: startLocationsPending } =
+    useMutation({
+      mutationFn: async () => {
+        const migrationLocationState: MigrationWizardApiState['location_state'] = {
+          current_location: 0,
+          locations: Object.keys(locationsDisplay).map((key) => Number(key)),
+        };
+        await api.migration.state.updateMigrationState({
+          current_step: MigrationWizardStep.Confirmation,
+          location_state: migrationLocationState,
+        });
+        queryClient.invalidateQueries({
+          queryKey: getMigrationStateQueryOptions.queryKey,
+        });
+        useMigrationWizardStore.setState({
+          location_state: migrationLocationState,
+        });
+        await navigate({ to: '/migration/locations', replace: true });
+      },
+    });
 
   return (
     <WizardCard>
@@ -70,7 +100,7 @@ export const MigrationWizardConfirmationStep = () => {
       <Divider spacing={ThemeSpacing.Xl2} />
       <AppText font={TextStyle.TBodyPrimary500} color={ThemeVariable.FgFaded}>
         {m.migration_wizard_confirmation_locations_info({
-          count: locations?.length ?? '',
+          count: locationsDisplay.length ?? '',
         })}
       </AppText>
       <SizedBox height={ThemeSpacing.Md} />
@@ -107,15 +137,28 @@ export const MigrationWizardConfirmationStep = () => {
       />
       <Controls>
         <div className="right">
-          <Button
-            variant="primary"
-            text={m.controls_finish()}
-            disabled={!confirm}
-            loading={isPending}
-            onClick={() => {
-              finish();
-            }}
-          />
+          {!locationsMigrationNeeded && (
+            <Button
+              variant="primary"
+              text={m.controls_finish()}
+              disabled={!confirm}
+              loading={finishPending}
+              onClick={() => {
+                finish();
+              }}
+            />
+          )}
+          {locationsMigrationNeeded && (
+            <Button
+              variant="primary"
+              text={m.controls_finish()}
+              disabled={!confirm}
+              loading={startLocationsPending}
+              onClick={() => {
+                startLocationsMigration();
+              }}
+            />
+          )}
         </div>
       </Controls>
     </WizardCard>

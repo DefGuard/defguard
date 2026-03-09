@@ -1,5 +1,7 @@
 /* stylelint-disable no-descending-specificity */
 .wizard-welcome-page {
+  --page-content-limit: 1120px;
+
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
   justify-items: center;
@@ -55,6 +57,10 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+      }
+
+      #default-globe-media-image {
+        object-position: 80px -80px;
       }
 
       video {

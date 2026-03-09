@@ -1,6 +1,6 @@
 import './style.scss';
 import { useNavigate } from '@tanstack/react-router';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
@@ -20,7 +20,22 @@ export const GatewaySetupPage = () => {
   const activeStep = useGatewayWizardStore((s) => s.activeStep);
   const isOnWelcomePage = useGatewayWizardStore((s) => s.isOnWelcomePage);
   const setIsOnWelcomePage = useGatewayWizardStore((s) => s.setisOnWelcomePage);
+  const isMigrationWizard = useGatewayWizardStore((s) => s.isMigrationWizard);
   const navigate = useNavigate();
+
+  const handleOnClose = useCallback(() => {
+    navigate({ to: '/locations', replace: true }).then(() => {
+      setTimeout(() => {
+        useGatewayWizardStore.getState().reset();
+      }, 100);
+    });
+  }, [navigate]);
+
+  // when is part of migration wizard, closing should be disabled
+  const onClose = useMemo(() => {
+    if (isMigrationWizard) return undefined;
+    return handleOnClose;
+  }, [handleOnClose, isMigrationWizard]);
 
   const stepsConfig = useMemo(
     (): Record<GatewaySetupStepValue, WizardPageStep> => ({
@@ -79,13 +94,7 @@ export const GatewaySetupPage = () => {
   return (
     <WizardPage
       activeStep={activeStep}
-      onClose={() => {
-        navigate({ to: '/locations', replace: true }).then(() => {
-          setTimeout(() => {
-            useGatewayWizardStore.getState().reset();
-          }, 100);
-        });
-      }}
+      onClose={onClose}
       subtitle={m.gateway_setup_page_subtitle()}
       title={m.gateway_setup_page_title()}
       steps={stepsConfig}

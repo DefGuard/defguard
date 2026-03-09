@@ -34,7 +34,7 @@ export const MigrationWizardPage = () => {
   const { data: wizardState } = useSuspenseQuery(getMigrationStateQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
-  const activeStep = useMigrationWizardStore((s) => s.activeStep);
+  const activeStep = useMigrationWizardStore((s) => s.current_step);
 
   const stepsConfig = useMemo(
     (): Record<ConfigurableSteps, WizardPageStep> => ({
@@ -94,9 +94,7 @@ export const MigrationWizardPage = () => {
   // sync wizard state
   useEffect(() => {
     if (wizardState) {
-      useMigrationWizardStore.setState({
-        activeStep: wizardState.current_step,
-      });
+      useMigrationWizardStore.setState(wizardState);
     }
   }, [wizardState]);
 

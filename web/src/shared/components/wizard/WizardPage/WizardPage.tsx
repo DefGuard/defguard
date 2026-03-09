@@ -1,7 +1,14 @@
-import { type HTMLProps, type PropsWithChildren, useEffect, useMemo } from 'react';
+import {
+  type HTMLProps,
+  type PropsWithChildren,
+  Suspense,
+  useEffect,
+  useMemo,
+} from 'react';
 import './style.scss';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
+import Skeleton from 'react-loading-skeleton';
 import { Badge } from '../../../defguard-ui/components/Badge/Badge';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../defguard-ui/types';
@@ -83,7 +90,7 @@ export const WizardPage = ({
                     <p className="step-description">{activeStep.description}</p>
                   )}
                   <SizedBox height={ThemeSpacing.Xl2} />
-                  {children}
+                  <Suspense fallback={<WizardStepSkeleton />}>{children}</Suspense>
                 </div>
               </LayoutGrid>
             </div>
@@ -91,5 +98,11 @@ export const WizardPage = ({
         </>
       )}
     </div>
+  );
+};
+
+const WizardStepSkeleton = () => {
+  return (
+    <Skeleton containerClassName="wizard-step-skeleton" width={`100%`} height={770} />
   );
 };

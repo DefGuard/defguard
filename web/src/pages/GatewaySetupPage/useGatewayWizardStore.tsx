@@ -14,6 +14,7 @@ type GatewayAdoptionState = {
 };
 
 type StoreValues = {
+  isMigrationWizard: boolean;
   activeStep: GatewaySetupStepValue;
   isOnWelcomePage: boolean;
   common_name: string;
@@ -42,6 +43,7 @@ const gatewayAdoptionStateDefaults: GatewayAdoptionState = {
 };
 
 const defaults: StoreValues = {
+  isMigrationWizard: false,
   activeStep: GatewaySetupStep.DeployGateway,
   isOnWelcomePage: true,
   common_name: '',

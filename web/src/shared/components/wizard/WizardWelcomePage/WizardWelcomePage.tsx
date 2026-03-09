@@ -1,13 +1,16 @@
 import './style.scss';
+import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { m } from '../../../../paraglide/messages';
 import { AppText } from '../../../defguard-ui/components/AppText/AppText';
 import { ExternalLink } from '../../../defguard-ui/components/ExternalLink/ExternalLink';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import type { WizardWelcomePageConfig } from '../types';
 import { WizardTop } from '../WizardTop/WizardTop';
 import fileIcon from './assets/file_icon.png';
+import defaultGlobe from './assets/world_map.png';
 
 type Props = WizardWelcomePageConfig;
 
@@ -16,13 +19,17 @@ export const WizardWelcomePage = ({
   subtitle,
   content,
   media,
+  containerProps,
   docsLink = 'https://docs.defguard.net/',
   docsText = m.initial_setup_wizard_welcome_docs_description(),
   displayDocs = true,
   onClose,
 }: Props) => {
   return (
-    <div className="wizard-welcome-page">
+    <div
+      {...containerProps}
+      className={clsx('wizard-welcome-page', containerProps?.className)}
+    >
       <WizardTop onClick={onClose} />
       <SizedBox height={ThemeSpacing.Xl4} />
       <div className="content">
@@ -52,7 +59,12 @@ export const WizardWelcomePage = ({
             </div>
           )}
         </div>
-        <div className="media-track">{media}</div>
+        <div className="media-track">
+          {media}
+          {!isPresent(media) && (
+            <img src={defaultGlobe} alt="default globe" id="default-globe-media-image" />
+          )}
+        </div>
       </div>
       <div className="footer">
         <p>{m.footer_copyright({ year: dayjs().year() })}</p>
