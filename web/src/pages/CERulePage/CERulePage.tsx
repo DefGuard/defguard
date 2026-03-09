@@ -393,7 +393,8 @@ const Content = ({ rule: initialRule }: Props) => {
             vals.allowed_groups.length !== 0 ||
             vals.allowed_network_devices.length !== 0;
           if (!isAllowConfigured) {
-            const message = 'Must configure some allowed users, groups or devices';
+            const message =
+              'Must configure some allowed users, groups or network devices';
             ctx.addIssue({
               path: ['allowed_users'],
               code: 'custom',
@@ -814,7 +815,7 @@ const Content = ({ rule: initialRule }: Props) => {
         <MarkedSection icon="enrollment">
           <AppText font={TextStyle.TBodyPrimary600}>{`Permissions`}</AppText>
           <SizedBox height={ThemeSpacing.Xl} />
-          <DescriptionBlock title="Permitted Users & Devices">
+          <DescriptionBlock title="Permitted Users, Groups & Network Devices">
             <p>{`Define who should be granted access. Only the entities you list here will be allowed through.`}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -873,9 +874,9 @@ const Content = ({ rule: initialRule }: Props) => {
                         form.setFieldValue('allow_all_network_devices', value);
                       }}
                       options={networkDevicesOptions}
-                      counterText={(counter) => `Devices ${counter}`}
-                      editText="Edit devices"
-                      modalTitle="Select allowed devices"
+                      counterText={(counter) => `Network devices ${counter}`}
+                      editText="Edit network devices"
+                      modalTitle="Select allowed network devices"
                       toggleText="All network devices have access"
                     />
                   )}
@@ -1004,7 +1005,7 @@ const Content = ({ rule: initialRule }: Props) => {
                   onClick={() => {
                     setRestrictDevices((current) => !current);
                   }}
-                  text="Limit access for devices"
+                  text="Limit access for network devices"
                 />
               </div>
               <Fold open={restrictDevices}>
@@ -1012,12 +1013,18 @@ const Content = ({ rule: initialRule }: Props) => {
                   <div className="restriction-radio">
                     <form.AppField name="deny_all_network_devices">
                       {(field) => (
-                        <field.FormRadio text="Exclude all devices" value={true} />
+                        <field.FormRadio
+                          text="Exclude all network devices"
+                          value={true}
+                        />
                       )}
                     </form.AppField>
                     <form.AppField name="deny_all_network_devices">
                       {(field) => (
-                        <field.FormRadio text="Exclude specific devices" value={false} />
+                        <field.FormRadio
+                          text="Exclude specific network devices"
+                          value={false}
+                        />
                       )}
                     </form.AppField>
                   </div>
@@ -1034,9 +1041,9 @@ const Content = ({ rule: initialRule }: Props) => {
                               <field.FormSelectMultiple
                                 toggleValue={!open}
                                 onToggleChange={() => {}}
-                                counterText={(counter) => `Devices ${counter}`}
-                                editText="Edit devices"
-                                modalTitle="Select restricted devices"
+                                counterText={(counter) => `Network devices ${counter}`}
+                                editText="Edit network devices"
+                                modalTitle="Select restricted network devices"
                                 options={networkDevicesOptions}
                               />
                             )}
