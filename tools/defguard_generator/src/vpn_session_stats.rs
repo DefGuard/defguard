@@ -70,7 +70,7 @@ pub async fn generate_vpn_session_stats(
         let devices =
             prepare_user_devices(&pool, &mut rng, &user, config.devices_per_user as usize).await?;
 
-        let mut used_ips = location.all_used_ips_for_network(&mut *transaction).await?;
+        let mut used_ips = location.all_used_ips_for_network(&mut transaction).await?;
         // assign devices to the network if not already assigned
         for device in &devices {
             if WireguardNetworkDevice::find(&mut *transaction, device.id, location.id)
