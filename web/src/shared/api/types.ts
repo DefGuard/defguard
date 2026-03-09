@@ -86,6 +86,7 @@ export interface SetAutoAdoptionMfaSettingsRequest {
 export interface ValidateDeviceIpsRequest {
   ips: string[];
   locationId: number;
+  deviceId?: number;
 }
 
 export interface IpValidation {

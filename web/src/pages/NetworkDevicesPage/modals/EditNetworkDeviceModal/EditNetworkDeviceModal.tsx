@@ -115,6 +115,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         const { data: validationResponse } = await api.network_device.validateIps({
           ips: formValues,
           locationId: device.location.id,
+          deviceId: device.id,
         });
         validationResponse.forEach(({ valid, available }, index) => {
           if (!valid) {
