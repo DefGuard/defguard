@@ -157,7 +157,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Stats purge frequency (hours)"
+              label="Stats purge frequency"
               options={statsPurgeFrequencyOptions}
             />
           )}
@@ -167,7 +167,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Stats purge threshold (days)"
+              label="Stats purge threshold"
               options={statsPurgeThresholdOptions}
             />
           )}

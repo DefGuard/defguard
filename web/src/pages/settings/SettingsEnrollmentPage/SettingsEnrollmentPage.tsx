@@ -170,7 +170,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Enrollment token timeout (hours)"
+              label="Enrollment token validity"
               options={enrollmentTokenTimeoutOptions}
             />
           )}
@@ -180,7 +180,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Password reset token timeout (hours)"
+              label="Password reset token validity"
               options={passwordResetTokenTimeoutOptions}
             />
           )}
@@ -190,7 +190,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Enrollment session timeout (minutes)"
+              label="Enrollment session duration"
               options={enrollmentSessionTimeoutOptions}
             />
           )}
@@ -200,7 +200,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Password reset session timeout (minutes)"
+              label="Password reset session duration"
               options={passwordResetSessionTimeoutOptions}
             />
           )}
