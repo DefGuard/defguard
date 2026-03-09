@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     convert::Infallible,
     sync::{Arc, Mutex},
     time::Duration,
@@ -158,14 +159,14 @@ fn set_step_message(next_step: SetupStep) -> Event {
 
 struct SetupFlow {
     last_step: SetupStep,
-    log_buffer: Arc<Mutex<Vec<String>>>,
+    log_buffer: Arc<Mutex<VecDeque<String>>>,
     log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl SetupFlow {
     fn new(
         log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
-        log_buffer: Arc<Mutex<Vec<String>>>,
+        log_buffer: Arc<Mutex<VecDeque<String>>>,
     ) -> Self {
         Self {
             last_step: SetupStep::CheckingConfiguration,
@@ -183,8 +184,11 @@ impl SetupFlow {
         error!("{message}");
 
         let mut collected_logs = {
-            let mut guard = self.log_buffer.lock().expect("log buffer mutex poisoned");
-            std::mem::take(&mut *guard)
+            let mut guard = self
+                .log_buffer
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            std::mem::take(&mut *guard).into_iter().collect::<Vec<_>>()
         };
         while let Ok(log) = self.log_rx.try_recv() {
             collected_logs.push(log);
@@ -210,7 +214,7 @@ pub async fn setup_proxy_tls_stream(
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let log_buffer = Arc::new(Mutex::new(Vec::new()));
+    let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
     let inner_log_buffer = Arc::clone(&log_buffer);
     let inner_stream = async_stream::stream! {
         let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
@@ -611,10 +615,11 @@ pub async fn setup_proxy_tls_stream(
         yield Ok(flow.step(SetupStep::Done));
     };
 
+    let adoption_span = tracing::info_span!("proxy_adoption");
     let stream = async_stream::stream! {
         tokio::pin!(inner_stream);
         while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
-            .instrument(tracing::info_span!("proxy_adoption"))
+            .instrument(adoption_span.clone())
             .await
         {
             yield item;
@@ -635,7 +640,7 @@ pub async fn setup_gateway_tls_stream(
     Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let log_buffer = Arc::new(Mutex::new(Vec::new()));
+    let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
     let inner_log_buffer = Arc::clone(&log_buffer);
     let inner_stream = async_stream::stream! {
         let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
@@ -1029,10 +1034,11 @@ pub async fn setup_gateway_tls_stream(
         yield Ok(flow.step(SetupStep::Done));
     };
 
+    let adoption_span = tracing::info_span!("gateway_adoption");
     let stream = async_stream::stream! {
         tokio::pin!(inner_stream);
         while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
-            .instrument(tracing::info_span!("gateway_adoption"))
+            .instrument(adoption_span.clone())
             .await
         {
             yield item;

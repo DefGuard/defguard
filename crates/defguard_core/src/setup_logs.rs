@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 use tracing::{Event as TracingEvent, Subscriber};
 use tracing_subscriber::{Layer, layer::Context};
@@ -9,10 +12,10 @@ pub const MAX_CORE_LOG_LINES: usize = 200;
 pub struct CoreSetupLogLayer;
 
 tokio::task_local! {
-    static CORE_SETUP_LOGS: Arc<Mutex<Vec<String>>>;
+    static CORE_SETUP_LOGS: Arc<Mutex<VecDeque<String>>>;
 }
 
-pub async fn scope_setup_logs<F, T>(buffer: Arc<Mutex<Vec<String>>>, future: F) -> T
+pub async fn scope_setup_logs<F, T>(buffer: Arc<Mutex<VecDeque<String>>>, future: F) -> T
 where
     F: std::future::Future<Output = T>,
 {
@@ -33,11 +36,13 @@ where
 
         let metadata = event.metadata();
         let message = visitor.message.unwrap_or_default();
-        let mut guard = buffer.lock().expect("core log buffer mutex poisoned");
+        let Ok(mut guard) = buffer.lock() else {
+            return;
+        };
         if guard.len() >= MAX_CORE_LOG_LINES {
-            guard.remove(0);
+            guard.pop_front();
         }
-        guard.push(format!(
+        guard.push_back(format!(
             "{} {}: {}",
             metadata.level(),
             metadata.target(),

@@ -1,10 +1,12 @@
-use std::sync::Once;
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex, Once},
+};
 
 use defguard_core::setup_logs::{CoreSetupLogLayer, MAX_CORE_LOG_LINES, scope_setup_logs};
 use reqwest::StatusCode;
 use serde_json::Value;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use std::sync::{Arc, Mutex};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -27,11 +29,13 @@ fn parse_sse_data_events(body: &str) -> Vec<Value> {
         .collect()
 }
 
-fn read_logs(buffer: &Arc<Mutex<Vec<String>>>) -> Vec<String> {
+fn read_logs(buffer: &Arc<Mutex<VecDeque<String>>>) -> Vec<String> {
     buffer
         .lock()
         .expect("test log buffer mutex poisoned")
-        .clone()
+        .iter()
+        .cloned()
+        .collect()
 }
 
 async fn log_from_nested_function() {
@@ -126,7 +130,7 @@ async fn test_gateway_setup_error_includes_core_logs(_: PgPoolOptions, options: 
 async fn scope_setup_logs_captures_logs_inside_scope() {
     init_tracing_once();
 
-    let buffer = Arc::new(Mutex::new(Vec::new()));
+    let buffer = Arc::new(Mutex::new(VecDeque::new()));
 
     scope_setup_logs(Arc::clone(&buffer), async {
         info!("captured in setup scope");
@@ -142,7 +146,7 @@ async fn scope_setup_logs_captures_logs_inside_scope() {
 async fn nested_awaited_calls_are_captured() {
     init_tracing_once();
 
-    let buffer = Arc::new(Mutex::new(Vec::new()));
+    let buffer = Arc::new(Mutex::new(VecDeque::new()));
 
     scope_setup_logs(Arc::clone(&buffer), async {
         log_from_nested_function().await;
@@ -158,7 +162,7 @@ async fn nested_awaited_calls_are_captured() {
 async fn buffer_is_bounded_to_max_core_log_lines() {
     init_tracing_once();
 
-    let buffer = Arc::new(Mutex::new(Vec::new()));
+    let buffer = Arc::new(Mutex::new(VecDeque::new()));
 
     scope_setup_logs(Arc::clone(&buffer), async {
         for idx in 0..(MAX_CORE_LOG_LINES + 5) {
