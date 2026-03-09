@@ -395,6 +395,71 @@ async fn test_alias_requires_any_value(_: PgPoolOptions, options: PgConnectOptio
 }
 
 #[sqlx::test]
+async fn test_alias_port_bounds(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let mut alias = make_alias();
+    alias.name = "alias-max-port".to_string();
+    alias.ports = "65535".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut alias = make_alias();
+    alias.name = "alias-too-large-port".to_string();
+    alias.ports = "65536".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut alias = make_alias();
+    alias.name = "alias-max-range".to_string();
+    alias.ports = "65534-65535".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut alias = make_alias();
+    alias.name = "alias-too-large-range".to_string();
+    alias.ports = "65535-65536".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
+async fn test_alias_rejects_invalid_port_ranges(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let alias = make_alias();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut alias = make_alias();
+    alias.name = "alias-reversed-range".to_string();
+    alias.ports = "200-100".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut alias = make_alias();
+    alias.name = "alias-malformed-range".to_string();
+    alias.ports = "1-2-3".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    alias.ports = "200-100".to_string();
+    let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    alias.ports = "1-2-3".to_string();
+    let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
 async fn test_alias_apply_rejects_destination(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 

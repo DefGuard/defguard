@@ -594,6 +594,34 @@ pub(crate) fn parse_destination_addresses(
 /// Parses ports string into singular ports and port ranges
 /// We should be able to parse a string like this one:
 /// `22, 23, 8000-9000, 80-90`
+fn invalid_ports_format(ports: &str) -> AclError {
+    error!("Failed to parse ports string: \"{ports}\"");
+    AclError::InvalidPortsFormat(ports.to_string())
+}
+
+fn parse_port_token(port_token: &str, ports: &str) -> Result<PortRange, AclError> {
+    if port_token.is_empty() {
+        return Err(invalid_ports_format(ports));
+    }
+
+    let Some((start, end)) = port_token.split_once('-') else {
+        let port = port_token.parse::<u16>()?;
+        return Ok(PortRange::new(port, port));
+    };
+
+    if start.is_empty() || end.is_empty() || end.contains('-') {
+        return Err(invalid_ports_format(ports));
+    }
+
+    let start = start.parse::<u16>()?;
+    let end = end.parse::<u16>()?;
+    if start >= end {
+        return Err(invalid_ports_format(ports));
+    }
+
+    Ok(PortRange::new(start, end))
+}
+
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     debug!("Parsing ports string: {ports}");
     let mut result = Vec::new();
@@ -602,22 +630,8 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
         .filter(|c| !c.is_whitespace())
         .collect::<String>();
     if !ports.is_empty() {
-        for v in ports.split(',') {
-            match v.split('-').collect::<Vec<_>>() {
-                l if l.len() == 1 => {
-                    let start = l[0].parse::<u16>()?;
-                    result.push(PortRange::new(start, start));
-                }
-                l if l.len() == 2 => {
-                    let start = l[0].parse::<u16>()?;
-                    let end = l[1].parse::<u16>()?;
-                    result.push(PortRange::new(start, end));
-                }
-                _ => {
-                    error!("Failed to parse ports string: \"{ports}\"");
-                    return Err(AclError::InvalidPortsFormat(ports.clone()));
-                }
-            }
+        for port_token in ports.split(',') {
+            result.push(parse_port_token(port_token, &ports)?);
         }
     }
 

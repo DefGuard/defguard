@@ -551,6 +551,42 @@ async fn test_invalid_data(_: PgPoolOptions, options: PgConnectOptions) {
     rule.ports = "65535".into();
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let mut created_rule: ApiAclRule = response.json().await;
+
+    let mut rule = make_rule();
+    rule.ports = "65534-65535".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut rule = make_rule();
+    rule.ports = "65535-65536".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    created_rule.ports = "200-100".into();
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .json(&created_rule)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    created_rule.ports = "1-2-3".into();
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .json(&created_rule)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut rule = make_rule();
+    rule.ports = "200-100".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.ports = "1-2-3".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // invalid ip range
     let mut rule = make_rule();

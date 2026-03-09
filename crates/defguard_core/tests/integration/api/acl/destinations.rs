@@ -634,6 +634,112 @@ async fn test_destination_requires_any_or_values(_: PgPoolOptions, options: PgCo
 }
 
 #[sqlx::test]
+async fn test_destination_port_bounds(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let mut destination = make_destination();
+    destination.name = "destination-max-port".to_string();
+    destination.ports = "65535".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination = make_destination();
+    destination.name = "destination-too-large-port".to_string();
+    destination.ports = "65536".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut destination = make_destination();
+    destination.name = "destination-max-range".to_string();
+    destination.ports = "65534-65535".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination = make_destination();
+    destination.name = "destination-too-large-range".to_string();
+    destination.ports = "65535-65536".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
+async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination = make_destination();
+    destination.name = "destination-reversed-range".to_string();
+    destination.ports = "200-100".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut destination = make_destination();
+    destination.name = "destination-malformed-range".to_string();
+    destination.ports = "1-2-3".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    destination.ports = "200-100".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    destination.ports = "1-2-3".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
 async fn test_destination_apply_rejects_alias(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 

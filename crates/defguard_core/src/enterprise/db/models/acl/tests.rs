@@ -656,3 +656,45 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(denied_users.iter().any(|u| u.id == user_3.id));
     assert!(!denied_users.iter().any(|u| u.id == user_4.id));
 }
+
+#[test]
+fn test_parse_ports_rejects_non_increasing_ranges() {
+    assert!(matches!(
+        parse_ports("200-100"),
+        Err(AclError::InvalidPortsFormat(input)) if input == "200-100"
+    ));
+    assert!(matches!(
+        parse_ports("100-100"),
+        Err(AclError::InvalidPortsFormat(input)) if input == "100-100"
+    ));
+}
+
+#[test]
+fn test_parse_ports_normalizes_whitespace_before_splitting() {
+    let parsed = parse_ports("10 - 20, 30, 1 2").unwrap();
+    let parsed = parsed
+        .into_iter()
+        .map(|range| (range.first_port(), range.last_port()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(parsed, vec![(10, 20), (30, 30), (12, 12)]);
+}
+
+#[test]
+fn test_parse_ports_allows_duplicate_endpoints() {
+    let parsed = parse_ports("10,10,10-20,20").unwrap();
+    let parsed = parsed
+        .into_iter()
+        .map(|range| (range.first_port(), range.last_port()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(parsed, vec![(10, 10), (10, 10), (10, 20), (20, 20)]);
+}
+
+#[test]
+fn test_parse_ports_rejects_malformed_range_tokens() {
+    assert!(matches!(
+        parse_ports("1-2-3"),
+        Err(AclError::InvalidPortsFormat(input)) if input == "1-2-3"
+    ));
+}
