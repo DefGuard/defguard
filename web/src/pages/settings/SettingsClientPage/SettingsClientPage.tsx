@@ -32,10 +32,10 @@ import { canUseBusinessFeature } from '../../../shared/utils/license';
 
 const breadcrumbs = [
   <Link to="/settings" search={{ tab: 'general' }} key={0}>
-    General
+    {m.settings_breadcrumb_general()}
   </Link>,
   <Link to="/settings/client" key={1}>
-    Client behavior
+    {m.settings_breadcrumb_client_behavior()}
   </Link>,
 ];
 

@@ -75,7 +75,6 @@ ALTER TABLE settings
     DROP COLUMN mfa_code_timeout_seconds,
     DROP COLUMN public_proxy_url,
     DROP COLUMN default_admin_id,
-    DROP COLUMN auth_cookie_timeout_days,
     DROP COLUMN secret_key,
     DROP COLUMN openid_signing_key,
     DROP COLUMN webauthn_rp_id,

@@ -18,6 +18,10 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
+import {
+  createNumericSelectOptions,
+  withNumericFallbackOption,
+} from '../../../shared/utils/numericSelectOptions';
 
 const breadcrumbs = [
   <Link
@@ -27,23 +31,23 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    General
+    {m.settings_breadcrumb_general()}
   </Link>,
   <Link to="/settings/vpn-stats" key={1}>
-    VPN stats
+    {m.settings_breadcrumb_vpn_stats()}
   </Link>,
 ];
 
 export const SettingsVpnStatsPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="VPN stats"
-          subtitle="Configure statistics purge behavior for VPN data."
+          title={m.settings_vpn_stats_title()}
+          subtitle={m.settings_vpn_stats_subtitle()}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -63,6 +67,23 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+const statsPurgeFrequencyBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_hour(),
+  12: m.settings_duration_hours({ hours: 12 }),
+  24: m.settings_duration_one_day(),
+  48: m.settings_duration_days({ days: 2 }),
+  168: m.settings_duration_one_week(),
+  720: m.settings_duration_one_month(),
+});
+
+const statsPurgeThresholdBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_day(),
+  7: m.settings_duration_days({ days: 7 }),
+  14: m.settings_duration_days({ days: 14 }),
+  30: m.settings_duration_days({ days: 30 }),
+  90: m.settings_duration_days({ days: 90 }),
+});
+
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -78,6 +99,26 @@ const Content = ({ settings }: { settings: Settings }) => {
       stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
     }),
     [settings],
+  );
+
+  const statsPurgeFrequencyOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        statsPurgeFrequencyBaseOptions,
+        defaultValues.stats_purge_frequency_hours,
+        'hours',
+      ),
+    [defaultValues.stats_purge_frequency_hours],
+  );
+
+  const statsPurgeThresholdOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        statsPurgeThresholdBaseOptions,
+        defaultValues.stats_purge_threshold_days,
+        'days',
+      ),
+    [defaultValues.stats_purge_threshold_days],
   );
 
   const form = useAppForm({
@@ -106,28 +147,27 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormInteractiveBlock
               variant="toggle"
-              title="Disable stats purge"
-              content="Disables automatic statistics cleanup task."
+              title={m.settings_vpn_stats_toggle_disable_title()}
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="stats_purge_frequency_hours">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
-              label="Stats purge frequency (hours)"
-              type="number"
+              label={m.settings_vpn_stats_label_purge_frequency()}
+              options={statsPurgeFrequencyOptions}
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="stats_purge_threshold_days">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
-              label="Stats purge threshold (days)"
-              type="number"
+              label={m.settings_vpn_stats_label_purge_threshold()}
+              options={statsPurgeThresholdOptions}
             />
           )}
         </form.AppField>

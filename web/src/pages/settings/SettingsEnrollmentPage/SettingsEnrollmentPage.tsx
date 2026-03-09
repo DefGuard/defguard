@@ -18,6 +18,10 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
+import {
+  createNumericSelectOptions,
+  withNumericFallbackOption,
+} from '../../../shared/utils/numericSelectOptions';
 
 const breadcrumbs = [
   <Link
@@ -27,23 +31,23 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    General
+    {m.settings_breadcrumb_general()}
   </Link>,
   <Link to="/settings/enrollment" key={1}>
-    Enrollment
+    {m.settings_breadcrumb_enrollment()}
   </Link>,
 ];
 
 export const SettingsEnrollmentPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="Enrollment"
-          subtitle="Configure token and session timeouts for enrollment and password reset flows."
+          title={m.settings_enrollment_title()}
+          subtitle={m.settings_enrollment_subtitle()}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -64,6 +68,19 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+const enrollmentTokenTimeoutBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_hour(),
+  12: m.settings_duration_hours({ hours: 12 }),
+  24: m.settings_duration_one_day(),
+  168: m.settings_duration_one_week(),
+});
+
+const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions({
+  10: m.settings_duration_minutes({ minutes: 10 }),
+  30: m.settings_duration_minutes({ minutes: 30 }),
+  60: m.settings_duration_one_hour(),
+});
+
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -83,6 +100,46 @@ const Content = ({ settings }: { settings: Settings }) => {
         settings.password_reset_session_timeout_minutes ?? 10,
     }),
     [settings],
+  );
+
+  const enrollmentTokenTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        enrollmentTokenTimeoutBaseOptions,
+        defaultValues.enrollment_token_timeout_hours,
+        'hours',
+      ),
+    [defaultValues.enrollment_token_timeout_hours],
+  );
+
+  const passwordResetTokenTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        enrollmentTokenTimeoutBaseOptions,
+        defaultValues.password_reset_token_timeout_hours,
+        'hours',
+      ),
+    [defaultValues.password_reset_token_timeout_hours],
+  );
+
+  const enrollmentSessionTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        enrollmentSessionTimeoutBaseOptions,
+        defaultValues.enrollment_session_timeout_minutes,
+        'minutes',
+      ),
+    [defaultValues.enrollment_session_timeout_minutes],
+  );
+
+  const passwordResetSessionTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        enrollmentSessionTimeoutBaseOptions,
+        defaultValues.password_reset_session_timeout_minutes,
+        'minutes',
+      ),
+    [defaultValues.password_reset_session_timeout_minutes],
   );
 
   const form = useAppForm({
@@ -109,40 +166,40 @@ const Content = ({ settings }: { settings: Settings }) => {
       <form.AppForm>
         <form.AppField name="enrollment_token_timeout_hours">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
-              label="Enrollment token timeout (hours)"
-              type="number"
+              label={m.settings_enrollment_label_token_validity()}
+              options={enrollmentTokenTimeoutOptions}
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="password_reset_token_timeout_hours">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
-              label="Password reset token timeout (hours)"
-              type="number"
+              label={m.settings_enrollment_label_password_reset_token_validity()}
+              options={passwordResetTokenTimeoutOptions}
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="enrollment_session_timeout_minutes">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
-              label="Enrollment session timeout (minutes)"
-              type="number"
+              label={m.settings_enrollment_label_session_expires_in()}
+              options={enrollmentSessionTimeoutOptions}
             />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="password_reset_session_timeout_minutes">
           {(field) => (
-            <field.FormInput
+            <field.FormSelect
               required
-              label="Password reset session timeout (minutes)"
-              type="number"
+              label={m.settings_enrollment_label_password_reset_session_expires_in()}
+              options={passwordResetSessionTimeoutOptions}
             />
           )}
         </form.AppField>

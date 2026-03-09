@@ -8,7 +8,6 @@ ALTER TABLE settings
     ADD COLUMN mfa_code_timeout_seconds integer NOT NULL DEFAULT 60,
     ADD COLUMN public_proxy_url text NOT NULL DEFAULT 'http://localhost:8080',
     ADD COLUMN default_admin_id bigint NULL,
-    ADD COLUMN auth_cookie_timeout_days int4 NOT NULL DEFAULT 7,
     ADD COLUMN secret_key text,
     ADD COLUMN openid_signing_key text,
     ADD COLUMN webauthn_rp_id text,
