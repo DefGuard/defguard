@@ -80,16 +80,17 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const sessionDurationOptions = createNumericSelectOptions(
-  [1, 2, 3, 7, 10, 14, 30],
-  (value) =>
-    value === 1
-      ? m.settings_duration_one_day()
-      : m.settings_duration_days({ days: value }),
-);
+const sessionDurationOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_day(),
+  2: m.settings_duration_days({ days: 2 }),
+  3: m.settings_duration_days({ days: 3 }),
+  7: m.settings_duration_days({ days: 7 }),
+  10: m.settings_duration_days({ days: 10 }),
+  14: m.settings_duration_days({ days: 14 }),
+  30: m.settings_duration_days({ days: 30 }),
+});
 
-const formatSessionDurationLabel = (value: number) =>
-  value === 1 ? m.settings_duration_one_day() : m.settings_duration_days({ days: value });
+const sessionDurationFallbackUnit = 'days';
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -123,7 +124,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         sessionDurationOptions,
         defaultValues.authentication_period_days,
-        formatSessionDurationLabel,
+        sessionDurationFallbackUnit,
       ),
     [defaultValues.authentication_period_days],
   );

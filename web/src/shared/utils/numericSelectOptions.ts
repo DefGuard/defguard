@@ -2,39 +2,39 @@ import type { SelectOption } from '../defguard-ui/components/Select/types';
 
 export type NumericSelectOption = SelectOption<number>;
 
-export const formatDaySelectLabel = (value: number) =>
-  `${value} ${value === 1 ? 'day' : 'days'}`;
-
-export const formatHourSelectLabel = (value: number) =>
-  `${value} ${value === 1 ? 'hour' : 'hours'}`;
-
-export const formatMinuteSelectLabel = (value: number) =>
-  `${value} ${value === 1 ? 'minute' : 'minutes'}`;
+export type NumericSelectOptionMap = Readonly<Record<number, string>>;
 
 export const createNumericSelectOptions = (
-  values: readonly number[],
-  formatLabel: (value: number) => string,
+  optionMap: NumericSelectOptionMap,
 ): NumericSelectOption[] =>
-  values.map((value) => ({
-    key: value,
-    label: formatLabel(value),
-    value,
-  }));
+  Object.entries(optionMap)
+    .map(([value, label]) => {
+      const numericValue = Number(value);
+
+      return {
+        key: numericValue,
+        label,
+        value: numericValue,
+      };
+    })
+    .sort((a, b) => a.value - b.value);
 
 export const withNumericFallbackOption = (
   options: readonly NumericSelectOption[],
   value: number,
-  formatLabel: (value: number) => string,
+  unit: string,
 ): NumericSelectOption[] => {
   if (options.some((option) => option.value === value)) {
     return [...options];
   }
 
+  const label = `${value} ${unit}`;
+
   return [
     ...options,
     {
       key: value,
-      label: formatLabel(value),
+      label,
       value,
     },
   ].sort((a, b) => a.value - b.value);

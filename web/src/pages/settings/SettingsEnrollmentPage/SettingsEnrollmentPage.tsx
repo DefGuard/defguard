@@ -68,39 +68,18 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const formatEnrollmentTokenTimeoutLabel = (value: number) => {
-  switch (value) {
-    case 24:
-      return m.settings_duration_one_day();
-    case 168:
-      return m.settings_duration_one_week();
-    case 1:
-      return m.settings_duration_one_hour();
-    default:
-      return m.settings_duration_hours({ hours: value });
-  }
-};
+const enrollmentTokenTimeoutBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_hour(),
+  12: m.settings_duration_hours({ hours: 12 }),
+  24: m.settings_duration_one_day(),
+  168: m.settings_duration_one_week(),
+});
 
-const enrollmentTokenTimeoutBaseOptions = createNumericSelectOptions(
-  [1, 12, 24, 168],
-  formatEnrollmentTokenTimeoutLabel,
-);
-
-const formatEnrollmentSessionTimeoutLabel = (value: number) => {
-  switch (value) {
-    case 60:
-      return m.settings_duration_one_hour();
-    case 1:
-      return m.settings_duration_one_minute();
-    default:
-      return m.settings_duration_minutes({ minutes: value });
-  }
-};
-
-const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions(
-  [10, 30, 60],
-  formatEnrollmentSessionTimeoutLabel,
-);
+const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions({
+  10: m.settings_duration_minutes({ minutes: 10 }),
+  30: m.settings_duration_minutes({ minutes: 30 }),
+  60: m.settings_duration_one_hour(),
+});
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -128,7 +107,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentTokenTimeoutBaseOptions,
         defaultValues.enrollment_token_timeout_hours,
-        formatEnrollmentTokenTimeoutLabel,
+        'hours',
       ),
     [defaultValues.enrollment_token_timeout_hours],
   );
@@ -138,7 +117,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentTokenTimeoutBaseOptions,
         defaultValues.password_reset_token_timeout_hours,
-        formatEnrollmentTokenTimeoutLabel,
+        'hours',
       ),
     [defaultValues.password_reset_token_timeout_hours],
   );
@@ -148,7 +127,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentSessionTimeoutBaseOptions,
         defaultValues.enrollment_session_timeout_minutes,
-        formatEnrollmentSessionTimeoutLabel,
+        'minutes',
       ),
     [defaultValues.enrollment_session_timeout_minutes],
   );
@@ -158,7 +137,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentSessionTimeoutBaseOptions,
         defaultValues.password_reset_session_timeout_minutes,
-        formatEnrollmentSessionTimeoutLabel,
+        'minutes',
       ),
     [defaultValues.password_reset_session_timeout_minutes],
   );

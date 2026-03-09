@@ -67,35 +67,22 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const formatStatsPurgeFrequencyLabel = (value: number) => {
-  switch (value) {
-    case 24:
-      return m.settings_duration_one_day();
-    case 48:
-      return m.settings_duration_days({ days: 2 });
-    case 168:
-      return m.settings_duration_one_week();
-    case 720:
-      return m.settings_duration_one_month();
-    case 1:
-      return m.settings_duration_one_hour();
-    default:
-      return m.settings_duration_hours({ hours: value });
-  }
-};
+const statsPurgeFrequencyBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_hour(),
+  12: m.settings_duration_hours({ hours: 12 }),
+  24: m.settings_duration_one_day(),
+  48: m.settings_duration_days({ days: 2 }),
+  168: m.settings_duration_one_week(),
+  720: m.settings_duration_one_month(),
+});
 
-const statsPurgeFrequencyBaseOptions = createNumericSelectOptions(
-  [1, 12, 24, 48, 168, 720],
-  formatStatsPurgeFrequencyLabel,
-);
-
-const statsPurgeThresholdBaseOptions = createNumericSelectOptions(
-  [1, 7, 14, 30, 90],
-  (value) =>
-    value === 1
-      ? m.settings_duration_one_day()
-      : m.settings_duration_days({ days: value }),
-);
+const statsPurgeThresholdBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_day(),
+  7: m.settings_duration_days({ days: 7 }),
+  14: m.settings_duration_days({ days: 14 }),
+  30: m.settings_duration_days({ days: 30 }),
+  90: m.settings_duration_days({ days: 90 }),
+});
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -119,7 +106,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         statsPurgeFrequencyBaseOptions,
         defaultValues.stats_purge_frequency_hours,
-        formatStatsPurgeFrequencyLabel,
+        'hours',
       ),
     [defaultValues.stats_purge_frequency_hours],
   );
@@ -129,10 +116,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         statsPurgeThresholdBaseOptions,
         defaultValues.stats_purge_threshold_days,
-        (value) =>
-          value === 1
-            ? m.settings_duration_one_day()
-            : m.settings_duration_days({ days: value }),
+        'days',
       ),
     [defaultValues.stats_purge_threshold_days],
   );
