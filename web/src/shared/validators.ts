@@ -105,11 +105,73 @@ export const validateIPv6 = (ip: string, allowMask = false): boolean => {
   return ipaddr.IPv6.isValid(ip);
 };
 
-export const validatePort = (val: string) => {
-  const parsed = parseInt(val, 10);
-  if (!Number.isNaN(parsed)) {
-    return parsed <= 65535;
+export const validatePort = (val: string): boolean => {
+  return parsePortNumber(val) !== null;
+};
+
+type ParsedAclPortToken = [number] | [number, number];
+
+const normalizeAclPortsInput = (value: string): string => value.replace(/\s+/g, '');
+
+const parsePortNumber = (value: string): number | null => {
+  if (!/^\d+$/.test(value)) {
+    return null;
   }
+
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > 65535) {
+    return null;
+  }
+
+  return parsed;
+};
+
+const parseAclPortToken = (value: string): ParsedAclPortToken | null => {
+  if (value === '') {
+    return null;
+  }
+
+  const [startRaw, endRaw, ...rest] = value.split('-');
+  const start = parsePortNumber(startRaw);
+
+  if (start === null) {
+    return null;
+  }
+
+  if (endRaw === undefined) {
+    return [start];
+  }
+
+  if (endRaw === '' || rest.length > 0) {
+    return null;
+  }
+
+  const end = parsePortNumber(endRaw);
+  if (end === null || start >= end) {
+    return null;
+  }
+
+  return [start, end];
+};
+
+const parseAclPorts = (value: string): ParsedAclPortToken[] | null => {
+  const normalizedValue = normalizeAclPortsInput(value);
+
+  if (normalizedValue === '') {
+    return [];
+  }
+
+  const parsedTokens: ParsedAclPortToken[] = [];
+  for (const token of normalizedValue.split(',')) {
+    const parsedToken = parseAclPortToken(token);
+    if (!parsedToken) {
+      return null;
+    }
+
+    parsedTokens.push(parsedToken);
+  }
+
+  return parsedTokens;
 };
 
 export const numericString = (val: string) => /^\d+$/.test(val);
@@ -118,52 +180,7 @@ export const numericStringFloat = (val: string) => /^\d*\.?\d+$/.test(val);
 
 export const aclPortsValidator = z
   .string()
-  .refine((value: string) => {
-    if (value === '') return true;
-    const regexp = new RegExp(/^(?:\d+(?:-\d+)*)(?:(?:\s*,\s*|\s+)\d+(?:-\d+)*)*$/);
-    return regexp.test(value);
-  }, m.form_error_invalid())
-  .refine((value: string) => {
-    if (value === '') return true;
-    // check if there is no duplicates in given port field
-    const trimmed = value
-      .replaceAll(' ', '')
-      .replaceAll('-', ' ')
-      .replaceAll(',', ' ')
-      .split(' ')
-      .filter((v) => v !== '');
-    const found: number[] = [];
-    for (const entry of trimmed) {
-      const num = parseInt(entry, 10);
-      if (Number.isNaN(num)) {
-        return false;
-      }
-      if (found.includes(num)) {
-        return false;
-      }
-      found.push(num);
-    }
-    return true;
-  }, m.form_error_invalid())
-  .refine((value: string) => {
-    if (value === '') return true;
-    // check if ranges in input are valid means follow pattern <start>-<end>
-    const matches = value.match(/\b\d+-\d+\b/g);
-    if (Array.isArray(matches)) {
-      for (const match of matches) {
-        const split = match.split('-');
-        if (split.length !== 2) {
-          return false;
-        }
-        const start = split[0];
-        const end = split[1];
-        if (start >= end) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }, m.form_error_invalid());
+  .refine((value: string) => parseAclPorts(value) !== null, m.form_error_invalid());
 
 const validateIpPart = (input: string): ipaddr.IPv4 | ipaddr.IPv6 | null => {
   if (!ipaddr.isValid(input)) return null;
