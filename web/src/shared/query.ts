@@ -40,6 +40,7 @@ export const getGatewaysQueryOptions = queryOptions({
   queryFn: api.gateway.getGateways,
   queryKey: ['gateway'],
   select: (resp) => resp.data,
+  refetchInterval: 30_000,
   refetchOnMount: true,
   refetchOnReconnect: true,
 });
