@@ -298,7 +298,6 @@ impl WireguardNetwork<Id> {
             // include address, network, and broadcast in the calculation
             match network_size {
                 NetworkSize::V4(size) => {
-                    info!("ARSE {size}");
                     if device_count as u32 > size {
                         return Err(WireguardNetworkError::NetworkTooSmall);
                     }
