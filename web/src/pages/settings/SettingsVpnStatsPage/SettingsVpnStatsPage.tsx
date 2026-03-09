@@ -13,9 +13,6 @@ import { SettingsHeader } from '../../../shared/components/SettingsHeader/Settin
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import {
   createNumericSelectOptions,
-  formatDaySelectLabel,
-  formatHourSelectLabel,
-  type NumericSelectOption,
   withNumericFallbackOption,
 } from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -34,23 +31,23 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    General
+    {m.settings_breadcrumb_general()}
   </Link>,
   <Link to="/settings/vpn-stats" key={1}>
-    VPN stats
+    {m.settings_breadcrumb_vpn_stats()}
   </Link>,
 ];
 
 export const SettingsVpnStatsPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="VPN stats"
-          subtitle="Configure statistics purge behavior for VPN data."
+          title={m.settings_vpn_stats_title()}
+          subtitle={m.settings_vpn_stats_subtitle()}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -70,18 +67,34 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const statsPurgeFrequencyBaseOptions: NumericSelectOption[] = [
-  { key: 1, value: 1, label: '1h' },
-  { key: 12, value: 12, label: '12h' },
-  { key: 24, value: 24, label: '1 day' },
-  { key: 48, value: 48, label: '2 days' },
-  { key: 168, value: 168, label: '1 week' },
-  { key: 720, value: 720, label: '1 month' },
-];
+const formatStatsPurgeFrequencyLabel = (value: number) => {
+  switch (value) {
+    case 24:
+      return m.settings_duration_one_day();
+    case 48:
+      return m.settings_duration_days({ days: 2 });
+    case 168:
+      return m.settings_duration_one_week();
+    case 720:
+      return m.settings_duration_one_month();
+    case 1:
+      return m.settings_duration_one_hour();
+    default:
+      return m.settings_duration_hours({ hours: value });
+  }
+};
+
+const statsPurgeFrequencyBaseOptions = createNumericSelectOptions(
+  [1, 12, 24, 48, 168, 720],
+  formatStatsPurgeFrequencyLabel,
+);
 
 const statsPurgeThresholdBaseOptions = createNumericSelectOptions(
   [1, 7, 14, 30, 90],
-  formatDaySelectLabel,
+  (value) =>
+    value === 1
+      ? m.settings_duration_one_day()
+      : m.settings_duration_days({ days: value }),
 );
 
 const Content = ({ settings }: { settings: Settings }) => {
@@ -106,7 +119,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         statsPurgeFrequencyBaseOptions,
         defaultValues.stats_purge_frequency_hours,
-        formatHourSelectLabel,
+        formatStatsPurgeFrequencyLabel,
       ),
     [defaultValues.stats_purge_frequency_hours],
   );
@@ -116,7 +129,10 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         statsPurgeThresholdBaseOptions,
         defaultValues.stats_purge_threshold_days,
-        formatDaySelectLabel,
+        (value) =>
+          value === 1
+            ? m.settings_duration_one_day()
+            : m.settings_duration_days({ days: value }),
       ),
     [defaultValues.stats_purge_threshold_days],
   );
@@ -147,8 +163,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormInteractiveBlock
               variant="toggle"
-              title="Disable stats purge"
-              content="Disables automatic statistics cleanup task."
+              title={m.settings_vpn_stats_toggle_disable_title()}
             />
           )}
         </form.AppField>
@@ -157,7 +172,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Stats purge frequency"
+              label={m.settings_vpn_stats_label_purge_frequency()}
               options={statsPurgeFrequencyOptions}
             />
           )}
@@ -167,7 +182,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Stats purge threshold"
+              label={m.settings_vpn_stats_label_purge_threshold()}
               options={statsPurgeThresholdOptions}
             />
           )}

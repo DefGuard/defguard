@@ -11,6 +11,7 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
+import { createNumericSelectOptions } from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -76,27 +77,13 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const sessionDurationOptions = [
-  { key: 1, value: 1, label: m.settings_instance_session_duration_1() },
-  { key: 2, value: 2, label: m.settings_instance_session_duration_2() },
-  { key: 3, value: 3, label: m.settings_instance_session_duration_3() },
-  { key: 7, value: 7, label: m.settings_instance_session_duration_7() },
-  {
-    key: 10,
-    value: 10,
-    label: m.settings_instance_session_duration_10(),
-  },
-  {
-    key: 14,
-    value: 14,
-    label: m.settings_instance_session_duration_14(),
-  },
-  {
-    key: 30,
-    value: 30,
-    label: m.settings_instance_session_duration_30(),
-  },
-];
+const sessionDurationOptions = createNumericSelectOptions(
+  [1, 2, 3, 7, 10, 14, 30],
+  (value) =>
+    value === 1
+      ? m.settings_duration_one_day()
+      : m.settings_duration_days({ days: value }),
+);
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({

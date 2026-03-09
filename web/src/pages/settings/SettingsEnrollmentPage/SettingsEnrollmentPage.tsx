@@ -12,9 +12,7 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import {
-  formatHourSelectLabel,
-  formatMinuteSelectLabel,
-  type NumericSelectOption,
+  createNumericSelectOptions,
   withNumericFallbackOption,
 } from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -33,23 +31,23 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    General
+    {m.settings_breadcrumb_general()}
   </Link>,
   <Link to="/settings/enrollment" key={1}>
-    Enrollment
+    {m.settings_breadcrumb_enrollment()}
   </Link>,
 ];
 
 export const SettingsEnrollmentPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="customize"
-          title="Enrollment"
-          subtitle="Configure token and session timeouts for enrollment and password reset flows."
+          title={m.settings_enrollment_title()}
+          subtitle={m.settings_enrollment_subtitle()}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -70,18 +68,39 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const enrollmentTokenTimeoutBaseOptions: NumericSelectOption[] = [
-  { key: 1, value: 1, label: '1 hour' },
-  { key: 12, value: 12, label: '12 hours' },
-  { key: 24, value: 24, label: '1 day' },
-  { key: 168, value: 168, label: '1 week' },
-];
+const formatEnrollmentTokenTimeoutLabel = (value: number) => {
+  switch (value) {
+    case 24:
+      return m.settings_duration_one_day();
+    case 168:
+      return m.settings_duration_one_week();
+    case 1:
+      return m.settings_duration_one_hour();
+    default:
+      return m.settings_duration_hours({ hours: value });
+  }
+};
 
-const enrollmentSessionTimeoutBaseOptions: NumericSelectOption[] = [
-  { key: 10, value: 10, label: '10 minutes' },
-  { key: 30, value: 30, label: '30 minutes' },
-  { key: 60, value: 60, label: '1 hour' },
-];
+const enrollmentTokenTimeoutBaseOptions = createNumericSelectOptions(
+  [1, 12, 24, 168],
+  formatEnrollmentTokenTimeoutLabel,
+);
+
+const formatEnrollmentSessionTimeoutLabel = (value: number) => {
+  switch (value) {
+    case 60:
+      return m.settings_duration_one_hour();
+    case 1:
+      return m.settings_duration_one_minute();
+    default:
+      return m.settings_duration_minutes({ minutes: value });
+  }
+};
+
+const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions(
+  [10, 30, 60],
+  formatEnrollmentSessionTimeoutLabel,
+);
 
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -109,7 +128,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentTokenTimeoutBaseOptions,
         defaultValues.enrollment_token_timeout_hours,
-        formatHourSelectLabel,
+        formatEnrollmentTokenTimeoutLabel,
       ),
     [defaultValues.enrollment_token_timeout_hours],
   );
@@ -119,7 +138,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentTokenTimeoutBaseOptions,
         defaultValues.password_reset_token_timeout_hours,
-        formatHourSelectLabel,
+        formatEnrollmentTokenTimeoutLabel,
       ),
     [defaultValues.password_reset_token_timeout_hours],
   );
@@ -129,7 +148,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentSessionTimeoutBaseOptions,
         defaultValues.enrollment_session_timeout_minutes,
-        formatMinuteSelectLabel,
+        formatEnrollmentSessionTimeoutLabel,
       ),
     [defaultValues.enrollment_session_timeout_minutes],
   );
@@ -139,7 +158,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       withNumericFallbackOption(
         enrollmentSessionTimeoutBaseOptions,
         defaultValues.password_reset_session_timeout_minutes,
-        formatMinuteSelectLabel,
+        formatEnrollmentSessionTimeoutLabel,
       ),
     [defaultValues.password_reset_session_timeout_minutes],
   );
@@ -170,7 +189,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Enrollment token validity"
+              label={m.settings_enrollment_label_token_validity()}
               options={enrollmentTokenTimeoutOptions}
             />
           )}
@@ -180,7 +199,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Password reset token validity"
+              label={m.settings_enrollment_label_password_reset_token_validity()}
               options={passwordResetTokenTimeoutOptions}
             />
           )}
@@ -190,7 +209,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Enrollment session duration"
+              label={m.settings_enrollment_label_session_expires_in()}
               options={enrollmentSessionTimeoutOptions}
             />
           )}
@@ -200,7 +219,7 @@ const Content = ({ settings }: { settings: Settings }) => {
           {(field) => (
             <field.FormSelect
               required
-              label="Password reset session duration"
+              label={m.settings_enrollment_label_password_reset_session_expires_in()}
               options={passwordResetSessionTimeoutOptions}
             />
           )}
