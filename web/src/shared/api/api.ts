@@ -321,6 +321,7 @@ const api = {
     validateIps: (data: ValidateDeviceIpsRequest) =>
       client.post<IpValidation[]>(`/device/network/ip/${data.locationId}`, {
         ips: data.ips,
+        device_id: data.deviceId,
       }),
   },
   location: {
