@@ -12,11 +12,6 @@ tokio::task_local! {
     static CORE_SETUP_LOGS: Arc<Mutex<Vec<String>>>;
 }
 
-#[must_use]
-pub fn core_setup_log_layer() -> CoreSetupLogLayer {
-    CoreSetupLogLayer
-}
-
 pub async fn scope_setup_logs<F, T>(buffer: Arc<Mutex<Vec<String>>>, future: F) -> T
 where
     F: std::future::Future<Output = T>,

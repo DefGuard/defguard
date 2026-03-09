@@ -25,7 +25,7 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent},
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
-    setup_logs::core_setup_log_layer,
+    setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
@@ -60,7 +60,7 @@ async fn main() -> Result<(), anyhow::Error> {
         config.log_level
     );
 
-    let subscriber = tracing_subscriber::registry().with(core_setup_log_layer());
+    let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
         &log_filter,
