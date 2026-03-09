@@ -20,7 +20,10 @@ import type { ButtonProps } from '../../../../../../../shared/defguard-ui/compon
 import { EmptyStateFlexible } from '../../../../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
-import type { MenuItemsGroup } from '../../../../../../../shared/defguard-ui/components/Menu/types';
+import type {
+  MenuItemProps,
+  MenuItemsGroup,
+} from '../../../../../../../shared/defguard-ui/components/Menu/types';
 import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
@@ -32,6 +35,7 @@ import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPrese
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../../../../shared/hooks/useApp';
+import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import { displayDate } from '../../../../../../../shared/utils/displayDate';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
@@ -76,6 +80,7 @@ const columnHelper = createColumnHelper<RowData>();
 
 const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   const info = useApp((s) => s.appInfo);
+  const isAdmin = useAuth((s) => s.isAdmin);
   const devices = useUserProfile((s) => s.devices);
   const user = useUserProfile((s) => s.user);
   const username = user.username;
@@ -107,61 +112,64 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   });
 
   const makeRowMenu = useCallback(
-    (row: RowData): MenuItemsGroup[] => [
-      {
-        items: [
-          {
-            text: m.controls_edit(),
-            icon: 'edit',
-            onClick: () => {
-              openModal(ModalName.EditUserDevice, {
-                device: row,
-                reservedNames: reservedNames,
-                username,
-              });
-            },
+    (row: RowData): MenuItemsGroup[] => {
+      const items: MenuItemProps[] = [
+        {
+          text: m.controls_edit(),
+          icon: 'edit',
+          onClick: () => {
+            openModal(ModalName.EditUserDevice, {
+              device: row,
+              reservedNames: reservedNames,
+              username,
+            });
           },
-          {
-            text: m.profile_devices_menu_ip_settings(),
-            icon: 'gateway',
-            testId: 'assign-device-ip',
-            onClick: () => {
-              api.device
-                .getDeviceIps(username, row.id)
-                .then(({ data: locationData }) => {
-                  openModal(ModalName.AssignUserDeviceIP, {
-                    device: row,
-                    username,
-                    locationData,
-                  });
-                })
-                .catch((error) => {
-                  Snackbar.error('Failed to load device IP settings');
-                  console.error(error);
+        },
+      ];
+      if (isAdmin) {
+        items.push({
+          text: m.profile_devices_menu_ip_settings(),
+          icon: 'gateway',
+          testId: 'assign-device-ip',
+          onClick: () => {
+            api.device
+              .getDeviceIps(username, row.id)
+              .then(({ data: locationData }) => {
+                openModal(ModalName.AssignUserDeviceIP, {
+                  device: row,
+                  username,
+                  locationData,
                 });
-            },
-          },
-          {
-            text: m.profile_devices_menu_show_config(),
-            onClick: () => {
-              api.device.getDeviceConfigs(row).then((modalData) => {
-                openModal(ModalName.UserDeviceConfig, modalData);
+              })
+              .catch((error) => {
+                Snackbar.error('Failed to load device IP settings');
+                console.error(error);
               });
-            },
-            icon: 'config',
           },
-          {
-            text: m.controls_delete(),
-            onClick: () => {
-              deleteDevice(row.id);
-            },
-            variant: 'danger',
-            icon: 'delete',
+        });
+      }
+      items.push(
+        {
+          text: m.profile_devices_menu_show_config(),
+          onClick: () => {
+            api.device.getDeviceConfigs(row).then((modalData) => {
+              openModal(ModalName.UserDeviceConfig, modalData);
+            });
           },
-        ],
-      },
-    ],
-    [reservedNames, username, deleteDevice],
+          icon: 'config',
+        },
+        {
+          text: m.controls_delete(),
+          onClick: () => {
+            deleteDevice(row.id);
+          },
+          variant: 'danger',
+          icon: 'delete',
+        },
+      );
+      return [{ items }];
+    },
+    [reservedNames, username, deleteDevice, isAdmin],
   );
 
   const tableColumns = useMemo(
