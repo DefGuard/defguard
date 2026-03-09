@@ -218,12 +218,13 @@ pub async fn setup_proxy_tls_stream(
     let inner_stream = async_stream::stream! {
         let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
+        // check if tries to connect more then 1 proxy without active enterprise license
         if !is_enterprise_license_active() {
             match Proxy::list(&pool).await {
                 Ok(current_proxies) => {
                     if !current_proxies.is_empty() {
                         yield Ok(flow.error(
-                            "Enterprise license is required for connecting more then one Edge.",
+                            "Enterprise license is required for connecting more than one Edge.",
                         ));
                         return;
                     }
@@ -234,7 +235,8 @@ pub async fn setup_proxy_tls_stream(
                 }
             }
         }
-        info!("License check passed");
+
+        debug!("License check passed");
 
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
         match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
@@ -256,6 +258,8 @@ pub async fn setup_proxy_tls_stream(
                 return;
             }
         }
+
+        debug!("License check passed");
 
         let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
         let url = match Url::parse(&url_str) {
@@ -579,7 +583,7 @@ pub async fn setup_proxy_tls_stream(
             debug!("Edge control channel not available; skipping connection initiation");
         }
 
-        debug!("Edge setup completed successfully");
+        info!("Edge setup completed successfully");
 
         match Wizard::get(&pool).await {
             Ok(wizard) => {
