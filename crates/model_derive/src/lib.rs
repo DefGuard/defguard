@@ -220,7 +220,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     // TODO: add limit and offset for all().
     quote! {
         impl #name<NoId> {
-            pub async fn save<'e, E>(self, executor: E) -> Result<#name<Id>, sqlx::Error>
+            pub async fn save<'e, E>(self, executor: E) -> sqlx::Result<#name<Id>>
             where
                 E: sqlx::PgExecutor<'e>
             {
@@ -235,21 +235,21 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
 
         impl #name<Id> {
-            pub async fn find_by_id<'e, E>(executor: E, id: Id) -> Result<Option<Self>, sqlx::Error>
+            pub async fn find_by_id<'e, E>(executor: E, id: Id) -> sqlx::Result<Option<Self>>
             where
                 E: sqlx::PgExecutor<'e>
             {
                 sqlx::query_as!(Self, #find_by_id_query, id).fetch_optional(executor).await
             }
 
-            pub async fn all<'e, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
+            pub async fn all<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
             where
                 E: sqlx::PgExecutor<'e>
             {
                 sqlx::query_as!(Self, #all_query).fetch_all(executor).await
             }
 
-            pub async fn delete<'e, E>(self, executor: E) -> Result<(), sqlx::Error>
+            pub async fn delete<'e, E>(self, executor: E) -> sqlx::Result<()>
             where
                 E: sqlx::PgExecutor<'e>
             {
@@ -258,7 +258,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 Ok(())
             }
 
-            pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
+            pub async fn save<'e, E>(&self, executor: E) -> sqlx::Result<()>
             where
                 E: sqlx::PgExecutor<'e>
             {

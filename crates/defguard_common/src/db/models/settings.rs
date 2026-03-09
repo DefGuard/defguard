@@ -20,7 +20,7 @@ use crate::{
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
 /// Initializes global `SETTINGS` struct at program startup
-pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Error> {
+pub async fn initialize_current_settings(pool: &PgPool) -> sqlx::Result<()> {
     debug!("Initializing global settings struct");
     if let Some(settings) = Settings::get(pool).await? {
         set_settings(Some(settings));
@@ -38,7 +38,7 @@ pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Erro
 pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     executor: E,
     new_settings: Settings,
-) -> Result<(), sqlx::Error> {
+) -> sqlx::Result<()> {
     debug!("Updating current settings to: {new_settings:?}");
     new_settings.save(executor).await?;
     set_settings(Some(new_settings));
@@ -303,7 +303,7 @@ impl Settings {
         BASE64_STANDARD.encode(bytes)
     }
 
-    pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
+    pub async fn get<'e, E>(executor: E) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -358,7 +358,7 @@ impl Settings {
         Ok(())
     }
 
-    pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn save<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -707,7 +707,7 @@ impl Settings {
         &mut self,
         executor: E,
         config: &DefGuardConfig,
-    ) -> Result<(), sqlx::Error>
+    ) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -746,7 +746,7 @@ pub struct SettingsEssentials {
 }
 
 impl SettingsEssentials {
-    pub async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, sqlx::Error>
+    pub async fn get_settings_essentials<'e, E>(executor: E) -> sqlx::Result<Self>
     where
         E: PgExecutor<'e>,
     {
