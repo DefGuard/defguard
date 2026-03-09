@@ -1,5 +1,4 @@
 ALTER TABLE settings
-    DROP COLUMN auth_cookie_timeout_days,
     DROP COLUMN secret_key,
     DROP COLUMN openid_signing_key,
     DROP COLUMN webauthn_rp_id,

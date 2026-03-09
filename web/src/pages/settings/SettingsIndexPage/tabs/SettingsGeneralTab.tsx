@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { m } from '../../../../paraglide/messages';
 import { businessBadgeProps } from '../../../../shared/components/badges/BusinessBadge';
 import { SettingsLayout } from '../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
@@ -20,8 +21,8 @@ export const SettingsGeneralTab = () => {
       <Link to="/settings/instance">
         <SectionSelect
           image="customization"
-          title="Instance settings"
-          content="Configure your instance name and branding settings. Add a logo to personalize the interface and make it easily recognizable to your users."
+          title={m.settings_instance_title()}
+          content={m.settings_general_section_instance_content()}
         />
       </Link>
       <SizedBox height={ThemeSpacing.Xl} />
@@ -39,31 +40,31 @@ export const SettingsGeneralTab = () => {
         </TooltipContent>
       </TooltipProvider>
       <SizedBox height={ThemeSpacing.Xl} />
-      <SectionSelect
-        image="behavior"
-        title="Client behavior"
-        content="Manage how users interact with the Defguard client. Control device management permissions, configuration access, and traffic routing options."
-        badgeProps={licenseInfo === null ? businessBadgeProps : undefined}
-        onClick={() => {
-          navigate({ to: '/settings/client' });
-        }}
-      />
-      <SizedBox height={ThemeSpacing.Xl} />
       <Link to="/settings/vpn-stats">
         <SectionSelect
           image="vector"
-          title="VPN stats"
-          content="Configure VPN statistics cleanup behavior, including purge frequency and retention threshold."
+          title={m.settings_vpn_stats_title()}
+          content={m.settings_general_section_vpn_stats_content()}
         />
       </Link>
       <SizedBox height={ThemeSpacing.Xl} />
       <Link to="/settings/enrollment">
         <SectionSelect
           image="self-enrollment"
-          title="Enrollment"
-          content="Set enrollment and password reset token and session timeout values."
+          title={m.settings_enrollment_title()}
+          content={m.settings_general_section_enrollment_content()}
         />
       </Link>
+      <SizedBox height={ThemeSpacing.Xl} />
+      <SectionSelect
+        image="behavior"
+        title={m.settings_breadcrumb_client_behavior()}
+        content={m.settings_general_section_client_behavior_content()}
+        badgeProps={licenseInfo === null ? businessBadgeProps : undefined}
+        onClick={() => {
+          navigate({ to: '/settings/client' });
+        }}
+      />
     </SettingsLayout>
   );
 };

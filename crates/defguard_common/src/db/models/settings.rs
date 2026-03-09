@@ -180,7 +180,6 @@ pub struct Settings {
     pub secret_key: Option<String>,
     pub webauthn_rp_id: Option<String>,
     pub disable_stats_purge: bool,
-    auth_cookie_timeout_days: i32,
     stats_purge_frequency_hours: i32,
     stats_purge_threshold_days: i32,
     enrollment_token_timeout_hours: i32,
@@ -332,7 +331,7 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, \
-            default_admin_id, auth_cookie_timeout_days, secret_key, webauthn_rp_id, disable_stats_purge, \
+            default_admin_id, secret_key, webauthn_rp_id, disable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -422,16 +421,15 @@ impl Settings {
             mfa_code_timeout_seconds = $55, \
             public_proxy_url = $56, \
             default_admin_id = $57, \
-            auth_cookie_timeout_days = $58, \
-            secret_key = $59, \
-            webauthn_rp_id = $60, \
-            disable_stats_purge = $61, \
-            stats_purge_frequency_hours = $62, \
-            stats_purge_threshold_days = $63, \
-            enrollment_token_timeout_hours = $64, \
-            password_reset_token_timeout_hours = $65, \
-            enrollment_session_timeout_minutes = $66, \
-            password_reset_session_timeout_minutes = $67 \
+            secret_key = $58, \
+            webauthn_rp_id = $59, \
+            disable_stats_purge = $60, \
+            stats_purge_frequency_hours = $61, \
+            stats_purge_threshold_days = $62, \
+            enrollment_token_timeout_hours = $63, \
+            password_reset_token_timeout_hours = $64, \
+            enrollment_session_timeout_minutes = $65, \
+            password_reset_session_timeout_minutes = $66 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -490,7 +488,6 @@ impl Settings {
             self.mfa_code_timeout_seconds,
             self.public_proxy_url,
             self.default_admin_id,
-            self.auth_cookie_timeout_days,
             self.secret_key,
             self.webauthn_rp_id,
             self.disable_stats_purge,
@@ -606,11 +603,6 @@ impl Settings {
     }
 
     #[must_use]
-    pub fn auth_cookie_timeout(&self) -> Duration {
-        Duration::from_secs(self.auth_cookie_timeout_days as u64 * 24 * 3600)
-    }
-
-    #[must_use]
     pub fn stats_purge_frequency(&self) -> Duration {
         Duration::from_secs(self.stats_purge_frequency_hours as u64 * 3600)
     }
@@ -661,9 +653,6 @@ impl Settings {
         let hour = minute * 60;
         let day = hour * 24;
 
-        if let Some(auth_cookie_timeout) = config.auth_cookie_timeout {
-            self.auth_cookie_timeout_days = (auth_cookie_timeout.as_secs() / day) as i32;
-        }
         if let Some(secret_key) = &config.secret_key {
             let secret_key = secret_key.expose_secret();
             if let Err(err) = Settings::validate_secret_key(secret_key) {
@@ -890,9 +879,6 @@ mod test {
         };
         let mut config = DefGuardConfig::new_test_config();
 
-        config.auth_cookie_timeout = Some(Duration::from(std::time::Duration::from_secs(
-            3 * 24 * 3600,
-        )));
         config.secret_key = Some(SecretString::from("a".repeat(64)));
         config.webauthn_rp_id = Some("rp-from-config".into());
         config.enrollment_url = Some(Url::parse("https://proxy.example.com").unwrap());
@@ -917,7 +903,6 @@ mod test {
 
         settings.apply_from_config(&config);
 
-        assert_eq!(settings.auth_cookie_timeout_days, 3);
         assert_eq!(
             settings.secret_key.as_deref(),
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
