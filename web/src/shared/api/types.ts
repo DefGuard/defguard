@@ -318,6 +318,28 @@ export interface LimitInfo {
 export interface LicenseLimitsInfo {
   locations: LimitInfo;
   users: LimitInfo;
+  devices?: LimitInfo | null;
+  user_devices?: LimitInfo | null;
+  network_devices?: LimitInfo | null;
+}
+
+export interface LicenseCheckCounts {
+  user: number;
+  user_device: number;
+  network_device: number;
+  location: number;
+}
+
+export interface LicenseCheckLimits {
+  users: number;
+  devices: number;
+  locations: number;
+  network_devices?: number | null;
+}
+
+export interface LicenseCheckResponse {
+  limits: LicenseCheckLimits | null;
+  counts: LicenseCheckCounts;
 }
 
 export const LicenseTier = {
