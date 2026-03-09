@@ -57,7 +57,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
     meta: {
-      invalidate: ['acl', 'alias'],
+      invalidate: ['acl'],
     },
   });
 
