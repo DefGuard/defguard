@@ -227,14 +227,25 @@ export const DestinationsTable = ({
   );
 
   const transformedData = useMemo(() => {
-    let res = destinations;
-    if (searchValue && searchValue.length > 0) {
-      res = res.filter((item) =>
-        item.name.toLowerCase().includes(searchValue.toLowerCase()),
-      );
+    if (!searchValue.length) {
+      return destinations;
     }
-    return res;
-  }, [searchValue, destinations]);
+
+    const normalizedSearchValue = searchValue.toLowerCase();
+
+    return destinations.filter((destination) => {
+      if (destination.name.toLowerCase().includes(normalizedSearchValue)) {
+        return true;
+      }
+
+      const destinationId = destination.parent_id ?? destination.id;
+      const ruleNames = rulesByDestinationId[destinationId] ?? [];
+
+      return ruleNames.some((ruleName) =>
+        ruleName.toLowerCase().includes(normalizedSearchValue),
+      );
+    });
+  }, [searchValue, destinations, rulesByDestinationId]);
 
   const table = useReactTable({
     columns,

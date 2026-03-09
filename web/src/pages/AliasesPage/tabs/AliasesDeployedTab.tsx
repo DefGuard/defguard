@@ -29,6 +29,21 @@ export const AliasesDeployedTab = () => {
     getLicenseInfoQueryOptions,
   );
   const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
+  const rulesByAliasId = useMemo(() => {
+    const map: Record<number, string[]> = {};
+
+    rules.forEach((rule) => {
+      rule.aliases.forEach((aliasId) => {
+        if (!map[aliasId]) {
+          map[aliasId] = [];
+        }
+
+        map[aliasId].push(rule.name);
+      });
+    });
+
+    return map;
+  }, [rules]);
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
@@ -48,14 +63,25 @@ export const AliasesDeployedTab = () => {
   );
 
   const filteredAliases = useMemo(() => {
-    let res = aliases;
-    if (search?.length) {
-      res = res.filter((alias) =>
-        alias.name.toLowerCase().includes(search.toLowerCase()),
-      );
+    if (!search.length) {
+      return aliases;
     }
-    return res;
-  }, [aliases, search]);
+
+    const normalizedSearch = search.toLowerCase();
+
+    return aliases.filter((alias) => {
+      if (alias.name.toLowerCase().includes(normalizedSearch)) {
+        return true;
+      }
+
+      const aliasId = alias.parent_id ?? alias.id;
+      const ruleNames = rulesByAliasId[aliasId] ?? [];
+
+      return ruleNames.some((ruleName) =>
+        ruleName.toLowerCase().includes(normalizedSearch),
+      );
+    });
+  }, [aliases, rulesByAliasId, search]);
 
   const visibleEmpty = filteredAliases.length === 0;
 
