@@ -183,10 +183,7 @@ impl SetupFlow {
         error!("{message}");
 
         let mut collected_logs = {
-            let mut guard = self
-                .log_buffer
-                .lock()
-                .expect("log buffer mutex poisoned");
+            let mut guard = self.log_buffer.lock().expect("log buffer mutex poisoned");
             std::mem::take(&mut *guard)
         };
         while let Ok(log) = self.log_rx.try_recv() {

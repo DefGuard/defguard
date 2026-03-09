@@ -55,11 +55,15 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let mut config = DefGuardConfig::new();
+    let log_filter = format!(
+        "{},defguard_core::handlers::component_setup=debug",
+        config.log_level
+    );
 
     let subscriber = tracing_subscriber::registry().with(core_setup_log_layer());
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
-        &config.log_level,
+        &log_filter,
         subscriber,
     )
     .init();
