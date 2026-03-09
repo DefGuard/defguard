@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use tracing::{Event as TracingEvent, Subscriber};
 use tracing_subscriber::{Layer, layer::Context};
 
-const MAX_CORE_LOG_LINES: usize = 200;
+pub const MAX_CORE_LOG_LINES: usize = 200;
 
 #[derive(Clone)]
 pub struct CoreSetupLogLayer;
