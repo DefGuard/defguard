@@ -95,12 +95,12 @@ export const UserProfilePage = () => {
       {
         title: m.profile_tabs_api(),
         active: activeTab === UserProfileTab.ApiTokens,
-        hidden: !isAdmin,
+        hidden: !isAdmin || !isSelf,
         onClick: () => setActiveTab(UserProfileTab.ApiTokens),
       },
     ];
     return res;
-  }, [activeTab, setActiveTab, isAdmin]);
+  }, [activeTab, setActiveTab, isAdmin, isSelf]);
 
   const RenderActiveTab = useMemo(() => {
     switch (activeTab) {
@@ -116,7 +116,7 @@ export const UserProfilePage = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'api-tokens' && !isAdmin) {
+    if (activeTab === 'api-tokens' && (!isAdmin || !isSelf)) {
       navigate({
         from: '/user/$username',
         search: {
