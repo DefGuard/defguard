@@ -12,7 +12,12 @@ use axum::{
 use axum_extra::extract::cookie::Key;
 use defguard_common::{VERSION, db::models::Settings, types::proxy::ProxyControlMessage};
 use defguard_core::{
+    appstate::AppState,
     auth::failed_login::FailedLoginMap,
+    db::AppEvent,
+    enterprise::handlers::openid_login::{auth_callback, get_auth_info},
+    events::ApiEvent,
+    grpc::GatewayEvent,
     handle_404,
     handlers::{
         auth::{
@@ -37,18 +42,9 @@ use tokio::{
 };
 use tracing::{info, instrument};
 
-use defguard_core::{
-    appstate::AppState,
-    db::AppEvent,
-    enterprise::handlers::openid_login::{auth_callback, get_auth_info},
-    events::ApiEvent,
-    grpc::GatewayEvent,
-};
-
-use crate::handlers::migration::{get_migration_state, set_general_config, update_migration_state};
 use crate::handlers::{
     initial_wizard::{create_ca, get_ca, upload_ca},
-    migration::finish_setup,
+    migration::{finish_setup, get_migration_state, set_general_config, update_migration_state},
 };
 
 /// FIXME: This is a workaround which enables us to reuse the same API handlers
