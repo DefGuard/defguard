@@ -3,13 +3,13 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
+use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
 use reqwest::Url;
 use rsa::{
+    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
-    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
