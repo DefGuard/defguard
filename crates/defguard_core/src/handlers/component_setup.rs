@@ -256,7 +256,7 @@ pub async fn setup_proxy_tls_stream(
             }
         }
 
-        debug!("License check passed");
+        debug!("Configuration check passed");
 
         let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
         let url = match Url::parse(&url_str) {
