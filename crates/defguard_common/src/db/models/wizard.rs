@@ -4,11 +4,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgExecutor, Type};
 use tracing::info;
 
+use super::setup_auto_adoption::AutoAdoptionWizardStep;
 use crate::db::models::{
     InitialSetupState, InitialSetupStep, setup_auto_adoption::AutoAdoptionWizardState,
 };
-
-use super::setup_auto_adoption::AutoAdoptionWizardStep;
 
 /// Which wizard is currently active. Stored as a PostgreSQL enum column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
