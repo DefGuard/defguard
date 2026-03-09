@@ -40,7 +40,7 @@ pub async fn get_settings(_admin: AdminRole, State(appstate): State<AppState>) -
     Ok(ApiResponse::default())
 }
 
-pub async fn update_settings(
+pub(crate) async fn update_settings(
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -84,7 +84,7 @@ pub async fn get_settings_essentials(Extension(pool): Extension<PgPool>) -> ApiR
     Ok(ApiResponse::json(settings, StatusCode::OK))
 }
 
-pub async fn set_default_branding(
+pub(crate) async fn set_default_branding(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(_id): Path<Id>, // TODO: check with front-end and remove.
@@ -123,7 +123,7 @@ pub async fn patch_settings(
     context: ApiRequestContext,
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
-    debug!("Admin {} patching settings", session.user.username);
+    debug!("Admin {} is patching settings", session.user.username);
     let mut settings = Settings::get_current_settings();
     // prepare clone for emitting an event
     let before = settings.clone();
@@ -158,7 +158,7 @@ pub async fn patch_settings(
     let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;
 
-    info!("Admin {} patched settings.", session.user.username);
+    info!("Admin {} patched settings", session.user.username);
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::SettingsUpdatedPartial { before, after }),
@@ -166,7 +166,7 @@ pub async fn patch_settings(
     Ok(ApiResponse::default())
 }
 
-pub async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
+pub(crate) async fn test_ldap_settings(_admin: AdminRole, _license: LicenseInfo) -> ApiResult {
     debug!("Testing LDAP connection");
     match LDAPConnection::create().await {
         Ok(_) => {

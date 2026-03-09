@@ -35,6 +35,7 @@ pub mod component_setup;
 pub(crate) mod forward_auth;
 pub mod gateway;
 pub(crate) mod group;
+pub mod license;
 pub(crate) mod location_stats;
 pub mod mail;
 pub mod network_devices;
@@ -230,7 +231,7 @@ impl From<WebError> for ApiResponse {
                 )
             }
             WebError::LicenseError(err) => match err {
-                LicenseError::DecodeError(msg) | LicenseError::InvalidLicense(msg) => {
+                LicenseError::DecodeError(msg) => {
                     warn!(msg);
                     ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }

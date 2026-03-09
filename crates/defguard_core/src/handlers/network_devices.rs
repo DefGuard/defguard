@@ -216,6 +216,7 @@ pub struct AddNetworkDeviceResult {
 #[derive(Deserialize)]
 pub struct IpAvailabilityCheck {
     ips: Vec<String>,
+    device_id: Option<Id>,
 }
 
 #[derive(Serialize)]
@@ -258,7 +259,10 @@ pub(crate) async fn check_ip_availability(
                 debug!(
                     "Checking if IP address {ip} can be assigned to a device in location {location}",
                 );
-                let result = match location.can_assign_ips(&mut transaction, &[ip], None).await {
+                let result = match location
+                    .can_assign_ips(&mut transaction, &[ip], check.device_id)
+                    .await
+                {
                     Ok(()) => IpAvailabilityCheckResult::new(true, true),
                     Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
                         warn!(

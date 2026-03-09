@@ -127,6 +127,7 @@ use crate::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
         },
+        license::license_check,
         location_stats::{
             location_connected_network_devices, location_connected_user_devices,
             location_connected_users, location_stats, locations_overview_stats,
@@ -575,7 +576,8 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),
             )
-            .route("/outdated", get(outdated_components)),
+            .route("/outdated", get(outdated_components))
+            .route("/license/check", post(license_check)),
     );
 
     let webapp = webapp.nest(

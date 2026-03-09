@@ -72,6 +72,23 @@ impl Gateway {
 }
 
 impl Gateway<Id> {
+    /// Mark all gateways currently considered connected as disconnected.
+    pub async fn mark_all_disconnected<'e, E>(executor: E) -> sqlx::Result<()>
+    where
+        E: PgExecutor<'e>,
+    {
+        query(
+            "UPDATE gateway \
+			 SET disconnected_at = NOW() \
+			 WHERE connected_at IS NOT NULL \
+			 AND (disconnected_at IS NULL OR disconnected_at <= connected_at)",
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn find_by_location_id<'e, E>(
         executor: E,
         location_id: Id,

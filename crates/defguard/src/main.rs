@@ -9,7 +9,10 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{ActiveWizard, Settings, Wizard, settings::initialize_current_settings},
+        models::{
+            ActiveWizard, Settings, Wizard, gateway::Gateway, proxy::Proxy,
+            settings::initialize_current_settings,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
@@ -227,6 +230,14 @@ async fn main() -> Result<(), anyhow::Error> {
         pool.clone(),
         GatewayTxSet::new(gateway_tx.clone(), peer_stats_tx),
     );
+
+    debug!("Resetting proxy connection state on startup");
+    Proxy::mark_all_disconnected(&pool).await?;
+    debug!("Proxy connection states reset");
+
+    debug!("Resetting gateway connection state on startup");
+    Gateway::mark_all_disconnected(&pool).await?;
+    debug!("Gateway connection states reset");
 
     // run services
     tokio::select! {

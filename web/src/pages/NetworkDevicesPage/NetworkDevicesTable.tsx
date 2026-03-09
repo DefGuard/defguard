@@ -53,8 +53,12 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
   const { mutate: openAdd, isPending: addPending } = useMutation({
     mutationFn: async () => {
       const { data: locations } = await api.location.getLocations();
-      const availableLocations = locations.filter(
-        (location) => location.location_mfa_mode === LocationMfaMode.Disabled,
+      const availableLocations = orderBy(
+        locations.filter(
+          (location) => location.location_mfa_mode === LocationMfaMode.Disabled,
+        ),
+        ['name'],
+        ['asc'],
       );
       if (!availableLocations.length) return;
       const { data: availableIps } = await api.network_device.getAvailableIp(
@@ -62,7 +66,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       );
       openModal(ModalName.AddNetworkDevice, {
         availableIps,
-        locations: orderBy(availableLocations, ['name'], ['asc']),
+        locations: availableLocations,
         reservedNames,
       });
     },

@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayListModal';
 import { LicenseExpiredModal } from '../shared/components/modals/license/LicenseExpiredModal/LicenseExpiredModal';
+import { LicenseLimitConflictModal } from '../shared/components/modals/license/LicenseLimitConflictModal/LicenseLimitConflictModal';
 import { LimitReachedModal } from '../shared/components/modals/license/LimitReachedModal/LimitReachedModal';
 import { UpgradeBusinessModal } from '../shared/components/modals/license/UpgradeBusinessModal/UpgradeBusinessModal';
 import { UpgradeEnterpriseModal } from '../shared/components/modals/license/UpgradeEnterpriseModal/UpgradeEnterpriseModal';
@@ -35,6 +36,7 @@ function RouteComponent() {
       <AppInfoProvider>
         <Outlet />
         <LimitReachedModal />
+        <LicenseLimitConflictModal />
         <UpgradeBusinessModal />
         <UpgradeEnterpriseModal />
         <LicenseExpiredModal />
