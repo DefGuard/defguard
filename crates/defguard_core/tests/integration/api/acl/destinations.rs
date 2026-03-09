@@ -197,6 +197,113 @@ async fn test_destination_create_modify_state(_: PgPoolOptions, options: PgConne
 }
 
 #[sqlx::test]
+async fn test_destination_modify_pending_child_updates_in_place(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    let applied_parent_before_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+
+    let mut first_update = applied_parent_before_update.clone();
+    first_update.name = "destination pending child".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&first_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 2);
+
+    let pending_child_before_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_child_before_update.state, AliasState::Modified);
+    assert_eq!(pending_child_before_update.parent_id, Some(1));
+
+    let mut pending_child_update = pending_child_before_update.clone();
+    pending_child_update.name = "destination pending child updated".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/2")
+        .json(&pending_child_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated_pending_child: ApiAclDestination = response.json().await;
+
+    let destinations = AclAlias::all_of_kind(&pool, AliasKind::Destination)
+        .await
+        .unwrap();
+    assert_eq!(destinations.len(), 2);
+    assert_eq!(
+        destinations
+            .iter()
+            .filter(|destination| destination.state == AliasState::Applied)
+            .count(),
+        1
+    );
+    assert_eq!(
+        destinations
+            .iter()
+            .filter(|destination| destination.state == AliasState::Modified)
+            .count(),
+        1
+    );
+
+    let response = client.get("/api/v1/acl/destination/3").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    let applied_parent_after_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_parent_after_update, applied_parent_before_update);
+    assert_eq!(applied_parent_after_update.state, AliasState::Applied);
+    assert_eq!(applied_parent_after_update.parent_id, None);
+
+    let mut expected_pending_child = pending_child_before_update.clone();
+    expected_pending_child.name = "destination pending child updated".to_string();
+    assert_eq!(updated_pending_child, expected_pending_child);
+
+    let pending_child_after_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_child_after_update, expected_pending_child);
+    assert_eq!(
+        pending_child_after_update.id,
+        pending_child_before_update.id
+    );
+    assert_eq!(pending_child_after_update.state, AliasState::Modified);
+    assert_eq!(pending_child_after_update.parent_id, Some(1));
+}
+
+#[sqlx::test]
 async fn test_destination_delete(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
