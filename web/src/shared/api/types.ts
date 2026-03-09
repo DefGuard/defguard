@@ -911,6 +911,7 @@ export interface SettingsGeneral {
   authentication_period_days: number;
   mfa_code_timeout_seconds: number;
   public_proxy_url: string;
+  webauthn_rp_id: string | null;
 }
 
 export type Settings = SettingsBranding &

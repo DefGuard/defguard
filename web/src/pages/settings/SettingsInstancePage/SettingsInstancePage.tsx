@@ -75,6 +75,10 @@ const formSchema = z.object({
   public_proxy_url: z
     .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
     .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
+  webauthn_rp_id: z
+    .string(m.form_error_required())
+    .trim()
+    .min(1, m.form_error_required()),
   authentication_period_days: z.number().min(1, m.form_error_invalid()),
 });
 
@@ -110,11 +114,13 @@ const Content = ({ settings }: { settings: Settings }) => {
     (): FormFields => ({
       instance_name: settings.instance_name ?? '',
       public_proxy_url: settings.public_proxy_url ?? '',
+      webauthn_rp_id: settings.webauthn_rp_id ?? '',
       authentication_period_days: settings.authentication_period_days ?? 7,
     }),
     [
       settings.instance_name,
       settings.public_proxy_url,
+      settings.webauthn_rp_id,
       settings.authentication_period_days,
     ],
   );
@@ -162,6 +168,15 @@ const Content = ({ settings }: { settings: Settings }) => {
             <field.FormInput
               required
               label={m.settings_instance_label_public_proxy_url()}
+            />
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="webauthn_rp_id">
+          {(field) => (
+            <field.FormInput
+              required
+              label={m.settings_instance_label_webauthn_rp_id()}
             />
           )}
         </form.AppField>
