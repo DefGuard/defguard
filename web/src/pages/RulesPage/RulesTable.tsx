@@ -38,10 +38,10 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
 const displayUser = (user?: User): string => {
-  if (!isPresent(user)) return '~';
+  if (!isPresent(user)) return '';
 
   if (user.first_name || user.last_name) {
-    return `${user.first_name} ${user.last_name}`;
+    return `${user.first_name} ${user.last_name}`.trim();
   }
   return user.username;
 };
@@ -128,7 +128,7 @@ export const RulesTable = ({
           includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
         );
       }
-      const display = flat(displayValues).filter((value) => !value.length);
+      const display = flat(displayValues).filter((value) => value.length > 0);
 
       return <TableValuesListCell values={display} />;
     },
@@ -204,7 +204,7 @@ export const RulesTable = ({
           return renderPermissionCell(
             'allow',
             row.allow_all_users,
-            row.allowed_groups.length === 0,
+            row.allow_all_groups,
             row.allow_all_network_devices,
             row.allowed_users,
             row.allowed_groups,
@@ -221,7 +221,7 @@ export const RulesTable = ({
           return renderPermissionCell(
             'deny',
             row.deny_all_users,
-            row.denied_groups.length === 0,
+            row.deny_all_groups,
             row.deny_all_network_devices,
             row.denied_users,
             row.denied_groups,
