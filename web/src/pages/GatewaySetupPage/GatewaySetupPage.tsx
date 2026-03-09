@@ -86,8 +86,7 @@ export const GatewaySetupPage = () => {
     </>
   );
 
-  return (
-    networkId === null ? null : (
+  return networkId === null ? null : (
     <WizardPage
       activeStep={activeStep}
       onClose={() => {
@@ -120,6 +119,5 @@ export const GatewaySetupPage = () => {
     >
       {stepsComponents[activeStep]}
     </WizardPage>
-    )
   );
 };
