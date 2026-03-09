@@ -3,20 +3,16 @@ import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import {
+  WizardStepSummary,
+  type WizardStepSummaryRecommendation,
+} from '../../../../shared/components/wizard-steps/WizardStepSummary/WizardStepSummary';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
-
 import CommunityIcon from '../../assets/community.png';
 import FileIcon from '../../assets/file-icon.png';
 import ShieldIcon from '../../assets/shield.png';
+import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 
 export const AutoAdoptionSummaryStep = () => {
   const navigate = useNavigate();
@@ -74,108 +70,48 @@ export const AutoAdoptionSummaryStep = () => {
     }
   };
 
+  const recommendations: WizardStepSummaryRecommendation[] = [
+    {
+      iconSrc: FileIcon,
+      iconAlt: m.initial_setup_auto_adoption_summary_docs_icon_alt(),
+      kicker: m.initial_setup_auto_adoption_summary_docs_kicker(),
+      title: m.initial_setup_auto_adoption_summary_docs_title(),
+      buttonText: m.initial_setup_auto_adoption_summary_docs_button(),
+      onButtonClick: () => window.open('https://docs.defguard.net/', '_blank'),
+    },
+    {
+      iconSrc: CommunityIcon,
+      iconAlt: m.initial_setup_auto_adoption_summary_community_icon_alt(),
+      kicker: m.initial_setup_auto_adoption_summary_community_kicker(),
+      title: m.initial_setup_auto_adoption_summary_community_title(),
+      buttonText: m.initial_setup_auto_adoption_summary_community_button(),
+      onButtonClick: () =>
+        window.open('https://github.com/DefGuard/defguard/discussions', '_blank'),
+    },
+    {
+      iconSrc: ShieldIcon,
+      iconAlt: m.initial_setup_auto_adoption_summary_support_icon_alt(),
+      kicker: m.initial_setup_auto_adoption_summary_support_kicker(),
+      title: m.initial_setup_auto_adoption_summary_support_title(),
+      buttonText: m.initial_setup_auto_adoption_summary_support_button(),
+      onButtonClick: () => window.open('https://github.com/DefGuard/defguard', '_blank'),
+    },
+  ];
+
   return (
-    <WizardCard className="auto-adoption-summary-step">
-      <p className="thank-you">{m.initial_setup_auto_adoption_summary_thank_you()}</p>
-      <Divider spacing={ThemeSpacing.Xl} />
-      <p className="note">{m.initial_setup_auto_adoption_summary_note()}</p>
-      <SizedBox height={ThemeSpacing.Lg} />
-      <ul>
-        <li>{m.initial_setup_auto_adoption_summary_ports_http_https()}</li>
-        <li>
-          {m.initial_setup_auto_adoption_summary_ports_wireguard({ port: wireguardPort })}
-        </li>
-      </ul>
-      <Divider spacing={ThemeSpacing.Xl2} />
-      <p className="encourage">{m.initial_setup_auto_adoption_summary_encourage()}</p>
-      <SizedBox height={ThemeSpacing.Md} />
-      <div className="recommendations">
-        <div className="container">
-          <img
-            src={FileIcon}
-            alt={m.initial_setup_auto_adoption_summary_docs_icon_alt()}
-            className="icon"
-          />
-          <div className="recommendation-row">
-            <div className="kicker-title">
-              <p className="kicker">
-                {m.initial_setup_auto_adoption_summary_docs_kicker()}
-              </p>
-              <p className="title">
-                {m.initial_setup_auto_adoption_summary_docs_title()}
-              </p>
-            </div>
-            <Button
-              variant="outlined"
-              text={m.initial_setup_auto_adoption_summary_docs_button()}
-              iconRight="open-in-new-window"
-              onClick={() => window.open('https://docs.defguard.net/', '_blank')}
-            />
-          </div>
-        </div>
-
-        <div className="container">
-          <img
-            src={CommunityIcon}
-            alt={m.initial_setup_auto_adoption_summary_community_icon_alt()}
-            className="icon"
-          />
-          <div className="recommendation-row">
-            <div className="kicker-title">
-              <p className="kicker">
-                {m.initial_setup_auto_adoption_summary_community_kicker()}
-              </p>
-              <p className="title">
-                {m.initial_setup_auto_adoption_summary_community_title()}
-              </p>
-            </div>
-            <Button
-              variant="outlined"
-              text={m.initial_setup_auto_adoption_summary_community_button()}
-              iconRight="open-in-new-window"
-              onClick={() =>
-                window.open('https://github.com/DefGuard/defguard/discussions', '_blank')
-              }
-            />
-          </div>
-        </div>
-
-        <div className="container">
-          <img
-            src={ShieldIcon}
-            alt={m.initial_setup_auto_adoption_summary_support_icon_alt()}
-            className="icon"
-          />
-          <div className="recommendation-row">
-            <div className="kicker-title">
-              <p className="kicker">
-                {m.initial_setup_auto_adoption_summary_support_kicker()}
-              </p>
-              <p className="title">
-                {m.initial_setup_auto_adoption_summary_support_title()}
-              </p>
-            </div>
-            <Button
-              variant="outlined"
-              text={m.initial_setup_auto_adoption_summary_support_button()}
-              iconRight="open-in-new-window"
-              onClick={() =>
-                window.open('https://github.com/DefGuard/defguard', '_blank')
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      <Controls>
-        <div className="right">
-          <Button
-            text={m.initial_setup_auto_adoption_summary_submit()}
-            onClick={handleGoToDefguard}
-            loading={isSubmitting}
-          />
-        </div>
-      </Controls>
-    </WizardCard>
+    <WizardStepSummary
+      thankYouText={m.initial_setup_auto_adoption_summary_thank_you()}
+      noteText={m.initial_setup_auto_adoption_summary_note()}
+      ports={[
+        m.initial_setup_auto_adoption_summary_ports_http_https(),
+        m.initial_setup_auto_adoption_summary_ports_wireguard({ port: wireguardPort }),
+      ]}
+      encourageText={m.initial_setup_auto_adoption_summary_encourage()}
+      recommendations={recommendations}
+      submitButtonText={m.initial_setup_auto_adoption_summary_submit()}
+      onSubmit={handleGoToDefguard}
+      submitLoading={isSubmitting}
+      className="auto-adoption-summary-step"
+    />
   );
 };
