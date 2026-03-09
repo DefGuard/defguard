@@ -158,18 +158,18 @@ fn set_step_message(next_step: SetupStep) -> Event {
 
 struct SetupFlow {
     last_step: SetupStep,
-    core_log_buffer: Option<Arc<Mutex<Vec<String>>>>,
+    log_buffer: Arc<Mutex<Vec<String>>>,
     log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl SetupFlow {
     fn new(
         log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
-        core_log_buffer: Option<Arc<Mutex<Vec<String>>>>,
+        log_buffer: Arc<Mutex<Vec<String>>>,
     ) -> Self {
         Self {
             last_step: SetupStep::CheckingConfiguration,
-            core_log_buffer,
+            log_buffer,
             log_rx,
         }
     }
@@ -182,14 +182,13 @@ impl SetupFlow {
     fn error(&mut self, message: &str) -> Event {
         error!(step = ?self.last_step, "{message}");
 
-        let mut collected_logs = self
-            .core_log_buffer
-            .as_ref()
-            .map(|buffer| {
-                let mut guard = buffer.lock().expect("core log buffer mutex poisoned");
-                std::mem::take(&mut *guard)
-            })
-            .unwrap_or_default();
+        let mut collected_logs = {
+            let mut guard = self
+                .log_buffer
+                .lock()
+                .expect("core log buffer mutex poisoned");
+            std::mem::take(&mut *guard)
+        };
         while let Ok(log) = self.log_rx.try_recv() {
             collected_logs.push(log);
         }
@@ -214,10 +213,10 @@ pub async fn setup_proxy_tls_stream(
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-    let core_log_buffer = Arc::new(Mutex::new(Vec::new()));
-    let inner_core_log_buffer = Arc::clone(&core_log_buffer);
+    let log_buffer = Arc::new(Mutex::new(Vec::new()));
+    let inner_log_buffer = Arc::clone(&log_buffer);
     let inner_stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, Some(inner_core_log_buffer.clone()));
+        let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
         if !is_enterprise_license_active() {
             match Proxy::list(&pool).await {
@@ -436,7 +435,7 @@ pub async fn setup_proxy_tls_stream(
         }
 
         let mut response = response_with_metadata.into_inner();
-        let spawn_log_buffer = inner_core_log_buffer.clone();
+        let spawn_log_buffer = inner_log_buffer.clone();
         let log_reader_task = tokio::spawn(
             scope_setup_logs(spawn_log_buffer, async move {
                     while let Some(log_entry) = response.next().await {
@@ -606,7 +605,7 @@ pub async fn setup_proxy_tls_stream(
 
     let stream = async_stream::stream! {
         tokio::pin!(inner_stream);
-        while let Some(item) = scope_setup_logs(core_log_buffer.clone(), inner_stream.next())
+        while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
             .instrument(tracing::info_span!("proxy_adoption"))
             .await
         {
@@ -628,8 +627,9 @@ pub async fn setup_gateway_tls_stream(
     Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let log_buffer = Arc::new(Mutex::new(Vec::new()));
     let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, None);
+        let mut flow = SetupFlow::new(log_rx, log_buffer);
 
         // check if tries to add more then 1 gateway to network without enterprise license
         if !is_enterprise_license_active() {
