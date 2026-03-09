@@ -40,8 +40,6 @@ pub(crate) const PUBLIC_KEY: &[u8] = include_bytes!("public_key.asc");
 
 #[derive(Debug, Error)]
 pub enum LicenseError {
-    #[error("Provided license is invalid: {0}")]
-    InvalidLicense(String),
     #[error("Provided signature does not match the license")]
     SignatureMismatch,
     #[error("Provided signature is invalid")]
@@ -49,7 +47,7 @@ pub enum LicenseError {
     #[error("Database error")]
     DbError(#[from] SqlxError),
     #[error("License decoding error: {0}")]
-    DecodeError(String),
+    DecodeError(&'static str),
     #[error(
         "License is expired and has reached its maximum overdue time, please contact sales<at>defguard.net"
     )]
@@ -123,8 +121,7 @@ impl License {
     fn decode(bytes: &[u8]) -> Result<Vec<u8>, LicenseError> {
         let bytes = BASE64_STANDARD.decode(bytes).map_err(|_| {
             LicenseError::DecodeError(
-                "Failed to decode the license key, check if the provided key is correct."
-                    .to_string(),
+                "Failed to decode the license key, check if the provided key is correct.",
             )
         })?;
         Ok(bytes)
@@ -164,7 +161,7 @@ impl License {
 
     /// Deserialize the license object from a base64 encoded string.
     /// Also verifies the signature of the license
-    pub fn from_base64(key: &str) -> Result<License, LicenseError> {
+    pub(crate) fn from_base64(key: &str) -> Result<License, LicenseError> {
         debug!("Decoding the license key from a provided base64 string...");
         let bytes = key.as_bytes();
         let decoded = Self::decode(bytes)?;
@@ -173,7 +170,7 @@ impl License {
 
         let license_key = LicenseKey::decode(slice).map_err(|_| {
             LicenseError::DecodeError(
-                "The license key is malformed, check if the provided key is correct.".to_string(),
+                "The license key is malformed, check if the provided key is correct.",
             )
         })?;
         let metadata_bytes: &[u8] = &license_key.metadata;
@@ -184,7 +181,7 @@ impl License {
             Ok(()) => {
                 info!("Successfully decoded the license and validated the license signature");
                 let metadata = LicenseMetadata::decode(metadata_bytes).map_err(|_| {
-                    LicenseError::DecodeError("Failed to decode the license metadata".to_string())
+                    LicenseError::DecodeError("Failed to decode the license metadata")
                 })?;
 
                 let valid_until = match metadata.valid_until {
@@ -206,7 +203,7 @@ impl License {
                     Err(err) => {
                         error!("Failed to read license tier from license metadata: {err}");
                         return Err(LicenseError::DecodeError(
-                            "Failed to decode license tier metadata".into(),
+                            "Failed to decode license tier metadata",
                         ));
                     }
                 };
@@ -257,7 +254,7 @@ impl License {
 
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
-    pub fn load() -> Result<Option<License>, LicenseError> {
+    pub(crate) fn load() -> Result<Option<License>, LicenseError> {
         if let Some(key) = Self::get_key() {
             Ok(Some(Self::from_base64(&key)?))
         } else {
@@ -307,7 +304,7 @@ impl License {
     /// NOTE: license should be considered valid for an additional period of `MAX_OVERDUE_TIME`.
     /// If you want to check if the license reached this point, use `is_max_overdue` instead.
     #[must_use]
-    pub fn is_expired(&self) -> bool {
+    pub(crate) fn is_expired(&self) -> bool {
         match self.valid_until {
             Some(time) => time < Utc::now(),
             None => false,
@@ -323,7 +320,7 @@ impl License {
     /// Gets the time the license is past its expiry date.
     /// If the license doesn't have a `valid_until` field, it will return 0.
     #[must_use]
-    pub fn time_overdue(&self) -> TimeDelta {
+    pub(crate) fn time_overdue(&self) -> TimeDelta {
         match self.valid_until {
             Some(time) => {
                 let delta = Utc::now() - time;
@@ -339,7 +336,7 @@ impl License {
 
     /// Checks whether we should try to renew the license.
     #[must_use]
-    pub fn requires_renewal(&self) -> bool {
+    pub(crate) fn requires_renewal(&self) -> bool {
         if self.subscription {
             if let Some(remaining) = self.time_left() {
                 remaining <= RENEWAL_TIME
@@ -353,7 +350,7 @@ impl License {
 
     /// Checks if the license has reached its maximum overdue time.
     #[must_use]
-    pub fn is_max_overdue(&self) -> bool {
+    pub(crate) fn is_max_overdue(&self) -> bool {
         if self.subscription {
             self.time_overdue() > MAX_OVERDUE_TIME
         } else {

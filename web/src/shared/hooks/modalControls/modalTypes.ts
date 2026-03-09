@@ -21,6 +21,7 @@ import type {
   OpenEditUserModal,
   OpenEnrollmentTokenModal,
   OpenLicenseExpiredModal,
+  OpenLicenseLimitConflictModal,
   OpenNetworkDeviceConfigModal,
   OpenNetworkDeviceTokenModal,
   OpenRenameApiTokenModal,
@@ -29,6 +30,7 @@ import type {
 
 export const ModalName = {
   LicenseExpired: 'licenseExpired',
+  LicenseLimitConflict: 'licenseLimitConflict',
   UpgradeBusiness: 'upgradeBusiness',
   UpgradeEnterprise: 'upgradeEnterprise',
   LimitReached: 'limitReached',
@@ -198,6 +200,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.LimitReached),
+  }),
+  z.object({
+    name: z.literal(ModalName.LicenseLimitConflict),
+    data: z.custom<OpenLicenseLimitConflictModal>(),
   }),
   z.object({
     name: z.literal(ModalName.UpgradeBusiness),

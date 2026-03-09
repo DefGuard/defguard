@@ -59,6 +59,7 @@ import type {
   GroupInfo,
   GroupsResponse,
   IpValidation,
+  LicenseCheckResponse,
   LicenseInfoResponse,
   LocationConnectedNetworkDevice,
   LocationConnectedNetworkDevicesRequest,
@@ -532,6 +533,8 @@ const api = {
     setGeneralConfig: (data: MigrationGeneralConfigRequest) =>
       client.post(`/migration/general_config`, data),
   },
+  checkLicense: (data: { license: string }) =>
+    client.post<LicenseCheckResponse>('/license/check', data),
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     client
