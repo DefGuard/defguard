@@ -180,13 +180,13 @@ impl SetupFlow {
     }
 
     fn error(&mut self, message: &str) -> Event {
-        error!(step = ?self.last_step, "{message}");
+        error!("{message}");
 
         let mut collected_logs = {
             let mut guard = self
                 .log_buffer
                 .lock()
-                .expect("core log buffer mutex poisoned");
+                .expect("log buffer mutex poisoned");
             std::mem::take(&mut *guard)
         };
         while let Ok(log) = self.log_rx.try_recv() {
