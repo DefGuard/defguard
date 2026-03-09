@@ -8,13 +8,15 @@ use tracing_subscriber::{Layer, layer::Context};
 
 pub const MAX_CORE_LOG_LINES: usize = 200;
 
-#[derive(Clone)]
-pub struct CoreSetupLogLayer;
-
 tokio::task_local! {
     static CORE_SETUP_LOGS: Arc<Mutex<VecDeque<String>>>;
 }
 
+/// Tracing layer that appends log messages to the active setup log buffer.
+#[derive(Clone)]
+pub struct CoreSetupLogLayer;
+
+/// Runs a future with the provided setup log buffer bound to the current task.
 pub async fn scope_setup_logs<F, T>(buffer: Arc<Mutex<VecDeque<String>>>, future: F) -> T
 where
     F: std::future::Future<Output = T>,
