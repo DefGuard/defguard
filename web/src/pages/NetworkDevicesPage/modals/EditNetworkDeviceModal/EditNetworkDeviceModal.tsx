@@ -140,8 +140,8 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       await editDevice({
         id: device.id,
         assigned_ips: assignedIps,
-        name: device.name,
-        description: device.description,
+        name: value.name,
+        description: value.description ?? undefined,
       });
     },
   });
