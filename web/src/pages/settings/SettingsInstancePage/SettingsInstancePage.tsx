@@ -11,7 +11,6 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
-import { createNumericSelectOptions } from '../../../shared/const/numericSelectOptions';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -20,6 +19,10 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
+import {
+  createNumericSelectOptions,
+  withNumericFallbackOption,
+} from '../../../shared/utils/numericSelectOptions';
 
 const breadcrumbs = [
   <Link
@@ -85,6 +88,9 @@ const sessionDurationOptions = createNumericSelectOptions(
       : m.settings_duration_days({ days: value }),
 );
 
+const formatSessionDurationLabel = (value: number) =>
+  value === 1 ? m.settings_duration_one_day() : m.settings_duration_days({ days: value });
+
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -110,6 +116,16 @@ const Content = ({ settings }: { settings: Settings }) => {
       settings.public_proxy_url,
       settings.authentication_period_days,
     ],
+  );
+
+  const sessionDurationSelectOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        sessionDurationOptions,
+        defaultValues.authentication_period_days,
+        formatSessionDurationLabel,
+      ),
+    [defaultValues.authentication_period_days],
   );
 
   const form = useAppForm({
@@ -154,7 +170,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             <field.FormSelect
               required
               label={m.settings_instance_label_session_duration()}
-              options={sessionDurationOptions}
+              options={sessionDurationSelectOptions}
             />
           )}
         </form.AppField>
