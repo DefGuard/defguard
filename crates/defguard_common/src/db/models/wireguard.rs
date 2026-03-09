@@ -27,7 +27,6 @@ use super::{
     user::User,
 };
 use crate::{
-    auth::claims::{Claims, ClaimsType},
     db::{
         Id, NoId,
         models::{
@@ -191,8 +190,6 @@ pub enum WireguardNetworkError {
     DeviceNotAllowed(String),
     #[error("Device error")]
     DeviceError(#[from] DeviceError),
-    #[error(transparent)]
-    TokenError(#[from] jsonwebtoken::errors::Error),
 }
 
 #[derive(Debug, Error)]
@@ -269,10 +266,7 @@ impl WireguardNetwork {
 }
 
 impl WireguardNetwork<Id> {
-    pub async fn find_by_name<'e, E>(
-        executor: E,
-        name: &str,
-    ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> sqlx::Result<Option<Vec<Self>>>
     where
         E: PgExecutor<'e>,
     {
@@ -295,7 +289,6 @@ impl WireguardNetwork<Id> {
         Ok(Some(networks))
     }
 
-    #[allow(clippy::result_large_err)]
     pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in networks used by location {self}");
         // if given location uses multiple subnets validate devices can fit them all
@@ -305,6 +298,7 @@ impl WireguardNetwork<Id> {
             // include address, network, and broadcast in the calculation
             match network_size {
                 NetworkSize::V4(size) => {
+                    info!("ARSE {size}");
                     if device_count as u32 > size {
                         return Err(WireguardNetworkError::NetworkTooSmall);
                     }
@@ -468,7 +462,7 @@ impl WireguardNetwork<Id> {
             Ok(wireguard_network_device)
         } else {
             info!("Device {device} not allowed in network {self}");
-            Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
+            Err(WireguardNetworkError::DeviceNotAllowed(device.to_string()))
         }
     }
 
@@ -1169,9 +1163,7 @@ impl WireguardNetwork<Id> {
     }
 
     // fetch all locations using external MFA
-    pub async fn all_using_external_mfa<'e, E>(
-        executor: E,
-    ) -> Result<Vec<Self>, WireguardNetworkError>
+    pub async fn all_using_external_mfa<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -1189,24 +1181,8 @@ impl WireguardNetwork<Id> {
         Ok(locations)
     }
 
-    /// Generates auth token for a VPN gateway
-    #[allow(clippy::result_large_err)]
-    pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
-        let location_id = self.id;
-
-        let token = Claims::new(
-            ClaimsType::Gateway,
-            format!("DEFGUARD-NETWORK-{location_id}"),
-            location_id.to_string(),
-            u32::MAX.into(),
-        )
-        .to_jwt()?;
-
-        Ok(token)
-    }
-
     /// Fetch a list of all allowed groups for a given network from DB
-    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
+    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
     where
         E: PgExecutor<'e>,
     {

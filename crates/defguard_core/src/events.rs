@@ -320,13 +320,6 @@ pub struct ApiEvent {
     pub event: Box<ApiEventType>,
 }
 
-/// Events from gRPC server
-#[derive(Debug)]
-pub enum GrpcEvent {
-    GatewayConnected { location: WireguardNetwork<Id> },
-    GatewayDisconnected { location: WireguardNetwork<Id> },
-}
-
 /// Shared context for every event generated from a user request in the bi-directional gRPC stream.
 ///
 /// Similarly to `ApiRequestContexts` at the moment it's mostly meant to populate the activity log.

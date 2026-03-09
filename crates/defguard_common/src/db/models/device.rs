@@ -534,8 +534,8 @@ impl WireguardNetworkDevice {
 
 #[derive(Debug, Error)]
 pub enum DeviceError {
-    #[error("Device {0} pubkey is the same as gateway pubkey for network {1}")]
-    PubkeyConflict(Device<Id>, String),
+    #[error("Device pubkey {0} is the same as gateway pubkey")]
+    PubkeyConflict(String),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error(transparent)]
@@ -770,7 +770,7 @@ impl Device<Id> {
             );
             // check for pubkey conflicts with networks
             if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(self.clone(), network.name));
+                return Err(DeviceError::PubkeyConflict(self.wireguard_pubkey.clone()));
             }
             if WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
                 .await?

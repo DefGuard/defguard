@@ -1,5 +1,3 @@
-// FIXME: actually refactor errors instead
-#![allow(clippy::result_large_err)]
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
