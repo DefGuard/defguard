@@ -34,7 +34,8 @@ services:
       RUST_LOG: debug
     ports:
       # WireGuard endpoint
-      - "50052:50051/udp"
+      - "50051:50051/udp"
+      - "50066:50066"
     depends_on:
       - core
     cap_add:
