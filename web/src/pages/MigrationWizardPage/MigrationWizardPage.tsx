@@ -25,7 +25,7 @@ const welcomePageConfig: WizardWelcomePageConfig = {
   title: 'Welcome to Defguard Migration Wizard.',
   subtitle: `We've detected your previous version 1.X so email.`,
   content: <MigrationWizardStart />,
-  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link bellow.`,
+  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link below.`,
 } as const;
 
 type ConfigurableSteps = Exclude<MigrationWizardStepValue, 'welcome'>;
@@ -34,7 +34,7 @@ export const MigrationWizardPage = () => {
   const { data: wizardState } = useSuspenseQuery(getMigrationStateQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
-  const activeStep = useMigrationWizardStore((s) => s.activeStep);
+  const activeStep = useMigrationWizardStore((s) => s.current_step);
 
   const stepsConfig = useMemo(
     (): Record<ConfigurableSteps, WizardPageStep> => ({
@@ -94,9 +94,7 @@ export const MigrationWizardPage = () => {
   // sync wizard state
   useEffect(() => {
     if (wizardState) {
-      useMigrationWizardStore.setState({
-        activeStep: wizardState.current_step,
-      });
+      useMigrationWizardStore.setState(wizardState);
     }
   }, [wizardState]);
 

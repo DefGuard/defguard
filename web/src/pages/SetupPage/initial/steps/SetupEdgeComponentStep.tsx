@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../paraglide/messages';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -111,13 +112,15 @@ export const SetupEdgeComponentStep = () => {
           </form.AppField>
         </form.AppForm>
       </form>
-      <ModalControls
-        submitProps={{
-          text: m.edge_setup_component_controls_submit(),
-          onClick: handleNext,
-          type: 'submit',
-        }}
-      />
+      <Controls>
+        <div className="right">
+          <Button
+            text={m.edge_setup_component_controls_submit()}
+            onClick={handleNext}
+            type="submit"
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

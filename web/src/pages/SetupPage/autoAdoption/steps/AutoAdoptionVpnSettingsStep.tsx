@@ -3,10 +3,10 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
@@ -139,13 +139,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
               />
             )}
           </form.AppField>
-          <ModalControls
-            submitProps={{
-              text: m.initial_setup_controls_continue(),
-              onClick: form.handleSubmit,
-              loading: isPending,
-            }}
-          >
+          <Controls>
             <Button
               variant="outlined"
               text={m.initial_setup_controls_back()}
@@ -154,7 +148,14 @@ export const AutoAdoptionVpnSettingsStep = () => {
                 setActiveStep(AutoAdoptionSetupStep.UrlSettings);
               }}
             />
-          </ModalControls>
+            <div className="right">
+              <Button
+                text={m.initial_setup_controls_continue()}
+                onClick={form.handleSubmit}
+                loading={isPending}
+              />
+            </div>
+          </Controls>
         </form.AppForm>
       </form>
     </WizardCard>

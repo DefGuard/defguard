@@ -25,7 +25,8 @@ use defguard_core::{
             mfa_enable, recovery_code, request_email_mfa_code, totp_code, totp_enable, totp_secret,
             webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
         },
-        component_setup::setup_proxy_tls_stream,
+        component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream},
+        resource_display::get_locations_display,
         session_info::get_session_info,
         settings::{get_settings, get_settings_essentials, patch_settings},
         wireguard::list_networks,
@@ -117,6 +118,11 @@ pub fn build_migration_webapp(
                 .route("/auth/email/verify", post(email_mfa_code))
                 .route("/auth/recovery", post(recovery_code))
                 .route("/network", get(list_networks))
+                .route("/network/display", get(get_locations_display))
+                .route(
+                    "/network/{network_id}/gateways/setup",
+                    get(setup_gateway_tls_stream),
+                )
                 .nest(
                     "/migration",
                     Router::new()

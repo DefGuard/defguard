@@ -4,9 +4,10 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import type { SelectOption } from '../../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
@@ -276,20 +277,22 @@ export const SetupCertificateAuthorityStep = () => {
           {caOption === CAOption.UseOwn && <UploadCAForm />}
         </InteractiveBlock> */}
 
-      <ModalControls
-        cancelProps={{
-          text: m.controls_back(),
-          onClick: handleBack,
-          disabled: isPending,
-          variant: 'outlined',
-        }}
-        submitProps={{
-          text: m.controls_continue(),
-          onClick: handleNext,
-          loading: isPending,
-          disabled: isPending || !isPresent(caOption),
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.controls_back()}
+          onClick={handleBack}
+          disabled={isPending}
+          variant="outlined"
+        />
+        <div className="right">
+          <Button
+            text={m.controls_continue()}
+            onClick={handleNext}
+            loading={isPending}
+            disabled={isPending || !isPresent(caOption)}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

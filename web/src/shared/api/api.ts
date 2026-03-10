@@ -84,6 +84,7 @@ import type {
   PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  ResourceDisplay,
   SessionInfo,
   SetAutoAdoptionMfaSettingsRequest,
   SetAutoAdoptionUrlSettingsRequest,
@@ -325,6 +326,7 @@ const api = {
       }),
   },
   location: {
+    getLocationsDisplay: () => client.get<ResourceDisplay[]>(`/network/display`),
     deleteLocation: (locationId: number) => client.delete(`/network/${locationId}`),
     getLocationsSummary: (from?: number) =>
       client.get<LocationStats>(`/network/stats`, {

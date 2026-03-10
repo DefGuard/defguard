@@ -3,10 +3,11 @@ import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { LocationMfaMode } from '../../../../shared/api/types';
 import { businessBadgeProps } from '../../../../shared/components/badges/BusinessBadge';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { InfoBanner } from '../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { InteractiveBlock } from '../../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { AutoAdoptionSetupStep } from '../types';
@@ -62,20 +63,22 @@ export const AutoAdoptionMfaSetupStep = () => {
           badge={businessBadgeProps}
         ></InteractiveBlock>
       </div>
-      <ModalControls
-        cancelProps={{
-          text: m.initial_setup_controls_back(),
-          variant: 'outlined',
-          onClick: () => setActiveStep(AutoAdoptionSetupStep.VpnSettings),
-        }}
-        submitProps={{
-          text: m.initial_setup_controls_continue(),
-          onClick: () => {
-            setMfaSettings({ vpn_mfa_mode: mfaMode });
-          },
-          loading: isPending,
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.initial_setup_controls_back()}
+          variant="outlined"
+          onClick={() => setActiveStep(AutoAdoptionSetupStep.VpnSettings)}
+        />
+        <div className="right">
+          <Button
+            text={m.initial_setup_controls_continue()}
+            onClick={() => {
+              setMfaSettings({ vpn_mfa_mode: mfaMode });
+            }}
+            loading={isPending}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

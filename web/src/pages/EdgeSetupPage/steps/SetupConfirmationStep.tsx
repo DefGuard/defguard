@@ -1,9 +1,10 @@
 import { useNavigate } from '@tanstack/react-router';
 import { m } from '../../../paraglide/messages';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import addMoreImage from '../assets/add_more.svg';
@@ -35,17 +36,19 @@ export const SetupConfirmationStep = () => {
         subtitle={m.edge_setup_add_multiple_edge_components_subtitle()}
         imageSrc={addMoreImage}
       />
-      <ModalControls
-        cancelProps={{
-          text: m.edge_setup_controls_add_another_edge_component(),
-          onClick: handleBack,
-          variant: 'outlined',
-        }}
-        submitProps={{
-          text: m.edge_setup_controls_go_to_edge_components(),
-          onClick: handleFinish,
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.edge_setup_controls_add_another_edge_component()}
+          onClick={handleBack}
+          variant="outlined"
+        />
+        <div className="right">
+          <Button
+            text={m.edge_setup_controls_go_to_edge_components()}
+            onClick={handleFinish}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

@@ -1,7 +1,13 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { queryClient } from '../../../app/query';
 import api from '../../../shared/api/api';
+import type {
+  MigrationWizardApiState,
+  MigrationWizardLocationState,
+} from '../../../shared/api/types';
+import { getMigrationStateQueryOptions } from '../../../shared/query';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import {
   type CAOptionType,
@@ -9,8 +15,7 @@ import {
   type MigrationWizardStepValue,
 } from '../types';
 
-interface StoreValues {
-  activeStep: MigrationWizardStepValue;
+interface StoreValues extends MigrationWizardApiState {
   // general config
   defguard_url: string;
   default_admin_group_name: string;
@@ -40,7 +45,8 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 };
 
 const defaults: StoreValues = {
-  activeStep: MigrationWizardStep.General,
+  current_step: MigrationWizardStep.General,
+  location_state: null,
   defguard_url: '',
   default_admin_group_name: '',
   default_authentication_period_days: 7,
@@ -66,13 +72,26 @@ interface Store extends StoreValues {
   back: () => void;
 }
 
-const saveStep = (step: MigrationWizardStepValue) => {
+const saveStep = (
+  step: MigrationWizardStepValue,
+  locationState: MigrationWizardLocationState | null,
+) => {
   void api.migration.state
     .updateMigrationState({
       current_step: step,
+      location_state: locationState,
     })
-    .catch((e) => {
-      console.error(e);
+    .then(() => {
+      void queryClient
+        .invalidateQueries({
+          queryKey: getMigrationStateQueryOptions.queryKey,
+        })
+        .catch(() => {
+          console.error(`Failed to invalidate migration wizard state query key.`);
+        });
+    })
+    .catch(() => {
+      console.error(`Failed to save migration state`);
     });
 };
 
@@ -95,7 +114,8 @@ export const useMigrationWizardStore = create<Store>()(
         set(defaults);
       },
       back: () => {
-        const current = get().activeStep;
+        const current = get().current_step;
+        const locationState = get().location_state;
         let stepToSet: MigrationWizardStepValue | null;
         switch (current) {
           case 'welcome':
@@ -122,13 +142,13 @@ export const useMigrationWizardStore = create<Store>()(
         }
         if (stepToSet) {
           set({
-            activeStep: stepToSet,
+            current_step: stepToSet,
           });
-          saveStep(stepToSet);
+          saveStep(stepToSet, locationState);
         }
       },
       next: () => {
-        const current = get().activeStep;
+        const current = get().current_step;
         let stepToSet: MigrationWizardStepValue | null;
         switch (current) {
           case 'welcome':
@@ -155,9 +175,9 @@ export const useMigrationWizardStore = create<Store>()(
         }
         if (stepToSet) {
           set({
-            activeStep: stepToSet,
+            current_step: stepToSet,
           });
-          saveStep(stepToSet);
+          saveStep(stepToSet, get().location_state);
         }
       },
     }),

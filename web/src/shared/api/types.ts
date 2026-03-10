@@ -9,13 +9,24 @@ export type Resource = object & { id: number };
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
+
+export interface ResourceDisplay {
+  id: number;
+  display: string;
+}
+
+export interface MigrationWizardLocationState {
+  locations: number[];
+  current_location: number;
+}
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
+  location_state: MigrationWizardLocationState | null;
 }
 
 export interface SessionInfo {
   authorized: boolean;
-  isAdmin: boolean;
+  is_admin: boolean;
   // if it's not null then wizard is in progress / complete = false
   active_wizard: ActiveWizardValue | null;
 }

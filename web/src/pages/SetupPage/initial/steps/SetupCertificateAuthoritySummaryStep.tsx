@@ -3,9 +3,9 @@ import { useCallback } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { downloadFile } from '../../../../shared/utils/download';
 import caIcon from '../../assets/ca.png';
@@ -97,17 +97,16 @@ export const SetupCertificateAuthoritySummaryStep = () => {
     <WizardCard>
       {caOption === CAOption.Create && downloadCA()}
       {caOption === CAOption.UseOwn && displayCAInfo()}
-      <ModalControls
-        cancelProps={{
-          text: m.initial_setup_controls_back(),
-          onClick: handleBack,
-          variant: 'outlined',
-        }}
-        submitProps={{
-          text: m.initial_setup_controls_continue(),
-          onClick: handleNext,
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.initial_setup_controls_back()}
+          onClick={handleBack}
+          variant="outlined"
+        />
+        <div className="right">
+          <Button text={m.initial_setup_controls_continue()} onClick={handleNext} />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

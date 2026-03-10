@@ -20,15 +20,16 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthLoadingRouteImport } from './routes/auth/loading'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as WizardSetupLoginRouteImport } from './routes/_wizard/setup-login'
+import { Route as WizardSetupGatewayRouteImport } from './routes/_wizard/setup-gateway'
 import { Route as WizardSetupRouteImport } from './routes/_wizard/setup'
-import { Route as WizardMigrationRouteImport } from './routes/_wizard/migration'
 import { Route as AuthorizedPlaygroundRouteImport } from './routes/_authorized/playground'
 import { Route as AuthorizedDefaultRouteImport } from './routes/_authorized/_default'
+import { Route as WizardMigrationIndexRouteImport } from './routes/_wizard/migration/index'
 import { Route as AuthMfaWebauthnRouteImport } from './routes/auth/mfa/webauthn'
 import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
-import { Route as AuthorizedWizardSetupGatewayRouteImport } from './routes/_authorized/_wizard/setup-gateway'
+import { Route as WizardMigrationLocationsRouteImport } from './routes/_wizard/migration/locations'
 import { Route as AuthorizedWizardSetupEdgeRouteImport } from './routes/_authorized/_wizard/setup-edge'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
@@ -120,14 +121,14 @@ const WizardSetupLoginRoute = WizardSetupLoginRouteImport.update({
   path: '/setup-login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WizardSetupGatewayRoute = WizardSetupGatewayRouteImport.update({
+  id: '/_wizard/setup-gateway',
+  path: '/setup-gateway',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WizardSetupRoute = WizardSetupRouteImport.update({
   id: '/_wizard/setup',
   path: '/setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WizardMigrationRoute = WizardMigrationRouteImport.update({
-  id: '/_wizard/migration',
-  path: '/migration',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthorizedPlaygroundRoute = AuthorizedPlaygroundRouteImport.update({
@@ -138,6 +139,11 @@ const AuthorizedPlaygroundRoute = AuthorizedPlaygroundRouteImport.update({
 const AuthorizedDefaultRoute = AuthorizedDefaultRouteImport.update({
   id: '/_default',
   getParentRoute: () => AuthorizedRoute,
+} as any)
+const WizardMigrationIndexRoute = WizardMigrationIndexRouteImport.update({
+  id: '/_wizard/migration/',
+  path: '/migration/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthMfaWebauthnRoute = AuthMfaWebauthnRouteImport.update({
   id: '/webauthn',
@@ -159,11 +165,11 @@ const AuthMfaEmailRoute = AuthMfaEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => AuthMfaRoute,
 } as any)
-const AuthorizedWizardSetupGatewayRoute =
-  AuthorizedWizardSetupGatewayRouteImport.update({
-    id: '/_wizard/setup-gateway',
-    path: '/setup-gateway',
-    getParentRoute: () => AuthorizedRoute,
+const WizardMigrationLocationsRoute =
+  WizardMigrationLocationsRouteImport.update({
+    id: '/_wizard/migration/locations',
+    path: '/migration/locations',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthorizedWizardSetupEdgeRoute =
   AuthorizedWizardSetupEdgeRouteImport.update({
@@ -385,8 +391,8 @@ export interface FileRoutesByFullPath {
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
   '/playground': typeof AuthorizedPlaygroundRoute
-  '/migration': typeof WizardMigrationRoute
   '/setup': typeof WizardSetupRoute
+  '/setup-gateway': typeof WizardSetupGatewayRoute
   '/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -403,11 +409,12 @@ export interface FileRoutesByFullPath {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
-  '/setup-gateway': typeof AuthorizedWizardSetupGatewayRoute
+  '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/migration/': typeof WizardMigrationIndexRoute
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/add-destination': typeof AuthorizedDefaultAclAddDestinationRoute
   '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
@@ -441,8 +448,8 @@ export interface FileRoutesByTo {
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
   '/playground': typeof AuthorizedPlaygroundRoute
-  '/migration': typeof WizardMigrationRoute
   '/setup': typeof WizardSetupRoute
+  '/setup-gateway': typeof WizardSetupGatewayRoute
   '/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -459,11 +466,12 @@ export interface FileRoutesByTo {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
-  '/setup-gateway': typeof AuthorizedWizardSetupGatewayRoute
+  '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/migration': typeof WizardMigrationIndexRoute
   '/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/acl/add-destination': typeof AuthorizedDefaultAclAddDestinationRoute
   '/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
@@ -500,8 +508,8 @@ export interface FileRoutesById {
   '/snackbar': typeof SnackbarRoute
   '/_authorized/_default': typeof AuthorizedDefaultRouteWithChildren
   '/_authorized/playground': typeof AuthorizedPlaygroundRoute
-  '/_wizard/migration': typeof WizardMigrationRoute
   '/_wizard/setup': typeof WizardSetupRoute
+  '/_wizard/setup-gateway': typeof WizardSetupGatewayRoute
   '/_wizard/setup-login': typeof WizardSetupLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/loading': typeof AuthLoadingRoute
@@ -518,11 +526,12 @@ export interface FileRoutesById {
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/_authorized/_wizard/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
-  '/_authorized/_wizard/setup-gateway': typeof AuthorizedWizardSetupGatewayRoute
+  '/_wizard/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
   '/auth/mfa/totp': typeof AuthMfaTotpRoute
   '/auth/mfa/webauthn': typeof AuthMfaWebauthnRoute
+  '/_wizard/migration/': typeof WizardMigrationIndexRoute
   '/_authorized/_default/acl/add-alias': typeof AuthorizedDefaultAclAddAliasRoute
   '/_authorized/_default/acl/add-destination': typeof AuthorizedDefaultAclAddDestinationRoute
   '/_authorized/_default/acl/add-rule': typeof AuthorizedDefaultAclAddRuleRoute
@@ -559,8 +568,8 @@ export interface FileRouteTypes {
     | '/consent'
     | '/snackbar'
     | '/playground'
-    | '/migration'
     | '/setup'
+    | '/setup-gateway'
     | '/setup-login'
     | '/auth/callback'
     | '/auth/loading'
@@ -577,11 +586,12 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/setup-edge'
-    | '/setup-gateway'
+    | '/migration/locations'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/migration/'
     | '/acl/add-alias'
     | '/acl/add-destination'
     | '/acl/add-rule'
@@ -615,8 +625,8 @@ export interface FileRouteTypes {
     | '/consent'
     | '/snackbar'
     | '/playground'
-    | '/migration'
     | '/setup'
+    | '/setup-gateway'
     | '/setup-login'
     | '/auth/callback'
     | '/auth/loading'
@@ -633,11 +643,12 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/setup-edge'
-    | '/setup-gateway'
+    | '/migration/locations'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/migration'
     | '/acl/add-alias'
     | '/acl/add-destination'
     | '/acl/add-rule'
@@ -673,8 +684,8 @@ export interface FileRouteTypes {
     | '/snackbar'
     | '/_authorized/_default'
     | '/_authorized/playground'
-    | '/_wizard/migration'
     | '/_wizard/setup'
+    | '/_wizard/setup-gateway'
     | '/_wizard/setup-login'
     | '/auth/callback'
     | '/auth/loading'
@@ -691,11 +702,12 @@ export interface FileRouteTypes {
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
     | '/_authorized/_wizard/setup-edge'
-    | '/_authorized/_wizard/setup-gateway'
+    | '/_wizard/migration/locations'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
     | '/auth/mfa/totp'
     | '/auth/mfa/webauthn'
+    | '/_wizard/migration/'
     | '/_authorized/_default/acl/add-alias'
     | '/_authorized/_default/acl/add-destination'
     | '/_authorized/_default/acl/add-rule'
@@ -730,9 +742,11 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ConsentRoute: typeof ConsentRoute
   SnackbarRoute: typeof SnackbarRoute
-  WizardMigrationRoute: typeof WizardMigrationRoute
   WizardSetupRoute: typeof WizardSetupRoute
+  WizardSetupGatewayRoute: typeof WizardSetupGatewayRoute
   WizardSetupLoginRoute: typeof WizardSetupLoginRoute
+  WizardMigrationLocationsRoute: typeof WizardMigrationLocationsRoute
+  WizardMigrationIndexRoute: typeof WizardMigrationIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -814,18 +828,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WizardSetupLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_wizard/setup-gateway': {
+      id: '/_wizard/setup-gateway'
+      path: '/setup-gateway'
+      fullPath: '/setup-gateway'
+      preLoaderRoute: typeof WizardSetupGatewayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_wizard/setup': {
       id: '/_wizard/setup'
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof WizardSetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_wizard/migration': {
-      id: '/_wizard/migration'
-      path: '/migration'
-      fullPath: '/migration'
-      preLoaderRoute: typeof WizardMigrationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authorized/playground': {
@@ -841,6 +855,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthorizedDefaultRouteImport
       parentRoute: typeof AuthorizedRoute
+    }
+    '/_wizard/migration/': {
+      id: '/_wizard/migration/'
+      path: '/migration'
+      fullPath: '/migration/'
+      preLoaderRoute: typeof WizardMigrationIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/mfa/webauthn': {
       id: '/auth/mfa/webauthn'
@@ -870,12 +891,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthMfaEmailRouteImport
       parentRoute: typeof AuthMfaRoute
     }
-    '/_authorized/_wizard/setup-gateway': {
-      id: '/_authorized/_wizard/setup-gateway'
-      path: '/setup-gateway'
-      fullPath: '/setup-gateway'
-      preLoaderRoute: typeof AuthorizedWizardSetupGatewayRouteImport
-      parentRoute: typeof AuthorizedRoute
+    '/_wizard/migration/locations': {
+      id: '/_wizard/migration/locations'
+      path: '/migration/locations'
+      fullPath: '/migration/locations'
+      preLoaderRoute: typeof WizardMigrationLocationsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authorized/_wizard/setup-edge': {
       id: '/_authorized/_wizard/setup-edge'
@@ -1224,7 +1245,6 @@ interface AuthorizedRouteChildren {
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
-  AuthorizedWizardSetupGatewayRoute: typeof AuthorizedWizardSetupGatewayRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
@@ -1234,7 +1254,6 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
   AuthorizedWizardSetupEdgeRoute: AuthorizedWizardSetupEdgeRoute,
-  AuthorizedWizardSetupGatewayRoute: AuthorizedWizardSetupGatewayRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(
@@ -1282,9 +1301,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ConsentRoute: ConsentRoute,
   SnackbarRoute: SnackbarRoute,
-  WizardMigrationRoute: WizardMigrationRoute,
   WizardSetupRoute: WizardSetupRoute,
+  WizardSetupGatewayRoute: WizardSetupGatewayRoute,
   WizardSetupLoginRoute: WizardSetupLoginRoute,
+  WizardMigrationLocationsRoute: WizardMigrationLocationsRoute,
+  WizardMigrationIndexRoute: WizardMigrationIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
