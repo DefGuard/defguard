@@ -523,6 +523,103 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
 }
 
 #[sqlx::test]
+async fn test_destination_apply_after_delete_recreate_preserves_rule_association(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = false;
+    rule.destinations = vec![1];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let applied_parent_before_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_parent_before_update.rules, vec![1]);
+
+    let mut first_update = applied_parent_before_update.clone();
+    first_update.name = "destination pending child".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&first_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let pending_child_before_delete: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_child_before_delete.state, AliasState::Modified);
+    assert_eq!(pending_child_before_delete.parent_id, Some(1));
+
+    let response = client.delete("/api/v1/acl/destination/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    let mut recreated_child_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    recreated_child_update.name = "destination pending child recreated".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&recreated_child_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let recreated_child: ApiAclDestination = response.json().await;
+    assert_eq!(recreated_child.state, AliasState::Modified);
+    assert_eq!(recreated_child.parent_id, Some(1));
+
+    let response = client
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [recreated_child.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_recreated_child: ApiAclDestination = client
+        .get(format!("/api/v1/acl/destination/{}", recreated_child.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_recreated_child.state, AliasState::Applied);
+    assert_eq!(applied_recreated_child.parent_id, None);
+    assert_eq!(applied_recreated_child.rules, vec![1]);
+
+    let response = client.get("/api/v1/acl/destination/1").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    let applied_rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(applied_rule.destinations, vec![recreated_child.id]);
+}
+
+#[sqlx::test]
 async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 

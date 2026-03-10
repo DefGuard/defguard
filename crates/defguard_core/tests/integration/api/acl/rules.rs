@@ -655,6 +655,98 @@ async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptio
 }
 
 #[sqlx::test]
+async fn test_rule_modify_pending_child_updates_in_place(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let rule = make_rule();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": [1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_parent_before_update: ApiAclRule =
+        client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(applied_parent_before_update.state, RuleState::Applied);
+
+    let mut first_update = applied_parent_before_update.clone();
+    first_update.name = "rule pending child".to_string();
+    let response = client
+        .put("/api/v1/acl/rule/1")
+        .json(&first_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
+
+    let pending_child_before_update: ApiAclRule =
+        client.get("/api/v1/acl/rule/2").send().await.json().await;
+    assert_eq!(pending_child_before_update.state, RuleState::Modified);
+    assert_eq!(pending_child_before_update.parent_id, Some(1));
+
+    let mut pending_child_update = pending_child_before_update.clone();
+    pending_child_update.name = "rule pending child updated".to_string();
+    let response = client
+        .put("/api/v1/acl/rule/2")
+        .json(&pending_child_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated_pending_child: ApiAclRule = response.json().await;
+
+    let rules = AclRule::all(&pool).await.unwrap();
+    assert_eq!(rules.len(), 2);
+    assert_eq!(
+        rules
+            .iter()
+            .filter(|rule| rule.state == RuleState::Applied)
+            .count(),
+        1
+    );
+    assert_eq!(
+        rules
+            .iter()
+            .filter(|rule| rule.state == RuleState::Modified)
+            .count(),
+        1
+    );
+
+    let response = client.get("/api/v1/acl/rule/3").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    let applied_parent_after_update: ApiAclRule =
+        client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(applied_parent_after_update, applied_parent_before_update);
+    assert_eq!(applied_parent_after_update.state, RuleState::Applied);
+    assert_eq!(applied_parent_after_update.parent_id, None);
+
+    let mut expected_pending_child = pending_child_before_update.clone();
+    expected_pending_child.name = "rule pending child updated".to_string();
+    assert_eq!(updated_pending_child, expected_pending_child);
+
+    let pending_child_after_update: ApiAclRule =
+        client.get("/api/v1/acl/rule/2").send().await.json().await;
+    assert_eq!(pending_child_after_update, expected_pending_child);
+    assert_eq!(
+        pending_child_after_update.id,
+        pending_child_before_update.id
+    );
+    assert_eq!(pending_child_after_update.state, RuleState::Modified);
+    assert_eq!(pending_child_after_update.parent_id, Some(1));
+}
+
+#[sqlx::test]
 async fn test_rule_delete_state_new(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
