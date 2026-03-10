@@ -10,6 +10,7 @@ import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getLocationsDisplayQueryOptions } from '../../shared/query';
@@ -50,6 +51,13 @@ const Content = () => {
 
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: migrationWizardFinishPromise,
+    onSuccess: () => {
+      Snackbar.success(`Migration completed`);
+      navigate({ to: '/vpn-overview', replace: true });
+      setTimeout(() => {
+        useMigrationWizardStore.getState().resetState();
+      }, 2500);
+    },
     meta: {
       invalidate: ['session-info'],
     },
