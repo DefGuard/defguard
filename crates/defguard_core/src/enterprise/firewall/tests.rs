@@ -4739,7 +4739,7 @@ async fn test_component_alias_combines_with_manual_destinations(
 }
 
 #[sqlx::test]
-async fn test_component_alias_destination_ranges_create_missing_family_rules(
+async fn test_component_alias_ipv6_destination_range_with_ipv4_acl_destination(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
