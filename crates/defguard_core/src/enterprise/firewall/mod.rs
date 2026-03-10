@@ -238,6 +238,7 @@ async fn get_manual_destination_rules(
     }
 
     address_ranges.extend(alias_destination_ranges.into_iter().map(|range| {
+        // FIXME: avoid creating fake objects just to marge range lists
         AclRuleDestinationRange {
             id: range.id,
             rule_id,
