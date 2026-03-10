@@ -10,33 +10,9 @@ DROP TYPE vpn_client_session_state;
 
 DROP TABLE proxy;
 
-ALTER TABLE gateway DROP CONSTRAINT gateway_location_id_fkey;
-
-ALTER TABLE gateway
-    ADD COLUMN url text NOT NULL DEFAULT 'http://127.0.0.1:50051',
-    ADD COLUMN hostname text NULL;
-
-UPDATE gateway
-SET
-    url = 'http://' || address || ':' || port,
-    hostname = name;
-
-ALTER TABLE gateway RENAME COLUMN location_id TO network_id;
-
-ALTER TABLE gateway
-    DROP COLUMN name,
-    DROP COLUMN address,
-    DROP COLUMN port,
-    DROP COLUMN certificate,
-    DROP COLUMN certificate_expiry,
-    DROP COLUMN version,
-    DROP COLUMN enabled,
-    DROP COLUMN modified_at,
-    DROP COLUMN modified_by;
-
-ALTER TABLE gateway
-    ADD CONSTRAINT gateway_network_id_fkey
-        FOREIGN KEY (network_id) REFERENCES wireguard_network(id);
+DROP TRIGGER gateway ON gateway;
+DROP FUNCTION row_change();
+DROP TABLE gateway;
 
 ALTER TABLE aclrule
     DROP COLUMN any_address,

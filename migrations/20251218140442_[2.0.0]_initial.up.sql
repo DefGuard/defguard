@@ -70,48 +70,36 @@ SET
 ALTER TABLE aclrule RENAME COLUMN destination TO addresses;
 ALTER TABLE aclrule RENAME COLUMN all_networks TO all_locations;
 
-ALTER TABLE gateway DROP CONSTRAINT gateway_network_id_fkey;
-ALTER TABLE gateway RENAME COLUMN network_id TO location_id;
+CREATE TABLE gateway (
+    id bigserial PRIMARY KEY,
+    location_id bigint NOT NULL,
+    connected_at timestamp without time zone NULL,
+    disconnected_at timestamp without time zone NULL,
+    certificate_expiry timestamp without time zone NULL,
+    version text,
+    name text NOT NULL,
+    certificate text,
+    address text NOT NULL DEFAULT '127.0.0.1',
+    port integer NOT NULL DEFAULT 50051,
+    modified_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    enabled boolean NOT NULL DEFAULT true,
+    modified_by text NOT NULL,
+    CONSTRAINT gateway_network_id_fkey
+        FOREIGN KEY (location_id) REFERENCES wireguard_network(id) ON DELETE CASCADE
+);
 
-ALTER TABLE gateway
-    ADD COLUMN certificate_expiry timestamp without time zone NULL,
-    ADD COLUMN version text,
-    ADD COLUMN name text,
-    ADD COLUMN certificate text,
-    ADD COLUMN address text DEFAULT '127.0.0.1',
-    ADD COLUMN port integer DEFAULT 50051,
-    ADD COLUMN modified_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    ADD COLUMN enabled bool NOT NULL DEFAULT true,
-    ADD COLUMN modified_by text NOT NULL DEFAULT 'System';
-
-UPDATE gateway
-SET
-    name = COALESCE(NULLIF(hostname, ''), 'Gateway ' || id::text),
-    address = COALESCE(
-        NULLIF(split_part(regexp_replace(url, '^https?://', ''), ':', 1), ''),
-        '127.0.0.1'
-    ),
-    port = COALESCE(
-        NULLIF(
-            regexp_replace(split_part(regexp_replace(url, '^https?://', ''), ':', 2), '/.*$', ''),
-            ''
-        )::integer,
-        50051
+CREATE FUNCTION row_change() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify(TG_TABLE_NAME || '_change',
+        json_build_object('operation', TG_OP, 'old', row_to_json(OLD), 'new', row_to_json(NEW))::text
     );
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
 
-ALTER TABLE gateway
-    ALTER COLUMN name SET NOT NULL,
-    ALTER COLUMN address SET NOT NULL,
-    ALTER COLUMN port SET NOT NULL;
-
-ALTER TABLE gateway
-    DROP COLUMN url,
-    DROP COLUMN hostname;
-
-ALTER TABLE gateway
-    ADD CONSTRAINT gateway_location_id_fkey
-        FOREIGN KEY (location_id) REFERENCES wireguard_network(id)
-        ON DELETE CASCADE;
+CREATE TRIGGER gateway
+    AFTER INSERT OR UPDATE OR DELETE ON gateway
+    FOR ROW EXECUTE FUNCTION row_change();
 
 CREATE TABLE proxy (
     id bigserial PRIMARY KEY,
@@ -124,7 +112,7 @@ CREATE TABLE proxy (
     version text,
     modified_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     certificate text,
-    modified_by text NOT NULL DEFAULT 'System',
+    modified_by text NOT NULL,
     enabled boolean NOT NULL DEFAULT true,
     CONSTRAINT unique_address_port UNIQUE (address, port)
 );
