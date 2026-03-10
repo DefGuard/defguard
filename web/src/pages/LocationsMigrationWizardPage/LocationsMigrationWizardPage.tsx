@@ -88,7 +88,7 @@ const Content = () => {
       return;
     }
     const state = cloneDeep(locationsState);
-    state.current_location = state.current_location + 1;
+    state.current_location = locationsState.locations[currentIndex + 1];
     updateWizardState({
       current_step: MigrationWizardStep.Confirmation,
       location_state: state,
