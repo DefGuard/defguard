@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
     models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
@@ -32,8 +33,8 @@ async fn setup_user_and_device(
         user_id: user.id,
         device_type: DeviceType::User,
         description: None,
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let device = device.save(pool).await.unwrap();

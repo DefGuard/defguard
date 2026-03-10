@@ -1,13 +1,9 @@
-use defguard_core::{enterprise::firewall::FirewallError, events::GrpcEvent};
+use defguard_core::enterprise::firewall::FirewallError;
 use thiserror::Error;
-use tokio::sync::mpsc::error::SendError;
 use tonic::{Code, Status};
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Error)]
 pub(crate) enum GatewayError {
-    #[error("gRPC event channel error: {0}")]
-    GrpcEventChannelError(#[from] SendError<GrpcEvent>),
     #[error("Endpoint error: {0}")]
     EndpointError(String),
     #[error("gRPC communication error: {0}")]

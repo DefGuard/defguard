@@ -43,7 +43,7 @@ pub enum WebError {
     #[error("Authentication error")]
     Authentication,
     #[error("Forbidden error: {0}")]
-    Forbidden(String),
+    Forbidden(&'static str),
     #[error("Database error: {0}")]
     DbError(String),
     #[error("Model error: {0}")]
@@ -136,8 +136,9 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::ModelError(_)
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
-            | WireguardNetworkError::DeviceNotAllowed(_)
-            | WireguardNetworkError::TokenError(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            | WireguardNetworkError::DeviceNotAllowed(_) => {
+                Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            }
         }
     }
 }

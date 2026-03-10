@@ -24,6 +24,8 @@ use crate::{
 };
 
 pub mod allowed_peers;
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Error)]
 pub enum LocationManagementError {
@@ -65,11 +67,11 @@ pub(crate) async fn sync_all_networks(
     Ok(())
 }
 
-/// Refresh network IPs for all relevant devices
+/// Refresh network IPs for all relevant devices.
 ///
-/// If the list of allowed devices has changed add/remove devices accordingly
+/// If the list of allowed devices has changed add/remove devices accordingly.
 ///
-/// If the network address has changed readdress existing devices
+/// If the network address has changed, re-address existing devices.
 pub(crate) async fn sync_location_allowed_devices(
     location: &WireguardNetwork<Id>,
     conn: &mut PgConnection,
@@ -79,19 +81,20 @@ pub(crate) async fn sync_location_allowed_devices(
     // list all allowed devices
     let mut allowed_devices = location.get_allowed_devices(&mut *conn).await?;
 
-    // network devices are always allowed, make sure to take only network devices already assigned to that network
+    // Network devices are always allowed, make sure to take only network devices already assigned
+    // to that network.
     let network_devices =
         Device::find_by_type_and_network(&mut *conn, DeviceType::Network, location.id).await?;
     allowed_devices.extend(network_devices);
 
-    // convert to a map for easier processing
+    // Convert to a map for easier processing.
     let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
         .into_iter()
         .map(|dev| (dev.id, dev))
         .collect();
 
-    // check if all devices can fit within network
-    // include address, network, and broadcast in the calculation
+    // Check if all devices can fit within network.
+    // Include network and broadcast addresses in the calculation.
     let count = allowed_devices.len() + 3;
     location.validate_network_size(count)?;
 
@@ -110,40 +113,39 @@ pub(crate) async fn sync_location_allowed_devices(
     Ok(events)
 }
 
-/// Refresh network IPs for all relevant devices of a given user
-/// If the list of allowed devices has changed add/remove devices accordingly
-/// If the network address has changed readdress existing devices
+/// Refresh network IPs for all relevant devices of a given user.
+/// If the list of allowed devices has changed add/remove devices accordingly.
+/// If the network address has changed readdress existing devices.
 pub(crate) async fn sync_allowed_devices_for_user(
     location: &WireguardNetwork<Id>,
-    transaction: &mut PgConnection,
+    conn: &mut PgConnection,
     user: &User<Id>,
     reserved_ips: Option<&[IpAddr]>,
 ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
     info!("Synchronizing IPs in network {location} for all allowed devices ");
     // list all allowed devices
     let allowed_devices = location
-        .get_allowed_devices_for_user(&mut *transaction, user.id)
+        .get_allowed_devices_for_user(&mut *conn, user.id)
         .await?;
 
-    // convert to a map for easier processing
+    // Convert to a map for easier processing.
     let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
         .into_iter()
         .map(|dev| (dev.id, dev))
         .collect();
 
-    // check if all devices can fit within network
-    // include address, network, and broadcast in the calculation
+    // Check if all devices can fit within network.
+    // Include network and broadcast addresses in the calculation.
     let count = allowed_devices.len() + 3;
     location.validate_network_size(count)?;
 
     // list all assigned IPs
     let assigned_ips =
-        WireguardNetworkDevice::all_for_network_and_user(&mut *transaction, location.id, user.id)
-            .await?;
+        WireguardNetworkDevice::all_for_network_and_user(&mut *conn, location.id, user.id).await?;
 
     let events = process_device_access_changes(
         location,
-        &mut *transaction,
+        &mut *conn,
         allowed_devices,
         assigned_ips,
         reserved_ips,
@@ -313,7 +315,7 @@ pub(crate) async fn handle_mapped_devices(
     transaction: &mut PgConnection,
     mapped_devices: Vec<MappedDevice>,
 ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-    info!("Mapping user devices for network {}", location);
+    info!("Mapping user devices for network {location}");
     // get allowed groups for network
     let allowed_groups = location.get_allowed_groups(&mut *transaction).await?;
 

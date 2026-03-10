@@ -33,6 +33,16 @@ use tonic::Code;
 
 use crate::grpc::common::{TestGrpcServer, make_grpc_test_server, mock_gateway::MockGateway};
 
+fn generate_gateway_token(location: &Location) -> String {
+    Claims::new(
+        ClaimsType::Gateway,
+        format!("DEFGUARD-NETWORK-{location_id}"),
+        location.id.to_string(),
+        u32::MAX.into(),
+    )
+    .to_jwt()
+    .expect("failed to generate gateway token")
+}
 async fn setup_test_server(
     pool: PgPool,
 ) -> (TestGrpcServer, MockGateway, WireguardNetwork<Id>, User<Id>) {
@@ -58,9 +68,7 @@ async fn setup_test_server(
     .unwrap();
 
     // set auth token for gateway
-    let token = location
-        .generate_gateway_token()
-        .expect("failed to generate gateway token");
+    let token = generate_gateway_token(&location);
 
     // setup mock gateway
     let gateway = MockGateway::new(
@@ -116,7 +124,7 @@ async fn test_gateway_authorization(_: PgPoolOptions, options: PgConnectOptions)
     assert_eq!(status.code(), Code::Unauthenticated);
 
     // use valid token and retry
-    let token = test_location.generate_gateway_token().unwrap();
+    let token = generate_gateway_token(&test_location);
     // setup another test gateway without a token
     let mut test_gateway = MockGateway::new(
         test_server.client_channel.clone(),
@@ -135,7 +143,7 @@ async fn test_gateway_hostname_is_required(_: PgPoolOptions, options: PgConnectO
     let (test_server, _gateway, test_location, _test_user) = setup_test_server(pool).await;
 
     // setup gateway without hostname
-    let token = test_location.generate_gateway_token().unwrap();
+    let token = generate_gateway_token(&test_location);
     let mut test_gateway = MockGateway::new(
         test_server.client_channel.clone(),
         MIN_GATEWAY_VERSION,
@@ -408,9 +416,7 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
     .unwrap();
 
     // set auth token for gateway
-    let token = test_location_2
-        .generate_gateway_token()
-        .expect("failed to generate gateway token");
+    let token = generate_gateway_token(&test_location_2);
     let mut gateway_2 = MockGateway::new(
         test_server.client_channel.clone(),
         MIN_GATEWAY_VERSION,
@@ -539,7 +545,7 @@ async fn test_gateway_version_validation(_: PgPoolOptions, options: PgConnectOpt
     // setup gateway with unsupported version
     let unsupported_version =
         Version::new(MIN_GATEWAY_VERSION.major, MIN_GATEWAY_VERSION.minor - 1, 0);
-    let token = test_location.generate_gateway_token().unwrap();
+    let token = generate_gateway_token(&test_location);
     // setup another test gateway without a token
     let mut test_gateway = MockGateway::new(
         test_server.client_channel.clone(),

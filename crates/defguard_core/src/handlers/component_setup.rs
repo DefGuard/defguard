@@ -187,7 +187,7 @@ impl SetupFlow {
             let mut guard = self
                 .log_buffer
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             std::mem::take(&mut *guard).into_iter().collect::<Vec<_>>()
         };
         while let Ok(log) = self.log_rx.try_recv() {

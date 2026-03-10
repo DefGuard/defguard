@@ -222,7 +222,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
-    let proxy_secret_key = settings.secret_key_required()?.to_string();
+    let proxy_secret_key = settings.secret_key_required()?;
     let proxy_manager = ProxyManager::new(
         pool.clone(),
         ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone()),

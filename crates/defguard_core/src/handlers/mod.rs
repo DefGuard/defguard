@@ -487,7 +487,7 @@ pub async fn user_for_admin_or_self(
         debug!(
             "User from the current session doesn't have enough privileges to do this operation."
         );
-        Err(WebError::Forbidden("requires privileged access".into()))
+        Err(WebError::Forbidden("requires privileged access"))
     }
 }
 

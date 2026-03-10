@@ -196,14 +196,12 @@ pub async fn setup_login(
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     let wizard = Wizard::get(&pool).await?;
     if wizard.completed {
-        return Err(WebError::Forbidden(
-            "Initial setup already completed".to_string(),
-        ));
+        return Err(WebError::Forbidden("Initial setup already completed"));
     }
     let settings = Settings::get_current_settings();
     let default_admin_id = settings
         .default_admin_id
-        .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
+        .ok_or_else(|| WebError::Forbidden("Default admin user not set"))?;
 
     check_failed_logins(&failed_logins, &login.username)?;
 
@@ -223,7 +221,7 @@ pub async fn setup_login(
     }
 
     if user.id != default_admin_id {
-        return Err(WebError::Forbidden("access denied".into()));
+        return Err(WebError::Forbidden("access denied"));
     }
 
     let device_info = get_device_info(user_agent.as_str());
@@ -249,16 +247,14 @@ pub async fn setup_login(
 pub async fn setup_session(session: SessionInfo, Extension(pool): Extension<PgPool>) -> ApiResult {
     let wizard = Wizard::get(&pool).await?;
     if wizard.completed {
-        return Err(WebError::Forbidden(
-            "Initial setup already completed".to_string(),
-        ));
+        return Err(WebError::Forbidden("Initial setup already completed"));
     }
     let settings = Settings::get_current_settings();
     let default_admin_id = settings
         .default_admin_id
-        .ok_or_else(|| WebError::Forbidden("Default admin user not set".into()))?;
+        .ok_or_else(|| WebError::Forbidden("Default admin user not set"))?;
     if session.user.id != default_admin_id {
-        return Err(WebError::Forbidden("access denied".into()));
+        return Err(WebError::Forbidden("access denied"));
     }
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
