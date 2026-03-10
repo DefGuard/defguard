@@ -1,6 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use defguard_common::db::{
+    NoId,
     models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
     setup_pool,
 };
@@ -18,14 +19,17 @@ fn test_network_readdress(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
 
-    let mut network = WireguardNetwork::default();
     // 192.168.42.44: network
     // 192.168.42.45: device
     // 192.168.42.46: gateway
     // 192.168.42.47: broadcast
-    network.address =
-        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 46)), 30).unwrap()];
-    let mut network = network.save(&pool).await.unwrap();
+    let mut network = WireguardNetwork::<NoId> {
+        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 46)), 30).unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
 
     let mut conn = pool.begin().await.unwrap();
 

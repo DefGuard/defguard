@@ -480,7 +480,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Update `connected_at` to the current time and save it to the database.
-    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -503,7 +503,7 @@ impl WireguardNetwork<Id> {
         devices: &[Device<Id>],
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<WireguardDeviceStatsRow>> {
         if devices.is_empty() {
             return Ok(Vec::new());
         }
