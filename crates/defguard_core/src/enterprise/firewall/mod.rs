@@ -138,12 +138,16 @@ pub async fn generate_firewall_rules_from_acls(
         let merged_destination_ranges = destination_ranges
             .iter()
             .cloned()
-            .chain(alias_destination_ranges.into_iter().map(|range| AclRuleDestinationRange {
-                id: Id::default(),
-                rule_id: id,
-                start: range.start,
-                end: range.end,
-            }))
+            .chain(
+                alias_destination_ranges
+                    .into_iter()
+                    .map(|range| AclRuleDestinationRange {
+                        id: Id::default(),
+                        rule_id: id,
+                        start: range.start,
+                        end: range.end,
+                    }),
+            )
             .collect::<Vec<_>>();
 
         // prepare destination addresses
