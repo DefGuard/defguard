@@ -115,6 +115,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         const { data: validationResponse } = await api.network_device.validateIps({
           ips: formValues,
           locationId: device.location.id,
+          deviceId: device.id,
         });
         validationResponse.forEach(({ valid, available }, index) => {
           if (!valid) {
@@ -139,8 +140,8 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       await editDevice({
         id: device.id,
         assigned_ips: assignedIps,
-        name: device.name,
-        description: device.description,
+        name: value.name,
+        description: value.description ?? undefined,
       });
     },
   });
