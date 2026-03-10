@@ -69,7 +69,10 @@ const Content = () => {
 
   const handleSkip = useCallback(() => {
     if (!locationsState) return;
-    if (locationsState.current_location === locationsState.locations.length - 1) {
+    const currentIndex = locationsState.locations.indexOf(
+      locationsState.current_location,
+    );
+    if (currentIndex === locationsState.locations.length - 1) {
       finish();
       return;
     }

@@ -31,7 +31,7 @@ export const getLocationsQueryOptions = queryOptions({
 
 export const getLocationsDisplayQueryOptions = queryOptions({
   queryFn: api.location.getLocationsDisplay,
-  queryKey: ['network', 'display'],
+  queryKey: ['network', 'display', 'resourceMap'],
   select: (resp) => resourceDisplayMap(resp.data),
 });
 

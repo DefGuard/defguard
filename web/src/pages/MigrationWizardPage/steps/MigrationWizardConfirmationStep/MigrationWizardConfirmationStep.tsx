@@ -26,7 +26,6 @@ import {
   ThemeVariable,
 } from '../../../../shared/defguard-ui/types';
 import {
-  getLocationsQueryOptions,
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
 } from '../../../../shared/query';
@@ -36,7 +35,7 @@ import { MigrationWizardStep } from '../../types';
 import prepareNetworkImage from './assets/prepare-network.png';
 
 const qOptions = queryOptions({
-  queryKey: getLocationsQueryOptions.queryKey,
+  queryKey: ['network', 'display', 'list'],
   queryFn: api.location.getLocationsDisplay,
   select: (resp) => resp.data,
 });
@@ -71,7 +70,7 @@ export const MigrationWizardConfirmationStep = () => {
   const { mutate: startLocationsMigration, isPending: startLocationsPending } =
     useMutation({
       mutationFn: async () => {
-        const locationsIds = Object.keys(locationsDisplay).map((key) => Number(key));
+        const locationsIds = locationsDisplay.map((key) => key.id);
         const migrationLocationState: MigrationWizardApiState['location_state'] = {
           current_location: locationsIds[0],
           locations: locationsIds,

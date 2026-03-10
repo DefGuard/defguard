@@ -25,7 +25,7 @@ const welcomePageConfig: WizardWelcomePageConfig = {
   title: 'Welcome to Defguard Migration Wizard.',
   subtitle: `We've detected your previous version 1.X so email.`,
   content: <MigrationWizardStart />,
-  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link bellow.`,
+  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link below.`,
 } as const;
 
 type ConfigurableSteps = Exclude<MigrationWizardStepValue, 'welcome'>;

@@ -26,6 +26,7 @@ export const GatewaySetupPage = () => {
   const onClose = useCallback(() => {
     if (isMigrationWizard) {
       navigate({ to: '/migration/locations', replace: true });
+      return;
     }
     navigate({ to: '/locations', replace: true }).then(() => {
       setTimeout(() => {

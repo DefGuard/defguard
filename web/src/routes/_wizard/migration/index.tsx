@@ -20,7 +20,6 @@ export const Route = createFileRoute('/_wizard/migration/')({
       !sessionInfo.active_wizard ||
       (sessionInfo.active_wizard && sessionInfo.active_wizard !== ActiveWizard.Migration)
     ) {
-      console.log('Redirecting to auth');
       throw redirect({
         to: '/auth',
         replace: true,
