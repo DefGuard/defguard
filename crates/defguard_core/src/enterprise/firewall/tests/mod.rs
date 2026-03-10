@@ -1240,8 +1240,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         user_id: user_1.id, // Owned by user 1
         device_type: DeviceType::Network,
         description: Some("Test network device 1".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
@@ -1252,8 +1252,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         user_id: user_2.id, // Owned by user 2
         device_type: DeviceType::Network,
         description: Some("Test network device 2".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
@@ -1264,8 +1264,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         user_id: user_3.id, // Owned by user 3
         device_type: DeviceType::Network,
         description: Some("Test network device 3".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
@@ -2217,8 +2217,8 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();

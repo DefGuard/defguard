@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
     models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
