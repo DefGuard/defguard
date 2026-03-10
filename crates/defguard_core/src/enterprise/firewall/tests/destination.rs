@@ -89,7 +89,7 @@ fn test_process_destination_addrs_v6() {
         "2001:db8:3::/64".parse().unwrap(),
     ];
 
-    let destination_ranges = vec![
+    let destination_ranges = [
         AclRuleDestinationRange {
             start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1)),
             end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 3)),
