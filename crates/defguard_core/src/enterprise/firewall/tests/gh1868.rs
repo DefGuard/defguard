@@ -84,7 +84,6 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
 
     // Create test location with both IPv4 and IPv6 subnet
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
@@ -148,7 +147,6 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
 
     // Create test location with both IPv4 and IPv6 subnet
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
@@ -210,7 +208,6 @@ async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
 
     // Create test location with both IPv4 and IPv6 subnet
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),

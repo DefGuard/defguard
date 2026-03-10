@@ -1,6 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use defguard_common::db::{NoId, models::WireguardNetwork, setup_pool};
+use defguard_common::db::{models::WireguardNetwork, setup_pool};
 use ipnetwork::IpNetwork;
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -21,7 +21,6 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -33,7 +32,6 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
 
     // create unapplied ACL rules
     let mut acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -45,7 +43,6 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -98,7 +95,6 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -110,7 +106,6 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
 
     // create unapplied ACL rules
     let mut acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -122,7 +117,6 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -175,7 +169,6 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
@@ -190,7 +183,6 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
 
     // create unapplied ACL rules
     let mut acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -202,7 +194,6 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,

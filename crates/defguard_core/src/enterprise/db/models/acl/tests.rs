@@ -54,7 +54,6 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
 
     // create the rule
     let rule = AclRule {
-        id: NoId,
         name: "rule".to_string(),
         enabled: true,
         allow_all_users: false,
@@ -127,7 +126,6 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create the rule
     let mut rule = AclRule {
-        id: NoId,
         name: "rule".to_string(),
         enabled: true,
         allow_all_users: false,
@@ -437,7 +435,6 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     }
@@ -445,7 +442,6 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     }
@@ -476,7 +472,6 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create ACL rule
     let rule = AclRule {
-        id: NoId,
         name: "test_rule".to_string(),
         allow_all_users: false,
         deny_all_users: false,
@@ -552,7 +547,6 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     }
@@ -560,7 +554,6 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     }
@@ -591,7 +584,6 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create ACL rule
     let rule = AclRule {
-        id: NoId,
         name: "test_rule".to_string(),
         allow_all_users: false,
         deny_all_users: false,

@@ -151,7 +151,6 @@ async fn test_any_address_overwrites_manual_destination(
     let mut rng = thread_rng();
 
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec!["10.0.0.0/16".parse().unwrap()],
         ..Default::default()
@@ -163,7 +162,6 @@ async fn test_any_address_overwrites_manual_destination(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let acl_rule = AclRule {
-        id: NoId,
         name: "any destination rule".to_string(),
         state: RuleState::Applied,
         allow_all_users: true,
@@ -237,7 +235,6 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     let mut rng = thread_rng();
 
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec!["10.0.0.0/16".parse().unwrap()],
         ..Default::default()
@@ -249,7 +246,6 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let destination_alias = AclAlias {
-        id: NoId,
         name: "any destination alias".to_string(),
         kind: AliasKind::Destination,
         any_address: true,
@@ -273,7 +269,6 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     .unwrap();
 
     let acl_rule = AclRule {
-        id: NoId,
         name: "any destination alias rule".to_string(),
         state: RuleState::Applied,
         allow_all_users: true,
@@ -342,7 +337,6 @@ async fn test_manual_destination_includes_component_alias_address_range(
     let mut rng = thread_rng();
 
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec!["10.0.0.0/16".parse().unwrap()],
         ..Default::default()
@@ -354,7 +348,6 @@ async fn test_manual_destination_includes_component_alias_address_range(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let component_alias = AclAlias {
-        id: NoId,
         name: "component alias with destination range".to_string(),
         kind: AliasKind::Component,
         ..Default::default()
@@ -374,7 +367,6 @@ async fn test_manual_destination_includes_component_alias_address_range(
     .unwrap();
 
     let acl_rule = AclRule {
-        id: NoId,
         name: "manual destination component alias range rule".to_string(),
         state: RuleState::Applied,
         allow_all_users: true,
@@ -450,7 +442,6 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     let mut rng = thread_rng();
 
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec!["10.0.0.0/16".parse().unwrap()],
         ..Default::default()
@@ -462,7 +453,6 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let component_alias = AclAlias {
-        id: NoId,
         name: "component alias with destination range".to_string(),
         kind: AliasKind::Component,
         ..Default::default()
@@ -482,7 +472,6 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     .unwrap();
 
     let acl_rule = AclRule {
-        id: NoId,
         name: "manual destination mixed destination ranges rule".to_string(),
         state: RuleState::Applied,
         allow_all_users: true,
