@@ -135,9 +135,20 @@ pub async fn generate_firewall_rules_from_acls(
             protocols.extend(alias.protocols);
         }
 
+        let merged_destination_ranges = destination_ranges
+            .iter()
+            .cloned()
+            .chain(alias_destination_ranges.into_iter().map(|range| AclRuleDestinationRange {
+                id: Id::default(),
+                rule_id: id,
+                start: range.start,
+                end: range.end,
+            }))
+            .collect::<Vec<_>>();
+
         // prepare destination addresses
         let (dest_addrs_v4, dest_addrs_v6) =
-            process_destination_addrs(&destination, &destination_ranges);
+            process_destination_addrs(&destination, &merged_destination_ranges);
 
         // prepare destination ports
         let destination_ports = merge_port_ranges(ports);
@@ -440,6 +451,16 @@ fn process_destination_addrs(
     dest_ipnets: &[IpNetwork],
     dest_ranges: &[AclRuleDestinationRange<Id>],
 ) -> (Vec<IpAddress>, Vec<IpAddress>) {
+    process_destination_addrs_from_ranges(dest_ipnets, dest_ranges.iter().map(RangeInclusive::from))
+}
+
+fn process_destination_addrs_from_ranges<I>(
+    dest_ipnets: &[IpNetwork],
+    dest_ranges: I,
+) -> (Vec<IpAddress>, Vec<IpAddress>)
+where
+    I: IntoIterator<Item = RangeInclusive<IpAddr>>,
+{
     // Separate IP v4 and v6 addresses and convert networks to intermediate range representation for merging
     let ipv4_dest_net_addrs = dest_ipnets
         .iter()
@@ -456,14 +477,19 @@ fn process_destination_addrs(
     });
 
     // Separate IP v4 and v6 ranges.
-    let ipv4_dest_ranges = dest_ranges
-        .iter()
-        .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
-        .map(RangeInclusive::from);
-    let ipv6_dest_ranges = dest_ranges
-        .iter()
-        .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
-        .map(RangeInclusive::from);
+    let mut ipv4_dest_ranges = Vec::new();
+    let mut ipv6_dest_ranges = Vec::new();
+
+    for dest_range in dest_ranges {
+        if dest_range.start().is_ipv4() && dest_range.end().is_ipv4() {
+            ipv4_dest_ranges.push(dest_range);
+            continue;
+        }
+
+        if dest_range.start().is_ipv6() && dest_range.end().is_ipv6() {
+            ipv6_dest_ranges.push(dest_range);
+        }
+    }
 
     // combine iterators
     let ipv4_dest_addrs = ipv4_dest_net_addrs.chain(ipv4_dest_ranges).collect();
@@ -485,36 +511,7 @@ fn process_alias_destination_addrs(
     dest_ipnets: &[IpNetwork],
     dest_ranges: &[AclAliasDestinationRange<Id>],
 ) -> (Vec<IpAddress>, Vec<IpAddress>) {
-    // Separate IP v4 and v6 addresses and convert networks to intermediate range representation for merging
-    let ipv4_dest_net_addrs = dest_ipnets
-        .iter()
-        .filter(|dst| dst.is_ipv4())
-        .map(|dst| dst.network()..=dst.broadcast());
-    let ipv6_dest_net_addrs = dest_ipnets.iter().filter_map(|dst| {
-        if let IpNetwork::V6(subnet) = dst {
-            let range_start = subnet.network().into();
-            let range_end = get_last_ip_in_v6_subnet(subnet);
-            Some(range_start..=range_end)
-        } else {
-            None
-        }
-    });
-
-    // Separate IP v4 and v6 ranges.
-    let ipv4_dest_ranges = dest_ranges
-        .iter()
-        .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
-        .map(RangeInclusive::from);
-    let ipv6_dest_ranges = dest_ranges
-        .iter()
-        .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
-        .map(RangeInclusive::from);
-
-    // combine iterators
-    let ipv4_dest_addrs = ipv4_dest_net_addrs.chain(ipv4_dest_ranges).collect();
-    let ipv6_dest_addrs = ipv6_dest_net_addrs.chain(ipv6_dest_ranges).collect();
-
-    (merge_addrs(ipv4_dest_addrs), merge_addrs(ipv6_dest_addrs))
+    process_destination_addrs_from_ranges(dest_ipnets, dest_ranges.iter().map(RangeInclusive::from))
 }
 
 fn get_last_ip_in_v6_subnet(subnet: &ipnetwork::Ipv6Network) -> IpAddr {
