@@ -40,6 +40,9 @@ const Content = () => {
 
   const { mutate: updateWizardState } = useMutation({
     mutationFn: api.migration.state.updateMigrationState,
+    onSuccess: (_, variables) => {
+      useMigrationWizardStore.setState(variables);
+    },
     meta: {
       invalidate: ['migration'],
     },

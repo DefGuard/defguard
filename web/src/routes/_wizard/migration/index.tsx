@@ -3,6 +3,7 @@ import { AppLoaderPage } from '../../../pages/AppLoaderPage/AppLoaderPage';
 import { MigrationWizardPage } from '../../../pages/MigrationWizardPage/MigrationWizardPage';
 import { useMigrationWizardStore } from '../../../pages/MigrationWizardPage/store/useMigrationWizardStore';
 import { ActiveWizard } from '../../../shared/api/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
@@ -28,10 +29,9 @@ export const Route = createFileRoute('/_wizard/migration/')({
     const migrationState = (
       await context.queryClient.fetchQuery(getMigrationStateQueryOptions)
     ).data;
-    if (migrationState?.location_state !== null) {
-      throw redirect({ to: '/migration/locations', replace: true });
+    if (isPresent(migrationState)) {
+      useMigrationWizardStore.setState(migrationState);
     }
-    useMigrationWizardStore.setState(migrationState);
   },
   loader: async ({ context }) => {
     return Promise.all([
