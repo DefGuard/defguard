@@ -1,8 +1,11 @@
+-- Drop wizard state introduced in 2.0.0.
 DROP TABLE wizard;
 DROP TYPE active_wizard;
 
+-- Remove database-backed mail templates.
 DROP TABLE mail_context;
 
+-- Remove VPN session tracking and proxy management structures.
 DROP TABLE vpn_session_stats;
 DROP TABLE vpn_client_session;
 DROP TYPE vpn_client_mfa_method;
@@ -14,6 +17,7 @@ DROP TRIGGER gateway ON gateway;
 DROP FUNCTION row_change();
 DROP TABLE gateway;
 
+-- Restore ACL naming and flags from before 2.0.0.
 ALTER TABLE aclrule
     DROP COLUMN any_address,
     DROP COLUMN any_port,
@@ -32,13 +36,16 @@ ALTER TABLE aclalias
 
 ALTER TABLE aclalias RENAME COLUMN addresses TO destination;
 
+-- Remove 2.0.0 OpenID provider extensions.
 ALTER TABLE openidprovider DROP COLUMN kind;
 DROP TYPE openid_provider_kind;
 
+-- Remove 2.0.0 WireGuard network defaults.
 ALTER TABLE wireguard_network
     DROP COLUMN mtu,
     DROP COLUMN fwmark;
 
+-- Remove 2.0.0 setup and settings columns.
 ALTER TABLE settings DROP CONSTRAINT fk_default_admin;
 
 ALTER TABLE settings
@@ -62,6 +69,7 @@ ALTER TABLE settings
     DROP COLUMN enrollment_session_timeout_minutes,
     DROP COLUMN password_reset_session_timeout_minutes;
 
+-- Restore the legacy peer stats structures used before 2.0.0.
 CREATE TABLE wireguard_peer_stats (
     id bigserial PRIMARY KEY,
     device_id bigint NOT NULL,

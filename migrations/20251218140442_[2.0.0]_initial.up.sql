@@ -1,3 +1,4 @@
+-- Settings and network defaults introduced for the 2.0.0 setup flow.
 ALTER TABLE settings
     ADD COLUMN ca_key_der bytea DEFAULT NULL,
     ADD COLUMN ca_cert_der bytea DEFAULT NULL,
@@ -28,6 +29,7 @@ ALTER TABLE wireguard_network
     ADD COLUMN mtu integer NOT NULL DEFAULT 1420,
     ADD COLUMN fwmark bigint NOT NULL DEFAULT 0;
 
+-- External OpenID providers gain a provider kind discriminator.
 CREATE TYPE openid_provider_kind AS ENUM (
     'Custom',
     'Google',
@@ -40,6 +42,7 @@ CREATE TYPE openid_provider_kind AS ENUM (
 ALTER TABLE openidprovider
     ADD COLUMN kind openid_provider_kind NOT NULL DEFAULT 'Custom'::openid_provider_kind;
 
+-- ACL rules and aliases move to the new "any_*" flags and addresses naming.
 ALTER TABLE aclalias
     ADD COLUMN any_address boolean NOT NULL DEFAULT false,
     ADD COLUMN any_port boolean NOT NULL DEFAULT false,
@@ -70,6 +73,7 @@ SET
 ALTER TABLE aclrule RENAME COLUMN destination TO addresses;
 ALTER TABLE aclrule RENAME COLUMN all_networks TO all_locations;
 
+-- Gateway and proxy management are introduced in their final 2.0.0 form.
 CREATE TABLE gateway (
     id bigserial PRIMARY KEY,
     location_id bigint NOT NULL,
@@ -117,6 +121,7 @@ CREATE TABLE proxy (
     CONSTRAINT unique_address_port UNIQUE (address, port)
 );
 
+-- VPN client session tracking replaces the legacy peer stats model.
 CREATE TYPE vpn_client_session_state AS ENUM (
     'new',
     'connected',
@@ -172,9 +177,11 @@ CREATE INDEX idx_vpn_session_stats_collected_at ON vpn_session_stats(collected_a
 CREATE INDEX idx_vpn_session_stats_latest_handshake ON vpn_session_stats(latest_handshake DESC);
 CREATE INDEX idx_vpn_session_stats_session_collected ON vpn_session_stats(session_id, collected_at DESC);
 
+-- Remove legacy peer stats structures superseded by VPN session tracking.
 DROP VIEW wireguard_peer_stats_view;
 DROP TABLE wireguard_peer_stats;
 
+-- Mail template content is moved to the database.
 CREATE TABLE mail_context (
     template text NOT NULL,
     section text NOT NULL,
@@ -212,6 +219,7 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('user-import-blocked', 'title', 'en_US', 'User import blocked'),
     ('user-import-blocked', 'notification_text', 'en_US', 'Import of an external user was blocked because it would exceed your current license capacity.');
 
+-- Wizard state is centralized outside of settings.
 CREATE TYPE active_wizard AS ENUM ('none', 'initial', 'auto_adoption', 'migration');
 
 CREATE TABLE wizard (
