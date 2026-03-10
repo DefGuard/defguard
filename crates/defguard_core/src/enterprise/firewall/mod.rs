@@ -214,7 +214,7 @@ async fn get_manual_destination_rules(
     source_addrs: (&[IpAddress], &[IpAddress]),
     aliases: Vec<AclAlias<Id>>,
     mut addresses: Vec<IpNetwork>,
-    address_ranges: Vec<AclRuleDestinationRange<i64>>,
+    mut address_ranges: Vec<AclRuleDestinationRange<i64>>,
     mut ports: Vec<PortRange>,
     mut protocols: Vec<i32>,
     any_address: bool,
@@ -236,6 +236,15 @@ async fn get_manual_destination_rules(
         ports.extend(alias.ports.into_iter().map(Into::into).collect::<Vec<_>>());
         protocols.extend(alias.protocols);
     }
+
+    address_ranges.extend(alias_destination_ranges.into_iter().map(|range| {
+        AclRuleDestinationRange {
+            id: range.id,
+            rule_id,
+            start: range.start,
+            end: range.end,
+        }
+    }));
 
     // prepare destination addresses
     let (dest_addrs_v4, dest_addrs_v6) = if any_address {

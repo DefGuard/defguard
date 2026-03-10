@@ -315,3 +315,230 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     assert!(deny_rule.source_addrs.is_empty());
     assert!(deny_rule.destination_addrs.is_empty());
 }
+
+#[sqlx::test]
+async fn test_manual_destination_includes_component_alias_address_range(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let mut rng = thread_rng();
+
+    let location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: vec!["10.0.0.0/16".parse().unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
+
+    let component_alias = AclAlias {
+        id: NoId,
+        name: "component alias with destination range".to_string(),
+        kind: AliasKind::Component,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    AclAliasDestinationRange {
+        id: NoId,
+        alias_id: component_alias.id,
+        start: IpAddr::V4(Ipv4Addr::new(10, 2, 0, 255)),
+        end: IpAddr::V4(Ipv4Addr::new(10, 2, 1, 0)),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let acl_rule = AclRule {
+        id: NoId,
+        name: "manual destination component alias range rule".to_string(),
+        state: RuleState::Applied,
+        allow_all_users: true,
+        use_manual_destination_settings: true,
+        any_address: false,
+        ..Default::default()
+    };
+
+    create_acl_rule(
+        &pool,
+        acl_rule,
+        vec![location.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        vec![component_alias.id],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    let expected_source_addrs = [
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.1.1".to_string(),
+                end: "10.0.1.2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.2.1".to_string(),
+                end: "10.0.2.2".to_string(),
+            })),
+        },
+    ];
+    let expected_destination_addrs = [IpAddress {
+        address: Some(Address::IpRange(IpRange {
+            start: "10.2.0.255".to_string(),
+            end: "10.2.1.0".to_string(),
+        })),
+    }];
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.source_addrs, expected_source_addrs);
+    assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
+}
+
+#[sqlx::test]
+async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+
+    let mut rng = thread_rng();
+
+    let location = WireguardNetwork {
+        id: NoId,
+        acl_enabled: true,
+        address: vec!["10.0.0.0/16".parse().unwrap()],
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
+
+    let component_alias = AclAlias {
+        id: NoId,
+        name: "component alias with destination range".to_string(),
+        kind: AliasKind::Component,
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    AclAliasDestinationRange {
+        id: NoId,
+        alias_id: component_alias.id,
+        start: IpAddr::V4(Ipv4Addr::new(10, 2, 0, 255)),
+        end: IpAddr::V4(Ipv4Addr::new(10, 2, 1, 0)),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let acl_rule = AclRule {
+        id: NoId,
+        name: "manual destination mixed destination ranges rule".to_string(),
+        state: RuleState::Applied,
+        allow_all_users: true,
+        use_manual_destination_settings: true,
+        any_address: false,
+        ..Default::default()
+    };
+
+    create_acl_rule(
+        &pool,
+        acl_rule,
+        vec![location.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        vec![(
+            IpAddr::V4(Ipv4Addr::new(10, 3, 0, 255)),
+            IpAddr::V4(Ipv4Addr::new(10, 3, 1, 0)),
+        )],
+        vec![component_alias.id],
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    let expected_source_addrs = [
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.1.1".to_string(),
+                end: "10.0.1.2".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.0.2.1".to_string(),
+                end: "10.0.2.2".to_string(),
+            })),
+        },
+    ];
+    let expected_destination_addrs = [
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.2.0.255".to_string(),
+                end: "10.2.1.0".to_string(),
+            })),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "10.3.0.255".to_string(),
+                end: "10.3.1.0".to_string(),
+            })),
+        },
+    ];
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.source_addrs, expected_source_addrs);
+    assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
+}
