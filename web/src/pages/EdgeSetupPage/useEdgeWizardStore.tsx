@@ -16,7 +16,7 @@ type StoreMethods = {
   reset: () => void;
   start: (values?: Partial<StoreValues>) => void;
   setActiveStep: (step: EdgeSetupStepValue) => void;
-  setisOnWelcomePage: (show: boolean) => void;
+  setIsOnWelcomePage: (show: boolean) => void;
   resetEdgeAdoptionState: () => void;
   setEdgeAdoptionState: (state: EdgeAdoptionState) => void;
 };
@@ -51,7 +51,7 @@ export const useEdgeWizardStore = create<StoreMethods & StoreValues>()(
         });
       },
       setActiveStep: (step) => set({ activeStep: step }),
-      setisOnWelcomePage: (show) => set({ isOnWelcomePage: show }),
+      setIsOnWelcomePage: (show) => set({ isOnWelcomePage: show }),
       resetEdgeAdoptionState: () =>
         set(() => ({
           edgeAdoptionState: { ...edgeAdoptionStateDefaults },
