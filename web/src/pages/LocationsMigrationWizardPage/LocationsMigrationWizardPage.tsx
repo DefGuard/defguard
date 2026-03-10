@@ -77,7 +77,7 @@ const Content = () => {
       return;
     }
     const state = cloneDeep(locationsState);
-    state.current_location + 1;
+    state.current_location = state.current_location + 1;
     updateWizardState({
       current_step: MigrationWizardStep.Confirmation,
       location_state: state,
@@ -90,7 +90,7 @@ const Content = () => {
     <>
       <Divider spacing={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
-        {`By clicking the button bellow, you confirm that the required firewall changes have been made and that the Core can connect to this gateway on TCP port 5055. In case you have any question please read our documentation following the link in the bottom section.`}
+        {`By clicking the button below, you confirm that the required firewall changes have been made and that the Core can connect to this gateway on TCP port 5055. In case you have any question please read our documentation following the link in the bottom section.`}
       </AppText>
       <Divider spacing={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>

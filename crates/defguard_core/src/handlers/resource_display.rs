@@ -1,4 +1,5 @@
 use axum::{Extension, http::StatusCode};
+use serde::Serialize;
 
 use super::{ApiResponse, ApiResult};
 use crate::auth::AdminRole;
