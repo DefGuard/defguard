@@ -325,7 +325,7 @@ pub async fn add_user(
         .is_some_and(|l| l.users == user_count)
     {
         error!("Adding user {username} blocked! License limit reached.");
-        return Ok(WebError::Forbidden("License limit reached.".into()).into());
+        return Ok(WebError::Forbidden("License limit reached").into());
     }
 
     // check username

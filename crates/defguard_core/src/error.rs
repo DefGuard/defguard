@@ -43,7 +43,7 @@ pub enum WebError {
     #[error("Authentication error")]
     Authentication,
     #[error("Forbidden error: {0}")]
-    Forbidden(String),
+    Forbidden(&'static str),
     #[error("Database error: {0}")]
     DbError(String),
     #[error("Model error: {0}")]

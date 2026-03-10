@@ -24,6 +24,8 @@ use crate::{
 };
 
 pub mod allowed_peers;
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Error)]
 pub enum LocationManagementError {
@@ -313,7 +315,7 @@ pub(crate) async fn handle_mapped_devices(
     transaction: &mut PgConnection,
     mapped_devices: Vec<MappedDevice>,
 ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-    info!("Mapping user devices for network {}", location);
+    info!("Mapping user devices for network {location}");
     // get allowed groups for network
     let allowed_groups = location.get_allowed_groups(&mut *transaction).await?;
 

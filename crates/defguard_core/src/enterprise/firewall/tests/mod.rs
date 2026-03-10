@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
     models::{
@@ -91,12 +92,12 @@ async fn create_test_users_and_devices(
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(pool).await.unwrap();
@@ -272,12 +273,12 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();
@@ -342,8 +343,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         user_id: user_1.id, // Owned by user 1
         device_type: DeviceType::Network,
         description: Some("Test network device 1".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
@@ -354,8 +355,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         user_id: user_2.id, // Owned by user 2
         device_type: DeviceType::Network,
         description: Some("Test network device 2".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
@@ -366,8 +367,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         user_id: user_3.id, // Owned by user 3
         device_type: DeviceType::Network,
         description: Some("Test network device 3".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
@@ -701,12 +702,12 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();
@@ -1162,7 +1163,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,

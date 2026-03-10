@@ -168,7 +168,7 @@ pub async fn authenticate(
                     {
                         Ok(user) => user,
                         Err(LdapError::LicenseUserLimitReached(_, _)) => {
-                            return Err(WebError::Forbidden("License limit reached.".into()));
+                            return Err(WebError::Forbidden("License limit reached."));
                         }
                         Err(ldap_err) => {
                             warn!(
@@ -218,7 +218,7 @@ pub async fn authenticate(
         match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
             Ok(user) => user,
             Err(LdapError::LicenseUserLimitReached(_, _)) => {
-                return Err(WebError::Forbidden("License limit reached.".into()));
+                return Err(WebError::Forbidden("License limit reached."));
             }
             Err(err) => {
                 info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
