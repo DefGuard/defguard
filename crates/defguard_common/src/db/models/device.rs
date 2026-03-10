@@ -15,7 +15,7 @@ use sqlx::{
     query_scalar,
 };
 use thiserror::Error;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use utoipa::ToSchema;
 
 use crate::{
@@ -784,6 +784,7 @@ impl Device<Id> {
             let Ok(wireguard_network_device) =
                 network.add_device_to_network(&mut *conn, self, None).await
             else {
+                warn!("Failed to add device {self} to network {network}");
                 continue;
             };
 
