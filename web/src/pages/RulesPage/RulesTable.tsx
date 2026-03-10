@@ -7,10 +7,12 @@ import {
 } from '@tanstack/react-table';
 import { flat } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
+import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type AclAlias,
+  type AclDestination,
   type AclRule,
   AclStatus,
   type AclStatusValue,
@@ -53,6 +55,7 @@ const columnHelper = createColumnHelper<RowData>();
 type Props = {
   license: LicenseInfo | null;
   aliases: ResourceById<AclAlias>;
+  destinations: ResourceById<AclDestination>;
   groups: ResourceById<GroupInfo>;
   users: ResourceById<User>;
   devices: ResourceById<NetworkDevice>;
@@ -68,6 +71,7 @@ export const RulesTable = ({
   buttonProps,
   enableSearch,
   aliases,
+  destinations,
   devices,
   groups,
   users,
@@ -181,13 +185,38 @@ export const RulesTable = ({
         minSize: 350,
         cell: (info) => {
           const row = info.row.original;
+          const manualAddresses = row.addresses.trim();
+          const hasManualAddresses = manualAddresses.length > 0;
+
           return (
             <TableCell>
-              <span>{row.addresses}</span>
+              {row.destinations.map((destinationId) => {
+                const destination = destinations[destinationId];
+                if (!destination) return null;
+                return (
+                  <Badge
+                    className="rules-table-destination-badge"
+                    data-marker="D"
+                    variant={BadgeVariant.Neutral}
+                    text={destination.name}
+                    key={destinationId}
+                  />
+                );
+              })}
+              {hasManualAddresses && <span>{manualAddresses}</span>}
               {row.aliases.map((aliasId) => {
                 const alias = aliases[aliasId];
                 if (!alias) return null;
-                return <Badge variant="neutral" text={alias.name} key={aliasId} />;
+
+                return (
+                  <Badge
+                    className="rules-table-destination-badge"
+                    data-marker="A"
+                    variant={BadgeVariant.Neutral}
+                    text={alias.name}
+                    key={aliasId}
+                  />
+                );
               })}
             </TableCell>
           );
@@ -310,6 +339,7 @@ export const RulesTable = ({
     ],
     [
       aliases,
+      destinations,
       renderPermissionCell,
       deleteRule,
       locations,

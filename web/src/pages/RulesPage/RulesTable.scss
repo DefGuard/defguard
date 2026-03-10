@@ -1,0 +1,14 @@
+.rules-table-destination-badge {
+  &::before {
+    content: attr(data-marker);
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-sm);
+    background-color: var(--icon-color);
+    color: var(--fg-white);
+    font: var(--t-body-xs-600);
+    flex-shrink: 0;
+  }
+}
