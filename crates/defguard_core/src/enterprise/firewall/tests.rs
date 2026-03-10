@@ -33,17 +33,6 @@ use crate::{
     },
 };
 
-impl Default for AclRuleDestinationRange<Id> {
-    fn default() -> Self {
-        Self {
-            id: Id::default(),
-            rule_id: Id::default(),
-            start: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-            end: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        }
-    }
-}
-
 fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
     let mut user: User<Id> = rng.r#gen();
     user.id = id;
@@ -495,19 +484,12 @@ fn test_process_destination_addrs_v4() {
     ];
 
     let destination_ranges = [
-        AclRuleDestinationRange {
-            start: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 255)),
-            end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 0)),
-            ..Default::default()
-        },
-        AclRuleDestinationRange {
-            start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)), // Should be filtered out
-            end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 100)),
-            ..Default::default()
-        },
+        IpAddr::V4(Ipv4Addr::new(10, 0, 3, 255))..=IpAddr::V4(Ipv4Addr::new(10, 0, 4, 0)),
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 100)), // Should be filtered out
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
+    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
 
     assert_eq!(
         destination_addrs.0,
@@ -531,11 +513,12 @@ fn test_process_destination_addrs_v4() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], &[]);
+    let empty_addrs = process_destination_addrs(&[], std::iter::empty());
     assert!(empty_addrs.0.is_empty());
 
     // Test with only IPv6 addresses - should return empty result for IPv4
-    let ipv6_only = process_destination_addrs(&["2001:db8::/64".parse().unwrap()], &[]);
+    let ipv6_only =
+        process_destination_addrs(&["2001:db8::/64".parse().unwrap()], std::iter::empty());
     assert!(ipv6_only.0.is_empty());
 }
 
@@ -550,19 +533,12 @@ fn test_process_destination_addrs_v6() {
     ];
 
     let destination_ranges = vec![
-        AclRuleDestinationRange {
-            start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1)),
-            end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 3)),
-            ..Default::default()
-        },
-        AclRuleDestinationRange {
-            start: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)), // Should be filtered out
-            end: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
-            ..Default::default()
-        },
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 3)),
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)), // Should be filtered out
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
+    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
 
     assert_eq!(
         destination_addrs.1,
@@ -586,11 +562,12 @@ fn test_process_destination_addrs_v6() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], &[]);
+    let empty_addrs = process_destination_addrs(&[], std::iter::empty());
     assert!(empty_addrs.1.is_empty());
 
     // Test with only IPv4 addresses - should return empty result for IPv6
-    let ipv4_only = process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], &[]);
+    let ipv4_only =
+        process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], std::iter::empty());
     assert!(ipv4_only.1.is_empty());
 }
 
