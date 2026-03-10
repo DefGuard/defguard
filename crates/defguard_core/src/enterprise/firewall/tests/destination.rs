@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    ops::RangeInclusive,
+};
 
 use defguard_common::db::{NoId, models::WireguardNetwork, setup_pool};
 use defguard_proto::enterprise::firewall::{
@@ -38,7 +41,10 @@ fn test_process_destination_addrs_v4() {
         },
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
+    let destination_addrs = process_destination_addrs(
+        &destination_ips,
+        destination_ranges.iter().map(RangeInclusive::from),
+    );
 
     assert_eq!(
         destination_addrs.0,
@@ -62,11 +68,14 @@ fn test_process_destination_addrs_v4() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], &[]);
+    let empty_addrs = process_destination_addrs(&[], std::iter::empty::<RangeInclusive<IpAddr>>());
     assert!(empty_addrs.0.is_empty());
 
     // Test with only IPv6 addresses - should return empty result for IPv4
-    let ipv6_only = process_destination_addrs(&["2001:db8::/64".parse().unwrap()], &[]);
+    let ipv6_only = process_destination_addrs(
+        &["2001:db8::/64".parse().unwrap()],
+        std::iter::empty::<RangeInclusive<IpAddr>>(),
+    );
     assert!(ipv6_only.0.is_empty());
 }
 
@@ -93,7 +102,10 @@ fn test_process_destination_addrs_v6() {
         },
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
+    let destination_addrs = process_destination_addrs(
+        &destination_ips,
+        destination_ranges.iter().map(RangeInclusive::from),
+    );
 
     assert_eq!(
         destination_addrs.1,
@@ -117,11 +129,14 @@ fn test_process_destination_addrs_v6() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], &[]);
+    let empty_addrs = process_destination_addrs(&[], std::iter::empty::<RangeInclusive<IpAddr>>());
     assert!(empty_addrs.1.is_empty());
 
     // Test with only IPv4 addresses - should return empty result for IPv6
-    let ipv4_only = process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], &[]);
+    let ipv4_only = process_destination_addrs(
+        &["192.168.1.0/24".parse().unwrap()],
+        std::iter::empty::<RangeInclusive<IpAddr>>(),
+    );
     assert!(ipv4_only.1.is_empty());
 }
 
