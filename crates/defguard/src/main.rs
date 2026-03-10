@@ -28,6 +28,7 @@ use defguard_core::{
     events::{ApiEvent, BidiStreamEvent},
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
+    setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
@@ -46,7 +47,7 @@ use tokio::sync::{
     broadcast,
     mpsc::{channel, unbounded_channel},
 };
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -57,11 +58,15 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let mut config = DefGuardConfig::new();
+    let log_filter = format!(
+        "{},defguard_core::handlers::component_setup=debug",
+        config.log_level
+    );
 
-    let subscriber = tracing_subscriber::registry();
+    let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
-        &config.log_level,
+        &log_filter,
         subscriber,
     )
     .init();

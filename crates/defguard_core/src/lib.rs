@@ -183,6 +183,7 @@ pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod location_management;
+pub mod setup_logs;
 pub mod support;
 pub mod updates;
 pub mod user_management;
