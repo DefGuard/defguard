@@ -192,37 +192,96 @@ const validateIpPart = (input: string): ipaddr.IPv4 | ipaddr.IPv6 | null => {
   return ip;
 };
 
+type ParsedAclDestinationToken =
+  | { type: 'network'; value: string }
+  | { type: 'range'; start: ipaddr.IPv4 | ipaddr.IPv6; end: ipaddr.IPv4 | ipaddr.IPv6 };
+
+const compareIpBytes = (left: number[], right: number[]): number => {
+  const length = Math.max(left.length, right.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const leftByte = left[index] ?? 0;
+    const rightByte = right[index] ?? 0;
+
+    if (leftByte !== rightByte) {
+      return leftByte - rightByte;
+    }
+  }
+
+  return 0;
+};
+
+const parseExactDecimalInteger = (input: string): number | null => {
+  if (!/^\d+$/.test(input)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(input, 10);
+  if (!Number.isSafeInteger(parsed)) {
+    return null;
+  }
+
+  return parsed;
+};
+
 function dottedMaskToPrefix(mask: string): number | null {
-  if (!mask.includes('.')) return Number(mask);
+  if (!mask.includes('.')) return null;
   const maskTest =
     /^(?:255\.255\.255\.(?:0|128|192|224|240|248|252|254|255)|255\.255\.(?:0|128|192|224|240|248|252|254|255)\.0|255\.(?:0|128|192|224|240|248|252|254|255)\.0\.0|(?:0|128|192|224|240|248|252|254|255)\.0\.0\.0)$/;
   if (!maskTest.test(mask)) return null;
-  if (mask.split('.').length !== 4) return null;
-  const parts = mask.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((part) => part < 0 || part > 255)) return null;
+  const parts = mask.split('.');
+  if (parts.length !== 4) return null;
 
-  const binary = parts.map((part) => part.toString(2).padStart(8, '0')).join('');
+  const octets: number[] = [];
+  for (const part of parts) {
+    const octet = parseExactDecimalInteger(part);
+    if (octet === null || octet > 255) return null;
+
+    octets.push(octet);
+  }
+
+  const binary = octets.map((part) => part.toString(2).padStart(8, '0')).join('');
   if (!/^1*0*$/.test(binary)) return null;
 
   return binary.indexOf('0') === -1 ? 32 : binary.indexOf('0');
 }
 
+const parseSubnetParts = (input: string): { ipPart: string; maskPart: string } | null => {
+  const slashIndex = input.indexOf('/');
+  if (slashIndex === -1 || slashIndex !== input.lastIndexOf('/')) {
+    return null;
+  }
+
+  const ipPart = input.slice(0, slashIndex);
+  const maskPart = input.slice(slashIndex + 1);
+  if (ipPart === '' || maskPart === '') {
+    return null;
+  }
+
+  return { ipPart, maskPart };
+};
+
 function parseSubnet(input: string): [ipaddr.IPv4 | ipaddr.IPv6, number] | null {
-  const [ipPart, maskPart] = input.split('/');
-  if (!ipaddr.isValid(ipPart) || !maskPart) return null;
+  const subnetParts = parseSubnetParts(input);
+  if (!subnetParts) return null;
+
+  const { ipPart, maskPart } = subnetParts;
+  if (!ipaddr.isValid(ipPart)) return null;
   const ip = ipaddr.parse(ipPart);
   const kind = ip.kind();
 
   if (kind === 'ipv6') {
-    const prefix = parseInt(maskPart, 10);
-    if (typeof prefix !== 'number' || Number.isNaN(prefix)) {
+    const prefix = parseExactDecimalInteger(maskPart);
+    if (prefix === null) {
       return null;
     }
     return [ip, prefix];
   }
   if (!patternStrictIpV4.test(ipPart)) return null;
 
-  const prefix = dottedMaskToPrefix(maskPart);
+  const prefix = maskPart.includes('.')
+    ? dottedMaskToPrefix(maskPart)
+    : parseExactDecimalInteger(maskPart);
   if (prefix === null) return null;
 
   return [ip, prefix];
@@ -244,34 +303,60 @@ function isValidIpOrCidr(input: string): boolean {
   }
 }
 
-export const aclDestinationValidator = z.string().refine((value: string) => {
-  if (value === '') return true;
-
-  const entries = value.split(',').map((s) => s.trim());
-
-  for (const entry of entries) {
-    if (entry.includes('-')) {
-      const [start, end] = entry.split('-').map((s) => s.trim());
-
-      // reject CIDR notation used in ranges
-      if (start.includes('/') || end.includes('/')) return false;
-
-      if (!ipaddr.isValid(start) || !ipaddr.isValid(end)) return false;
-
-      const startAddr = ipaddr.parse(start);
-      const endAddr = ipaddr.parse(end);
-
-      // reject different ip versions in ranges
-      if (startAddr.kind() !== endAddr.kind()) return false;
-
-      // reject invalid order in ranges
-      if (startAddr.toByteArray().join('.') > endAddr.toByteArray().join('.')) {
-        return false;
-      }
-    } else {
-      if (!isValidIpOrCidr(entry)) return false;
-    }
+const parseAclDestinationToken = (input: string): ParsedAclDestinationToken | null => {
+  if (input === '') {
+    return null;
   }
 
-  return true;
-}, m.form_error_invalid());
+  const [startRaw, endRaw, ...rest] = input.split('-');
+  if (endRaw === undefined) {
+    return isValidIpOrCidr(input) ? { type: 'network', value: input } : null;
+  }
+
+  if (startRaw === '' || endRaw === '' || rest.length > 0) {
+    return null;
+  }
+
+  if (startRaw.includes('/') || endRaw.includes('/')) {
+    return null;
+  }
+
+  const start = validateIpPart(startRaw);
+  const end = validateIpPart(endRaw);
+  if (!start || !end || start.kind() !== end.kind()) {
+    return null;
+  }
+
+  if (compareIpBytes(start.toByteArray(), end.toByteArray()) >= 0) {
+    return null;
+  }
+
+  return { type: 'range', start, end };
+};
+
+const parseAclDestinations = (value: string): ParsedAclDestinationToken[] | null => {
+  const normalizedValue = value.replace(/\s+/g, '');
+
+  if (normalizedValue === '') {
+    return [];
+  }
+
+  const parsedTokens: ParsedAclDestinationToken[] = [];
+  for (const token of normalizedValue.split(',')) {
+    const parsedToken = parseAclDestinationToken(token);
+    if (!parsedToken) {
+      return null;
+    }
+
+    parsedTokens.push(parsedToken);
+  }
+
+  return parsedTokens;
+};
+
+export const aclDestinationValidator = z
+  .string()
+  .refine(
+    (value: string) => parseAclDestinations(value) !== null,
+    m.form_error_invalid(),
+  );
