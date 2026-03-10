@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name AS display FROM wireguard_network",
+  "query": "SELECT id, name AS display FROM wireguard_network ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "9df3f58fcd9c209df5e5a1ee2d89b6084ccdc7373f3251161f4f333f9a5a762b"
+  "hash": "e35609fb11b592660bbe1ae5951de81314b320428a49960a6efafd73ff8fd721"
 }

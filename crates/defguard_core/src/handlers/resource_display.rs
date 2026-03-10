@@ -16,7 +16,7 @@ pub async fn get_locations_display(
 ) -> ApiResult {
     let resources = sqlx::query_as!(
         ResourceDisplay,
-        "SELECT id, name AS display FROM wireguard_network"
+        "SELECT id, name AS display FROM wireguard_network ORDER BY id"
     )
     .fetch_all(&pool)
     .await?;
