@@ -33,17 +33,6 @@ use crate::{
     },
 };
 
-impl Default for AclRuleDestinationRange<Id> {
-    fn default() -> Self {
-        Self {
-            id: Id::default(),
-            rule_id: Id::default(),
-            start: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-            end: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        }
-    }
-}
-
 fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
     let mut user: User<Id> = rng.r#gen();
     user.id = id;
@@ -240,6 +229,18 @@ async fn add_alias_destination_range(pool: &PgPool, alias_id: Id, start: IpAddr,
     AclAliasDestinationRange {
         id: NoId,
         alias_id,
+        start,
+        end,
+    }
+    .save(pool)
+    .await
+    .unwrap();
+}
+
+async fn add_rule_destination_range(pool: &PgPool, rule_id: Id, start: IpAddr, end: IpAddr) {
+    AclRuleDestinationRange {
+        id: NoId,
+        rule_id,
         start,
         end,
     }
@@ -483,19 +484,12 @@ fn test_process_destination_addrs_v4() {
     ];
 
     let destination_ranges = [
-        AclRuleDestinationRange {
-            start: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 255)),
-            end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 0)),
-            ..Default::default()
-        },
-        AclRuleDestinationRange {
-            start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)), // Should be filtered out
-            end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 100)),
-            ..Default::default()
-        },
+        IpAddr::V4(Ipv4Addr::new(10, 0, 3, 255))..=IpAddr::V4(Ipv4Addr::new(10, 0, 4, 0)),
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 100)), // Should be filtered out
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
+    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
 
     assert_eq!(
         destination_addrs.0,
@@ -519,11 +513,12 @@ fn test_process_destination_addrs_v4() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], &[]);
+    let empty_addrs = process_destination_addrs(&[], std::iter::empty());
     assert!(empty_addrs.0.is_empty());
 
     // Test with only IPv6 addresses - should return empty result for IPv4
-    let ipv6_only = process_destination_addrs(&["2001:db8::/64".parse().unwrap()], &[]);
+    let ipv6_only =
+        process_destination_addrs(&["2001:db8::/64".parse().unwrap()], std::iter::empty());
     assert!(ipv6_only.0.is_empty());
 }
 
@@ -538,19 +533,12 @@ fn test_process_destination_addrs_v6() {
     ];
 
     let destination_ranges = vec![
-        AclRuleDestinationRange {
-            start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1)),
-            end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 3)),
-            ..Default::default()
-        },
-        AclRuleDestinationRange {
-            start: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)), // Should be filtered out
-            end: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
-            ..Default::default()
-        },
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1))
+            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 3)),
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))..=IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)), // Should be filtered out
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, &destination_ranges);
+    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
 
     assert_eq!(
         destination_addrs.1,
@@ -574,11 +562,12 @@ fn test_process_destination_addrs_v6() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], &[]);
+    let empty_addrs = process_destination_addrs(&[], std::iter::empty());
     assert!(empty_addrs.1.is_empty());
 
     // Test with only IPv4 addresses - should return empty result for IPv6
-    let ipv4_only = process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], &[]);
+    let ipv4_only =
+        process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], std::iter::empty());
     assert!(ipv4_only.1.is_empty());
 }
 
@@ -4724,6 +4713,162 @@ async fn test_component_alias_combines_with_manual_destinations(
             address: Some(Address::IpSubnet("fc00::/112".to_string()))
         }]
     );
+}
+
+#[sqlx::test]
+async fn test_component_alias_ipv6_destination_range_with_ipv4_acl_destination(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let location = create_location_dual_stack(&pool, Some(false)).await;
+    create_user_device_assigned(&pool, &location).await;
+
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "Manual with Component Range",
+        vec!["192.168.50.0/24".parse().unwrap()],
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+
+    let component_alias = create_component_alias(
+        &pool,
+        "component alias range",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+    add_alias_destination_range(
+        &pool,
+        component_alias.id,
+        IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 0)),
+        IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 1)),
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, component_alias.id).await;
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 4);
+
+    let allow_rule_ipv4 = &generated_firewall_rules[0];
+    assert_eq!(allow_rule_ipv4.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(
+        allow_rule_ipv4.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("192.168.50.0/24".to_string()))
+        }]
+    );
+
+    let allow_rule_ipv6 = &generated_firewall_rules[1];
+    assert_eq!(allow_rule_ipv6.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(
+        allow_rule_ipv6.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("fc00::/127".to_string()))
+        }]
+    );
+
+    let deny_rule_ipv4 = &generated_firewall_rules[2];
+    assert_eq!(deny_rule_ipv4.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv4.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(
+        deny_rule_ipv4.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("192.168.50.0/24".to_string()))
+        }]
+    );
+
+    let deny_rule_ipv6 = &generated_firewall_rules[3];
+    assert_eq!(deny_rule_ipv6.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule_ipv6.ip_version, i32::from(IpVersion::Ipv6));
+    assert_eq!(
+        deny_rule_ipv6.destination_addrs,
+        vec![IpAddress {
+            address: Some(Address::IpSubnet("fc00::/127".to_string()))
+        }]
+    );
+}
+
+#[sqlx::test]
+async fn test_component_alias_destination_ranges_merge_with_acl_destination_ranges(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let location = create_location_dual_stack(&pool, Some(false)).await;
+    create_user_device_assigned(&pool, &location).await;
+
+    let acl_rule = create_acl_rule_basic(
+        &pool,
+        "ACL and Component Ranges",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        true,
+        false,
+        false,
+    )
+    .await;
+    add_rule_destination_range(
+        &pool,
+        acl_rule.id,
+        IpAddr::V4(Ipv4Addr::new(10, 10, 10, 0)),
+        IpAddr::V4(Ipv4Addr::new(10, 10, 10, 3)),
+    )
+    .await;
+
+    let component_alias = create_component_alias(
+        &pool,
+        "component alias range",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+    add_alias_destination_range(
+        &pool,
+        component_alias.id,
+        IpAddr::V4(Ipv4Addr::new(10, 10, 20, 0)),
+        IpAddr::V4(Ipv4Addr::new(10, 10, 20, 1)),
+    )
+    .await;
+
+    attach_alias_to_rule(&pool, acl_rule.id, component_alias.id).await;
+    attach_rule_to_location(&pool, acl_rule.id, location.id).await;
+
+    let generated_firewall_rules = fetch_firewall_rules(&pool, &location).await;
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let expected_destination_addrs = vec![
+        IpAddress {
+            address: Some(Address::IpSubnet("10.10.10.0/30".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpSubnet("10.10.20.0/31".to_string())),
+        },
+    ];
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert_eq!(deny_rule.ip_version, i32::from(IpVersion::Ipv4));
+    assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
 }
 
 #[sqlx::test]
