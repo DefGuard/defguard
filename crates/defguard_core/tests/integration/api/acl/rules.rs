@@ -1,5 +1,46 @@
 use super::*;
 
+fn assert_related_object_rules_rewritten(
+    related_object_name: &str,
+    rules: &[Id],
+    old_rule_id: Id,
+    new_rule_id: Id,
+) {
+    assert!(
+        !rules.contains(&old_rule_id),
+        "{related_object_name} should no longer reference the old applied rule {old_rule_id}; got {rules:?}",
+    );
+    assert!(
+        rules.contains(&new_rule_id),
+        "{related_object_name} should reference the new applied rule {new_rule_id}; got {rules:?}",
+    );
+    assert_eq!(
+        rules,
+        [new_rule_id],
+        "{related_object_name} should reference only the new applied rule",
+    );
+}
+
+fn assert_pending_related_object_rules_not_exposed(
+    related_object_name: &str,
+    rules: &[Id],
+    old_rule_id: Id,
+    new_rule_id: Id,
+) {
+    assert!(
+        !rules.contains(&old_rule_id),
+        "{related_object_name} should not expose the stale applied rule {old_rule_id}; got {rules:?}",
+    );
+    assert!(
+        !rules.contains(&new_rule_id),
+        "{related_object_name} should not expose the rewritten applied rule {new_rule_id} before the pending row itself is applied; got {rules:?}",
+    );
+    assert!(
+        rules.is_empty(),
+        "{related_object_name} currently exposes an empty rules array for pending rows; got {rules:?}",
+    );
+}
+
 #[sqlx::test]
 async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -949,6 +990,247 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
 
     // verify rules were removed
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 0);
+}
+
+#[sqlx::test]
+async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let mut alias = make_alias();
+    alias.name = "applied alias".to_string();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let applied_alias: ApiAclAlias = response.json().await;
+
+    let mut destination = make_destination();
+    destination.name = "applied destination".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let applied_destination: ApiAclDestination = response.json().await;
+
+    let mut rule = make_rule();
+    rule.name = "rule parent".to_string();
+    rule.use_manual_destination_settings = false;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    rule.aliases = vec![applied_alias.id];
+    rule.destinations = vec![applied_destination.id];
+
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created_rule: ApiAclRule = response.json().await;
+
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": [created_rule.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_parent_rule: ApiAclRule = client
+        .get(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_parent_rule.state, RuleState::Applied);
+    assert_eq!(applied_parent_rule.parent_id, None);
+    assert_eq!(applied_parent_rule.aliases, vec![applied_alias.id]);
+    assert_eq!(
+        applied_parent_rule.destinations,
+        vec![applied_destination.id]
+    );
+
+    let deployed_alias_before_rule_reapply: ApiAclAlias = client
+        .get(format!("/api/v1/acl/alias/{}", applied_alias.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(
+        deployed_alias_before_rule_reapply.rules,
+        vec![applied_parent_rule.id],
+        "deployed alias should initially reference the applied parent rule",
+    );
+
+    let deployed_destination_before_rule_reapply: ApiAclDestination = client
+        .get(format!(
+            "/api/v1/acl/destination/{}",
+            applied_destination.id
+        ))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(
+        deployed_destination_before_rule_reapply.rules,
+        vec![applied_parent_rule.id],
+        "deployed destination should initially reference the applied parent rule",
+    );
+
+    let mut alias_update = deployed_alias_before_rule_reapply.clone();
+    alias_update.name = "pending alias child".to_string();
+    let response = client
+        .put(format!("/api/v1/acl/alias/{}", applied_alias.id))
+        .json(&alias_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let pending_alias_child: ApiAclAlias = response.json().await;
+    assert_eq!(pending_alias_child.state, AliasState::Modified);
+    assert_eq!(pending_alias_child.parent_id, Some(applied_alias.id));
+
+    let mut destination_update = deployed_destination_before_rule_reapply.clone();
+    destination_update.name = "pending destination child".to_string();
+    let response = client
+        .put(format!(
+            "/api/v1/acl/destination/{}",
+            applied_destination.id
+        ))
+        .json(&destination_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let pending_destination_child: ApiAclDestination = response.json().await;
+    assert_eq!(pending_destination_child.state, AliasState::Modified);
+    assert_eq!(
+        pending_destination_child.parent_id,
+        Some(applied_destination.id)
+    );
+
+    let mut modified_rule = applied_parent_rule.clone();
+    modified_rule.name = "rule child".to_string();
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", applied_parent_rule.id))
+        .json(&modified_rule)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let pending_rule_child: ApiAclRule = response.json().await;
+    assert_eq!(pending_rule_child.state, RuleState::Modified);
+    assert_eq!(pending_rule_child.parent_id, Some(applied_parent_rule.id));
+    assert_eq!(pending_rule_child.aliases, vec![applied_alias.id]);
+    assert_eq!(
+        pending_rule_child.destinations,
+        vec![applied_destination.id]
+    );
+
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": [pending_rule_child.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .get(format!("/api/v1/acl/rule/{}", applied_parent_rule.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    let applied_rule_child: ApiAclRule = client
+        .get(format!("/api/v1/acl/rule/{}", pending_rule_child.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_rule_child.state, RuleState::Applied);
+    assert_eq!(applied_rule_child.parent_id, None);
+    assert_eq!(applied_rule_child.aliases, vec![applied_alias.id]);
+    assert_eq!(
+        applied_rule_child.destinations,
+        vec![applied_destination.id]
+    );
+
+    let deployed_alias_after_rule_apply: ApiAclAlias = client
+        .get(format!("/api/v1/acl/alias/{}", applied_alias.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_related_object_rules_rewritten(
+        "deployed alias details",
+        &deployed_alias_after_rule_apply.rules,
+        applied_parent_rule.id,
+        applied_rule_child.id,
+    );
+
+    let deployed_destination_after_rule_apply: ApiAclDestination = client
+        .get(format!(
+            "/api/v1/acl/destination/{}",
+            applied_destination.id
+        ))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_related_object_rules_rewritten(
+        "deployed destination details",
+        &deployed_destination_after_rule_apply.rules,
+        applied_parent_rule.id,
+        applied_rule_child.id,
+    );
+
+    let pending_alias_after_rule_apply: ApiAclAlias = client
+        .get(format!("/api/v1/acl/alias/{}", pending_alias_child.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_alias_after_rule_apply.state, AliasState::Modified);
+    assert_eq!(
+        pending_alias_after_rule_apply.parent_id,
+        Some(applied_alias.id)
+    );
+    // Pending alias rows expose a `rules` field, but the backend keeps rule associations on the
+    // deployed alias row until the alias child itself is applied.
+    assert_pending_related_object_rules_not_exposed(
+        "pending alias details",
+        &pending_alias_after_rule_apply.rules,
+        applied_parent_rule.id,
+        applied_rule_child.id,
+    );
+
+    let pending_destination_after_rule_apply: ApiAclDestination = client
+        .get(format!(
+            "/api/v1/acl/destination/{}",
+            pending_destination_child.id
+        ))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(
+        pending_destination_after_rule_apply.state,
+        AliasState::Modified
+    );
+    assert_eq!(
+        pending_destination_after_rule_apply.parent_id,
+        Some(applied_destination.id)
+    );
+    // Pending destination rows expose a `rules` field, but the backend keeps rule associations on
+    // the deployed destination row until the destination child itself is applied.
+    assert_pending_related_object_rules_not_exposed(
+        "pending destination details",
+        &pending_destination_after_rule_apply.rules,
+        applied_parent_rule.id,
+        applied_rule_child.id,
+    );
 }
 
 #[sqlx::test]
