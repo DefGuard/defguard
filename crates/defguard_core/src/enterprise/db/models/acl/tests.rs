@@ -698,3 +698,68 @@ fn test_parse_ports_rejects_malformed_range_tokens() {
         Err(AclError::InvalidPortsFormat(input)) if input == "1-2-3"
     ));
 }
+
+#[test]
+fn test_parse_destination_addresses_allows_empty_and_strips_whitespace() {
+    let parsed = parse_destination_addresses("  \n\t ").unwrap();
+
+    assert!(parsed.addrs.is_empty());
+    assert!(parsed.ranges.is_empty());
+}
+
+#[test]
+fn test_parse_destination_addresses_accepts_single_ips_cidrs_and_ranges() {
+    let parsed =
+        parse_destination_addresses(" 10.0.0.1 , 10.0.0.0/24 , 2001:db8::1-2001:db8::2 ").unwrap();
+
+    assert_eq!(
+        parsed.addrs,
+        vec![
+            "10.0.0.1".parse::<IpNetwork>().unwrap(),
+            "10.0.0.0/24".parse::<IpNetwork>().unwrap(),
+        ]
+    );
+    assert_eq!(
+        parsed.ranges,
+        vec![(
+            "2001:db8::1".parse::<IpAddr>().unwrap(),
+            "2001:db8::2".parse::<IpAddr>().unwrap(),
+        )]
+    );
+}
+
+#[test]
+fn test_parse_destination_addresses_rejects_invalid_ranges() {
+    for input in [
+        "10.0.0.2-10.0.0.1",
+        "10.0.0.1-10.0.0.1",
+        "10.0.0.1-2001:db8::1",
+        "10.0.0.1-10.0.0.2-10.0.0.3",
+        "10.0.0.0/24-10.0.0.2",
+    ] {
+        assert!(matches!(
+            parse_destination_addresses(input),
+            Err(AclError::InvalidIpRangeError(range)) if range == input
+        ));
+    }
+}
+
+#[test]
+fn test_parse_destination_addresses_rejects_multi_slash_cidr_tokens() {
+    for input in ["10.0.0.1/24/25", "2001:db8::1/64/65"] {
+        assert!(matches!(
+            parse_destination_addresses(input),
+            Err(AclError::IpNetworkError(_))
+        ));
+    }
+}
+
+#[test]
+fn test_parse_destination_addresses_rejects_malformed_cidr_prefix_tokens() {
+    for input in ["10.0.0.1/1e1", "10.0.0.1/0x18", "2001:db8::1/64foo"] {
+        assert!(matches!(
+            parse_destination_addresses(input),
+            Err(AclError::IpNetworkError(_))
+        ));
+    }
+}

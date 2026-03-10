@@ -635,7 +635,47 @@ async fn test_invalid_data(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
+    rule.addresses = "10.10.10.10-10.10.10.10".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "10.10.10.10-2001:db8::1".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "10.10.10.10-10.10.10.20-10.10.10.30".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "10.10.10.0/24-10.10.10.20".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "10.0.0.1/24/25".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "2001:db8::1/64/65".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "10.0.0.1/1e1".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "10.0.0.1/0x18".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.addresses = "2001:db8::1/64foo".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
     rule.addresses = "10.10.10.10-10.10.10.20".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    rule.addresses = "2001:db8::1-2001:db8::2".into();
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }

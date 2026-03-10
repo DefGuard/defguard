@@ -944,6 +944,104 @@ async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options:
 }
 
 #[sqlx::test]
+async fn test_destination_rejects_invalid_address_ranges(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    for (name, addresses) in [
+        ("destination-reversed-address-range", "10.0.0.2-10.0.0.1"),
+        ("destination-equal-address-range", "10.0.0.1-10.0.0.1"),
+        ("destination-mixed-address-range", "10.0.0.1-2001:db8::1"),
+        (
+            "destination-multi-dash-address-range",
+            "10.0.0.1-10.0.0.2-10.0.0.3",
+        ),
+        ("destination-cidr-endpoint-range", "10.0.0.0/24-10.0.0.2"),
+        ("destination-multi-slash-ipv4-cidr", "10.0.0.1/24/25"),
+        ("destination-multi-slash-ipv6-cidr", "2001:db8::1/64/65"),
+        ("destination-scientific-notation-prefix", "10.0.0.1/1e1"),
+        ("destination-hex-prefix", "10.0.0.1/0x18"),
+        ("destination-trailing-text-ipv6-prefix", "2001:db8::1/64foo"),
+    ] {
+        let mut invalid_destination = make_destination();
+        invalid_destination.name = name.to_string();
+        invalid_destination.addresses = addresses.to_string();
+        let response = client
+            .post("/api/v1/acl/destination")
+            .json(&invalid_destination)
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{name}"
+        );
+    }
+
+    let mut valid_destination = make_destination();
+    valid_destination.name = "destination-valid-address-range".to_string();
+    valid_destination.addresses = "10.0.0.1-10.0.0.2".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&valid_destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    for addresses in [
+        "10.0.0.2-10.0.0.1",
+        "10.0.0.1-10.0.0.1",
+        "10.0.0.1-2001:db8::1",
+        "10.0.0.1-10.0.0.2-10.0.0.3",
+        "10.0.0.0/24-10.0.0.2",
+        "10.0.0.1/24/25",
+        "2001:db8::1/64/65",
+        "10.0.0.1/1e1",
+        "10.0.0.1/0x18",
+        "2001:db8::1/64foo",
+    ] {
+        destination.addresses = addresses.to_string();
+        let response = client
+            .put("/api/v1/acl/destination/1")
+            .json(&destination)
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{addresses}"
+        );
+    }
+
+    destination.addresses = "2001:db8::1-2001:db8::2".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
 async fn test_destination_apply_rejects_alias(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 

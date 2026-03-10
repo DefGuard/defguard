@@ -744,6 +744,84 @@ async fn test_alias_rejects_invalid_port_ranges(_: PgPoolOptions, options: PgCon
 }
 
 #[sqlx::test]
+async fn test_alias_rejects_invalid_address_ranges(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let alias = make_alias();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    for (name, addresses) in [
+        ("alias-reversed-address-range", "10.0.0.2-10.0.0.1"),
+        ("alias-equal-address-range", "10.0.0.1-10.0.0.1"),
+        ("alias-mixed-address-range", "10.0.0.1-2001:db8::1"),
+        (
+            "alias-multi-dash-address-range",
+            "10.0.0.1-10.0.0.2-10.0.0.3",
+        ),
+        ("alias-cidr-endpoint-range", "10.0.0.0/24-10.0.0.2"),
+        ("alias-multi-slash-ipv4-cidr", "10.0.0.1/24/25"),
+        ("alias-multi-slash-ipv6-cidr", "2001:db8::1/64/65"),
+        ("alias-scientific-notation-prefix", "10.0.0.1/1e1"),
+        ("alias-hex-prefix", "10.0.0.1/0x18"),
+        ("alias-trailing-text-ipv6-prefix", "2001:db8::1/64foo"),
+    ] {
+        let mut invalid_alias = make_alias();
+        invalid_alias.name = name.to_string();
+        invalid_alias.addresses = addresses.to_string();
+        let response = client
+            .post("/api/v1/acl/alias")
+            .json(&invalid_alias)
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{name}"
+        );
+    }
+
+    let mut valid_alias = make_alias();
+    valid_alias.name = "alias-valid-address-range".to_string();
+    valid_alias.addresses = "10.0.0.1-10.0.0.2".to_string();
+    let response = client
+        .post("/api/v1/acl/alias")
+        .json(&valid_alias)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    for addresses in [
+        "10.0.0.2-10.0.0.1",
+        "10.0.0.1-10.0.0.1",
+        "10.0.0.1-2001:db8::1",
+        "10.0.0.1-10.0.0.2-10.0.0.3",
+        "10.0.0.0/24-10.0.0.2",
+        "10.0.0.1/24/25",
+        "2001:db8::1/64/65",
+        "10.0.0.1/1e1",
+        "10.0.0.1/0x18",
+        "2001:db8::1/64foo",
+    ] {
+        alias.addresses = addresses.to_string();
+        let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{addresses}"
+        );
+    }
+
+    alias.addresses = "2001:db8::1-2001:db8::2".to_string();
+    let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
 async fn test_alias_apply_rejects_destination(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
