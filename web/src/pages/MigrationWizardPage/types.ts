@@ -3,6 +3,7 @@ export const MigrationWizardStep = {
   General: 'general',
   Ca: 'ca',
   CaSummary: 'caSummary',
+  EdgeDeployment: 'edgeDeployment',
   Edge: 'edge',
   EdgeAdoption: 'edgeAdoption',
   Confirmation: 'confirmation',

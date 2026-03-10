@@ -72,6 +72,8 @@ const Content = () => {
   const handleStart = useCallback(() => {
     if (!locationsState) return;
     useGatewayWizardStore.getState().start({
+      // skip welcome page
+      isOnWelcomePage: false,
       isMigrationWizard: true,
       network_id: locationsState.current_location,
     });

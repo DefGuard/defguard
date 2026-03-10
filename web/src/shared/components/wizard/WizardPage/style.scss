@@ -54,3 +54,7 @@
     grid-column: 1 / 13;
   }
 }
+
+.wizard-page .main .controls {
+  padding-top: var(--spacing-3xl);
+}

@@ -128,10 +128,13 @@ export const useMigrationWizardStore = create<Store>()(
             stepToSet = MigrationWizardStep.General;
             break;
           case 'caSummary':
+            stepToSet = MigrationWizardStep.Ca;
+            break;
+          case 'edgeDeployment':
             stepToSet = MigrationWizardStep.CaSummary;
             break;
           case 'edge':
-            stepToSet = MigrationWizardStep.CaSummary;
+            stepToSet = MigrationWizardStep.EdgeDeployment;
             break;
           case 'edgeAdoption':
             stepToSet = MigrationWizardStep.Edge;
@@ -161,6 +164,9 @@ export const useMigrationWizardStore = create<Store>()(
             stepToSet = MigrationWizardStep.CaSummary;
             break;
           case 'caSummary':
+            stepToSet = MigrationWizardStep.EdgeDeployment;
+            break;
+          case 'edgeDeployment':
             stepToSet = MigrationWizardStep.Edge;
             break;
           case 'edge':

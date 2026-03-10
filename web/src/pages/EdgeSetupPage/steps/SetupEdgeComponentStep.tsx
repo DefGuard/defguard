@@ -9,10 +9,9 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { validateIpOrDomain } from '../../../shared/validators';
 import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
-import './style.scss';
-import { validateIpOrDomain } from '../../../shared/validators';
 
 type FormFields = StoreValues;
 
