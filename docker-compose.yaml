@@ -1,23 +1,4 @@
 services:
-  proxy:
-    image: ghcr.io/defguard/defguard-proxy:dev
-    ports:
-      - "50051:50051"
-
-  openldap:
-    image: bitnamilegacy/openldap:2.6
-    user: root
-    restart: unless-stopped
-    environment:
-      LDAP_ADMIN_PASSWORD: "pass123"
-    ports:
-      - "389:1389"
-    volumes:
-      - ./ldap/entrypoint:/docker-entrypoint-initdb.d:ro
-      - ./ldap/init.ldif:/ldifs/init.ldif:ro
-      - ./ldap/custom.ldif:/schema/custom.ldif:ro
-      - ./.volumes/openldap:/bitnami/openldap
-
   core:
     image: ghcr.io/defguard/defguard
     build:
@@ -45,7 +26,7 @@ services:
       - db
 
   gateway:
-    image: ghcr.io/defguard/gateway:latest
+    image: ghcr.io/defguard/gateway
     environment:
       DEFGUARD_GRPC_URL: http://core:50055
       DEFGUARD_STATS_PERIOD: 60
@@ -53,7 +34,7 @@ services:
       RUST_LOG: debug
     ports:
       # WireGuard endpoint
-      - "50051:50051/udp"
+      - "50052:50051/udp"
     depends_on:
       - core
     cap_add:
