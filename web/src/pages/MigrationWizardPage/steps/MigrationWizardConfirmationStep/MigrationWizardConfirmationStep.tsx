@@ -28,6 +28,7 @@ import {
 import {
   getLocationsQueryOptions,
   getMigrationStateQueryOptions,
+  getSessionInfoQueryOptions,
 } from '../../../../shared/query';
 import { migrationWizardFinishPromise } from '../../../../shared/wizard/migrationWizardFinishPromise';
 import { useMigrationWizardStore } from '../../store/useMigrationWizardStore';
@@ -47,7 +48,7 @@ export const MigrationWizardConfirmationStep = () => {
 
   const { data: locationsDisplay } = useSuspenseQuery(qOptions);
 
-  const locationsMigrationNeeded = locationsDisplay.length === 0;
+  const locationsMigrationNeeded = locationsDisplay.length > 0;
 
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: migrationWizardFinishPromise,
@@ -70,16 +71,20 @@ export const MigrationWizardConfirmationStep = () => {
   const { mutate: startLocationsMigration, isPending: startLocationsPending } =
     useMutation({
       mutationFn: async () => {
+        const locationsIds = Object.keys(locationsDisplay).map((key) => Number(key));
         const migrationLocationState: MigrationWizardApiState['location_state'] = {
-          current_location: 0,
-          locations: Object.keys(locationsDisplay).map((key) => Number(key)),
+          current_location: locationsIds[0],
+          locations: locationsIds,
         };
         await api.migration.state.updateMigrationState({
           current_step: MigrationWizardStep.Confirmation,
           location_state: migrationLocationState,
         });
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: getMigrationStateQueryOptions.queryKey,
+        });
+        await queryClient.invalidateQueries({
+          queryKey: getSessionInfoQueryOptions.queryKey,
         });
         useMigrationWizardStore.setState({
           location_state: migrationLocationState,
@@ -151,7 +156,7 @@ export const MigrationWizardConfirmationStep = () => {
           {locationsMigrationNeeded && (
             <Button
               variant="primary"
-              text={m.controls_finish()}
+              text={m.controls_continue()}
               disabled={!confirm}
               loading={startLocationsPending}
               onClick={() => {

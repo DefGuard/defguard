@@ -14,7 +14,8 @@ export const Route = createFileRoute('/_wizard/migration/locations')({
       .data;
     if (
       sessionInfo.active_wizard !== ActiveWizard.Migration ||
-      !(sessionInfo.authorized && sessionInfo.isAdmin)
+      !sessionInfo.authorized ||
+      !sessionInfo.is_admin
     ) {
       throw redirect({ to: '/auth', replace: true });
     }

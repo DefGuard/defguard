@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep } from 'radashi';
 import { useCallback } from 'react';
@@ -8,11 +8,16 @@ import type { MigrationWizardLocationState } from '../../../shared/api/types';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../shared/defguard-ui/types';
 import {
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
@@ -27,6 +32,8 @@ export const SetupConfirmationStep = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  const isMigrationWizard = useGatewayWizardStore((s) => s.isMigrationWizard);
+
   const handleBack = () => {
     const networkId = useGatewayWizardStore.getState().network_id;
     useGatewayWizardStore.getState().reset();
@@ -38,8 +45,11 @@ export const SetupConfirmationStep = () => {
       const locationState = cloneDeep(
         useMigrationWizardStore.getState().location_state as MigrationWizardLocationState,
       );
+      const currentLocationIndex = locationState.locations.indexOf(
+        locationState.current_location,
+      );
       // finish migration
-      if (locationState.current_location === locationState.locations.length - 1) {
+      if (currentLocationIndex === locationState.locations.length - 1) {
         await migrationWizardFinishPromise();
         await queryClient.invalidateQueries({
           queryKey: getSessionInfoQueryOptions.queryKey,
@@ -52,7 +62,7 @@ export const SetupConfirmationStep = () => {
         return;
       }
       // otherwise open next location migration
-      locationState.current_location + 1;
+      locationState.current_location = locationState.locations[currentLocationIndex + 1];
       await api.migration.state.updateMigrationState({
         current_step: MigrationWizardStep.Confirmation,
         location_state: locationState,
@@ -73,30 +83,59 @@ export const SetupConfirmationStep = () => {
     }, 100);
   }, [navigate, queryClient]);
 
+  const { mutate: finish, isPending: finishPending } = useMutation({
+    mutationFn: handleFinish,
+    onError: (e) => {
+      Snackbar.error(`Unknown error occurred. Try again.`);
+      console.error(e);
+    },
+  });
+
   return (
     <WizardCard>
-      <h2>{m.gateway_setup_confirmation_title()}</h2>
+      <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgSuccess}>
+        {m.gateway_setup_confirmation_title()}
+      </AppText>
       <SizedBox height={ThemeSpacing.Sm} />
-      <p>{m.gateway_setup_confirmation_subtitle()}</p>
-      <Divider spacing={ThemeSpacing.Xl2} />
-      <ActionCard
-        title={m.gateway_setup_add_multiple_gateways_title()}
-        subtitle={m.gateway_setup_add_multiple_gateways_subtitle()}
-        imageSrc={addMoreImage}
-      />
-      <Controls>
-        <Button
-          text={m.gateway_setup_controls_add_another_gateway()}
-          onClick={handleBack}
-          variant="outlined"
-        />
-        <div className="right">
-          <Button
-            text={m.gateway_setup_controls_go_to_locations()}
-            onClick={handleFinish}
+      <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgNeutral}>
+        {m.gateway_setup_confirmation_subtitle()}
+      </AppText>
+      {!isMigrationWizard && (
+        <>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <ActionCard
+            title={m.gateway_setup_add_multiple_gateways_title()}
+            subtitle={m.gateway_setup_add_multiple_gateways_subtitle()}
+            imageSrc={addMoreImage}
           />
-        </div>
-      </Controls>
+          <Controls>
+            <div className="right">
+              <Button
+                text={m.gateway_setup_controls_add_another_gateway()}
+                onClick={handleBack}
+                disabled={finishPending}
+                variant="outlined"
+              />
+              <Button
+                text={m.gateway_setup_controls_go_to_locations()}
+                onClick={() => finish()}
+                loading={finishPending}
+              />
+            </div>
+          </Controls>
+        </>
+      )}
+      {isMigrationWizard && (
+        <Controls>
+          <div className="right">
+            <Button
+              text={m.controls_finish()}
+              onClick={() => finish()}
+              loading={finishPending}
+            />
+          </div>
+        </Controls>
+      )}
     </WizardCard>
   );
 };

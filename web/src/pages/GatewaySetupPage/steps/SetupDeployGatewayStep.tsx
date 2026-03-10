@@ -77,7 +77,6 @@ export const SetupDeployGatewayStep = () => {
         }}
         text={m.gateway_setup_step_deploy_confirm()}
       />
-      <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>
         <Button
           variant={'outlined'}

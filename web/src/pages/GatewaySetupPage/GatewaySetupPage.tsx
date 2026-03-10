@@ -23,19 +23,16 @@ export const GatewaySetupPage = () => {
   const isMigrationWizard = useGatewayWizardStore((s) => s.isMigrationWizard);
   const navigate = useNavigate();
 
-  const handleOnClose = useCallback(() => {
+  const onClose = useCallback(() => {
+    if (isMigrationWizard) {
+      navigate({ to: '/migration/locations', replace: true });
+    }
     navigate({ to: '/locations', replace: true }).then(() => {
       setTimeout(() => {
         useGatewayWizardStore.getState().reset();
       }, 100);
     });
-  }, [navigate]);
-
-  // when is part of migration wizard, closing should be disabled
-  const onClose = useMemo(() => {
-    if (isMigrationWizard) return undefined;
-    return handleOnClose;
-  }, [handleOnClose, isMigrationWizard]);
+  }, [isMigrationWizard, navigate]);
 
   const stepsConfig = useMemo(
     (): Record<GatewaySetupStepValue, WizardPageStep> => ({
@@ -98,7 +95,7 @@ export const GatewaySetupPage = () => {
       subtitle={m.gateway_setup_page_subtitle()}
       title={m.gateway_setup_page_title()}
       steps={stepsConfig}
-      id="setup-wizard"
+      id="gw-wizard"
       isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.gateway_setup_welcome_title(),
@@ -107,13 +104,7 @@ export const GatewaySetupPage = () => {
         docsLink: 'https://docs.defguard.net/edge-component/deployment',
         docsText: m.gateway_setup_welcome_docs_text(),
         media: <img src={welcomeImage} alt={m.gateway_setup_welcome_image_alt()} />,
-        onClose: () => {
-          navigate({ to: '/locations', replace: true }).then(() => {
-            setTimeout(() => {
-              useGatewayWizardStore.getState().reset();
-            }, 100);
-          });
-        },
+        onClose,
       }}
     >
       {stepsComponents[activeStep]}

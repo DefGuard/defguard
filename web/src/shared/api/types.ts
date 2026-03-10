@@ -26,7 +26,7 @@ export interface MigrationWizardApiState {
 
 export interface SessionInfo {
   authorized: boolean;
-  isAdmin: boolean;
+  is_admin: boolean;
   // if it's not null then wizard is in progress / complete = false
   active_wizard: ActiveWizardValue | null;
 }

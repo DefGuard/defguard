@@ -8,7 +8,7 @@ export const Route = createFileRoute('/404')({
     if (!sessionInfo.authorized) {
       throw redirect({ to: '/auth', replace: true });
     }
-    if (sessionInfo.isAdmin) {
+    if (sessionInfo.is_admin) {
       throw redirect({ to: '/vpn-overview', replace: true });
     }
     const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;

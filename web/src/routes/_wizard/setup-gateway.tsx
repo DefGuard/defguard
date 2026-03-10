@@ -3,6 +3,7 @@ import { GatewaySetupPage } from '../../pages/GatewaySetupPage/GatewaySetupPage'
 import { useGatewayWizardStore } from '../../pages/GatewaySetupPage/useGatewayWizardStore';
 import { MigrationWizardStep } from '../../pages/MigrationWizardPage/types';
 import { ActiveWizard } from '../../shared/api/types';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import {
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
@@ -13,7 +14,7 @@ export const Route = createFileRoute('/_wizard/setup-gateway')({
   beforeLoad: async ({ context }) => {
     const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
       .data;
-    if (!sessionInfo.isAdmin) {
+    if (!sessionInfo.is_admin) {
       throw redirect({ to: '/auth', replace: true });
     }
     if (sessionInfo.active_wizard === ActiveWizard.Migration) {
@@ -23,12 +24,12 @@ export const Route = createFileRoute('/_wizard/setup-gateway')({
       if (
         !migrationState ||
         migrationState.current_step !== MigrationWizardStep.Confirmation ||
-        useGatewayWizardStore.getState().network_id === null
+        !isPresent(useGatewayWizardStore.getState().network_id)
       ) {
         throw redirect({ to: '/migration', replace: true });
       }
     }
-    if (useGatewayWizardStore.getState().network_id === null) {
+    if (!isPresent(useGatewayWizardStore.getState().network_id)) {
       throw redirect({ to: '/locations', replace: true });
     }
   },

@@ -54,11 +54,15 @@ const Content = () => {
 
   const locationsState = useMigrationWizardStore((s) => s.location_state);
 
+  const currentLocationIndex = useMigrationWizardStore(
+    (s) => s.location_state?.locations.indexOf(s.location_state?.current_location) ?? 0,
+  );
+
   const handleStart = useCallback(() => {
     if (!locationsState) return;
     useGatewayWizardStore.getState().start({
       isMigrationWizard: true,
-      network_id: locationsState.locations[locationsState.current_location],
+      network_id: locationsState.current_location,
     });
     navigate({ to: '/setup-gateway', replace: true });
   }, [locationsState, navigate]);
@@ -87,7 +91,7 @@ const Content = () => {
       </AppText>
       <Divider spacing={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
-        {`Migrate ${locationsState.current_location + 1} of ${locationsState.locations.length} location(s):`}
+        {`Migrate ${currentLocationIndex + 1} of ${locationsState.locations.length} location(s):`}
       </AppText>
       {isLoading && <Skeleton width={160} height={28} />}
       {!isLoading && isPresent(locationsDisplay) && (

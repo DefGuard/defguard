@@ -6,8 +6,6 @@ import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep'
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
@@ -161,26 +159,21 @@ export const SetupGatewayAdoptionStep = () => {
             errorMessage={stepError(step.id) || undefined}
           >
             {gatewayAdoptionState.gatewayLogs.length > 0 ? (
-              <>
-                <CodeCard
-                  title={m.gateway_setup_adoption_error_log_title()}
-                  value={gatewayAdoptionState.gatewayLogs.join('\n')}
-                />
-                <SizedBox height={ThemeSpacing.Xl} />
-              </>
+              <CodeCard
+                title={m.gateway_setup_adoption_error_log_title()}
+                value={gatewayAdoptionState.gatewayLogs.join('\n')}
+              />
             ) : null}
             <Controls>
-              <div className="left">
-                <Button
-                  variant="primary"
-                  text={m.gateway_setup_adoption_controls_retry()}
-                  onClick={() => {
-                    resetGatewayAdoptionState();
-                    sse.restart();
-                  }}
-                  disabled={gatewayAdoptionState.isProcessing}
-                />
-              </div>
+              <Button
+                variant="primary"
+                text={m.gateway_setup_adoption_controls_retry()}
+                onClick={() => {
+                  resetGatewayAdoptionState();
+                  sse.restart();
+                }}
+                disabled={gatewayAdoptionState.isProcessing}
+              />
             </Controls>
           </LoadingStep>
         ))}
