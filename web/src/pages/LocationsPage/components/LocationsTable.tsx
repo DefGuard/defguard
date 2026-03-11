@@ -166,7 +166,7 @@ export const LocationsTable = () => {
             case 'disabled':
               return (
                 <TableCell className="cell-with-check-icons">
-                  <Icon icon="disabled" />
+                  <span>Regular</span>
                 </TableCell>
               );
             case 'prelogon':
