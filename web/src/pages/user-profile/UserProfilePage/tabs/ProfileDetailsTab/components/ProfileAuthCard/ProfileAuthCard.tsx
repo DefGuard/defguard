@@ -112,7 +112,7 @@ export const ProfileAuthCard = () => {
       });
     }
     if (user.email_mfa_enabled) {
-      if (user.mfa_method !== UserMfaMethod.Email) {
+      if (user.username === authUsername && user.mfa_method !== UserMfaMethod.Email) {
         items.push({
           icon: 'check',
           text: m.profile_auth_card_make_default(),
@@ -190,7 +190,7 @@ export const ProfileAuthCard = () => {
       });
     }
     if (securityKeys.length) {
-      if (user.mfa_method !== UserMfaMethod.Webauthn) {
+      if (user.username === authUsername && user.mfa_method !== UserMfaMethod.Webauthn) {
         items.push({
           icon: 'check',
           text: m.profile_auth_card_make_default(),
@@ -227,7 +227,10 @@ export const ProfileAuthCard = () => {
       });
     }
     if (user.totp_enabled) {
-      if (user.mfa_method !== UserMfaMethod.OneTimePassword) {
+      if (
+        user.username === authUsername &&
+        user.mfa_method !== UserMfaMethod.OneTimePassword
+      ) {
         items.push({
           icon: 'check',
           text: m.profile_auth_card_make_default(),
