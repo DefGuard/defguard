@@ -161,6 +161,8 @@ export const LocationsTable = () => {
       columnHelper.accessor('service_location_mode', {
         header: 'Service location',
         minSize: 100,
+        enableSorting: true,
+        sortingFn: 'text',
         cell: (info) => {
           switch (info.getValue()) {
             case 'disabled':
