@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -22,16 +22,15 @@ import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/Tab
 import { useClipboard } from '../../shared/defguard-ui/hooks/useClipboard';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { getOpenIdClientQueryOptions } from '../../shared/query';
 
 type RowData = OpenIdClient;
 
 const columnHelper = createColumnHelper<RowData>();
 
-type Props = {
-  data: OpenIdClient[];
-};
+export const OpenIdClientTable = () => {
+  const { data } = useSuspenseQuery(getOpenIdClientQueryOptions);
 
-export const OpenIdClientTable = ({ data }: Props) => {
   const reservedNames = useMemo(
     () => data.map((c) => c.name.toLowerCase().replaceAll(' ', '')),
     [data],
@@ -73,9 +72,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
         header: 'App name',
         enableSorting: true,
         sortingFn: 'text',
-        meta: {
-          flex: true,
-        },
+        minSize: 300,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -84,7 +81,7 @@ export const OpenIdClientTable = ({ data }: Props) => {
       }),
       columnHelper.accessor('enabled', {
         header: 'Status',
-        size: 600,
+        minSize: 180,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (

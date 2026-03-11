@@ -52,16 +52,14 @@ export const GroupsTable = ({ groups, users }: Props) => {
     () => [
       columnHelper.accessor('name', {
         header: m.groups_col_name(),
+        minSize: 250,
+        enableSorting: true,
         sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
           </TableCell>
         ),
-        meta: {
-          flex: true,
-        },
-        enableSorting: true,
       }),
       columnHelper.display({
         size: 108,
