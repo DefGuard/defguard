@@ -1575,7 +1575,6 @@ dependencies = [
  "hyper-rustls",
  "openidconnect",
  "reqwest",
- "secrecy",
  "semver",
  "sqlx",
  "thiserror 2.0.18",

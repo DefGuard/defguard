@@ -14,7 +14,7 @@ use rsa::{
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::db::models::Settings;
+use crate::{VERSION, db::models::Settings};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -24,10 +24,9 @@ pub fn server_config() -> &'static DefGuardConfig {
         .expect("Server configuration not set yet")
 }
 
-#[derive(Clone, Parser, Serialize, Debug)]
-#[command(version)]
-// TODO: find a better workaround for clap not
-// working nice with test args
+#[derive(Clone, Debug, Parser, Serialize)]
+#[command(name = "defguard", version = VERSION)]
+// TODO: find a better workaround for clap not working nice with test args
 #[cfg_attr(test, command(ignore_errors(true)))]
 pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
