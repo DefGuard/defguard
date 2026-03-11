@@ -10,6 +10,7 @@
   "settings_instance_subtitle": "Here you can configure general instance parameters.",
   "settings_instance_label_name": "Instance name",
   "settings_instance_label_public_proxy_url": "Public Edge Component URL",
+  "settings_instance_label_webauthn_rp_id": "Passkey domain (RP ID)",
   "settings_instance_label_session_duration": "Session duration",
   "settings_vpn_stats_title": "VPN stats",
   "settings_vpn_stats_subtitle": "Configure statistics purge behavior for VPN data.",
