@@ -24,7 +24,6 @@ import { Avatar } from '../../shared/defguard-ui/components/Avatar/Avatar';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
-import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
@@ -620,7 +619,7 @@ export const UsersTable = () => {
         <Button {...addButtonProps} />
       </TableTop>
       {transformedData.length === 0 && search.length > 0 && (
-        <EmptyState
+        <EmptyStateFlexible
           icon="search"
           title={m.search_empty_common_title()}
           subtitle={m.search_empty_common_subtitle()}
