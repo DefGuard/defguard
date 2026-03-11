@@ -18,6 +18,11 @@ DROP FUNCTION row_change();
 DROP TABLE gateway;
 
 -- Restore ACL naming and flags from before 2.0.0.
+ALTER TABLE aclrule RENAME COLUMN addresses TO destination;
+ALTER TABLE aclrule RENAME COLUMN all_locations TO all_networks;
+
+ALTER TABLE aclalias RENAME COLUMN addresses TO destination;
+
 ALTER TABLE aclrule
     DROP COLUMN any_address,
     DROP COLUMN any_port,
@@ -26,15 +31,10 @@ ALTER TABLE aclrule
     DROP COLUMN allow_all_groups,
     DROP COLUMN deny_all_groups;
 
-ALTER TABLE aclrule RENAME COLUMN addresses TO destination;
-ALTER TABLE aclrule RENAME COLUMN all_locations TO all_networks;
-
 ALTER TABLE aclalias
     DROP COLUMN any_address,
     DROP COLUMN any_port,
     DROP COLUMN any_protocol;
-
-ALTER TABLE aclalias RENAME COLUMN addresses TO destination;
 
 -- Remove 2.0.0 OpenID provider extensions.
 ALTER TABLE openidprovider DROP COLUMN kind;

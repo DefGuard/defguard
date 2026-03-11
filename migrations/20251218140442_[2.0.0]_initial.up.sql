@@ -48,11 +48,31 @@ ALTER TABLE aclalias
     ADD COLUMN any_port boolean NOT NULL DEFAULT false,
     ADD COLUMN any_protocol boolean NOT NULL DEFAULT false;
 
-UPDATE aclalias
+-- Backfill explicit any_* flags so migrated 1.6 aliases keep treating empty
+-- destination, port, and protocol inputs as "match any".
+WITH alias_destination_input_state AS (
+    SELECT
+        alias.id,
+        COALESCE(cardinality(alias.destination), 0) = 0 AS has_no_destination_addresses,
+        NOT EXISTS (
+            SELECT 1
+            FROM aclaliasdestinationrange AS alias_range
+            WHERE alias_range.alias_id = alias.id
+        ) AS has_no_destination_ranges,
+        COALESCE(cardinality(alias.ports), 0) = 0 AS has_no_ports,
+        COALESCE(cardinality(alias.protocols), 0) = 0 AS has_no_protocols
+    FROM aclalias AS alias
+)
+UPDATE aclalias AS alias
 SET
-    any_address = array_length(destination, 1) IS NULL,
-    any_port = array_length(ports, 1) IS NULL,
-    any_protocol = array_length(protocols, 1) IS NULL;
+    any_address = (
+        state.has_no_destination_addresses
+        AND state.has_no_destination_ranges
+    ),
+    any_port = state.has_no_ports,
+    any_protocol = state.has_no_protocols
+FROM alias_destination_input_state AS state
+WHERE state.id = alias.id;
 
 ALTER TABLE aclalias RENAME COLUMN destination TO addresses;
 
@@ -64,12 +84,75 @@ ALTER TABLE aclrule
     ADD COLUMN allow_all_groups boolean NOT NULL DEFAULT false,
     ADD COLUMN deny_all_groups boolean NOT NULL DEFAULT false;
 
-UPDATE aclrule
+-- Preserve migrated 1.6 rule behavior by separating destination aliases from
+-- component aliases: destination aliases define alias-driven destinations,
+-- while component aliases only count when they provide concrete inputs.
+WITH rule_alias_destination_input_state AS (
+    SELECT
+        rule_alias.rule_id,
+        BOOL_OR(alias.kind = 'destination') AS has_destination_aliases,
+        BOOL_OR(alias.kind = 'component' AND NOT alias.any_address) AS has_component_alias_addresses,
+        BOOL_OR(alias.kind = 'component' AND NOT alias.any_port) AS has_component_alias_ports,
+        BOOL_OR(alias.kind = 'component' AND NOT alias.any_protocol) AS has_component_alias_protocols
+    FROM aclrulealias AS rule_alias
+    JOIN aclalias AS alias ON alias.id = rule_alias.alias_id
+    GROUP BY rule_alias.rule_id
+),
+-- Rule-local destination inputs must still be checked after alias detection so
+-- legacy rules keep manual settings whenever they stored addresses, ranges,
+-- ports, or protocols directly on the rule.
+rule_destination_input_state AS (
+    SELECT
+        rule.id,
+        COALESCE(cardinality(rule.destination), 0) = 0 AS has_no_destination_addresses,
+        NOT EXISTS (
+            SELECT 1
+            FROM aclruledestinationrange AS rule_range
+            WHERE rule_range.rule_id = rule.id
+        ) AS has_no_destination_ranges,
+        COALESCE(cardinality(rule.ports), 0) = 0 AS has_no_ports,
+        COALESCE(cardinality(rule.protocols), 0) = 0 AS has_no_protocols,
+        COALESCE(alias_state.has_destination_aliases, false) AS has_destination_aliases,
+        NOT COALESCE(alias_state.has_component_alias_addresses, false) AS has_no_component_alias_addresses,
+        NOT COALESCE(alias_state.has_component_alias_ports, false) AS has_no_component_alias_ports,
+        NOT COALESCE(alias_state.has_component_alias_protocols, false) AS has_no_component_alias_protocols
+    FROM aclrule AS rule
+    LEFT JOIN rule_alias_destination_input_state AS alias_state ON alias_state.rule_id = rule.id
+)
+UPDATE aclrule AS rule
 SET
-    any_address = array_length(destination, 1) IS NULL,
-    any_port = array_length(ports, 1) IS NULL,
-    any_protocol = array_length(protocols, 1) IS NULL;
+    any_address = (
+        state.has_no_destination_addresses
+        AND state.has_no_destination_ranges
+        AND state.has_no_component_alias_addresses
+    ),
+    any_port = (
+        state.has_no_ports
+        AND state.has_no_component_alias_ports
+    ),
+    any_protocol = (
+        state.has_no_protocols
+        AND state.has_no_component_alias_protocols
+    ),
+    -- Only switch migrated 1.6 rules away from manual destination settings
+    -- when destination aliases were the sole source of destination inputs.
+    use_manual_destination_settings = NOT (
+        state.has_no_destination_addresses
+        AND state.has_no_destination_ranges
+        AND state.has_no_ports
+        AND state.has_no_protocols
+        AND state.has_no_component_alias_addresses
+        AND state.has_no_component_alias_ports
+        AND state.has_no_component_alias_protocols
+        AND state.has_destination_aliases
+    ),
+    allow_all_groups = false,
+    deny_all_groups = false
+FROM rule_destination_input_state AS state
+WHERE state.id = rule.id;
 
+-- Rename after backfills because these queries must read the legacy 1.6 column
+-- names while deriving the new flags and destination-mode settings.
 ALTER TABLE aclrule RENAME COLUMN destination TO addresses;
 ALTER TABLE aclrule RENAME COLUMN all_networks TO all_locations;
 
