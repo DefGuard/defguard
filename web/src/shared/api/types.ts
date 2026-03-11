@@ -543,6 +543,7 @@ export interface Webhook {
   on_user_created: boolean;
   on_user_deleted: boolean;
   on_user_modified: boolean;
+  on_hwkey_provision: boolean;
 }
 
 export type AddWebhookRequest = Omit<Webhook, 'id'>;

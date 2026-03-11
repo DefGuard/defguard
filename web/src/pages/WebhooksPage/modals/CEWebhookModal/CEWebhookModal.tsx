@@ -140,7 +140,8 @@ const ModalContent = ({ webhook }: ModalData) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const payload = { ...value, token: value.token ?? '' };
+      // TODO: hwkey provisioning is not yet implemented in the frontend
+      const payload = { ...value, token: value.token ?? '', on_hwkey_provision: false };
       if (isEdit) {
         await editWebhook({
           id: webhook.id,
@@ -178,7 +179,7 @@ const ModalContent = ({ webhook }: ModalData) => {
         </form.AppField>
         <Divider spacing={ThemeSpacing.Xl} />
         <DescriptionBlock title={m.modal_ce_webhook_events_title()}>
-          <p>{m.test_placeholder_long()}</p>
+          <p>{m.modal_ce_webhook_events_text()}</p>
         </DescriptionBlock>
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="webhooks">
