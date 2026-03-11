@@ -27,7 +27,6 @@ import type { ButtonProps } from '../../shared/defguard-ui/components/Button/typ
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
-import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
@@ -547,9 +546,6 @@ export const UsersTable = () => {
               <span>{connectionDate}</span>
             </TableCell>
             <TableCell empty />
-            <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
-            </TableCell>
             <TableEditCell menuItems={menuItems} />
           </TableRowContainer>
         );

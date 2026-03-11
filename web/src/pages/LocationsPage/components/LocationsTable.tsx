@@ -16,12 +16,12 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
-import { IconButtonMenu } from '../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { tableEditColumnSize } from '../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
@@ -231,64 +231,59 @@ export const LocationsTable = () => {
         cell: (info) => {
           const row = info.row.original;
           return (
-            <TableCell>
-              <IconButtonMenu
-                icon="menu"
-                menuItems={[
-                  {
-                    items: [
-                      {
-                        icon: 'edit',
-                        text: m.controls_edit(),
-                        onClick: () => {
+            <TableEditCell
+              menuItems={[
+                {
+                  items: [
+                    {
+                      icon: 'edit',
+                      text: m.controls_edit(),
+                      onClick: () => {
+                        navigate({
+                          to: '/locations/$locationId/edit',
+                          params: {
+                            locationId: row.id.toString(),
+                          },
+                        });
+                      },
+                    },
+                    {
+                      icon: 'network-settings',
+                      text: 'Gateway setup',
+                      onClick: async () => {
+                        // allow 1 gateway per location if below business tier
+                        const action = () => {
+                          useGatewayWizardStore.getState().start({ network_id: row.id });
                           navigate({
-                            to: '/locations/$locationId/edit',
-                            params: {
-                              locationId: row.id.toString(),
-                            },
+                            to: '/setup-gateway',
                           });
-                        },
+                        };
+                        if (row.gateways.length >= 1) {
+                          licenseActionCheck(canUseEnterpriseFeature(license), action);
+                        } else {
+                          action();
+                        }
                       },
-                      {
-                        icon: 'network-settings',
-                        text: 'Gateway setup',
-                        onClick: async () => {
-                          // allow 1 gateway per location if below business tier
-                          const action = () => {
-                            useGatewayWizardStore
-                              .getState()
-                              .start({ network_id: row.id });
-                            navigate({
-                              to: '/setup-gateway',
-                            });
-                          };
-                          if (row.gateways.length >= 1) {
-                            licenseActionCheck(canUseEnterpriseFeature(license), action);
-                          } else {
-                            action();
-                          }
-                        },
+                    },
+                  ],
+                },
+                {
+                  items: [
+                    {
+                      icon: 'delete',
+                      text: m.controls_delete(),
+                      variant: 'danger',
+                      onClick: () => {
+                        openModal(ModalName.DeleteLocation, {
+                          id: row.id,
+                          name: row.name,
+                        });
                       },
-                    ],
-                  },
-                  {
-                    items: [
-                      {
-                        icon: 'delete',
-                        text: m.controls_delete(),
-                        variant: 'danger',
-                        onClick: () => {
-                          openModal(ModalName.DeleteLocation, {
-                            id: row.id,
-                            name: row.name,
-                          });
-                        },
-                      },
-                    ],
-                  },
-                ]}
-              />
-            </TableCell>
+                    },
+                  ],
+                },
+              ]}
+            />
           );
         },
       }),
