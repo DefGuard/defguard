@@ -45,7 +45,6 @@ import { Route as AuthorizedDefaultSettingsIndexRouteImport } from './routes/_au
 import { Route as AuthorizedDefaultLocationsIndexRouteImport } from './routes/_authorized/_default/locations/index'
 import { Route as AuthorizedDefaultVpnOverviewLocationIdRouteImport } from './routes/_authorized/_default/vpn-overview/$locationId'
 import { Route as AuthorizedDefaultUserUsernameRouteImport } from './routes/_authorized/_default/user/$username'
-import { Route as AuthorizedDefaultSettingsVpnStatsRouteImport } from './routes/_authorized/_default/settings/vpn-stats'
 import { Route as AuthorizedDefaultSettingsSmtpRouteImport } from './routes/_authorized/_default/settings/smtp'
 import { Route as AuthorizedDefaultSettingsOpenidRouteImport } from './routes/_authorized/_default/settings/openid'
 import { Route as AuthorizedDefaultSettingsLdapRouteImport } from './routes/_authorized/_default/settings/ldap'
@@ -257,12 +256,6 @@ const AuthorizedDefaultUserUsernameRoute =
     path: '/user/$username',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
-const AuthorizedDefaultSettingsVpnStatsRoute =
-  AuthorizedDefaultSettingsVpnStatsRouteImport.update({
-    id: '/settings/vpn-stats',
-    path: '/settings/vpn-stats',
-    getParentRoute: () => AuthorizedDefaultRoute,
-  } as any)
 const AuthorizedDefaultSettingsSmtpRoute =
   AuthorizedDefaultSettingsSmtpRouteImport.update({
     id: '/settings/smtp',
@@ -432,7 +425,6 @@ export interface FileRoutesByFullPath {
   '/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
   '/settings/openid': typeof AuthorizedDefaultSettingsOpenidRoute
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
-  '/settings/vpn-stats': typeof AuthorizedDefaultSettingsVpnStatsRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations/': typeof AuthorizedDefaultLocationsIndexRoute
@@ -489,7 +481,6 @@ export interface FileRoutesByTo {
   '/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
   '/settings/openid': typeof AuthorizedDefaultSettingsOpenidRoute
   '/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
-  '/settings/vpn-stats': typeof AuthorizedDefaultSettingsVpnStatsRoute
   '/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/locations': typeof AuthorizedDefaultLocationsIndexRoute
@@ -549,7 +540,6 @@ export interface FileRoutesById {
   '/_authorized/_default/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
   '/_authorized/_default/settings/openid': typeof AuthorizedDefaultSettingsOpenidRoute
   '/_authorized/_default/settings/smtp': typeof AuthorizedDefaultSettingsSmtpRoute
-  '/_authorized/_default/settings/vpn-stats': typeof AuthorizedDefaultSettingsVpnStatsRoute
   '/_authorized/_default/user/$username': typeof AuthorizedDefaultUserUsernameRoute
   '/_authorized/_default/vpn-overview/$locationId': typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   '/_authorized/_default/locations/': typeof AuthorizedDefaultLocationsIndexRoute
@@ -609,7 +599,6 @@ export interface FileRouteTypes {
     | '/settings/ldap'
     | '/settings/openid'
     | '/settings/smtp'
-    | '/settings/vpn-stats'
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations/'
@@ -666,7 +655,6 @@ export interface FileRouteTypes {
     | '/settings/ldap'
     | '/settings/openid'
     | '/settings/smtp'
-    | '/settings/vpn-stats'
     | '/user/$username'
     | '/vpn-overview/$locationId'
     | '/locations'
@@ -725,7 +713,6 @@ export interface FileRouteTypes {
     | '/_authorized/_default/settings/ldap'
     | '/_authorized/_default/settings/openid'
     | '/_authorized/_default/settings/smtp'
-    | '/_authorized/_default/settings/vpn-stats'
     | '/_authorized/_default/user/$username'
     | '/_authorized/_default/vpn-overview/$locationId'
     | '/_authorized/_default/locations/'
@@ -1003,13 +990,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultUserUsernameRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
-    '/_authorized/_default/settings/vpn-stats': {
-      id: '/_authorized/_default/settings/vpn-stats'
-      path: '/settings/vpn-stats'
-      fullPath: '/settings/vpn-stats'
-      preLoaderRoute: typeof AuthorizedDefaultSettingsVpnStatsRouteImport
-      parentRoute: typeof AuthorizedDefaultRoute
-    }
     '/_authorized/_default/settings/smtp': {
       id: '/_authorized/_default/settings/smtp'
       path: '/settings/smtp'
@@ -1178,7 +1158,6 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultSettingsLdapRoute: typeof AuthorizedDefaultSettingsLdapRoute
   AuthorizedDefaultSettingsOpenidRoute: typeof AuthorizedDefaultSettingsOpenidRoute
   AuthorizedDefaultSettingsSmtpRoute: typeof AuthorizedDefaultSettingsSmtpRoute
-  AuthorizedDefaultSettingsVpnStatsRoute: typeof AuthorizedDefaultSettingsVpnStatsRoute
   AuthorizedDefaultUserUsernameRoute: typeof AuthorizedDefaultUserUsernameRoute
   AuthorizedDefaultVpnOverviewLocationIdRoute: typeof AuthorizedDefaultVpnOverviewLocationIdRoute
   AuthorizedDefaultLocationsIndexRoute: typeof AuthorizedDefaultLocationsIndexRoute
@@ -1220,8 +1199,6 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultSettingsLdapRoute: AuthorizedDefaultSettingsLdapRoute,
   AuthorizedDefaultSettingsOpenidRoute: AuthorizedDefaultSettingsOpenidRoute,
   AuthorizedDefaultSettingsSmtpRoute: AuthorizedDefaultSettingsSmtpRoute,
-  AuthorizedDefaultSettingsVpnStatsRoute:
-    AuthorizedDefaultSettingsVpnStatsRoute,
   AuthorizedDefaultUserUsernameRoute: AuthorizedDefaultUserUsernameRoute,
   AuthorizedDefaultVpnOverviewLocationIdRoute:
     AuthorizedDefaultVpnOverviewLocationIdRoute,
