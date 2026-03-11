@@ -6,6 +6,7 @@ import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep'
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
+import { useClipboard } from '../../../shared/defguard-ui/hooks/useClipboard';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
@@ -20,6 +21,7 @@ export const SetupGatewayAdoptionStep = () => {
   const resetGatewayAdoptionState = useGatewayWizardStore(
     (s) => s.resetGatewayAdoptionState,
   );
+  const { writeToClipboard } = useClipboard();
 
   const handleEvent = useCallback(
     (event: SetupEvent) => {
@@ -162,6 +164,9 @@ export const SetupGatewayAdoptionStep = () => {
               <CodeCard
                 title={m.gateway_setup_adoption_error_log_title()}
                 value={gatewayAdoptionState.gatewayLogs.join('\n')}
+                onCopy={() => {
+                  void writeToClipboard(gatewayAdoptionState.gatewayLogs.join('\n'));
+                }}
               />
             ) : null}
             <Controls>
