@@ -27,7 +27,6 @@ use super::{
     user::User,
 };
 use crate::{
-    auth::claims::{Claims, ClaimsType},
     db::{
         Id, NoId,
         models::{
@@ -191,8 +190,6 @@ pub enum WireguardNetworkError {
     DeviceNotAllowed(String),
     #[error("Device error")]
     DeviceError(#[from] DeviceError),
-    #[error(transparent)]
-    TokenError(#[from] jsonwebtoken::errors::Error),
 }
 
 #[derive(Debug, Error)]
@@ -269,10 +266,7 @@ impl WireguardNetwork {
 }
 
 impl WireguardNetwork<Id> {
-    pub async fn find_by_name<'e, E>(
-        executor: E,
-        name: &str,
-    ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> sqlx::Result<Option<Vec<Self>>>
     where
         E: PgExecutor<'e>,
     {
@@ -295,15 +289,14 @@ impl WireguardNetwork<Id> {
         Ok(Some(networks))
     }
 
-    #[allow(clippy::result_large_err)]
+    /// Check if given number of devices can fit in networks used by this location.
+    /// Note: `device_count` should include network and broadcast addresses.
     pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in networks used by location {self}");
-        // if given location uses multiple subnets validate devices can fit them all
+        // If a given location uses multiple subnets, validate devices can fit them all.
         for subnet in &self.address {
             debug!("Checking if {device_count} devices can fit in network {subnet}");
-            let network_size = subnet.size();
-            // include address, network, and broadcast in the calculation
-            match network_size {
+            match subnet.size() {
                 NetworkSize::V4(size) => {
                     if device_count as u32 > size {
                         return Err(WireguardNetworkError::NetworkTooSmall);
@@ -452,23 +445,23 @@ impl WireguardNetwork<Id> {
     /// Generate network IPs for a device if it's allowed in network
     pub(crate) async fn add_device_to_network(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         device: &Device<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!("Assigning IP in network {self} for {device}");
-        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
-        let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
-        let used_ips = self.all_used_ips_for_network(&mut *transaction).await?;
+        let allowed_devices = self.get_allowed_devices(&mut *conn).await?;
+        let allowed_device_ids = allowed_devices.iter().map(|dev| dev.id).collect::<Vec<_>>();
+        let used_ips = self.all_used_ips_for_network(&mut *conn).await?;
 
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
-                .assign_next_network_ip(&mut *transaction, self, &used_ips, reserved_ips, None)
+                .assign_next_network_ip(&mut *conn, self, &used_ips, reserved_ips, None)
                 .await?;
             Ok(wireguard_network_device)
         } else {
             info!("Device {device} not allowed in network {self}");
-            Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
+            Err(WireguardNetworkError::DeviceNotAllowed(device.to_string()))
         }
     }
 
@@ -487,7 +480,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Update `connected_at` to the current time and save it to the database.
-    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn touch_connected<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -510,7 +503,7 @@ impl WireguardNetwork<Id> {
         devices: &[Device<Id>],
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<WireguardDeviceStatsRow>> {
         if devices.is_empty() {
             return Ok(Vec::new());
         }
@@ -1169,9 +1162,7 @@ impl WireguardNetwork<Id> {
     }
 
     // fetch all locations using external MFA
-    pub async fn all_using_external_mfa<'e, E>(
-        executor: E,
-    ) -> Result<Vec<Self>, WireguardNetworkError>
+    pub async fn all_using_external_mfa<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -1189,24 +1180,8 @@ impl WireguardNetwork<Id> {
         Ok(locations)
     }
 
-    /// Generates auth token for a VPN gateway
-    #[allow(clippy::result_large_err)]
-    pub fn generate_gateway_token(&self) -> Result<String, WireguardNetworkError> {
-        let location_id = self.id;
-
-        let token = Claims::new(
-            ClaimsType::Gateway,
-            format!("DEFGUARD-NETWORK-{location_id}"),
-            location_id.to_string(),
-            u32::MAX.into(),
-        )
-        .to_jwt()?;
-
-        Ok(token)
-    }
-
     /// Fetch a list of all allowed groups for a given network from DB
-    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
+    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
     where
         E: PgExecutor<'e>,
     {

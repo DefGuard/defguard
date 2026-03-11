@@ -1,14 +1,16 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { AppLoaderPage } from '../../pages/AppLoaderPage/AppLoaderPage';
-import { MigrationWizardPage } from '../../pages/MigrationWizardPage/MigrationWizardPage';
-import { ActiveWizard } from '../../shared/api/types';
+import { AppLoaderPage } from '../../../pages/AppLoaderPage/AppLoaderPage';
+import { MigrationWizardPage } from '../../../pages/MigrationWizardPage/MigrationWizardPage';
+import { useMigrationWizardStore } from '../../../pages/MigrationWizardPage/store/useMigrationWizardStore';
+import { ActiveWizard } from '../../../shared/api/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import {
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
   getSettingsQueryOptions,
-} from '../../shared/query';
+} from '../../../shared/query';
 
-export const Route = createFileRoute('/_wizard/migration')({
+export const Route = createFileRoute('/_wizard/migration/')({
   component: MigrationWizardPage,
   pendingComponent: AppLoaderPage,
   beforeLoad: async ({ context }) => {
@@ -24,12 +26,17 @@ export const Route = createFileRoute('/_wizard/migration')({
         replace: true,
       });
     }
+    const migrationState = (
+      await context.queryClient.fetchQuery(getMigrationStateQueryOptions)
+    ).data;
+    if (isPresent(migrationState)) {
+      useMigrationWizardStore.setState(migrationState);
+    }
   },
   loader: async ({ context }) => {
     return Promise.all([
       context.queryClient.fetchQuery(getSessionInfoQueryOptions),
       context.queryClient.fetchQuery(getSettingsQueryOptions),
-      context.queryClient.fetchQuery(getMigrationStateQueryOptions),
     ]);
   },
 });

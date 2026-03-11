@@ -54,7 +54,6 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
 
     // create the rule
     let rule = AclRule {
-        id: NoId,
         name: "rule".to_string(),
         enabled: true,
         allow_all_users: false,
@@ -127,7 +126,6 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create the rule
     let mut rule = AclRule {
-        id: NoId,
         name: "rule".to_string(),
         enabled: true,
         allow_all_users: false,
@@ -437,7 +435,6 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     }
@@ -445,7 +442,6 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     }
@@ -476,7 +472,6 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create ACL rule
     let rule = AclRule {
-        id: NoId,
         name: "test_rule".to_string(),
         allow_all_users: false,
         deny_all_users: false,
@@ -552,7 +547,6 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     }
@@ -560,7 +554,6 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     }
@@ -591,7 +584,6 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create ACL rule
     let rule = AclRule {
-        id: NoId,
         name: "test_rule".to_string(),
         allow_all_users: false,
         deny_all_users: false,
@@ -655,4 +647,111 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(denied_users.iter().any(|u| u.id == user_2.id));
     assert!(denied_users.iter().any(|u| u.id == user_3.id));
     assert!(!denied_users.iter().any(|u| u.id == user_4.id));
+}
+
+#[test]
+fn test_parse_ports_rejects_non_increasing_ranges() {
+    assert!(matches!(
+        parse_ports("200-100"),
+        Err(AclError::InvalidPortsFormat(input)) if input == "200-100"
+    ));
+    assert!(matches!(
+        parse_ports("100-100"),
+        Err(AclError::InvalidPortsFormat(input)) if input == "100-100"
+    ));
+}
+
+#[test]
+fn test_parse_ports_normalizes_whitespace_before_splitting() {
+    let parsed = parse_ports("10 - 20, 30, 1 2").unwrap();
+    let parsed = parsed
+        .into_iter()
+        .map(|range| (range.first_port(), range.last_port()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(parsed, vec![(10, 20), (30, 30), (12, 12)]);
+}
+
+#[test]
+fn test_parse_ports_allows_duplicate_endpoints() {
+    let parsed = parse_ports("10,10,10-20,20").unwrap();
+    let parsed = parsed
+        .into_iter()
+        .map(|range| (range.first_port(), range.last_port()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(parsed, vec![(10, 10), (10, 10), (10, 20), (20, 20)]);
+}
+
+#[test]
+fn test_parse_ports_rejects_malformed_range_tokens() {
+    assert!(matches!(
+        parse_ports("1-2-3"),
+        Err(AclError::InvalidPortsFormat(input)) if input == "1-2-3"
+    ));
+}
+
+#[test]
+fn test_parse_destination_addresses_allows_empty_and_strips_whitespace() {
+    let parsed = parse_destination_addresses("  \n\t ").unwrap();
+
+    assert!(parsed.addrs.is_empty());
+    assert!(parsed.ranges.is_empty());
+}
+
+#[test]
+fn test_parse_destination_addresses_accepts_single_ips_cidrs_and_ranges() {
+    let parsed =
+        parse_destination_addresses(" 10.0.0.1 , 10.0.0.0/24 , 2001:db8::1-2001:db8::2 ").unwrap();
+
+    assert_eq!(
+        parsed.addrs,
+        vec![
+            "10.0.0.1".parse::<IpNetwork>().unwrap(),
+            "10.0.0.0/24".parse::<IpNetwork>().unwrap(),
+        ]
+    );
+    assert_eq!(
+        parsed.ranges,
+        vec![(
+            "2001:db8::1".parse::<IpAddr>().unwrap(),
+            "2001:db8::2".parse::<IpAddr>().unwrap(),
+        )]
+    );
+}
+
+#[test]
+fn test_parse_destination_addresses_rejects_invalid_ranges() {
+    for input in [
+        "10.0.0.2-10.0.0.1",
+        "10.0.0.1-10.0.0.1",
+        "10.0.0.1-2001:db8::1",
+        "10.0.0.1-10.0.0.2-10.0.0.3",
+        "10.0.0.0/24-10.0.0.2",
+    ] {
+        assert!(matches!(
+            parse_destination_addresses(input),
+            Err(AclError::InvalidIpRangeError(range)) if range == input
+        ));
+    }
+}
+
+#[test]
+fn test_parse_destination_addresses_rejects_multi_slash_cidr_tokens() {
+    for input in ["10.0.0.1/24/25", "2001:db8::1/64/65"] {
+        assert!(matches!(
+            parse_destination_addresses(input),
+            Err(AclError::IpNetworkError(_))
+        ));
+    }
+}
+
+#[test]
+fn test_parse_destination_addresses_rejects_malformed_cidr_prefix_tokens() {
+    for input in ["10.0.0.1/1e1", "10.0.0.1/0x18", "2001:db8::1/64foo"] {
+        assert!(matches!(
+            parse_destination_addresses(input),
+            Err(AclError::IpNetworkError(_))
+        ));
+    }
 }

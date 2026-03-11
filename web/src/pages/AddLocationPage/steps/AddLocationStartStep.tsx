@@ -1,10 +1,11 @@
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
@@ -81,15 +82,17 @@ export const AddLocationStartStep = () => {
           <form.AppField name="port">
             {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
           </form.AppField>
-          <ModalControls
-            submitProps={{
-              text: m.controls_continue(),
-              testId: 'continue',
-              onClick: () => {
-                form.handleSubmit();
-              },
-            }}
-          />
+          <Controls>
+            <div className="right">
+              <Button
+                text={m.controls_continue()}
+                testId="continue"
+                onClick={() => {
+                  form.handleSubmit();
+                }}
+              />
+            </div>
+          </Controls>
         </form.AppForm>
       </form>
     </WizardCard>

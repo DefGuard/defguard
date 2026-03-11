@@ -35,6 +35,7 @@ pub mod component_setup;
 pub(crate) mod forward_auth;
 pub mod gateway;
 pub(crate) mod group;
+pub mod license;
 pub(crate) mod location_stats;
 pub mod mail;
 pub mod network_devices;
@@ -42,6 +43,7 @@ pub mod openid_clients;
 pub mod openid_flow;
 pub(crate) mod pagination;
 pub mod proxy;
+pub mod resource_display;
 pub mod session_info;
 pub mod settings;
 pub(crate) mod ssh_authorized_keys;
@@ -230,7 +232,7 @@ impl From<WebError> for ApiResponse {
                 )
             }
             WebError::LicenseError(err) => match err {
-                LicenseError::DecodeError(msg) | LicenseError::InvalidLicense(msg) => {
+                LicenseError::DecodeError(msg) => {
                     warn!(msg);
                     ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
@@ -485,7 +487,7 @@ pub async fn user_for_admin_or_self(
         debug!(
             "User from the current session doesn't have enough privileges to do this operation."
         );
-        Err(WebError::Forbidden("requires privileged access".into()))
+        Err(WebError::Forbidden("requires privileged access"))
     }
 }
 

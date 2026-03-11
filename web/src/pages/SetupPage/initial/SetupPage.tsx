@@ -16,7 +16,7 @@ import { SetupCertificateAuthoritySummaryStep } from './steps/SetupCertificateAu
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
-import { SetupEdgeDeployStep } from './steps/SetupEdgeDeployStep';
+import { SetupEdgeDeployStepAdapter } from './steps/SetupEdgeDeployStepAdapter';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
@@ -104,7 +104,7 @@ export const SetupPage = () => {
       generalConfig: <SetupGeneralConfigStep />,
       certificateAuthority: <SetupCertificateAuthorityStep />,
       certificateAuthoritySummary: <SetupCertificateAuthoritySummaryStep />,
-      edgeDeploy: <SetupEdgeDeployStep />,
+      edgeDeploy: <SetupEdgeDeployStepAdapter />,
       edgeComponent: <SetupEdgeComponentStep />,
       edgeAdoption: <SetupEdgeAdoptionStep />,
       confirmation: <SetupConfirmationStep />,

@@ -98,7 +98,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -114,7 +114,7 @@ jobs:
           override: true
 
       - name: Set up Docker BuildX
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           buildkitd-config-inline: |
             [registry."docker.io"]
@@ -127,7 +127,7 @@ jobs:
           version: 10.17
 
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
 
@@ -150,7 +150,7 @@ jobs:
         run: mv target/${{ matrix.target }}/release/defguard defguard-${{ github.ref_name }}-${{ matrix.target }}
 
       - name: Tar
-        uses: a7ul/tar-action@v1.1.0
+        uses: a7ul/tar-action@v1.2.0
         with:
           command: c
           files: |

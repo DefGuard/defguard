@@ -168,7 +168,7 @@ pub async fn authenticate(
                     {
                         Ok(user) => user,
                         Err(LdapError::LicenseUserLimitReached(_, _)) => {
-                            return Err(WebError::Forbidden("License limit reached.".into()));
+                            return Err(WebError::Forbidden("License limit reached."));
                         }
                         Err(ldap_err) => {
                             warn!(
@@ -218,7 +218,7 @@ pub async fn authenticate(
         match login_through_ldap(&appstate.pool, &username_or_email, &data.password).await {
             Ok(user) => user,
             Err(LdapError::LicenseUserLimitReached(_, _)) => {
-                return Err(WebError::Forbidden("License limit reached.".into()));
+                return Err(WebError::Forbidden("License limit reached."));
             }
             Err(err) => {
                 info!("Failed to authenticate user {username_or_email} with LDAP: {err}");
@@ -311,13 +311,25 @@ pub async fn authenticate(
 )]
 pub async fn logout(
     cookies: CookieJar,
+    private_cookies: PrivateCookieJar,
     SessionExtractor(session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
-) -> Result<(CookieJar, ApiResponse), WebError> {
-    // remove auth cookie
-    let cookies = cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
+) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
+    let cookie_domain = server_config()
+        .cookie_domain
+        .as_ref()
+        .ok_or(WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?
+        .clone();
+    let session_cookie = Cookie::build((SESSION_COOKIE_NAME, ""))
+        .domain(cookie_domain.clone())
+        .path("/");
+    let sign_in_cookie = Cookie::build((SIGN_IN_COOKIE_NAME, ""))
+        .domain(cookie_domain)
+        .path("/");
+    let cookies = cookies.remove(session_cookie);
+    let private_cookies = private_cookies.remove(sign_in_cookie);
     let user = User::find_by_id(&appstate.pool, session.user_id)
         .await?
         .ok_or_else(|| WebError::BadRequest(format!("User {} does not exist", session.user_id)))?;
@@ -337,7 +349,7 @@ pub async fn logout(
         event: Box::new(ApiEventType::UserLogout),
     })?;
 
-    Ok((cookies, ApiResponse::default()))
+    Ok((cookies, private_cookies, ApiResponse::default()))
 }
 
 /// Enable MFA

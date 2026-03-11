@@ -162,6 +162,7 @@ impl ApiAclAlias {
                 // update the not-yet applied modification itself
                 let mut alias = alias.with_id(id);
                 alias.parent_id = existing_alias.parent_id;
+                alias.state = existing_alias.state;
                 alias.save(&mut *transaction).await?;
 
                 // recreate related objects

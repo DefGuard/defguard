@@ -45,7 +45,7 @@ pub async fn add_api_token(
             session.user.username
         );
         return Err(WebError::Forbidden(
-            "Cannot create API token for non-admin user".into(),
+            "Cannot create API token for non-admin user",
         ));
     }
 
@@ -107,7 +107,7 @@ pub async fn delete_api_token(
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(token) = ApiToken::find_by_id(&appstate.pool, token_id).await? {
         if !session.is_admin && user.id != token.user_id {
-            return Err(WebError::Forbidden(String::new()));
+            return Err(WebError::Forbidden(""));
         }
         token.clone().delete(&appstate.pool).await?;
         if let Some(owner) = User::find_by_id(&appstate.pool, token.user_id).await? {
@@ -149,7 +149,7 @@ pub async fn rename_api_token(
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut token) = ApiToken::find_by_id(&appstate.pool, token_id).await? {
         if !session.is_admin && user.id != token.user_id {
-            return Err(WebError::Forbidden(String::new()));
+            return Err(WebError::Forbidden(""));
         }
         let old_name = token.name.clone();
         token.name = data.name;

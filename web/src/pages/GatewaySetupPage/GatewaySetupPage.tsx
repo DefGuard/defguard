@@ -1,6 +1,6 @@
 import './style.scss';
 import { useNavigate } from '@tanstack/react-router';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
@@ -20,7 +20,20 @@ export const GatewaySetupPage = () => {
   const activeStep = useGatewayWizardStore((s) => s.activeStep);
   const isOnWelcomePage = useGatewayWizardStore((s) => s.isOnWelcomePage);
   const setIsOnWelcomePage = useGatewayWizardStore((s) => s.setisOnWelcomePage);
+  const isMigrationWizard = useGatewayWizardStore((s) => s.isMigrationWizard);
   const navigate = useNavigate();
+
+  const onClose = useCallback(() => {
+    if (isMigrationWizard) {
+      navigate({ to: '/migration/locations', replace: true });
+      return;
+    }
+    navigate({ to: '/locations', replace: true }).then(() => {
+      setTimeout(() => {
+        useGatewayWizardStore.getState().reset();
+      }, 100);
+    });
+  }, [isMigrationWizard, navigate]);
 
   const stepsConfig = useMemo(
     (): Record<GatewaySetupStepValue, WizardPageStep> => ({
@@ -79,17 +92,11 @@ export const GatewaySetupPage = () => {
   return (
     <WizardPage
       activeStep={activeStep}
-      onClose={() => {
-        navigate({ to: '/locations', replace: true }).then(() => {
-          setTimeout(() => {
-            useGatewayWizardStore.getState().reset();
-          }, 100);
-        });
-      }}
+      onClose={onClose}
       subtitle={m.gateway_setup_page_subtitle()}
       title={m.gateway_setup_page_title()}
       steps={stepsConfig}
-      id="setup-wizard"
+      id="gw-wizard"
       isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.gateway_setup_welcome_title(),
@@ -98,13 +105,7 @@ export const GatewaySetupPage = () => {
         docsLink: 'https://docs.defguard.net/edge-component/deployment',
         docsText: m.gateway_setup_welcome_docs_text(),
         media: <img src={welcomeImage} alt={m.gateway_setup_welcome_image_alt()} />,
-        onClose: () => {
-          navigate({ to: '/locations', replace: true }).then(() => {
-            setTimeout(() => {
-              useGatewayWizardStore.getState().reset();
-            }, 100);
-          });
-        },
+        onClose,
       }}
     >
       {stepsComponents[activeStep]}

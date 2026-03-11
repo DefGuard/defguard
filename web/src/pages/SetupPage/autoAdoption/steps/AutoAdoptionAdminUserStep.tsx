@@ -8,9 +8,10 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
@@ -222,13 +223,15 @@ export const AutoAdoptionAdminUserStep = () => {
           <SizedBox height={ThemeSpacing.Xl} />
         </form.AppForm>
       </form>
-      <ModalControls
-        submitProps={{
-          text: m.controls_continue(),
-          onClick: form.handleSubmit,
-          loading: isPending,
-        }}
-      />
+      <Controls>
+        <div className="right">
+          <Button
+            text={m.controls_continue()}
+            onClick={form.handleSubmit}
+            loading={isPending}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

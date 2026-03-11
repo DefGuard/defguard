@@ -239,7 +239,7 @@ pub async fn delete_authentication_key(
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
         if !session.is_admin && user.id != key.user_id {
-            return Err(WebError::Forbidden(String::new()));
+            return Err(WebError::Forbidden(""));
         }
         key.clone().delete(&appstate.pool).await?;
         info!(
@@ -284,7 +284,7 @@ pub async fn rename_authentication_key(
                 "User {} tried to rename key ({}) of another user with id {}",
                 username, key_id, key.user_id
             );
-            return Err(WebError::Forbidden(String::new()));
+            return Err(WebError::Forbidden(""));
         }
         let old_name = key.name.clone();
         key.name = Some(data.name);

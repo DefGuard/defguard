@@ -9,13 +9,24 @@ export type Resource = object & { id: number };
 export type ResourceById<T extends object> = {
   [id: number]: T | undefined;
 };
+
+export interface ResourceDisplay {
+  id: number;
+  display: string;
+}
+
+export interface MigrationWizardLocationState {
+  locations: number[];
+  current_location: number;
+}
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
+  location_state: MigrationWizardLocationState | null;
 }
 
 export interface SessionInfo {
   authorized: boolean;
-  isAdmin: boolean;
+  is_admin: boolean;
   // if it's not null then wizard is in progress / complete = false
   active_wizard: ActiveWizardValue | null;
 }
@@ -86,6 +97,7 @@ export interface SetAutoAdoptionMfaSettingsRequest {
 export interface ValidateDeviceIpsRequest {
   ips: string[];
   locationId: number;
+  deviceId?: number;
 }
 
 export interface IpValidation {
@@ -318,6 +330,28 @@ export interface LimitInfo {
 export interface LicenseLimitsInfo {
   locations: LimitInfo;
   users: LimitInfo;
+  devices?: LimitInfo | null;
+  user_devices?: LimitInfo | null;
+  network_devices?: LimitInfo | null;
+}
+
+export interface LicenseCheckCounts {
+  user: number;
+  user_device: number;
+  network_device: number;
+  location: number;
+}
+
+export interface LicenseCheckLimits {
+  users: number;
+  devices: number;
+  locations: number;
+  network_devices?: number | null;
+}
+
+export interface LicenseCheckResponse {
+  limits: LicenseCheckLimits | null;
+  counts: LicenseCheckCounts;
 }
 
 export const LicenseTier = {

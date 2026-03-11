@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
-import type { ApiError } from '../../../../../../../shared/api/types';
+import type {
+  ApiError,
+  LicenseCheckResponse,
+} from '../../../../../../../shared/api/types';
 import { CopyButton } from '../../../../../../../shared/components/CopyButton/CopyButton';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
@@ -14,6 +17,7 @@ import { useAppForm } from '../../../../../../../shared/form';
 import { formChangeLogic } from '../../../../../../../shared/formLogic';
 import {
   closeModal,
+  openModal,
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
@@ -65,6 +69,64 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+type LicenseLimitConflict = {
+  label: string;
+  current: number;
+  limit: number;
+};
+
+const sanitizeLicense = (license: string | null | undefined) =>
+  license?.replaceAll('\n', '').trim() ?? '';
+
+const getLicenseLimitConflicts = ({
+  counts,
+  limits,
+}: LicenseCheckResponse): LicenseLimitConflict[] => {
+  if (!limits) {
+    return [];
+  }
+
+  const conflicts: LicenseLimitConflict[] = [];
+
+  if (counts.user > limits.users) {
+    conflicts.push({
+      label: 'Users',
+      current: counts.user,
+      limit: limits.users,
+    });
+  }
+
+  if (counts.location > limits.locations) {
+    conflicts.push({
+      label: 'Locations',
+      current: counts.location,
+      limit: limits.locations,
+    });
+  }
+
+  const currentDevices = counts.user_device + counts.network_device;
+  if (currentDevices > limits.devices) {
+    conflicts.push({
+      label: 'Devices',
+      current: currentDevices,
+      limit: limits.devices,
+    });
+  }
+
+  if (
+    isPresent(limits.network_devices) &&
+    counts.network_device > limits.network_devices
+  ) {
+    conflicts.push({
+      label: 'Network devices',
+      current: counts.network_device,
+      limit: limits.network_devices,
+    });
+  }
+
+  return conflicts;
+};
+
 const ModalContent = ({ license: initialLicense }: ModalData) => {
   const defaultValues: FormFields = useMemo(
     () => ({
@@ -91,17 +153,47 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value, formApi }) => {
-      await patchSettings({
-        license: value.license?.replaceAll('\n', '').trim() ?? '',
-      }).catch((e: AxiosError<ApiError>) => {
-        if (e.status && e.status >= 400 && e.status < 500) {
-          formApi.setErrorMap({
-            onSubmit: {
-              fields: {
-                license: m.form_error_license(),
-              },
+      const license = sanitizeLicense(value.license);
+
+      const setLicenseError = () => {
+        formApi.setErrorMap({
+          onSubmit: {
+            fields: {
+              license: m.form_error_license(),
             },
+          },
+        });
+      };
+
+      if (license.length > 0) {
+        const checkResult = await api
+          .checkLicense({ license })
+          .catch((e: AxiosError<ApiError>) => {
+            const status = e.status ?? e.response?.status;
+            if (status && status >= 400 && status < 500) {
+              setLicenseError();
+            }
+            return null;
           });
+
+        if (!checkResult) {
+          return;
+        }
+
+        const conflicts = getLicenseLimitConflicts(checkResult.data);
+        if (conflicts.length > 0) {
+          closeModal(modalNameValue);
+          openModal(ModalName.LicenseLimitConflict, { conflicts });
+          return;
+        }
+      }
+
+      await patchSettings({
+        license,
+      }).catch((e: AxiosError<ApiError>) => {
+        const status = e.status ?? e.response?.status;
+        if (status && status >= 400 && status < 500) {
+          setLicenseError();
         }
       });
     },

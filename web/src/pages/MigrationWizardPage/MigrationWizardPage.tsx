@@ -16,6 +16,7 @@ import { MigrationWizardCASummaryStep } from './steps/MigrationWizardCASummarySt
 import { MigrationWizardConfirmationStep } from './steps/MigrationWizardConfirmationStep/MigrationWizardConfirmationStep';
 import { MigrationWizardEdgeAdoptionStep } from './steps/MigrationWizardEdgeAdoptionStep';
 import { MigrationWizardEdgeComponentStep } from './steps/MigrationWizardEdgeComponentStep';
+import { MigrationWizardEdgeDeploymentStepAdapter } from './steps/MigrationWizardEdgeDeploymentStepAdapter';
 import { MigrationWizardGeneralConfigurationStep } from './steps/MigrationWizardGeneralConfigurationStep';
 import { MigrationWizardStart } from './steps/MigrationWizardStart';
 import { useMigrationWizardStore } from './store/useMigrationWizardStore';
@@ -25,7 +26,7 @@ const welcomePageConfig: WizardWelcomePageConfig = {
   title: 'Welcome to Defguard Migration Wizard.',
   subtitle: `We've detected your previous version 1.X so email.`,
   content: <MigrationWizardStart />,
-  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link bellow.`,
+  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link below.`,
 } as const;
 
 type ConfigurableSteps = Exclude<MigrationWizardStepValue, 'welcome'>;
@@ -34,7 +35,7 @@ export const MigrationWizardPage = () => {
   const { data: wizardState } = useSuspenseQuery(getMigrationStateQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
-  const activeStep = useMigrationWizardStore((s) => s.activeStep);
+  const activeStep = useMigrationWizardStore((s) => s.current_step);
 
   const stepsConfig = useMemo(
     (): Record<ConfigurableSteps, WizardPageStep> => ({
@@ -56,21 +57,27 @@ export const MigrationWizardPage = () => {
         label: m.migration_wizard_step_certificate_authority_summary_label(),
         description: m.migration_wizard_step_certificate_authority_summary_description(),
       },
+      edgeDeployment: {
+        id: MigrationWizardStep.EdgeDeployment,
+        order: 4,
+        label: m.edge_setup_step_deploy_label(),
+        description: m.edge_setup_step_deploy_description(),
+      },
       edge: {
         id: MigrationWizardStep.Edge,
-        order: 4,
+        order: 5,
         label: m.migration_wizard_step_edge_component_label(),
         description: m.migration_wizard_step_edge_component_description(),
       },
       edgeAdoption: {
         id: MigrationWizardStep.EdgeAdoption,
-        order: 5,
+        order: 6,
         label: m.migration_wizard_step_edge_adoption_label(),
         description: m.migration_wizard_step_edge_adoption_description(),
       },
       confirmation: {
         id: MigrationWizardStep.Confirmation,
-        order: 6,
+        order: 7,
         label: m.migration_wizard_step_confirmation_label(),
         description: m.migration_wizard_step_confirmation_description(),
       },
@@ -84,6 +91,7 @@ export const MigrationWizardPage = () => {
       ca: <MigrationWizardCAStep />,
       caSummary: <MigrationWizardCASummaryStep />,
       edge: <MigrationWizardEdgeComponentStep />,
+      edgeDeployment: <MigrationWizardEdgeDeploymentStepAdapter />,
       edgeAdoption: <MigrationWizardEdgeAdoptionStep />,
       confirmation: <MigrationWizardConfirmationStep />,
       welcome: null,
@@ -94,9 +102,7 @@ export const MigrationWizardPage = () => {
   // sync wizard state
   useEffect(() => {
     if (wizardState) {
-      useMigrationWizardStore.setState({
-        activeStep: wizardState.current_step,
-      });
+      useMigrationWizardStore.setState(wizardState);
     }
   }, [wizardState]);
 

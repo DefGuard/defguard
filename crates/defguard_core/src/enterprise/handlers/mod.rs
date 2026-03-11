@@ -56,9 +56,7 @@ where
         if is_business_license_active() {
             Ok(LicenseInfo { valid: true })
         } else {
-            Err(WebError::Forbidden(
-                "Enterprise features are disabled".into(),
-            ))
+            Err(WebError::Forbidden("Enterprise features are disabled"))
         }
     }
 }
@@ -127,9 +125,7 @@ where
         let session = SessionInfo::from_request_parts(parts, state).await?;
         let settings = EnterpriseSettings::get(&appstate.pool).await?;
         if settings.admin_device_management && !session.is_admin {
-            Err(WebError::Forbidden(
-                "Only admin users can manage devices".into(),
-            ))
+            Err(WebError::Forbidden("Only admin users can manage devices"))
         } else {
             Ok(Self)
         }

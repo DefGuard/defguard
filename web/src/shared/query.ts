@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
 import { updateServiceApi } from './api/update-service';
+import { resourceDisplayMap } from './utils/resourceById';
 
 export const getExternalProviderQueryOptions = queryOptions({
   queryFn: api.openIdProvider.getOpenIdProvider,
@@ -26,6 +27,12 @@ export const getLocationsQueryOptions = queryOptions({
   queryFn: api.location.getLocations,
   queryKey: ['network'],
   select: (resp) => resp.data,
+});
+
+export const getLocationsDisplayQueryOptions = queryOptions({
+  queryFn: api.location.getLocationsDisplay,
+  queryKey: ['network', 'display', 'resourceMap'],
+  select: (resp) => resourceDisplayMap(resp.data),
 });
 
 export const getEdgesQueryOptions = queryOptions({

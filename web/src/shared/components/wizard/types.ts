@@ -1,3 +1,5 @@
+import type { HTMLProps } from 'react';
+
 export interface WizardPageConfig {
   title: string;
   subtitle: string;
@@ -30,6 +32,7 @@ export interface WizardWelcomePageConfig {
   docsText?: string;
   onClose?: () => void;
   displayDocs?: boolean;
+  containerProps?: HTMLProps<HTMLDivElement>;
 }
 
 export type WizardPageStepsConfig = Record<string, WizardPageStep>;

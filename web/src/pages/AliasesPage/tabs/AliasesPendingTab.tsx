@@ -17,7 +17,7 @@ export const AliasesPendingTab = () => {
   const { mutate: applyAliases, isPending } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
     meta: {
-      invalidate: ['acl', 'alias'],
+      invalidate: ['acl'],
     },
   });
 

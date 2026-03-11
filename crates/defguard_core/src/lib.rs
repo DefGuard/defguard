@@ -127,6 +127,7 @@ use crate::{
             add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
             remove_group_member,
         },
+        license::license_check,
         location_stats::{
             location_connected_network_devices, location_connected_user_devices,
             location_connected_users, location_stats, locations_overview_stats,
@@ -141,6 +142,7 @@ use crate::{
             userinfo,
         },
         proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
+        resource_display::get_locations_display,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -182,6 +184,7 @@ pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod location_management;
+pub mod setup_logs;
 pub mod support;
 pub mod updates;
 pub mod user_management;
@@ -534,6 +537,7 @@ pub fn build_webapp(
                 post(start_network_device_setup_for_device),
             )
             .route("/network", post(create_network).get(list_networks))
+            .route("/network/display", get(get_locations_display))
             .route("/network/import", post(import_network))
             .route("/network/stats", get(locations_overview_stats))
             .route("/network/gateways", get(all_gateways_status))
@@ -575,7 +579,8 @@ pub fn build_webapp(
                 "/network/{location_id}/snat/{user_id}",
                 put(modify_snat_binding).delete(delete_snat_binding),
             )
-            .route("/outdated", get(outdated_components)),
+            .route("/outdated", get(outdated_components))
+            .route("/license/check", post(license_check)),
     );
 
     let webapp = webapp.nest(

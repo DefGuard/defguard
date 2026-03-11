@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { ActionCard } from '../../../../shared/components/ActionCard/ActionCard';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../../../shared/defguard-ui/components/Icon';
-import { ModalControls } from '../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
@@ -114,19 +115,21 @@ export const SetupConfirmationStep = () => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <p className="subtitle">{m.initial_setup_confirmation_footer()}</p>
         </div>
-        <ModalControls
-          cancelProps={{
-            text: m.initial_setup_confirmation_cancel(),
-            onClick: handleExit,
-            variant: 'outlined',
-            disabled: isSubmitting,
-          }}
-          submitProps={{
-            text: m.initial_setup_confirmation_submit(),
-            onClick: handleFinish,
-            loading: isSubmitting,
-          }}
-        />
+        <Controls>
+          <Button
+            text={m.initial_setup_confirmation_cancel()}
+            onClick={handleExit}
+            variant="outlined"
+            disabled={isSubmitting}
+          />
+          <div className="right">
+            <Button
+              text={m.initial_setup_confirmation_submit()}
+              onClick={handleFinish}
+              loading={isSubmitting}
+            />
+          </div>
+        </Controls>
       </div>
     </WizardCard>
   );

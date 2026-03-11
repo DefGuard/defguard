@@ -1,12 +1,12 @@
 use defguard_common::global_value;
+use serde::Serialize;
 use sqlx::{error::Error as SqlxError, query};
 
 use super::license::License;
 #[cfg(test)]
 use super::license::get_cached_license;
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(Clone))]
+#[derive(Clone, Debug, Serialize)]
 pub struct Counts {
     user: u32,
     user_device: u32,

@@ -17,3 +17,4 @@ result/
 .aider*
 .env
 .zellij_layout.kdl
+docker-compose-dev.yaml

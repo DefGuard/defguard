@@ -50,7 +50,7 @@ impl ProxyManager {
         tx: ProxyTxSet,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         proxy_control_rx: Receiver<ProxyControlMessage>,
-        core_secret_key: String,
+        core_secret_key: &str,
     ) -> Self {
         Self {
             pool,

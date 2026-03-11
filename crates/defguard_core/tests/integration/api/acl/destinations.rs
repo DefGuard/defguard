@@ -197,6 +197,113 @@ async fn test_destination_create_modify_state(_: PgPoolOptions, options: PgConne
 }
 
 #[sqlx::test]
+async fn test_destination_modify_pending_child_updates_in_place(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    let applied_parent_before_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+
+    let mut first_update = applied_parent_before_update.clone();
+    first_update.name = "destination pending child".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&first_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 2);
+
+    let pending_child_before_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_child_before_update.state, AliasState::Modified);
+    assert_eq!(pending_child_before_update.parent_id, Some(1));
+
+    let mut pending_child_update = pending_child_before_update.clone();
+    pending_child_update.name = "destination pending child updated".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/2")
+        .json(&pending_child_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated_pending_child: ApiAclDestination = response.json().await;
+
+    let destinations = AclAlias::all_of_kind(&pool, AliasKind::Destination)
+        .await
+        .unwrap();
+    assert_eq!(destinations.len(), 2);
+    assert_eq!(
+        destinations
+            .iter()
+            .filter(|destination| destination.state == AliasState::Applied)
+            .count(),
+        1
+    );
+    assert_eq!(
+        destinations
+            .iter()
+            .filter(|destination| destination.state == AliasState::Modified)
+            .count(),
+        1
+    );
+
+    let response = client.get("/api/v1/acl/destination/3").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    let applied_parent_after_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_parent_after_update, applied_parent_before_update);
+    assert_eq!(applied_parent_after_update.state, AliasState::Applied);
+    assert_eq!(applied_parent_after_update.parent_id, None);
+
+    let mut expected_pending_child = pending_child_before_update.clone();
+    expected_pending_child.name = "destination pending child updated".to_string();
+    assert_eq!(updated_pending_child, expected_pending_child);
+
+    let pending_child_after_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_child_after_update, expected_pending_child);
+    assert_eq!(
+        pending_child_after_update.id,
+        pending_child_before_update.id
+    );
+    assert_eq!(pending_child_after_update.state, AliasState::Modified);
+    assert_eq!(pending_child_after_update.parent_id, Some(1));
+}
+
+#[sqlx::test]
 async fn test_destination_delete(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
@@ -416,6 +523,103 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
 }
 
 #[sqlx::test]
+async fn test_destination_apply_after_delete_recreate_preserves_rule_association(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = false;
+    rule.destinations = vec![1];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let applied_parent_before_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_parent_before_update.rules, vec![1]);
+
+    let mut first_update = applied_parent_before_update.clone();
+    first_update.name = "destination pending child".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&first_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let pending_child_before_delete: ApiAclDestination = client
+        .get("/api/v1/acl/destination/2")
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(pending_child_before_delete.state, AliasState::Modified);
+    assert_eq!(pending_child_before_delete.parent_id, Some(1));
+
+    let response = client.delete("/api/v1/acl/destination/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    let mut recreated_child_update: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    recreated_child_update.name = "destination pending child recreated".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&recreated_child_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let recreated_child: ApiAclDestination = response.json().await;
+    assert_eq!(recreated_child.state, AliasState::Modified);
+    assert_eq!(recreated_child.parent_id, Some(1));
+
+    let response = client
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [recreated_child.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_recreated_child: ApiAclDestination = client
+        .get(format!("/api/v1/acl/destination/{}", recreated_child.id))
+        .send()
+        .await
+        .json()
+        .await;
+    assert_eq!(applied_recreated_child.state, AliasState::Applied);
+    assert_eq!(applied_recreated_child.parent_id, None);
+    assert_eq!(applied_recreated_child.rules, vec![1]);
+
+    let response = client.get("/api/v1/acl/destination/1").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(count_destinations(&pool).await, 1);
+
+    let applied_rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(applied_rule.destinations, vec![recreated_child.id]);
+}
+
+#[sqlx::test]
 async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
@@ -631,6 +835,210 @@ async fn test_destination_requires_any_or_values(_: PgPoolOptions, options: PgCo
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn test_destination_port_bounds(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let mut destination = make_destination();
+    destination.name = "destination-max-port".to_string();
+    destination.ports = "65535".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination = make_destination();
+    destination.name = "destination-too-large-port".to_string();
+    destination.ports = "65536".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut destination = make_destination();
+    destination.name = "destination-max-range".to_string();
+    destination.ports = "65534-65535".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination = make_destination();
+    destination.name = "destination-too-large-range".to_string();
+    destination.ports = "65535-65536".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
+async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination = make_destination();
+    destination.name = "destination-reversed-range".to_string();
+    destination.ports = "200-100".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut destination = make_destination();
+    destination.name = "destination-malformed-range".to_string();
+    destination.ports = "1-2-3".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let mut destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    destination.ports = "200-100".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    destination.ports = "1-2-3".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
+async fn test_destination_rejects_invalid_address_ranges(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    for (name, addresses) in [
+        ("destination-reversed-address-range", "10.0.0.2-10.0.0.1"),
+        ("destination-equal-address-range", "10.0.0.1-10.0.0.1"),
+        ("destination-mixed-address-range", "10.0.0.1-2001:db8::1"),
+        (
+            "destination-multi-dash-address-range",
+            "10.0.0.1-10.0.0.2-10.0.0.3",
+        ),
+        ("destination-cidr-endpoint-range", "10.0.0.0/24-10.0.0.2"),
+        ("destination-multi-slash-ipv4-cidr", "10.0.0.1/24/25"),
+        ("destination-multi-slash-ipv6-cidr", "2001:db8::1/64/65"),
+        ("destination-scientific-notation-prefix", "10.0.0.1/1e1"),
+        ("destination-hex-prefix", "10.0.0.1/0x18"),
+        ("destination-trailing-text-ipv6-prefix", "2001:db8::1/64foo"),
+    ] {
+        let mut invalid_destination = make_destination();
+        invalid_destination.name = name.to_string();
+        invalid_destination.addresses = addresses.to_string();
+        let response = client
+            .post("/api/v1/acl/destination")
+            .json(&invalid_destination)
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{name}"
+        );
+    }
+
+    let mut valid_destination = make_destination();
+    valid_destination.name = "destination-valid-address-range".to_string();
+    valid_destination.addresses = "10.0.0.1-10.0.0.2".to_string();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&valid_destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut destination: ApiAclDestination = client
+        .get("/api/v1/acl/destination/1")
+        .send()
+        .await
+        .json()
+        .await;
+    for addresses in [
+        "10.0.0.2-10.0.0.1",
+        "10.0.0.1-10.0.0.1",
+        "10.0.0.1-2001:db8::1",
+        "10.0.0.1-10.0.0.2-10.0.0.3",
+        "10.0.0.0/24-10.0.0.2",
+        "10.0.0.1/24/25",
+        "2001:db8::1/64/65",
+        "10.0.0.1/1e1",
+        "10.0.0.1/0x18",
+        "2001:db8::1/64foo",
+    ] {
+        destination.addresses = addresses.to_string();
+        let response = client
+            .put("/api/v1/acl/destination/1")
+            .json(&destination)
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "{addresses}"
+        );
+    }
+
+    destination.addresses = "2001:db8::1-2001:db8::2".to_string();
+    let response = client
+        .put("/api/v1/acl/destination/1")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[sqlx::test]

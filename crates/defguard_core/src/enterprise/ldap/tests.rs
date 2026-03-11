@@ -4,7 +4,6 @@ use defguard_common::db::{models::settings::initialize_current_settings, setup_p
 use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::*;
 use super::{
     model::{extract_rdn_value, get_users_without_ldap_path, user_from_searchentry},
     sync::{
@@ -12,6 +11,7 @@ use super::{
         extract_intersecting_users,
     },
     test_client::{LdapEvent, group_to_test_attrs, user_to_test_attrs},
+    *,
 };
 use crate::{
     enterprise::{

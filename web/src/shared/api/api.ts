@@ -59,6 +59,7 @@ import type {
   GroupInfo,
   GroupsResponse,
   IpValidation,
+  LicenseCheckResponse,
   LicenseInfoResponse,
   LocationConnectedNetworkDevice,
   LocationConnectedNetworkDevicesRequest,
@@ -83,6 +84,7 @@ import type {
   PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
+  ResourceDisplay,
   SessionInfo,
   SetAutoAdoptionMfaSettingsRequest,
   SetAutoAdoptionUrlSettingsRequest,
@@ -320,9 +322,11 @@ const api = {
     validateIps: (data: ValidateDeviceIpsRequest) =>
       client.post<IpValidation[]>(`/device/network/ip/${data.locationId}`, {
         ips: data.ips,
+        device_id: data.deviceId,
       }),
   },
   location: {
+    getLocationsDisplay: () => client.get<ResourceDisplay[]>(`/network/display`),
     deleteLocation: (locationId: number) => client.delete(`/network/${locationId}`),
     getLocationsSummary: (from?: number) =>
       client.get<LocationStats>(`/network/stats`, {
@@ -532,6 +536,8 @@ const api = {
     setGeneralConfig: (data: MigrationGeneralConfigRequest) =>
       client.post(`/migration/general_config`, data),
   },
+  checkLicense: (data: { license: string }) =>
+    client.post<LicenseCheckResponse>('/license/check', data),
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     client

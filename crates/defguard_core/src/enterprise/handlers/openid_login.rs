@@ -390,7 +390,7 @@ pub async fn user_from_claims(
                             {err}"
                         );
                     }
-                    return Err(WebError::Forbidden("License limit reached.".into()));
+                    return Err(WebError::Forbidden("License limit reached."));
                 }
 
                 // Extract all necessary information from the token or call the userinfo endpoint.

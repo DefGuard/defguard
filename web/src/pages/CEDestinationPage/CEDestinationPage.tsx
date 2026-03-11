@@ -73,15 +73,16 @@ type FormFields = z.infer<typeof formSchema>;
 
 const getProtocolName = (value: AclProtocolValue): string => AclProtocolName[value];
 
+const destinationCreatedMessage = 'Destination created.';
+const destinationEditedMessage =
+  'Destination added to Pending tab and awaiting deployment.';
+
 export const CEDestinationPage = ({ destination }: Props) => {
   const router = useRouter();
   const isEdit = isPresent(destination);
 
   const { mutateAsync: addDestination } = useMutation({
     mutationFn: api.acl.destination.addDestination,
-    onSuccess: () => {
-      Snackbar.default('Destinations added to Pending tab and awaiting deployment.');
-    },
     onError: (e) => {
       Snackbar.error('Error occurred');
       console.error(e);
@@ -93,9 +94,6 @@ export const CEDestinationPage = ({ destination }: Props) => {
 
   const { mutateAsync: editDestination } = useMutation({
     mutationFn: api.acl.destination.editDestination,
-    onSuccess: () => {
-      Snackbar.default('Destinations added to Pending tab and awaiting deployment.');
-    },
     onError: (e) => {
       Snackbar.error('Error occurred');
       console.error(e);
@@ -133,15 +131,19 @@ export const CEDestinationPage = ({ destination }: Props) => {
     },
     onSubmit: async ({ value }) => {
       const toSend = { ...value, protocols: Array.from(value.protocols) };
+
       try {
         if (isPresent(destination)) {
           await editDestination({
             ...toSend,
             id: destination.id,
           });
+          Snackbar.default(destinationEditedMessage);
         } else {
           await addDestination(toSend);
+          Snackbar.default(destinationCreatedMessage);
         }
+
         router.history.back();
       } catch (e) {
         console.error(e);

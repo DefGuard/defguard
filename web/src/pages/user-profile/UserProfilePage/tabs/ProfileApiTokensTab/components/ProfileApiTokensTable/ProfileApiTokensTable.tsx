@@ -9,10 +9,10 @@ import { useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import type { ApiToken } from '../../../../../../../shared/api/types';
-import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../../../../../shared/utils/dateSortingFn';
@@ -68,41 +68,38 @@ export const ProfileApiTokensTable = () => {
           const rowData = info.row.original;
 
           return (
-            <TableCell>
-              <IconButtonMenu
-                icon="menu"
-                menuItems={[
-                  {
-                    items: [
-                      {
-                        icon: 'edit',
-                        testId: 'edit',
-                        text: m.controls_rename(),
-                        onClick: () => {
-                          openModal(ModalName.RenameApiToken, {
-                            id: rowData.id,
-                            name: rowData.name,
-                            username,
-                          });
-                        },
+            <TableEditCell
+              menuItems={[
+                {
+                  items: [
+                    {
+                      icon: 'edit',
+                      testId: 'edit',
+                      text: m.controls_rename(),
+                      onClick: () => {
+                        openModal(ModalName.RenameApiToken, {
+                          id: rowData.id,
+                          name: rowData.name,
+                          username,
+                        });
                       },
-                      {
-                        icon: 'delete',
-                        testId: 'delete',
-                        variant: 'danger',
-                        text: m.controls_delete(),
-                        onClick: () => {
-                          deleteApiToken({
-                            id: rowData.id,
-                            username,
-                          });
-                        },
+                    },
+                    {
+                      icon: 'delete',
+                      testId: 'delete',
+                      variant: 'danger',
+                      text: m.controls_delete(),
+                      onClick: () => {
+                        deleteApiToken({
+                          id: rowData.id,
+                          username,
+                        });
                       },
-                    ],
-                  },
-                ]}
-              />
-            </TableCell>
+                    },
+                  ],
+                },
+              ]}
+            />
           );
         },
       }),

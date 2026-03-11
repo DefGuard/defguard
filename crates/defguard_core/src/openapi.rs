@@ -20,6 +20,7 @@ use super::{
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, auth,
         group::{self, BulkAssignToGroupsRequest, Groups},
+        license,
         user::{self, UserDetails},
         wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
@@ -71,6 +72,8 @@ use super::{
         network::delete_network,
         network::list_networks,
         network::network_details,
+        // /license
+        license::license_check,
         // /network/{location_id}/snat
 		snat::list_snat_bindings,
 		snat::create_snat_binding,
@@ -111,7 +114,8 @@ use super::{
         schemas(
             ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username,
             StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult,
-            Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError
+            Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError,
+            license::CheckParams
         ),
     ),
     tags(
