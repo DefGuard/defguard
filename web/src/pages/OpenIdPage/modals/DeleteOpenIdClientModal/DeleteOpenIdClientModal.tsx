@@ -61,9 +61,7 @@ export const DeleteOpenIdClientModal = () => {
       onClose={() => setOpen(false)}
       afterClose={() => setModalData(null)}
     >
-      <AppText font={TextStyle.TBodySm400}>
-        {m.modal_delete_openid_client_body()}
-      </AppText>
+      <AppText font={TextStyle.TBodySm400}>{m.modal_delete_openid_client_body()}</AppText>
       <ModalControls
         submitProps={{
           text: m.controls_delete(),
