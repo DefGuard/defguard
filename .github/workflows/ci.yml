@@ -53,12 +53,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Scan code with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         env:
           TRIVY_SHOW_SUPPRESSED: 1
           TRIVY_IGNOREFILE: "./.trivyignore.yaml"

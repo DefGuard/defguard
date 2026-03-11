@@ -15,7 +15,7 @@ use sqlx::{
     query_scalar,
 };
 use thiserror::Error;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use utoipa::ToSchema;
 
 use crate::{
@@ -534,8 +534,8 @@ impl WireguardNetworkDevice {
 
 #[derive(Debug, Error)]
 pub enum DeviceError {
-    #[error("Device {0} pubkey is the same as gateway pubkey for network {1}")]
-    PubkeyConflict(Device<Id>, String),
+    #[error("Device pubkey {0} is the same as gateway pubkey")]
+    PubkeyConflict(String),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error(transparent)]
@@ -753,13 +753,13 @@ impl Device<Id> {
         Ok((device_network_info, device_config))
     }
 
-    // Add device to all existing networks
+    /// Add device to all existing networks.
     pub async fn add_to_all_networks(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
     ) -> Result<(Vec<DeviceNetworkInfo>, Vec<DeviceConfig>), DeviceError> {
         info!("Adding device {} to all existing networks", self.name);
-        let networks = WireguardNetwork::all(&mut *transaction).await?;
+        let networks = WireguardNetwork::all(&mut *conn).await?;
 
         let mut configs = Vec::new();
         let mut network_info = Vec::new();
@@ -770,49 +770,52 @@ impl Device<Id> {
             );
             // check for pubkey conflicts with networks
             if network.pubkey == self.wireguard_pubkey {
-                return Err(DeviceError::PubkeyConflict(self.clone(), network.name));
+                return Err(DeviceError::PubkeyConflict(self.wireguard_pubkey.clone()));
             }
-            if WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
+            if WireguardNetworkDevice::find(&mut *conn, self.id, network.id)
                 .await?
                 .is_some()
             {
-                debug!("Device {self} already has an IP within network {network}. Skipping...",);
+                debug!("Device {self} already has an IP within network {network}. Skipping...");
                 continue;
             }
 
-            if let Ok(wireguard_network_device) = network
-                .add_device_to_network(&mut *transaction, self, None)
-                .await
-            {
-                debug!(
-                    "Assigned IPs {} for device {} (user {}) in network {network}",
-                    wireguard_network_device.wireguard_ips.as_csv(),
-                    self.name,
-                    self.user_id
-                );
-                let device_network_info = DeviceNetworkInfo {
-                    network_id: network.id,
-                    device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
-                    preshared_key: wireguard_network_device.preshared_key.clone(),
-                    is_authorized: wireguard_network_device.is_authorized,
-                };
-                network_info.push(device_network_info);
+            // FIXME: don't ignore the error.
+            let Ok(wireguard_network_device) =
+                network.add_device_to_network(&mut *conn, self, None).await
+            else {
+                warn!("Failed to add device {self} to network {network}");
+                continue;
+            };
 
-                let config = Self::create_config(&network, &wireguard_network_device);
-                configs.push(DeviceConfig {
-                    network_id: network.id,
-                    network_name: network.name,
-                    config,
-                    endpoint: format!("{}:{}", network.endpoint, network.port),
-                    address: wireguard_network_device.wireguard_ips,
-                    allowed_ips: network.allowed_ips,
-                    pubkey: network.pubkey,
-                    dns: network.dns,
-                    keepalive_interval: network.keepalive_interval,
-                    location_mfa_mode: network.location_mfa_mode.clone(),
-                    service_location_mode: network.service_location_mode.clone(),
-                });
-            }
+            debug!(
+                "Assigned IPs {} for device {} (user {}) in network {network}",
+                wireguard_network_device.wireguard_ips.as_csv(),
+                self.name,
+                self.user_id
+            );
+            let device_network_info = DeviceNetworkInfo {
+                network_id: network.id,
+                device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
+                preshared_key: wireguard_network_device.preshared_key.clone(),
+                is_authorized: wireguard_network_device.is_authorized,
+            };
+            network_info.push(device_network_info);
+
+            let config = Self::create_config(&network, &wireguard_network_device);
+            configs.push(DeviceConfig {
+                network_id: network.id,
+                network_name: network.name,
+                config,
+                endpoint: format!("{}:{}", network.endpoint, network.port),
+                address: wireguard_network_device.wireguard_ips,
+                allowed_ips: network.allowed_ips,
+                pubkey: network.pubkey,
+                dns: network.dns,
+                keepalive_interval: network.keepalive_interval,
+                location_mfa_mode: network.location_mfa_mode.clone(),
+                service_location_mode: network.service_location_mode.clone(),
+            });
         }
         Ok((network_info, configs))
     }
@@ -1052,7 +1055,7 @@ impl Device<Id> {
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
+    use std::{net::Ipv4Addr, str::FromStr};
 
     use claims::{assert_err, assert_ok};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -1525,5 +1528,71 @@ mod test {
 
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].device_id, device.id);
+    }
+
+    // Mimic what add_device handler does.
+    #[sqlx::test]
+    fn test_saturated_network(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new("tester", None, "Tester", "Test", "test@test.pl", None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let network = WireguardNetwork::<NoId> {
+            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut conn = pool.begin().await.unwrap();
+
+        for (name, pubkey) in [
+            ("device1", "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU="),
+            ("device2", "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M="),
+            ("device3", "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="),
+            ("device4", "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8="),
+            ("device5", "hNuapt7lOxF93KUqZGUY00oKJxH8LYwwsUVB1uUa0y4="),
+        ] {
+            let device = Device::new(
+                name.to_string(),
+                pubkey.to_string(),
+                user.id,
+                DeviceType::User,
+                None,
+                true,
+            )
+            .save(&mut *conn)
+            .await
+            .unwrap();
+            let (_, _) = device.add_to_all_networks(&mut conn).await.unwrap();
+        }
+
+        // This device won't fit in the address space.
+        let _device = Device::new(
+            "device6".to_string(),
+            "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".to_string(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&mut *conn)
+        .await
+        .unwrap();
+        // FIXME: uncomment when `add_to_all_networks` is fixed.
+        // assert!(device.add_to_all_networks(&mut conn).await.is_err());
+
+        conn.commit().await.unwrap();
+
+        let devices = Device::all(&pool).await.unwrap();
+        assert_eq!(6, devices.len(), "{devices:#?}");
+        let network_devices = WireguardNetworkDevice::all_for_network(&pool, network.id)
+            .await
+            .unwrap();
+        assert_eq!(5, network_devices.len(), "{network_devices:#?}");
     }
 }

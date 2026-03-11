@@ -14,7 +14,6 @@ import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type {
   MenuItemProps,
   MenuItemsGroup,
@@ -23,6 +22,7 @@ import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox'
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { ThemeSize } from '../../shared/defguard-ui/types';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
@@ -53,8 +53,12 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
   const { mutate: openAdd, isPending: addPending } = useMutation({
     mutationFn: async () => {
       const { data: locations } = await api.location.getLocations();
-      const availableLocations = locations.filter(
-        (location) => location.location_mfa_mode === LocationMfaMode.Disabled,
+      const availableLocations = orderBy(
+        locations.filter(
+          (location) => location.location_mfa_mode === LocationMfaMode.Disabled,
+        ),
+        ['name'],
+        ['asc'],
       );
       if (!availableLocations.length) return;
       const { data: availableIps } = await api.network_device.getAvailableIp(
@@ -62,7 +66,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       );
       openModal(ModalName.AddNetworkDevice, {
         availableIps,
-        locations: orderBy(availableLocations, ['name'], ['asc']),
+        locations: availableLocations,
         reservedNames,
       });
     },
@@ -218,11 +222,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
               ],
             },
           ];
-          return (
-            <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
-            </TableCell>
-          );
+          return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],

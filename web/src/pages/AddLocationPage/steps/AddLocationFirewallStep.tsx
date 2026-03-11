@@ -5,12 +5,12 @@ import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { ActionCard } from '../../../shared/components/ActionCard/ActionCard';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { externalLink } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -145,16 +145,7 @@ export const AddLocationFirewallStep = () => {
           }}
         />
       </ActionCard>
-      <ModalControls
-        submitProps={{
-          testId: 'create-location',
-          text: 'Create location',
-          loading: isPending,
-          onClick: () => {
-            handleSubmit();
-          },
-        }}
-      >
+      <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
@@ -166,7 +157,17 @@ export const AddLocationFirewallStep = () => {
             });
           }}
         />
-      </ModalControls>
+        <div className="right">
+          <Button
+            testId="create-location"
+            text="Create location"
+            loading={isPending}
+            onClick={() => {
+              handleSubmit();
+            }}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

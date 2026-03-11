@@ -15,14 +15,14 @@ import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
-import { SetupEdgeDeployStep } from './steps/SetupEdgeDeployStep';
+import { SetupEdgeDeployStepAdapter } from './steps/SetupEdgeDeployStepAdapter';
 import { EdgeSetupStep, type EdgeSetupStepValue } from './types';
 import { useEdgeWizardStore } from './useEdgeWizardStore';
 
 export const EdgeSetupPage = () => {
   const activeStep = useEdgeWizardStore((s) => s.activeStep);
   const isOnWelcomePage = useEdgeWizardStore((s) => s.isOnWelcomePage);
-  const setisOnWelcomePage = useEdgeWizardStore((s) => s.setisOnWelcomePage);
+  const setIsOnWelcomePage = useEdgeWizardStore((s) => s.setIsOnWelcomePage);
   const navigate = useNavigate();
 
   const stepsConfig = useMemo(
@@ -57,7 +57,7 @@ export const EdgeSetupPage = () => {
 
   const stepsComponents = useMemo(
     (): Record<EdgeSetupStepValue, ReactNode> => ({
-      edgeDeploy: <SetupEdgeDeployStep />,
+      edgeDeploy: <SetupEdgeDeployStepAdapter />,
       edgeComponent: <SetupEdgeComponentStep />,
       edgeAdoption: <SetupEdgeAdoptionStep />,
       confirmation: <SetupConfirmationStep />,
@@ -78,7 +78,7 @@ export const EdgeSetupPage = () => {
         <Controls>
           <Button
             text={m.edge_setup_controls_configure()}
-            onClick={() => setisOnWelcomePage(false)}
+            onClick={() => setIsOnWelcomePage(false)}
           />
         </Controls>
       </div>
@@ -87,7 +87,12 @@ export const EdgeSetupPage = () => {
 
   return (
     <WizardPage
+      id="edge-setup-wizard"
       activeStep={activeStep}
+      subtitle={m.edge_setup_page_subtitle()}
+      title={m.edge_setup_page_title()}
+      steps={stepsConfig}
+      isOnWelcomePage={isOnWelcomePage}
       onClose={() => {
         navigate({ to: '/vpn-overview', replace: true }).then(() => {
           setTimeout(() => {
@@ -95,11 +100,6 @@ export const EdgeSetupPage = () => {
           }, 100);
         });
       }}
-      subtitle={m.edge_setup_page_subtitle()}
-      title={m.edge_setup_page_title()}
-      steps={stepsConfig}
-      id="setup-wizard"
-      isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.edge_setup_welcome_title(),
         subtitle: m.edge_setup_welcome_subtitle(),

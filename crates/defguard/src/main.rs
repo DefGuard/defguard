@@ -9,7 +9,10 @@ use defguard_common::{
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
-        models::{ActiveWizard, Settings, Wizard, settings::initialize_current_settings},
+        models::{
+            ActiveWizard, Settings, Wizard, gateway::Gateway, proxy::Proxy,
+            settings::initialize_current_settings,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
     types::proxy::ProxyControlMessage,
@@ -26,6 +29,7 @@ use defguard_core::{
     gateway_config,
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
+    setup_logs::CoreSetupLogLayer,
     utility_thread::run_utility_thread,
     version::IncompatibleComponents,
 };
@@ -44,7 +48,7 @@ use tokio::sync::{
     broadcast,
     mpsc::{channel, unbounded_channel},
 };
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -55,11 +59,15 @@ async fn main() -> Result<(), anyhow::Error> {
         dotenvy::dotenv().ok();
     }
     let mut config = DefGuardConfig::new();
+    let log_filter = format!(
+        "{},defguard_core::handlers::component_setup=debug",
+        config.log_level
+    );
 
-    let subscriber = tracing_subscriber::registry();
+    let subscriber = tracing_subscriber::registry().with(CoreSetupLogLayer);
     defguard_version::tracing::with_version_formatters(
         &defguard_version::Version::parse(VERSION)?,
-        &config.log_level,
+        &log_filter,
         subscriber,
     )
     .init();
@@ -233,7 +241,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
-    let proxy_secret_key = settings.secret_key_required()?.to_string();
+    let proxy_secret_key = settings.secret_key_required()?;
     let proxy_manager = ProxyManager::new(
         pool.clone(),
         ProxyTxSet::new(gateway_tx.clone(), bidi_event_tx.clone()),
@@ -246,6 +254,14 @@ async fn main() -> Result<(), anyhow::Error> {
         pool.clone(),
         GatewayTxSet::new(gateway_tx.clone(), peer_stats_tx),
     );
+
+    debug!("Resetting proxy connection state on startup");
+    Proxy::mark_all_disconnected(&pool).await?;
+    debug!("Proxy connection states reset");
+
+    debug!("Resetting gateway connection state on startup");
+    Gateway::mark_all_disconnected(&pool).await?;
+    debug!("Gateway connection states reset");
 
     // run services
     tokio::select! {

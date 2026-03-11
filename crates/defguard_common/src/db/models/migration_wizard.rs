@@ -12,6 +12,8 @@ pub enum MigrationWizardStep {
     Ca,
     #[serde(rename = "caSummary")]
     CaSummary,
+    #[serde(rename = "edgeDeployment")]
+    EdgeDeployment,
     #[serde(rename = "edge")]
     Edge,
     #[serde(rename = "edgeAdoption")]

@@ -115,7 +115,7 @@ impl WireguardNetworkData {
                 );
 
                 return Err(WebError::Forbidden(
-                    "Cannot enable external MFA. Enterprise features are disabled".into(),
+                    "Cannot enable external MFA. Enterprise features are disabled",
                 ));
             }
 
@@ -198,7 +198,7 @@ pub(crate) async fn create_network(
         .is_some_and(|l| l.locations == location_count)
     {
         error!("Adding location {network_name} blocked! License limit reached.");
-        return Ok(WebError::Forbidden("License limit reached.".into()).into());
+        return Ok(WebError::Forbidden("License limit reached").into());
     }
 
     // check if tries to add service location without active enterprise
@@ -765,9 +765,7 @@ pub(crate) async fn add_device(
             "User {} tried to add a device, but manual device management is disaled",
             session.user.username
         );
-        return Err(WebError::Forbidden(
-            "Manual device management is disabled".into(),
-        ));
+        return Err(WebError::Forbidden("Manual device management is disabled"));
     }
 
     // Let admins manage devices for disabled users
@@ -777,7 +775,7 @@ pub(crate) async fn add_device(
             session.user.username
         );
 
-        return Err(WebError::Forbidden("User is disabled.".into()));
+        return Err(WebError::Forbidden("User is disabled"));
     }
 
     let networks = WireguardNetwork::all(&appstate.pool).await?;
@@ -832,7 +830,8 @@ pub(crate) async fn add_device(
                 try_get_location_firewall_config(&location, &mut transaction).await?
             {
                 debug!(
-                    "Sending firewall config update for location {location} affected by adding new user {username} devices"
+                    "Sending firewall config update for location {location} affected by adding new \
+                    user {username} devices"
                 );
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location_id,
@@ -958,9 +957,7 @@ pub(crate) async fn modify_device(
             "User {} tried to add a device, but manual device management is disaled",
             session.user.username
         );
-        return Err(WebError::Forbidden(
-            "Manual device management is disabled".into(),
-        ));
+        return Err(WebError::Forbidden("Manual device management is disabled"));
     }
 
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
@@ -1268,7 +1265,7 @@ pub(crate) async fn list_user_devices(
             "User {} tried to list devices for user {username}, but is not an admin",
             session.user.username
         );
-        return Err(WebError::Forbidden("Admin access required".into()));
+        return Err(WebError::Forbidden("Admin access required"));
     }
     debug!("Listing devices for user: {username}");
     let devices = Device::all_for_username(&appstate.pool, &username).await?;
@@ -1290,9 +1287,7 @@ pub(crate) async fn download_config(
             "User {} tried to download device config, but manual device management is disaled",
             session.user.username
         );
-        return Err(WebError::Forbidden(
-            "Manual device management is disabled".into(),
-        ));
+        return Err(WebError::Forbidden("Manual device management is disabled"));
     }
 
     let network = find_network(network_id, &appstate.pool).await?;

@@ -52,9 +52,7 @@ pub async fn create_job(
                 "User {} cannot schedule jobs for other users",
                 session.user.username
             );
-            return Err(WebError::Forbidden(
-                "Cannot schedule jobs for other users.".into(),
-            ));
+            return Err(WebError::Forbidden("Cannot schedule jobs for other users"));
         }
 
         let mut state = worker_state.lock().unwrap();
@@ -145,7 +143,7 @@ pub async fn job_status(
                 session.user.username
             );
             return Err(WebError::Forbidden(
-                "Cannot fetch job status for other users' jobs.".into(),
+                "Cannot fetch job status for other users' jobs",
             ));
         }
         if response.success {

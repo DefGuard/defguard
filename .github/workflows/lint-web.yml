@@ -22,10 +22,10 @@ jobs:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: "recursive"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 25
       - name: install deps

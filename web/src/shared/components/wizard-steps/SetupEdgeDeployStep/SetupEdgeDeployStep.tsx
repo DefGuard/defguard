@@ -1,31 +1,32 @@
+import './style.scss';
 import { type ReactNode, useMemo, useState } from 'react';
-import { m } from '../../../paraglide/messages';
-import { Card } from '../../../shared/components/Card/Card';
-import { CodeSnippet } from '../../../shared/components/CodeSnippet/CodeSnippet';
-import { Controls } from '../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
-import { Icon, IconKind } from '../../../shared/defguard-ui/components/Icon';
-import { RenderMarkdown } from '../../../shared/defguard-ui/components/RenderMarkdown/RenderMarkdown';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
-import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../shared/defguard-ui/types';
-import amazonImage from '../assets/amazon.png';
-import kubernetesImage from '../assets/kub.png';
-import teraImage from '../assets/terra.png';
-import { EdgeSetupStep } from '../types';
-import { useEdgeWizardStore } from '../useEdgeWizardStore';
+import { m } from '../../../../paraglide/messages';
+import { AppText } from '../../../defguard-ui/components/AppText/AppText';
+import { Button } from '../../../defguard-ui/components/Button/Button';
+import { Checkbox } from '../../../defguard-ui/components/Checkbox/Checkbox';
+import { Icon, IconKind } from '../../../defguard-ui/components/Icon';
+import { RenderMarkdown } from '../../../defguard-ui/components/RenderMarkdown/RenderMarkdown';
+import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
+import { Tabs } from '../../../defguard-ui/components/Tabs/Tabs';
+import type { TabsItem } from '../../../defguard-ui/components/Tabs/types';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { Card } from '../../Card/Card';
+import { CodeSnippet } from '../../CodeSnippet/CodeSnippet';
+import { Controls } from '../../Controls/Controls';
+import { WizardCard } from '../../wizard/WizardCard/WizardCard';
+import amazonImage from './assets/amazon.png';
+import kubernetesImage from './assets/kub.png';
+import teraImage from './assets/terra.png';
 
 type TabItem = 'docker' | 'compose' | 'package' | 'virtualImage' | 'other';
 
-export const SetupEdgeDeployStep = () => {
+interface SetupEdgeDeployStepProps {
+  onBack?: () => void;
+  onNext: () => void;
+}
+
+export const SetupEdgeDeployStep = ({ onBack, onNext }: SetupEdgeDeployStepProps) => {
   const [confirmed, setConfirmed] = useState(false);
   const [activeTab, setActiveTab] = useState<TabItem>('docker');
 
@@ -77,27 +78,12 @@ export const SetupEdgeDeployStep = () => {
         }}
         text={m.edge_setup_step_deploy_confirm()}
       />
-      <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>
-        <Button
-          variant={'outlined'}
-          text={m.controls_back()}
-          onClick={() => {
-            useEdgeWizardStore.setState({
-              isOnWelcomePage: true,
-            });
-          }}
-        />
+        {isPresent(onBack) && (
+          <Button variant={'outlined'} text={m.controls_back()} onClick={onBack} />
+        )}
         <div className="right">
-          <Button
-            text={m.controls_continue()}
-            disabled={!confirmed}
-            onClick={() => {
-              useEdgeWizardStore.setState({
-                activeStep: EdgeSetupStep.EdgeComponent,
-              });
-            }}
-          />
+          <Button text={m.controls_next()} disabled={!confirmed} onClick={onNext} />
         </div>
       </Controls>
     </WizardCard>

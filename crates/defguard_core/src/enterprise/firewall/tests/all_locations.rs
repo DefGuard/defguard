@@ -1,6 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use defguard_common::db::{NoId, models::WireguardNetwork, setup_pool};
+use defguard_common::db::{models::WireguardNetwork, setup_pool};
 use ipnetwork::IpNetwork;
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -21,7 +21,6 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create test location
     let location_1 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -30,7 +29,6 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create another test location
     let location_2 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -42,7 +40,6 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // create ACL rules
     let acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -56,7 +53,6 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     .unwrap();
 
     let acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         all_locations: true,
@@ -71,7 +67,6 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
     .unwrap();
 
     let _acl_rule_3 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         all_locations: true,
@@ -127,7 +122,6 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Create test location
     let location_1 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -136,7 +130,6 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Create another test location
     let location_2 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -148,7 +141,6 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // create ACL rules
     let acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -162,7 +154,6 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
     .unwrap();
 
     let acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -177,7 +168,6 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
     .unwrap();
 
     let _acl_rule_3 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         all_locations: true,
@@ -233,7 +223,6 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Create test location
     let location_1 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
@@ -245,7 +234,6 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Create another test location
     let location_2 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
@@ -260,7 +248,6 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // create ACL rules
     let acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         allow_all_users: true,
@@ -277,7 +264,6 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
     .unwrap();
 
     let acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         all_locations: true,
@@ -295,7 +281,6 @@ async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: P
     .unwrap();
 
     let _acl_rule_3 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         all_locations: true,

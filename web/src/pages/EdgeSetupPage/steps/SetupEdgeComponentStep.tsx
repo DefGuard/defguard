@@ -2,16 +2,16 @@ import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { validateIpOrDomain } from '../../../shared/validators';
 import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
-import './style.scss';
-import { validateIpOrDomain } from '../../../shared/validators';
 
 type FormFields = StoreValues;
 
@@ -119,18 +119,20 @@ export const SetupEdgeComponentStep = () => {
           <SizedBox height={ThemeSpacing.Xl} />
         </form.AppForm>
       </form>
-      <ModalControls
-        cancelProps={{
-          text: m.edge_setup_component_controls_back(),
-          onClick: handleBack,
-          variant: 'outlined',
-        }}
-        submitProps={{
-          text: m.edge_setup_component_controls_submit(),
-          onClick: handleNext,
-          type: 'submit',
-        }}
-      />
+      <Controls>
+        <Button
+          text={m.edge_setup_component_controls_back()}
+          onClick={handleBack}
+          variant="outlined"
+        />
+        <div className="right">
+          <Button
+            text={m.edge_setup_component_controls_submit()}
+            onClick={handleNext}
+            type="submit"
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

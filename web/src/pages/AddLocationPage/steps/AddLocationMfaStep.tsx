@@ -4,11 +4,11 @@ import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import { LocationMfaMode, type NetworkLocation } from '../../../shared/api/types';
 import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Input } from '../../../shared/defguard-ui/components/Input/Input';
 import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
-import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
@@ -97,16 +97,7 @@ export const AddLocationMfaStep = () => {
           />
         </>
       )}
-      <ModalControls
-        submitProps={{
-          text: m.controls_continue(),
-          testId: 'finish',
-          disabled: isPresent(error),
-          onClick: () => {
-            handleSubmit();
-          },
-        }}
-      >
+      <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
@@ -118,7 +109,17 @@ export const AddLocationMfaStep = () => {
             });
           }}
         />
-      </ModalControls>
+        <div className="right">
+          <Button
+            text={m.controls_continue()}
+            testId="finish"
+            disabled={isPresent(error)}
+            onClick={() => {
+              handleSubmit();
+            }}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

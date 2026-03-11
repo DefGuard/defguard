@@ -99,6 +99,8 @@ mod test {
     }
 
     async fn make_test_user_and_device(name: &str, pool: &PgPool) -> User<Id> {
+        let mut transaction = pool.begin().await.unwrap();
+
         let user = User::new(
             name,
             None,
@@ -107,7 +109,7 @@ mod test {
             format!("{name}@email.com").as_str(),
             None,
         )
-        .save(pool)
+        .save(&mut *transaction)
         .await
         .unwrap();
 
@@ -119,12 +121,12 @@ mod test {
             None,
             true,
         )
-        .save(pool)
+        .save(&mut *transaction)
         .await
         .unwrap();
 
-        let mut transaction = pool.begin().await.unwrap();
         dev.add_to_all_networks(&mut transaction).await.unwrap();
+
         transaction.commit().await.unwrap();
 
         user
@@ -636,10 +638,7 @@ mod test {
         .await;
         let network = get_test_network(&pool).await;
         let mut transaction = pool.begin().await.unwrap();
-        let group = Group::new("group1".to_string())
-            .save(&mut *transaction)
-            .await
-            .unwrap();
+        let group = Group::new("group1").save(&mut *transaction).await.unwrap();
         network
             .set_allowed_groups(&mut transaction, vec![group.name])
             .await

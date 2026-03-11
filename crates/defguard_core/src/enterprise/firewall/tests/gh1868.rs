@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
     models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
@@ -32,8 +33,8 @@ async fn setup_user_and_device(
         user_id: user.id,
         device_type: DeviceType::User,
         description: None,
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let device = device.save(pool).await.unwrap();
@@ -84,7 +85,6 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
 
     // Create test location with both IPv4 and IPv6 subnet
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
@@ -148,7 +148,6 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
 
     // Create test location with both IPv4 and IPv6 subnet
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
@@ -210,7 +209,6 @@ async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
 
     // Create test location with both IPv4 and IPv6 subnet
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),

@@ -121,6 +121,14 @@ export interface OpenSettingsLicenseModal {
   license?: string | null;
 }
 
+export interface OpenLicenseLimitConflictModal {
+  conflicts: Array<{
+    label: string;
+    current: number;
+    limit: number;
+  }>;
+}
+
 export interface OpenLicenseExpiredModal {
   licenseTier: LicenseTierValue;
 }

@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDateTime};
-use defguard_common::db::{NoId, models::WireguardNetwork, setup_pool};
+use defguard_common::db::{models::WireguardNetwork, setup_pool};
 use ipnetwork::IpNetwork;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -16,7 +16,6 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     let pool = setup_pool(options).await;
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         ..Default::default()
     };
@@ -24,7 +23,6 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
 
     // create expired ACL rules
     let mut acl_rule_1 = AclRule {
-        id: NoId,
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
@@ -34,7 +32,6 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        id: NoId,
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
@@ -83,7 +80,6 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     let pool = setup_pool(options).await;
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -92,7 +88,6 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
 
     // create expired ACL rules
     let mut acl_rule_1 = AclRule {
-        id: NoId,
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
@@ -102,7 +97,6 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        id: NoId,
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
@@ -151,7 +145,6 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     let pool = setup_pool(options).await;
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
@@ -163,7 +156,6 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
 
     // create expired ACL rules
     let mut acl_rule_1 = AclRule {
-        id: NoId,
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,
@@ -173,7 +165,6 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     .await
     .unwrap();
     let mut acl_rule_2 = AclRule {
-        id: NoId,
         expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
         enabled: true,
         state: RuleState::Applied,

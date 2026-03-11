@@ -2,6 +2,7 @@ mod acl;
 mod api_tokens;
 mod auth;
 mod common;
+mod component_setup;
 mod enrollment;
 mod enterprise_settings;
 mod forward_auth;

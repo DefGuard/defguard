@@ -1,4 +1,9 @@
-use std::{convert::Infallible, time::Duration};
+use std::{
+    collections::VecDeque,
+    convert::Infallible,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use axum::{
     Extension,
@@ -37,10 +42,12 @@ use tonic::{
     service::Interceptor,
     transport::{Certificate, ClientTlsConfig, Endpoint},
 };
+use tracing::Instrument;
 
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
     enterprise::is_enterprise_license_active,
+    setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
@@ -152,13 +159,18 @@ fn set_step_message(next_step: SetupStep) -> Event {
 
 struct SetupFlow {
     last_step: SetupStep,
+    log_buffer: Arc<Mutex<VecDeque<String>>>,
     log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 }
 
 impl SetupFlow {
-    const fn new(log_rx: tokio::sync::mpsc::UnboundedReceiver<String>) -> Self {
+    fn new(
+        log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+        log_buffer: Arc<Mutex<VecDeque<String>>>,
+    ) -> Self {
         Self {
             last_step: SetupStep::CheckingConfiguration,
+            log_buffer,
             log_rx,
         }
     }
@@ -169,7 +181,15 @@ impl SetupFlow {
     }
 
     fn error(&mut self, message: &str) -> Event {
-        let mut collected_logs = Vec::new();
+        error!("{message}");
+
+        let mut collected_logs = {
+            let mut guard = self
+                .log_buffer
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            std::mem::take(&mut *guard).into_iter().collect::<Vec<_>>()
+        };
         while let Ok(log) = self.log_rx.try_recv() {
             collected_logs.push(log);
         }
@@ -178,6 +198,7 @@ impl SetupFlow {
         } else {
             Some(collected_logs)
         };
+
         error_message(message, self.last_step, logs)
     }
 }
@@ -193,9 +214,10 @@ pub async fn setup_proxy_tls_stream(
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-
-    let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx);
+    let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
+    let inner_log_buffer = Arc::clone(&log_buffer);
+    let inner_stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
         // check if tries to connect more then 1 proxy without active enterprise license
         if !is_enterprise_license_active() {
@@ -203,8 +225,7 @@ pub async fn setup_proxy_tls_stream(
                 Ok(current_proxies) => {
                     if !current_proxies.is_empty() {
                         yield Ok(flow.error(
-                            "Enterprise license is required for connecting more \
-                            then one Edge.",
+                            "Enterprise license is required for connecting more than one Edge.",
                         ));
                         return;
                     }
@@ -216,20 +237,14 @@ pub async fn setup_proxy_tls_stream(
             }
         }
 
+        debug!("License check passed");
+
         // Step 1: Check configuration
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
-
-        match Proxy::find_by_address_port(
-            &pool,
-            &request.ip_or_domain,
-            i32::from(request.grpc_port),
-        )
-        .await
-        {
+        match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
                 yield Ok(flow.error(&format!(
-                    "An edge Proxy with address {}:{} is already \
-                   registered with name \"{}\".",
+                    "An edge Proxy with address {}:{} is already registered with name \"{}\".",
                     request.ip_or_domain, request.grpc_port, proxy.name
                 )));
                 return;
@@ -246,8 +261,9 @@ pub async fn setup_proxy_tls_stream(
             }
         }
 
-        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
+        debug!("Configuration check passed");
 
+        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -256,7 +272,7 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
-        debug!("Successfully validated Edge address: {url_str}",);
+        debug!("Successfully validated Edge address: {url_str}");
 
         let endpoint = match Endpoint::from_shared(url_str) {
             Ok(e) => e,
@@ -315,7 +331,6 @@ pub async fn setup_proxy_tls_stream(
         yield Ok(flow.step(SetupStep::CheckingAvailability));
 
         let version_clone = version.clone();
-
         let token = match Claims::new(
             defguard_common::auth::claims::ClaimsType::Gateway,
             url.to_string(),
@@ -335,58 +350,48 @@ pub async fn setup_proxy_tls_stream(
 
         let version_interceptor = ClientVersionInterceptor::new(version);
         let auth_interceptor = AuthInterceptor::new(token);
-
-        let mut client = ProxySetupClient::with_interceptor(
-            endpoint.connect_lazy(),
-            move |mut req: Request<()>| {
-                req = version_interceptor.clone().call(req)?;
-                auth_interceptor.clone().call(req)
-            },
-        );
+        let mut client = ProxySetupClient::with_interceptor(endpoint.connect_lazy(), move |mut req: Request<()>| {
+            req = version_interceptor.clone().call(req)?;
+            auth_interceptor.clone().call(req)
+        });
 
         debug!(
             "Initiating connection to Edge at {}:{}",
             request.ip_or_domain, request.grpc_port
         );
 
-        let response_with_metadata =
-            match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
-                Ok(Ok(r)) => r,
-                Ok(Err(e)) => {
-                    match e.code() {
-                        tonic::Code::Unavailable => {
-                            let error_msg = e.to_string();
-                            if error_msg.contains("h2 protocol error")
-                                || error_msg.contains("http2 error")
-                            {
-                                yield Ok(flow.error(&format!(
-                            "Failed to connect to Edge at {}:{}: {}. This may indicate that \
-                            the Edge is already configured with TLS. Please check if the Edge \
-                            has already been set up.",
-                            request.ip_or_domain, request.grpc_port, e
-                        )));
-                            } else {
-                                yield Ok(flow.error(&format!(
-                            "Failed to connect to Edge at {}:{}. Please ensure the address \
-                            and port are correct and that the Edge component is running.",
-                            request.ip_or_domain, request.grpc_port
-                        )));
-                            }
-                        }
-                        _ => {
-                            yield Ok(flow.error(&format!("Failed to connect to Edge: {e}")));
+        let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
+            Ok(Ok(r)) => r,
+            Ok(Err(e)) => {
+                match e.code() {
+                    tonic::Code::Unavailable => {
+                        let error_msg = e.to_string();
+                        if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
+                            yield Ok(flow.error(&format!(
+                                "Failed to connect to Edge at {}:{}: {}. This may indicate that the Edge is already configured with TLS. Please check if the Edge has already been set up.",
+                                request.ip_or_domain, request.grpc_port, e
+                            )));
+                        } else {
+                            yield Ok(flow.error(&format!(
+                                "Failed to connect to Edge at {}:{}. Please ensure the address and port are correct and that the Edge component is running.",
+                                request.ip_or_domain, request.grpc_port
+                            )));
                         }
                     }
-                    return;
+                    _ => {
+                        yield Ok(flow.error(&format!("Failed to connect to Edge: {e}")));
+                    }
                 }
-                Err(_) => {
-                    yield Ok(flow.error(&format!(
-                        "Connection to Edge at {}:{} timed out after 10 seconds.",
-                        request.ip_or_domain, request.grpc_port
-                    )));
-                    return;
-                }
-            };
+                return;
+            }
+            Err(_) => {
+                yield Ok(flow.error(&format!(
+                    "Connection to Edge at {}:{} timed out after 10 seconds.",
+                    request.ip_or_domain, request.grpc_port
+                )));
+                return;
+            }
+        };
 
         debug!("Successfully connected to Edge");
 
@@ -407,8 +412,7 @@ pub async fn setup_proxy_tls_stream(
         if let Some(proxy_version) = proxy_version {
             if proxy_version < MIN_PROXY_VERSION {
                 yield Ok(flow.error(&format!(
-                    "Edge version {proxy_version} is older than Core version \
-                    {version_clone}. Please update the Edge component.",
+                    "Edge version {proxy_version} is older than Core version {version_clone}. Please update the Edge component.",
                 )));
                 return;
             }
@@ -427,9 +431,7 @@ pub async fn setup_proxy_tls_stream(
             };
 
             match serde_json::to_string(&response) {
-                Ok(body) => {
-                    yield Ok(Event::default().data(body));
-                }
+                Ok(body) => yield Ok(Event::default().data(body)),
                 Err(e) => {
                     yield Ok(flow.error(&format!("Failed to serialize version response: {e}")));
                     return;
@@ -441,35 +443,37 @@ pub async fn setup_proxy_tls_stream(
         }
 
         let mut response = response_with_metadata.into_inner();
+        let spawn_log_buffer = inner_log_buffer.clone();
+        let log_reader_task = tokio::spawn(
+            scope_setup_logs(spawn_log_buffer, async move {
+                    while let Some(log_entry) = response.next().await {
+                        match log_entry {
+                            Ok(entry) => {
+                                let level = entry
+                                    .level
+                                    .strip_prefix("Level(")
+                                    .and_then(|s| s.strip_suffix(")"))
+                                    .unwrap_or(&entry.level)
+                                    .to_uppercase();
 
-        let log_reader_task = tokio::spawn(async move {
-            while let Some(log_entry) = response.next().await {
-                match log_entry {
-                    Ok(entry) => {
-                        let level = entry
-                            .level
-                            .strip_prefix("Level(")
-                            .and_then(|s| s.strip_suffix(")"))
-                            .unwrap_or(&entry.level)
-                            .to_uppercase();
-
-                        let formatted = format!(
-                            "{} {} {}: message={}",
-                            entry.timestamp, level, entry.target, entry.message
-                        );
-                        if log_tx.send(formatted).is_err() {
-                            break;
+                                let formatted = format!(
+                                    "{} {} {}: message={}",
+                                    entry.timestamp, level, entry.target, entry.message
+                                );
+                                if log_tx.send(formatted).is_err() {
+                                    break;
+                                }
+                            }
+                            Err(e) => {
+                                let _ = log_tx.send(format!("Error reading log: {e}"));
+                                break;
+                            }
                         }
                     }
-                    Err(e) => {
-                        let _ = log_tx.send(format!("Error reading log: {e}"));
-                        break;
-                    }
-                }
-            }
-        });
+                })
+                .instrument(tracing::Span::current()),
+        );
 
-        // Create guard to ensure task is aborted on all exit paths
         let _log_task_guard = TaskGuard(log_reader_task);
 
         // Step 4: Obtain CSR
@@ -480,12 +484,7 @@ pub async fn setup_proxy_tls_stream(
             return;
         };
 
-        let csr_response = match client
-            .get_csr(CertificateInfo {
-                cert_hostname: hostname.to_string(),
-            })
-            .await
-        {
+        let csr_response = match client.get_csr(CertificateInfo { cert_hostname: hostname.to_string() }).await {
             Ok(r) => r.into_inner(),
             Err(e) => {
                 yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
@@ -501,29 +500,22 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
-        debug!(
-            "Received certificate signing request from Edge for hostname: {hostname}"
-        );
+        debug!("Received certificate signing request from Edge for hostname: {hostname}");
 
         // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
 
         let settings = Settings::get_current_settings();
-
         let Some(ca_cert_der) = settings.ca_cert_der else {
             yield Ok(flow.error("CA certificate not found in settings"));
             return;
         };
-
         let Some(ca_key_pair) = settings.ca_key_der else {
             yield Ok(flow.error("CA key pair not found in settings"));
             return;
         };
 
-        let ca = match defguard_certs::CertificateAuthority::from_cert_der_key_pair(
-            &ca_cert_der,
-            &ca_key_pair,
-        ) {
+        let ca = match defguard_certs::CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_pair) {
             Ok(c) => c,
             Err(e) => {
                 yield Ok(flow.error(&format!("Failed to create CA: {e}")));
@@ -546,28 +538,21 @@ pub async fn setup_proxy_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        let response = DerPayload {
-            der_data: cert.der().to_vec(),
-        };
-
-        if let Err(e) = client.send_cert(response).await {
+        if let Err(e) = client.send_cert(DerPayload { der_data: cert.der().to_vec() }).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
         }
 
         debug!("Certificate successfully delivered to Edge");
 
-        let defguard_certs::CertificateInfo {
-            not_after: expiry,
-            serial,
-            ..
-        } = match defguard_certs::CertificateInfo::from_der(cert.der()) {
-            Ok(dt) => dt,
-            Err(err) => {
-                yield Ok(flow.error(&format!("Failed to get certificate expiry: {err}")));
-                return;
-            }
-        };
+        let defguard_certs::CertificateInfo { not_after: expiry, serial, .. } =
+            match defguard_certs::CertificateInfo::from_der(cert.der()) {
+                Ok(dt) => dt,
+                Err(err) => {
+                    yield Ok(flow.error(&format!("Failed to get certificate expiry: {err}")));
+                    return;
+                }
+            };
 
         debug!("Certificate expiry date determined: {expiry}");
 
@@ -577,7 +562,6 @@ pub async fn setup_proxy_tls_stream(
             i32::from(request.grpc_port),
             &session.user.fullname(),
         );
-
         proxy.certificate = Some(serial);
         proxy.certificate_expiry = Some(expiry);
 
@@ -594,11 +578,9 @@ pub async fn setup_proxy_tls_stream(
             request.common_name, proxy.id
         );
         debug!("Establishing connection to newly configured Edge");
+
         if let Some(proxy_control_tx) = proxy_control_tx {
-            if let Err(err) = proxy_control_tx
-                .send(ProxyControlMessage::StartConnection(proxy.id))
-                .await
-            {
+            if let Err(err) = proxy_control_tx.send(ProxyControlMessage::StartConnection(proxy.id)).await {
                 yield Ok(flow.error(&format!(
                     "Failed send message to connect to Edge after setup: {err}"
                 )));
@@ -608,31 +590,40 @@ pub async fn setup_proxy_tls_stream(
             debug!("Edge control channel not available; skipping connection initiation");
         }
 
-        debug!("Edge setup completed successfully");
+        info!("Edge setup completed successfully");
 
-        {
-            match Wizard::get(&pool).await {
-                Ok(wizard) => {
+        match Wizard::get(&pool).await {
+            Ok(wizard) => {
                 if !wizard.completed {
                     let state = InitialSetupState {
                         step: InitialSetupStep::Confirmation,
                     };
-                        if let Err(err) = state.save(&pool).await {
-                            yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
-                            return;
-                        }
-                        debug!("Initial setup step advanced to 'Confirmation'");
+                    if let Err(err) = state.save(&pool).await {
+                        yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
+                        return;
                     }
+                    debug!("Initial setup step advanced to 'Confirmation'");
                 }
-                Err(err) => {
-                    yield Ok(flow.error(&format!("Failed to fetch wizard state: {err}")));
-                    return;
-                }
+            }
+            Err(err) => {
+                yield Ok(flow.error(&format!("Failed to fetch wizard state: {err}")));
+                return;
             }
         }
 
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
+    };
+
+    let adoption_span = tracing::info_span!("proxy_adoption");
+    let stream = async_stream::stream! {
+        tokio::pin!(inner_stream);
+        while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
+            .instrument(adoption_span.clone())
+            .await
+        {
+            yield item;
+        }
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
@@ -649,9 +640,10 @@ pub async fn setup_gateway_tls_stream(
     Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-
-    let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx);
+    let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
+    let inner_log_buffer = Arc::clone(&log_buffer);
+    let inner_stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
 
         // check if tries to add more then 1 gateway to network without enterprise license
         if !is_enterprise_license_active() {
@@ -887,33 +879,36 @@ pub async fn setup_gateway_tls_stream(
 
         let mut response = response_with_metadata.into_inner();
 
-        let log_reader_task = tokio::spawn(async move {
-            while let Some(log_entry) = response.next().await {
-                match log_entry {
-                    Ok(entry) => {
-                        let level = entry.level
-                            .strip_prefix("Level(")
-                            .and_then(|s| s.strip_suffix(")"))
-                            .unwrap_or(&entry.level)
-                            .to_uppercase();
+        let spawn_log_buffer = inner_log_buffer.clone();
+        let log_reader_task = tokio::spawn(
+            scope_setup_logs(spawn_log_buffer, async move {
+                while let Some(log_entry) = response.next().await {
+                    match log_entry {
+                        Ok(entry) => {
+                            let level = entry
+                                .level
+                                .strip_prefix("Level(")
+                                .and_then(|s| s.strip_suffix(")"))
+                                .unwrap_or(&entry.level)
+                                .to_uppercase();
 
-                        let formatted = format!(
-                            "{} {level} {}: message={}",
-                            entry.timestamp,
-                            entry.target,
-                            entry.message
-                        );
-                        if log_tx.send(formatted).is_err() {
+                            let formatted = format!(
+                                "{} {level} {}: message={}",
+                                entry.timestamp, entry.target, entry.message
+                            );
+                            if log_tx.send(formatted).is_err() {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            let _ = log_tx.send(format!("Error reading log: {e}"));
                             break;
                         }
                     }
-                    Err(e) => {
-                        let _ = log_tx.send(format!("Error reading log: {e}"));
-                        break;
-                    }
                 }
-            }
-        });
+            })
+            .instrument(tracing::Span::current()),
+        );
 
         // Create guard to ensure task is aborted on all exit paths
         let _log_task_guard = TaskGuard(log_reader_task);
@@ -1037,6 +1032,17 @@ pub async fn setup_gateway_tls_stream(
 
         // Step 7: Done
         yield Ok(flow.step(SetupStep::Done));
+    };
+
+    let adoption_span = tracing::info_span!("gateway_adoption");
+    let stream = async_stream::stream! {
+        tokio::pin!(inner_stream);
+        while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
+            .instrument(adoption_span.clone())
+            .await
+        {
+            yield item;
+        }
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())

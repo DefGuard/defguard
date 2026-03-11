@@ -12,7 +12,12 @@ use axum::{
 use axum_extra::extract::cookie::Key;
 use defguard_common::{VERSION, db::models::Settings, types::proxy::ProxyControlMessage};
 use defguard_core::{
+    appstate::AppState,
     auth::failed_login::FailedLoginMap,
+    db::AppEvent,
+    enterprise::handlers::openid_login::{auth_callback, get_auth_info},
+    events::ApiEvent,
+    grpc::GatewayEvent,
     handle_404,
     handlers::{
         auth::{
@@ -20,7 +25,8 @@ use defguard_core::{
             mfa_enable, recovery_code, request_email_mfa_code, totp_code, totp_enable, totp_secret,
             webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
         },
-        component_setup::setup_proxy_tls_stream,
+        component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream},
+        resource_display::get_locations_display,
         session_info::get_session_info,
         settings::{get_settings, get_settings_essentials, patch_settings},
         wireguard::list_networks,
@@ -37,18 +43,9 @@ use tokio::{
 };
 use tracing::{info, instrument};
 
-use defguard_core::{
-    appstate::AppState,
-    db::AppEvent,
-    enterprise::handlers::openid_login::{auth_callback, get_auth_info},
-    events::ApiEvent,
-    grpc::GatewayEvent,
-};
-
-use crate::handlers::migration::{get_migration_state, set_general_config, update_migration_state};
 use crate::handlers::{
     initial_wizard::{create_ca, get_ca, upload_ca},
-    migration::finish_setup,
+    migration::{finish_setup, get_migration_state, set_general_config, update_migration_state},
 };
 
 /// FIXME: This is a workaround which enables us to reuse the same API handlers
@@ -121,6 +118,11 @@ pub fn build_migration_webapp(
                 .route("/auth/email/verify", post(email_mfa_code))
                 .route("/auth/recovery", post(recovery_code))
                 .route("/network", get(list_networks))
+                .route("/network/display", get(get_locations_display))
+                .route(
+                    "/network/{network_id}/gateways/setup",
+                    get(setup_gateway_tls_stream),
+                )
                 .nest(
                     "/migration",
                     Router::new()

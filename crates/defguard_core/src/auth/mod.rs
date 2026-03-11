@@ -152,7 +152,7 @@ where
             // non-admin users are not allowed to use token auth
             if !is_admin && session.state == SessionState::ApiTokenVerified {
                 return Err(WebError::Forbidden(
-                    "Token authentication is not allowed for normal users".into(),
+                    "Token authentication is not allowed for normal users",
                 ));
             }
 
@@ -231,7 +231,7 @@ where
             }
             let session_info = SessionInfo::from_request_parts(parts, state).await?;
             if !session_info.user.is_active {
-                return Err(WebError::Forbidden("user is disabled".into()));
+                return Err(WebError::Forbidden("user is disabled"));
             }
             let settings = Settings::get_current_settings();
             if let Some(default_admin_id) = settings.default_admin_id {
@@ -249,12 +249,12 @@ where
             if session_info.contains_any_group(&group_names) {
                 return Ok(Self {});
             }
-            return Err(WebError::Forbidden("access denied".into()));
+            return Err(WebError::Forbidden("access denied"));
         }
 
         let session_info = SessionInfo::from_request_parts(parts, state).await?;
         if !session_info.user.is_active {
-            return Err(WebError::Forbidden("user is disabled".into()));
+            return Err(WebError::Forbidden("user is disabled"));
         }
         let pool = extract_pool(parts, state).await?;
         let groups_with_permission = Group::find_by_permission(&pool, Permission::IsAdmin).await?;
@@ -265,7 +265,7 @@ where
         if session_info.contains_any_group(&group_names) {
             return Ok(Self {});
         }
-        Err(WebError::Forbidden("access denied".into()))
+        Err(WebError::Forbidden("access denied"))
     }
 }
 

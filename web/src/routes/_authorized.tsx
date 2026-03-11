@@ -1,13 +1,14 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayListModal';
 import { LicenseExpiredModal } from '../shared/components/modals/license/LicenseExpiredModal/LicenseExpiredModal';
+import { LicenseLimitConflictModal } from '../shared/components/modals/license/LicenseLimitConflictModal/LicenseLimitConflictModal';
 import { LimitReachedModal } from '../shared/components/modals/license/LimitReachedModal/LimitReachedModal';
 import { UpgradeBusinessModal } from '../shared/components/modals/license/UpgradeBusinessModal/UpgradeBusinessModal';
 import { UpgradeEnterpriseModal } from '../shared/components/modals/license/UpgradeEnterpriseModal/UpgradeEnterpriseModal';
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
 import { AppInfoProvider } from '../shared/providers/AppInfoProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
-import { getSessionInfoQueryOptions } from '../shared/query';
+import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../shared/query';
 
 export const Route = createFileRoute('/_authorized')({
   component: RouteComponent,
@@ -26,6 +27,22 @@ export const Route = createFileRoute('/_authorized')({
           throw redirect({ to: '/migration', replace: true });
       }
     }
+
+    if (sessionInfo.is_admin) {
+      return;
+    }
+
+    const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;
+
+    if (location.pathname !== `/user/${me.username}`) {
+      throw redirect({
+        to: '/user/$username',
+        params: {
+          username: me.username,
+        },
+        replace: true,
+      });
+    }
   },
 });
 
@@ -35,6 +52,7 @@ function RouteComponent() {
       <AppInfoProvider>
         <Outlet />
         <LimitReachedModal />
+        <LicenseLimitConflictModal />
         <UpgradeBusinessModal />
         <UpgradeEnterpriseModal />
         <LicenseExpiredModal />

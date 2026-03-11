@@ -11,11 +11,11 @@ import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName, type AclRule } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
-import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
@@ -57,7 +57,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
   const { mutate: applyAliases } = useMutation({
     mutationFn: api.acl.alias.applyAliases,
     meta: {
-      invalidate: ['acl', 'alias'],
+      invalidate: ['acl'],
     },
   });
 
@@ -189,15 +189,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
               },
             });
           }
-          return (
-            <TableCell>
-              <IconButtonMenu
-                icon="menu"
-                menuItems={menuItems}
-                disabled={isLicenseFetching}
-              />
-            </TableCell>
-          );
+          return <TableEditCell menuItems={menuItems} disabled={isLicenseFetching} />;
         },
       }),
     ],

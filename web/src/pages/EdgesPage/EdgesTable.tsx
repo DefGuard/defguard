@@ -16,12 +16,12 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyState } from '../../shared/defguard-ui/components/EmptyState/EmptyState';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { IconButtonMenu } from '../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { getEdgesQueryOptions, getLicenseInfoQueryOptions } from '../../shared/query';
@@ -242,11 +242,7 @@ export const EdgesTable = () => {
             },
           ];
 
-          return (
-            <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
-            </TableCell>
-          );
+          return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],

@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
     models::{
@@ -91,12 +92,12 @@ async fn create_test_users_and_devices(
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(pool).await.unwrap();
@@ -249,7 +250,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: false,
         ..Default::default()
     };
@@ -272,12 +272,12 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();
@@ -302,13 +302,11 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Setup test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     };
     let group_1 = group_1.save(&pool).await.unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     };
@@ -342,8 +340,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         user_id: user_1.id, // Owned by user 1
         device_type: DeviceType::Network,
         description: Some("Test network device 1".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
@@ -354,8 +352,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         user_id: user_2.id, // Owned by user 2
         device_type: DeviceType::Network,
         description: Some("Test network device 2".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
@@ -366,8 +364,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         user_id: user_3.id, // Owned by user 3
         device_type: DeviceType::Network,
         description: Some("Test network device 3".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
@@ -402,7 +400,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create first ACL rule - Web access
     let acl_rule_1 = AclRule {
-        id: NoId,
         name: "Web Access".into(),
         all_locations: false,
         expires: None,
@@ -452,7 +449,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create second ACL rule - DNS access
     let acl_rule_2 = AclRule {
-        id: NoId,
         name: "DNS Access".into(),
         all_locations: false,
         expires: None,
@@ -677,7 +673,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: false,
         address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -701,12 +696,12 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();
@@ -735,13 +730,11 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Setup test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     };
     let group_1 = group_1.save(&pool).await.unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     };
@@ -835,7 +828,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Create first ACL rule - Web access
     let acl_rule_1 = AclRule {
-        id: NoId,
         name: "Web Access".into(),
         all_locations: false,
         expires: None,
@@ -885,7 +877,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     // Create second ACL rule - DNS access
     let acl_rule_2 = AclRule {
-        id: NoId,
         name: "DNS Access".into(),
         all_locations: false,
         expires: None,
@@ -1135,7 +1126,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: false,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
@@ -1162,7 +1152,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{}", user.id, device_num),
+                name: format!("device-{}-{device_num}", user.id),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
@@ -1199,13 +1189,11 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Setup test groups
     let group_1 = Group {
-        id: NoId,
         name: "group_1".into(),
         ..Default::default()
     };
     let group_1 = group_1.save(&pool).await.unwrap();
     let group_2 = Group {
-        id: NoId,
         name: "group_2".into(),
         ..Default::default()
     };
@@ -1239,8 +1227,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         user_id: user_1.id, // Owned by user 1
         device_type: DeviceType::Network,
         description: Some("Test network device 1".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
@@ -1251,8 +1239,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         user_id: user_2.id, // Owned by user 2
         device_type: DeviceType::Network,
         description: Some("Test network device 2".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
@@ -1263,8 +1251,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         user_id: user_3.id, // Owned by user 3
         device_type: DeviceType::Network,
         description: Some("Test network device 3".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
@@ -1308,7 +1296,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Create first ACL rule - Web access
     let acl_rule_1 = AclRule {
-        id: NoId,
         name: "Web Access".into(),
         all_locations: false,
         expires: None,
@@ -1361,7 +1348,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     // Create second ACL rule - DNS access
     let acl_rule_2 = AclRule {
-        id: NoId,
         name: "DNS Access".into(),
         all_locations: false,
         expires: None,
@@ -1779,7 +1765,6 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec!["10.0.0.0/16".parse().unwrap()],
         ..Default::default()
@@ -1793,7 +1778,6 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create ACL rule
     let acl_rule = AclRule {
-        id: NoId,
         name: "test rule".to_string(),
         expires: None,
         enabled: true,
@@ -1810,7 +1794,6 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create different kinds of aliases and add them to the rule
     let destination_alias = AclAlias {
-        id: NoId,
         name: "destination alias".to_string(),
         kind: AliasKind::Destination,
         ports: vec![PortRange::new(100, 200).into()],
@@ -1822,7 +1805,6 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let component_alias = AclAlias {
-        id: NoId,
         kind: AliasKind::Component,
         addresses: vec!["10.0.2.3".parse().unwrap()],
         ..Default::default()
@@ -1937,7 +1919,6 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec!["10.0.0.0/16".parse().unwrap()],
         ..Default::default()
@@ -1951,7 +1932,6 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     // create ACL rule without manually configured destination
     let acl_rule = AclRule {
-        id: NoId,
         name: "test rule".to_string(),
         expires: None,
         enabled: true,
@@ -1967,7 +1947,6 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     // create different kinds of aliases and add them to the rule
     let destination_alias_1 = AclAlias {
-        id: NoId,
         name: "postgres".to_string(),
         kind: AliasKind::Destination,
         addresses: vec!["10.0.2.3".parse().unwrap()],
@@ -1978,7 +1957,6 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     .await
     .unwrap();
     let destination_alias_2 = AclAlias {
-        id: NoId,
         name: "redis".to_string(),
         kind: AliasKind::Destination,
         addresses: vec!["10.0.2.4".parse().unwrap()],
@@ -2107,7 +2085,6 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
 
     // Create test location
     let location = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -2116,7 +2093,6 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
 
     // create ACL rules
     let acl_rule_1 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         state: RuleState::Applied,
@@ -2128,7 +2104,6 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
     .await
     .unwrap();
     let acl_rule_2 = AclRule {
-        id: NoId,
         expires: None,
         enabled: true,
         state: RuleState::Applied,
@@ -2171,7 +2146,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
 
     // Create test locations with IPv4 and IPv6 addresses
     let location_ipv4 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -2180,7 +2154,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     .await
     .unwrap();
     let location_ipv6 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
         ..Default::default()
@@ -2189,7 +2162,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     .await
     .unwrap();
     let location_ipv4_and_ipv6 = WireguardNetwork {
-        id: NoId,
         acl_enabled: true,
         address: vec![
             IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
@@ -2216,8 +2188,8 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();
@@ -2281,7 +2253,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
 
     // create ACL rule without manually configured destination and no aliases
     let acl_rule = AclRule {
-        id: NoId,
         name: "test rule".to_string(),
         expires: None,
         enabled: true,

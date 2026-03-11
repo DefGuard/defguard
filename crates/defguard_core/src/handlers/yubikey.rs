@@ -24,7 +24,7 @@ pub(crate) async fn delete_yubikey(
             "User {} tried to delete yubikey {key_id} of user {} without being an admin.",
             user.id, yubikey.user_id
         );
-        return Err(WebError::Forbidden("Not allowed to delete YubiKey".into()));
+        return Err(WebError::Forbidden("Not allowed to delete YubiKey"));
     }
     yubikey.delete(&appstate.pool).await?;
     info!("Yubikey {key_id} deleted by user {}", user.id);
@@ -53,7 +53,7 @@ pub(crate) async fn rename_yubikey(
             "User {}, tried to rename yubikey {key_id} of user {} without being an admin.",
             user.id, yubikey.user_id
         );
-        return Err(WebError::Forbidden(String::new()));
+        return Err(WebError::Forbidden(""));
     }
     yubikey.name = data.name;
     yubikey.save(&appstate.pool).await?;
