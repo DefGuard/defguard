@@ -189,6 +189,8 @@ pub enum Command {
         about = "Add a new VPN location and return a gateway token. Used for automated setup."
     )]
     InitVpnLocation(InitVpnLocationArgs),
+    #[command(about = "Output the gateway gRPC configuration payload for a VPN location by ID.")]
+    GatewayConfig(GatewayConfigArgs),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -207,6 +209,12 @@ pub struct InitVpnLocationArgs {
     pub allowed_ips: Vec<IpNetwork>,
     #[arg(long)]
     pub id: Option<i64>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GatewayConfigArgs {
+    #[arg(long)]
+    pub location_id: i64,
 }
 
 impl DefGuardConfig {
@@ -316,6 +324,25 @@ mod tests {
     fn verify_cli() {
         use clap::CommandFactory;
         DefGuardConfig::command().debug_assert();
+    }
+
+    #[test]
+    fn test_parse_gateway_config_command() {
+        let config = DefGuardConfig::parse_from([
+            "defguard",
+            "--secret-key",
+            "1234567890123456789012345678901234567890123456789012345678901234",
+            "gateway-config",
+            "--location-id",
+            "42",
+        ]);
+
+        assert!(matches!(
+            config.cmd,
+            Some(Command::GatewayConfig(GatewayConfigArgs {
+                location_id: 42
+            }))
+        ));
     }
 
     #[test]
