@@ -14,8 +14,8 @@ import { SettingsLayout } from '../../../shared/components/SettingsLayout/Settin
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
