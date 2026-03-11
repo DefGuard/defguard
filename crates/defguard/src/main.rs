@@ -23,6 +23,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent},
+    gateway_config,
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     utility_thread::run_utility_thread,
@@ -75,6 +76,29 @@ async fn main() -> Result<(), anyhow::Error> {
     )
     .await;
 
+    if config.openid_signing_key.is_some() {
+        info!("Using RSA OpenID signing key");
+    } else {
+        info!("Using HMAC OpenID signing key");
+    }
+
+    // initialize global settings struct
+    initialize_current_settings(&pool).await?;
+
+    debug!("Checking enterprise license status");
+    match License::load_or_renew(&pool).await {
+        Ok(license) => {
+            set_cached_license(license);
+        }
+        Err(err) => {
+            warn!(
+                "There was an error while loading the license, error: {err}. The enterprise \
+                features will be disabled."
+            );
+            set_cached_license(None);
+        }
+    }
+
     // handle optional subcommands
     if let Some(command) = &config.cmd {
         match command {
@@ -85,20 +109,15 @@ async fn main() -> Result<(), anyhow::Error> {
                 let token = init_vpn_location(&pool, args).await?;
                 println!("{token}");
             }
+            Command::GatewayConfig(args) => {
+                let config = gateway_config(&pool, args).await?;
+                println!("{config:#?}");
+            }
         }
 
         // return early
         return Ok(());
     }
-
-    if config.openid_signing_key.is_some() {
-        info!("Using RSA OpenID signing key");
-    } else {
-        info!("Using HMAC OpenID signing key");
-    }
-
-    // initialize global settings struct
-    initialize_current_settings(&pool).await?;
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
@@ -199,19 +218,19 @@ async fn main() -> Result<(), anyhow::Error> {
 
     update_counts(&pool).await?;
 
-    debug!("Checking enterprise license status");
-    match License::load_or_renew(&pool).await {
-        Ok(license) => {
-            set_cached_license(license);
-        }
-        Err(err) => {
-            warn!(
-                "There was an error while loading the license, error: {err}. The enterprise \
-                features will be disabled."
-            );
-            set_cached_license(None);
-        }
-    }
+    // debug!("Checking enterprise license status");
+    // match License::load_or_renew(&pool).await {
+    //     Ok(license) => {
+    //         set_cached_license(license);
+    //     }
+    //     Err(err) => {
+    //         warn!(
+    //             "There was an error while loading the license, error: {err}. The enterprise \
+    //             features will be disabled."
+    //         );
+    //         set_cached_license(None);
+    //     }
+    // }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
     let proxy_secret_key = settings.secret_key_required()?.to_string();
