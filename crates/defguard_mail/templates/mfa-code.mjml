@@ -8,7 +8,7 @@
   <mj-column mj-class="s-3xl">
     <mj-text>
       <p class="fg-white-c t-titles-h1" style="background-color: #3961DB; padding: 16px;display: inline-block;margin:0;">
-        356659
+        {{ code }}
       </p>
     </mj-text>
   </mj-column>
