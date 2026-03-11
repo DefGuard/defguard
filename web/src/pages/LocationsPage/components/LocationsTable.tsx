@@ -167,7 +167,7 @@ export const LocationsTable = () => {
           switch (info.getValue()) {
             case 'disabled':
               return (
-                <TableCell className="cell-with-check-icons">
+                <TableCell>
                   <span>Regular</span>
                 </TableCell>
               );
