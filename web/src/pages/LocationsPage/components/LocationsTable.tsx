@@ -159,7 +159,7 @@ export const LocationsTable = () => {
         },
       }),
       columnHelper.accessor('service_location_mode', {
-        header: 'Service location',
+        header: 'Location type',
         minSize: 100,
         enableSorting: true,
         sortingFn: 'text',
