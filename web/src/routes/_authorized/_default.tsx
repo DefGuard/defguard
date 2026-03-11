@@ -4,9 +4,8 @@ import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../../shared/
 
 export const Route = createFileRoute('/_authorized/_default')({
   beforeLoad: async ({ context, location }) => {
-    const sessionInfo = (
-      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
-    ).data;
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
 
     if (sessionInfo.is_admin) {
       return;
