@@ -5,9 +5,6 @@ import { businessBadgeProps } from '../../../../shared/components/badges/Busines
 import { SettingsLayout } from '../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { TooltipContent } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { getLicenseInfoQueryOptions } from '../../../../shared/query';
 
@@ -23,28 +20,6 @@ export const SettingsGeneralTab = () => {
           image="customization"
           title={m.settings_instance_title()}
           content={m.settings_general_section_instance_content()}
-        />
-      </Link>
-      <SizedBox height={ThemeSpacing.Xl} />
-      <TooltipProvider>
-        <TooltipTrigger>
-          <SectionSelect
-            image="proxy-management"
-            title="Proxy management"
-            content="Configure your proxy settings and manage all proxy endpoints. Adjust connection rules and ensure your traffic is routed exactly as required."
-            disabled
-          />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{`Not implemented`}</p>
-        </TooltipContent>
-      </TooltipProvider>
-      <SizedBox height={ThemeSpacing.Xl} />
-      <Link to="/settings/vpn-stats">
-        <SectionSelect
-          image="vector"
-          title={m.settings_vpn_stats_title()}
-          content={m.settings_general_section_vpn_stats_content()}
         />
       </Link>
       <SizedBox height={ThemeSpacing.Xl} />
