@@ -969,7 +969,13 @@ pub async fn gateway_config(
                 )
             })?;
 
-    Ok(gen_config(&location, peers, maybe_firewall_config))
+    // generate config
+    let mut config = gen_config(&location, peers, maybe_firewall_config);
+
+    // overwrite private key just in case
+    config.prvkey = "REDACTED".into();
+
+    Ok(config)
 }
 
 pub(crate) fn is_valid_phone_number(number: &str) -> bool {
