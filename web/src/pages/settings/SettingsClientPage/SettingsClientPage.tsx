@@ -24,6 +24,7 @@ import api from '../../../shared/api/api';
 import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
@@ -78,6 +79,12 @@ const Content = () => {
     meta: {
       invalidate: [['enterprise_settings'], ['settings']],
     },
+    onSuccess: () => {
+      Snackbar.success(m.settings_msg_saved());
+    },
+    onError: () => {
+      Snackbar.error(m.settings_msg_save_failed());
+    },
   });
 
   const defaultValues = useMemo((): FormFields => {
@@ -105,6 +112,7 @@ const Content = () => {
       const { result } = canUseBusinessFeature(licenseInfo);
       if (result) {
         await patchSettings(value);
+        form.reset(value);
       } else {
         openModal(ModalName.LicenseExpired, {
           licenseTier: licenseInfo?.tier,
