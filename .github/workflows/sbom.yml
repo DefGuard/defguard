@@ -29,13 +29,13 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.vars.outputs.TAG_NAME }}
           submodules: recursive
 
       - name: Create SBOM with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: 'fs'
           format: 'spdx-json'
@@ -46,7 +46,7 @@ jobs:
           skip-dirs: "e2e"
 
       - name: Create docker image SBOM with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'
@@ -56,7 +56,7 @@ jobs:
           scanners: "vuln"
 
       - name: Create security advisory file with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: 'fs'
           format: 'json'
@@ -67,7 +67,7 @@ jobs:
           skip-dirs: "e2e"
 
       - name: Create docker image security advisory file with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'

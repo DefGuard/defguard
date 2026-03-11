@@ -20,7 +20,6 @@ defguard_grpc_tls.workspace = true
 axum.workspace = true
 axum-extra.workspace = true
 semver.workspace = true
-secrecy.workspace = true
 hyper-rustls.workspace = true
 openidconnect.workspace = true
 reqwest.workspace = true
