@@ -77,7 +77,7 @@ const Content = () => {
   const { mutateAsync: patchSettings } = useMutation({
     mutationFn: api.settings.patchEnterpriseSettings,
     meta: {
-      invalidate: [['enterprise_settings'], ['settings']],
+      invalidate: [['settings_enterprise'], ['settings']],
     },
     onSuccess: () => {
       Snackbar.success(m.settings_msg_saved());
