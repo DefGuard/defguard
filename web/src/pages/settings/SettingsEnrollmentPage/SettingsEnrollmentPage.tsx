@@ -13,6 +13,7 @@ import { SettingsHeader } from '../../../shared/components/SettingsHeader/Settin
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
@@ -86,6 +87,12 @@ const Content = ({ settings }: { settings: Settings }) => {
     mutationFn: api.settings.patchSettings,
     meta: {
       invalidate: ['settings'],
+    },
+    onSuccess: () => {
+      Snackbar.success(m.settings_msg_saved());
+    },
+    onError: () => {
+      Snackbar.error(m.settings_msg_save_failed());
     },
   });
 

@@ -15,6 +15,7 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
@@ -83,6 +84,12 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
     meta: {
       invalidate: ['settings'],
     },
+    onSuccess: () => {
+      Snackbar.success(m.settings_msg_saved());
+    },
+    onError: () => {
+      Snackbar.error(m.settings_msg_save_failed());
+    },
   });
 
   const form = useAppForm({
@@ -93,7 +100,8 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      mutateAsync(value);
+      await mutateAsync(value);
+      form.reset(value);
     },
   });
 
