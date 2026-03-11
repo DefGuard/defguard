@@ -317,7 +317,7 @@ impl GatewayServer {
     }
 }
 
-fn gen_config(
+pub(crate) fn gen_config(
     network: &WireguardNetwork<Id>,
     peers: Vec<Peer>,
     maybe_firewall_config: Option<FirewallConfig>,

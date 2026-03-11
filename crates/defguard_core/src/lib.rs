@@ -17,7 +17,7 @@ use db::models::{device::DeviceType, wireguard::LocationMfaMode};
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
-    config::{DefGuardConfig, InitVpnLocationArgs, server_config},
+    config::{DefGuardConfig, GatewayConfigArgs, InitVpnLocationArgs, server_config},
     db::init_db,
 };
 use defguard_mail::Mail;
@@ -146,7 +146,10 @@ use self::{
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
 };
-use crate::{db::models::wireguard::ServiceLocationMode, version::IncompatibleComponents};
+use crate::{
+    db::models::wireguard::ServiceLocationMode, grpc::gateway::gen_config,
+    version::IncompatibleComponents,
+};
 
 pub mod appstate;
 pub mod auth;
@@ -928,6 +931,51 @@ pub async fn init_vpn_location(
     .to_jwt()?;
 
     Ok(token)
+}
+
+pub async fn gateway_config(
+    pool: &PgPool,
+    args: &GatewayConfigArgs,
+) -> Result<defguard_proto::gateway::Configuration, anyhow::Error> {
+    let location_id = args.location_id;
+
+    let mut conn = pool.acquire().await?;
+
+    // fetch specified location
+    let location = match WireguardNetwork::find_by_id(&mut *conn, location_id).await {
+        Ok(Some(network)) => network,
+        Ok(None) => return Err(anyhow!("Location {location_id} not found")),
+        Err(err) => {
+            return Err(anyhow!(
+                "Failed to rerieve location {location_id} with error: {err}"
+            ));
+        }
+    };
+
+    // get peers
+    let peers = location
+        .get_peers(&mut *conn)
+        .await
+        .map_err(|err| anyhow!("Failed to get peers for location {location} with error: {err}"))?;
+
+    // prepare firewall config
+    let maybe_firewall_config =
+        location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .map_err(|err| {
+                anyhow!(
+                    "Failed to prepare firewall config for location {location} with error: {err}"
+                )
+            })?;
+
+    // generate config
+    let mut config = gen_config(&location, peers, maybe_firewall_config);
+
+    // overwrite private key just in case
+    config.prvkey = "REDACTED".into();
+
+    Ok(config)
 }
 
 pub(crate) fn is_valid_phone_number(number: &str) -> bool {

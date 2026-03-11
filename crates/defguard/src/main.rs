@@ -21,6 +21,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent, GrpcEvent, InternalEvent},
+    gateway_config,
     grpc::{
         WorkerState,
         gateway::{client_state::ClientMap, map::GatewayMap},
@@ -78,6 +79,10 @@ async fn main() -> Result<(), anyhow::Error> {
             Command::InitVpnLocation(args) => {
                 let token = init_vpn_location(&pool, args).await?;
                 println!("{token}");
+            }
+            Command::GatewayConfig(args) => {
+                let config = gateway_config(&pool, args).await?;
+                println!("{config:#?}");
             }
         }
 
