@@ -10,7 +10,6 @@ import { useMemo } from 'react';
 import { m } from '../../../../../paraglide/messages';
 import api from '../../../../../shared/api/api';
 import type { AuthKey, AuthKeyTypeValue } from '../../../../../shared/api/types';
-import { IconButtonMenu } from '../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type {
   MenuItemProps,
   MenuItemsGroup,
@@ -18,6 +17,7 @@ import type {
 import { tableEditColumnSize } from '../../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { useClipboard } from '../../../../../shared/defguard-ui/hooks/useClipboard';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubjects';
@@ -194,11 +194,7 @@ export const ProfileAuthKeysTable = () => {
               ],
             },
           ];
-          return (
-            <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
-            </TableCell>
-          );
+          return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],

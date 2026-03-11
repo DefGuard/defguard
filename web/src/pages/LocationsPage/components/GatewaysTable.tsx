@@ -12,12 +12,12 @@ import api from '../../../shared/api/api';
 import type { GatewayInfo } from '../../../shared/api/types';
 import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import { IconButtonMenu } from '../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
@@ -221,11 +221,7 @@ export const GatewaysTable = () => {
             },
           ];
 
-          return (
-            <TableCell>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
-            </TableCell>
-          );
+          return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],

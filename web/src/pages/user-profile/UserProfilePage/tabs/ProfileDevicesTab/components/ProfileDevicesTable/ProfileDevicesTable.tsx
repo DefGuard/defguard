@@ -19,7 +19,6 @@ import { Button } from '../../../../../../../shared/defguard-ui/components/Butto
 import type { ButtonProps } from '../../../../../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon } from '../../../../../../../shared/defguard-ui/components/Icon';
-import { IconButtonMenu } from '../../../../../../../shared/defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type {
   MenuItemProps,
   MenuItemsGroup,
@@ -27,6 +26,7 @@ import type {
 import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
+import { TableEditCell } from '../../../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableFlexCell } from '../../../../../../../shared/defguard-ui/components/table/TableFlexCell/TableFlexCell';
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../../../../../../shared/defguard-ui/components/table/TableTop/TableTop';
@@ -228,11 +228,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         size: tableEditColumnSize,
         cell: (info) => {
           const menuItems = makeRowMenu(info.row.original);
-          return (
-            <TableCell alignContent="center" noPadding>
-              <IconButtonMenu icon="menu" menuItems={menuItems} />
-            </TableCell>
-          );
+          return <TableEditCell menuItems={menuItems} />;
         },
       }),
     ],
