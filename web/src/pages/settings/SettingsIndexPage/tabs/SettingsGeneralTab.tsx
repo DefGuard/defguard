@@ -25,7 +25,7 @@ export const SettingsGeneralTab = () => {
       <SizedBox height={ThemeSpacing.Xl} />
       <Link to="/settings/enrollment">
         <SectionSelect
-          image="self-enrollment"
+          image="enrollment"
           title={m.settings_enrollment_title()}
           content={m.settings_general_section_enrollment_content()}
         />

@@ -7,7 +7,6 @@ import api from '../../../shared/api/api';
 import type { Settings } from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
 import { Controls } from '../../../shared/components/Controls/Controls';
-import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
@@ -15,6 +14,8 @@ import { SettingsLayout } from '../../../shared/components/SettingsLayout/Settin
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
+import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
@@ -25,7 +26,6 @@ import {
   createNumericSelectOptions,
   withNumericFallbackOption,
 } from '../../../shared/utils/numericSelectOptions';
-import './style.scss';
 
 const breadcrumbs = [
   <Link
@@ -54,7 +54,7 @@ export const SettingsInstancePage = () => {
           subtitle={m.settings_instance_subtitle()}
         />
         {isPresent(settings) && (
-          <SettingsCard id="settings-instance-card">
+          <SettingsCard>
             <Content settings={settings} />
           </SettingsCard>
         )}
@@ -201,15 +201,16 @@ const Content = ({ settings }: { settings: Settings }) => {
     >
       <form.AppForm>
         <MarkedSection icon="settings">
-          <h3>{m.settings_instance_section_core()}</h3>
-          <DescriptionBlock title={m.settings_instance_section_core()}>
-            <p>{m.settings_instance_section_core_description()}</p>
-          </DescriptionBlock>
+          <MarkedSectionHeader
+            title={m.settings_instance_section_core()}
+            description={m.settings_instance_section_core_description()}
+          />
           <form.AppField name="instance_name">
             {(field) => (
               <field.FormInput required label={m.settings_instance_label_name()} />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="public_proxy_url">
             {(field) => (
               <field.FormInput
@@ -218,6 +219,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="authentication_period_days">
             {(field) => (
               <field.FormSelect
@@ -230,10 +232,10 @@ const Content = ({ settings }: { settings: Settings }) => {
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="activity">
-          <h3>{m.settings_instance_section_data_retention()}</h3>
-          <DescriptionBlock title={m.settings_instance_section_data_retention()}>
-            <p>{m.settings_instance_section_data_retention_description()}</p>
-          </DescriptionBlock>
+          <MarkedSectionHeader
+            title={m.settings_instance_section_data_retention()}
+            description={m.settings_instance_section_data_retention_description()}
+          />
           <form.AppField name="disable_stats_purge">
             {(field) => (
               <field.FormInteractiveBlock
@@ -242,6 +244,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="stats_purge_frequency_hours">
             {(field) => (
               <field.FormSelect
@@ -251,6 +254,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="stats_purge_threshold_days">
             {(field) => (
               <field.FormSelect
