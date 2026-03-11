@@ -5,6 +5,7 @@ import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/Ta
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { CeOpenIdClientModal } from './modals/CEOpenIdClientModal/CEOpenIdClientModal';
+import { DeleteOpenIdClientModal } from './modals/DeleteOpenIdClientModal/DeleteOpenIdClientModal';
 import { OpenIdClientTable } from './OpenIdTable';
 
 export const OpenIdPage = () => {
@@ -17,6 +18,7 @@ export const OpenIdPage = () => {
         </Suspense>
       </Page>
       <CeOpenIdClientModal />
+      <DeleteOpenIdClientModal />
     </>
   );
 };

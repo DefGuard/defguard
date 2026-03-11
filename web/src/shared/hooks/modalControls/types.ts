@@ -159,3 +159,13 @@ export interface OpenDeleteLocationModal {
   id: number;
   name: string;
 }
+
+export interface OpenDeleteNetworkDeviceModal {
+  id: number;
+  name: string;
+}
+
+export interface OpenDeleteOpenIdClientModal {
+  client_id: string;
+  name: string;
+}
