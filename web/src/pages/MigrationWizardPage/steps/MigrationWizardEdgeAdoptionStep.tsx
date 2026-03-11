@@ -147,6 +147,7 @@ export const MigrationWizardEdgeAdoptionStep = () => {
                   title={m.edge_setup_adoption_error_log_title()}
                   value={edgeAdoptionState.proxyLogs.join('\n')}
                   copy
+                  download
                 />
                 <SizedBox height={ThemeSpacing.Xl} />
               </>

@@ -12,7 +12,6 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { downloadText } from '../../../shared/utils/download';
 import worldMap from '../assets/world-map.png';
 import { AutoAdoptionAdminUserStep } from './steps/AutoAdoptionAdminUserStep';
 import { AutoAdoptionMfaSetupStep } from './steps/AutoAdoptionMfaSetupStep';
@@ -92,13 +91,7 @@ const AutoAdoptionFailedWelcomeContent = ({
                       )}
                       value={componentLogs}
                       copy
-                      onDownload={() => {
-                        downloadText(
-                          componentLogs,
-                          `auto-adoption-error-log-${component}`,
-                          'txt',
-                        );
-                      }}
+                      download
                     />
                   </div>
                 )}
