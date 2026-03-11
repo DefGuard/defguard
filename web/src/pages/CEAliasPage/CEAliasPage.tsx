@@ -81,6 +81,9 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
+const aliasCreatedMessage = 'Alias created.';
+const aliasEditedMessage = 'Aliase added to Pending tab and awaiting deployment.';
+
 const anyComponentDefined = (fields: FormFields): boolean => {
   return (
     fields.ports.trim().length > 0 ||
@@ -137,12 +140,15 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
         ...cloneDeep(value),
         protocols: Array.from(value.protocols),
       };
+
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
+        Snackbar.default(aliasEditedMessage);
       } else {
         await addAlias(toSend);
+        Snackbar.default(aliasCreatedMessage);
       }
-      Snackbar.default('Aliases added to Pending tab and awaiting deployment.');
+
       router.history.back();
     },
   });

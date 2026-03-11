@@ -42,7 +42,8 @@ export const RulesDeployedTab = () => {
     [navigate, licenseFetching, licenseInfo],
   );
 
-  const { aliases, groups, locations, users, devices, license, loading } = useRuleDeps();
+  const { aliases, destinations, groups, locations, users, devices, license, loading } =
+    useRuleDeps();
 
   return (
     <>
@@ -57,6 +58,7 @@ export const RulesDeployedTab = () => {
       {!isEmpty && loading && <TableSkeleton />}
       {!isEmpty &&
         isPresent(aliases) &&
+        isPresent(destinations) &&
         isPresent(groups) &&
         isPresent(locations) &&
         isPresent(users) &&
@@ -67,6 +69,7 @@ export const RulesDeployedTab = () => {
             buttonProps={buttonProps}
             data={rules}
             aliases={aliases}
+            destinations={destinations}
             groups={groups}
             devices={devices}
             users={users}

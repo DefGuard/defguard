@@ -15,7 +15,7 @@ use defguard_common::db::{
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
-use ipnetwork::{IpNetwork, IpNetworkError};
+use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{
     Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, error::ErrorKind,
@@ -563,6 +563,40 @@ pub(crate) struct ParsedDestination {
     pub(crate) ranges: Vec<(IpAddr, IpAddr)>,
 }
 
+fn invalid_destination_range(range: &str) -> AclError {
+    error!("Failed to parse destination range token: \"{range}\"");
+    AclError::InvalidIpRangeError(range.to_string())
+}
+
+fn parse_destination_range(range: &str) -> Result<(IpAddr, IpAddr), AclError> {
+    let Some((start, end)) = range.split_once('-') else {
+        return Err(invalid_destination_range(range));
+    };
+
+    if start.is_empty() || end.is_empty() || end.contains('-') {
+        return Err(invalid_destination_range(range));
+    }
+
+    if start.contains('/') || end.contains('/') {
+        return Err(invalid_destination_range(range));
+    }
+
+    let start = start.parse::<IpAddr>()?;
+    let end = end.parse::<IpAddr>()?;
+
+    let is_non_increasing = match (&start, &end) {
+        (IpAddr::V4(start), IpAddr::V4(end)) => start.octets() >= end.octets(),
+        (IpAddr::V6(start), IpAddr::V6(end)) => start.octets() >= end.octets(),
+        _ => return Err(invalid_destination_range(range)),
+    };
+
+    if is_non_increasing {
+        return Err(invalid_destination_range(range));
+    }
+
+    Ok((start, end))
+}
+
 /// Perses a destination string into singular ip addresses or networks and address
 /// ranges. We should be able to parse a string like this one:
 /// `10.0.0.1/24, 10.1.1.10-10.1.1.20, 192.168.1.10, 10.1.1.1-10.10.1.1`
@@ -573,16 +607,11 @@ pub(crate) fn parse_destination_addresses(
     let destination: String = destination.chars().filter(|c| !c.is_whitespace()).collect();
     let mut result = ParsedDestination::default();
     if !destination.is_empty() {
-        for v in destination.split(',') {
-            match v.split('-').collect::<Vec<_>>() {
-                l if l.len() == 1 => result.addrs.push(l[0].parse::<IpNetwork>()?),
-                l if l.len() == 2 => result
-                    .ranges
-                    .push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
-                _ => {
-                    error!("Failed to parse destination string: \"{destination}\"");
-                    Err(IpNetworkError::InvalidAddr(destination.clone()))?;
-                }
+        for token in destination.split(',') {
+            if token.contains('-') {
+                result.ranges.push(parse_destination_range(token)?);
+            } else {
+                result.addrs.push(token.parse::<IpNetwork>()?);
             }
         }
     }
@@ -594,6 +623,34 @@ pub(crate) fn parse_destination_addresses(
 /// Parses ports string into singular ports and port ranges
 /// We should be able to parse a string like this one:
 /// `22, 23, 8000-9000, 80-90`
+fn invalid_ports_format(ports: &str) -> AclError {
+    error!("Failed to parse ports string: \"{ports}\"");
+    AclError::InvalidPortsFormat(ports.to_string())
+}
+
+fn parse_port_token(port_token: &str, ports: &str) -> Result<PortRange, AclError> {
+    if port_token.is_empty() {
+        return Err(invalid_ports_format(ports));
+    }
+
+    let Some((start, end)) = port_token.split_once('-') else {
+        let port = port_token.parse::<u16>()?;
+        return Ok(PortRange::new(port, port));
+    };
+
+    if start.is_empty() || end.is_empty() || end.contains('-') {
+        return Err(invalid_ports_format(ports));
+    }
+
+    let start = start.parse::<u16>()?;
+    let end = end.parse::<u16>()?;
+    if start >= end {
+        return Err(invalid_ports_format(ports));
+    }
+
+    Ok(PortRange::new(start, end))
+}
+
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     debug!("Parsing ports string: {ports}");
     let mut result = Vec::new();
@@ -602,22 +659,8 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
         .filter(|c| !c.is_whitespace())
         .collect::<String>();
     if !ports.is_empty() {
-        for v in ports.split(',') {
-            match v.split('-').collect::<Vec<_>>() {
-                l if l.len() == 1 => {
-                    let start = l[0].parse::<u16>()?;
-                    result.push(PortRange::new(start, start));
-                }
-                l if l.len() == 2 => {
-                    let start = l[0].parse::<u16>()?;
-                    let end = l[1].parse::<u16>()?;
-                    result.push(PortRange::new(start, end));
-                }
-                _ => {
-                    error!("Failed to parse ports string: \"{ports}\"");
-                    return Err(AclError::InvalidPortsFormat(ports.clone()));
-                }
-            }
+        for port_token in ports.split(',') {
+            result.push(parse_port_token(port_token, &ports)?);
         }
     }
 
@@ -745,12 +788,6 @@ impl AclRule<Id> {
         let destination = parse_destination_addresses(&api_rule.addresses)?;
         debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
-            if range.1 <= range.0 {
-                return Err(AclError::InvalidIpRangeError(format!(
-                    "{}-{}",
-                    range.0, range.1
-                )));
-            }
             let obj = AclRuleDestinationRange {
                 id: NoId,
                 rule_id,

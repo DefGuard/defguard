@@ -7,10 +7,12 @@ import {
 } from '@tanstack/react-table';
 import { flat } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
+import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
   type AclAlias,
+  type AclDestination,
   type AclRule,
   AclStatus,
   type AclStatusValue,
@@ -38,10 +40,10 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
 const displayUser = (user?: User): string => {
-  if (!isPresent(user)) return '~';
+  if (!isPresent(user)) return '';
 
   if (user.first_name || user.last_name) {
-    return `${user.first_name} ${user.last_name}`;
+    return `${user.first_name} ${user.last_name}`.trim();
   }
   return user.username;
 };
@@ -53,6 +55,7 @@ const columnHelper = createColumnHelper<RowData>();
 type Props = {
   license: LicenseInfo | null;
   aliases: ResourceById<AclAlias>;
+  destinations: ResourceById<AclDestination>;
   groups: ResourceById<GroupInfo>;
   users: ResourceById<User>;
   devices: ResourceById<NetworkDevice>;
@@ -68,6 +71,7 @@ export const RulesTable = ({
   buttonProps,
   enableSearch,
   aliases,
+  destinations,
   devices,
   groups,
   users,
@@ -116,19 +120,17 @@ export const RulesTable = ({
           </TableCell>
         );
       }
-      const displayValues: string[][] = [];
-      if (!permissionGroup) {
-        displayValues.push(includedGroups.map((groupId) => groups[groupId]?.name ?? ''));
-      }
-      if (!permissionUsers) {
-        displayValues.push(includedUsers.map((userId) => displayUser(users[userId])));
-      }
-      if (!permissionDevice) {
-        displayValues.push(
-          includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
-        );
-      }
-      const display = flat(displayValues).filter((value) => !value.length);
+      const display = flat([
+        permissionUsers
+          ? ['All users']
+          : includedUsers.map((userId) => displayUser(users[userId])),
+        permissionGroup
+          ? ['All groups']
+          : includedGroups.map((groupId) => groups[groupId]?.name ?? ''),
+        permissionDevice
+          ? ['All network devices']
+          : includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
+      ]).filter((value) => value.length > 0);
 
       return <TableValuesListCell values={display} />;
     },
@@ -183,13 +185,38 @@ export const RulesTable = ({
         minSize: 350,
         cell: (info) => {
           const row = info.row.original;
+          const manualAddresses = row.addresses.trim();
+          const hasManualAddresses = manualAddresses.length > 0;
+
           return (
             <TableCell>
-              <span>{row.addresses}</span>
+              {row.destinations.map((destinationId) => {
+                const destination = destinations[destinationId];
+                if (!destination) return null;
+                return (
+                  <Badge
+                    className="rules-table-destination-badge"
+                    data-marker="D"
+                    variant={BadgeVariant.Neutral}
+                    text={destination.name}
+                    key={destinationId}
+                  />
+                );
+              })}
+              {hasManualAddresses && <span>{manualAddresses}</span>}
               {row.aliases.map((aliasId) => {
                 const alias = aliases[aliasId];
                 if (!alias) return null;
-                return <Badge variant="neutral" text={alias.name} key={aliasId} />;
+
+                return (
+                  <Badge
+                    className="rules-table-destination-badge"
+                    data-marker="A"
+                    variant={BadgeVariant.Neutral}
+                    text={alias.name}
+                    key={aliasId}
+                  />
+                );
               })}
             </TableCell>
           );
@@ -204,7 +231,7 @@ export const RulesTable = ({
           return renderPermissionCell(
             'allow',
             row.allow_all_users,
-            row.allowed_groups.length === 0,
+            row.allow_all_groups,
             row.allow_all_network_devices,
             row.allowed_users,
             row.allowed_groups,
@@ -221,7 +248,7 @@ export const RulesTable = ({
           return renderPermissionCell(
             'deny',
             row.deny_all_users,
-            row.denied_groups.length === 0,
+            row.deny_all_groups,
             row.deny_all_network_devices,
             row.denied_users,
             row.denied_groups,
@@ -308,6 +335,7 @@ export const RulesTable = ({
     ],
     [
       aliases,
+      destinations,
       renderPermissionCell,
       deleteRule,
       locations,
