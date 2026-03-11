@@ -8,7 +8,7 @@ import { UpgradeEnterpriseModal } from '../shared/components/modals/license/Upgr
 import { SelectionModal } from '../shared/components/modals/SelectionModal/SelectionModal';
 import { AppInfoProvider } from '../shared/providers/AppInfoProvider';
 import { AppUserProvider } from '../shared/providers/AppUserProvider';
-import { getSessionInfoQueryOptions } from '../shared/query';
+import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../shared/query';
 
 export const Route = createFileRoute('/_authorized')({
   component: RouteComponent,
@@ -26,6 +26,22 @@ export const Route = createFileRoute('/_authorized')({
         case 'migration':
           throw redirect({ to: '/migration', replace: true });
       }
+    }
+
+    if (sessionInfo.is_admin) {
+      return;
+    }
+
+    const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;
+
+    if (location.pathname !== `/user/${me.username}`) {
+      throw redirect({
+        to: '/user/$username',
+        params: {
+          username: me.username,
+        },
+        replace: true,
+      });
     }
   },
 });
