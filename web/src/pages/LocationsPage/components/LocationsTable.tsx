@@ -161,12 +161,14 @@ export const LocationsTable = () => {
       columnHelper.accessor('service_location_mode', {
         header: 'Service location',
         minSize: 100,
+        enableSorting: true,
+        sortingFn: 'text',
         cell: (info) => {
           switch (info.getValue()) {
             case 'disabled':
               return (
                 <TableCell className="cell-with-check-icons">
-                  <Icon icon="disabled" />
+                  <span>Regular</span>
                 </TableCell>
               );
             case 'prelogon':
