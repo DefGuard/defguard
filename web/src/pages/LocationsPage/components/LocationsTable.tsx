@@ -159,7 +159,7 @@ export const LocationsTable = () => {
         },
       }),
       columnHelper.accessor('service_location_mode', {
-        header: 'Service location',
+        header: 'Location type',
         minSize: 100,
         enableSorting: true,
         sortingFn: 'text',
@@ -167,7 +167,7 @@ export const LocationsTable = () => {
           switch (info.getValue()) {
             case 'disabled':
               return (
-                <TableCell className="cell-with-check-icons">
+                <TableCell>
                   <span>Regular</span>
                 </TableCell>
               );

@@ -38,13 +38,6 @@ export const OpenIdClientTable = () => {
 
   const { writeToClipboard } = useClipboard();
 
-  const { mutate: deleteClient } = useMutation({
-    mutationFn: api.openIdClient.deleteOpenIdClient,
-    meta: {
-      invalidate: ['oauth'],
-    },
-  });
-
   const { mutate: toggleClient } = useMutation({
     mutationFn: api.openIdClient.changeOpenIdClientState,
     meta: {
@@ -146,7 +139,10 @@ export const OpenIdClientTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteClient(row.client_id);
+                    openModal(ModalName.DeleteOpenIdClient, {
+                      client_id: row.client_id,
+                      name: row.name,
+                    });
                   },
                 },
               ],
@@ -156,7 +152,7 @@ export const OpenIdClientTable = () => {
         },
       }),
     ],
-    [reservedNames, deleteClient, writeToClipboard, toggleClient],
+    [reservedNames, writeToClipboard, toggleClient],
   );
 
   const table = useReactTable({

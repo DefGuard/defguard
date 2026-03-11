@@ -8,6 +8,8 @@
   "openid_add": "Add new OpenID App",
   "openid_edit": "Edit OpenID App",
   "openid_table_top_title": "All apps",
+  "openid_delete_success": "OpenID application deleted",
+  "openid_delete_failed": "Failed to delete OpenID application",
   "openid_consent_title": "{name} would like to",
   "openid_consent_scope_openid": "Use OpenID.",
   "openid_consent_scope_profile": "Know basic information from your profile.",

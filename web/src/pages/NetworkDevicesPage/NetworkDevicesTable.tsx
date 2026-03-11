@@ -43,13 +43,6 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     [networkDevices],
   );
 
-  const { mutate: deleteDevice } = useMutation({
-    mutationFn: api.network_device.deleteDevice,
-    meta: {
-      invalidate: [['device', 'network'], ['network']],
-    },
-  });
-
   const { mutate: openAdd, isPending: addPending } = useMutation({
     mutationFn: async () => {
       const { data: locations } = await api.location.getLocations();
@@ -216,7 +209,10 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   onClick: () => {
-                    deleteDevice(row.id);
+                    openModal(ModalName.DeleteNetworkDevice, {
+                      id: row.id,
+                      name: row.name,
+                    });
                   },
                 },
               ],
@@ -226,7 +222,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         },
       }),
     ],
-    [reservedNames, deleteDevice],
+    [reservedNames],
   );
 
   const table = useReactTable({

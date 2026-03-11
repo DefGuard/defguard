@@ -15,6 +15,8 @@ import type {
   OpenDeleteAliasDestinationConfirmModal,
   OpenDeleteGatewayModal,
   OpenDeleteLocationModal,
+  OpenDeleteNetworkDeviceModal,
+  OpenDeleteOpenIdClientModal,
   OpenDisplayListModal,
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
@@ -60,6 +62,8 @@ export const ModalName = {
   EditNetworkDevice: 'editNetworkDevice',
   NetworkDeviceConfig: 'networkDeviceConfig',
   NetworkDeviceToken: 'networkDeviceToken',
+  DeleteNetworkDevice: 'deleteNetworkDevice',
+  DeleteOpenIdClient: 'deleteOpenIdClient',
   AddLocation: 'addLocation',
   AddLogStreaming: 'addLogStreaming',
   EditLogStreaming: 'editLogStreaming',
@@ -190,6 +194,14 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.DeleteLocation),
     data: z.custom<OpenDeleteLocationModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeleteNetworkDevice),
+    data: z.custom<OpenDeleteNetworkDeviceModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeleteOpenIdClient),
+    data: z.custom<OpenDeleteOpenIdClientModal>(),
   }),
   z.object({
     name: z.literal(ModalName.SendTestMail),
