@@ -1,12 +1,13 @@
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import type z from 'zod';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../api/api';
-import type { User } from '../../../api/types';
+import type { ApiError, User } from '../../../api/types';
 import { Icon } from '../../../defguard-ui/components/Icon';
 import type { IconKindValue } from '../../../defguard-ui/components/Icon/icon-types';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
@@ -88,6 +89,18 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
   const { mutateAsync: mutateUser } = useMutation({
     mutationFn: api.user.changePassword,
     onSuccess,
+    onError: (e: AxiosError<ApiError>) => {
+      const respCode = e.response?.status;
+      if (isPresent(respCode) && respCode !== 200) {
+        form.setErrorMap({
+          onSubmit: {
+            fields: {
+              current: m.form_error_current_password(),
+            },
+          },
+        });
+      }
+    },
     meta: {
       invalidate: [['me'], ['user', user.username], ['session-info']],
     },
