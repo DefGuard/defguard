@@ -22,9 +22,6 @@ import {
   type UserMfaMethodValue,
 } from '../../../../../../../shared/api/types';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
-import { TooltipContent } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
@@ -452,18 +449,9 @@ const FactorRow = ({
         </div>
         <div className="row availability">
           <div className="fill"></div>
-          <TooltipProvider>
-            <TooltipTrigger>
-              <p className="availability">
-                {showSmtpDisabledWarning
-                  ? m.state_smtp_not_configured()
-                  : availabilityText}
-              </p>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{m.test_placeholder()}</p>
-            </TooltipContent>
-          </TooltipProvider>
+          <p className="availability">
+            {showSmtpDisabledWarning ? m.state_smtp_not_configured() : availabilityText}
+          </p>
         </div>
       </div>
       <div className="controls">
