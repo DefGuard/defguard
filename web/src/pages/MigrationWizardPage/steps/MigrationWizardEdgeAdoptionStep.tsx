@@ -6,7 +6,6 @@ import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardC
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useClipboard } from '../../../shared/defguard-ui/hooks/useClipboard';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../shared/hooks/useSSEController';
 import type { SetupEvent, SetupStep, SetupStepId } from '../../EdgeSetupPage/steps/types';
@@ -17,7 +16,6 @@ export const MigrationWizardEdgeAdoptionStep = () => {
   const edgeAdoptionState = useMigrationWizardStore((s) => s.edgeAdoptionState);
   const setEdgeAdoptionState = useMigrationWizardStore((s) => s.setEdgeAdoptionState);
   const resetEdgeAdoptionState = useMigrationWizardStore((s) => s.resetEdgeAdoptionState);
-  const { writeToClipboard } = useClipboard();
 
   const handleEvent = useCallback(
     (event: SetupEvent) => {
@@ -148,9 +146,7 @@ export const MigrationWizardEdgeAdoptionStep = () => {
                 <CodeCard
                   title={m.edge_setup_adoption_error_log_title()}
                   value={edgeAdoptionState.proxyLogs.join('\n')}
-                  onCopy={() => {
-                    void writeToClipboard(edgeAdoptionState.proxyLogs.join('\n'));
-                  }}
+                  copy
                 />
                 <SizedBox height={ThemeSpacing.Xl} />
               </>
