@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_authorized/_default')({
       return;
     }
 
-    const me = (await context.queryClient.ensureQueryData(getUserMeQueryOptions)).data;
+    const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;
 
     if (location.pathname !== `/user/${me.username}`) {
       throw redirect({
