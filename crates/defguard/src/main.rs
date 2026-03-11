@@ -226,20 +226,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     update_counts(&pool).await?;
 
-    // debug!("Checking enterprise license status");
-    // match License::load_or_renew(&pool).await {
-    //     Ok(license) => {
-    //         set_cached_license(license);
-    //     }
-    //     Err(err) => {
-    //         warn!(
-    //             "There was an error while loading the license, error: {err}. The enterprise \
-    //             features will be disabled."
-    //         );
-    //         set_cached_license(None);
-    //     }
-    // }
-
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
     let proxy_secret_key = settings.secret_key_required()?;
     let proxy_manager = ProxyManager::new(
