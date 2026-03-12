@@ -434,13 +434,6 @@ export const UsersTable = () => {
     [],
   );
 
-  const { mutate: deleteDevice } = useMutation({
-    mutationFn: api.device.deleteDevice,
-    meta: {
-      invalidate: [['user-overview'], ['user'], ['network']],
-    },
-  });
-
   const makeDeviceRowMenu = useCallback(
     (
       device: Device,
@@ -492,7 +485,15 @@ export const UsersTable = () => {
           {
             text: m.controls_delete(),
             onClick: () => {
-              deleteDevice(device.id);
+              openModal(ModalName.ConfirmAction, {
+                title: m.modal_delete_user_device_title(),
+                contentMd: m.modal_delete_user_device_body({ name: device.name }),
+                actionPromise: () => api.device.deleteDevice(device.id),
+                invalidateKeys: [['user-overview'], ['user'], ['network']],
+                submitProps: { text: m.controls_delete(), variant: 'critical' },
+                onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+                onError: () => Snackbar.error(m.user_device_delete_failed()),
+              });
             },
             variant: 'danger',
             icon: 'delete',
@@ -500,7 +501,7 @@ export const UsersTable = () => {
         ],
       },
     ],
-    [deleteDevice],
+    [],
   );
 
   const renderExpanded = useCallback(

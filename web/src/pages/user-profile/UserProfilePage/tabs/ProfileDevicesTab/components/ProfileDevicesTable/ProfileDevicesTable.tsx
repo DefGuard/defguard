@@ -1,5 +1,4 @@
 import './style.scss';
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -112,13 +111,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     [devices, user, info.network_present],
   );
 
-  const { mutate: deleteDevice } = useMutation({
-    mutationFn: api.device.deleteDevice,
-    meta: {
-      invalidate: [['user-overview'], ['user', username], ['network']],
-    },
-  });
-
   const makeRowMenu = useCallback(
     (row: RowData): MenuItemsGroup[] => {
       const items: MenuItemProps[] = [
@@ -169,7 +161,15 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         {
           text: m.controls_delete(),
           onClick: () => {
-            deleteDevice(row.id);
+            openModal(ModalName.ConfirmAction, {
+              title: m.modal_delete_user_device_title(),
+              contentMd: m.modal_delete_user_device_body({ name: row.name }),
+              actionPromise: () => api.device.deleteDevice(row.id),
+              invalidateKeys: [['user-overview'], ['user', username], ['network']],
+              submitProps: { text: m.controls_delete(), variant: 'critical' },
+              onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+              onError: () => Snackbar.error(m.user_device_delete_failed()),
+            });
           },
           variant: 'danger',
           icon: 'delete',
@@ -177,7 +177,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       );
       return [{ items }];
     },
-    [reservedNames, username, deleteDevice, isAdmin],
+    [reservedNames, username, isAdmin],
   );
 
   const tableColumns = useMemo(
@@ -296,6 +296,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     },
     columns: tableColumns,
     data: rowData,
+    getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
