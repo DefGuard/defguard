@@ -75,47 +75,6 @@
       }
     }
   }
-
-  .restriction-block {
-    display: flex;
-    flex-direction: column;
-
-    .fold.folded .fold-content {
-      padding: 0;
-    }
-
-    & > .fold {
-      margin-top: var(--spacing-lg);
-    }
-
-    & > .fold.folded {
-      margin-top: 0;
-    }
-  }
-
-  .restriction-toggle {
-    display: flex;
-    align-items: center;
-  }
-
-  .restriction-body {
-    display: flex;
-    flex-direction: column;
-
-    & > .fold {
-      margin-top: var(--spacing-md);
-    }
-
-    & > .fold.folded {
-      margin-top: 0;
-    }
-  }
-
-  .restriction-radio {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
 }
 
 .selection-section .item .destination-selection-item {

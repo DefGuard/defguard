@@ -1,3 +1,4 @@
+import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
@@ -31,6 +32,9 @@ import { TableFlexCell } from '../../../../../../../shared/defguard-ui/component
 import { TableRowContainer } from '../../../../../../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../../../../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { TooltipContent } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../../../../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
@@ -40,10 +44,17 @@ import { displayDate } from '../../../../../../../shared/utils/displayDate';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
 interface RowData extends UserDevice {
-  connected_at: string;
-  connected_ip: string;
-  network_name: string;
+  connected_at: string | null;
+  connected_ip: string | null;
+  network_name: string | null;
 }
+
+const displayDateOrNull = (value?: string | number | null): string | null => {
+  if (isPresent(value)) {
+    return displayDate(value);
+  }
+  return null;
+};
 
 export const ProfileDevicesTable = () => {
   const devices = useUserProfile((s) => s.devices);
@@ -55,16 +66,13 @@ export const ProfileDevicesTable = () => {
         ['last_connected_at'],
         ['desc'],
       );
-      const fallbackValue = m.profile_devices_col_never_connected();
       const latestConnection = ordered.at(0);
 
       const row: RowData = {
         ...device,
-        connected_at: latestConnection?.last_connected_at
-          ? displayDate(latestConnection.last_connected_at)
-          : fallbackValue,
-        connected_ip: latestConnection?.last_connected_ip ?? fallbackValue,
-        network_name: latestConnection?.network_name ?? fallbackValue,
+        connected_at: displayDateOrNull(latestConnection?.last_connected_at),
+        connected_ip: latestConnection?.last_connected_ip ?? null,
+        network_name: latestConnection?.network_name ?? null,
       };
       return row;
     });
@@ -176,51 +184,45 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     () => [
       columnHelper.accessor('name', {
         header: m.profile_devices_col_name(),
+        size: 700,
+        minSize: 300,
+        enableSorting: true,
         cell: (info) => (
           <TableCell>
-            {info.row.original.biometry_enabled && <Icon icon="biometric" />}
+            {info.row.original.biometry_enabled && (
+              <TooltipProvider>
+                <TooltipTrigger>
+                  <Icon icon="biometric" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{m.profile_devices_tooltip_biometric()}</p>
+                </TooltipContent>
+              </TooltipProvider>
+            )}
             <span>{info.getValue()}</span>
           </TableCell>
         ),
-        enableSorting: true,
-        meta: {
-          flex: true,
-        },
       }),
       columnHelper.accessor('connected_ip', {
         id: 'public_ip',
         header: m.profile_devices_col_pub_ip(),
         enableSorting: false,
-        size: 350,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
-          </TableCell>
-        ),
+        minSize: 350,
+        cell: (info) => CellWithFallback(info.getValue()),
       }),
       columnHelper.accessor('network_name', {
         id: 'connected_through',
         header: m.profile_devices_col_location(),
         enableSorting: false,
-        size: 175,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue() ?? m.profile_devices_col_never_connected()}</span>
-          </TableCell>
-        ),
+        minSize: 200,
+        cell: (info) => CellWithFallback(info.getValue()),
       }),
       columnHelper.accessor('connected_at', {
         id: 'connected_at',
         header: m.profile_devices_col_connected(),
         enableSorting: false,
-        size: 175,
-        cell: (info) => {
-          return (
-            <TableCell>
-              <span>{info.getValue()}</span>
-            </TableCell>
-          );
-        },
+        minSize: 200,
+        cell: (info) => CellWithFallback(info.getValue()),
       }),
       columnHelper.display({
         id: 'edit',
@@ -256,24 +258,13 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
                 <Badge variant="neutral" text={network.network_gateway_ip} />
               )}
             </TableCell>
-            <TableCell>
-              <span>
-                {network.device_wireguard_ips.join(', ') ??
-                  m.profile_devices_col_never_connected()}
-              </span>
-            </TableCell>
-            <TableCell>
-              <span>
-                {network.last_connected_ip ?? m.profile_devices_col_never_connected()}
-              </span>
-            </TableCell>
-            <TableCell>
-              <span>
-                {!network.last_connected_at && m.profile_devices_col_never_connected()}
-                {isPresent(network.last_connected_at) &&
-                  displayDate(network.last_connected_at)}
-              </span>
-            </TableCell>
+            {CellWithFallback(
+              network.device_wireguard_ips.length > 0
+                ? network.device_wireguard_ips.join(', ')
+                : null,
+            )}
+            {CellWithFallback(network.last_connected_ip)}
+            {CellWithFallback(displayDateOrNull(network.last_connected_at))}
             <TableCell empty />
             <TableFlexCell />
           </TableRowContainer>
@@ -330,6 +321,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             <Button {...addDeviceProps} />
           </TableTop>
           <TableBody
+            id="profile-devices-table"
             table={table}
             renderExpandedRow={renderExpandedRow}
             expandedHeaders={expandedRowHeaders}
@@ -337,5 +329,20 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         </>
       )}
     </>
+  );
+};
+
+const CellWithFallback = (value?: string | null) => {
+  const neverConnected = !isPresent(value);
+  return (
+    <TableCell>
+      <span
+        className={clsx({
+          'never-connected': neverConnected,
+        })}
+      >
+        {value ?? m.profile_devices_col_never_connected()}
+      </span>
+    </TableCell>
   );
 };
