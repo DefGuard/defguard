@@ -1,6 +1,6 @@
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
@@ -50,11 +50,21 @@ export const RenameAuthKeyModal = () => {
   );
 };
 
-const formSchema = z.object({
-  name: z.string().trim().min(1, m.form_error_required()),
-});
+const getFormSchema = (reservedNames: string[]) =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, m.form_error_required())
+      .refine((val) => !reservedNames.includes(val), m.form_error_name_reserved()),
+  });
 
-const ModalContent = ({ id, name, username }: OpenAuthKeyRenameModal) => {
+const ModalContent = ({ id, name, username, reservedNames }: OpenAuthKeyRenameModal) => {
+  const formSchema = useMemo(
+    () => getFormSchema(reservedNames.filter((n) => n !== name)),
+    [reservedNames, name],
+  );
+
   const { mutateAsync } = useMutation({
     mutationFn: api.user.renameAuthKey,
     meta: {

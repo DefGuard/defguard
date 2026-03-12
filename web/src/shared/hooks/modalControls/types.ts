@@ -32,6 +32,7 @@ export interface OpenConfirmActionModal {
 export interface OpenEditDeviceModal {
   device: Device;
   reservedNames: string[];
+  reservedPubkeys: string[];
   username: string;
 }
 
@@ -39,6 +40,7 @@ export interface OpenAuthKeyRenameModal {
   id: number;
   name: string;
   username: string;
+  reservedNames: string[];
 }
 
 export interface OpenAddApiTokenModal {
