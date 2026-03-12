@@ -17,10 +17,10 @@ import type { AxiosError } from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../../api/api';
 import { type ApiError, AuthKeyType, type AuthKeyTypeValue } from '../../../api/types';
-import { getUserAuthKeysQueryOptions } from '../../../query';
 import { Select } from '../../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../../defguard-ui/components/Select/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { getUserAuthKeysQueryOptions } from '../../../query';
 
 const modalNameKey = ModalName.AddAuthKey;
 
