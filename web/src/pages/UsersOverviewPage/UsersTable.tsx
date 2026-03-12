@@ -491,7 +491,7 @@ export const UsersTable = () => {
                 actionPromise: () => api.device.deleteDevice(device.id),
                 invalidateKeys: [['user-overview'], ['user'], ['network']],
                 submitProps: { text: m.controls_delete(), variant: 'critical' },
-                onSuccess: () => Snackbar.success(m.user_device_delete_success()),
+                onSuccess: () => Snackbar.default(m.user_device_delete_success()),
                 onError: () => Snackbar.error(m.user_device_delete_failed()),
               });
             },
