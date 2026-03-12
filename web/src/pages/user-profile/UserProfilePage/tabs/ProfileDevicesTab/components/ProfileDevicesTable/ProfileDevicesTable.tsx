@@ -1,5 +1,4 @@
 import './style.scss';
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -112,13 +111,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     [devices, user, info.network_present],
   );
 
-  const { mutate: deleteDevice } = useMutation({
-    mutationFn: api.device.deleteDevice,
-    meta: {
-      invalidate: [['user-overview'], ['user', username], ['network']],
-    },
-  });
-
   const makeRowMenu = useCallback(
     (row: RowData): MenuItemsGroup[] => {
       const items: MenuItemProps[] = [
@@ -169,7 +161,10 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         {
           text: m.controls_delete(),
           onClick: () => {
-            deleteDevice(row.id);
+            openModal(ModalName.DeleteUserDevice, {
+              id: row.id,
+              name: row.name,
+            });
           },
           variant: 'danger',
           icon: 'delete',
@@ -177,7 +172,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       );
       return [{ items }];
     },
-    [reservedNames, username, deleteDevice, isAdmin],
+    [reservedNames, username, isAdmin],
   );
 
   const tableColumns = useMemo(

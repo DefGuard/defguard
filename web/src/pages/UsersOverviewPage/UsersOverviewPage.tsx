@@ -5,6 +5,7 @@ import { m } from '../../paraglide/messages';
 import { AddAuthKeyModal } from '../../shared/components/modals/AddAuthKeyModal/AddAuthKeyModal';
 import { AssignUserDeviceIPModal } from '../../shared/components/modals/AssignUserDeviceIPModal/AssignUserDeviceIPModal';
 import { ChangePasswordModal } from '../../shared/components/modals/ChangePasswordModal/ChangePasswordModal';
+import { DeleteUserDeviceModal } from '../../shared/components/modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import { EditUserDeviceModal } from '../../shared/components/modals/EditUserDeviceModal/EditUserDeviceModal';
 import { UserDeviceConfigModal } from '../../shared/components/modals/UserDeviceConfigModal/UserDeviceConfigModal';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
@@ -31,6 +32,7 @@ export const UsersOverviewPage = () => {
       <AddUserModal />
       <EditUserModal />
       <EditUserDeviceModal />
+      <DeleteUserDeviceModal />
       <UserDeviceConfigModal />
       <AssignUserDeviceIPModal />
       <EnrollmentTokenModal />
