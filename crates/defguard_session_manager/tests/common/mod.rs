@@ -23,7 +23,7 @@ use defguard_session_manager::{
     run_session_manager_iteration,
 };
 use ipnetwork::IpNetwork;
-use sqlx::{PgExecutor, query, query_as, query_scalar};
+use sqlx::{PgExecutor, query, query_scalar};
 use tokio::{
     sync::{
         broadcast,
