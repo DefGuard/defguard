@@ -32,6 +32,7 @@ export interface OpenConfirmActionModal {
 export interface OpenEditDeviceModal {
   device: Device;
   reservedNames: string[];
+  reservedPubkeys: string[];
   username: string;
 }
 

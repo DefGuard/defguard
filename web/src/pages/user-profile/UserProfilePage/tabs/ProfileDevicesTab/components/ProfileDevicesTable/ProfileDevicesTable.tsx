@@ -93,6 +93,10 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   const username = user.username;
 
   const reservedNames = useMemo(() => rowData.map((row) => row.name), [rowData]);
+  const reservedPubkeys = useMemo(
+    () => rowData.map((row) => row.wireguard_pubkey),
+    [rowData],
+  );
 
   const addDeviceProps = useMemo(
     (): ButtonProps => ({
@@ -121,6 +125,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             openModal(ModalName.EditUserDevice, {
               device: row,
               reservedNames: reservedNames,
+              reservedPubkeys: reservedPubkeys,
               username,
             });
           },
@@ -177,7 +182,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       );
       return [{ items }];
     },
-    [reservedNames, username, isAdmin],
+    [reservedNames, username, isAdmin, reservedPubkeys],
   );
 
   const tableColumns = useMemo(
