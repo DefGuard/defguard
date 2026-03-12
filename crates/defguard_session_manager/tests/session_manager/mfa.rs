@@ -18,7 +18,8 @@ use crate::common::{
     SessionManagerHarness, assert_no_gateway_events, assert_no_session_manager_events,
     attach_device_to_network, authorize_device_in_network, build_stats_update, count_session_stats,
     count_stats_for_device_location, create_device, create_gateway, create_network_with_mfa_mode,
-    create_session, create_session_stats, create_user, set_session_created_at, truncate_timestamp,
+    create_session, create_session_stats, create_user, set_session_created_at,
+    stale_session_timestamp, truncate_timestamp,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -334,7 +335,7 @@ async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization
     let gateway = create_gateway(&pool, network.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let stale_handshake = Utc::now().naive_utc() - TimeDelta::seconds(301);
+    let stale_handshake = stale_session_timestamp(&network);
     let session = create_session(
         &pool,
         network.id,
@@ -410,12 +411,7 @@ async fn test_never_connected_mfa_new_sessions_disconnect_after_threshold(
         Some(VpnClientMfaMethod::Totp),
     )
     .await;
-    set_session_created_at(
-        &pool,
-        session.id,
-        Utc::now().naive_utc() - TimeDelta::seconds(301),
-    )
-    .await;
+    set_session_created_at(&pool, session.id, stale_session_timestamp(&network)).await;
 
     let _ = harness.run_idle_iteration().await;
 

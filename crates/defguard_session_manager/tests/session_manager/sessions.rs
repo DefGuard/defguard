@@ -16,7 +16,8 @@ use crate::common::{
     SessionManagerHarness, assert_no_gateway_events, assert_no_session_manager_events,
     attach_device_to_network, build_stats_update, count_session_stats,
     count_stats_for_device_location, create_device, create_device_with_pubkey, create_gateway,
-    create_network, create_session, create_session_stats, create_user, truncate_timestamp,
+    create_network, create_session, create_session_stats, create_user, stale_session_timestamp,
+    truncate_timestamp,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -72,7 +73,7 @@ async fn test_stale_first_stats_update_does_not_create_session_or_stats(
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
     let collected_at = truncate_timestamp(Utc::now().naive_utc());
-    let stale_handshake = collected_at - TimeDelta::seconds(301);
+    let stale_handshake = stale_session_timestamp(&network);
     harness.send_stats(build_stats_update(
         network.id,
         gateway.id,

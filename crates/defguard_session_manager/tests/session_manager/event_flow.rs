@@ -9,6 +9,7 @@ use tokio::time::{Duration, timeout};
 use crate::common::{
     SessionManagerHarness, attach_device_to_network, build_stats_update, create_device,
     create_gateway, create_network, create_session, create_session_stats, create_user,
+    stale_session_timestamp,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -111,7 +112,7 @@ async fn test_session_manager_emits_disconnect_event_for_inactive_standard_sessi
     let gateway = create_gateway(&pool, network.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let stale_handshake = Utc::now().naive_utc() - TimeDelta::seconds(301);
+    let stale_handshake = stale_session_timestamp(&network);
     let session = create_session(
         &pool,
         network.id,

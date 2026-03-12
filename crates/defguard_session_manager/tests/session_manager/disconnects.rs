@@ -9,7 +9,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::common::{
     SessionManagerHarness, attach_device_to_network, create_device, create_gateway, create_network,
-    create_session, create_session_stats, create_user,
+    create_session, create_session_stats, create_user, stale_session_timestamp,
 };
 
 #[sqlx::test]
@@ -25,7 +25,7 @@ async fn test_inactive_connected_sessions_are_disconnected_after_threshold(
     let gateway = create_gateway(&pool, network.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let stale_handshake = Utc::now().naive_utc() - TimeDelta::seconds(301);
+    let stale_handshake = stale_session_timestamp(&network);
     let session = create_session(
         &pool,
         network.id,

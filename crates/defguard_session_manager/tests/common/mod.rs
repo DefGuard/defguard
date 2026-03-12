@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use chrono::{NaiveDateTime, Timelike};
+use chrono::{NaiveDateTime, TimeDelta, Timelike, Utc};
 use defguard_common::{
     db::{
         Id,
@@ -257,6 +257,15 @@ pub(crate) fn truncate_timestamp(timestamp: NaiveDateTime) -> NaiveDateTime {
     timestamp
         .with_nanosecond((timestamp.nanosecond() / 1_000) * 1_000)
         .expect("failed to truncate timestamp precision")
+}
+
+pub(crate) fn stale_session_timestamp(location: &WireguardNetwork<Id>) -> NaiveDateTime {
+    let reference_time = Utc::now().naive_utc();
+    reference_time
+        .checked_sub_signed(TimeDelta::seconds(
+            i64::from(location.peer_disconnect_threshold) + 1,
+        ))
+        .expect("reference timestamp should stay within range")
 }
 
 pub(crate) async fn create_session(
