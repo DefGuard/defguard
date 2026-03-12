@@ -74,7 +74,7 @@ const getFormSchema = (existingNames: string[]) =>
       .string()
       .trim()
       .min(1, m.form_error_required())
-      .refine((val) => !existingNames.includes(val.trim()), m.form_error_name_reserved()),
+      .refine((val) => !existingNames.includes(val.trim().toLowerCase()), m.form_error_name_reserved()),
     key: z.string().trim().min(1, m.form_error_required()),
   });
 
@@ -90,7 +90,7 @@ const ModalContent = ({ username }: { username: string }) => {
   const { data: existingNames = [] } = useQuery({
     ...getUserAuthKeysQueryOptions(username),
     select: (response) =>
-      response.data.map((k) => k.name).filter((name): name is string => !!name),
+      response.data.map((k) => k.name?.toLowerCase()).filter((name): name is string => !!name),
   });
   const formSchema = useMemo(() => getFormSchema(existingNames), [existingNames]);
 
