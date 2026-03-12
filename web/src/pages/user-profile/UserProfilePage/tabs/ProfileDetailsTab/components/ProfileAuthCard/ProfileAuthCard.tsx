@@ -34,6 +34,7 @@ export const ProfileAuthCard = () => {
   const securityKeys = useUserProfile((s) => s.security_keys);
   const user = useUserProfile((s) => s.user);
   const authUsername = useAuth((s) => s.user?.username as string);
+  const isCurrentUserAdmin = useAuth((s) => s.isAdmin);
   const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
   const devices = useUserProfile((s) => s.devices);
   const biometricDevices = useMemo(
@@ -269,7 +270,7 @@ export const ProfileAuthCard = () => {
             // open admin form only if admin and is not editing self
             openModal('changePassword', {
               user,
-              adminForm: user.is_admin && user.username !== authUsername,
+              adminForm: isCurrentUserAdmin && user.username !== authUsername,
             });
           }}
         />

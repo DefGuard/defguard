@@ -39,6 +39,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../shared/hooks/useApp';
+import { useAuth } from '../../shared/hooks/useAuth';
 import {
   getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
@@ -55,6 +56,7 @@ export const UsersTable = () => {
   const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const appInfo = useApp((s) => s.appInfo);
+  const authUsername = useAuth((s) => s.user?.username);
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
@@ -267,7 +269,7 @@ export const UsersTable = () => {
                   testId: 'change-password',
                   onClick: () => {
                     openModal(ModalName.ChangePassword, {
-                      adminForm: true,
+                      adminForm: rowData.username !== authUsername,
                       user: rowData,
                     });
                   },
@@ -415,6 +417,7 @@ export const UsersTable = () => {
       handleEditGroups,
       groups,
       appInfo,
+      authUsername,
     ],
   );
 
