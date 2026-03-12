@@ -87,11 +87,8 @@ const defaultValues: FormFields = {
 
 const ModalContent = ({ username }: { username: string }) => {
   const [selected, setSelected] = useState(selectOptions[0]);
-  const { data: existingNames = [] } = useQuery({
-    ...getUserAuthKeysQueryOptions(username),
-    select: (response) =>
-      response.data.map((k) => k.name?.toLowerCase()).filter((name): name is string => !!name),
-  });
+  const { data: authKeys = [] } = useQuery(getUserAuthKeysQueryOptions(username));
+  const existingNames = authKeys.map((k) => k.name?.toLowerCase()).filter(Boolean) as string[];
   const formSchema = useMemo(() => getFormSchema(existingNames), [existingNames]);
 
   const { mutateAsync: addKey } = useMutation({
