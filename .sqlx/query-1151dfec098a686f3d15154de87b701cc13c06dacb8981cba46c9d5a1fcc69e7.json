@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND NOT r.allow AND u.is_active = true",
+  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND NOT r.allow AND u.is_active",
   "describe": {
     "columns": [
       {
@@ -150,5 +150,5 @@
       false
     ]
   },
-  "hash": "b5598af6a2b352c73c4bdf5b93f21042ab6b05212938918eebe43cd56795ac76"
+  "hash": "1151dfec098a686f3d15154de87b701cc13c06dacb8981cba46c9d5a1fcc69e7"
 }

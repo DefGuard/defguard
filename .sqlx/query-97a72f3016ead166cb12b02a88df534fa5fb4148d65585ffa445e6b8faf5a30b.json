@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT at.id, user_id, created_at, name, token_hash FROM api_token at JOIN \"user\" ON \"user\".id = user_id WHERE token_hash = $1 AND \"user\".is_active = true",
+  "query": "SELECT at.id, user_id, created_at, name, token_hash FROM api_token at JOIN \"user\" ON \"user\".id = user_id WHERE token_hash = $1 AND \"user\".is_active",
   "describe": {
     "columns": [
       {
@@ -42,5 +42,5 @@
       false
     ]
   },
-  "hash": "25b07b45cfd25643e750e2ec0fe51bd760fae6db5f5416d017a3f4a24c44c185"
+  "hash": "97a72f3016ead166cb12b02a88df534fa5fb4148d65585ffa445e6b8faf5a30b"
 }

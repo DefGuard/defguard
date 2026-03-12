@@ -41,7 +41,7 @@ use crate::{
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 /// Default MTU for WireGuard interfaces.
-pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: change to u32 once sqlx unsigned integers.
+pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: use u32 once sqlx supports unsigned integers.
 
 // Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -331,7 +331,7 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
-        debug!("Fetching all allowed devices for network {}", self);
+        debug!("Fetching all allowed devices for network {self}");
         let devices =
             match self.get_allowed_groups(&mut *transaction).await? {
                 // devices need to be filtered by allowed group
@@ -345,7 +345,7 @@ impl WireguardNetwork<Id> {
                 JOIN group_user gu ON u.id = gu.user_id \
                 JOIN \"group\" g ON gu.group_id = g.id \
                 WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[])) \
-                AND u.is_active = true \
+                AND u.is_active \
                 AND d.device_type = 'user'::device_type \
                 ORDER BY d.id ASC",
                 &allowed_groups
@@ -360,7 +360,7 @@ impl WireguardNetwork<Id> {
                     d.device_type \"device_type: DeviceType\", configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
-                    WHERE u.is_active = true \
+                    WHERE u.is_active \
                     AND d.device_type = 'user'::device_type \
                     ORDER BY d.id ASC"
                 )
@@ -392,7 +392,7 @@ impl WireguardNetwork<Id> {
                 JOIN group_user gu ON u.id = gu.user_id \
                 JOIN \"group\" g ON gu.group_id = g.id \
                 WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[])) \
-                AND u.is_active = true \
+                AND u.is_active \
                 AND d.device_type = 'user'::device_type \
                 AND d.user_id = $2 \
                 ORDER BY d.id ASC",
@@ -408,7 +408,7 @@ impl WireguardNetwork<Id> {
                     d.device_type \"device_type: DeviceType\", configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
-                    WHERE u.is_active = true \
+                    WHERE u.is_active \
                     AND d.device_type = 'user'::device_type \
                     AND d.user_id = $1 \
                     ORDER BY d.id ASC",
@@ -1161,7 +1161,7 @@ impl WireguardNetwork<Id> {
         }
     }
 
-    // fetch all locations using external MFA
+    /// Fetch all locations using external MFA.
     pub async fn all_using_external_mfa<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
@@ -1231,7 +1231,7 @@ impl WireguardNetwork<Id> {
     pub async fn set_allowed_groups(
         &self,
         transaction: &mut PgConnection,
-        allowed_groups: Vec<String>,
+        allowed_groups: &[String],
     ) -> Result<(), ModelError> {
         info!("Setting allowed groups for network {self} to: {allowed_groups:?}");
         if allowed_groups.is_empty() {
@@ -1242,7 +1242,7 @@ impl WireguardNetwork<Id> {
         let mut current_groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
         // add to group if not already a member
-        for group in &allowed_groups {
+        for group in allowed_groups {
             if !current_groups.contains(group) {
                 self.add_to_group(transaction, group).await?;
             }
@@ -1251,12 +1251,14 @@ impl WireguardNetwork<Id> {
         // remove groups which are no longer present
         current_groups.retain(|group| !allowed_groups.contains(group));
         if !current_groups.is_empty() {
-            self.remove_from_groups(transaction, current_groups).await?;
+            self.remove_from_groups(transaction, &current_groups)
+                .await?;
         }
 
         Ok(())
     }
 
+    /// Add given group to the network.
     pub async fn add_to_group(
         &self,
         transaction: &mut PgConnection,
@@ -1274,10 +1276,11 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
+    /// Remove given groups from the network.
     pub async fn remove_from_groups(
         &self,
         transaction: &mut PgConnection,
-        groups: Vec<String>,
+        groups: &[String],
     ) -> Result<(), ModelError> {
         info!("Removing allowed groups {groups:?} for network {self}");
         let result = query!(
@@ -1287,7 +1290,7 @@ impl WireguardNetwork<Id> {
                 WHERE name IN (SELECT * FROM UNNEST($2::text[])) \
             )",
             self.id,
-            &groups
+            groups
         )
         .execute(transaction)
         .await?;
@@ -1302,7 +1305,7 @@ impl WireguardNetwork<Id> {
     async fn clear_allowed_groups(&self, transaction: &mut PgConnection) -> Result<(), ModelError> {
         info!("Removing all allowed groups for network {self}");
         let result = query!(
-            "DELETE FROM wireguard_network_allowed_group WHERE network_id=$1",
+            "DELETE FROM wireguard_network_allowed_group WHERE network_id = $1",
             self.id
         )
         .execute(transaction)
@@ -1833,7 +1836,7 @@ mod test {
         let mut transaction = pool.begin().await.unwrap();
 
         network
-            .set_allowed_groups(&mut transaction, vec![group1.name])
+            .set_allowed_groups(&mut transaction, &[group1.name])
             .await
             .unwrap();
 

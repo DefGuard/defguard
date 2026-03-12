@@ -614,7 +614,7 @@ mod test {
         network
             .set_allowed_groups(
                 &mut transaction,
-                vec![group1.name.clone(), group2.name.clone()],
+                &[group1.name.clone(), group2.name.clone()],
             )
             .await
             .unwrap();

@@ -640,7 +640,7 @@ mod test {
         let mut transaction = pool.begin().await.unwrap();
         let group = Group::new("group1").save(&mut *transaction).await.unwrap();
         network
-            .set_allowed_groups(&mut transaction, vec![group.name])
+            .set_allowed_groups(&mut transaction, &[group.name])
             .await
             .unwrap();
         transaction.commit().await.unwrap();

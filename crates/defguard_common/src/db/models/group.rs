@@ -7,7 +7,6 @@ use utoipa::ToSchema;
 
 use crate::db::{Id, NoId, models::user::User};
 
-#[derive(Debug)]
 pub enum Permission {
     IsAdmin,
 }
@@ -117,9 +116,8 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let query = format!(
-            "SELECT id, name, is_admin FROM \"group\" WHERE {permission} = TRUE ORDER BY id"
-        );
+        let query =
+            format!("SELECT id, name, is_admin FROM \"group\" WHERE {permission} ORDER BY id");
         query_as(&query).fetch_all(executor).await
     }
 

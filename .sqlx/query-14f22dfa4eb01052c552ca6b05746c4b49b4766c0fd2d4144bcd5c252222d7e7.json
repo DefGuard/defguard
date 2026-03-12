@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", configured FROM device d JOIN \"user\" u ON d.user_id = u.id WHERE u.is_active = true AND d.device_type = 'user'::device_type ORDER BY d.id ASC",
+  "query": "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", configured FROM device d JOIN \"user\" u ON d.user_id = u.id WHERE u.is_active AND d.device_type = 'user'::device_type ORDER BY d.id ASC",
   "describe": {
     "columns": [
       {
@@ -68,5 +68,5 @@
       false
     ]
   },
-  "hash": "451af8e67a5df3d25ee59d8d6bf40d78fc40046e7a82f49d73ff6cd27cf64a96"
+  "hash": "14f22dfa4eb01052c552ca6b05746c4b49b4766c0fd2d4144bcd5c252222d7e7"
 }

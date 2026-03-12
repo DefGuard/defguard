@@ -389,8 +389,8 @@ impl ClientMfaServer {
             {
                 error!(
                     "User {} not allowed to connect to location {location} because he doesn't belong to any of the allowed groups.
-                    User groups: {:?}, allowed groups: {:?}",
-                    user_info.username, user_info.groups, groups
+                    User groups: {:?}, allowed groups: {groups:?}",
+                    user_info.username, user_info.groups
                 );
                 return Err(Status::unauthenticated("unauthorized"));
             }

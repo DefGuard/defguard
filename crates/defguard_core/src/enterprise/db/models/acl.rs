@@ -1046,7 +1046,7 @@ impl AclRule<Id> {
             ON u.id = r.user_id \
             WHERE r.rule_id = $1 \
             AND r.allow \
-            AND u.is_active = true",
+            AND u.is_active",
             self.id,
         )
         .fetch_all(executor)
@@ -1072,7 +1072,7 @@ impl AclRule<Id> {
             ON u.id = r.user_id \
             WHERE r.rule_id = $1 \
             AND NOT r.allow \
-            AND u.is_active = true",
+            AND u.is_active",
             self.id,
         )
         .fetch_all(executor)
@@ -1130,7 +1130,7 @@ impl AclRule<Id> {
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
-            WHERE r.rule_id = $1 AND r.allow = true AND d.configured = true",
+            WHERE r.rule_id = $1 AND r.allow AND d.configured",
             self.id,
         )
         .fetch_all(executor)
@@ -1150,7 +1150,7 @@ impl AclRule<Id> {
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
-            WHERE r.rule_id = $1 AND r.allow = false AND d.configured = true",
+            WHERE r.rule_id = $1 AND r.allow = false AND d.configured",
             self.id,
         )
         .fetch_all(executor)
@@ -1364,7 +1364,7 @@ impl AclRuleInfo<Id> {
                 FROM device d \
                 JOIN wireguard_network_device wnd \
                 ON d.id = wnd.device_id \
-                WHERE device_type = 'network'::device_type AND configured = true AND \
+                WHERE device_type = 'network'::device_type AND configured AND \
                 wireguard_network_id = $1",
                 location_id
             )
@@ -1396,7 +1396,7 @@ impl AclRuleInfo<Id> {
                 FROM device d \
                 JOIN wireguard_network_device wnd \
                 ON d.id = wnd.device_id \
-                WHERE device_type = 'network'::device_type AND configured = true AND \
+                WHERE device_type = 'network'::device_type AND configured AND \
                 wireguard_network_id = $1",
                 location_id
             )
