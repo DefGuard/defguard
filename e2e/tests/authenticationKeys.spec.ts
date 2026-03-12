@@ -64,7 +64,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await modal.getByRole('button', { name: 'SSH', exact: true }).click();
     const form = modal.locator('form');
     await form.getByTestId('field-title').fill('test ssh');
-    await form.getByTestId('textarea-keyValue').fill(testSshKey);
+    await form.getByTestId('field-keyValue').fill(testSshKey);
     const responsePromise = page.waitForResponse('**/auth_key');
     await modal.locator('button[type="submit"]').click();
     const response = await responsePromise;
@@ -102,7 +102,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     const responsePromise = page.waitForResponse('**/auth_key');
     const form = modal.locator('form');
     await form.getByTestId('field-title').fill('test pgp');
-    await form.getByTestId('textarea-keyValue').fill(testPgpKey);
+    await form.getByTestId('field-keyValue').fill(testPgpKey);
     await modal.locator('button[type="submit"]').click();
     const response = await responsePromise;
     expect(response.status()).toBe(201);
