@@ -74,7 +74,10 @@ const getFormSchema = (existingNames: string[]) =>
       .string()
       .trim()
       .min(1, m.form_error_required())
-      .refine((val) => !existingNames.includes(val.trim().toLowerCase()), m.form_error_name_reserved()),
+      .refine(
+        (val) => !existingNames.includes(val.trim().toLowerCase()),
+        m.form_error_name_reserved(),
+      ),
     key: z.string().trim().min(1, m.form_error_required()),
   });
 
@@ -88,7 +91,9 @@ const defaultValues: FormFields = {
 const ModalContent = ({ username }: { username: string }) => {
   const [selected, setSelected] = useState(selectOptions[0]);
   const { data: authKeys = [] } = useQuery(getUserAuthKeysQueryOptions(username));
-  const existingNames = authKeys.map((k) => k.name?.toLowerCase()).filter(Boolean) as string[];
+  const existingNames = authKeys
+    .map((k) => k.name?.toLowerCase())
+    .filter(Boolean) as string[];
   const formSchema = useMemo(() => getFormSchema(existingNames), [existingNames]);
 
   const { mutateAsync: addKey } = useMutation({
