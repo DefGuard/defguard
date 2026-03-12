@@ -1,3 +1,4 @@
+import './style.scss';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
