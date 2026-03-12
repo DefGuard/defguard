@@ -894,167 +894,151 @@ const Content = ({ rule: initialRule }: Props) => {
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           {isPresent(usersOptions) && (
-            <div className="restriction-block">
-              <div className="restriction-toggle">
-                <Checkbox
-                  active={restrictUsers}
-                  onClick={() => {
-                    setRestrictUsers((current) => !current);
-                  }}
-                  text="Limit access for users"
-                />
-              </div>
+            <>
+              <Checkbox
+                active={restrictUsers}
+                onClick={() => {
+                  setRestrictUsers((current) => !current);
+                }}
+                text="Limit access for users"
+              />
               <Fold open={restrictUsers}>
-                <div className="restriction-body">
-                  <div className="restriction-radio">
-                    <form.AppField name="deny_all_users">
-                      {(field) => (
-                        <field.FormRadio text="Exclude all users" value={true} />
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="deny_all_users">
+                  {(field) => <field.FormRadio text="Exclude all users" value={true} />}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Md} />
+                <form.AppField name="deny_all_users">
+                  {(field) => (
+                    <field.FormRadio text="Exclude specific users" value={false} />
+                  )}
+                </form.AppField>
+                <form.Subscribe
+                  selector={(s) => s.values.deny_all_users === false && restrictUsers}
+                >
+                  {(open) => (
+                    <Fold open={open}>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      {isPresent(usersOptions) && (
+                        <form.AppField name="denied_users">
+                          {(field) => (
+                            <field.FormSelectMultiple
+                              toggleValue={!open}
+                              onToggleChange={() => {}}
+                              counterText={(counter) => `Users ${counter}`}
+                              editText="Edit users"
+                              modalTitle="Select restricted users"
+                              options={usersOptions}
+                            />
+                          )}
+                        </form.AppField>
                       )}
-                    </form.AppField>
-                    <form.AppField name="deny_all_users">
-                      {(field) => (
-                        <field.FormRadio text="Exclude specific users" value={false} />
-                      )}
-                    </form.AppField>
-                  </div>
-                  <form.Subscribe
-                    selector={(s) => s.values.deny_all_users === false && restrictUsers}
-                  >
-                    {(open) => (
-                      <Fold open={open}>
-                        {isPresent(usersOptions) && (
-                          <form.AppField name="denied_users">
-                            {(field) => (
-                              <field.FormSelectMultiple
-                                toggleValue={!open}
-                                onToggleChange={() => {}}
-                                counterText={(counter) => `Users ${counter}`}
-                                editText="Edit users"
-                                modalTitle="Select restricted users"
-                                options={usersOptions}
-                              />
-                            )}
-                          </form.AppField>
-                        )}
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </div>
+                    </Fold>
+                  )}
+                </form.Subscribe>
               </Fold>
-            </div>
+            </>
           )}
           <Divider spacing={ThemeSpacing.Lg} />
           {isPresent(groupsOptions) && (
-            <div className="restriction-block">
-              <div className="restriction-toggle">
-                <Checkbox
-                  active={restrictGroups}
-                  onClick={() => {
-                    setRestrictGroups((current) => !current);
-                  }}
-                  text="Limit access for groups"
-                />
-              </div>
+            <>
+              <Checkbox
+                active={restrictGroups}
+                onClick={() => {
+                  setRestrictGroups((current) => !current);
+                }}
+                text="Limit access for groups"
+              />
               <Fold open={restrictGroups}>
-                <div className="restriction-body">
-                  <div className="restriction-radio">
-                    <form.AppField name="deny_all_groups">
-                      {(field) => (
-                        <field.FormRadio text="Exclude all groups" value={true} />
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="deny_all_groups">
+                  {(field) => <field.FormRadio text="Exclude all groups" value={true} />}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Md} />
+                <form.AppField name="deny_all_groups">
+                  {(field) => (
+                    <field.FormRadio text="Exclude specific groups" value={false} />
+                  )}
+                </form.AppField>
+                <form.Subscribe
+                  selector={(s) => s.values.deny_all_groups === false && restrictGroups}
+                >
+                  {(open) => (
+                    <Fold open={open}>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      {isPresent(groupsOptions) && (
+                        <form.AppField name="denied_groups">
+                          {(field) => (
+                            <field.FormSelectMultiple
+                              toggleValue={!open}
+                              onToggleChange={() => {}}
+                              counterText={(counter) => `Groups ${counter}`}
+                              editText="Edit groups"
+                              modalTitle="Select restricted groups"
+                              options={groupsOptions}
+                            />
+                          )}
+                        </form.AppField>
                       )}
-                    </form.AppField>
-                    <form.AppField name="deny_all_groups">
-                      {(field) => (
-                        <field.FormRadio text="Exclude specific groups" value={false} />
-                      )}
-                    </form.AppField>
-                  </div>
-                  <form.Subscribe
-                    selector={(s) => s.values.deny_all_groups === false && restrictGroups}
-                  >
-                    {(open) => (
-                      <Fold open={open}>
-                        {isPresent(groupsOptions) && (
-                          <form.AppField name="denied_groups">
-                            {(field) => (
-                              <field.FormSelectMultiple
-                                toggleValue={!open}
-                                onToggleChange={() => {}}
-                                counterText={(counter) => `Groups ${counter}`}
-                                editText="Edit groups"
-                                modalTitle="Select restricted groups"
-                                options={groupsOptions}
-                              />
-                            )}
-                          </form.AppField>
-                        )}
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </div>
+                    </Fold>
+                  )}
+                </form.Subscribe>
               </Fold>
-            </div>
+            </>
           )}
           <Divider spacing={ThemeSpacing.Lg} />
           {isPresent(networkDevicesOptions) && (
-            <div className="restriction-block">
-              <div className="restriction-toggle">
-                <Checkbox
-                  active={restrictDevices}
-                  onClick={() => {
-                    setRestrictDevices((current) => !current);
-                  }}
-                  text="Limit access for network devices"
-                />
-              </div>
+            <>
+              <Checkbox
+                active={restrictDevices}
+                onClick={() => {
+                  setRestrictDevices((current) => !current);
+                }}
+                text="Limit access for network devices"
+              />
               <Fold open={restrictDevices}>
-                <div className="restriction-body">
-                  <div className="restriction-radio">
-                    <form.AppField name="deny_all_network_devices">
-                      {(field) => (
-                        <field.FormRadio
-                          text="Exclude all network devices"
-                          value={true}
-                        />
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="deny_all_network_devices">
+                  {(field) => (
+                    <field.FormRadio text="Exclude all network devices" value={true} />
+                  )}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Md} />
+                <form.AppField name="deny_all_network_devices">
+                  {(field) => (
+                    <field.FormRadio
+                      text="Exclude specific network devices"
+                      value={false}
+                    />
+                  )}
+                </form.AppField>
+                <form.Subscribe
+                  selector={(s) =>
+                    s.values.deny_all_network_devices === false && restrictDevices
+                  }
+                >
+                  {(open) => (
+                    <Fold open={open}>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      {isPresent(networkDevicesOptions) && (
+                        <form.AppField name="denied_network_devices">
+                          {(field) => (
+                            <field.FormSelectMultiple
+                              toggleValue={!open}
+                              onToggleChange={() => {}}
+                              counterText={(counter) => `Network devices ${counter}`}
+                              editText="Edit network devices"
+                              modalTitle="Select restricted network devices"
+                              options={networkDevicesOptions}
+                            />
+                          )}
+                        </form.AppField>
                       )}
-                    </form.AppField>
-                    <form.AppField name="deny_all_network_devices">
-                      {(field) => (
-                        <field.FormRadio
-                          text="Exclude specific network devices"
-                          value={false}
-                        />
-                      )}
-                    </form.AppField>
-                  </div>
-                  <form.Subscribe
-                    selector={(s) =>
-                      s.values.deny_all_network_devices === false && restrictDevices
-                    }
-                  >
-                    {(open) => (
-                      <Fold open={open}>
-                        {isPresent(networkDevicesOptions) && (
-                          <form.AppField name="denied_network_devices">
-                            {(field) => (
-                              <field.FormSelectMultiple
-                                toggleValue={!open}
-                                onToggleChange={() => {}}
-                                counterText={(counter) => `Network devices ${counter}`}
-                                editText="Edit network devices"
-                                modalTitle="Select restricted network devices"
-                                options={networkDevicesOptions}
-                              />
-                            )}
-                          </form.AppField>
-                        )}
-                      </Fold>
-                    )}
-                  </form.Subscribe>
-                </div>
+                    </Fold>
+                  )}
+                </form.Subscribe>
               </Fold>
-            </div>
+            </>
           )}
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
