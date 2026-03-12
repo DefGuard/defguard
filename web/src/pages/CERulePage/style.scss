@@ -85,7 +85,7 @@
     }
 
     & > .fold {
-      margin-top: var(--spacing-sm);
+      margin-top: var(--spacing-lg);
     }
 
     & > .fold.folded {
@@ -101,12 +101,20 @@
   .restriction-body {
     display: flex;
     flex-direction: column;
+
+    & > .fold {
+      margin-top: var(--spacing-md);
+    }
+
+    & > .fold.folded {
+      margin-top: 0;
+    }
   }
 
   .restriction-radio {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
   }
 }
 
