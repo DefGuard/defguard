@@ -161,9 +161,14 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         {
           text: m.controls_delete(),
           onClick: () => {
-            openModal(ModalName.DeleteUserDevice, {
-              id: row.id,
-              name: row.name,
+            openModal(ModalName.ConfirmAction, {
+              title: m.modal_delete_user_device_title(),
+              contentMd: m.modal_delete_user_device_body({ name: row.name }),
+              actionPromise: () => api.device.deleteDevice(row.id),
+              invalidateKeys: [['user-overview'], ['user', username], ['network']],
+              submitProps: { text: m.controls_delete(), variant: 'critical' },
+              onSuccess: () => Snackbar.success(m.user_device_delete_success()),
+              onError: () => Snackbar.error(m.user_device_delete_failed()),
             });
           },
           variant: 'danger',
@@ -291,6 +296,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     },
     columns: tableColumns,
     data: rowData,
+    getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),

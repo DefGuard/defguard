@@ -485,9 +485,14 @@ export const UsersTable = () => {
           {
             text: m.controls_delete(),
             onClick: () => {
-              openModal(ModalName.DeleteUserDevice, {
-                id: device.id,
-                name: device.name,
+              openModal(ModalName.ConfirmAction, {
+                title: m.modal_delete_user_device_title(),
+                contentMd: m.modal_delete_user_device_body({ name: device.name }),
+                actionPromise: () => api.device.deleteDevice(device.id),
+                invalidateKeys: [['user-overview'], ['user'], ['network']],
+                submitProps: { text: m.controls_delete(), variant: 'critical' },
+                onSuccess: () => Snackbar.success(m.user_device_delete_success()),
+                onError: () => Snackbar.error(m.user_device_delete_failed()),
               });
             },
             variant: 'danger',
