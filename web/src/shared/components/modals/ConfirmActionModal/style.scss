@@ -1,0 +1,25 @@
+#action-modal .markdown-render {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-sm);
+
+  p,
+  span,
+  ul,
+  li {
+    font: var(--t-body-sm-400);
+    color: var(--fg-default);
+  }
+
+  ul {
+    margin-left: 0;
+
+    li {
+      margin-left: var(--spacing-md);
+
+      &:not(:last-child) {
+        margin-bottom: var(--spacing-sm);
+      }
+    }
+  }
+}
