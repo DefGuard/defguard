@@ -39,6 +39,7 @@ export interface OpenAuthKeyRenameModal {
   id: number;
   name: string;
   username: string;
+  reservedNames: string[];
 }
 
 export interface OpenAddApiTokenModal {

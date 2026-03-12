@@ -176,6 +176,7 @@ export const ProfileAuthKeysTable = () => {
                       id: rowData.id,
                       name: rowData.name,
                       username,
+                      reservedNames: mapped.map((k) => k.name),
                     });
                   },
                 },
@@ -198,7 +199,7 @@ export const ProfileAuthKeysTable = () => {
         },
       }),
     ],
-    [deleteAuthKey, username, writeToClipboard],
+    [deleteAuthKey, username, writeToClipboard, mapped.map],
   );
 
   const table = useReactTable({
