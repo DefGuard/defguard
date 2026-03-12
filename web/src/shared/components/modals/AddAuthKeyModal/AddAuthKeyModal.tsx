@@ -151,7 +151,7 @@ const ModalContent = ({ username }: { username: string }) => {
             {(field) => <field.FormInput label={m.form_label_name()} required />}
           </form.AppField>
           <form.AppField name="key">
-            {(field) => <field.FormInput label={m.form_label_key()} required />}
+            {(field) => <field.FormTextarea label={m.form_label_key()} required />}
           </form.AppField>
         </form.AppForm>
       </form>
