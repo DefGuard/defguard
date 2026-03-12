@@ -180,11 +180,6 @@ export interface OpenDeleteNetworkDeviceModal {
   name: string;
 }
 
-export interface OpenDeleteUserDeviceModal {
-  id: number;
-  name: string;
-}
-
 export interface OpenDeleteOpenIdClientModal {
   client_id: string;
   name: string;

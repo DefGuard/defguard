@@ -2,7 +2,6 @@ import { LayoutGrid } from '../../../../../shared/components/LayoutGrid/LayoutGr
 import './style.scss';
 import { AddUserDeviceModal } from '../../../../../shared/components/modals/AddUserDeviceModal/AddUserDeviceModal';
 import { AssignUserDeviceIPModal } from '../../../../../shared/components/modals/AssignUserDeviceIPModal/AssignUserDeviceIPModal';
-import { DeleteUserDeviceModal } from '../../../../../shared/components/modals/DeleteUserDeviceModal/DeleteUserDeviceModal';
 import { EditUserDeviceModal } from '../../../../../shared/components/modals/EditUserDeviceModal/EditUserDeviceModal';
 import { UserDeviceConfigModal } from '../../../../../shared/components/modals/UserDeviceConfigModal/UserDeviceConfigModal';
 import { ProfileDevicesTable } from './components/ProfileDevicesTable/ProfileDevicesTable';
@@ -17,7 +16,6 @@ export const ProfileDevicesTab = () => {
       <EditUserDeviceModal />
       <UserDeviceConfigModal />
       <AssignUserDeviceIPModal />
-      <DeleteUserDeviceModal />
     </>
   );
 };
