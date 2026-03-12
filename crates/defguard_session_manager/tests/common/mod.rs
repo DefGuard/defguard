@@ -108,11 +108,11 @@ impl SessionManagerHarness {
     }
 }
 
-pub(crate) async fn create_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
-    create_network_with_mfa_mode(pool, LocationMfaMode::Disabled).await
+pub(crate) async fn create_location(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+    create_location_with_mfa_mode(pool, LocationMfaMode::Disabled).await
 }
 
-pub(crate) async fn create_network_with_mfa_mode(
+pub(crate) async fn create_location_with_mfa_mode(
     pool: &sqlx::PgPool,
     location_mfa_mode: LocationMfaMode,
 ) -> WireguardNetwork<Id> {
@@ -134,7 +134,7 @@ pub(crate) async fn create_network_with_mfa_mode(
     )
     .save(pool)
     .await
-    .expect("failed to create Wireguard network")
+    .expect("failed to create Wireguard location")
 }
 
 pub(crate) async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
@@ -173,34 +173,34 @@ pub(crate) async fn create_device_with_pubkey(
     .expect("failed to create device")
 }
 
-pub(crate) async fn attach_device_to_network(pool: &sqlx::PgPool, network_id: Id, device_id: Id) {
+pub(crate) async fn attach_device_to_location(pool: &sqlx::PgPool, location_id: Id, device_id: Id) {
     let network_device = WireguardNetworkDevice::new(
-        network_id,
+        location_id,
         device_id,
         vec![IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))],
     );
     network_device
         .insert(pool)
         .await
-        .expect("failed to attach device to network");
+        .expect("failed to attach device to location");
 }
 
 pub(crate) async fn create_gateway(
     pool: &sqlx::PgPool,
-    network_id: Id,
+    location_id: Id,
     modified_by: String,
 ) -> Gateway<Id> {
-    create_gateway_named(pool, network_id, modified_by, "gateway-1").await
+    create_gateway_named(pool, location_id, modified_by, "gateway-1").await
 }
 
 pub(crate) async fn create_gateway_named(
     pool: &sqlx::PgPool,
-    network_id: Id,
+    location_id: Id,
     modified_by: String,
     name: &str,
 ) -> Gateway<Id> {
     Gateway::new(
-        network_id,
+        location_id,
         name.to_string(),
         "127.0.0.1".to_string(),
         51820,
@@ -211,13 +211,13 @@ pub(crate) async fn create_gateway_named(
     .expect("failed to create gateway")
 }
 
-pub(crate) async fn authorize_device_in_network(
+pub(crate) async fn authorize_device_in_location(
     pool: &sqlx::PgPool,
-    network_id: Id,
+    location_id: Id,
     device_id: Id,
     preshared_key: &str,
 ) {
-    let mut network_device = WireguardNetworkDevice::find(pool, device_id, network_id)
+    let mut network_device = WireguardNetworkDevice::find(pool, device_id, location_id)
         .await
         .expect("failed to load device network info")
         .expect("expected device network info");
@@ -227,7 +227,7 @@ pub(crate) async fn authorize_device_in_network(
     network_device
         .update(pool)
         .await
-        .expect("failed to authorize device in network");
+        .expect("failed to authorize device in location");
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -16,10 +16,10 @@ use tokio::time::{Duration, timeout};
 
 use crate::common::{
     SessionManagerHarness, assert_no_gateway_events, assert_no_session_manager_events,
-    attach_device_to_network, authorize_device_in_network, build_stats_update, count_session_stats,
-    count_stats_for_device_location, create_device, create_gateway, create_network_with_mfa_mode,
-    create_session, create_session_stats, create_user, set_session_created_at,
-    stale_session_timestamp, truncate_timestamp,
+    attach_device_to_location, authorize_device_in_location, build_stats_update,
+    count_session_stats, count_stats_for_device_location, create_device, create_gateway,
+    create_location_with_mfa_mode, create_session, create_session_stats, create_user,
+    set_session_created_at, stale_session_timestamp, truncate_timestamp,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -30,17 +30,17 @@ async fn test_mfa_location_stats_do_not_create_missing_session(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
     let timestamp = Utc::now().naive_utc();
     harness.send_stats(build_stats_update(
-        network.id,
+        location.id,
         gateway.id,
         &device.wireguard_pubkey,
         timestamp,
@@ -53,13 +53,13 @@ async fn test_mfa_location_stats_do_not_create_missing_session(
     let _ = harness.run_iteration().await;
 
     assert!(
-        VpnClientSession::try_get_active_session(&pool, network.id, device.id)
+        VpnClientSession::try_get_active_session(&pool, location.id, device.id)
             .await
             .expect("failed to query active session")
             .is_none()
     );
     assert_eq!(
-        count_stats_for_device_location(&pool, device.id, network.id).await,
+        count_stats_for_device_location(&pool, device.id, location.id).await,
         0
     );
 }
@@ -70,16 +70,16 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         None,
@@ -90,7 +90,7 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
     let handshake = truncate_timestamp(Utc::now().naive_utc());
     harness.send_stats(build_stats_update(
-        network.id,
+        location.id,
         gateway.id,
         &device.wireguard_pubkey,
         handshake,
@@ -109,14 +109,14 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     assert_eq!(refreshed_session.state, VpnClientSessionState::Connected);
     assert_eq!(refreshed_session.connected_at, Some(handshake));
     assert_eq!(
-        count_stats_for_device_location(&pool, device.id, network.id).await,
+        count_stats_for_device_location(&pool, device.id, location.id).await,
         1
     );
 
     let second_collected_at = handshake + TimeDelta::seconds(30);
     let second_handshake = handshake + TimeDelta::seconds(25);
     harness.send_stats(build_stats_update(
-        network.id,
+        location.id,
         gateway.id,
         &device.wireguard_pubkey,
         second_collected_at,
@@ -136,7 +136,7 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     assert_eq!(updated_session.connected_at, Some(handshake));
 
     let active_sessions =
-        VpnClientSession::get_all_active_device_sessions_in_location(&pool, network.id, device.id)
+        VpnClientSession::get_all_active_device_sessions_in_location(&pool, location.id, device.id)
             .await
             .expect("failed to query active sessions");
     assert_eq!(active_sessions.len(), 1);
@@ -144,11 +144,11 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
 
     assert_eq!(count_session_stats(&pool, session.id).await, 2);
     assert_eq!(
-        count_stats_for_device_location(&pool, device.id, network.id).await,
+        count_stats_for_device_location(&pool, device.id, location.id).await,
         2
     );
 
-    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, network.id)
+    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, location.id)
         .await
         .expect("failed to query latest stats")
         .expect("expected latest stats");
@@ -165,16 +165,16 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         None,
@@ -186,7 +186,7 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
     let handshake = truncate_timestamp(Utc::now().naive_utc());
     let duplicate_update = || {
         build_stats_update(
-            network.id,
+            location.id,
             gateway.id,
             &device.wireguard_pubkey,
             handshake,
@@ -210,7 +210,7 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
     assert_eq!(refreshed_session.connected_at, Some(handshake));
 
     let active_sessions =
-        VpnClientSession::get_all_active_device_sessions_in_location(&pool, network.id, device.id)
+        VpnClientSession::get_all_active_device_sessions_in_location(&pool, location.id, device.id)
             .await
             .expect("failed to query active sessions");
     assert_eq!(active_sessions.len(), 1);
@@ -218,7 +218,7 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
 
     assert_eq!(count_session_stats(&pool, session.id).await, 2);
 
-    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, network.id)
+    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, location.id)
         .await
         .expect("failed to query latest stats")
         .expect("expected latest stats");
@@ -236,16 +236,16 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         None,
@@ -256,7 +256,7 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
     let first_handshake = truncate_timestamp(Utc::now().naive_utc() - TimeDelta::seconds(30));
     harness.send_stats(build_stats_update(
-        network.id,
+        location.id,
         gateway.id,
         &device.wireguard_pubkey,
         first_handshake,
@@ -281,7 +281,7 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     let later_collected_at = first_handshake + TimeDelta::seconds(30);
     let later_handshake = first_handshake + TimeDelta::seconds(20);
     harness.send_stats(build_stats_update(
-        network.id,
+        location.id,
         gateway.id,
         &device.wireguard_pubkey,
         later_collected_at,
@@ -301,7 +301,7 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     assert_eq!(refreshed_session.connected_at, Some(first_handshake));
 
     let active_sessions =
-        VpnClientSession::get_all_active_device_sessions_in_location(&pool, network.id, device.id)
+        VpnClientSession::get_all_active_device_sessions_in_location(&pool, location.id, device.id)
             .await
             .expect("failed to query active sessions");
     assert_eq!(active_sessions.len(), 1);
@@ -309,7 +309,7 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
 
     assert_eq!(count_session_stats(&pool, session.id).await, 2);
 
-    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, network.id)
+    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, location.id)
         .await
         .expect("failed to query latest stats")
         .expect("expected latest stats");
@@ -327,18 +327,18 @@ async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    authorize_device_in_network(&pool, network.id, device.id, "psk-before-disconnect").await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    authorize_device_in_location(&pool, location.id, device.id, "psk-before-disconnect").await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let stale_handshake = stale_session_timestamp(&network);
+    let stale_handshake = stale_session_timestamp(&location);
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         Some(stale_handshake),
@@ -370,7 +370,7 @@ async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization
         VpnClientSessionState::Disconnected
     );
 
-    let network_device = WireguardNetworkDevice::find(&pool, device.id, network.id)
+    let network_device = WireguardNetworkDevice::find(&pool, device.id, location.id)
         .await
         .expect("failed to query network device")
         .expect("expected network device");
@@ -383,7 +383,7 @@ async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization
         .expect("gateway event channel closed");
     match gateway_event {
         GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
-            assert_eq!(location_id, network.id);
+            assert_eq!(location_id, location.id);
             assert_eq!(disconnected_device.id, device.id);
         }
         other => panic!("unexpected gateway event: {other:?}"),
@@ -396,22 +396,22 @@ async fn test_never_connected_mfa_new_sessions_disconnect_after_threshold(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         None,
         Some(VpnClientMfaMethod::Totp),
     )
     .await;
-    set_session_created_at(&pool, session.id, stale_session_timestamp(&network)).await;
+    set_session_created_at(&pool, session.id, stale_session_timestamp(&location)).await;
 
     let _ = harness.run_idle_iteration().await;
 

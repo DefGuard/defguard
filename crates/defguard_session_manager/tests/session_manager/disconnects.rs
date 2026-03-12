@@ -8,8 +8,8 @@ use defguard_common::db::{
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::common::{
-    SessionManagerHarness, attach_device_to_network, create_device, create_gateway, create_network,
-    create_session, create_session_stats, create_user, stale_session_timestamp,
+    SessionManagerHarness, attach_device_to_location, create_device, create_gateway,
+    create_location, create_session, create_session_stats, create_user, stale_session_timestamp,
 };
 
 #[sqlx::test]
@@ -18,17 +18,17 @@ async fn test_inactive_connected_sessions_are_disconnected_after_threshold(
     options: PgConnectOptions,
 ) {
     let pool = setup_pool(options).await;
-    let network = create_network(&pool).await;
+    let location = create_location(&pool).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let stale_handshake = stale_session_timestamp(&network);
+    let stale_handshake = stale_session_timestamp(&location);
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         Some(stale_handshake),
@@ -65,17 +65,17 @@ async fn test_inactive_connected_sessions_are_disconnected_after_threshold(
 #[sqlx::test]
 async fn test_recent_connected_sessions_remain_active(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let network = create_network(&pool).await;
+    let location = create_location(&pool).await;
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
-    attach_device_to_network(&pool, network.id, device.id).await;
-    let gateway = create_gateway(&pool, network.id, user.fullname()).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let recent_handshake = Utc::now().naive_utc() - TimeDelta::seconds(30);
     let session = create_session(
         &pool,
-        network.id,
+        location.id,
         user.id,
         device.id,
         Some(recent_handshake),
