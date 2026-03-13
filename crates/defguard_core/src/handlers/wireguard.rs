@@ -366,16 +366,13 @@ pub(crate) async fn modify_network(
     network.location_mfa_mode = data.location_mfa_mode;
 
     network.save(&mut *transaction).await?;
-    network
-        .set_allowed_groups(
-            &mut transaction,
-            if data.allow_all_groups {
-                &[]
-            } else {
-                &data.allowed_groups
-            },
-        )
-        .await?;
+    if data.allow_all_groups {
+        network.clear_allowed_groups(&mut transaction).await?;
+    } else {
+        network
+            .set_allowed_groups(&mut transaction, &data.allowed_groups)
+            .await?;
+    }
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut *transaction).await?;

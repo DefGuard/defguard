@@ -665,14 +665,12 @@ mod test {
         if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2_pre_sync.id);
         } else {
-            panic!("Expected a DeviceDeleted event");
+            panic!("Expected DeviceDeleted event");
         }
-        // let event = wg_rx.try_recv();
-        // if let Ok(GatewayEvent::DeviceCreated(dev)) = event {
-        //     assert_eq!(dev.device.user_id, user.id);
-        // } else {
-        //     panic!("Expected a DeviceDeleted event");
-        // }
+        let event = wg_rx.try_recv();
+        if let Ok(GatewayEvent::DeviceCreated(dev)) = event {
+            panic!("Unxpected DeviceCreated event: {dev:?}");
+        }
     }
 
     #[sqlx::test]

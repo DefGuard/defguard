@@ -6,7 +6,7 @@ use defguard_core::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
@@ -94,8 +94,6 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: Value = response.json().await;
-    let _network_id = network["id"].as_i64().unwrap();
 
     // setup admin devices management
     let settings = EnterpriseSettings {
@@ -209,8 +207,6 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: Value = response.json().await;
-    let _network_id = network["id"].as_i64().unwrap();
 
     // setup admin devices management
     let settings = EnterpriseSettings {
