@@ -1681,8 +1681,10 @@ mod test {
     #[sqlx::test]
     async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.allow_all_groups = true;
+        let mut network = WireguardNetwork::<NoId> {
+            allow_all_groups: true,
+            ..Default::default()
+        };
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
 

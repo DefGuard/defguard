@@ -470,7 +470,7 @@ mod test {
 
         let mut transaction = pool.begin().await.unwrap();
         network
-            .set_allowed_groups(&mut transaction, &[group.name.clone()])
+            .set_allowed_groups(&mut transaction, std::slice::from_ref(&group.name))
             .await
             .unwrap();
 
