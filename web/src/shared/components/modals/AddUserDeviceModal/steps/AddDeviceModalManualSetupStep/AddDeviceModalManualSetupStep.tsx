@@ -10,8 +10,10 @@ import { useMutation } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import api from '../../../../../api/api';
+import { getApiErrorMessage } from '../../../../../api/apiErrorMessages';
 import type { ApiError } from '../../../../../api/types';
 import { SizedBox } from '../../../../../defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../defguard-ui/types';
 import { patternValidWireguardKey } from '../../../../../patterns';
 import { generateWGKeys } from '../../../../../utils/generateWGKeys';
@@ -107,6 +109,11 @@ export const AddDeviceModalManualSetupStep = () => {
               },
             },
           });
+        } else {
+          const code = (e as AxiosError<ApiError>).response?.data?.code;
+          if (code) {
+            Snackbar.error(getApiErrorMessage(code));
+          }
         }
       });
 
@@ -114,6 +121,7 @@ export const AddDeviceModalManualSetupStep = () => {
 
       if (!createResponse.data.configs.length) {
         useAddUserDeviceModal.getState().close();
+        return;
       }
 
       useAddUserDeviceModal.setState({

@@ -5,11 +5,17 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import type { AxiosError } from 'axios';
 import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { LocationMfaMode, type NetworkDevice } from '../../shared/api/types';
+import { getApiErrorMessage } from '../../shared/api/apiErrorMessages';
+import {
+  type ApiError,
+  LocationMfaMode,
+  type NetworkDevice,
+} from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -24,6 +30,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSize } from '../../shared/defguard-ui/types';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -62,6 +69,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         locations: availableLocations,
         reservedNames,
       });
+    },
+    onError: (e) => {
+      console.error(e);
+      const code = (e as AxiosError<ApiError>).response?.data?.code;
+      if (code) {
+        Snackbar.error(getApiErrorMessage(code));
+      } else {
+        Snackbar.error(m.network_device_add_error());
+      }
     },
   });
 

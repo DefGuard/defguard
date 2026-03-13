@@ -349,19 +349,21 @@ pub(crate) async fn find_available_ips(
     }
 
     transaction.commit().await?;
-    if split_ips.len() == network.address.len() {
-        debug!(
-            "Found addresses {:?} for new device i network {} ({:?})",
-            split_ips, network.name, network.address
-        );
-        Ok(ApiResponse::json(split_ips, StatusCode::OK))
-    } else {
+    if split_ips.len() != network.address.len() {
         warn!(
             "Failed to find available IPs for new device in network {} ({:?})",
             network.name, network.address
         );
-        Ok(ApiResponse::with_status(StatusCode::NOT_FOUND))
+        return Err(WebError::NetworkFull(format!(
+            "Network {} is full, no IP addresses available",
+            network.name
+        )));
     }
+    debug!(
+        "Found addresses {:?} for new device in network {} ({:?})",
+        split_ips, network.name, network.address
+    );
+    Ok(ApiResponse::json(split_ips, StatusCode::OK))
 }
 
 #[derive(Serialize, Deserialize, Debug)]

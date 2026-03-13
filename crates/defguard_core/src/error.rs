@@ -89,6 +89,8 @@ pub enum WebError {
     #[error(transparent)]
     #[schema(value_type=Object)]
     StaticIpError(#[from] StaticIpError),
+    #[error("Network full: {0}")]
+    NetworkFull(String),
 }
 
 impl From<tonic::Status> for WebError {
@@ -122,6 +124,8 @@ impl From<DeviceError> for WebError {
             DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
             DeviceError::NetworkIpAssignmentError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            DeviceError::NetworkFull(_) => Self::NetworkFull(error.to_string()),
+            DeviceError::ModelError(_) => Self::ModelError(error.to_string()),
         }
     }
 }
