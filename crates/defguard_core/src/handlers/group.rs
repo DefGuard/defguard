@@ -189,7 +189,7 @@ pub(crate) async fn list_groups_info(
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
         LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id \
-        LEFT JOIN \"wireguard_network\" wn ON wn.allow_all_groups OR wn.id = wnag.network_id \
+        LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id \
         GROUP BY g.name, g.id"
     )
     .fetch_all(&appstate.pool)

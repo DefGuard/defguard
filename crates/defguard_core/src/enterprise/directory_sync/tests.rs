@@ -669,7 +669,7 @@ mod test {
         }
         let event = wg_rx.try_recv();
         if let Ok(GatewayEvent::DeviceCreated(dev)) = event {
-            panic!("Unxpected DeviceCreated event: {dev:?}");
+            panic!("Unexpected DeviceCreated event: {dev:?}");
         }
     }
 

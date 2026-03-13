@@ -145,9 +145,7 @@ pub(crate) struct ImportNetworkData {
     name: String,
     endpoint: String,
     config: String,
-    #[serde(default)]
     allow_all_groups: bool,
-    #[serde(default)]
     allowed_groups: Vec<String>,
 }
 
