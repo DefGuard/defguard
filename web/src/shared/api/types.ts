@@ -931,7 +931,7 @@ export interface SettingsGatewayNotifications {
 }
 
 export interface SettingsTimeoutsAndMaintenance {
-  disable_stats_purge: boolean;
+  enable_stats_purge: boolean;
   stats_purge_frequency_hours: number;
   stats_purge_threshold_days: number;
   enrollment_token_timeout_hours: number;

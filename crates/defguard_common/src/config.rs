@@ -3,18 +3,18 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::{VERSION, db::models::Settings};
+use crate::{db::models::Settings, VERSION};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -80,7 +80,7 @@ pub struct DefGuardConfig {
     pub url: Url,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.enable_stats_purge instead")]
     pub disable_stats_purge: Option<bool>,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY")]

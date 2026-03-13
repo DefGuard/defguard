@@ -204,7 +204,7 @@ pub struct Settings {
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     pub secret_key: Option<String>,
-    pub disable_stats_purge: bool,
+    pub enable_stats_purge: bool,
     stats_purge_frequency_hours: i32,
     stats_purge_threshold_days: i32,
     enrollment_token_timeout_hours: i32,
@@ -425,7 +425,7 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, \
-            default_admin_id, secret_key, disable_stats_purge, \
+            default_admin_id, secret_key, enable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -517,7 +517,7 @@ impl Settings {
             public_proxy_url = $56, \
             default_admin_id = $57, \
             secret_key = $58, \
-            disable_stats_purge = $59, \
+            enable_stats_purge = $59, \
             stats_purge_frequency_hours = $60, \
             stats_purge_threshold_days = $61, \
             enrollment_token_timeout_hours = $62, \
@@ -583,7 +583,7 @@ impl Settings {
             self.public_proxy_url,
             self.default_admin_id,
             self.secret_key,
-            self.disable_stats_purge,
+            self.enable_stats_purge,
             self.stats_purge_frequency_hours,
             self.stats_purge_threshold_days,
             self.enrollment_token_timeout_hours,
@@ -757,7 +757,7 @@ impl Settings {
             self.authentication_period_days = (session_timeout.as_secs() / day) as i32;
         }
         if let Some(disable_stats_purge) = config.disable_stats_purge {
-            self.disable_stats_purge = disable_stats_purge;
+            self.enable_stats_purge = !disable_stats_purge;
         }
         if let Some(stats_purge_frequency) = config.stats_purge_frequency {
             self.stats_purge_frequency_hours = (stats_purge_frequency.as_secs() / hour) as i32;
@@ -989,7 +989,7 @@ mod test {
         assert_eq!(settings.public_proxy_url, "https://proxy.example.com/");
         assert_eq!(settings.mfa_code_timeout_seconds, 75);
         assert_eq!(settings.authentication_period_days, 10);
-        assert!(settings.disable_stats_purge);
+        assert!(!settings.enable_stats_purge);
         assert_eq!(settings.stats_purge_frequency_hours, 5);
         assert_eq!(settings.stats_purge_threshold_days, 12);
         assert_eq!(settings.enrollment_token_timeout_hours, 7);
@@ -1006,7 +1006,7 @@ mod test {
             public_proxy_url: "https://proxy.initial".into(),
             mfa_code_timeout_seconds: 123,
             authentication_period_days: 9,
-            disable_stats_purge: true,
+            enable_stats_purge: false,
             ..Default::default()
         };
         let config = DefGuardConfig::new_test_config();
@@ -1022,7 +1022,7 @@ mod test {
         assert_eq!(settings.public_proxy_url, "https://proxy.initial");
         assert_eq!(settings.mfa_code_timeout_seconds, 123);
         assert_eq!(settings.authentication_period_days, 9);
-        assert!(settings.disable_stats_purge);
+        assert!(!settings.enable_stats_purge);
     }
 
     #[test]
@@ -1181,11 +1181,11 @@ mod test {
 
         assert_eq!(current.mfa_code_timeout_seconds, 90);
         assert_eq!(current.authentication_period_days, 2);
-        assert!(current.disable_stats_purge);
+        assert!(!current.enable_stats_purge);
 
         assert_eq!(from_db.mfa_code_timeout_seconds, 90);
         assert_eq!(from_db.authentication_period_days, 2);
-        assert!(from_db.disable_stats_purge);
+        assert!(!from_db.enable_stats_purge);
     }
 
     #[sqlx::test]
