@@ -484,12 +484,23 @@ pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
         auto_adoption_state: Option<AutoAdoptionWizardState>,
     }
 
+    let initial_setup_state = if wizard.active_wizard == ActiveWizard::Initial {
+        InitialSetupState::get(&pool).await?
+    } else {
+        None
+    };
+    let auto_adoption_state = if wizard.active_wizard == ActiveWizard::AutoAdoption {
+        AutoAdoptionWizardState::get(&pool).await?
+    } else {
+        None
+    };
+
     Ok(ApiResponse::json(
         WizardStateResponse {
             active_wizard: wizard.active_wizard,
             completed: wizard.completed,
-            initial_setup_state: InitialSetupState::get(&pool).await?,
-            auto_adoption_state: AutoAdoptionWizardState::get(&pool).await?,
+            initial_setup_state,
+            auto_adoption_state,
         },
         StatusCode::OK,
     ))
