@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE name = $1",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", service_location_mode \"service_location_mode: ServiceLocationMode\" FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
   "describe": {
     "columns": [
       {
@@ -60,31 +60,36 @@
       },
       {
         "ordinal": 11,
+        "name": "allow_all_groups",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "acl_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "acl_default_allow",
         "type_info": "Bool"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "location_mfa_mode: LocationMfaMode",
         "type_info": {
           "Custom": {
@@ -100,7 +105,7 @@
         }
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "service_location_mode: ServiceLocationMode",
         "type_info": {
           "Custom": {
@@ -117,9 +122,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -133,6 +136,7 @@
       false,
       false,
       false,
+      false,
       true,
       false,
       false,
@@ -142,5 +146,5 @@
       false
     ]
   },
-  "hash": "785629b8de2268c1311fe27a5727e3e416d4e6d1a5f5097d92b1bd8ec446deb1"
+  "hash": "bd0af2042bc33fdfc894514961af7a2b5bc013082b961d1f667b5fe55a7f996a"
 }

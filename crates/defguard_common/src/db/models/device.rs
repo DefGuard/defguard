@@ -502,8 +502,9 @@ impl WireguardNetworkDevice {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
@@ -966,11 +967,13 @@ impl Device<Id> {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, connected_at,  keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
-            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
+            (SELECT wireguard_network_id FROM wireguard_network_device \
+            WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
         )
         .fetch_all(executor)
@@ -1436,10 +1439,12 @@ mod test {
         .unwrap();
 
         let mut network = WireguardNetwork::default();
+        network.allow_all_groups = true;
         network.try_set_address("10.1.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
         let mut network_2 = WireguardNetwork::<NoId> {
             name: "testnetwork2".into(),
+            allow_all_groups: true,
             ..Default::default()
         };
         network_2.try_set_address("10.1.2.1/24").unwrap();
@@ -1542,6 +1547,7 @@ mod test {
 
         let network = WireguardNetwork::<NoId> {
             address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()],
+            allow_all_groups: true,
             ..Default::default()
         }
         .save(&pool)

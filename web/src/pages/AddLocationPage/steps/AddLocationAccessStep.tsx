@@ -7,10 +7,16 @@ import { SelectionSection } from '../../../shared/components/SelectionSection/Se
 import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
 
 export const AddLocationAccessStep = () => {
+  const [allowAllGroups, setAllowAllGroups] = useState(
+    useAddLocationStore.getState().allow_all_groups,
+  );
   const [selected, setSelected] = useState<Set<string>>(
     new Set(useAddLocationStore.getState().allowed_groups),
   );
@@ -31,25 +37,42 @@ export const AddLocationAccessStep = () => {
     );
   }, [groups]);
 
-  const saveChanges = useCallback((values: Set<string>) => {
+  const saveChanges = useCallback((values: Set<string>, allowAll: boolean) => {
     useAddLocationStore.setState({
-      allowed_groups: Array.from(values),
+      allow_all_groups: allowAll,
+      allowed_groups: allowAll ? [] : Array.from(values),
     });
   }, []);
 
   return (
     <WizardCard>
-      <SelectionSection
-        options={selectionOptions}
-        selection={selected}
-        onChange={setSelected}
+      <Toggle
+        label="All groups have access"
+        active={allowAllGroups}
+        onClick={() => {
+          const value = !allowAllGroups;
+          setAllowAllGroups(value);
+          if (value) {
+            setSelected(new Set());
+          }
+        }}
       />
+      {!allowAllGroups && (
+        <>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <SelectionSection
+            options={selectionOptions}
+            selection={selected}
+            onChange={setSelected}
+          />
+        </>
+      )}
       <Controls>
         <Button
           variant="outlined"
           text={m.controls_back()}
           onClick={() => {
-            saveChanges(selected);
+            saveChanges(selected, allowAllGroups);
             useAddLocationStore.setState({
               activeStep: AddLocationPageStep.Mfa,
             });
@@ -60,7 +83,7 @@ export const AddLocationAccessStep = () => {
             text={m.controls_continue()}
             testId="acl-continue"
             onClick={() => {
-              saveChanges(selected);
+              saveChanges(selected, allowAllGroups);
               useAddLocationStore.setState({
                 activeStep: AddLocationPageStep.Firewall,
               });

@@ -59,6 +59,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         DEFAULT_WIREGUARD_MTU,
         0,
         Vec::new(),
+        false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
         false,
@@ -114,7 +115,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": []}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allow_all_groups": true, "allowed_groups": ["admin"]}))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);

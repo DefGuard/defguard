@@ -63,6 +63,7 @@ pub struct WireguardNetworkData {
     pub dns: Option<String>,
     pub mtu: i32,
     pub fwmark: i64,
+    pub allow_all_groups: bool,
     pub allowed_groups: Vec<String>,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
@@ -144,6 +145,9 @@ pub(crate) struct ImportNetworkData {
     name: String,
     endpoint: String,
     config: String,
+    #[serde(default)]
+    allow_all_groups: bool,
+    #[serde(default)]
     allowed_groups: Vec<String>,
 }
 
@@ -226,6 +230,7 @@ pub(crate) async fn create_network(
         data.mtu,
         data.fwmark,
         allowed_ips,
+        data.allow_all_groups,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
         data.acl_enabled,
@@ -236,9 +241,13 @@ pub(crate) async fn create_network(
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
-    network
-        .set_allowed_groups(&mut transaction, &data.allowed_groups)
-        .await?;
+    if data.allow_all_groups {
+        network.clear_allowed_groups(&mut transaction).await?;
+    } else {
+        network
+            .set_allowed_groups(&mut transaction, &data.allowed_groups)
+            .await?;
+    }
 
     // generate IP addresses for existing devices
     network.add_all_allowed_devices(&mut transaction).await?;
@@ -342,6 +351,7 @@ pub(crate) async fn modify_network(
     network.mtu = data.mtu;
     network.fwmark = data.fwmark;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
+    network.allow_all_groups = data.allow_all_groups;
     network.acl_enabled = data.acl_enabled;
     network.acl_default_allow = data.acl_default_allow;
     network.service_location_mode = if data.location_mfa_mode == LocationMfaMode::Disabled {
@@ -357,7 +367,14 @@ pub(crate) async fn modify_network(
 
     network.save(&mut *transaction).await?;
     network
-        .set_allowed_groups(&mut transaction, &data.allowed_groups)
+        .set_allowed_groups(
+            &mut transaction,
+            if data.allow_all_groups {
+                &[]
+            } else {
+                &data.allowed_groups
+            },
+        )
         .await?;
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
@@ -588,12 +605,17 @@ pub(crate) async fn import_network(
         })?;
     network.name = data.name;
     network.endpoint = data.endpoint;
+    network.allow_all_groups = data.allow_all_groups;
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
-    network
-        .set_allowed_groups(&mut transaction, &data.allowed_groups)
-        .await?;
+    if data.allow_all_groups {
+        network.clear_allowed_groups(&mut transaction).await?;
+    } else {
+        network
+            .set_allowed_groups(&mut transaction, &data.allowed_groups)
+            .await?;
+    }
 
     info!("New network {network} created");
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
@@ -638,7 +660,7 @@ pub(crate) async fn add_user_devices(
     Path(network_id): Path<Id>,
     Json(request_data): Json<MappedDevices>,
 ) -> ApiResult {
-    let mapped_devices = request_data.devices.clone();
+    let mapped_devices = request_data.devices;
     let user = session.user;
     let device_count = mapped_devices.len();
 
@@ -656,7 +678,7 @@ pub(crate) async fn add_user_devices(
     if let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
         // wrap loop in transaction to abort if a device is invalid
         let mut transaction = appstate.pool.begin().await?;
-        let events = handle_mapped_devices(&network, &mut transaction, mapped_devices).await?;
+        let events = handle_mapped_devices(&network, &mut transaction, &mapped_devices).await?;
         appstate.send_multiple_wireguard_events(events);
         transaction.commit().await?;
 
@@ -1274,10 +1296,11 @@ pub(crate) async fn list_user_devices(
     Ok(ApiResponse::json(devices, StatusCode::OK))
 }
 
+/// GET "/network/{network_id}/device/{device_id}/config"
 pub(crate) async fn download_config(
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Path((network_id, device_id)): Path<(i64, i64)>,
+    Path((network_id, device_id)): Path<(Id, Id)>,
 ) -> Result<String, WebError> {
     debug!("Creating config for device {device_id} in network {network_id}");
 

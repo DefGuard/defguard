@@ -156,6 +156,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
             "mtu": 1420,
             "fwmark": 0,
             "allowed_groups": ["allowed group"],
+            "allow_all_groups": false,
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
@@ -206,6 +207,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": [],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -222,15 +224,12 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
-    // network configuration was created for all devices
+    // network configuration was created only for the admin device
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(peers.len(), 4);
+    assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
-    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
-    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
-    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 
     // add an allowed group
     let response = client
@@ -244,6 +243,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -276,6 +276,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group", "not allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -309,6 +310,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["not allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -341,6 +343,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": [],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -357,11 +360,8 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let new_peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(new_peers.len(), 4);
+    assert_eq!(new_peers.len(), 1);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
-    assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
-    assert_eq!(new_peers[2].pubkey, devices[2].wireguard_pubkey);
-    assert_eq!(new_peers[3].pubkey, devices[3].wireguard_pubkey);
 
     assert_err!(wg_rx.try_recv());
 }
@@ -410,7 +410,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allow_all_groups": false, "allowed_groups": ["allowed group"]}))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -507,7 +507,7 @@ PersistentKeepalive = 300
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allow_all_groups": false, "allowed_groups": ["allowed group"]}))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -599,6 +599,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -709,6 +710,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -736,13 +738,10 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     let response = client.delete("/api/v1/group/allowed%20group").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // network configuration was created for all devices
+    // network configuration was created only for the admin device
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(peers.len(), 4);
+    assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
-    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
-    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
-    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 }

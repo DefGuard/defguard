@@ -975,8 +975,9 @@ impl AclRule<Id> {
             query_as!(
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-                allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+                allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+                peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+                location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
                 service_location_mode \"service_location_mode: ServiceLocationMode\" \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \

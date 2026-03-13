@@ -121,6 +121,7 @@ pub struct WireguardNetwork<I = NoId> {
     #[model(ref)]
     #[schema(value_type = Vec<String>)]
     pub allowed_ips: Vec<IpNetwork>,
+    pub allow_all_groups: bool,
     pub connected_at: Option<NaiveDateTime>,
     pub acl_enabled: bool,
     pub acl_default_allow: bool,
@@ -161,6 +162,7 @@ impl fmt::Debug for WireguardNetwork<Id> {
             .field("endpoint", &self.endpoint)
             .field("dns", &self.dns)
             .field("allowed_ips", &self.allowed_ips)
+            .field("allow_all_groups", &self.allow_all_groups)
             .field("connected_at", &self.connected_at)
             .field("acl_enabled", &self.acl_enabled)
             .field("acl_default_allow", &self.acl_default_allow)
@@ -222,6 +224,7 @@ impl WireguardNetwork {
         mtu: i32,
         fwmark: i64,
         allowed_ips: Vec<IpNetwork>,
+        allow_all_groups: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
         acl_enabled: bool,
@@ -243,6 +246,7 @@ impl WireguardNetwork {
             mtu,
             fwmark,
             allowed_ips,
+            allow_all_groups,
             connected_at: None,
             keepalive_interval,
             peer_disconnect_threshold,
@@ -273,7 +277,7 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, \
             acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
@@ -332,13 +336,26 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {self}");
-        let devices =
-            match self.get_allowed_groups(&mut *transaction).await? {
-                // devices need to be filtered by allowed group
-                Some(allowed_groups) => {
-                    query_as!(
+        if self.allow_all_groups {
+            return query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+                "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+                d.device_type \"device_type: DeviceType\", configured \
+                FROM device d \
+                JOIN \"user\" u ON d.user_id = u.id \
+                WHERE u.is_active \
+                AND d.device_type = 'user'::device_type \
+                ORDER BY d.id ASC"
+            )
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(Into::into);
+        }
+
+        let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
+        let devices = query_as!(
+            Device,
+            "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
                 d.description, d.device_type \"device_type: DeviceType\", configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
@@ -348,25 +365,10 @@ impl WireguardNetwork<Id> {
                 AND u.is_active \
                 AND d.device_type = 'user'::device_type \
                 ORDER BY d.id ASC",
-                &allowed_groups
-            )
-                    .fetch_all(&mut *transaction)
-                    .await?
-                }
-                // all devices of enabled users are allowed
-                None => query_as!(
-                    Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
-                    d.device_type \"device_type: DeviceType\", configured \
-                    FROM device d \
-                    JOIN \"user\" u ON d.user_id = u.id \
-                    WHERE u.is_active \
-                    AND d.device_type = 'user'::device_type \
-                    ORDER BY d.id ASC"
-                )
-                .fetch_all(&mut *transaction)
-                .await?,
-            };
+            &allowed_groups
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
         Ok(devices)
     }
 
@@ -379,13 +381,28 @@ impl WireguardNetwork<Id> {
         user_id: Id,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
-        let devices =
-            match self.get_allowed_groups(&mut *transaction).await? {
-                // devices need to be filtered by allowed group
-                Some(allowed_groups) => {
-                    query_as!(
+        if self.allow_all_groups {
+            return query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+                "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+                d.device_type \"device_type: DeviceType\", configured \
+                FROM device d \
+                JOIN \"user\" u ON d.user_id = u.id \
+                WHERE u.is_active \
+                AND d.device_type = 'user'::device_type \
+                AND d.user_id = $1 \
+                ORDER BY d.id ASC",
+                user_id
+            )
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(Into::into);
+        }
+
+        let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
+        let devices = query_as!(
+            Device,
+            "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
                 d.description, d.device_type \"device_type: DeviceType\", configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
@@ -396,27 +413,11 @@ impl WireguardNetwork<Id> {
                 AND d.device_type = 'user'::device_type \
                 AND d.user_id = $2 \
                 ORDER BY d.id ASC",
-                &allowed_groups, user_id
-            )
-                    .fetch_all(&mut *transaction)
-                    .await?
-                }
-                // all devices of enabled users are allowed
-                None => query_as!(
-                    Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
-                    d.device_type \"device_type: DeviceType\", configured \
-                    FROM device d \
-                    JOIN \"user\" u ON d.user_id = u.id \
-                    WHERE u.is_active \
-                    AND d.device_type = 'user'::device_type \
-                    AND d.user_id = $1 \
-                    ORDER BY d.id ASC",
-                    user_id
-                )
-                .fetch_all(&mut *transaction)
-                .await?,
-            };
+            &allowed_groups,
+            user_id
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
 
         Ok(devices)
     }
@@ -1169,7 +1170,7 @@ impl WireguardNetwork<Id> {
         let locations = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
             acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
@@ -1199,24 +1200,17 @@ impl WireguardNetwork<Id> {
 
     /// Return a list of allowed groups for a given network.
     /// Admin group should always be included.
-    /// If no `allowed_groups` are specified for a network then all devices are allowed.
-    /// In this case `None` is returned to signify that there's no filtering.
     /// This helper method is meant for use in all business logic gating
     /// access to networks based on allowed groups.
     pub async fn get_allowed_groups(
         &self,
         conn: &mut PgConnection,
-    ) -> Result<Option<Vec<String>>, ModelError> {
+    ) -> Result<Vec<String>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
         let admin_groups = Group::find_by_permission(&mut *conn, Permission::IsAdmin).await?;
 
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *conn).await?;
-
-        // if no allowed groups are set then all groups are allowed
-        if groups.is_empty() {
-            return Ok(None);
-        }
 
         for group in admin_groups {
             if !groups.iter().any(|name| name == &group.name) {
@@ -1224,7 +1218,7 @@ impl WireguardNetwork<Id> {
             }
         }
 
-        Ok(Some(groups))
+        Ok(groups)
     }
 
     /// Set allowed groups, removing or adding groups as necessary.
@@ -1301,8 +1295,11 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
-    /// Remove all allowed groups for a given network
-    async fn clear_allowed_groups(&self, transaction: &mut PgConnection) -> Result<(), ModelError> {
+    /// Remove all allowed groups for a given network.
+    pub async fn clear_allowed_groups(
+        &self,
+        transaction: &mut PgConnection,
+    ) -> Result<(), ModelError> {
         info!("Removing all allowed groups for network {self}");
         let result = query!(
             "DELETE FROM wireguard_network_allowed_group WHERE network_id = $1",
@@ -1365,6 +1362,7 @@ impl Default for WireguardNetwork {
             mtu: DEFAULT_WIREGUARD_MTU,
             fwmark: 0,
             allowed_ips: Vec::default(),
+            allow_all_groups: false,
             connected_at: Option::default(),
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -1684,6 +1682,7 @@ mod test {
     async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
         let mut network = WireguardNetwork::default();
+        network.allow_all_groups = true;
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
 
@@ -1867,6 +1866,7 @@ mod test {
             DEFAULT_WIREGUARD_MTU,
             0,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            false,
             300,
             300,
             false,
@@ -2001,6 +2001,7 @@ mod test {
             DEFAULT_WIREGUARD_MTU,
             0,
             vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            false,
             300,
             300,
             false,

@@ -117,6 +117,7 @@ pub(crate) fn parse_wireguard_config(
         mtu,
         fwmark,
         allowed_ips,
+        true,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
         false,

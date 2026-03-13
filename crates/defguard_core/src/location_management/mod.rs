@@ -312,17 +312,17 @@ pub(crate) async fn handle_imported_devices(
 /// Handle device -> user mapping in second step of network import wizard
 pub(crate) async fn handle_mapped_devices(
     location: &WireguardNetwork<Id>,
-    transaction: &mut PgConnection,
-    mapped_devices: Vec<MappedDevice>,
+    conn: &mut PgConnection,
+    mapped_devices: &[MappedDevice],
 ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
     info!("Mapping user devices for network {location}");
     // get allowed groups for network
-    let allowed_groups = location.get_allowed_groups(&mut *transaction).await?;
+    let allowed_groups = location.get_allowed_groups(&mut *conn).await?;
 
     let mut events = Vec::new();
     // use a helper hashmap to avoid repeated queries
     let mut user_groups = HashMap::new();
-    for mapped_device in &mapped_devices {
+    for mapped_device in mapped_devices {
         debug!("Mapping device {}", mapped_device.name);
         // validate device pubkey
         Device::validate_pubkey(&mapped_device.wireguard_pubkey).map_err(|_| {
@@ -337,7 +337,7 @@ pub(crate) async fn handle_mapped_devices(
             None,
             true,
         )
-        .save(&mut *transaction)
+        .save(&mut *conn)
         .await?;
         debug!("Saved new device {device}");
 
@@ -346,9 +346,9 @@ pub(crate) async fn handle_mapped_devices(
             // user info has already been fetched before
             Some(groups) => groups,
             // fetch user info
-            None => match User::find_by_id(&mut *transaction, device.user_id).await? {
+            None => match User::find_by_id(&mut *conn, device.user_id).await? {
                 Some(user) => {
-                    let groups = user.member_of_names(&mut *transaction).await?;
+                    let groups = user.member_of_names(&mut *conn).await?;
                     user_groups.insert(device.user_id, groups);
                     // FIXME: ugly workaround to get around `groups` being dropped
                     user_groups.get(&device.user_id).unwrap()
@@ -358,44 +358,23 @@ pub(crate) async fn handle_mapped_devices(
         };
 
         let mut network_info = Vec::new();
-        match &allowed_groups {
-            None => {
-                let wireguard_network_device = WireguardNetworkDevice::new(
-                    location.id,
-                    device.id,
-                    mapped_device.wireguard_ips.clone(),
-                );
-                wireguard_network_device.insert(&mut *transaction).await?;
-                network_info.push(DeviceNetworkInfo {
-                    network_id: location.id,
-                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                    preshared_key: wireguard_network_device.preshared_key,
-                    is_authorized: wireguard_network_device.is_authorized,
-                });
-            }
-            Some(allowed) => {
-                // check if user belongs to an allowed group
-                if allowed.iter().any(|group| groups.contains(group)) {
-                    // assign specified IP in imported network
-                    let wireguard_network_device = WireguardNetworkDevice::new(
-                        location.id,
-                        device.id,
-                        mapped_device.wireguard_ips.clone(),
-                    );
-                    wireguard_network_device.insert(&mut *transaction).await?;
-                    network_info.push(DeviceNetworkInfo {
-                        network_id: location.id,
-                        device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                        preshared_key: wireguard_network_device.preshared_key,
-                        is_authorized: wireguard_network_device.is_authorized,
-                    });
-                }
-            }
+        if location.allow_all_groups || allowed_groups.iter().any(|group| groups.contains(group)) {
+            let wireguard_network_device = WireguardNetworkDevice::new(
+                location.id,
+                device.id,
+                mapped_device.wireguard_ips.clone(),
+            );
+            wireguard_network_device.insert(&mut *conn).await?;
+            network_info.push(DeviceNetworkInfo {
+                network_id: location.id,
+                device_wireguard_ips: wireguard_network_device.wireguard_ips,
+                preshared_key: wireguard_network_device.preshared_key,
+                is_authorized: wireguard_network_device.is_authorized,
+            });
         }
 
-        // assign IPs in other networks
-        let (mut all_network_info, _configs) =
-            device.add_to_all_networks(&mut *transaction).await?;
+        // Assign IP addresses in other networks.
+        let (mut all_network_info, _configs) = device.add_to_all_networks(&mut *conn).await?;
 
         network_info.append(&mut all_network_info);
 
@@ -485,7 +464,15 @@ mod test {
         .await
         .unwrap();
 
+        let group = Group::new("group").save(&pool).await.unwrap();
+        user1.add_to_group(&pool, &group).await.unwrap();
+        user2.add_to_group(&pool, &group).await.unwrap();
+
         let mut transaction = pool.begin().await.unwrap();
+        network
+            .set_allowed_groups(&mut transaction, &[group.name.clone()])
+            .await
+            .unwrap();
 
         // user1 sync
         let events = sync_allowed_devices_for_user(&network, &mut transaction, &user1, None)

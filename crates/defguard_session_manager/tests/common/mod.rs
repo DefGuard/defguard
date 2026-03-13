@@ -55,6 +55,7 @@ pub(crate) async fn create_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> 
         1420,
         0,
         vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+        true,
         25,
         300,
         false,

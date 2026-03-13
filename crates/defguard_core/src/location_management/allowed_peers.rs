@@ -38,8 +38,7 @@ where
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
             WHERE wireguard_network_id = $1 AND (is_authorized OR NOT $2) \
-            AND d.configured \
-            AND u.is_active \
+            AND d.configured AND u.is_active \
             ORDER BY d.id ASC",
         location.id,
         location.mfa_enabled()

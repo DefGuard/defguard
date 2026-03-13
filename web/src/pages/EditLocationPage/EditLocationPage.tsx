@@ -93,6 +93,7 @@ const formSchema = z.object({
     .max(65535, m.form_error_port_max()),
   mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
   fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
+  allow_all_groups: z.boolean(),
   allowed_groups: z.array(
     z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   ),
@@ -104,9 +105,7 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
-  const [allGroupsToggle, setAllGroupsToggle] = useState(
-    location.allowed_groups.length === 0,
-  );
+  const [allGroupsToggle, setAllGroupsToggle] = useState(location.allow_all_groups);
 
   const navigate = useNavigate();
 
@@ -191,6 +190,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     (): FormFields => ({
       name: location.name,
       address: location.address.join(','),
+      allow_all_groups: location.allow_all_groups,
       allowed_groups: location.allowed_groups,
       allowed_ips: location.allowed_ips.join(','),
       dns: location.dns,
@@ -451,6 +451,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   toggleValue={allGroupsToggle}
                   onToggleChange={(value) => {
                     setAllGroupsToggle(value);
+                    form.setFieldValue('allow_all_groups', value);
                     if (value) {
                       field.handleChange([]);
                     }
