@@ -41,7 +41,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
-        SIGN_IN_COOKIE_NAME,
+        SIGN_IN_COOKIE_NAME, cookie_domain,
         mail::{send_email_mfa_activation_email, send_mfa_configured_email},
         user_for_admin_or_self,
     },
@@ -243,17 +243,15 @@ pub async fn authenticate(
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
     let config = server_config();
-    let cookie_domain = config
-        .cookie_domain
-        .as_ref()
-        .expect("Cookie domain not found");
-    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
-        .domain(cookie_domain)
+    let mut auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .path("/")
         .http_only(true)
         .secure(!config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
+    if let Some(cookie_domain) = cookie_domain() {
+        auth_cookie = auth_cookie.domain(cookie_domain);
+    }
     let cookies = cookies.add(auth_cookie);
 
     if let Some(mfa_info) = mfa_info {
@@ -317,17 +315,12 @@ pub async fn logout(
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
-    let cookie_domain = server_config()
-        .cookie_domain
-        .as_ref()
-        .ok_or(WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?
-        .clone();
-    let session_cookie = Cookie::build((SESSION_COOKIE_NAME, ""))
-        .domain(cookie_domain.clone())
-        .path("/");
-    let sign_in_cookie = Cookie::build((SIGN_IN_COOKIE_NAME, ""))
-        .domain(cookie_domain)
-        .path("/");
+    let mut session_cookie = Cookie::build((SESSION_COOKIE_NAME, "")).path("/");
+    let mut sign_in_cookie = Cookie::build((SIGN_IN_COOKIE_NAME, "")).path("/");
+    if let Some(cookie_domain) = cookie_domain() {
+        session_cookie = session_cookie.domain(cookie_domain.clone());
+        sign_in_cookie = sign_in_cookie.domain(cookie_domain);
+    }
     let cookies = cookies.remove(session_cookie);
     let private_cookies = private_cookies.remove(sign_in_cookie);
     let user = User::find_by_id(&appstate.pool, session.user_id)
@@ -424,7 +417,8 @@ pub async fn webauthn_init(
     );
     // passkeys to exclude
     let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, user.id).await?;
-    match appstate.webauthn.start_passkey_registration(
+    let webauthn = appstate.webauthn()?;
+    match webauthn.start_passkey_registration(
         Uuid::new_v4(),
         &user.username,
         &user.username,
@@ -456,6 +450,7 @@ pub async fn webauthn_finish(
         "Finishing WebAuthn registration for user {}",
         session.user.username
     );
+    let webauthn = appstate.webauthn()?;
     let passkey_reg =
         session
             .session
@@ -476,16 +471,14 @@ pub async fn webauthn_finish(
     );
     info!(
         "Allowed origins: {:?}",
-        appstate
-            .webauthn
+        webauthn
             .get_allowed_origins()
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>()
     );
 
-    let passkey = appstate
-        .webauthn
+    let passkey = webauthn
         .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)
         .map_err(|err| WebError::WebauthnRegistration(err.to_string()))?;
     let mut user = User::find_by_id(&appstate.pool, session.session.user_id)
@@ -516,8 +509,9 @@ pub async fn webauthn_start(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
+    let webauthn = appstate.webauthn()?;
 
-    match appstate.webauthn.start_passkey_authentication(&passkeys) {
+    match webauthn.start_passkey_authentication(&passkeys) {
         Ok((rcr, passkey_reg)) => {
             session
                 .set_passkey_authentication(&appstate.pool, &passkey_reg)
@@ -538,10 +532,8 @@ pub async fn webauthn_end(
     Json(pubkey): Json<PublicKeyCredential>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(passkey_auth) = session.get_passkey_authentication() {
-        match appstate
-            .webauthn
-            .finish_passkey_authentication(&pubkey, &passkey_auth)
-        {
+        let webauthn = appstate.webauthn()?;
+        match webauthn.finish_passkey_authentication(&pubkey, &passkey_auth) {
             Ok(auth_result) => {
                 if auth_result.needs_update() {
                     // Find `Passkey` and try to update its credentials

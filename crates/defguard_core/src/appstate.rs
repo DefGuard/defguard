@@ -13,7 +13,6 @@ use tokio::{
     },
     task::spawn,
 };
-use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
@@ -31,7 +30,6 @@ pub struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
     pub wireguard_tx: Sender<GatewayEvent>,
-    pub webauthn: Arc<Webauthn>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
     pub event_tx: UnboundedSender<ApiEvent>,
@@ -104,6 +102,14 @@ impl AppState {
         Ok(self.event_tx.send(event)?)
     }
 
+    pub fn webauthn(&self) -> Result<Arc<webauthn_rs::Webauthn>, WebError> {
+        let settings = Settings::get_current_settings();
+        settings.build_webauthn().map(Arc::new).map_err(|err| {
+            error!("Failed to build WebAuthn configuration from current settings: {err}");
+            err.into()
+        })
+    }
+
     /// Create application state
     pub fn new(
         pool: PgPool,
@@ -118,27 +124,10 @@ impl AppState {
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
-        let url = Settings::url().expect("Invalid Defguard URL configuration");
-        let settings = Settings::get_current_settings();
-        let webauthn_builder = WebauthnBuilder::new(
-            settings
-                .webauthn_rp_id
-                .as_ref()
-                .expect("Webauth RP ID configuration is required"),
-            &url,
-        )
-        .expect("Invalid WebAuthn configuration");
-        let webauthn = Arc::new(
-            webauthn_builder
-                .build()
-                .expect("Invalid WebAuthn configuration"),
-        );
-
         Self {
             pool,
             tx,
             wireguard_tx,
-            webauthn,
             failed_logins,
             key,
             event_tx,
