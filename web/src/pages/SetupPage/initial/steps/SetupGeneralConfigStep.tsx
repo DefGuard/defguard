@@ -44,12 +44,15 @@ export const SetupGeneralConfigStep = () => {
     () =>
       z.object({
         defguard_url: z
+          .string({
+            error: m.initial_setup_general_config_error_defguard_url_required(),
+          })
+          .min(1, m.initial_setup_general_config_error_defguard_url_required())
           .url(m.initial_setup_general_config_error_invalid_url())
           .refine(
             isValidDefguardUrl,
             m.initial_setup_general_config_error_defguard_url_invalid_host(),
-          )
-          .min(1, m.initial_setup_general_config_error_defguard_url_required()),
+          ),
         default_admin_group_name: z
           .string()
           .min(1, m.initial_setup_general_config_error_admin_group_required()),

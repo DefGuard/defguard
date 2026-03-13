@@ -67,9 +67,12 @@ export const SettingsInstancePage = () => {
 
 const formSchema = z.object({
   defguard_url: z
+    .string({
+      error: m.settings_instance_error_defguard_url_required(),
+    })
+    .min(1, m.settings_instance_error_defguard_url_required())
     .url(m.settings_instance_error_invalid_url())
-    .refine(isValidDefguardUrl, m.settings_instance_error_invalid_host())
-    .min(1, m.settings_instance_error_defguard_url_required()),
+    .refine(isValidDefguardUrl, m.settings_instance_error_invalid_host()),
   instance_name: z
     .string(m.form_error_required())
     .trim()

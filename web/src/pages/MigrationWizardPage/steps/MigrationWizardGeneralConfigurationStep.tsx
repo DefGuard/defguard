@@ -48,12 +48,15 @@ export const MigrationWizardGeneralConfigurationStep = () => {
     () =>
       z.object({
         defguard_url: z
+          .string({
+            error: m.migration_wizard_general_config_error_defguard_url_required(),
+          })
+          .min(1, m.migration_wizard_general_config_error_defguard_url_required())
           .url(m.migration_wizard_general_config_error_invalid_url())
           .refine(
             isValidDefguardUrl,
             m.migration_wizard_general_config_error_defguard_url_invalid_host(),
-          )
-          .min(1, m.migration_wizard_general_config_error_defguard_url_required()),
+          ),
         default_admin_group_name: z
           .string()
           .min(1, m.migration_wizard_general_config_error_admin_group_required()),
