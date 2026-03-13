@@ -1039,6 +1039,33 @@ mod test {
     }
 
     #[test]
+    fn test_parse_defguard_url_parses_valid_hostname_url() {
+        let settings = Settings {
+            defguard_url: "https://defguard.example.com:8443/path".into(),
+            ..Default::default()
+        };
+
+        let url = settings.parse_defguard_url().unwrap();
+
+        assert_eq!(url.host_str(), Some("defguard.example.com"));
+        assert_eq!(url.port(), Some(8443));
+        assert_eq!(url.path(), "/path");
+    }
+
+    #[test]
+    fn test_parse_defguard_url_rejects_ip_host() {
+        let settings = Settings {
+            defguard_url: "http://127.0.0.1:8000".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.parse_defguard_url(),
+            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
+        ));
+    }
+
+    #[test]
     fn test_cookie_domain_derives_from_defguard_url() {
         let settings = Settings {
             defguard_url: "https://defguard.example.com:8443/path".into(),
@@ -1068,6 +1095,29 @@ mod test {
         assert!(matches!(
             settings.cookie_domain(),
             Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
+        ));
+    }
+
+    #[test]
+    fn test_validate_defguard_url_accepts_valid_hostname() {
+        let settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            ..Default::default()
+        };
+
+        assert!(settings.validate_defguard_url().is_ok());
+    }
+
+    #[test]
+    fn test_validate_defguard_url_rejects_invalid_url() {
+        let settings = Settings {
+            defguard_url: "not a url".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.validate_defguard_url(),
+            Err(SettingsUrlError::InvalidDefguardUrl(_))
         ));
     }
 
