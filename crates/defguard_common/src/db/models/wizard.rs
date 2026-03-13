@@ -132,6 +132,10 @@ impl Wizard {
 
         wizard.save(executor).await?;
 
+        if active_wizard == ActiveWizard::AutoAdoption {
+            AutoAdoptionWizardState::default().save(executor).await?;
+        }
+
         Ok(wizard)
     }
 

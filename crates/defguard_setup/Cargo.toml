@@ -30,6 +30,7 @@ axum-client-ip.workspace = true
 tonic.workspace = true
 
 [dev-dependencies]
+ipnetwork = { workspace = true }
 reqwest = { version = "0.12", features = [
     "cookies",
     "json",
