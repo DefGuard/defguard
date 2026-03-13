@@ -10,6 +10,7 @@ import {
 import { ModalName } from '../../../../hooks/modalControls/modalTypes';
 import { LicenseModal } from '../../LicenseModal/LicenseModal';
 import { LicenseModalControls } from '../LicenseModalControls';
+import { LicenseModalSideImage } from '../LicenseModalSideImage/LicenseModalSideImage';
 
 const modalNameKey = ModalName.UpgradeEnterprise;
 
@@ -33,6 +34,8 @@ export const UpgradeEnterpriseModal = () => {
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {}}
+      image={<LicenseModalSideImage variant="enterprise" />}
+      lines
     >
       <ModalContent />
     </LicenseModal>

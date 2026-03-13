@@ -4,11 +4,12 @@ import { type ReactNode, useCallback, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
+import { WizardCover } from '../../shared/components/wizard/WizardCoverImage/types';
+import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
-import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupDeployGatewayStep } from './steps/SetupDeployGatewayStep';
 import { SetupGatewayAdoptionStep } from './steps/SetupGatewayAdaptationStep';
@@ -104,7 +105,7 @@ export const GatewaySetupPage = () => {
         content: <WelcomePageContent />,
         docsLink: 'https://docs.defguard.net/edge-component/deployment',
         docsText: m.gateway_setup_welcome_docs_text(),
-        media: <img src={welcomeImage} alt={m.gateway_setup_welcome_image_alt()} />,
+        media: <WizardCoverImage variant={WizardCover.Gateway} />,
         onClose,
       }}
     >

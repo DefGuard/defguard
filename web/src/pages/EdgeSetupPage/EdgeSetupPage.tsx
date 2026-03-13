@@ -5,13 +5,13 @@ import { m } from '../../paraglide/messages';
 import { ActionCard } from '../../shared/components/ActionCard/ActionCard';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
+import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import deployImage from './assets/deploy.svg';
-import welcomeImage from './assets/welcome_image.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
@@ -106,7 +106,7 @@ export const EdgeSetupPage = () => {
         content: <WelcomePageContent />,
         docsLink: 'https://docs.defguard.net/edge-component/deployment',
         docsText: m.edge_setup_welcome_docs_text(),
-        media: <img src={welcomeImage} alt={m.edge_setup_welcome_image_alt()} />,
+        media: <WizardCoverImage variant="edge" />,
         onClose: () => {
           navigate({ to: '/vpn-overview', replace: true }).then(() => {
             setTimeout(() => {

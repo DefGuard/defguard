@@ -9,6 +9,7 @@ import {
 import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 
 type StoreValues = {
+  isWelcome: boolean;
   activeStep: AddLocationPageStepValue;
   locationType: 'regular' | 'service';
 } & EditNetworkLocation;
@@ -19,6 +20,7 @@ type StoreMethods = {
 };
 
 const defaults: StoreValues = {
+  isWelcome: true,
   locationType: 'regular',
   activeStep: AddLocationPageStep.Start,
   // form values

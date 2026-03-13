@@ -83,6 +83,13 @@ export const AddLocationStartStep = () => {
             {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
           </form.AppField>
           <Controls>
+            <Button
+              variant="outlined"
+              text={m.controls_back()}
+              onClick={() => {
+                useAddLocationStore.setState({ isWelcome: true });
+              }}
+            />
             <div className="right">
               <Button
                 text={m.controls_continue()}

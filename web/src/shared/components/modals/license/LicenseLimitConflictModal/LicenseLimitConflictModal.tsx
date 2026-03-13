@@ -12,6 +12,7 @@ import { ModalName } from '../../../../hooks/modalControls/modalTypes';
 import type { OpenLicenseLimitConflictModal } from '../../../../hooks/modalControls/types';
 import { LicenseModal } from '../../LicenseModal/LicenseModal';
 import { LicenseModalControls } from '../LicenseModalControls';
+import { LicenseModalSideImage } from '../LicenseModalSideImage/LicenseModalSideImage';
 
 const modalNameKey = ModalName.LicenseLimitConflict;
 
@@ -39,6 +40,8 @@ export const LicenseLimitConflictModal = () => {
       afterClose={() => {
         setModalData(null);
       }}
+      image={<LicenseModalSideImage variant="expired" />}
+      lines
     >
       {isPresent(modalData) && <ModalContent {...modalData} />}
     </LicenseModal>
@@ -61,7 +64,7 @@ const ModalContent = ({ conflicts }: OpenLicenseLimitConflictModal) => {
       <AppText
         font={TextStyle.TBodyPrimary500}
         color={ThemeVariable.FgFaded}
-      >{`The license you’re trying to use allows fewer resources that your current setup is using.`}</AppText>
+      >{`The license you're trying to use allows fewer resources that your current setup is using.`}</AppText>
       <SizedBox height={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
         {`To apply this license, first reduce your usage so it fits within the license limits.`}
@@ -78,15 +81,17 @@ const ModalContent = ({ conflicts }: OpenLicenseLimitConflictModal) => {
       <AppText font={TextStyle.TBodyXs400} color={ThemeVariable.FgMuted}>
         {`No changes were made to your current configuration.`}
       </AppText>
-      <div>
-        {conflicts.map((conflict) => (
-          <AppText
-            key={conflict.label}
-            font={TextStyle.TBodySm400}
-            color={ThemeVariable.FgNeutral}
-          >{`${conflict.label}: ${conflict.current} used, ${conflict.limit} allowed`}</AppText>
-        ))}
-      </div>
+      {conflicts.length > 0 && (
+        <div>
+          {conflicts.map((conflict) => (
+            <AppText
+              key={conflict.label}
+              font={TextStyle.TBodySm400}
+              color={ThemeVariable.FgNeutral}
+            >{`${conflict.label}: ${conflict.current} used, ${conflict.limit} allowed`}</AppText>
+          ))}
+        </div>
+      )}
       <LicenseModalControls modalName={modalNameKey} />
     </>
   );
