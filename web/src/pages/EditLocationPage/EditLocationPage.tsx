@@ -223,6 +223,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         id: location.id,
         data: {
           ...omit(clone, ['firewall']),
+          allow_all_groups: allGroupsToggle,
+          allowed_groups: allGroupsToggle ? [] : clone.allowed_groups,
           acl_default_allow: clone.firewall === LocationFirewall.Allow,
           acl_enabled: !(clone.firewall === LocationFirewall.Disabled),
         },

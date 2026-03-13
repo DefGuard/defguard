@@ -210,9 +210,10 @@ export const LocationsTable = () => {
         cell: (info) => {
           const value = info.getValue();
           const len = value?.length ?? 0;
+          const allowAllGroups = info.row.original.allow_all_groups;
           return (
             <TableCell>
-              {len === 0 && (
+              {allowAllGroups && (
                 <Badge
                   showIcon
                   icon="status-available"
@@ -220,7 +221,7 @@ export const LocationsTable = () => {
                   text="All allowed"
                 />
               )}
-              {len > 0 && <span>{info.getValue()?.join(', ')}</span>}
+              {!allowAllGroups && len > 0 && <span>{info.getValue()?.join(', ')}</span>}
             </TableCell>
           );
         },
