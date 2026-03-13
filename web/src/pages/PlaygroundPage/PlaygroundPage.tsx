@@ -29,7 +29,6 @@ import {
   BadgeVariant,
 } from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
@@ -279,7 +278,13 @@ const TestPlanUpgrade = () => {
     <Card>
       <h3>{`Licensing modals`}</h3>
       <SizedBox height={ThemeSpacing.Xl4} />
-      <ButtonsGroup>
+      <div
+        style={{
+          display: 'flex',
+          flexFlow: 'row wrap',
+          gap: ThemeSpacing.Lg,
+        }}
+      >
         <Button
           text="Limits reached"
           onClick={() => {
@@ -310,7 +315,15 @@ const TestPlanUpgrade = () => {
             }
           }}
         />
-      </ButtonsGroup>
+        <Button
+          text="License Conflict"
+          onClick={() => {
+            openModal(ModalName.LicenseLimitConflict, {
+              conflicts: [],
+            });
+          }}
+        />
+      </div>
     </Card>
   );
 };
