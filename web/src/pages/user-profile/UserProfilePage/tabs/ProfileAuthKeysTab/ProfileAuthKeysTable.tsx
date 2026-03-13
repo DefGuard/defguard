@@ -199,7 +199,7 @@ export const ProfileAuthKeysTable = () => {
         },
       }),
     ],
-    [deleteAuthKey, username, writeToClipboard, mapped.map],
+    [deleteAuthKey, username, writeToClipboard, mapped],
   );
 
   const table = useReactTable({
