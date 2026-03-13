@@ -3,7 +3,7 @@ import './style.scss';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -105,8 +105,6 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
-  const [allGroupsToggle, setAllGroupsToggle] = useState(location.allow_all_groups);
-
   const navigate = useNavigate();
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
@@ -350,7 +348,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <InfoBanner
                         icon="info-outlined"
                         variant="warning"
-                        text={`You can't use MFA on any service locations. If you want to enforce MAF please select “Regular location” type`}
+                        text={`You can't use MFA on any service locations. If you want to enforce MFA please select “Regular location” type`}
                       />
                     )}
                     <EditPageFormSection label="Multi-Factor Authentication">
@@ -440,26 +438,29 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </form.AppField>
           )}
         </form.Subscribe>
-        <EditPageFormSection label="Location Access">
-          {isPresent(groupsOptions) && (
-            <form.AppField name="allowed_groups">
-              {(field) => (
-                <field.FormSelectMultiple
-                  options={groupsOptions}
-                  counterText={(count) => `+${count} groups`}
-                  editText="Edit groups"
-                  modalTitle="Select allowed groups"
-                  toggleText="All groups have access"
-                  toggleValue={allGroupsToggle}
-                  onToggleChange={(value) => {
-                    setAllGroupsToggle(value);
-                    form.setFieldValue('allow_all_groups', value);
-                  }}
-                />
+        <form.Subscribe selector={(state) => state.values.allow_all_groups}>
+          {(allowAllGroups) => (
+            <EditPageFormSection label="Location Access">
+              {isPresent(groupsOptions) && (
+                <form.AppField name="allowed_groups">
+                  {(field) => (
+                    <field.FormSelectMultiple
+                      options={groupsOptions}
+                      counterText={(count) => `+${count} groups`}
+                      editText="Edit groups"
+                      modalTitle="Select allowed groups"
+                      toggleText="All groups have access"
+                      toggleValue={allowAllGroups}
+                      onToggleChange={(value) => {
+                        form.setFieldValue('allow_all_groups', value);
+                      }}
+                    />
+                  )}
+                </form.AppField>
               )}
-            </form.AppField>
+            </EditPageFormSection>
           )}
-        </EditPageFormSection>
+        </form.Subscribe>
         <EditPageFormSection label="Firewall" labelContent={firewallLabelContent}>
           <form.AppField name="firewall">
             {(field) => (
