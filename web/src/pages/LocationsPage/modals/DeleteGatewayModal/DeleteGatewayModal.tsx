@@ -45,7 +45,7 @@ export const DeleteGatewayModal = () => {
     if (!modalData) return;
     try {
       await deleteGateway(modalData.id);
-      Snackbar.success(m.gateway_delete_success());
+      Snackbar.default(m.gateway_delete_success());
       setOpen(false);
     } catch {
       Snackbar.error(m.gateway_delete_failed());

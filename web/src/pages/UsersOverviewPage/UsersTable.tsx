@@ -152,6 +152,9 @@ export const UsersTable = () => {
         enableSorting: true,
         sortingFn: 'text',
         minSize: 250,
+        meta: {
+          flex: true,
+        },
         cell: (info) => {
           const rowData = info.row.original;
           return (
@@ -428,7 +431,6 @@ export const UsersTable = () => {
       m.users_col_ip(),
       m.users_col_connected_through(),
       m.users_col_connected_date(),
-      '',
       '',
     ],
     [],

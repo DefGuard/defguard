@@ -65,11 +65,12 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
     () => [
       columnHelper.accessor('name', {
         header: 'Alias name',
+        enableSorting: true,
+        sortingFn: 'text',
+        minSize: 300,
         meta: {
           flex: true,
         },
-        enableSorting: true,
-        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -80,6 +81,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
         header: 'IP4/6 CIDR range address',
         enableSorting: false,
         size: 430,
+        minSize: 300,
         cell: (info) => {
           const value = info.getValue();
           return <TableValuesListCell values={value.split(',')} />;
@@ -89,12 +91,14 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
         header: 'Ports',
         enableSorting: false,
         size: 145,
+        minSize: 145,
         cell: (info) => <TableValuesListCell values={info.getValue().split(',')} />,
       }),
       columnHelper.accessor('protocols', {
         header: 'Protocols',
         enableSorting: false,
         size: 163,
+        minSize: 163,
         cell: (info) => {
           const value = info.getValue();
           if (value.length === 0) {
@@ -111,6 +115,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
       columnHelper.accessor('rules', {
         header: 'Used in rules',
         size: 400,
+        minSize: 300,
         enableSorting: false,
         cell: (info) => {
           const row = info.row.original;

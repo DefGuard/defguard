@@ -39,18 +39,20 @@ export const ProfileApiTokensTable = () => {
       columnHelper.accessor('name', {
         enableSorting: true,
         header: m.profile_api_col_name(),
+        minSize: 300,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
           </TableCell>
         ),
-        meta: {
-          flex: true,
-        },
       }),
       columnHelper.accessor('created_at', {
         header: m.col_created_at(),
         size: 175,
+        minSize: 175,
         enableSorting: true,
         // @ts-expect-error
         sortingFn: 'dateIso',

@@ -83,11 +83,12 @@ export const LocationsTable = () => {
     () => [
       columnHelper.accessor('name', {
         header: 'Name',
+        enableSorting: true,
+        sortingFn: 'text',
+        minSize: 200,
         meta: {
           flex: true,
         },
-        enableSorting: true,
-        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -97,6 +98,7 @@ export const LocationsTable = () => {
       columnHelper.accessor('gateways', {
         header: 'Gateway status',
         size: 175,
+        minSize: 175,
         cell: (info) => (
           <TableCell>
             <GatewaysStatusBadge data={info.getValue() ?? []} />
@@ -106,6 +108,7 @@ export const LocationsTable = () => {
       columnHelper.accessor('endpoint', {
         header: 'Gateway IP',
         size: 200,
+        minSize: 200,
         cell: (info) => {
           return (
             <TableCell>
@@ -116,7 +119,7 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('acl_enabled', {
         header: 'Firewall',
-        size: 76,
+        minSize: 100,
         cell: (info) => (
           <TableCell className="cell-with-check-icons">
             {info.getValue() ? (
@@ -129,12 +132,12 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('address', {
         header: 'VPN network',
-        size: 250,
+        minSize: 250,
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
       columnHelper.accessor('location_mfa_mode', {
         header: 'MFA',
-        size: 100,
+        minSize: 100,
         cell: (info) => {
           switch (info.getValue()) {
             case 'disabled':
@@ -188,7 +191,7 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('fwmark', {
         header: 'FWMark',
-        minSize: 100,
+        minSize: 75,
         cell: (info) => (
           <TableCell>
             <span>0x{info.getValue().toString(16)}</span>
@@ -197,7 +200,7 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('mtu', {
         header: 'MTU',
-        minSize: 100,
+        minSize: 75,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -206,7 +209,8 @@ export const LocationsTable = () => {
       }),
       columnHelper.accessor('allowed_groups', {
         header: 'Allowed groups',
-        size: 500,
+        size: 400,
+        minSize: 200,
         cell: (info) => {
           const value = info.getValue();
           const len = value?.length ?? 0;

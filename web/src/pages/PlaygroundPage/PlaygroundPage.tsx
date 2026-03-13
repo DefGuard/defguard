@@ -71,7 +71,7 @@ export const PlaygroundPage = () => {
                 variant: 'critical',
               },
               onSuccess: () => {
-                Snackbar.success('Deleted');
+                Snackbar.default('Deleted');
               },
             });
           }}
