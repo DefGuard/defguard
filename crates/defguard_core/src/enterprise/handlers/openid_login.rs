@@ -47,7 +47,7 @@ use crate::{
     handlers::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
-        current_cookie_domain,
+        cookie_domain,
         mail::send_user_import_blocked_email,
         user::{MAX_USERNAME_CHARS, check_username},
     },
@@ -536,7 +536,7 @@ pub async fn get_auth_info(
         .same_site(SameSite::Strict)
         .secure(!config.cookie_insecure)
         .max_age(COOKIE_MAX_AGE);
-    if let Some(cookie_domain) = current_cookie_domain() {
+    if let Some(cookie_domain) = cookie_domain() {
         nonce_cookie = nonce_cookie.domain(cookie_domain.clone());
         csrf_cookie = csrf_cookie.domain(cookie_domain);
     }
@@ -615,7 +615,7 @@ pub async fn auth_callback(
         .secure(!config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
-    if let Some(cookie_domain) = current_cookie_domain() {
+    if let Some(cookie_domain) = cookie_domain() {
         auth_cookie = auth_cookie.domain(cookie_domain);
     }
     let cookies = cookies.add(auth_cookie);

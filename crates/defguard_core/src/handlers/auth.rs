@@ -41,7 +41,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
-        SIGN_IN_COOKIE_NAME, current_cookie_domain,
+        SIGN_IN_COOKIE_NAME, cookie_domain,
         mail::{send_email_mfa_activation_email, send_mfa_configured_email},
         user_for_admin_or_self,
     },
@@ -249,7 +249,7 @@ pub async fn authenticate(
         .secure(!config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
-    if let Some(cookie_domain) = current_cookie_domain() {
+    if let Some(cookie_domain) = cookie_domain() {
         auth_cookie = auth_cookie.domain(cookie_domain);
     }
     let cookies = cookies.add(auth_cookie);
@@ -317,7 +317,7 @@ pub async fn logout(
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     let mut session_cookie = Cookie::build((SESSION_COOKIE_NAME, "")).path("/");
     let mut sign_in_cookie = Cookie::build((SIGN_IN_COOKIE_NAME, "")).path("/");
-    if let Some(cookie_domain) = current_cookie_domain() {
+    if let Some(cookie_domain) = cookie_domain() {
         session_cookie = session_cookie.domain(cookie_domain.clone());
         sign_in_cookie = sign_in_cookie.domain(cookie_domain);
     }

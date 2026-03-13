@@ -49,7 +49,7 @@ use crate::{
     auth::{SessionInfo, UserClaims},
     error::WebError,
     handlers::{
-        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, current_cookie_domain,
+        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, cookie_domain,
         mail::send_new_device_ocid_login_email,
     },
     server_config,
@@ -367,7 +367,7 @@ fn login_redirect(
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(SIGN_IN_COOKIE_MAX_AGE);
-    if let Some(cookie_domain) = current_cookie_domain() {
+    if let Some(cookie_domain) = cookie_domain() {
         cookie = cookie.domain(cookie_domain);
     }
     Ok(redirect_to("/login", private_cookies.add(cookie)))
