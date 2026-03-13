@@ -795,7 +795,7 @@ impl Device<Id> {
                     debug!("Device {self} is not allowed in network {network}, skipping");
                     continue;
                 }
-                Err(WireguardNetworkError::ModelError(ModelError::CannotCreate)) => {
+                Err(WireguardNetworkError::DeviceError(DeviceError::NetworkFull(_))) => {
                     warn!("Network {network} is full, no IP addresses available for device {self}");
                     return Err(DeviceError::NetworkFull(network.name.clone()));
                 }
