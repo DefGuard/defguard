@@ -82,7 +82,7 @@ export const AddLocationInternalVpnStep = () => {
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="allowed_ips">
-            {(field) => <field.FormInput required label={'Allowed IPs'} />}
+            {(field) => <field.FormInput label={'Allowed IPs'} />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="dns">
