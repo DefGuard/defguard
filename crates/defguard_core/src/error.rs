@@ -123,6 +123,7 @@ impl From<DeviceError> for WebError {
             DeviceError::NetworkIpAssignmentError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
             DeviceError::NetworkFull(_) => Self::BadRequest(error.to_string()),
+            DeviceError::ModelError(_) => Self::ModelError(error.to_string()),
         }
     }
 }
