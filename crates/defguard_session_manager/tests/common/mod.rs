@@ -125,6 +125,7 @@ pub(crate) async fn create_location_with_mfa_mode(
         1420,
         0,
         vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+        true,
         25,
         300,
         false,

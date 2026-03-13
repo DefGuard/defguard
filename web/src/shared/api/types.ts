@@ -624,6 +624,7 @@ export interface NetworkLocation {
   endpoint: string;
   gateways: GatewayInfo[];
   allowed_ips: string[];
+  allow_all_groups: boolean;
   allowed_groups: string[];
   dns: string | null;
   keepalive_interval: number;

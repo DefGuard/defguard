@@ -25,6 +25,7 @@ fn test_network_readdress(_: PgPoolOptions, options: PgConnectOptions) {
     // 192.168.42.47: broadcast
     let mut network = WireguardNetwork::<NoId> {
         address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 46)), 30).unwrap()],
+        allow_all_groups: true,
         ..Default::default()
     }
     .save(&pool)

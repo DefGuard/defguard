@@ -768,8 +768,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         user_id: user_1.id, // Owned by user 1
         device_type: DeviceType::Network,
         description: Some("Test network device 1".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_1 = network_device_1.save(&pool).await.unwrap();
@@ -780,8 +780,8 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         user_id: user_2.id, // Owned by user 2
         device_type: DeviceType::Network,
         description: Some("Test network device 2".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_2 = network_device_2.save(&pool).await.unwrap();
@@ -792,14 +792,14 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         user_id: user_3.id, // Owned by user 3
         device_type: DeviceType::Network,
         description: Some("Test network device 3".into()),
-        wireguard_pubkey: Default::default(),
-        created: Default::default(),
+        wireguard_pubkey: String::default(),
+        created: NaiveDateTime::default(),
         configured: true,
     };
     let network_device_3 = network_device_3.save(&pool).await.unwrap();
 
     // Add network devices to location's VPN network
-    let network_devices = vec![
+    let network_devices = [
         (
             network_device_1.id,
             IpAddr::V6(Ipv6Addr::new(0xff00, 0, 0, 0, 0, 0, 0x0100, 1)),
@@ -1156,8 +1156,8 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
-                wireguard_pubkey: Default::default(),
-                created: Default::default(),
+                wireguard_pubkey: String::default(),
+                created: NaiveDateTime::default(),
                 configured: true,
             };
             let device = device.save(&pool).await.unwrap();

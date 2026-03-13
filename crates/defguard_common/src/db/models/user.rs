@@ -630,7 +630,7 @@ impl User<Id> {
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
             ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" \
-            WHERE is_active = true"
+            WHERE is_active"
         )
         .fetch_all(executor)
         .await
@@ -1135,7 +1135,7 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         query_scalar!("SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
-        WHERE is_admin = true AND user_id = $1) \"bool!\"", self.id)
+        WHERE is_admin AND user_id = $1) \"bool!\"", self.id)
             .fetch_one(executor)
             .await
     }
@@ -1154,7 +1154,7 @@ impl User<Id> {
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
-            WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
+            WHERE is_admin AND user_id = u.id) AND u.is_active"
         )
         .fetch_all(executor)
         .await

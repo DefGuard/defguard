@@ -7,7 +7,6 @@ use utoipa::ToSchema;
 
 use crate::db::{Id, NoId, models::user::User};
 
-#[derive(Debug)]
 pub enum Permission {
     IsAdmin,
 }
@@ -94,16 +93,15 @@ impl Group<Id> {
         .await
     }
 
-    /// Fetches a list of VPN locations where a given group is explicitly allowed.
-    /// This does not include VPN locations where all groups are implicitly allowed (admin group),
-    /// because no access control in configured.
+    /// Fetches a list of VPN locations where a given group is allowed.
     pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_scalar!(
-            "SELECT wn.name FROM wireguard_network wn JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id \
-            WHERE wnag.group_id = $1",
+            "SELECT DISTINCT wn.name FROM wireguard_network wn \
+            LEFT JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id \
+            WHERE wn.allow_all_groups OR wnag.group_id = $1",
             self.id
         )
         .fetch_all(executor)
@@ -117,9 +115,8 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let query = format!(
-            "SELECT id, name, is_admin FROM \"group\" WHERE {permission} = TRUE ORDER BY id"
-        );
+        let query =
+            format!("SELECT id, name, is_admin FROM \"group\" WHERE {permission} ORDER BY id");
         query_as(&query).fetch_all(executor).await
     }
 

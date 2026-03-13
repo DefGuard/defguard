@@ -54,7 +54,7 @@ impl Wizard {
     {
         sqlx::query(
             "UPDATE wizard SET active_wizard = $1, completed = $2 \
-			 WHERE is_singleton = TRUE",
+			 WHERE is_singleton",
         )
         .bind(self.active_wizard)
         .bind(self.completed)
@@ -71,7 +71,7 @@ impl Wizard {
         let row = sqlx::query_as::<_, WizardDbRow>(
             "SELECT active_wizard, completed \
 			 FROM wizard \
-			 WHERE is_singleton = TRUE \
+			 WHERE is_singleton \
 			 LIMIT 1",
         )
         .fetch_one(executor)
