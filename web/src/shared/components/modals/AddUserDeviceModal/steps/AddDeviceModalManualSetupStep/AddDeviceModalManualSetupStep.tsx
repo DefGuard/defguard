@@ -10,7 +10,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import api from '../../../../../api/api';
-import type { ApiError } from '../../../../../api/types';
+import { type ApiError, WebErrorType } from '../../../../../api/types';
 import { SizedBox } from '../../../../../defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../../defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../defguard-ui/types';
@@ -109,8 +109,7 @@ export const AddDeviceModalManualSetupStep = () => {
             },
           });
         } else if (
-          msg?.toLowerCase().includes('network') &&
-          msg?.toLowerCase().includes('full')
+          (e as AxiosError<ApiError>).response?.data?.type === WebErrorType.NetworkFull
         ) {
           Snackbar.error(m.form_error_network_full());
         }

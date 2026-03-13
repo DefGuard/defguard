@@ -10,7 +10,12 @@ import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { LocationMfaMode, type NetworkDevice } from '../../shared/api/types';
+import {
+  type ApiError,
+  LocationMfaMode,
+  type NetworkDevice,
+  WebErrorType,
+} from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -67,8 +72,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     },
     onError: (e) => {
       console.error(e);
-      const msg = (e as AxiosError<{ msg: string }>).response?.data?.msg;
-      if (msg?.toLowerCase().includes('network') && msg?.toLowerCase().includes('full')) {
+      const type = (e as AxiosError<ApiError>).response?.data?.type;
+      if (type === WebErrorType.NetworkFull) {
         Snackbar.error(m.network_device_add_network_full());
       } else {
         Snackbar.error(m.network_device_add_error());

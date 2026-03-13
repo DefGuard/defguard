@@ -354,7 +354,7 @@ pub(crate) async fn find_available_ips(
             "Failed to find available IPs for new device in network {} ({:?})",
             network.name, network.address
         );
-        return Err(WebError::BadRequest(format!(
+        return Err(WebError::NetworkFull(format!(
             "Network {} is full, no IP addresses available",
             network.name
         )));
