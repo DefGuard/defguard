@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::Arc,
-};
+use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, sync::Arc};
 
 use axum::serve;
 use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};
@@ -30,8 +27,10 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{
     net::TcpListener,
     sync::{Notify, oneshot},
-    task::JoinHandle,
 };
+
+mod common;
+use common::make_setup_test_client;
 
 const SESSION_COOKIE_NAME: &str = "defguard_session";
 
@@ -41,70 +40,6 @@ async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
         .expect("Failed to fetch initial setup state")
         .map_or(InitialSetupStep::Welcome, |s| s.step);
     assert_eq!(step, expected);
-}
-
-struct TestClient {
-    client: Client,
-    _jar: Arc<Jar>,
-    port: u16,
-    _task: JoinHandle<()>,
-}
-
-impl TestClient {
-    fn new(app: axum::Router, listener: TcpListener) -> Self {
-        let port = listener.local_addr().unwrap().port();
-        let task = tokio::spawn(async move {
-            let server = serve(
-                listener,
-                app.into_make_service_with_connect_info::<SocketAddr>(),
-            );
-            server.await.expect("server error");
-        });
-
-        let jar = Arc::new(Jar::default());
-        let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
-
-        let client = Client::builder()
-            .default_headers(headers)
-            .cookie_provider(jar.clone())
-            .build()
-            .expect("Failed to build reqwest client");
-
-        Self {
-            client,
-            _jar: jar,
-            port,
-            _task: task,
-        }
-    }
-
-    fn base_url(&self) -> String {
-        format!("http://localhost:{}", self.port)
-    }
-
-    fn get(&self, path: &str) -> reqwest::RequestBuilder {
-        self.client.get(format!("{}{}", self.base_url(), path))
-    }
-
-    fn post(&self, path: &str) -> reqwest::RequestBuilder {
-        self.client.post(format!("{}{}", self.base_url(), path))
-    }
-}
-
-async fn make_setup_test_client(pool: sqlx::PgPool) -> (TestClient, oneshot::Receiver<()>) {
-    let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
-    let app = build_setup_webapp(
-        pool,
-        Version::parse(VERSION).expect("Invalid version"),
-        setup_shutdown_tx,
-    );
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
-    let listener = TcpListener::bind(addr)
-        .await
-        .expect("Could not bind ephemeral socket");
-
-    (TestClient::new(app, listener), setup_shutdown_rx)
 }
 
 #[sqlx::test]

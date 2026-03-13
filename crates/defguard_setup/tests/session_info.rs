@@ -1,139 +1,18 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::Arc,
-};
-
-use axum::serve;
-use defguard_common::{
-    VERSION,
-    config::{DefGuardConfig, SERVER_CONFIG},
-    db::{
-        models::{
-            Settings, User,
-            group::Group,
-            settings::{initialize_current_settings, update_current_settings},
-            wizard::{ActiveWizard, Wizard},
-        },
-        setup_pool,
+use defguard_common::db::{
+    models::{
+        User,
+        group::Group,
+        settings::initialize_current_settings,
+        wizard::{ActiveWizard, Wizard},
     },
+    setup_pool,
 };
-use defguard_setup::{migration::build_migration_webapp, setup_server::build_setup_webapp};
-use reqwest::{
-    Client, StatusCode,
-    cookie::Jar,
-    header::{HeaderMap, HeaderValue, USER_AGENT},
-};
-use semver::Version;
+use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
 
-const TEST_SECRET_KEY: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-
-struct TestClient {
-    client: Client,
-    _jar: Arc<Jar>,
-    port: u16,
-    _task: JoinHandle<()>,
-}
-
-impl TestClient {
-    fn new(app: axum::Router, listener: TcpListener) -> Self {
-        let port = listener.local_addr().unwrap().port();
-        let task = tokio::spawn(async move {
-            serve(
-                listener,
-                app.into_make_service_with_connect_info::<SocketAddr>(),
-            )
-            .await
-            .expect("server error");
-        });
-
-        let jar = Arc::new(Jar::default());
-        let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
-        let client = Client::builder()
-            .default_headers(headers)
-            .cookie_provider(jar.clone())
-            .build()
-            .expect("Failed to build reqwest client");
-
-        Self {
-            client,
-            _jar: jar,
-            port,
-            _task: task,
-        }
-    }
-
-    fn base_url(&self) -> String {
-        format!("http://localhost:{}", self.port)
-    }
-
-    fn get(&self, path: &str) -> reqwest::RequestBuilder {
-        self.client.get(format!("{}{}", self.base_url(), path))
-    }
-
-    fn post(&self, path: &str) -> reqwest::RequestBuilder {
-        self.client.post(format!("{}{}", self.base_url(), path))
-    }
-}
-
-async fn make_setup_test_client(pool: sqlx::PgPool) -> (TestClient, oneshot::Receiver<()>) {
-    let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
-    let app = build_setup_webapp(
-        pool,
-        Version::parse(VERSION).expect("Invalid version"),
-        setup_shutdown_tx,
-    );
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
-    let listener = TcpListener::bind(addr)
-        .await
-        .expect("Could not bind ephemeral socket");
-    (TestClient::new(app, listener), setup_shutdown_rx)
-}
-
-async fn make_migration_test_client(
-    pool: sqlx::PgPool,
-) -> (
-    TestClient,
-    oneshot::Receiver<()>,
-    defguard_setup::migration::MigrationWebapp,
-) {
-    let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
-    let webapp = build_migration_webapp(
-        pool,
-        Version::parse(VERSION).expect("Invalid version"),
-        setup_shutdown_tx,
-    );
-    let router = webapp.router.clone();
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
-    let listener = TcpListener::bind(addr)
-        .await
-        .expect("Could not bind ephemeral socket");
-    (TestClient::new(router, listener), setup_shutdown_rx, webapp)
-}
-
-/// Initialise settings with a known secret key so build_migration_webapp can
-/// call `secret_key_required()` without panicking. Also initialises SERVER_CONFIG
-/// so the auth handler can call `server_config()`.
-async fn init_settings_with_secret_key(pool: &sqlx::PgPool) {
-    initialize_current_settings(pool)
-        .await
-        .expect("Failed to initialize settings");
-    let mut settings = Settings::get_current_settings();
-    settings.secret_key = Some(TEST_SECRET_KEY.to_string());
-    settings.defguard_url = "http://localhost:8000".to_string();
-    settings.webauthn_rp_id = Some("localhost".to_string());
-    update_current_settings(pool, settings)
-        .await
-        .expect("Failed to update settings");
-
-    let mut config = DefGuardConfig::new_test_config();
-    config.cookie_insecure = true;
-    config.initialize_post_settings();
-    let _ = SERVER_CONFIG.set(config);
-}
+mod common;
+use common::{init_settings_with_secret_key, make_migration_test_client, make_setup_test_client};
 
 #[sqlx::test]
 async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOptions) {
