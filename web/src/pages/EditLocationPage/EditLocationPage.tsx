@@ -454,9 +454,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                   onToggleChange={(value) => {
                     setAllGroupsToggle(value);
                     form.setFieldValue('allow_all_groups', value);
-                    if (value) {
-                      field.handleChange([]);
-                    }
                   }}
                 />
               )}

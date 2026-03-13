@@ -220,6 +220,11 @@ async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgC
     assert_eq!(response.status(), StatusCode::CREATED);
     let network: WireguardNetwork<Id> = response.json().await;
     assert!(network.allow_all_groups);
+    let allowed_groups = network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["allowed group"]);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
@@ -485,6 +490,11 @@ async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: 
     assert_eq!(response.status(), StatusCode::OK);
     let network: WireguardNetwork<Id> = response.json().await;
     assert!(network.allow_all_groups);
+    let allowed_groups = network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["allowed group"]);
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
 
     let peers = get_location_allowed_peers(&network, &client_state.pool)
@@ -883,6 +893,50 @@ async fn test_modify_user_no_effect_when_allow_all_groups(
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
     assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
     assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
+}
+
+#[sqlx::test]
+async fn test_import_network_allow_all_groups_preserves_allowed_groups(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+    let (_users, _devices) = setup_test_users(&client_state.pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let wg_config = "
+[Interface]
+PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+Address = 10.0.0.1/24
+ListenPort = 55055
+DNS = 10.0.0.2
+";
+
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({
+            "name": "network",
+            "endpoint": "192.168.1.1",
+            "config": wg_config,
+            "allow_all_groups": true,
+            "allowed_groups": ["allowed group"]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response: ImportedNetworkData = response.json().await;
+
+    let allowed_groups = response
+        .network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["allowed group"]);
 }
 
 #[sqlx::test]

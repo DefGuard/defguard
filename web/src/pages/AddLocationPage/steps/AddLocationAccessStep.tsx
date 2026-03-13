@@ -40,7 +40,7 @@ export const AddLocationAccessStep = () => {
   const saveChanges = useCallback((values: Set<string>, allowAll: boolean) => {
     useAddLocationStore.setState({
       allow_all_groups: allowAll,
-      allowed_groups: allowAll ? [] : Array.from(values),
+      allowed_groups: Array.from(values),
     });
   }, []);
 
@@ -52,9 +52,6 @@ export const AddLocationAccessStep = () => {
         onClick={() => {
           const value = !allowAllGroups;
           setAllowAllGroups(value);
-          if (value) {
-            setSelected(new Set());
-          }
         }}
       />
       {!allowAllGroups && (

@@ -239,13 +239,9 @@ pub(crate) async fn create_network(
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
-    if data.allow_all_groups {
-        network.clear_allowed_groups(&mut transaction).await?;
-    } else {
-        network
-            .set_allowed_groups(&mut transaction, &data.allowed_groups)
-            .await?;
-    }
+    network
+        .set_allowed_groups(&mut transaction, &data.allowed_groups)
+        .await?;
 
     // generate IP addresses for existing devices
     network.add_all_allowed_devices(&mut transaction).await?;
@@ -364,13 +360,9 @@ pub(crate) async fn modify_network(
     network.location_mfa_mode = data.location_mfa_mode;
 
     network.save(&mut *transaction).await?;
-    if data.allow_all_groups {
-        network.clear_allowed_groups(&mut transaction).await?;
-    } else {
-        network
-            .set_allowed_groups(&mut transaction, &data.allowed_groups)
-            .await?;
-    }
+    network
+        .set_allowed_groups(&mut transaction, &data.allowed_groups)
+        .await?;
     let _events = sync_location_allowed_devices(&network, &mut transaction, None).await?;
 
     let peers = get_location_allowed_peers(&network, &mut *transaction).await?;
@@ -604,13 +596,9 @@ pub(crate) async fn import_network(
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
-    if data.allow_all_groups {
-        network.clear_allowed_groups(&mut transaction).await?;
-    } else {
-        network
-            .set_allowed_groups(&mut transaction, &data.allowed_groups)
-            .await?;
-    }
+    network
+        .set_allowed_groups(&mut transaction, &data.allowed_groups)
+        .await?;
 
     info!("New network {network} created");
     appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
