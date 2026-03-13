@@ -118,6 +118,11 @@ export const ActivityLogTable = ({
       columnHelper.accessor('description', {
         header: 'Description',
         minSize: 300,
+        size: 300,
+        enableResizing: true,
+        meta: {
+          flex: true,
+        },
         cell: (info) => {
           const value = info.getValue();
           return (
@@ -126,6 +131,17 @@ export const ActivityLogTable = ({
             </TableCell>
           );
         },
+      }),
+      columnHelper.display({
+        id: 'fill',
+        minSize: 40,
+        size: 40,
+        enableResizing: false,
+        cell: () => (
+          <TableCell flex>
+            <span></span>
+          </TableCell>
+        ),
       }),
     ],
     [],

@@ -89,7 +89,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       invalidate: ['settings'],
     },
     onSuccess: () => {
-      Snackbar.success(m.settings_msg_saved());
+      Snackbar.default(m.settings_msg_saved());
     },
     onError: () => {
       Snackbar.error(m.settings_msg_save_failed());

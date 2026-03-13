@@ -65,7 +65,11 @@ export const OpenIdClientTable = () => {
         header: 'App name',
         enableSorting: true,
         sortingFn: 'text',
+        size: 300,
         minSize: 300,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -74,7 +78,7 @@ export const OpenIdClientTable = () => {
       }),
       columnHelper.accessor('enabled', {
         header: 'Status',
-        minSize: 180,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (

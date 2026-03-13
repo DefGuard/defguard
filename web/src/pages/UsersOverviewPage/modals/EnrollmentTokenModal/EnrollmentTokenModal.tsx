@@ -69,7 +69,7 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
   const { mutateAsync: sendEnrollmentEmail } = useMutation({
     mutationFn: api.user.startEnrollment,
     onSuccess: () => {
-      Snackbar.success(m.sucessfull_enrollment_email());
+      Snackbar.default(m.sucessfull_enrollment_email());
       closeModal(modalName);
     },
     onError: (error) => {

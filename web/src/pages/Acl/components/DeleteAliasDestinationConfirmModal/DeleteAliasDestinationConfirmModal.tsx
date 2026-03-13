@@ -55,10 +55,10 @@ export const DeleteAliasDestinationConfirmModal = () => {
     try {
       if (modalData.target.kind === 'alias') {
         await deleteAlias(modalData.target.id);
-        Snackbar.success(m.acl_alias_delete_success());
+        Snackbar.default(m.acl_alias_delete_success());
       } else {
         await deleteDestination(modalData.target.id);
-        Snackbar.success(m.acl_destination_delete_success());
+        Snackbar.default(m.acl_destination_delete_success());
       }
       setOpen(false);
     } catch {
