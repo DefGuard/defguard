@@ -65,10 +65,12 @@ pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;
 pub(crate) fn current_cookie_domain() -> Option<String> {
     server_config().cookie_domain.clone().or_else(|| {
         let settings = defguard_common::db::models::Settings::get_current_settings();
-        settings.cookie_domain().map_err(|err| {
-            error!("Failed to derive cookie domain from defguard_url: {err}");
-        })
-        .ok()
+        settings
+            .cookie_domain()
+            .map_err(|err| {
+                error!("Failed to derive cookie domain from defguard_url: {err}");
+            })
+            .ok()
     })
 }
 

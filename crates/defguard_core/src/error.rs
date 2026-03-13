@@ -1,9 +1,9 @@
 use axum::http::StatusCode;
 use defguard_common::{
     db::models::{
+        DeviceError, ModelError, WireguardNetworkError,
         settings::{SettingsSaveError, SettingsUrlError, SettingsValidationError},
         user::UserError,
-        DeviceError, ModelError, WireguardNetworkError,
     },
     types::UrlParseError,
 };

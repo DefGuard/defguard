@@ -1,5 +1,13 @@
 use std::sync::{Arc, Mutex, RwLock};
 
+use crate::{
+    auth::failed_login::FailedLoginMap,
+    db::{AppEvent, WebHook},
+    error::WebError,
+    events::ApiEvent,
+    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
+    version::IncompatibleComponents,
+};
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
 use defguard_common::{db::models::Settings, types::proxy::ProxyControlMessage};
@@ -12,14 +20,6 @@ use tokio::{
         mpsc::{UnboundedReceiver, UnboundedSender},
     },
     task::spawn,
-};
-use crate::{
-    auth::failed_login::FailedLoginMap,
-    db::{AppEvent, WebHook},
-    error::WebError,
-    events::ApiEvent,
-    grpc::{GatewayEvent, send_multiple_wireguard_events, send_wireguard_event},
-    version::IncompatibleComponents,
 };
 
 const X_DEFGUARD_EVENT: &str = "x-defguard-event";

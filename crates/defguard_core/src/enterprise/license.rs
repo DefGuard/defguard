@@ -7,7 +7,9 @@ use defguard_common::{
     VERSION,
     config::server_config,
     db::models::{
-        Settings, gateway::Gateway, proxy::Proxy,
+        Settings,
+        gateway::Gateway,
+        proxy::Proxy,
         settings::{SettingsSaveError, update_current_settings},
     },
     global_value,

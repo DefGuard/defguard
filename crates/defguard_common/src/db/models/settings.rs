@@ -344,10 +344,13 @@ impl Settings {
 
     pub fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
-        let domain = url.domain().map(str::to_string).or_else(|| match url.host_str() {
-            Some("localhost") => Some("localhost".to_string()),
-            _ => None,
-        });
+        let domain = url
+            .domain()
+            .map(str::to_string)
+            .or_else(|| match url.host_str() {
+                Some("localhost") => Some("localhost".to_string()),
+                _ => None,
+            });
 
         domain.ok_or_else(|| SettingsUrlError::MissingDefguardDomain(self.defguard_url.clone()))
     }
