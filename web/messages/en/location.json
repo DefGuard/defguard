@@ -9,6 +9,8 @@
   "location_delete_failed": "Failed to delete location",
   "network_device_delete_success": "Network device deleted",
   "network_device_delete_failed": "Failed to delete network device",
+  "network_device_add_error": "Failed to load network data for adding device",
+  "network_device_add_network_full": "Network is full, no IP addresses available for a new device",
   "location_edit_failed": "Failed to update location",
   "location_edit_addresses_rewrite_warning": "Changing the Gateway VPN IP address or netmask will automatically reassign any device addresses that fall outside the new network range to a randomly selected available IP address."
 }

@@ -5,6 +5,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import type { AxiosError } from 'axios';
 import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
@@ -24,6 +25,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSize } from '../../shared/defguard-ui/types';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -62,6 +64,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         locations: availableLocations,
         reservedNames,
       });
+    },
+    onError: (e) => {
+      console.error(e);
+      const status = (e as AxiosError).response?.status;
+      if (status === 400) {
+        Snackbar.error(m.network_device_add_network_full());
+      } else {
+        Snackbar.error(m.network_device_add_error());
+      }
     },
   });
 
