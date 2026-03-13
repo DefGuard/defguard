@@ -13,6 +13,7 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
+import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
@@ -57,6 +58,17 @@ export const WebhooksTable = ({ webhooks }: Props) => {
     () => [
       columnHelper.accessor('url', {
         header: 'Webhook URL',
+        minSize: 300,
+        size: 450,
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
+      }),
+      columnHelper.accessor('description', {
+        header: 'Description',
+        minSize: 300,
         meta: {
           flex: true,
         },
@@ -66,18 +78,9 @@ export const WebhooksTable = ({ webhooks }: Props) => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('description', {
-        header: 'Description',
-        size: 625,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue()}</span>
-          </TableCell>
-        ),
-      }),
       columnHelper.accessor('enabled', {
         header: 'Status',
-        size: 300,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
@@ -91,6 +94,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
       columnHelper.display({
         id: 'edit',
         header: '',
+        size: tableEditColumnSize,
         cell: (info) => {
           const row = info.row.original;
           const menuItems: MenuItemsGroup[] = [
@@ -146,6 +150,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
     enableRowSelection: false,
     columnResizeMode: 'onChange',
   });
+
   return (
     <>
       {webhooks.length > 0 && (

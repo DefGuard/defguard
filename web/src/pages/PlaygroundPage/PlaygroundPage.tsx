@@ -47,12 +47,37 @@ import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
+import { delay } from '../../shared/utils/delay';
 import { FoldableRadioSection } from '../FoldableRadioSection/FoldableRadioSection';
 import testIconSrc from './assets/actionable-test1.png';
 
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
+      <Card>
+        <Button
+          variant="outlined"
+          size="big"
+          text="Open confirm modal"
+          onClick={() => {
+            openModal(ModalName.ConfirmAction, {
+              actionPromise: async () => {
+                await delay(500);
+              },
+              title: 'Test confirm modal',
+              contentMd: `Are you sure you want to delete this thing ? This action can't be undone.`,
+              submitProps: {
+                text: 'Delete',
+                variant: 'critical',
+              },
+              onSuccess: () => {
+                Snackbar.default('Deleted');
+              },
+            });
+          }}
+        />
+      </Card>
+      <Divider spacing={ThemeSpacing.Xl} />
       <Card>
         <SizedBox height={1} width={600} />
         <Skeleton height={250} width={600} />

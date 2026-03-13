@@ -53,7 +53,7 @@ export const EditUserDeviceModal = () => {
   );
 };
 
-const getFormSchema = (names: string[]) =>
+const getFormSchema = (names: string[], pubkeys: string[]) =>
   z.object({
     name: z
       .string()
@@ -63,13 +63,23 @@ const getFormSchema = (names: string[]) =>
     publicKey: z
       .string()
       .length(44, m.form_error_invalid())
-      .regex(patternValidWireguardKey, m.form_error_invalid()),
+      .regex(patternValidWireguardKey, m.form_error_invalid())
+      .refine((val) => !pubkeys.includes(val), m.form_error_key_exists()),
   });
 
-const ModalContent = ({ device, reservedNames, username }: OpenEditDeviceModal) => {
+const ModalContent = ({
+  device,
+  reservedNames,
+  reservedPubkeys,
+  username,
+}: OpenEditDeviceModal) => {
   const formSchema = useMemo(
-    () => getFormSchema(reservedNames.filter((name) => name !== device.name)),
-    [reservedNames, device.name],
+    () =>
+      getFormSchema(
+        reservedNames.filter((name) => name !== device.name),
+        reservedPubkeys.filter((key) => key !== device.wireguard_pubkey),
+      ),
+    [reservedNames, reservedPubkeys, device.name, device.wireguard_pubkey],
   );
 
   const { mutateAsync } = useMutation({
