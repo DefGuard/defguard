@@ -450,6 +450,7 @@ pub async fn webauthn_finish(
         "Finishing WebAuthn registration for user {}",
         session.user.username
     );
+    let webauthn = appstate.webauthn()?;
     let passkey_reg =
         session
             .session
@@ -470,15 +471,13 @@ pub async fn webauthn_finish(
     );
     info!(
         "Allowed origins: {:?}",
-        appstate
-            .webauthn()?
+        webauthn
             .get_allowed_origins()
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>()
     );
 
-    let webauthn = appstate.webauthn()?;
     let passkey = webauthn
         .finish_passkey_registration(&webauth_reg.rpkc, &passkey_reg)
         .map_err(|err| WebError::WebauthnRegistration(err.to_string()))?;
