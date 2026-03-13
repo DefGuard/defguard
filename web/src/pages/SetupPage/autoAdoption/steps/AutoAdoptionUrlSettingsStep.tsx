@@ -11,9 +11,9 @@ import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divid
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
 import { AutoAdoptionSetupStep } from '../types';
 import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 import './style.scss';

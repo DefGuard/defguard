@@ -10,9 +10,9 @@ import { Button } from '../../../../shared/defguard-ui/components/Button/Button'
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
 import { SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 

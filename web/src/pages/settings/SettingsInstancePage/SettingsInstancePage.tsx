@@ -22,6 +22,7 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
+import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
 import {
   createNumericSelectOptions,
   withNumericFallbackOption,
@@ -64,6 +65,10 @@ export const SettingsInstancePage = () => {
 };
 
 const formSchema = z.object({
+  defguard_url: z
+    .url(m.settings_instance_error_invalid_url())
+    .refine(isValidDefguardUrl, m.settings_instance_error_invalid_host())
+    .min(1, m.settings_instance_error_defguard_url_required()),
   instance_name: z
     .string(m.form_error_required())
     .trim()
@@ -131,6 +136,7 @@ const Content = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
+      defguard_url: settings.defguard_url ?? '',
       instance_name: settings.instance_name ?? '',
       public_proxy_url: settings.public_proxy_url ?? '',
       authentication_period_days: settings.authentication_period_days ?? 7,
@@ -139,6 +145,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
     }),
     [
+      settings.defguard_url,
       settings.instance_name,
       settings.public_proxy_url,
       settings.authentication_period_days,
@@ -205,6 +212,15 @@ const Content = ({ settings }: { settings: Settings }) => {
             title={m.settings_instance_section_core()}
             description={m.settings_instance_section_core_description()}
           />
+          <form.AppField name="defguard_url">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_instance_label_defguard_url()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="instance_name">
             {(field) => (
               <field.FormInput required label={m.settings_instance_label_name()} />
