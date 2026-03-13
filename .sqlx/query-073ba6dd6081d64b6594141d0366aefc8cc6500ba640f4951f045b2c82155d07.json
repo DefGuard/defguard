@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT g.id, g.name, COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", is_admin FROM \"group\" g LEFT JOIN \"group_user\" gu ON gu.group_id = g.id LEFT JOIN \"user\" u ON u.id = gu.user_id LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id LEFT JOIN \"wireguard_network\" wn ON wn.allow_all_groups OR wn.id = wnag.network_id GROUP BY g.name, g.id",
+  "query": "SELECT g.id, g.name, COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", is_admin FROM \"group\" g LEFT JOIN \"group_user\" gu ON gu.group_id = g.id LEFT JOIN \"user\" u ON u.id = gu.user_id LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id GROUP BY g.name, g.id",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "df601202e8bf0cb5978581ebea3b5799549a3a4bf9735f7fd160b359653e5fe5"
+  "hash": "073ba6dd6081d64b6594141d0366aefc8cc6500ba640f4951f045b2c82155d07"
 }
