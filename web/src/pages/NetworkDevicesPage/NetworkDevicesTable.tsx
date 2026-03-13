@@ -67,8 +67,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
     },
     onError: (e) => {
       console.error(e);
-      const status = (e as AxiosError).response?.status;
-      if (status === 400) {
+      const msg = (e as AxiosError<{ msg: string }>).response?.data?.msg;
+      if (msg?.toLowerCase().includes('network') && msg?.toLowerCase().includes('full')) {
         Snackbar.error(m.network_device_add_network_full());
       } else {
         Snackbar.error(m.network_device_add_error());
