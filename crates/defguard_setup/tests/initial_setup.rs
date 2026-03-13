@@ -1,4 +1,7 @@
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, sync::Arc};
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::Arc,
+};
 
 use axum::serve;
 use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};

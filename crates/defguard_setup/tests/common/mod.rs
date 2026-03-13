@@ -175,4 +175,3 @@ pub async fn seed_admin_user(pool: &PgPool, username: &str, password: &str) -> U
 
     user
 }
-
