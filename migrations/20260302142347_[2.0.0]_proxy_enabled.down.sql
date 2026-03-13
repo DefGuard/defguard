@@ -1,1 +1,0 @@
-ALTER TABLE proxy DROP COLUMN enabled;
