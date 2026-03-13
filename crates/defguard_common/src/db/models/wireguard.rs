@@ -377,7 +377,7 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
         user_id: Id,
-    ) -> Result<Vec<Device<Id>>, ModelError> {
+    ) -> Result<Vec<Device<Id>>, DeviceError> {
         debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
         let devices =
             match self.get_allowed_groups(&mut *transaction).await? {
@@ -426,7 +426,7 @@ impl WireguardNetwork<Id> {
     pub async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<(), ModelError> {
+    ) -> Result<(), DeviceError> {
         info!(
             "Assigning IPs in network {} for all existing devices ",
             self

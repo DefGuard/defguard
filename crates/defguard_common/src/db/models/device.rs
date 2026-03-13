@@ -541,6 +541,8 @@ pub enum DeviceError {
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error(transparent)]
+    ModelError(#[from] ModelError),
+    #[error(transparent)]
     NetworkIpAssignmentError(#[from] NetworkAddressError),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
@@ -861,7 +863,7 @@ impl Device<Id> {
     /// # Returns
     ///
     /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.
-    /// - `Err(ModelError::CannotCreate)`: If any subnet lacks an available IP.
+    /// - `Err(DeviceError::NetworkFull)`: If any subnet lacks an available IP.
     pub async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
@@ -869,7 +871,7 @@ impl Device<Id> {
         used_ips: &HashSet<IpAddr>,
         reserved_ips: Option<&[IpAddr]>,
         current_ips: Option<&[IpAddr]>,
-    ) -> Result<WireguardNetworkDevice, ModelError> {
+    ) -> Result<WireguardNetworkDevice, DeviceError> {
         debug!(
             "Assiging IP addresses for device: {} in network {}",
             self.name, network.name
@@ -914,7 +916,7 @@ impl Device<Id> {
                     "Failed to assign address for device {} in network {address:?}",
                     self.name,
                 );
-                ModelError::CannotCreate
+                DeviceError::NetworkFull(address.to_string())
             })?;
 
             // Otherwise, store the IP address
