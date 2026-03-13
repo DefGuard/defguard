@@ -1,5 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
@@ -8,16 +6,9 @@ import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/De
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
-import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { getLicenseInfoQueryOptions } from '../../../shared/query';
-import { canUseBusinessFeature } from '../../../shared/utils/license';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
@@ -38,13 +29,6 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 export const AddLocationInternalVpnStep = () => {
-  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
-  const canUseBusiness = useMemo(() => {
-    if (licenseInfo === undefined) return undefined;
-    return canUseBusinessFeature(licenseInfo).result;
-  }, [licenseInfo]);
-  const firewallRulesToggleLocked = isPresent(canUseBusiness) && !canUseBusiness;
-
   const defaultValues = useAddLocationStore(
     useShallow(
       (s): FormFields => ({
@@ -100,21 +84,6 @@ export const AddLocationInternalVpnStep = () => {
           <form.AppField name="allowed_ips">
             {(field) => <field.FormInput required label={'Allowed IPs'} />}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <TooltipProvider disabled={!firewallRulesToggleLocked} placement="top-start">
-            <TooltipTrigger>
-              <div>
-                <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
-                  active={false}
-                  disabled={firewallRulesToggleLocked}
-                  label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{m.license_upgrade_business_tooltip()}</p>
-            </TooltipContent>
-          </TooltipProvider>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label={'DNS'} />}

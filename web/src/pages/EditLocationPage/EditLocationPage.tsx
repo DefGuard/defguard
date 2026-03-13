@@ -20,11 +20,7 @@ import { externalLink } from '../../shared/constants';
 
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
@@ -274,21 +270,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <form.AppField name="allowed_ips">
             {(field) => <field.FormInput label="Allowed IPs" />}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <TooltipProvider disabled={!firewallLocked} placement="top-start">
-            <TooltipTrigger>
-              <div>
-                <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
-                  active={false}
-                  disabled={firewallLocked}
-                  label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{m.license_upgrade_business_tooltip()}</p>
-            </TooltipContent>
-          </TooltipProvider>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label="DNS" />}
