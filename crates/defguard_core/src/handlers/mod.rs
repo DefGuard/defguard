@@ -58,7 +58,7 @@ pub(crate) mod yubikey;
 
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WebErrorType {
+pub enum WebErrorCode {
     NetworkFull,
 }
 
@@ -233,7 +233,7 @@ impl From<WebError> for ApiResponse {
             WebError::NetworkFull(msg) => {
                 warn!(msg);
                 ApiResponse::new(
-                    json!({"msg": msg, "type": WebErrorType::NetworkFull}),
+                    json!({"msg": msg, "code": WebErrorCode::NetworkFull}),
                     StatusCode::BAD_REQUEST,
                 )
             }

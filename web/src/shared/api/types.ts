@@ -305,16 +305,18 @@ export interface MfaFinishResponse {
   user?: User;
 }
 
-export const WebErrorType = {
+export const WebErrorCode = {
   NetworkFull: 'network_full',
 } as const;
 
-export type WebErrorType = (typeof WebErrorType)[keyof typeof WebErrorType];
+export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
+
+export type ApiErrorMessageKey = `api_error_${WebErrorCode}`;
 
 export interface ApiError {
   msg?: string;
   message?: string;
-  type?: WebErrorType;
+  code?: WebErrorCode;
 }
 
 export interface AppInfoExceededLimits {
