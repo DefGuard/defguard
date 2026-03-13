@@ -49,7 +49,8 @@ use crate::{
     auth::{SessionInfo, UserClaims},
     error::WebError,
     handlers::{
-        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, mail::send_new_device_ocid_login_email,
+        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, current_cookie_domain,
+        mail::send_new_device_ocid_login_email,
     },
     server_config,
 };
@@ -354,24 +355,21 @@ fn login_redirect(
         error!("Failed to prepare redirect URL: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
-    let cookie = Cookie::build((
+    let mut cookie = Cookie::build((
         SIGN_IN_COOKIE_NAME,
         format!(
             "{base_url}?{}",
             serde_urlencoded::to_string(data).unwrap_or_default()
         ),
     ))
-    .domain(
-        config
-            .cookie_domain
-            .clone()
-            .expect("Cookie domain not found"),
-    )
     .path("/")
     .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(SIGN_IN_COOKIE_MAX_AGE);
+    if let Some(cookie_domain) = current_cookie_domain() {
+        cookie = cookie.domain(cookie_domain);
+    }
     Ok(redirect_to("/login", private_cookies.add(cookie)))
 }
 

@@ -10,6 +10,7 @@ import { Button } from '../../../../shared/defguard-ui/components/Button/Button'
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { isValidDefguardUrl } from '../../../../shared/defguardUrl';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
 import { SetupPageStep } from '../types';
@@ -44,6 +45,10 @@ export const SetupGeneralConfigStep = () => {
       z.object({
         defguard_url: z
           .url(m.initial_setup_general_config_error_invalid_url())
+          .refine(
+            isValidDefguardUrl,
+            m.initial_setup_general_config_error_defguard_url_invalid_host(),
+          )
           .min(1, m.initial_setup_general_config_error_defguard_url_required()),
         default_admin_group_name: z
           .string()

@@ -3,18 +3,18 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::{VERSION, db::models::Settings};
+use crate::{db::models::Settings, VERSION};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -73,11 +73,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
-
-    // relying party id and relying party origin for WebAuthn
-    #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.webauthn_rp_id instead")]
-    pub webauthn_rp_id: Option<String>,
 
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     #[serde(skip_serializing)]
@@ -240,17 +235,9 @@ impl DefGuardConfig {
 
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
-        let url = Settings::url().expect("Unable to parse Defguard URL.");
-        self.initialize_cookie_domain(&url);
-    }
-
-    fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
-            self.cookie_domain = Some(
-                url.domain()
-                    .expect("Unable to get domain for server URL.")
-                    .to_string(),
-            );
+            let settings = Settings::get_current_settings();
+            self.cookie_domain = settings.cookie_domain().ok();
         }
     }
 
@@ -294,20 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_cookie_domain() {
-        unsafe {
-            env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-        }
-
-        let url = Url::parse("https://defguard.example.com").unwrap();
-        let mut config = DefGuardConfig::new();
-        config.initialize_cookie_domain(&url);
-
-        assert_eq!(
-            config.cookie_domain,
-            Some("defguard.example.com".to_string())
-        );
-
+    fn test_cookie_domain_env_override() {
         unsafe {
             env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
         }

@@ -9,6 +9,7 @@ import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardC
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isValidDefguardUrl } from '../../../shared/defguardUrl';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
@@ -48,6 +49,10 @@ export const MigrationWizardGeneralConfigurationStep = () => {
       z.object({
         defguard_url: z
           .url(m.migration_wizard_general_config_error_invalid_url())
+          .refine(
+            isValidDefguardUrl,
+            m.migration_wizard_general_config_error_defguard_url_invalid_host(),
+          )
           .min(1, m.migration_wizard_general_config_error_defguard_url_required()),
         default_admin_group_name: z
           .string()

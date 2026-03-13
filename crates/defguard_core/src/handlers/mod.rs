@@ -7,6 +7,7 @@ use axum::{
 use axum_client_ip::InsecureClientIp;
 use axum_extra::{TypedHeader, headers::UserAgent};
 use defguard_common::{
+    config::server_config,
     db::{
         Id, NoId,
         models::{Device, User},
@@ -60,6 +61,16 @@ pub static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
 pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;
+
+pub(crate) fn current_cookie_domain() -> Option<String> {
+    server_config().cookie_domain.clone().or_else(|| {
+        let settings = defguard_common::db::models::Settings::get_current_settings();
+        settings.cookie_domain().map_err(|err| {
+            error!("Failed to derive cookie domain from defguard_url: {err}");
+        })
+        .ok()
+    })
+}
 
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {

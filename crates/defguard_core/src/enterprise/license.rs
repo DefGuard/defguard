@@ -6,7 +6,10 @@ use chrono::{DateTime, TimeDelta, Utc};
 use defguard_common::{
     VERSION,
     config::server_config,
-    db::models::{Settings, gateway::Gateway, proxy::Proxy, settings::update_current_settings},
+    db::models::{
+        Settings, gateway::Gateway, proxy::Proxy,
+        settings::{SettingsSaveError, update_current_settings},
+    },
     global_value,
     types::proxy::ProxyControlMessage,
 };
@@ -46,6 +49,8 @@ pub enum LicenseError {
     InvalidSignature,
     #[error("Database error")]
     DbError(#[from] SqlxError),
+    #[error(transparent)]
+    SettingsSave(#[from] SettingsSaveError),
     #[error("License decoding error: {0}")]
     DecodeError(&'static str),
     #[error(

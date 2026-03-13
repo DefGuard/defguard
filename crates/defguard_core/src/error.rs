@@ -1,8 +1,9 @@
 use axum::http::StatusCode;
 use defguard_common::{
     db::models::{
-        DeviceError, ModelError, WireguardNetworkError, settings::SettingsValidationError,
+        settings::{SettingsSaveError, SettingsUrlError, SettingsValidationError},
         user::UserError,
+        DeviceError, ModelError, WireguardNetworkError,
     },
     types::UrlParseError,
 };
@@ -174,7 +175,23 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
+            SettingsValidationError::InvalidDefguardUrl(_) => Self::BadRequest(err.to_string()),
         }
+    }
+}
+
+impl From<SettingsSaveError> for WebError {
+    fn from(err: SettingsSaveError) -> Self {
+        match err {
+            SettingsSaveError::Db(err) => Self::DbError(err.to_string()),
+            SettingsSaveError::Validation(err) => err.into(),
+        }
+    }
+}
+
+impl From<SettingsUrlError> for WebError {
+    fn from(_err: SettingsUrlError) -> Self {
+        Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
