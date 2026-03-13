@@ -122,6 +122,7 @@ impl From<DeviceError> for WebError {
             DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
             DeviceError::NetworkIpAssignmentError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
+            DeviceError::NetworkFull(_) => Self::BadRequest(error.to_string()),
         }
     }
 }

@@ -12,6 +12,7 @@ import { useMemo } from 'react';
 import api from '../../../../../api/api';
 import type { ApiError } from '../../../../../api/types';
 import { SizedBox } from '../../../../../defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../defguard-ui/types';
 import { patternValidWireguardKey } from '../../../../../patterns';
 import { generateWGKeys } from '../../../../../utils/generateWGKeys';
@@ -107,6 +108,11 @@ export const AddDeviceModalManualSetupStep = () => {
               },
             },
           });
+        } else if (
+          msg?.toLowerCase().includes('network') &&
+          msg?.toLowerCase().includes('full')
+        ) {
+          Snackbar.error(m.form_error_network_full());
         }
       });
 
@@ -114,6 +120,7 @@ export const AddDeviceModalManualSetupStep = () => {
 
       if (!createResponse.data.configs.length) {
         useAddUserDeviceModal.getState().close();
+        return;
       }
 
       useAddUserDeviceModal.setState({

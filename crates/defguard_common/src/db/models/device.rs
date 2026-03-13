@@ -27,7 +27,9 @@ use crate::{
             ModelError, WireguardNetwork,
             user::User,
             vpn_client_session::VpnClientSessionState,
-            wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
+            wireguard::{
+                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WireguardNetworkError,
+            },
         },
     },
 };
@@ -542,6 +544,8 @@ pub enum DeviceError {
     NetworkIpAssignmentError(#[from] NetworkAddressError),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
+    #[error("Network {0} is full, no IP addresses available for device")]
+    NetworkFull(String),
 }
 
 impl Device {
@@ -780,13 +784,18 @@ impl Device<Id> {
                 continue;
             }
 
-            // FIXME: don't ignore the error.
-            let Ok(wireguard_network_device) =
-                network.add_device_to_network(&mut *conn, self, None).await
-            else {
-                warn!("Failed to add device {self} to network {network}");
-                continue;
-            };
+            let wireguard_network_device =
+                match network.add_device_to_network(&mut *conn, self, None).await {
+                    Ok(device) => device,
+                    Err(WireguardNetworkError::DeviceNotAllowed(_)) => {
+                        debug!("Device {self} is not allowed in network {network}, skipping");
+                        continue;
+                    }
+                    Err(err) => {
+                        warn!("Failed to add device {self} to network {network}: {err}");
+                        return Err(DeviceError::NetworkFull(network.name.clone()));
+                    }
+                };
 
             debug!(
                 "Assigned IPs {} for device {} (user {}) in network {network}",
