@@ -173,6 +173,9 @@ export const RulesTable = ({
       columnHelper.accessor('name', {
         header: 'Rule name',
         minSize: 210,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -283,6 +286,8 @@ export const RulesTable = ({
       columnHelper.display({
         id: 'status',
         header: 'Status',
+        size: 125,
+        minSize: 125,
         cell: (info) => {
           const row = info.row.original;
           return renderStatusCell(row.state, row.enabled);

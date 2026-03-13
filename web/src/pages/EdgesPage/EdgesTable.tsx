@@ -125,6 +125,7 @@ export const EdgesTable = () => {
         enableSorting: true,
         sortingFn: 'text',
         minSize: 250,
+        size: 300,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -133,8 +134,10 @@ export const EdgesTable = () => {
       }),
       columnHelper.accessor('address', {
         header: m.edges_col_address(),
-        size: 175,
-        minSize: 175,
+        minSize: 250,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -143,8 +146,7 @@ export const EdgesTable = () => {
       }),
       columnHelper.accessor('port', {
         header: m.edges_col_port(),
-        size: 170,
-        minSize: 100,
+        minSize: 125,
         sortingFn: 'text',
         cell: (info) => (
           <TableCell>
@@ -153,8 +155,7 @@ export const EdgesTable = () => {
         ),
       }),
       columnHelper.accessor('version', {
-        size: 175,
-        minSize: 175,
+        minSize: 125,
         header: m.edges_col_version(),
         enableSorting: true,
         cell: (info) => (
@@ -176,7 +177,7 @@ export const EdgesTable = () => {
       }),
       columnHelper.display({
         id: 'modified_by',
-        size: 175,
+        size: 200,
         minSize: 175,
         header: m.edges_col_modified_by(),
         enableSorting: true,

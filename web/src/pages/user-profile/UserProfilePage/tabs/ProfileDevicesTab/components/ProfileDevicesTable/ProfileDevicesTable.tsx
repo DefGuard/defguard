@@ -184,9 +184,12 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     () => [
       columnHelper.accessor('name', {
         header: m.profile_devices_col_name(),
-        size: 700,
+        size: 300,
         minSize: 300,
         enableSorting: true,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             {info.row.original.biometry_enabled && (
@@ -265,7 +268,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             )}
             {CellWithFallback(network.last_connected_ip)}
             {CellWithFallback(displayDateOrNull(network.last_connected_at))}
-            <TableCell empty />
             <TableFlexCell />
           </TableRowContainer>
         ))}
@@ -280,7 +282,6 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       m.profile_devices_col_location_ip(),
       m.profile_devices_col_location_connected_from(),
       m.profile_devices_col_location_connected(),
-      '',
     ],
     [],
   );

@@ -84,6 +84,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         header: 'Device name',
         enableSorting: true,
         sortingFn: 'text',
+        minSize: 250,
         meta: {
           flex: true,
         },
@@ -95,7 +96,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       }),
       columnHelper.accessor('location.name', {
         header: 'Location',
-        size: 250,
+        size: 225,
+        minSize: 175,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -113,7 +115,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       }),
       columnHelper.accessor('description', {
         header: 'Description',
-        size: 370,
+        size: 300,
+        minSize: 250,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -123,6 +126,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       columnHelper.accessor('added_by', {
         header: 'Added by',
         size: 140,
+        minSize: 100,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -131,7 +135,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       }),
       columnHelper.accessor('added_date', {
         header: 'Added date',
-        size: 150,
+        size: 170,
+        minSize: 170,
         cell: (info) => (
           <TableCell>
             <span>{displayDate(info.getValue())}</span>
@@ -141,6 +146,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       columnHelper.accessor('configured', {
         header: 'Configured',
         size: 150,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             <span>
