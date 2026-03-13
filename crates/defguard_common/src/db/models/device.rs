@@ -784,18 +784,24 @@ impl Device<Id> {
                 continue;
             }
 
-            let wireguard_network_device =
-                match network.add_device_to_network(&mut *conn, self, None).await {
-                    Ok(device) => device,
-                    Err(WireguardNetworkError::DeviceNotAllowed(_)) => {
-                        debug!("Device {self} is not allowed in network {network}, skipping");
-                        continue;
-                    }
-                    Err(err) => {
-                        warn!("Failed to add device {self} to network {network}: {err}");
-                        return Err(DeviceError::NetworkFull(network.name.clone()));
-                    }
-                };
+            let wireguard_network_device = match network
+                .add_device_to_network(&mut *conn, self, None)
+                .await
+            {
+                Ok(device) => device,
+                Err(WireguardNetworkError::DeviceNotAllowed(_)) => {
+                    debug!("Device {self} is not allowed in network {network}, skipping");
+                    continue;
+                }
+                Err(WireguardNetworkError::ModelError(ModelError::CannotCreate)) => {
+                    warn!("Network {network} is full, no IP addresses available for device {self}");
+                    return Err(DeviceError::NetworkFull(network.name.clone()));
+                }
+                Err(err) => {
+                    warn!("Failed to add device {self} to network {network}: {err}");
+                    return Err(DeviceError::Unexpected(err.to_string()));
+                }
+            };
 
             debug!(
                 "Assigned IPs {} for device {} (user {}) in network {network}",
