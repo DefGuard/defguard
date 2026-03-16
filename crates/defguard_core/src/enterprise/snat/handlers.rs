@@ -236,8 +236,7 @@ pub async fn modify_snat_binding(
     // clone state before modifications
     let before = snat_binding.clone();
 
-    // update public IP
-    snat_binding.update_ip(data.public_ip);
+    snat_binding.public_ip = data.public_ip;
     snat_binding.save(&appstate.pool).await?;
 
     // emit event

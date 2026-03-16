@@ -15,6 +15,7 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 
 type StoreValues = {
   isOnWelcomePage: boolean;
+  isFinishing: boolean;
   activeStep: SetupPageStepValue;
   // Admin config
   admin_first_name: string;
@@ -51,6 +52,7 @@ type StoreMethods = {
 
 const defaults: StoreValues = {
   isOnWelcomePage: true,
+  isFinishing: false,
   activeStep: SetupPageStep.AdminUser,
   // Admin config
   admin_first_name: '',
@@ -108,6 +110,7 @@ export const useSetupWizardStore = create<StoreMethods & StoreValues>()(
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) =>
         omit(state, [
+          'isFinishing',
           'reset',
           'start',
           'setActiveStep',

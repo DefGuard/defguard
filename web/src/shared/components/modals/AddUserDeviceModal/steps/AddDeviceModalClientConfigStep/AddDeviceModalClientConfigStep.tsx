@@ -5,7 +5,6 @@ import { ThemeSpacing } from '../../../../../defguard-ui/types';
 import { useAddUserDeviceModal } from '../../store/useAddUserDeviceModal';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
-import { QRCodeCanvas } from 'qrcode.react';
 import { titleCase } from 'text-case';
 import { externalLink } from '../../../../../constants';
 import { Button } from '../../../../../defguard-ui/components/Button/Button';
@@ -16,6 +15,7 @@ import { FoldButton } from '../../../../../defguard-ui/components/FoldButton/Fol
 import { IconButton } from '../../../../../defguard-ui/components/IconButton/IconButton';
 import { IconButtonMenu } from '../../../../../defguard-ui/components/IconButtonMenu/IconButtonMenu';
 import type { MenuItemsGroup } from '../../../../../defguard-ui/components/Menu/types';
+import { QrCard } from '../../../../../defguard-ui/components/QrCard/QrCard';
 import { clientArtifactsQueryOptions } from '../../../../../query';
 import { openClientLink } from '../../../../../utils/openVirtualLink';
 import { ContainerWithIcon } from '../../../../ContainerWithIcon/ContainerWithIcon';
@@ -143,7 +143,7 @@ export const AddDeviceModalClientConfigStep = () => {
           </p>
         </header>
         <div className="buttons">
-          <a href={deepLink} target="_blank">
+          <a href={deepLink} target="_blank" rel="noopener">
             <Button
               text={m.modal_add_user_device_client_desktop_one_click()}
               variant="primary"
@@ -199,7 +199,7 @@ export const AddDeviceModalClientConfigStep = () => {
         </header>
         <div className="bottom">
           <div className="qr">
-            <QRCodeCanvas value={qrData} size={200} />
+            <QrCard value={qrData} />
           </div>
           <div className="download">
             <p>{m.modal_add_user_device_client_mobile_get_mobile()}</p>
