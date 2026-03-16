@@ -7,7 +7,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { range } from 'radashi';
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import z from 'zod';
 import { CodeSnippet } from '../../shared/components/CodeSnippet/CodeSnippet';
