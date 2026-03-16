@@ -792,7 +792,13 @@ async fn test_admin_can_disable_another_users_mfa_emits_updated_event_and_cleans
     assert!(seeded_user.email_mfa_secret.is_some());
     assert_eq!(seeded_user.mfa_method, MFAMethod::OneTimePassword);
     assert_eq!(seeded_user.recovery_codes, recovery_codes);
-    assert_eq!(WebAuthn::all_for_user(&pool, seeded_user.id).await.unwrap().len(), 1);
+    assert_eq!(
+        WebAuthn::all_for_user(&pool, seeded_user.id)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
 
     let response = client.delete("/api/v1/user/hpotter/mfa").send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -805,7 +811,12 @@ async fn test_admin_can_disable_another_users_mfa_emits_updated_event_and_cleans
     assert!(updated_user.email_mfa_secret.is_none());
     assert_eq!(updated_user.mfa_method, MFAMethod::None);
     assert!(updated_user.recovery_codes.is_empty());
-    assert!(WebAuthn::all_for_user(&pool, updated_user.id).await.unwrap().is_empty());
+    assert!(
+        WebAuthn::all_for_user(&pool, updated_user.id)
+            .await
+            .unwrap()
+            .is_empty()
+    );
 
     client.verify_api_events_with_user(&[(
         ApiEventType::UserMfaDisabled {
@@ -839,7 +850,13 @@ async fn test_non_admin_cannot_disable_another_users_mfa_and_emits_no_event(
     assert!(admin_user.email_mfa_secret.is_some());
     assert_eq!(admin_user.mfa_method, MFAMethod::OneTimePassword);
     assert_eq!(admin_user.recovery_codes, recovery_codes);
-    assert_eq!(WebAuthn::all_for_user(&pool, admin_user.id).await.unwrap().len(), 1);
+    assert_eq!(
+        WebAuthn::all_for_user(&pool, admin_user.id)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
 
     client.assert_event_queue_is_empty();
 }
