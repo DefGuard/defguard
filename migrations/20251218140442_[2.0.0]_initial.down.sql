@@ -60,8 +60,6 @@ ALTER TABLE settings
     DROP COLUMN default_admin_id,
     DROP COLUMN secret_key,
     DROP COLUMN openid_signing_key,
-    DROP COLUMN webauthn_rp_id,
-    DROP COLUMN disable_stats_purge,
     DROP COLUMN stats_purge_frequency_hours,
     DROP COLUMN stats_purge_threshold_days,
     DROP COLUMN enrollment_token_timeout_hours,
