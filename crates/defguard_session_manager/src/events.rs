@@ -2,8 +2,8 @@ use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
 use defguard_common::db::{
-    models::{Device, User, WireguardNetwork},
     Id,
+    models::{Device, User, WireguardNetwork},
 };
 
 #[derive(Debug)]

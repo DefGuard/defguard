@@ -120,10 +120,14 @@ impl SessionState {
 
             let user = User::find_by_id(&mut *transaction, db_session.user_id)
                 .await?
-                .ok_or(SessionManagerError::UserDoesNotExistError(db_session.user_id))?;
+                .ok_or(SessionManagerError::UserDoesNotExistError(
+                    db_session.user_id,
+                ))?;
             let device = Device::find_by_id(&mut *transaction, db_session.device_id)
                 .await?
-                .ok_or(SessionManagerError::DeviceDoesNotExistError(db_session.device_id))?;
+                .ok_or(SessionManagerError::DeviceDoesNotExistError(
+                    db_session.device_id,
+                ))?;
             let location = WireguardNetwork::find_by_id(&mut *transaction, db_session.location_id)
                 .await?
                 .ok_or(SessionManagerError::LocationDoesNotExistError(
