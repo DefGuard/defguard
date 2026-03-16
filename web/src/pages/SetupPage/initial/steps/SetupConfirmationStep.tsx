@@ -49,6 +49,7 @@ export const SetupConfirmationStep = () => {
   const handleFinish = async () => {
     try {
       setIsSubmitting(true);
+      useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
       await waitForSettingsEssentials({});
       await navigate({ to: '/add-location', replace: true });
@@ -57,6 +58,7 @@ export const SetupConfirmationStep = () => {
       }, 100);
     } catch (error) {
       console.error('Failed to finish setup flow:', error);
+      useSetupWizardStore.setState({ isFinishing: false });
       Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
     } finally {
       setIsSubmitting(false);
@@ -66,6 +68,7 @@ export const SetupConfirmationStep = () => {
   const handleExit = async () => {
     try {
       setIsSubmitting(true);
+      useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
       await waitForSettingsEssentials({});
       await navigate({ to: '/vpn-overview', replace: true });
@@ -74,6 +77,7 @@ export const SetupConfirmationStep = () => {
       }, 100);
     } catch (error) {
       console.error('Failed to finish setup flow:', error);
+      useSetupWizardStore.setState({ isFinishing: false });
       Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
     } finally {
       setIsSubmitting(false);

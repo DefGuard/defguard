@@ -112,11 +112,13 @@ export const SetupPage = () => {
     [],
   );
 
+  const isFinishing = useSetupWizardStore((s) => s.isFinishing);
+
   useEffect(() => {
-    if (sessionInfo?.active_wizard === null) {
+    if (!isFinishing && sessionInfo?.active_wizard === null) {
       navigate({ to: '/vpn-overview', replace: true });
     }
-  }, [navigate, sessionInfo?.active_wizard]);
+  }, [isFinishing, navigate, sessionInfo?.active_wizard]);
 
   return (
     <WizardPage
