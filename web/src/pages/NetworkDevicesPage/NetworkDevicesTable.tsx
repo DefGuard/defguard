@@ -66,8 +66,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         openModal(ModalName.ConfirmAction, {
           title: m.modal_no_available_locations_title(),
           contentMd: m.modal_no_available_locations_body(),
-          actionPromise: async () => {},
-          onSuccess: () => navigate({ to: '/locations' }),
+          actionPromise: async () => navigate({ to: '/locations' }),
           submitProps: { text: m.modal_no_available_locations_go_to_locations() },
         });
         return;
