@@ -76,6 +76,7 @@ export const ModalName = {
   AssignUserIP: 'assignUserIP',
   AssignUserDeviceIP: 'assignUserDeviceIP',
   ConfirmAction: 'confirmAction',
+  NoAvailableLocations: 'noAvailableLocations',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -245,6 +246,7 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
     name: z.literal(ModalName.ConfirmAction),
     data: z.custom<OpenConfirmActionModal>(),
   }),
+  z.object({ name: z.literal(ModalName.NoAvailableLocations) }),
 ]);
 
 export type ModalOpenEvent = z.infer<typeof modalOpenArgsSchema>;

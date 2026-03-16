@@ -60,7 +60,10 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ['name'],
         ['asc'],
       );
-      if (!availableLocations.length) return;
+      if (!availableLocations.length) {
+        openModal(ModalName.NoAvailableLocations);
+        return;
+      }
       const { data: availableIps } = await api.network_device.getAvailableIp(
         availableLocations[0].id,
       );
