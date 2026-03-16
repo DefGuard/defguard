@@ -28,7 +28,6 @@ mod error;
 mod handler;
 
 #[cfg(test)]
-#[path = "tests/mod.rs"]
 mod tests;
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
