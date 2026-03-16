@@ -42,6 +42,7 @@
   "controls_verify_code": "Verify code",
   "controls_complete": "Complete",
   "controls_copy_clipboard": "Copy to clipboard",
+  "controls_deploy": "Deploy",
   "state_disabled": "Disabled",
   "state_warning": "Warning",
   "state_active": "Active",
