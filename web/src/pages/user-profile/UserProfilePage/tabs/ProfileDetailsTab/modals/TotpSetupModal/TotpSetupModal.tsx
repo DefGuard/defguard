@@ -6,7 +6,6 @@ import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
-import { QRCodeCanvas } from 'qrcode.react';
 import type z from 'zod';
 import api from '../../../../../../../shared/api/api';
 import type { ApiError } from '../../../../../../../shared/api/types';
@@ -14,6 +13,7 @@ import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/
 import { CopyField } from '../../../../../../../shared/defguard-ui/components/CopyField/CopyField';
 import { Divider } from '../../../../../../../shared/defguard-ui/components/Divider/Divider';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
+import { QrCard } from '../../../../../../../shared/defguard-ui/components/QrCard/QrCard';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
@@ -138,7 +138,7 @@ const ModalContent = () => {
         <SizedBox height={ThemeSpacing.Xl2} />
         {isPresent(qrData) && isPresent(totpInitResponse) && (
           <div className="qr">
-            <QRCodeCanvas value={qrData} size={200} />
+            <QrCard value={qrData} />
             <SizedBox height={ThemeSpacing.Xl} />
             <p>{m.modal_mfa_enable_totp_qr_problem()}</p>
             <SizedBox height={ThemeSpacing.Sm} />

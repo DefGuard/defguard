@@ -51,10 +51,10 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.6",
-    "@inlang/paraglide-js": "2.14.0",
-    "@tanstack/devtools-vite": "^0.5.5",
-    "@tanstack/react-devtools": "^0.9.13",
+    "@biomejs/biome": "2.4.7",
+    "@inlang/paraglide-js": "2.15.0",
+    "@tanstack/devtools-vite": "^0.6.0",
+    "@tanstack/react-devtools": "^0.10.0",
     "@tanstack/react-query-devtools": "^5.91.3",
     "@tanstack/react-router-devtools": "^1.166.9",
     "@tanstack/router-plugin": "^1.166.12",
@@ -65,7 +65,7 @@
     "@types/qs": "^6.15.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react-swc": "^4.3.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.27",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
@@ -75,7 +75,7 @@
     "stylelint-config-standard-scss": "^17.0.0",
     "stylelint-scss": "^7.0.0",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1",
+    "vite": "^8.0.0",
     "vite-plugin-image-optimizer": "^2.0.3"
   }
 }

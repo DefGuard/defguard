@@ -104,26 +104,6 @@ const getLicenseLimitConflicts = ({
     });
   }
 
-  const currentDevices = counts.user_device + counts.network_device;
-  if (currentDevices > limits.devices) {
-    conflicts.push({
-      label: 'Devices',
-      current: currentDevices,
-      limit: limits.devices,
-    });
-  }
-
-  if (
-    isPresent(limits.network_devices) &&
-    counts.network_device > limits.network_devices
-  ) {
-    conflicts.push({
-      label: 'Network devices',
-      current: counts.network_device,
-      limit: limits.network_devices,
-    });
-  }
-
   return conflicts;
 };
 
