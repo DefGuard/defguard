@@ -18,6 +18,7 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::grpc::GatewayEvent;
+use defguard_gateway_manager::TestGatewayHandler;
 use defguard_proto::gateway::{
     ConfigurationRequest, CoreRequest, CoreResponse, PeerStats, core_request, gateway_server,
 };
@@ -34,8 +35,6 @@ use tokio::{
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
-
-use crate::{Client, error::GatewayError, handler::GatewayHandler};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -127,7 +126,7 @@ impl gateway_server::Gateway for MockGatewayService {
     }
 }
 
-pub(super) struct MockGatewayHarness {
+pub(crate) struct MockGatewayHarness {
     socket_path: PathBuf,
     inbound_tx: Option<UnboundedSender<Result<CoreRequest, Status>>>,
     outbound_rx: UnboundedReceiver<CoreResponse>,
@@ -137,7 +136,7 @@ pub(super) struct MockGatewayHarness {
 }
 
 impl MockGatewayHarness {
-    pub(super) async fn start() -> Self {
+    pub(crate) async fn start() -> Self {
         let socket_path = unique_socket_path();
         let _ = std::fs::remove_file(&socket_path);
 
@@ -173,18 +172,18 @@ impl MockGatewayHarness {
         }
     }
 
-    pub(super) fn socket_path(&self) -> PathBuf {
+    pub(crate) fn socket_path(&self) -> PathBuf {
         self.socket_path.clone()
     }
 
-    pub(super) async fn wait_connected(&mut self) {
+    pub(crate) async fn wait_connected(&mut self) {
         timeout(TEST_TIMEOUT, &mut self.connected_rx)
             .await
             .expect("timed out waiting for mock gateway connection")
             .expect("mock gateway connection notifier dropped");
     }
 
-    pub(super) fn send_config_request(&self) {
+    pub(crate) fn send_config_request(&self) {
         let request = ConfigurationRequest {
             hostname: "mock-gateway".to_string(),
             ..Default::default()
@@ -195,14 +194,14 @@ impl MockGatewayHarness {
         });
     }
 
-    pub(super) fn send_peer_stats(&self, peer_stats: PeerStats) {
+    pub(crate) fn send_peer_stats(&self, peer_stats: PeerStats) {
         self.send_request(CoreRequest {
             id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
             payload: Some(core_request::Payload::PeerStats(peer_stats)),
         });
     }
 
-    pub(super) fn send_stream_error(&self, status: Status) {
+    pub(crate) fn send_stream_error(&self, status: Status) {
         self.inbound_tx
             .as_ref()
             .expect("mock gateway inbound channel already closed")
@@ -218,18 +217,18 @@ impl MockGatewayHarness {
             .expect("failed to inject mock gateway request");
     }
 
-    pub(super) fn close_stream(&mut self) {
+    pub(crate) fn close_stream(&mut self) {
         self.inbound_tx.take();
     }
 
-    pub(super) async fn recv_outbound(&mut self) -> CoreResponse {
+    pub(crate) async fn recv_outbound(&mut self) -> CoreResponse {
         timeout(TEST_TIMEOUT, self.outbound_rx.recv())
             .await
             .expect("timed out waiting for outbound response")
             .expect("mock gateway outbound response channel closed unexpectedly")
     }
 
-    pub(super) async fn expect_no_outbound(&mut self) {
+    pub(crate) async fn expect_no_outbound(&mut self) {
         if let Ok(Some(_message)) =
             timeout(Duration::from_millis(200), self.outbound_rx.recv()).await
         {
@@ -237,7 +236,7 @@ impl MockGatewayHarness {
         }
     }
 
-    pub(super) async fn expect_server_finished(mut self) {
+    pub(crate) async fn expect_server_finished(mut self) {
         let server_task = assert_some!(
             self.server_task.take(),
             "mock gateway server task already taken"
@@ -259,18 +258,18 @@ impl Drop for MockGatewayHarness {
     }
 }
 
-pub(super) struct HandlerTestContext {
-    pub(super) pool: PgPool,
-    pub(super) network: WireguardNetwork<Id>,
-    pub(super) gateway: Gateway<Id>,
-    pub(super) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
+pub(crate) struct HandlerTestContext {
+    pub(crate) pool: PgPool,
+    pub(crate) network: WireguardNetwork<Id>,
+    pub(crate) gateway: Gateway<Id>,
+    pub(crate) peer_stats_rx: UnboundedReceiver<PeerStatsUpdate>,
     events_tx: Option<broadcast::Sender<GatewayEvent>>,
-    pub(super) mock_gateway: Option<MockGatewayHarness>,
-    handler_task: Option<JoinHandle<Result<(), GatewayError>>>,
+    pub(crate) mock_gateway: Option<MockGatewayHarness>,
+    handler_task: Option<JoinHandle<anyhow::Result<()>>>,
 }
 
 impl HandlerTestContext {
-    pub(super) async fn new(options: PgConnectOptions) -> Self {
+    pub(crate) async fn new(options: PgConnectOptions) -> Self {
         let pool = setup_pool(options).await;
         let network = create_network(&pool).await;
         let gateway = create_gateway(&pool, network.id).await;
@@ -278,7 +277,7 @@ impl HandlerTestContext {
         let (peer_stats_tx, peer_stats_rx) = mpsc::unbounded_channel();
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let mut mock_gateway = MockGatewayHarness::start().await;
-        let mut handler = GatewayHandler::new_with_test_socket(
+        let mut handler = TestGatewayHandler::new(
             gateway.clone(),
             pool.clone(),
             events_tx.clone(),
@@ -287,9 +286,7 @@ impl HandlerTestContext {
             mock_gateway.socket_path(),
         )
         .expect("failed to create gateway handler");
-        let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
-        let handler_task =
-            tokio::spawn(async move { handler.handle_connection_once(clients).await });
+        let handler_task = tokio::spawn(async move { handler.handle_connection_once().await });
 
         mock_gateway.wait_connected().await;
 
@@ -304,36 +301,36 @@ impl HandlerTestContext {
         }
     }
 
-    pub(super) fn events_tx(&self) -> &broadcast::Sender<GatewayEvent> {
+    pub(crate) fn events_tx(&self) -> &broadcast::Sender<GatewayEvent> {
         self.events_tx
             .as_ref()
             .expect("events sender already taken from context")
     }
 
-    pub(super) fn mock_gateway(&self) -> &MockGatewayHarness {
+    pub(crate) fn mock_gateway(&self) -> &MockGatewayHarness {
         self.mock_gateway
             .as_ref()
             .expect("mock gateway already taken from context")
     }
 
-    pub(super) fn mock_gateway_mut(&mut self) -> &mut MockGatewayHarness {
+    pub(crate) fn mock_gateway_mut(&mut self) -> &mut MockGatewayHarness {
         self.mock_gateway
             .as_mut()
             .expect("mock gateway already taken from context")
     }
 
-    pub(super) async fn reload_gateway(&self) -> Gateway<Id> {
+    pub(crate) async fn reload_gateway(&self) -> Gateway<Id> {
         Gateway::find_by_id(&self.pool, self.gateway.id)
             .await
             .expect("failed to query gateway from database")
             .expect("expected gateway in database")
     }
 
-    pub(super) async fn create_other_network(&self) -> WireguardNetwork<Id> {
+    pub(crate) async fn create_other_network(&self) -> WireguardNetwork<Id> {
         create_network(&self.pool).await
     }
 
-    pub(super) async fn expect_no_peer_stats(&mut self) {
+    pub(crate) async fn expect_no_peer_stats(&mut self) {
         if let Ok(Some(message)) =
             timeout(Duration::from_millis(200), self.peer_stats_rx.recv()).await
         {
@@ -341,14 +338,14 @@ impl HandlerTestContext {
         }
     }
 
-    pub(super) async fn recv_peer_stats(&mut self) -> PeerStatsUpdate {
+    pub(crate) async fn recv_peer_stats(&mut self) -> PeerStatsUpdate {
         timeout(TEST_TIMEOUT, self.peer_stats_rx.recv())
             .await
             .expect("timed out waiting for peer stats update")
             .expect("peer stats channel unexpectedly closed")
     }
 
-    pub(super) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
+    pub(crate) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
         self.mock_gateway().send_config_request();
         let _ = self.mock_gateway_mut().recv_outbound().await;
         let connected_gateway =
@@ -364,7 +361,7 @@ impl HandlerTestContext {
         connected_gateway
     }
 
-    pub(super) async fn finish(mut self) -> MockGatewayHarness {
+    pub(crate) async fn finish(mut self) -> MockGatewayHarness {
         let mut mock_gateway = assert_some!(
             self.mock_gateway.take(),
             "mock gateway already taken from context"
@@ -384,7 +381,7 @@ impl HandlerTestContext {
         mock_gateway
     }
 
-    pub(super) async fn finish_after_error(mut self) -> MockGatewayHarness {
+    pub(crate) async fn finish_after_error(mut self) -> MockGatewayHarness {
         let mock_gateway = assert_some!(
             self.mock_gateway.take(),
             "mock gateway already taken from context"
@@ -412,14 +409,14 @@ impl Drop for HandlerTestContext {
     }
 }
 
-pub(super) async fn reload_gateway(pool: &PgPool, gateway_id: Id) -> Gateway<Id> {
+pub(crate) async fn reload_gateway(pool: &PgPool, gateway_id: Id) -> Gateway<Id> {
     Gateway::find_by_id(pool, gateway_id)
         .await
         .expect("failed to query gateway from database")
         .expect("expected gateway in database")
 }
 
-pub(super) async fn wait_for_gateway_connection_state(
+pub(crate) async fn wait_for_gateway_connection_state(
     pool: &PgPool,
     gateway_id: Id,
     expected_connected: bool,
@@ -438,7 +435,7 @@ pub(super) async fn wait_for_gateway_connection_state(
     .expect("timed out waiting for gateway connection state change")
 }
 
-pub(super) fn build_peer_stats(endpoint: &str) -> PeerStats {
+pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
     PeerStats {
         public_key: "peer-public-key".to_string(),
         endpoint: endpoint.to_string(),

@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
+    path::PathBuf,
     str::FromStr,
     sync::{
         Arc, Mutex,
@@ -8,11 +9,7 @@ use std::{
     },
 };
 
-#[cfg(test)]
-use std::path::{Path, PathBuf};
-
 use chrono::DateTime;
-#[cfg(not(test))]
 use defguard_common::db::models::Settings;
 use defguard_common::{
     VERSION,
@@ -27,7 +24,6 @@ use defguard_core::{
     handlers::mail::send_gateway_disconnected_email,
     location_management::allowed_peers::get_location_allowed_peers,
 };
-#[cfg(not(test))]
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -37,7 +33,6 @@ use defguard_proto::{
     },
 };
 use defguard_version::client::ClientVersionInterceptor;
-#[cfg(not(test))]
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
 use semver::Version;
@@ -55,13 +50,11 @@ use tonic::{Code, Status, transport::Endpoint};
 
 use crate::{Client, TEN_SECS, error::GatewayError};
 
-#[cfg(test)]
 #[derive(Debug, Default)]
 struct GatewayTestTransport {
     socket_path: Option<PathBuf>,
 }
 
-#[cfg(test)]
 impl GatewayTestTransport {
     fn with_socket_path(socket_path: PathBuf) -> Self {
         Self {
@@ -69,12 +62,8 @@ impl GatewayTestTransport {
         }
     }
 
-    fn socket_path(&self) -> Result<&Path, GatewayError> {
-        self.socket_path.as_deref().ok_or_else(|| {
-            GatewayError::EndpointError(
-                "Missing test gateway transport socket path for GatewayHandler".to_string(),
-            )
-        })
+    fn socket_path(&self) -> Option<&PathBuf> {
+        self.socket_path.as_ref()
     }
 }
 
@@ -88,7 +77,6 @@ pub(super) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-    #[cfg(test)]
     test_transport: GatewayTestTransport,
 }
 
@@ -115,13 +103,11 @@ impl GatewayHandler {
             events_tx,
             peer_stats_tx,
             certs_rx,
-            #[cfg(test)]
             test_transport: GatewayTestTransport::default(),
         })
     }
 
-    #[cfg(test)]
-    pub(super) fn new_with_test_socket(
+    fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
@@ -277,13 +263,21 @@ impl GatewayHandler {
         clients: Arc<Mutex<HashMap<Id, Client>>>,
         retry_on_connect_failure: bool,
     ) -> Result<(), GatewayError> {
-        #[cfg(test)]
-        let _ = &self.certs_rx;
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
 
-        #[cfg(not(test))]
-        let channel = {
+        let channel = if let Some(socket_path) = self.test_transport.socket_path().cloned() {
+            endpoint.connect_with_connector_lazy(tower::service_fn(
+                move |_: tonic::transport::Uri| {
+                    let socket_path = socket_path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                            tokio::net::UnixStream::connect(socket_path).await?,
+                        ))
+                    }
+                },
+            ))
+        } else {
             let settings = Settings::get_current_settings();
             let Some(ca_cert_der) = settings.ca_cert_der else {
                 return Err(GatewayError::EndpointError(
@@ -300,20 +294,6 @@ impl GatewayHandler {
                 .build();
             let connector = HttpsSchemeConnector::new(connector);
             endpoint.connect_with_connector_lazy(connector)
-        };
-        #[cfg(test)]
-        let channel = {
-            let socket_path = self.test_transport.socket_path()?.to_path_buf();
-            endpoint.connect_with_connector_lazy(tower::service_fn(
-                move |_: tonic::transport::Uri| {
-                    let socket_path = socket_path.clone();
-                    async move {
-                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                            tokio::net::UnixStream::connect(socket_path).await?,
-                        ))
-                    }
-                },
-            ))
         };
 
         debug!("Connecting to Gateway {uri}");
@@ -452,13 +432,39 @@ impl GatewayHandler {
                 .await?;
         }
     }
+}
 
-    #[cfg(test)]
-    pub(super) async fn handle_connection_once(
-        &mut self,
-        clients: Arc<Mutex<HashMap<Id, Client>>>,
-    ) -> Result<(), GatewayError> {
-        self.handle_connection_iteration(clients, false).await
+#[doc(hidden)]
+pub struct TestGatewayHandler {
+    inner: GatewayHandler,
+}
+
+impl TestGatewayHandler {
+    pub fn new(
+        gateway: Gateway<Id>,
+        pool: PgPool,
+        events_tx: Sender<GatewayEvent>,
+        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+        socket_path: PathBuf,
+    ) -> anyhow::Result<Self> {
+        let inner = GatewayHandler::new_with_test_socket(
+            gateway,
+            pool,
+            events_tx,
+            peer_stats_tx,
+            certs_rx,
+            socket_path,
+        )?;
+        Ok(Self { inner })
+    }
+
+    pub async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
+        let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
+        self.inner
+            .handle_connection_iteration(clients, false)
+            .await
+            .map_err(anyhow::Error::from)
     }
 }
 

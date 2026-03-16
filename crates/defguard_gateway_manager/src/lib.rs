@@ -27,8 +27,8 @@ mod certs;
 mod error;
 mod handler;
 
-#[cfg(test)]
-mod tests;
+#[doc(hidden)]
+pub use handler::TestGatewayHandler;
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);

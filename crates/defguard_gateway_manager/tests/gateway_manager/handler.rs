@@ -1,3 +1,4 @@
+use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::{
     CoreResponse, Update, UpdateType, core_response,
     update::{self},
@@ -5,8 +6,7 @@ use defguard_proto::gateway::{
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;
 
-use super::support::{HandlerTestContext, build_peer_stats, reload_gateway};
-use defguard_core::grpc::GatewayEvent;
+use crate::common::{HandlerTestContext, build_peer_stats, reload_gateway};
 
 macro_rules! assert_send_ok {
     ($result:expr, $message:literal) => {
