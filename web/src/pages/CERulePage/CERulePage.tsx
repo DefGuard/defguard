@@ -1086,6 +1086,7 @@ const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
         ))}
         {normalizedValues.length > 4 && (
           <button
+            type="button"
             onClick={() => {
               openModal(ModalName.DisplayList, {
                 title: 'Data from aliases',
