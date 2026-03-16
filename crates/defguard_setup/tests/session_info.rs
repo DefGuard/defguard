@@ -84,7 +84,7 @@ async fn test_session_info_auto_adoption_wizard(_: PgPoolOptions, options: PgCon
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    // has_auto_adopt_flags = true: AutoAdoption wizard
+    // has_auto_adopt_flags = true (both flags provided): AutoAdoption wizard
     Wizard::init(&pool, true)
         .await
         .expect("Failed to initialize wizard");

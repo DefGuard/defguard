@@ -1,7 +1,7 @@
 use defguard_common::{
     db::{
         Id,
-        models::{device::AddDevice, oauth2client::OAuth2Client},
+        models::{MFAMethod, WebAuthn, device::AddDevice, oauth2client::OAuth2Client},
     },
     types::user_info::UserInfo,
 };
@@ -21,6 +21,33 @@ use super::{
     common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool},
 };
 use crate::api::common::{get_db_device, get_db_location, get_db_user, make_client_with_db};
+
+async fn seed_user_with_mfa_artifacts(pool: &sqlx::PgPool, username: &str) -> Vec<String> {
+    let test_user = get_db_user(pool, username).await;
+    let recovery_codes = vec!["recovery-code-1".to_string(), "recovery-code-2".to_string()];
+
+    sqlx::query(
+        "UPDATE \"user\" SET mfa_enabled = TRUE, totp_enabled = TRUE, email_mfa_enabled = TRUE, \
+        totp_secret = $2, email_mfa_secret = $3, mfa_method = 'one_time_password', recovery_codes = $4 WHERE id = $1",
+    )
+    .bind(test_user.id)
+    .bind(vec![1_u8, 2, 3])
+    .bind(vec![4_u8, 5, 6])
+    .bind(recovery_codes.clone())
+    .execute(pool)
+    .await
+    .unwrap();
+
+    sqlx::query("INSERT INTO webauthn (user_id, name, passkey) VALUES ($1, $2, $3)")
+        .bind(test_user.id)
+        .bind("Test passkey")
+        .bind(vec![7_u8, 8, 9])
+        .execute(pool)
+        .await
+        .unwrap();
+
+    recovery_codes
+}
 
 #[sqlx::test]
 async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
@@ -741,6 +768,97 @@ async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
             after: new_test_user.clone(),
         },
     ]);
+}
+
+#[sqlx::test]
+async fn test_admin_can_disable_another_users_mfa_emits_updated_event_and_cleans_db(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("admin", "pass123").await;
+
+    let admin_user = get_db_user(&pool, "admin").await;
+    let recovery_codes = seed_user_with_mfa_artifacts(&pool, "hpotter").await;
+
+    let seeded_user = get_db_user(&pool, "hpotter").await;
+    assert!(seeded_user.mfa_enabled);
+    assert!(seeded_user.totp_enabled);
+    assert!(seeded_user.email_mfa_enabled);
+    assert!(seeded_user.totp_secret.is_some());
+    assert!(seeded_user.email_mfa_secret.is_some());
+    assert_eq!(seeded_user.mfa_method, MFAMethod::OneTimePassword);
+    assert_eq!(seeded_user.recovery_codes, recovery_codes);
+    assert_eq!(
+        WebAuthn::all_for_user(&pool, seeded_user.id)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+
+    let response = client.delete("/api/v1/user/hpotter/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated_user = get_db_user(&pool, "hpotter").await;
+    assert!(!updated_user.mfa_enabled);
+    assert!(!updated_user.totp_enabled);
+    assert!(!updated_user.email_mfa_enabled);
+    assert!(updated_user.totp_secret.is_none());
+    assert!(updated_user.email_mfa_secret.is_none());
+    assert_eq!(updated_user.mfa_method, MFAMethod::None);
+    assert!(updated_user.recovery_codes.is_empty());
+    assert!(
+        WebAuthn::all_for_user(&pool, updated_user.id)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+
+    client.verify_api_events_with_user(&[(
+        ApiEventType::UserMfaDisabled {
+            user: updated_user.clone(),
+        },
+        admin_user.id,
+        "admin",
+    )]);
+}
+
+#[sqlx::test]
+async fn test_non_admin_cannot_disable_another_users_mfa_and_emits_no_event(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    let recovery_codes = seed_user_with_mfa_artifacts(&pool, "admin").await;
+    client.login_user("hpotter", "pass123").await;
+
+    let response = client.delete("/api/v1/user/admin/mfa").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    let admin_user = get_db_user(&pool, "admin").await;
+    assert!(admin_user.mfa_enabled);
+    assert!(admin_user.totp_enabled);
+    assert!(admin_user.email_mfa_enabled);
+    assert!(admin_user.totp_secret.is_some());
+    assert!(admin_user.email_mfa_secret.is_some());
+    assert_eq!(admin_user.mfa_method, MFAMethod::OneTimePassword);
+    assert_eq!(admin_user.recovery_codes, recovery_codes);
+    assert_eq!(
+        WebAuthn::all_for_user(&pool, admin_user.id)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+
+    client.assert_event_queue_is_empty();
 }
 
 #[sqlx::test]

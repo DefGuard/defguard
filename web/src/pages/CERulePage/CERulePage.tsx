@@ -698,21 +698,24 @@ const Content = ({ rule: initialRule }: Props) => {
                               />
                             </ButtonsGroup>
                             <SizedBox height={ThemeSpacing.Xl} />
-                            {isPresent(aliasesOptions) &&
-                              aliasesOptions
-                                .filter((alias) => field.state.value.has(alias.id))
-                                .map((option) => (
-                                  <Chip
-                                    size="sm"
-                                    text={option.label}
-                                    key={option.id}
-                                    onDismiss={() => {
-                                      const newState = new Set(field.state.value);
-                                      newState.delete(option.id);
-                                      field.handleChange(newState);
-                                    }}
-                                  />
-                                ))}
+                            {isPresent(aliasesOptions) && (
+                              <div className="aliases-selected">
+                                {aliasesOptions
+                                  .filter((alias) => field.state.value.has(alias.id))
+                                  .map((option) => (
+                                    <Chip
+                                      size="sm"
+                                      text={option.label}
+                                      key={option.id}
+                                      onDismiss={() => {
+                                        const newState = new Set(field.state.value);
+                                        newState.delete(option.id);
+                                        field.handleChange(newState);
+                                      }}
+                                    />
+                                  ))}
+                              </div>
+                            )}
                           </>
                         )}
                       </form.AppField>
@@ -1067,23 +1070,43 @@ type AliasDataBlockProps = {
   values: string[];
 };
 
+const normalizeAliasValues = (values: string[]) => {
+  const seenValues = new Set<string>();
+
+  return values.reduce<string[]>((normalizedValues, value) => {
+    const trimmedValue = value.trim();
+
+    if (trimmedValue.length === 0 || seenValues.has(trimmedValue)) {
+      return normalizedValues;
+    }
+
+    seenValues.add(trimmedValue);
+    normalizedValues.push(trimmedValue);
+    return normalizedValues;
+  }, []);
+};
+
 const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
-  if (values.length === 0) return null;
+  const normalizedValues = normalizeAliasValues(values);
+
+  if (normalizedValues.length === 0) return null;
+
   return (
     <div className="alias-data-block">
       <div className="top">
         <p>{`Data from aliases`}</p>
       </div>
       <div className="content-track">
-        {values.map((value) => (
+        {normalizedValues.map((value) => (
           <Chip key={value} text={value} />
         ))}
-        {values.length > 4 && (
+        {normalizedValues.length > 4 && (
           <button
+            type="button"
             onClick={() => {
               openModal(ModalName.DisplayList, {
                 title: 'Data from aliases',
-                data: values,
+                data: normalizedValues,
               });
             }}
           >

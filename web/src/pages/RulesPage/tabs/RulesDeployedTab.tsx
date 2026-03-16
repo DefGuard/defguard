@@ -65,6 +65,7 @@ export const RulesDeployedTab = () => {
         isPresent(devices) &&
         license !== undefined && (
           <RulesTable
+            variant="deployed"
             title="Deployed rules"
             buttonProps={buttonProps}
             data={rules}
