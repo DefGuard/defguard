@@ -497,6 +497,7 @@ impl User<Id> {
         .await?;
         WebAuthn::delete_all_for_user(pool, self.id).await?;
 
+        self.mfa_enabled = false;
         self.totp_secret = None;
         self.email_mfa_secret = None;
         self.totp_enabled = false;
