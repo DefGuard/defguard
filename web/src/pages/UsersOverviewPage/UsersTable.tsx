@@ -13,7 +13,7 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
-import { type CSSProperties, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { Device, UsersListItem } from '../../shared/api/types';
@@ -217,9 +217,7 @@ export const UsersTable = () => {
           <TableCell className="cell-with-check-icons">
             {info.getValue() ? (
               <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
-            ) : (
-              null
-            )}
+            ) : null}
           </TableCell>
         ),
       }),
