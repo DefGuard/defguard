@@ -1,8 +1,6 @@
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic_health::pb::{
-    HealthCheckRequest,
-    health_check_response::ServingStatus,
-    health_client::HealthClient,
+    HealthCheckRequest, health_check_response::ServingStatus, health_client::HealthClient,
 };
 
 use super::common::{make_grpc_test_server, setup_grpc_pool};

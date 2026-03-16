@@ -1,6 +1,5 @@
 use defguard_proto::gateway::{
-    CoreResponse, Update, UpdateType,
-    core_response,
+    CoreResponse, Update, UpdateType, core_response,
     update::{self},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -99,10 +98,7 @@ async fn test_ignores_peer_stats_before_config_handshake(
 }
 
 #[sqlx::test]
-async fn test_forwards_valid_peer_stats_after_config(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_forwards_valid_peer_stats_after_config(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
 
     context.mock_gateway().send_config_request();

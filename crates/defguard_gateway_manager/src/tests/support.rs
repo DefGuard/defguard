@@ -19,8 +19,7 @@ use defguard_common::{
 };
 use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::{
-    ConfigurationRequest, CoreRequest, CoreResponse, PeerStats,
-    core_request, gateway_server,
+    ConfigurationRequest, CoreRequest, CoreResponse, PeerStats, core_request, gateway_server,
 };
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
@@ -90,9 +89,7 @@ impl MockGatewayState {
         }
     }
 
-    fn take_inbound_rx(
-        &self,
-    ) -> Result<UnboundedReceiver<Result<CoreRequest, Status>>, Status> {
+    fn take_inbound_rx(&self) -> Result<UnboundedReceiver<Result<CoreRequest, Status>>, Status> {
         self.inbound_rx
             .lock()
             .expect("failed to lock inbound receiver")
@@ -233,7 +230,9 @@ impl MockGatewayHarness {
     }
 
     pub(super) async fn expect_no_outbound(&mut self) {
-        if let Ok(Some(_message)) = timeout(Duration::from_millis(200), self.outbound_rx.recv()).await {
+        if let Ok(Some(_message)) =
+            timeout(Duration::from_millis(200), self.outbound_rx.recv()).await
+        {
             panic!("unexpected outbound response");
         }
     }
@@ -289,7 +288,8 @@ impl HandlerTestContext {
         )
         .expect("failed to create gateway handler");
         let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
-        let handler_task = tokio::spawn(async move { handler.handle_connection_once(clients).await });
+        let handler_task =
+            tokio::spawn(async move { handler.handle_connection_once(clients).await });
 
         mock_gateway.wait_connected().await;
 
@@ -334,7 +334,9 @@ impl HandlerTestContext {
     }
 
     pub(super) async fn expect_no_peer_stats(&mut self) {
-        if let Ok(Some(message)) = timeout(Duration::from_millis(200), self.peer_stats_rx.recv()).await {
+        if let Ok(Some(message)) =
+            timeout(Duration::from_millis(200), self.peer_stats_rx.recv()).await
+        {
             panic!("unexpected peer stats update: {message:?}");
         }
     }
@@ -349,12 +351,8 @@ impl HandlerTestContext {
     pub(super) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
         self.mock_gateway().send_config_request();
         let _ = self.mock_gateway_mut().recv_outbound().await;
-        let connected_gateway = wait_for_gateway_connection_state(
-            &self.pool,
-            self.gateway.id,
-            true,
-        )
-        .await;
+        let connected_gateway =
+            wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
         timeout(TEST_TIMEOUT, async {
             while self.events_tx().receiver_count() == 0 {
                 tokio::time::sleep(Duration::from_millis(20)).await;
@@ -367,8 +365,10 @@ impl HandlerTestContext {
     }
 
     pub(super) async fn finish(mut self) -> MockGatewayHarness {
-        let mut mock_gateway =
-            assert_some!(self.mock_gateway.take(), "mock gateway already taken from context");
+        let mut mock_gateway = assert_some!(
+            self.mock_gateway.take(),
+            "mock gateway already taken from context"
+        );
         mock_gateway.close_stream();
         let handler_task = self
             .handler_task
@@ -385,8 +385,10 @@ impl HandlerTestContext {
     }
 
     pub(super) async fn finish_after_error(mut self) -> MockGatewayHarness {
-        let mock_gateway =
-            assert_some!(self.mock_gateway.take(), "mock gateway already taken from context");
+        let mock_gateway = assert_some!(
+            self.mock_gateway.take(),
+            "mock gateway already taken from context"
+        );
         let handler_task = self
             .handler_task
             .as_mut()
@@ -458,7 +460,10 @@ async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
     network
         .try_set_address("10.10.0.1/24")
         .expect("failed to set network address");
-    network.save(pool).await.expect("failed to create test network")
+    network
+        .save(pool)
+        .await
+        .expect("failed to create test network")
 }
 
 async fn create_gateway(pool: &PgPool, location_id: Id) -> Gateway<Id> {

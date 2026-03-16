@@ -1,10 +1,7 @@
 use claims::assert_matches;
 use defguard_common::db::models::{AuthenticationKey, AuthenticationKeyType, User, YubiKey};
-use defguard_proto::worker::{
-    JobStatus, Worker,
-    worker_service_client::WorkerServiceClient,
-};
 use defguard_core::db::AppEvent;
+use defguard_proto::worker::{JobStatus, Worker, worker_service_client::WorkerServiceClient};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::mpsc::error::TryRecvError;
 use tonic::Code;
@@ -196,7 +193,11 @@ async fn set_job_done_success_removes_job_and_stores_status(
         assert!(status.success);
         assert_eq!(status.serial, "yk-serial-1");
         assert_eq!(status.error, "");
-        assert!(state.get_job("worker-1", std::net::IpAddr::from([127, 0, 0, 1])).is_none());
+        assert!(
+            state
+                .get_job("worker-1", std::net::IpAddr::from([127, 0, 0, 1]))
+                .is_none()
+        );
     }
 
     let user = User::find_by_username(&pool, "hpotter")
@@ -299,14 +300,18 @@ async fn set_job_done_failure_stores_status_without_keys_or_event(
         .await
         .expect("user query should succeed")
         .expect("user should exist");
-    assert!(YubiKey::find_by_user_id(&pool, user.id)
-        .await
-        .expect("yubikey query should succeed")
-        .is_empty());
-    assert!(AuthenticationKey::find_by_user_id(&pool, user.id, None)
-        .await
-        .expect("auth key query should succeed")
-        .is_empty());
+    assert!(
+        YubiKey::find_by_user_id(&pool, user.id)
+            .await
+            .expect("yubikey query should succeed")
+            .is_empty()
+    );
+    assert!(
+        AuthenticationKey::find_by_user_id(&pool, user.id, None)
+            .await
+            .expect("auth key query should succeed")
+            .is_empty()
+    );
     assert_matches!(server.app_event_rx.try_recv(), Err(TryRecvError::Empty));
 }
 
@@ -351,14 +356,18 @@ async fn set_job_done_unknown_job_is_ignored(_: PgPoolOptions, options: PgConnec
         .await
         .expect("user query should succeed")
         .expect("user should exist");
-    assert!(YubiKey::find_by_user_id(&pool, user.id)
-        .await
-        .expect("yubikey query should succeed")
-        .is_empty());
-    assert!(AuthenticationKey::find_by_user_id(&pool, user.id, None)
-        .await
-        .expect("auth key query should succeed")
-        .is_empty());
+    assert!(
+        YubiKey::find_by_user_id(&pool, user.id)
+            .await
+            .expect("yubikey query should succeed")
+            .is_empty()
+    );
+    assert!(
+        AuthenticationKey::find_by_user_id(&pool, user.id, None)
+            .await
+            .expect("auth key query should succeed")
+            .is_empty()
+    );
     assert_matches!(server.app_event_rx.try_recv(), Err(TryRecvError::Empty));
 }
 

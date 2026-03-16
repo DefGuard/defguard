@@ -15,13 +15,19 @@ use defguard_core::{
     grpc::{AUTHORIZATION_HEADER, WorkerState, build_grpc_service_router},
 };
 use hyper_util::rt::TokioIo;
-use sqlx::{PgPool, postgres::{PgConnectOptions, PgPoolOptions}};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 use tokio::{
     io::DuplexStream,
     sync::mpsc::{UnboundedReceiver, unbounded_channel},
     task::JoinHandle,
 };
-use tonic::{Request, transport::{Channel, Endpoint, Server, Uri, server::Router}};
+use tonic::{
+    Request,
+    transport::{Channel, Endpoint, Server, Uri, server::Router},
+};
 use tower::service_fn;
 
 use crate::common::initialize_users;
@@ -163,11 +169,9 @@ pub(crate) fn worker_request<T>(message: T, username: &str) -> Request<T> {
 }
 
 fn initialize_jwt_secrets() {
-    JWT_SECRETS.call_once(|| {
-        unsafe {
-            env::set_var(AUTH_SECRET_ENV, "defguard-test-auth-secret");
-            env::set_var(GATEWAY_SECRET_ENV, "defguard-test-gateway-secret");
-            env::set_var(YUBIBRIDGE_SECRET_ENV, "defguard-test-yubibridge-secret");
-        }
+    JWT_SECRETS.call_once(|| unsafe {
+        env::set_var(AUTH_SECRET_ENV, "defguard-test-auth-secret");
+        env::set_var(GATEWAY_SECRET_ENV, "defguard-test-gateway-secret");
+        env::set_var(YUBIBRIDGE_SECRET_ENV, "defguard-test-yubibridge-secret");
     });
 }
