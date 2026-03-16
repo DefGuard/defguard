@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"mtu\" = $9,\"fwmark\" = $10,\"allowed_ips\" = $11,\"allow_all_groups\" = $12,\"connected_at\" = $13,\"acl_enabled\" = $14,\"acl_default_allow\" = $15,\"keepalive_interval\" = $16,\"peer_disconnect_threshold\" = $17,\"location_mfa_mode\" = $18,\"service_location_mode\" = $19 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "InetArray",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int8",
+        "InetArray",
+        "Bool",
+        "Timestamp",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Int4",
+        {
+          "Custom": {
+            "name": "location_mfa_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "internal",
+                "external"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "service_location_mode",
+            "kind": {
+              "Enum": [
+                "disabled",
+                "prelogon",
+                "alwayson"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "68612652f823a456563f91e69f99a0cb01b856ebf973cca2dd6ab9ec46a98e33"
+}

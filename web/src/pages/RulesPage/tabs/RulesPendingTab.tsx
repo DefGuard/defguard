@@ -65,6 +65,7 @@ export const RulesPendingTab = () => {
         isPresent(devices) &&
         license !== undefined && (
           <RulesTable
+            variant="pending"
             title="Pending rules"
             buttonProps={buttonProps}
             data={rules}

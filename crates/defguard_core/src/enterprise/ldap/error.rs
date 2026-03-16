@@ -1,3 +1,4 @@
+use defguard_common::db::models::settings::SettingsSaveError;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
@@ -13,6 +14,8 @@ pub enum LdapError {
     TooManyObjects,
     #[error("Database error: {0}")]
     Database(#[from] SqlxError),
+    #[error(transparent)]
+    SettingsSave(#[from] SettingsSaveError),
     #[error("Expected different DN: {0}")]
     InvalidDN(String),
     #[error("Missing attribute: {0}")]

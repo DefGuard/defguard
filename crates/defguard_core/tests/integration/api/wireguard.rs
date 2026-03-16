@@ -55,7 +55,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     // check vpn locations for `admin` group
     let response = client.get("/api/v1/group/admin").send().await;
     let group_info: GroupInfo = response.json().await;
-    assert!(group_info.vpn_locations.is_empty());
+    assert_eq!(group_info.vpn_locations, vec!["network"]);
 
     // modify network
     let network_data = WireguardNetworkData {
@@ -67,6 +67,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         dns: None,
         mtu: DEFAULT_WIREGUARD_MTU,
         fwmark: 0,
+        allow_all_groups: false,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -149,6 +150,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
         dns: None,
         mtu: DEFAULT_WIREGUARD_MTU,
         fwmark: 0,
+        allow_all_groups: false,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -233,6 +235,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
         dns: None,
         mtu: DEFAULT_WIREGUARD_MTU,
         fwmark: 0,
+        allow_all_groups: false,
         allowed_groups: vec!["admin".into()],
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
@@ -544,7 +547,8 @@ async fn test_network_address_reassignment(_: PgPoolOptions, options: PgConnectO
         "dns": "1.1.1.1",
         "mtu": 1420,
         "fwmark": 0,
-        "allowed_groups": [],
+        "allow_all_groups": false,
+        "allowed_groups": ["admin"],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
@@ -871,7 +875,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "dns": "1.1.1.1",
         "mtu": 1420,
         "fwmark": 0,
-        "allowed_groups": [],
+        "allow_all_groups": false,
+        "allowed_groups": ["admin"],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,
@@ -897,7 +902,8 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         "dns": "1.1.1.1",
         "mtu": 1420,
         "fwmark": 0,
-        "allowed_groups": [],
+        "allow_all_groups": false,
+        "allowed_groups": ["admin"],
         "keepalive_interval": 25,
         "peer_disconnect_threshold": 300,
         "acl_enabled": false,

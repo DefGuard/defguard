@@ -88,8 +88,11 @@ export const GroupsTable = ({ groups, users }: Props) => {
         ),
       }),
       columnHelper.accessor('vpn_locations', {
-        size: 550,
+        minSize: 350,
         header: m.groups_col_locations(),
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue().join(', ')}</span>

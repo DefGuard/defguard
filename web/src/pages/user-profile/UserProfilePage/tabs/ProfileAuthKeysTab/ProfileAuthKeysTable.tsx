@@ -96,6 +96,8 @@ export const ProfileAuthKeysTable = () => {
       columnHelper.accessor('name', {
         header: m.profile_auth_keys_table_col_name(),
         enableSorting: true,
+        minSize: 200,
+        size: 200,
         meta: {
           flex: true,
         },
@@ -199,7 +201,7 @@ export const ProfileAuthKeysTable = () => {
         },
       }),
     ],
-    [deleteAuthKey, username, writeToClipboard, mapped.map],
+    [deleteAuthKey, username, writeToClipboard, mapped],
   );
 
   const table = useReactTable({

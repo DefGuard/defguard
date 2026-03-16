@@ -63,7 +63,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
       invalidate: ['gateway'],
     },
     onSuccess: () => {
-      Snackbar.success(m.gateway_edit_success());
+      Snackbar.default(m.gateway_edit_success());
     },
     onError: () => {
       Snackbar.error(m.gateway_edit_failed());
@@ -80,7 +80,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
         to: '/locations',
         replace: true,
       });
-      Snackbar.success(m.gateway_delete_success());
+      Snackbar.default(m.gateway_delete_success());
     },
     onError: () => {
       Snackbar.error(m.gateway_delete_failed());

@@ -1,6 +1,10 @@
 import { useNavigate } from '@tanstack/react-router';
-import { type ReactNode, useMemo } from 'react';
-import type { WizardPageStep } from '../../shared/components/wizard/types';
+import { type ReactNode, useCallback, useMemo } from 'react';
+import type {
+  WizardPageStep,
+  WizardWelcomePageConfig,
+} from '../../shared/components/wizard/types';
+import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { AddLocationAccessStep } from './steps/AddLocationAccessStep';
 import { AddLocationFirewallStep } from './steps/AddLocationFirewallStep';
@@ -9,6 +13,7 @@ import { AddLocationMfaStep } from './steps/AddLocationMfaStep';
 import { AddLocationNetworkStep } from './steps/AddLocationNetworkStep';
 import { AddLocationServiceStep } from './steps/AddLocationServiceStep';
 import { AddLocationStartStep } from './steps/AddLocationStartStep';
+import { AddLocationWelcomeStep } from './steps/AddLocationWelcomeStep';
 import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 import { useAddLocationStore } from './useAddLocationStore';
 
@@ -16,6 +21,29 @@ export const AddLocationPage = () => {
   const navigate = useNavigate();
   const activeStep = useAddLocationStore((s) => s.activeStep);
   const locationType = useAddLocationStore((s) => s.locationType);
+  const isWelcome = useAddLocationStore((s) => s.isWelcome);
+
+  const onClose = useCallback(() => {
+    navigate({
+      to: '/locations',
+    }).then(() => {
+      setTimeout(() => {
+        useAddLocationStore.getState().reset();
+      }, 100);
+    });
+  }, [navigate]);
+
+  const welcomeConfig = useMemo(
+    (): WizardWelcomePageConfig => ({
+      title: 'Add new location',
+      subtitle: `Welcome! Let's set up a new location to organize users, manage access, and connect gateways for activity tracking and monitoring.`,
+      content: <AddLocationWelcomeStep />,
+      displayDocs: false,
+      media: <WizardCoverImage variant="location" />,
+      onClose,
+    }),
+    [onClose],
+  );
 
   const stepsConfig = useMemo(
     (): Record<AddLocationPageStepValue, WizardPageStep> => ({
@@ -88,20 +116,14 @@ export const AddLocationPage = () => {
 
   return (
     <WizardPage
+      isOnWelcomePage={isWelcome}
       activeStep={activeStep}
-      onClose={() => {
-        navigate({
-          to: '/locations',
-        }).then(() => {
-          setTimeout(() => {
-            useAddLocationStore.getState().reset();
-          }, 100);
-        });
-      }}
+      onClose={onClose}
       subtitle="Welcome! Let's set up a new location to organize users, manage access, and connect gateways for activity tracking and monitoring."
       title="Create new location"
       steps={stepsConfig}
       id="add-location-wizard"
+      welcomePageConfig={welcomeConfig}
     >
       {stepsComponents[activeStep]}
     </WizardPage>

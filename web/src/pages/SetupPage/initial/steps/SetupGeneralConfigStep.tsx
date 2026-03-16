@@ -12,6 +12,7 @@ import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snac
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
 import { SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 
@@ -43,8 +44,15 @@ export const SetupGeneralConfigStep = () => {
     () =>
       z.object({
         defguard_url: z
+          .string({
+            error: m.initial_setup_general_config_error_defguard_url_required(),
+          })
+          .min(1, m.initial_setup_general_config_error_defguard_url_required())
           .url(m.initial_setup_general_config_error_invalid_url())
-          .min(1, m.initial_setup_general_config_error_defguard_url_required()),
+          .refine(
+            isValidDefguardUrl,
+            m.initial_setup_general_config_error_defguard_url_invalid_host(),
+          ),
         default_admin_group_name: z
           .string()
           .min(1, m.initial_setup_general_config_error_admin_group_required()),

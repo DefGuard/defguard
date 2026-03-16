@@ -13,6 +13,7 @@ import { SettingsHeader } from '../../../shared/components/SettingsHeader/Settin
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -22,6 +23,7 @@ import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
+import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
 import {
   createNumericSelectOptions,
   withNumericFallbackOption,
@@ -64,6 +66,13 @@ export const SettingsInstancePage = () => {
 };
 
 const formSchema = z.object({
+  defguard_url: z
+    .string({
+      error: m.settings_instance_error_defguard_url_required(),
+    })
+    .min(1, m.settings_instance_error_defguard_url_required())
+    .url(m.settings_instance_error_invalid_url())
+    .refine(isValidDefguardUrl, m.settings_instance_error_invalid_host()),
   instance_name: z
     .string(m.form_error_required())
     .trim()
@@ -79,7 +88,7 @@ const formSchema = z.object({
     .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
     .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
   authentication_period_days: z.number().min(1, m.form_error_invalid()),
-  disable_stats_purge: z.boolean(),
+  enable_stats_purge: z.boolean(),
   stats_purge_frequency_hours: z.number(m.form_error_required()).int().min(1),
   stats_purge_threshold_days: z.number(m.form_error_required()).int().min(1),
 });
@@ -122,7 +131,7 @@ const Content = ({ settings }: { settings: Settings }) => {
       invalidate: ['settings'],
     },
     onSuccess: () => {
-      Snackbar.success(m.settings_msg_saved());
+      Snackbar.default(m.settings_msg_saved());
     },
     onError: () => {
       Snackbar.error(m.settings_msg_save_failed());
@@ -131,18 +140,20 @@ const Content = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
+      defguard_url: settings.defguard_url ?? '',
       instance_name: settings.instance_name ?? '',
       public_proxy_url: settings.public_proxy_url ?? '',
       authentication_period_days: settings.authentication_period_days ?? 7,
-      disable_stats_purge: settings.disable_stats_purge ?? false,
+      enable_stats_purge: settings.enable_stats_purge ?? true,
       stats_purge_frequency_hours: settings.stats_purge_frequency_hours ?? 24,
       stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
     }),
     [
+      settings.defguard_url,
       settings.instance_name,
       settings.public_proxy_url,
       settings.authentication_period_days,
-      settings.disable_stats_purge,
+      settings.enable_stats_purge,
       settings.stats_purge_frequency_hours,
       settings.stats_purge_threshold_days,
     ],
@@ -205,6 +216,15 @@ const Content = ({ settings }: { settings: Settings }) => {
             title={m.settings_instance_section_core()}
             description={m.settings_instance_section_core_description()}
           />
+          <form.AppField name="defguard_url">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_instance_label_defguard_url()}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="instance_name">
             {(field) => (
               <field.FormInput required label={m.settings_instance_label_name()} />
@@ -236,32 +256,39 @@ const Content = ({ settings }: { settings: Settings }) => {
             title={m.settings_instance_section_data_retention()}
             description={m.settings_instance_section_data_retention_description()}
           />
-          <form.AppField name="disable_stats_purge">
+          <form.AppField name="enable_stats_purge">
             {(field) => (
               <field.FormInteractiveBlock
                 variant="toggle"
-                title={m.settings_vpn_stats_toggle_disable_title()}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="stats_purge_frequency_hours">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_vpn_stats_label_purge_frequency()}
-                options={statsPurgeFrequencySelectOptions}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="stats_purge_threshold_days">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_vpn_stats_label_purge_threshold()}
-                options={statsPurgeThresholdSelectOptions}
-              />
+                title={m.settings_vpn_stats_toggle_title()}
+              >
+                <form.Subscribe selector={(s) => s.values.enable_stats_purge}>
+                  {(enabled) => (
+                    <Fold open={enabled}>
+                      <SizedBox height={ThemeSpacing.Lg} />
+                      <form.AppField name="stats_purge_frequency_hours">
+                        {(field) => (
+                          <field.FormSelect
+                            required
+                            label={m.settings_vpn_stats_label_purge_frequency()}
+                            options={statsPurgeFrequencySelectOptions}
+                          />
+                        )}
+                      </form.AppField>
+                      <SizedBox height={ThemeSpacing.Xl} />
+                      <form.AppField name="stats_purge_threshold_days">
+                        {(field) => (
+                          <field.FormSelect
+                            required
+                            label={m.settings_vpn_stats_label_purge_threshold()}
+                            options={statsPurgeThresholdSelectOptions}
+                          />
+                        )}
+                      </form.AppField>
+                    </Fold>
+                  )}
+                </form.Subscribe>
+              </field.FormInteractiveBlock>
             )}
           </form.AppField>
         </MarkedSection>

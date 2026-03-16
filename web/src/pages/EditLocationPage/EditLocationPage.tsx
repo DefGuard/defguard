@@ -3,7 +3,7 @@ import './style.scss';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { cloneDeep, omit } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -20,11 +20,7 @@ import { externalLink } from '../../shared/constants';
 
 import { InfoBanner } from '../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Toggle } from '../../shared/defguard-ui/components/Toggle/Toggle';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { TooltipContent } from '../../shared/defguard-ui/providers/tooltip/TooltipContent';
-import { TooltipProvider } from '../../shared/defguard-ui/providers/tooltip/TooltipContext';
-import { TooltipTrigger } from '../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
@@ -93,6 +89,7 @@ const formSchema = z.object({
     .max(65535, m.form_error_port_max()),
   mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
   fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
+  allow_all_groups: z.boolean(),
   allowed_groups: z.array(
     z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
   ),
@@ -104,10 +101,6 @@ const formSchema = z.object({
 type FormFields = z.infer<typeof formSchema>;
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
-  const [allGroupsToggle, setAllGroupsToggle] = useState(
-    location.allowed_groups.length === 0,
-  );
-
   const navigate = useNavigate();
 
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
@@ -191,6 +184,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     (): FormFields => ({
       name: location.name,
       address: location.address.join(','),
+      allow_all_groups: location.allow_all_groups,
       allowed_groups: location.allowed_groups,
       allowed_ips: location.allowed_ips.join(','),
       dns: location.dns,
@@ -223,6 +217,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         id: location.id,
         data: {
           ...omit(clone, ['firewall']),
+          allow_all_groups: clone.allow_all_groups,
+          allowed_groups: clone.allowed_groups,
           acl_default_allow: clone.firewall === LocationFirewall.Allow,
           acl_enabled: !(clone.firewall === LocationFirewall.Disabled),
         },
@@ -274,21 +270,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <form.AppField name="allowed_ips">
             {(field) => <field.FormInput label="Allowed IPs" />}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <TooltipProvider disabled={!firewallLocked} placement="top-start">
-            <TooltipTrigger>
-              <div>
-                <Toggle // Does nothing now #TODO: implement generating allowed ips based on firewall rules
-                  active={false}
-                  disabled={firewallLocked}
-                  label={m.add_location_internal_vpn_allowed_ips_from_firewall_rules()}
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{m.license_upgrade_business_tooltip()}</p>
-            </TooltipContent>
-          </TooltipProvider>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="dns">
             {(field) => <field.FormInput label="DNS" />}
@@ -348,7 +329,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <InfoBanner
                         icon="info-outlined"
                         variant="warning"
-                        text={`You can't use MFA on any service locations. If you want to enforce MAF please select “Regular location” type`}
+                        text={`You can't use MFA on any service locations. If you want to enforce MFA please select “Regular location” type`}
                       />
                     )}
                     <EditPageFormSection label="Multi-Factor Authentication">
@@ -438,28 +419,29 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             </form.AppField>
           )}
         </form.Subscribe>
-        <EditPageFormSection label="Location Access">
-          {isPresent(groupsOptions) && (
-            <form.AppField name="allowed_groups">
-              {(field) => (
-                <field.FormSelectMultiple
-                  options={groupsOptions}
-                  counterText={(count) => `+${count} groups`}
-                  editText="Edit groups"
-                  modalTitle="Select allowed groups"
-                  toggleText="All groups have access"
-                  toggleValue={allGroupsToggle}
-                  onToggleChange={(value) => {
-                    setAllGroupsToggle(value);
-                    if (value) {
-                      field.handleChange([]);
-                    }
-                  }}
-                />
+        <form.Subscribe selector={(state) => state.values.allow_all_groups}>
+          {(allowAllGroups) => (
+            <EditPageFormSection label="Location Access">
+              {isPresent(groupsOptions) && (
+                <form.AppField name="allowed_groups">
+                  {(field) => (
+                    <field.FormSelectMultiple
+                      options={groupsOptions}
+                      counterText={(count) => `+${count} groups`}
+                      editText="Edit groups"
+                      modalTitle="Select allowed groups"
+                      toggleText="All groups have access"
+                      toggleValue={allowAllGroups}
+                      onToggleChange={(value) => {
+                        form.setFieldValue('allow_all_groups', value);
+                      }}
+                    />
+                  )}
+                </form.AppField>
               )}
-            </form.AppField>
+            </EditPageFormSection>
           )}
-        </EditPageFormSection>
+        </form.Subscribe>
         <EditPageFormSection label="Firewall" labelContent={firewallLabelContent}>
           <form.AppField name="firewall">
             {(field) => (

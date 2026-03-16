@@ -5,11 +5,17 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import type { AxiosError } from 'axios';
 import { orderBy } from 'lodash-es';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import { LocationMfaMode, type NetworkDevice } from '../../shared/api/types';
+import { getApiErrorMessage } from '../../shared/api/apiErrorMessages';
+import {
+  type ApiError,
+  LocationMfaMode,
+  type NetworkDevice,
+} from '../../shared/api/types';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
@@ -24,6 +30,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSize } from '../../shared/defguard-ui/types';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -63,6 +70,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         reservedNames,
       });
     },
+    onError: (e) => {
+      console.error(e);
+      const code = (e as AxiosError<ApiError>).response?.data?.code;
+      if (code) {
+        Snackbar.error(getApiErrorMessage(code));
+      } else {
+        Snackbar.error(m.network_device_add_error());
+      }
+    },
   });
 
   const addButtonProps = useMemo(
@@ -84,6 +100,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         header: 'Device name',
         enableSorting: true,
         sortingFn: 'text',
+        minSize: 250,
         meta: {
           flex: true,
         },
@@ -95,7 +112,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       }),
       columnHelper.accessor('location.name', {
         header: 'Location',
-        size: 250,
+        size: 225,
+        minSize: 175,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -113,7 +131,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       }),
       columnHelper.accessor('description', {
         header: 'Description',
-        size: 370,
+        size: 300,
+        minSize: 250,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -123,6 +142,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       columnHelper.accessor('added_by', {
         header: 'Added by',
         size: 140,
+        minSize: 100,
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -131,7 +151,8 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       }),
       columnHelper.accessor('added_date', {
         header: 'Added date',
-        size: 150,
+        size: 170,
+        minSize: 170,
         cell: (info) => (
           <TableCell>
             <span>{displayDate(info.getValue())}</span>
@@ -141,6 +162,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       columnHelper.accessor('configured', {
         header: 'Configured',
         size: 150,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             <span>

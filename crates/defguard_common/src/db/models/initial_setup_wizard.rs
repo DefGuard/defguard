@@ -46,7 +46,7 @@ impl InitialSetupState {
 
         query(
             "UPDATE wizard SET initial_setup_state = $1
-             WHERE is_singleton = TRUE",
+             WHERE is_singleton",
         )
         .bind(initial_setup_state)
         .execute(executor)
@@ -62,7 +62,7 @@ impl InitialSetupState {
         let state: Option<Json<Self>> = query_scalar(
             "SELECT initial_setup_state
              FROM wizard
-             WHERE is_singleton = TRUE
+             WHERE is_singleton
              LIMIT 1",
         )
         .fetch_one(executor)
@@ -78,7 +78,7 @@ impl InitialSetupState {
         query(
             "UPDATE wizard
              SET initial_setup_state = NULL
-             WHERE is_singleton = TRUE",
+             WHERE is_singleton",
         )
         .execute(executor)
         .await?;

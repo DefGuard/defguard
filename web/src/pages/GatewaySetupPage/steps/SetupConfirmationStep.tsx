@@ -54,7 +54,7 @@ export const SetupConfirmationStep = () => {
         await queryClient.invalidateQueries({
           queryKey: getSessionInfoQueryOptions.queryKey,
         });
-        Snackbar.success(`Migration completed`);
+        Snackbar.default(`Migration completed`);
         await navigate({ to: '/vpn-overview', replace: true });
         setTimeout(() => {
           useMigrationWizardStore.getState().resetState();

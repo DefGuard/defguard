@@ -108,7 +108,12 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
 
-    let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
+    // Both flags must be provided together
+    if let Err(msg) = config.validate_adopt_flags() {
+        anyhow::bail!("{msg}");
+    }
+
+    let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 
@@ -270,7 +275,7 @@ async fn main() -> Result<(), anyhow::Error> {
             pool.clone(),
             settings.stats_purge_frequency(),
             settings.stats_purge_threshold()
-        ), if !settings.disable_stats_purge =>
+        ), if settings.enable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool, proxy_control_tx) =>
             error!("Periodic license check task returned early: {res:?}"),

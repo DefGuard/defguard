@@ -975,8 +975,9 @@ impl AclRule<Id> {
             query_as!(
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-                allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
-                acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+                allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+                peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+                location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
                 service_location_mode \"service_location_mode: ServiceLocationMode\" \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
@@ -1046,7 +1047,7 @@ impl AclRule<Id> {
             ON u.id = r.user_id \
             WHERE r.rule_id = $1 \
             AND r.allow \
-            AND u.is_active = true",
+            AND u.is_active",
             self.id,
         )
         .fetch_all(executor)
@@ -1072,7 +1073,7 @@ impl AclRule<Id> {
             ON u.id = r.user_id \
             WHERE r.rule_id = $1 \
             AND NOT r.allow \
-            AND u.is_active = true",
+            AND u.is_active",
             self.id,
         )
         .fetch_all(executor)
@@ -1130,7 +1131,7 @@ impl AclRule<Id> {
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
-            WHERE r.rule_id = $1 AND r.allow = true AND d.configured = true",
+            WHERE r.rule_id = $1 AND r.allow AND d.configured",
             self.id,
         )
         .fetch_all(executor)
@@ -1150,7 +1151,7 @@ impl AclRule<Id> {
             device_type \"device_type: DeviceType\", configured \
             FROM aclruledevice r \
             JOIN device d ON d.id = r.device_id \
-            WHERE r.rule_id = $1 AND r.allow = false AND d.configured = true",
+            WHERE r.rule_id = $1 AND r.allow = false AND d.configured",
             self.id,
         )
         .fetch_all(executor)
@@ -1364,7 +1365,7 @@ impl AclRuleInfo<Id> {
                 FROM device d \
                 JOIN wireguard_network_device wnd \
                 ON d.id = wnd.device_id \
-                WHERE device_type = 'network'::device_type AND configured = true AND \
+                WHERE device_type = 'network'::device_type AND configured AND \
                 wireguard_network_id = $1",
                 location_id
             )
@@ -1396,7 +1397,7 @@ impl AclRuleInfo<Id> {
                 FROM device d \
                 JOIN wireguard_network_device wnd \
                 ON d.id = wnd.device_id \
-                WHERE device_type = 'network'::device_type AND configured = true AND \
+                WHERE device_type = 'network'::device_type AND configured AND \
                 wireguard_network_id = $1",
                 location_id
             )

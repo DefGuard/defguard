@@ -35,6 +35,7 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -152,6 +153,9 @@ export const UsersTable = () => {
         enableSorting: true,
         sortingFn: 'text',
         minSize: 250,
+        meta: {
+          flex: true,
+        },
         cell: (info) => {
           const rowData = info.row.original;
           return (
@@ -193,20 +197,29 @@ export const UsersTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('phone', {
-        size: 175,
-        minSize: 175,
-        header: m.users_col_phone(),
-        enableSorting: false,
-        cell: (info) => {
-          const phone = info.getValue();
-          const display = isPresent(phone) && phone.length ? phone : '~';
-          return (
-            <TableCell>
-              <span>{display}</span>
-            </TableCell>
-          );
-        },
+      columnHelper.accessor('email', {
+        header: m.form_label_email(),
+        size: 200,
+        minSize: 150,
+        enableSorting: true,
+        sortingFn: 'text',
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
+      }),
+      columnHelper.accessor('mfa_enabled', {
+        header: m.users_col_mfa(),
+        size: 60,
+        minSize: 60,
+        cell: (info) => (
+          <TableCell className="cell-with-check-icons">
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : null}
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
@@ -248,6 +261,23 @@ export const UsersTable = () => {
         enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
+          const accountStatusMenuGroup: MenuItemsGroup = {
+            items: [
+              {
+                text: rowData.is_active
+                  ? m.users_row_menu_disable()
+                  : m.users_row_menu_enable(),
+                icon: rowData.is_active ? 'disabled' : 'check-circle',
+                testId: 'change-account-status',
+                onClick: () => {
+                  changeAccountActiveState({
+                    active: !rowData.is_active,
+                    username: rowData.username,
+                  });
+                },
+              },
+            ],
+          };
 
           const menuItems: MenuItemsGroup[] = [
             {
@@ -330,23 +360,7 @@ export const UsersTable = () => {
                 },
               ],
             },
-            {
-              items: [
-                {
-                  text: rowData.is_active
-                    ? m.users_row_menu_disable()
-                    : m.users_row_menu_enable(),
-                  icon: rowData.is_active ? 'disabled' : 'check-circle',
-                  testId: 'change-account-status',
-                  onClick: () => {
-                    changeAccountActiveState({
-                      active: !rowData.is_active,
-                      username: rowData.username,
-                    });
-                  },
-                },
-              ],
-            },
+            accountStatusMenuGroup,
             {
               items: [
                 {
@@ -402,6 +416,28 @@ export const UsersTable = () => {
               ],
             });
           }
+          if (rowData.mfa_enabled) {
+            accountStatusMenuGroup.items.splice(1, 0, {
+              text: m.users_row_menu_disable_mfa(),
+              icon: 'disable-mfa',
+              onClick: () => {
+                openModal(ModalName.ConfirmAction, {
+                  title: m.users_modal_disable_mfa_title(),
+                  contentMd: m.users_modal_disable_mfa_content({
+                    name: rowData.name,
+                  }),
+                  actionPromise: () => api.user.disableMfa(rowData.username),
+                  invalidateKeys: [['user-overview'], ['user'], ['session-info'], ['me']],
+                  submitProps: {
+                    text: m.users_row_menu_disable_mfa(),
+                    variant: 'critical',
+                  },
+                  onSuccess: () => Snackbar.default(m.users_disable_mfa_success()),
+                  onError: () => Snackbar.error(m.users_disable_mfa_error()),
+                });
+              },
+            });
+          }
 
           return <TableEditCell menuItems={menuItems} />;
         },
@@ -428,7 +464,6 @@ export const UsersTable = () => {
       m.users_col_ip(),
       m.users_col_connected_through(),
       m.users_col_connected_date(),
-      '',
       '',
     ],
     [],

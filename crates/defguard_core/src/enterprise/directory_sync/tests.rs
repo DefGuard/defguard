@@ -61,6 +61,7 @@ mod test {
             1420,
             0,
             Vec::new(),
+            true,
             32,
             32,
             false,
@@ -640,7 +641,7 @@ mod test {
         let mut transaction = pool.begin().await.unwrap();
         let group = Group::new("group1").save(&mut *transaction).await.unwrap();
         network
-            .set_allowed_groups(&mut transaction, vec![group.name])
+            .set_allowed_groups(&mut transaction, &[group.name])
             .await
             .unwrap();
         transaction.commit().await.unwrap();
@@ -664,13 +665,11 @@ mod test {
         if let Ok(GatewayEvent::DeviceDeleted(dev)) = event {
             assert_eq!(dev.device.user_id, user2_pre_sync.id);
         } else {
-            panic!("Expected a DeviceDeleted event");
+            panic!("Expected DeviceDeleted event");
         }
         let event = wg_rx.try_recv();
         if let Ok(GatewayEvent::DeviceCreated(dev)) = event {
-            assert_eq!(dev.device.user_id, user.id);
-        } else {
-            panic!("Expected a DeviceDeleted event");
+            panic!("Unexpected DeviceCreated event: {dev:?}");
         }
     }
 

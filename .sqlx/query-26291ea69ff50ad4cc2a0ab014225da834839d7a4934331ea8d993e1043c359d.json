@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT wn.name FROM wireguard_network wn LEFT JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id WHERE wn.allow_all_groups OR wnag.group_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26291ea69ff50ad4cc2a0ab014225da834839d7a4934331ea8d993e1043c359d"
+}

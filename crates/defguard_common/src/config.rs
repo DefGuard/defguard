@@ -74,18 +74,13 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
-    // relying party id and relying party origin for WebAuthn
-    #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.webauthn_rp_id instead")]
-    pub webauthn_rp_id: Option<String>,
-
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.enable_stats_purge instead")]
     pub disable_stats_purge: Option<bool>,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY")]
@@ -238,19 +233,28 @@ impl DefGuardConfig {
         Self::parse_from::<[_; 0], String>([])
     }
 
-    /// Initialize values that depend on Settings.
-    pub fn initialize_post_settings(&mut self) {
-        let url = Settings::url().expect("Unable to parse Defguard URL.");
-        self.initialize_cookie_domain(&url);
+    /// Validate that the auto-adoption flags are consistent.
+    ///
+    /// Both `--adopt-edge` and `--adopt-gateway` must be supplied together.
+    pub fn validate_adopt_flags(&self) -> Result<(), String> {
+        match (&self.adopt_edge, &self.adopt_gateway) {
+            (Some(_), None) => Err("--adopt-edge (DEFGUARD_ADOPT_EDGE) was provided but \
+                --adopt-gateway (DEFGUARD_ADOPT_GATEWAY) is missing. \
+                Both flags must be provided together to launch the auto-adoption wizard."
+                .to_string()),
+            (None, Some(_)) => Err("--adopt-gateway (DEFGUARD_ADOPT_GATEWAY) was provided but \
+                --adopt-edge (DEFGUARD_ADOPT_EDGE) is missing. \
+                Both flags must be provided together to launch the auto-adoption wizard."
+                .to_string()),
+            _ => Ok(()),
+        }
     }
 
-    fn initialize_cookie_domain(&mut self, url: &Url) {
+    /// Initialize values that depend on Settings.
+    pub fn initialize_post_settings(&mut self) {
         if self.cookie_domain.is_none() {
-            self.cookie_domain = Some(
-                url.domain()
-                    .expect("Unable to get domain for server URL.")
-                    .to_string(),
-            );
+            let settings = Settings::get_current_settings();
+            self.cookie_domain = settings.cookie_domain().ok();
         }
     }
 
@@ -294,20 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_cookie_domain() {
-        unsafe {
-            env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-        }
-
-        let url = Url::parse("https://defguard.example.com").unwrap();
-        let mut config = DefGuardConfig::new();
-        config.initialize_cookie_domain(&url);
-
-        assert_eq!(
-            config.cookie_domain,
-            Some("defguard.example.com".to_string())
-        );
-
+    fn test_cookie_domain_env_override() {
         unsafe {
             env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
         }
@@ -315,5 +306,37 @@ mod tests {
         let config = DefGuardConfig::new();
 
         assert_eq!(config.cookie_domain, Some("example.com".to_string()));
+    }
+
+    fn make_config(adopt_edge: Option<&str>, adopt_gateway: Option<&str>) -> DefGuardConfig {
+        let mut config = DefGuardConfig::new_test_config();
+        config.adopt_edge = adopt_edge.map(str::to_string);
+        config.adopt_gateway = adopt_gateway.map(str::to_string);
+        config
+    }
+
+    #[test]
+    fn test_validate_adopt_flags() {
+        // neither flag: valid, no auto-adoption requested
+        assert!(make_config(None, None).validate_adopt_flags().is_ok());
+
+        // both flags: valid
+        assert!(
+            make_config(Some("edge.example.com:8080"), Some("gw.example.com:8080"))
+                .validate_adopt_flags()
+                .is_ok()
+        );
+
+        // only one flag at a time: must be an error
+        assert!(
+            make_config(Some("edge.example.com:8080"), None)
+                .validate_adopt_flags()
+                .is_err()
+        );
+        assert!(
+            make_config(None, Some("gw.example.com:8080"))
+                .validate_adopt_flags()
+                .is_err()
+        );
     }
 }

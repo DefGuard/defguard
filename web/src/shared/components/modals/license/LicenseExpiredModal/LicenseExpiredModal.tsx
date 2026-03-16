@@ -12,6 +12,7 @@ import {
 import { ModalName } from '../../../../hooks/modalControls/modalTypes';
 import { LicenseModal } from '../../LicenseModal/LicenseModal';
 import { LicenseModalControls } from '../LicenseModalControls';
+import { LicenseModalSideImage } from '../LicenseModalSideImage/LicenseModalSideImage';
 
 const modalNameKey = ModalName.LicenseExpired;
 
@@ -39,6 +40,8 @@ export const LicenseExpiredModal = () => {
       afterClose={() => {
         setTier(null);
       }}
+      image={<LicenseModalSideImage variant="expired" />}
+      lines
     >
       {isPresent(tier) && <ModalContent tier={tier} />}
     </LicenseModal>

@@ -5,7 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { flat } from 'radashi';
+import { cloneDeep, flat } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
@@ -29,13 +29,17 @@ import { BadgeVariant } from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
-import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
+import type {
+  MenuItemProps,
+  MenuItemsGroup,
+} from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
@@ -63,7 +67,14 @@ type Props = {
   data: AclRule[];
   title: string;
   buttonProps: ButtonProps;
+  variant: 'deployed' | 'pending';
   enableSearch?: boolean;
+};
+
+const toggleRulePromise = async (id: number) => {
+  const rule = cloneDeep((await api.acl.rule.getRule(id)).data);
+  rule.enabled = !rule.enabled;
+  return api.acl.rule.editRule(rule);
 };
 
 export const RulesTable = ({
@@ -78,11 +89,29 @@ export const RulesTable = ({
   locations,
   data,
   license,
+  variant,
 }: Props) => {
   const navigate = useNavigate();
 
   const { mutate: deleteRule } = useMutation({
     mutationFn: api.acl.rule.deleteRule,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
+
+  const { mutate: toggleRule } = useMutation({
+    mutationFn: toggleRulePromise,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
+
+  const { mutate: deployRule } = useMutation({
+    mutationFn: api.acl.rule.applyRules,
+    onSuccess: () => {
+      Snackbar.default(`Rule deployed`);
+    },
     meta: {
       invalidate: ['acl'],
     },
@@ -173,6 +202,9 @@ export const RulesTable = ({
       columnHelper.accessor('name', {
         header: 'Rule name',
         minSize: 210,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -283,6 +315,8 @@ export const RulesTable = ({
       columnHelper.display({
         id: 'status',
         header: 'Status',
+        size: 125,
+        minSize: 125,
         cell: (info) => {
           const row = info.row.original;
           return renderStatusCell(row.state, row.enabled);
@@ -295,24 +329,55 @@ export const RulesTable = ({
         enableResizing: false,
         cell: (info) => {
           const row = info.row.original;
+          const topItems: MenuItemProps[] = [
+            {
+              icon: 'edit',
+              text: m.controls_edit(),
+              onClick: () => {
+                licenseActionCheck(canUseBusinessFeature(license), () => {
+                  navigate({
+                    to: '/acl/edit-rule',
+                    search: {
+                      rule: row.id,
+                    },
+                  });
+                });
+              },
+            },
+          ];
+          switch (variant) {
+            case 'deployed':
+              if (row.enabled) {
+                topItems.push({
+                  icon: 'disabled',
+                  text: m.controls_disable(),
+                  onClick: () => {
+                    toggleRule(row.id);
+                  },
+                });
+              } else {
+                topItems.push({
+                  icon: 'check',
+                  text: m.controls_enable(),
+                  onClick: () => {
+                    toggleRule(row.id);
+                  },
+                });
+              }
+              break;
+            case 'pending':
+              topItems.push({
+                icon: 'deploy',
+                text: m.controls_deploy(),
+                onClick: () => {
+                  deployRule([row.id]);
+                },
+              });
+              break;
+          }
           const menuItems: MenuItemsGroup[] = [
             {
-              items: [
-                {
-                  icon: 'edit',
-                  text: m.controls_edit(),
-                  onClick: () => {
-                    licenseActionCheck(canUseBusinessFeature(license), () => {
-                      navigate({
-                        to: '/acl/edit-rule',
-                        search: {
-                          rule: row.id,
-                        },
-                      });
-                    });
-                  },
-                },
-              ],
+              items: topItems,
             },
             {
               items: [
@@ -342,6 +407,9 @@ export const RulesTable = ({
       navigate,
       renderStatusCell,
       license,
+      variant,
+      toggleRule,
+      deployRule,
     ],
   );
 

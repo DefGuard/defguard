@@ -28,9 +28,13 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
     () => [
       columnHelper.accessor('name', {
         header: m.settings_activity_log_streaming_table_header_name(),
-        minSize: 484,
         enableSorting: true,
         sortingFn: 'text',
+        size: 300,
+        minSize: 200,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -39,7 +43,7 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
       }),
       columnHelper.accessor('stream_type', {
         header: m.settings_activity_log_streaming_table_stream_type_name(),
-        size: 220,
+        size: 200,
         minSize: 100,
         cell: (info) => (
           <TableCell>

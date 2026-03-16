@@ -6,7 +6,8 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { useMemo, useState } from 'react';
+import { range } from 'radashi';
+import { useCallback, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import z from 'zod';
 import { CodeSnippet } from '../../shared/components/CodeSnippet/CodeSnippet';
@@ -29,13 +30,14 @@ import {
   BadgeVariant,
 } from '../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
+import { Modal } from '../../shared/defguard-ui/components/Modal/Modal';
 import { Radio } from '../../shared/defguard-ui/components/Radio/Radio';
 import { RadioIndicator } from '../../shared/defguard-ui/components/RadioIndicator/RadioIndicator';
+import { RenderMarkdown } from '../../shared/defguard-ui/components/RenderMarkdown/RenderMarkdown';
 import { SectionSelect } from '../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { SuggestedIpInput } from '../../shared/defguard-ui/components/SuggestedIPInput/SuggestedIPInput';
@@ -54,6 +56,8 @@ import testIconSrc from './assets/actionable-test1.png';
 export const PlaygroundPage = () => {
   return (
     <div id="playground-page">
+      <TestModalContentScroll />
+      <Divider spacing={ThemeSpacing.Xl} />
       <Card>
         <Button
           variant="outlined"
@@ -71,7 +75,7 @@ export const PlaygroundPage = () => {
                 variant: 'critical',
               },
               onSuccess: () => {
-                Snackbar.success('Deleted');
+                Snackbar.default('Deleted');
               },
             });
           }}
@@ -273,13 +277,53 @@ export const PlaygroundPage = () => {
   );
 };
 
+const TestModalContentScroll = () => {
+  const [isOpen, setOpen] = useState(false);
+
+  const getContent = useCallback(() => {
+    const res: string[] = [];
+    for (const _ of range(100)) {
+      res.push(m.test_placeholder_long());
+    }
+    return res.join('\n');
+  }, []);
+
+  return (
+    <Card>
+      <p>{`Test modal scroll`}</p>
+      <Button
+        text="Open Modal"
+        onClick={() => {
+          setOpen(true);
+        }}
+      />
+      <Modal
+        size="primary"
+        title={`Scroll test`}
+        isOpen={isOpen}
+        onClose={() => {
+          setOpen(false);
+        }}
+      >
+        <RenderMarkdown content={getContent()} />
+      </Modal>
+    </Card>
+  );
+};
+
 const TestPlanUpgrade = () => {
   const { data: license, isLoading } = useQuery(getLicenseInfoQueryOptions);
   return (
     <Card>
       <h3>{`Licensing modals`}</h3>
       <SizedBox height={ThemeSpacing.Xl4} />
-      <ButtonsGroup>
+      <div
+        style={{
+          display: 'flex',
+          flexFlow: 'row wrap',
+          gap: ThemeSpacing.Lg,
+        }}
+      >
         <Button
           text="Limits reached"
           onClick={() => {
@@ -310,7 +354,15 @@ const TestPlanUpgrade = () => {
             }
           }}
         />
-      </ButtonsGroup>
+        <Button
+          text="License Conflict"
+          onClick={() => {
+            openModal(ModalName.LicenseLimitConflict, {
+              conflicts: [],
+            });
+          }}
+        />
+      </div>
     </Card>
   );
 };
