@@ -8,6 +8,9 @@ use std::{
     },
 };
 
+#[cfg(test)]
+use std::path::{Path, PathBuf};
+
 use chrono::DateTime;
 #[cfg(not(test))]
 use defguard_common::db::models::Settings;
@@ -52,6 +55,29 @@ use tonic::{Code, Status, transport::Endpoint};
 
 use crate::{Client, TEN_SECS, error::GatewayError};
 
+#[cfg(test)]
+#[derive(Debug, Default)]
+struct GatewayTestTransport {
+    socket_path: Option<PathBuf>,
+}
+
+#[cfg(test)]
+impl GatewayTestTransport {
+    fn with_socket_path(socket_path: PathBuf) -> Self {
+        Self {
+            socket_path: Some(socket_path),
+        }
+    }
+
+    fn socket_path(&self) -> Result<&Path, GatewayError> {
+        self.socket_path.as_deref().ok_or_else(|| {
+            GatewayError::EndpointError(
+                "Missing test gateway transport socket path for GatewayHandler".to_string(),
+            )
+        })
+    }
+}
+
 /// One instance per connected Gateway.
 pub(super) struct GatewayHandler {
     // Gateway server endpoint URL.
@@ -62,6 +88,8 @@ pub(super) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    #[cfg(test)]
+    test_transport: GatewayTestTransport,
 }
 
 impl GatewayHandler {
@@ -87,7 +115,23 @@ impl GatewayHandler {
             events_tx,
             peer_stats_tx,
             certs_rx,
+            #[cfg(test)]
+            test_transport: GatewayTestTransport::default(),
         })
+    }
+
+    #[cfg(test)]
+    pub(super) fn new_with_test_socket(
+        gateway: Gateway<Id>,
+        pool: PgPool,
+        events_tx: Sender<GatewayEvent>,
+        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+        socket_path: PathBuf,
+    ) -> Result<Self, GatewayError> {
+        let mut handler = Self::new(gateway, pool, events_tx, peer_stats_tx, certs_rx)?;
+        handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
+        Ok(handler)
     }
 
     fn endpoint(&self) -> Result<Endpoint, GatewayError> {
@@ -211,166 +255,210 @@ impl GatewayHandler {
         }
     }
 
-    /// Connect to Gateway and handle its messages through gRPC.
-    pub(super) async fn handle_connection(
+    async fn mark_disconnected(&mut self) {
+        if let Err(err) = self.gateway.touch_disconnected(&self.pool).await {
+            error!(
+                "Failed to update disconnection time for {} in the database: {err}",
+                self.gateway
+            );
+        }
+    }
+
+    async fn handle_disconnection_error(&mut self) {
+        if self.gateway.is_connected() {
+            self.send_disconnect_notification().await;
+        }
+
+        self.mark_disconnected().await;
+    }
+
+    async fn handle_connection_iteration(
         &mut self,
         clients: Arc<Mutex<HashMap<Id, Client>>>,
+        retry_on_connect_failure: bool,
     ) -> Result<(), GatewayError> {
         #[cfg(test)]
         let _ = &self.certs_rx;
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
-        loop {
-            #[cfg(not(test))]
-            let channel = {
-                let settings = Settings::get_current_settings();
-                let Some(ca_cert_der) = settings.ca_cert_der else {
-                    return Err(GatewayError::EndpointError(
-                        "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
-                    ));
-                };
-                let tls_config =
-                    tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
-                        .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
-                let connector = HttpsConnectorBuilder::new()
-                    .with_tls_config(tls_config)
-                    .https_only()
-                    .enable_http2()
-                    .build();
-                let connector = HttpsSchemeConnector::new(connector);
-                endpoint.connect_with_connector_lazy(connector)
+
+        #[cfg(not(test))]
+        let channel = {
+            let settings = Settings::get_current_settings();
+            let Some(ca_cert_der) = settings.ca_cert_der else {
+                return Err(GatewayError::EndpointError(
+                    "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+                ));
             };
-            #[cfg(test)]
-            let channel = endpoint.connect_with_connector_lazy(tower::service_fn(
-                |_: tonic::transport::Uri| async {
-                    Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                        tokio::net::UnixStream::connect(super::TONIC_SOCKET).await?,
-                    ))
+            let tls_config =
+                tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
+                    .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
+            let connector = HttpsConnectorBuilder::new()
+                .with_tls_config(tls_config)
+                .https_only()
+                .enable_http2()
+                .build();
+            let connector = HttpsSchemeConnector::new(connector);
+            endpoint.connect_with_connector_lazy(connector)
+        };
+        #[cfg(test)]
+        let channel = {
+            let socket_path = self.test_transport.socket_path()?.to_path_buf();
+            endpoint.connect_with_connector_lazy(tower::service_fn(
+                move |_: tonic::transport::Uri| {
+                    let socket_path = socket_path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                            tokio::net::UnixStream::connect(socket_path).await?,
+                        ))
+                    }
                 },
-            ));
+            ))
+        };
 
-            debug!("Connecting to Gateway {uri}");
-            let interceptor = ClientVersionInterceptor::new(
-                Version::parse(VERSION).expect("failed to parse self version"),
-            );
-            let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
-            clients
-                .lock()
-                .expect("GatewayHandler failed to lock clients")
-                .insert(self.gateway.id, client.clone());
-            let (tx, rx) = mpsc::unbounded_channel();
-            let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
-                Ok(response) => response,
-                Err(err) => {
-                    error!("Failed to connect to Gateway {uri}, retrying: {err}");
+        debug!("Connecting to Gateway {uri}");
+        let interceptor = ClientVersionInterceptor::new(
+            Version::parse(VERSION).expect("failed to parse self version"),
+        );
+        let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
+        clients
+            .lock()
+            .expect("GatewayHandler failed to lock clients")
+            .insert(self.gateway.id, client.clone());
+        let (tx, rx) = mpsc::unbounded_channel();
+        let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
+            Ok(response) => response,
+            Err(err) => {
+                error!("Failed to connect to Gateway {uri}, retrying: {err}");
+                if retry_on_connect_failure {
                     sleep(TEN_SECS).await;
-                    continue;
+                    return Ok(());
                 }
-            };
-            info!("Connected to Defguard Gateway {uri}");
 
-            let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
-            let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
-
-            if let Some(mut gateway) = Gateway::find_by_id(&self.pool, self.gateway.id).await? {
-                gateway.version = Some(version.to_string());
-                gateway.save(&self.pool).await?;
+                return Err(err.into());
             }
+        };
+        info!("Connected to Defguard Gateway {uri}");
 
-            let mut resp_stream = response.into_inner();
-            let mut config_sent = false;
+        let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
+        let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
 
-            'message: loop {
-                match resp_stream.message().await {
-                    Ok(None) => {
-                        info!("Stream was closed by the sender.");
-                        break 'message;
-                    }
-                    Ok(Some(received)) => {
-                        info!("Received message from Gateway.");
-                        debug!("Message from Gateway {uri}");
+        if let Some(mut gateway) = Gateway::find_by_id(&self.pool, self.gateway.id).await? {
+            gateway.version = Some(version.to_string());
+            gateway.save(&self.pool).await?;
+        }
 
-                        match received.payload {
-                            Some(core_request::Payload::ConfigRequest(_config_request)) => {
-                                if config_sent {
-                                    warn!(
-                                        "Ignoring repeated configuration request from {}",
+        let mut resp_stream = response.into_inner();
+        let mut config_sent = false;
+
+        loop {
+            match resp_stream.message().await {
+                Ok(None) => {
+                    info!("Stream was closed by the sender.");
+                    self.mark_disconnected().await;
+                    return Ok(());
+                }
+                Ok(Some(received)) => {
+                    info!("Received message from Gateway.");
+                    debug!("Message from Gateway {uri}");
+
+                    match received.payload {
+                        Some(core_request::Payload::ConfigRequest(_config_request)) => {
+                            if config_sent {
+                                warn!(
+                                    "Ignoring repeated configuration request from {}",
+                                    self.gateway
+                                );
+                                continue;
+                            }
+
+                            match self.send_configuration(&tx).await {
+                                Ok(network) => {
+                                    info!("Sent configuration to {}", self.gateway);
+                                    config_sent = true;
+                                    let _ = self.gateway.touch_connected(&self.pool).await;
+                                    let mut updates_handler = GatewayUpdatesHandler::new(
+                                        self.gateway.location_id,
+                                        network,
+                                        self.gateway.name.clone(),
+                                        self.events_tx.subscribe(),
+                                        tx.clone(),
+                                    );
+                                    tokio::spawn(async move {
+                                        updates_handler.run().await;
+                                    });
+                                }
+                                Err(err) => {
+                                    error!(
+                                        "Failed to send configuration to {}: {err}",
                                         self.gateway
                                     );
-                                    continue;
-                                }
-
-                                // Send network configuration to Gateway.
-                                match self.send_configuration(&tx).await {
-                                    Ok(network) => {
-                                        info!("Sent configuration to {}", self.gateway);
-                                        config_sent = true;
-                                        let _ = self.gateway.touch_connected(&self.pool).await;
-                                        let mut updates_handler = GatewayUpdatesHandler::new(
-                                            self.gateway.location_id,
-                                            network,
-                                            self.gateway.name.clone(),
-                                            self.events_tx.subscribe(),
-                                            tx.clone(),
-                                        );
-                                        tokio::spawn(async move {
-                                            updates_handler.run().await;
-                                        });
-                                    }
-                                    Err(err) => {
-                                        error!(
-                                            "Failed to send configuration to {}: {err}",
-                                            self.gateway
-                                        );
-                                    }
                                 }
                             }
-                            Some(core_request::Payload::PeerStats(peer_stats)) => {
-                                if !config_sent {
-                                    warn!(
-                                        "Ignoring peer statistics from {} because it hasn't \
-                                        authorized itself",
-                                        self.gateway
-                                    );
-                                    continue;
-                                }
-
-                                // convert stats to DB storage format
-                                match try_protos_into_stats_message(
-                                    peer_stats.clone(),
-                                    self.gateway.location_id,
-                                    self.gateway.id,
-                                ) {
-                                    None => {
-                                        warn!(
-                                            "Failed to parse peer stats update. Skipping sending \
-                                            message to session manager."
-                                        );
-                                    }
-                                    Some(message) => {
-                                        if let Err(err) = self.peer_stats_tx.send(message) {
-                                            error!(
-                                                "Failed to send peers stats update to session manager: {err}"
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                            None => (),
                         }
+                        Some(core_request::Payload::PeerStats(peer_stats)) => {
+                            if !config_sent {
+                                warn!(
+                                    "Ignoring peer statistics from {} because it hasn't \
+                                    authorized itself",
+                                    self.gateway
+                                );
+                                continue;
+                            }
+
+                            match try_protos_into_stats_message(
+                                peer_stats.clone(),
+                                self.gateway.location_id,
+                                self.gateway.id,
+                            ) {
+                                None => {
+                                    warn!(
+                                        "Failed to parse peer stats update. Skipping sending \
+                                        message to session manager."
+                                    );
+                                }
+                                Some(message) => {
+                                    if let Err(err) = self.peer_stats_tx.send(message) {
+                                        error!(
+                                            "Failed to send peers stats update to session manager: {err}"
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        None => (),
                     }
-                    Err(err) => {
-                        error!("Disconnected from Gateway at {uri}, error: {err}");
-                        // Important: call this funtion before setting disconnection time.
-                        self.send_disconnect_notification().await;
-                        let _ = self.gateway.touch_disconnected(&self.pool).await;
+                }
+                Err(err) => {
+                    error!("Disconnected from Gateway at {uri}, error: {err}");
+                    self.handle_disconnection_error().await;
+                    if retry_on_connect_failure {
                         debug!("Waiting 10s to re-establish the connection");
                         sleep(TEN_SECS).await;
-                        break 'message;
                     }
+                    return Ok(());
                 }
             }
         }
+    }
+
+    /// Connect to Gateway and handle its messages through gRPC.
+    pub(super) async fn handle_connection(
+        &mut self,
+        clients: Arc<Mutex<HashMap<Id, Client>>>,
+    ) -> Result<(), GatewayError> {
+        loop {
+            self.handle_connection_iteration(Arc::clone(&clients), true)
+                .await?;
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) async fn handle_connection_once(
+        &mut self,
+        clients: Arc<Mutex<HashMap<Id, Client>>>,
+    ) -> Result<(), GatewayError> {
+        self.handle_connection_iteration(clients, false).await
     }
 }
 

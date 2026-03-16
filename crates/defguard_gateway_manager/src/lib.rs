@@ -26,11 +26,11 @@ extern crate tracing;
 mod certs;
 mod error;
 mod handler;
-// #[cfg(test)]
-// mod tests;
 
 #[cfg(test)]
-static TONIC_SOCKET: &str = "tonic.sock";
+#[path = "tests/mod.rs"]
+mod tests;
+
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const TEN_SECS: Duration = Duration::from_secs(10);
