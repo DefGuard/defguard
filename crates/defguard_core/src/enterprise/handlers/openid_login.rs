@@ -47,6 +47,7 @@ use crate::{
     handlers::{
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
+        cookie_domain,
         mail::send_user_import_blocked_email,
         user::{MAX_USERNAME_CHARS, check_username},
     },
@@ -523,26 +524,24 @@ pub async fn get_auth_info(
 
     let (authorize_url, csrf_state, nonce) = authorize_url_builder.url();
 
-    let cookie_domain = config
-        .cookie_domain
-        .as_ref()
-        .expect("Cookie domain not found");
-    let nonce_cookie = Cookie::build((NONCE_COOKIE_NAME, nonce.secret().clone()))
-        .domain(cookie_domain)
+    let mut nonce_cookie = Cookie::build((NONCE_COOKIE_NAME, nonce.secret().clone()))
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
         .secure(!config.cookie_insecure)
-        .max_age(COOKIE_MAX_AGE)
-        .build();
-    let csrf_cookie = Cookie::build((CSRF_COOKIE_NAME, csrf_state.secret().clone()))
-        .domain(cookie_domain)
+        .max_age(COOKIE_MAX_AGE);
+    let mut csrf_cookie = Cookie::build((CSRF_COOKIE_NAME, csrf_state.secret().clone()))
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
         .secure(!config.cookie_insecure)
-        .max_age(COOKIE_MAX_AGE)
-        .build();
+        .max_age(COOKIE_MAX_AGE);
+    if let Some(cookie_domain) = cookie_domain() {
+        nonce_cookie = nonce_cookie.domain(cookie_domain.clone());
+        csrf_cookie = csrf_cookie.domain(cookie_domain);
+    }
+    let nonce_cookie = nonce_cookie.build();
+    let csrf_cookie = csrf_cookie.build();
     let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);
 
     Ok((
@@ -610,17 +609,15 @@ pub async fn auth_callback(
         error!("Failed to convert authentication timeout for cookie max-age: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
-    let cookie_domain = config
-        .cookie_domain
-        .as_ref()
-        .expect("Cookie domain not found");
-    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id))
-        .domain(cookie_domain)
+    let mut auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id))
         .path("/")
         .http_only(true)
         .secure(!config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
+    if let Some(cookie_domain) = cookie_domain() {
+        auth_cookie = auth_cookie.domain(cookie_domain);
+    }
     let cookies = cookies.add(auth_cookie);
 
     // The user may not yet be authorized (pre-MFA), but syncing their groups should be fine here,

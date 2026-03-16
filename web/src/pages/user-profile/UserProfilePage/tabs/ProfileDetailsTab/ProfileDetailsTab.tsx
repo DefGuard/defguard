@@ -1,4 +1,5 @@
 import './style.scss';
+import { Fragment } from 'react/jsx-runtime';
 import { m } from '../../../../../paraglide/messages';
 import { LayoutGrid } from '../../../../../shared/components/LayoutGrid/LayoutGrid';
 import { ChangePasswordModal } from '../../../../../shared/components/modals/ChangePasswordModal/ChangePasswordModal';
@@ -20,36 +21,36 @@ export const ProfileDetailsTab = () => {
   const authorizedApps = useUserProfile((s) => s.user.authorized_apps);
 
   return (
-    <LayoutGrid id="profile-details">
-      <div className="left">
-        <ProfileGeneralCard />
-        {authorizedApps?.length === 0 && <AuthorizedAppsNoData />}
-        {isPresent(authorizedApps) && authorizedApps.length > 0 && (
-          <ProfileAuthorizedApps authorizedApps={authorizedApps} />
-        )}
-      </div>
-      <ProfileAuthCard />
-    </LayoutGrid>
-  );
-};
-
-const AuthorizedAppsNoData = () => {
-  return (
-    <>
-      <ProfileCard id="apps-no-data">
-        <SizedBox height={ThemeSpacing.Xl5} />
-        <EmptyState
-          icon="apps"
-          title={m.profile_apps_no_data_title()}
-          subtitle={m.profile_apps_no_data_subtitle()}
-        />
-        <SizedBox height={ThemeSpacing.Xl5} />
-      </ProfileCard>
+    <Fragment>
+      <LayoutGrid id="profile-details">
+        <div className="left">
+          <ProfileGeneralCard />
+          {authorizedApps?.length === 0 && <AuthorizedAppsNoData />}
+          {isPresent(authorizedApps) && authorizedApps.length > 0 && (
+            <ProfileAuthorizedApps authorizedApps={authorizedApps} />
+          )}
+        </div>
+        <ProfileAuthCard />
+      </LayoutGrid>
       <ChangePasswordModal />
       <TotpSetupModal />
       <RecoveryCodesModal />
       <EmailMfaSetupModal />
       <WebautnSetupModal />
-    </>
+    </Fragment>
+  );
+};
+
+const AuthorizedAppsNoData = () => {
+  return (
+    <ProfileCard id="apps-no-data">
+      <SizedBox height={ThemeSpacing.Xl5} />
+      <EmptyState
+        icon="apps"
+        title={m.profile_apps_no_data_title()}
+        subtitle={m.profile_apps_no_data_subtitle()}
+      />
+      <SizedBox height={ThemeSpacing.Xl5} />
+    </ProfileCard>
   );
 };
