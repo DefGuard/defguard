@@ -163,6 +163,99 @@ async fn test_matching_location_network_event_produces_outbound_update(
 }
 
 #[sqlx::test]
+async fn test_matching_location_network_modified_event_produces_modify_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+
+    let _ = context.complete_config_handshake().await;
+
+    let mut modified_network = context.network.clone();
+    modified_network.name = format!("{}-modified", context.network.name);
+    modified_network.address = vec!["10.20.0.1/24"
+        .parse()
+        .expect("failed to parse modified network address")];
+    modified_network.port = 51821;
+    modified_network.mtu = 1380;
+    modified_network.fwmark = 42;
+
+    assert_send_ok!(
+        context.events_tx().send(GatewayEvent::NetworkModified(
+            context.network.id,
+            modified_network,
+            Vec::new(),
+            None,
+        )),
+        "failed to broadcast modified gateway event"
+    );
+
+    let outbound = context.mock_gateway_mut().recv_outbound().await;
+    assert_network_modify_update(
+        outbound,
+        &format!("{}-modified", context.network.name),
+        "10.20.0.1/24",
+        51821,
+        1380,
+        42,
+    );
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_only_matching_handler_receives_network_modified_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (events_tx, _) = tokio::sync::broadcast::channel(16);
+    let mut matching_context = HandlerTestContext::new_with_events_tx(options.clone(), events_tx.clone()).await;
+    let mut unrelated_context = HandlerTestContext::new_with_events_tx(options, events_tx).await;
+
+    assert_ne!(matching_context.network.id, unrelated_context.network.id);
+
+    let _ = matching_context.complete_config_handshake().await;
+    let _ = unrelated_context.complete_config_handshake().await;
+
+    let mut modified_network = matching_context.network.clone();
+    modified_network.name = format!("{}-modified", matching_context.network.name);
+    modified_network.address = vec!["10.30.0.1/24"
+        .parse()
+        .expect("failed to parse modified network address")];
+    modified_network.port = 51831;
+    modified_network.mtu = 1400;
+    modified_network.fwmark = 7;
+
+    assert_send_ok!(
+        matching_context
+            .events_tx()
+            .send(GatewayEvent::NetworkModified(
+                matching_context.network.id,
+                modified_network,
+                Vec::new(),
+                None,
+            )),
+        "failed to broadcast modified gateway event"
+    );
+
+    let outbound = matching_context.mock_gateway_mut().recv_outbound().await;
+    assert_network_modify_update(
+        outbound,
+        &format!("{}-modified", matching_context.network.name),
+        "10.30.0.1/24",
+        51831,
+        1400,
+        7,
+    );
+    matching_context.mock_gateway_mut().expect_no_outbound().await;
+    unrelated_context.mock_gateway_mut().expect_no_outbound().await;
+
+    matching_context.finish().await.expect_server_finished().await;
+    unrelated_context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
 async fn test_different_location_network_event_is_ignored(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -266,5 +359,31 @@ fn assert_network_delete_update(outbound: CoreResponse, expected_network_name: &
             assert_eq!(network.name, expected_network_name);
         }
         _ => panic_unexpected!("expected network delete update"),
+    }
+}
+
+fn assert_network_modify_update(
+    outbound: CoreResponse,
+    expected_network_name: &str,
+    expected_address: &str,
+    expected_port: u32,
+    expected_mtu: u32,
+    expected_fwmark: u32,
+) {
+    match outbound.payload {
+        Some(core_response::Payload::Update(Update {
+            update_type,
+            update: Some(update::Update::Network(network)),
+        })) => {
+            assert_eq!(update_type, UpdateType::Modify as i32);
+            assert_eq!(network.name, expected_network_name);
+            assert_eq!(network.addresses, vec![expected_address.to_string()]);
+            assert_eq!(network.port, expected_port);
+            assert_eq!(network.peers, Vec::new());
+            assert_eq!(network.firewall_config, None);
+            assert_eq!(network.mtu, expected_mtu);
+            assert_eq!(network.fwmark, expected_fwmark);
+        }
+        _ => panic_unexpected!("expected network modify update"),
     }
 }

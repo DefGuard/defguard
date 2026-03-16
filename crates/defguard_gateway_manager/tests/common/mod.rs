@@ -270,10 +270,17 @@ pub(crate) struct HandlerTestContext {
 
 impl HandlerTestContext {
     pub(crate) async fn new(options: PgConnectOptions) -> Self {
+        let (events_tx, _) = broadcast::channel(16);
+        Self::new_with_events_tx(options, events_tx).await
+    }
+
+    pub(crate) async fn new_with_events_tx(
+        options: PgConnectOptions,
+        events_tx: broadcast::Sender<GatewayEvent>,
+    ) -> Self {
         let pool = setup_pool(options).await;
         let network = create_network(&pool).await;
         let gateway = create_gateway(&pool, network.id).await;
-        let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, peer_stats_rx) = mpsc::unbounded_channel();
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let mut mock_gateway = MockGatewayHarness::start().await;
@@ -346,12 +353,13 @@ impl HandlerTestContext {
     }
 
     pub(crate) async fn complete_config_handshake(&mut self) -> Gateway<Id> {
+        let initial_event_receivers = self.events_tx().receiver_count();
         self.mock_gateway().send_config_request();
         let _ = self.mock_gateway_mut().recv_outbound().await;
         let connected_gateway =
             wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
         timeout(TEST_TIMEOUT, async {
-            while self.events_tx().receiver_count() == 0 {
+            while self.events_tx().receiver_count() <= initial_event_receivers {
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }
         })
