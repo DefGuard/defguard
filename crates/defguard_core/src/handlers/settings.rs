@@ -51,14 +51,15 @@ pub(crate) async fn update_settings(
 
     // fetch current settings for event
     let before = Settings::get_current_settings();
+    let license = data.license.clone();
 
-    update_cached_license(data.license.as_deref())?;
     data.uuid = before.uuid;
     data.validate()?;
     // clone for event
     let after = data.clone();
 
     update_current_settings(&appstate.pool, data).await?;
+    update_cached_license(license.as_deref())?;
 
     info!("User {} updated settings", session.user.username);
     appstate.emit_event(ApiEvent {
@@ -127,12 +128,7 @@ pub async fn patch_settings(
     let mut settings = Settings::get_current_settings();
     // prepare clone for emitting an event
     let before = settings.clone();
-
-    // Handle updating the cached license
-    if let Some(license_key) = &data.license {
-        update_cached_license(license_key.as_deref())?;
-        debug!("Saving the new license key to the database as part of the settings patch");
-    }
+    let license = data.license.clone();
 
     if let Some(ldap_enabled) = data.ldap_enabled {
         if !ldap_enabled {
@@ -157,6 +153,10 @@ pub async fn patch_settings(
     // clone for event
     let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;
+    if let Some(license_key) = &license {
+        update_cached_license(license_key.as_deref())?;
+        debug!("Updated cached license after saving settings patch");
+    }
 
     info!("Admin {} patched settings", session.user.username);
     appstate.emit_event(ApiEvent {

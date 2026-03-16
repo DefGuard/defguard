@@ -106,7 +106,7 @@ impl AppState {
         let settings = Settings::get_current_settings();
         settings.build_webauthn().map(Arc::new).map_err(|err| {
             error!("Failed to build WebAuthn configuration from current settings: {err}");
-            err.into()
+            WebError::Http(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
         })
     }
 

@@ -51,8 +51,8 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
-    #[error(transparent)]
-    InvalidDefguardUrl(#[from] SettingsUrlError),
+    #[error("Invalid defguard_url `{0}`")]
+    InvalidDefguardUrl(String),
 }
 
 #[derive(Error, Debug)]
@@ -65,8 +65,6 @@ pub enum SettingsInitializationError {
     Missing(&'static str),
     #[error("Invalid required setting `{0}`: {1}")]
     Invalid(&'static str, &'static str),
-    #[error(transparent)]
-    InvalidDefguardUrl(#[from] SettingsUrlError),
 }
 
 #[derive(Error, Debug, Clone)]
@@ -328,7 +326,8 @@ impl Settings {
         BASE64_STANDARD.encode(bytes)
     }
 
-    pub fn parse_defguard_url(&self) -> Result<Url, SettingsUrlError> {
+    /// Parse `defguard_url` and reject unsupported host forms.
+    fn parse_defguard_url(&self) -> Result<Url, SettingsUrlError> {
         let url = Url::parse(&self.defguard_url)
             .map_err(|_| SettingsUrlError::InvalidDefguardUrl(self.defguard_url.clone()))?;
         let host = url
@@ -342,7 +341,8 @@ impl Settings {
         Ok(url)
     }
 
-    pub fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
+    /// Derive the WebAuthn relying party ID from `defguard_url`.
+    fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
         let domain = url
             .domain()
@@ -355,6 +355,7 @@ impl Settings {
         domain.ok_or_else(|| SettingsUrlError::MissingDefguardDomain(self.defguard_url.clone()))
     }
 
+    /// Derive the cookie domain from `defguard_url`.
     pub fn cookie_domain(&self) -> Result<String, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
         url.host_str()
@@ -362,24 +363,7 @@ impl Settings {
             .ok_or_else(|| SettingsUrlError::MissingDefguardHost(self.defguard_url.clone()))
     }
 
-    pub fn validate_defguard_url(&self) -> Result<(), SettingsUrlError> {
-        let url = self.parse_defguard_url()?;
-        let rp_id = self.webauthn_rp_id()?;
-        let builder = WebauthnBuilder::new(&rp_id, &url).map_err(|err| {
-            SettingsUrlError::InvalidWebauthnConfiguration(
-                self.defguard_url.clone(),
-                err.to_string(),
-            )
-        })?;
-        builder.build().map_err(|err| {
-            SettingsUrlError::InvalidWebauthnConfiguration(
-                self.defguard_url.clone(),
-                err.to_string(),
-            )
-        })?;
-        Ok(())
-    }
-
+    /// Build a WebAuthn configuration from the current Defguard URL.
     pub fn build_webauthn(&self) -> Result<webauthn_rs::Webauthn, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
         let rp_id = self.webauthn_rp_id()?;
@@ -442,7 +426,8 @@ impl Settings {
             warn!("Detected empty UUID in settings. Generating a new one.");
             self.uuid = Uuid::new_v4();
         }
-        self.validate_defguard_url()?;
+        self.build_webauthn()
+            .map_err(|_| SettingsValidationError::InvalidDefguardUrl(self.defguard_url.clone()))?;
         // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
         // configured.
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
@@ -1102,25 +1087,25 @@ mod test {
     }
 
     #[test]
-    fn test_validate_defguard_url_accepts_valid_hostname() {
-        let settings = Settings {
+    fn test_validate_accepts_valid_hostname() {
+        let mut settings = Settings {
             defguard_url: "https://defguard.example.com".into(),
             ..Default::default()
         };
 
-        assert!(settings.validate_defguard_url().is_ok());
+        assert!(settings.validate().is_ok());
     }
 
     #[test]
-    fn test_validate_defguard_url_rejects_invalid_url() {
-        let settings = Settings {
+    fn test_validate_rejects_invalid_url() {
+        let mut settings = Settings {
             defguard_url: "not a url".into(),
             ..Default::default()
         };
 
         assert!(matches!(
-            settings.validate_defguard_url(),
-            Err(SettingsUrlError::InvalidDefguardUrl(_))
+            settings.validate(),
+            Err(SettingsValidationError::InvalidDefguardUrl(_))
         ));
     }
 
