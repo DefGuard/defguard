@@ -196,20 +196,17 @@ export const UsersTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('phone', {
-        size: 175,
-        minSize: 175,
-        header: m.users_col_phone(),
-        enableSorting: false,
-        cell: (info) => {
-          const phone = info.getValue();
-          const display = isPresent(phone) && phone.length ? phone : '~';
-          return (
-            <TableCell>
-              <span>{display}</span>
-            </TableCell>
-          );
-        },
+      columnHelper.accessor('email', {
+        header: m.form_label_email(),
+        size: 200,
+        minSize: 150,
+        enableSorting: true,
+        sortingFn: 'text',
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
