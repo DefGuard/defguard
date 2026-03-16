@@ -15,7 +15,12 @@ jobs:
       - X64
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Install gh cli
+        run: |
+          sudo apt-get install -y gh
+
       - name: Download .deb assets from release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -45,7 +50,7 @@ jobs:
             else
               codename="trixie"
             fi
-
+            
             echo "Uploading $deb_file to $codename"
             deb-s3 upload -l \
               --bucket=apt.defguard.net \
@@ -54,7 +59,7 @@ jobs:
               --s3-region=eu-north-1 \
               --no-fail-if-exists \
               --codename="$codename" \
-              --component="$component"
+              --component="$component" \
               "$deb_file"
           done
 
