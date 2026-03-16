@@ -1067,8 +1067,21 @@ type AliasDataBlockProps = {
   values: string[];
 };
 
-const normalizeAliasValues = (values: string[]) =>
-  values.map((value) => value.trim()).filter((value) => value.length > 0);
+const normalizeAliasValues = (values: string[]) => {
+  const seenValues = new Set<string>();
+
+  return values.reduce<string[]>((normalizedValues, value) => {
+    const trimmedValue = value.trim();
+
+    if (trimmedValue.length === 0 || seenValues.has(trimmedValue)) {
+      return normalizedValues;
+    }
+
+    seenValues.add(trimmedValue);
+    normalizedValues.push(trimmedValue);
+    return normalizedValues;
+  }, []);
+};
 
 const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
   const normalizedValues = normalizeAliasValues(values);
@@ -1081,8 +1094,8 @@ const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
         <p>{`Data from aliases`}</p>
       </div>
       <div className="content-track">
-        {normalizedValues.map((value, index) => (
-          <Chip key={`${value}-${index}`} text={value} />
+        {normalizedValues.map((value) => (
+          <Chip key={value} text={value} />
         ))}
         {normalizedValues.length > 4 && (
           <button
