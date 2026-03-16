@@ -331,9 +331,9 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             s.values.service_location_mode !== LocationServiceMode.Disabled
           }
         >
-          {(mfaLocked) => (
+          {(isServiceLocation) => (
             <>
-              {mfaLocked && (
+              {isServiceLocation && (
                 <InfoBanner
                   icon="info-outlined"
                   variant="warning"
@@ -368,19 +368,19 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <field.FormRadio
                         value={LocationMfaMode.Disabled}
                         text="Do not enforce MFA"
-                        disabled={mfaLocked}
+                        disabled={isServiceLocation}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationMfaMode.Internal}
                         text="Internal MFA"
-                        disabled={mfaLocked}
+                        disabled={isServiceLocation}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationMfaMode.External}
                         text="External MFA"
-                        disabled={mfaLocked}
+                        disabled={isServiceLocation}
                       />
                     </>
                   )}
@@ -414,7 +414,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
         <form.Subscribe
           selector={(s) => s.values.location_mfa_mode !== LocationMfaMode.Disabled}
         >
-          {(disabled) => (
+          {(mfaEnabled) => (
             <form.AppField
               name="service_location_mode"
               validators={{ onChangeListenTo: ['location_mfa_mode'] }}
@@ -436,7 +436,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               {(field) => {
                 return (
                   <>
-                    {disabled && (
+                    {mfaEnabled && (
                       <InfoBanner
                         variant="warning"
                         icon="info-outlined"
@@ -452,19 +452,19 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
                         text="Regular location"
-                        disabled={disabled || serviceLocationLocked}
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Prelogon}
                         text="Service location: Pre-logon"
-                        disabled={disabled || serviceLocationLocked}
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Alwayson}
                         text="Service location: Always on"
-                        disabled={disabled || serviceLocationLocked}
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                     </EditPageFormSection>
                   </>
