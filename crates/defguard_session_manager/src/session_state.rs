@@ -19,7 +19,7 @@ use tracing::{debug, warn};
 
 use crate::{
     error::SessionManagerError,
-    events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
+    events::{SessionManagerEvent, SessionManagerEventContext},
 };
 
 /// Helper map to store latest stats update for each gateway in a given location
@@ -103,6 +103,7 @@ impl SessionState {
         &mut self,
         transaction: &mut PgConnection,
         peer_stats_update: PeerStatsUpdate,
+        event_tx: &UnboundedSender<SessionManagerEvent>,
     ) -> Result<(), SessionManagerError> {
         // mark new MFA session as connected if necessary
         if self.state == VpnClientSessionState::New {
@@ -116,6 +117,31 @@ impl SessionState {
             db_session.state = VpnClientSessionState::Connected;
             db_session.connected_at = Some(peer_stats_update.latest_handshake);
             db_session.save(&mut *transaction).await?;
+
+            let user = User::find_by_id(&mut *transaction, db_session.user_id)
+                .await?
+                .ok_or(SessionManagerError::UserDoesNotExistError(db_session.user_id))?;
+            let device = Device::find_by_id(&mut *transaction, db_session.device_id)
+                .await?
+                .ok_or(SessionManagerError::DeviceDoesNotExistError(db_session.device_id))?;
+            let location = WireguardNetwork::find_by_id(&mut *transaction, db_session.location_id)
+                .await?
+                .ok_or(SessionManagerError::LocationDoesNotExistError(
+                    db_session.location_id,
+                ))?;
+
+            let context = SessionManagerEventContext {
+                timestamp: peer_stats_update.latest_handshake,
+                location,
+                user,
+                device,
+                public_ip: peer_stats_update.endpoint.ip(),
+            };
+            let event = SessionManagerEvent::connected_for_session(
+                context,
+                db_session.mfa_method.is_some(),
+            );
+            event_tx.send(event)?;
 
             // update local session state
             self.state = VpnClientSessionState::Connected;
@@ -339,10 +365,7 @@ impl ActiveSessionsMap {
             device,
             public_ip,
         };
-        let event = SessionManagerEvent {
-            context,
-            event: SessionManagerEventType::ClientConnected,
-        };
+        let event = SessionManagerEvent::connected_for_session(context, false);
         event_tx.send(event)?;
 
         Ok(session_map.0.get_mut(&device_id))

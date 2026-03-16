@@ -25,7 +25,7 @@ use tracing::{debug, error, info, trace, warn};
 
 use crate::{
     error::SessionManagerError,
-    events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
+    events::{SessionManagerEvent, SessionManagerEventContext},
     session_state::ActiveSessionsMap,
 };
 
@@ -192,7 +192,9 @@ impl SessionManager {
 
         if let Some(session) = maybe_session {
             // update session stats
-            session.update_stats(transaction, message).await?;
+            session
+                .update_stats(transaction, message, &self.session_manager_event_tx)
+                .await?;
         }
 
         trace!("Finished processing peer stats update");
@@ -315,11 +317,13 @@ impl SessionManager {
             // FIXME: this is a workaround since we require an IP for each audit log event
             public_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         };
-        let event = SessionManagerEvent {
-            context,
-            event: SessionManagerEventType::ClientDisconnected,
-        };
-        self.session_manager_event_tx.send(event)?;
+        if session.connected_at.is_some() {
+            let event = SessionManagerEvent::disconnected_for_session(
+                context,
+                session.mfa_method.is_some(),
+            );
+            self.session_manager_event_tx.send(event)?;
+        }
 
         Ok(())
     }
