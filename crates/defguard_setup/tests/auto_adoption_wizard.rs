@@ -1,13 +1,17 @@
-use defguard_common::db::{
-    models::{
-        Settings, WireguardNetwork,
-        settings::initialize_current_settings,
-        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-        wireguard::{LocationMfaMode, ServiceLocationMode},
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            Settings, WireguardNetwork,
+            settings::initialize_current_settings,
+            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
+use defguard_setup::auto_adoption::attempt_auto_adoption;
 use ipnetwork::IpNetwork;
 use reqwest::{
     Client, StatusCode,
@@ -379,4 +383,44 @@ async fn test_auto_adoption_vpn_settings_missing_network(
 
     // Step must NOT have advanced past VpnSettings
     assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::VpnSettings).await;
+}
+
+fn config_with_flags(adopt_edge: Option<&str>, adopt_gateway: Option<&str>) -> DefGuardConfig {
+    let mut config = DefGuardConfig::new_test_config();
+    config.adopt_edge = adopt_edge.map(str::to_string);
+    config.adopt_gateway = adopt_gateway.map(str::to_string);
+    config
+}
+
+/// attempt_auto_adoption must fail immediately when fewer than both flags are set.
+#[sqlx::test]
+async fn test_attempt_auto_adoption_requires_both_flags(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = defguard_common::db::setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    // only adopt_edge
+    assert!(
+        attempt_auto_adoption(&pool, &config_with_flags(Some("edge.example.com:8080"), None))
+            .await
+            .is_err()
+    );
+
+    // only adopt_gateway
+    assert!(
+        attempt_auto_adoption(&pool, &config_with_flags(None, Some("gw.example.com:8080")))
+            .await
+            .is_err()
+    );
+
+    // neither flag
+    assert!(
+        attempt_auto_adoption(&pool, &config_with_flags(None, None))
+            .await
+            .is_err()
+    );
 }

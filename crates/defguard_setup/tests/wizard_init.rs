@@ -46,7 +46,7 @@ async fn test_wizard_init_auto_adopt_flags(_: PgPoolOptions, options: PgConnectO
         .await
         .expect("Failed to initialize settings");
 
-    // Fresh DB + auto-adopt flags: AutoAdoption wizard
+    // Fresh DB + both auto-adopt flags provided: AutoAdoption wizard
     let wizard = Wizard::init(&pool, true)
         .await
         .expect("Failed to init wizard");
@@ -136,7 +136,7 @@ async fn test_wizard_init_idempotent(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(
         third.active_wizard,
         ActiveWizard::Initial,
-        "Already-active wizard should not be switched by flags"
+        "Already-active wizard should not be switched even when both adopt flags are set"
     );
 
     // Simulate completion: mark wizard as done
