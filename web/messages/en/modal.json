@@ -162,7 +162,7 @@
   "modal_assign_user_device_ip_error": "Failed to update IP addresses",
   "modal_no_available_locations_title": "Cannot add network device",
   "modal_no_available_locations_subtitle": "No available locations",
-  "modal_no_available_locations_body": "Network devices can only be added to locations that have MFA disabled. You don't have any locations that meet this requirement.",
+  "modal_no_available_locations_body": "Network devices can only be added to locations that have MFA disabled. You don't have any locations that meet this requirement. You can create a new location in the Locations section.",
   "modal_no_available_locations_hint": "Use the button below to go to the Locations page and create a location with MFA disabled.",
   "modal_no_available_locations_go_to_locations": "Go to locations"
 }

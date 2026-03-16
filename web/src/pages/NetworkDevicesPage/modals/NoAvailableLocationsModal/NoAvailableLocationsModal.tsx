@@ -1,18 +1,16 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
+import { Controls } from '../../../../shared/components/Controls/Controls';
 import { AppText } from '../../../../shared/defguard-ui/components/AppText/AppText';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../../shared/defguard-ui/types';
+import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
+import { TextStyle } from '../../../../shared/defguard-ui/types';
 import {
   subscribeCloseModal,
   subscribeOpenModal,
 } from '../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
-import { LicenseModal } from '../../../../shared/components/modals/LicenseModal/LicenseModal';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 
 const modalNameValue = ModalName.NoAvailableLocations;
 
@@ -32,27 +30,21 @@ export const NoAvailableLocationsModal = () => {
   }, []);
 
   return (
-    <LicenseModal
+    <Modal
       id="no-available-locations-modal"
+      size="small"
+      title={m.modal_no_available_locations_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {}}
     >
-      <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgDefault}>
-        {m.modal_no_available_locations_title()}
-      </AppText>
-      <Divider spacing={ThemeSpacing.Xl} />
-      <AppText font={TextStyle.TBodyPrimary500} color={ThemeVariable.FgFaded}>
+      <AppText font={TextStyle.TBodySm400}>
         {m.modal_no_available_locations_body()}
-      </AppText>
-      <SizedBox height={ThemeSpacing.Lg} />
-      <AppText font={TextStyle.TBodyXs400} color={ThemeVariable.FgMuted}>
-        {m.modal_no_available_locations_hint()}
       </AppText>
       <Controls>
         <div className="right">
           <Button
-            text={m.controls_close()}
+            text={m.controls_cancel()}
             variant="secondary"
             onClick={() => setOpen(false)}
           />
@@ -65,6 +57,6 @@ export const NoAvailableLocationsModal = () => {
           />
         </div>
       </Controls>
-    </LicenseModal>
+    </Modal>
   );
 };
