@@ -7,7 +7,6 @@ import { DeleteNetworkDeviceModal } from './modals/DeleteNetworkDeviceModal/Dele
 import { EditNetworkDeviceModal } from './modals/EditNetworkDeviceModal/EditNetworkDeviceModal';
 import { NetworkDeviceConfigModal } from './modals/NetworkDeviceConfigModal/NetworkDeviceConfigModal';
 import { NetworkDeviceTokenModal } from './modals/NetworkDeviceTokenModal/NetworkDeviceTokenModal';
-import { NoAvailableLocationsModal } from './modals/NoAvailableLocationsModal/NoAvailableLocationsModal';
 import { NetworkDevicesTable } from './NetworkDevicesTable';
 
 export const NetworkDevicesPage = () => {
@@ -25,7 +24,6 @@ export const NetworkDevicesPage = () => {
       <NetworkDeviceTokenModal />
       <EditNetworkDeviceModal />
       <DeleteNetworkDeviceModal />
-      <NoAvailableLocationsModal />
     </>
   );
 };

@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -45,6 +46,7 @@ type RowData = NetworkDevice;
 const columnHelper = createColumnHelper<RowData>();
 
 export const NetworkDevicesTable = ({ networkDevices }: Props) => {
+  const navigate = useNavigate();
   const reservedNames = useMemo(
     () => networkDevices.map((n) => n.name),
     [networkDevices],
@@ -61,7 +63,13 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ['asc'],
       );
       if (!availableLocations.length) {
-        openModal(ModalName.NoAvailableLocations);
+        openModal(ModalName.ConfirmAction, {
+          title: m.modal_no_available_locations_title(),
+          contentMd: m.modal_no_available_locations_body(),
+          actionPromise: async () => {},
+          onSuccess: () => navigate({ to: '/locations' }),
+          submitProps: { text: m.modal_no_available_locations_go_to_locations() },
+        });
         return;
       }
       const { data: availableIps } = await api.network_device.getAvailableIp(
