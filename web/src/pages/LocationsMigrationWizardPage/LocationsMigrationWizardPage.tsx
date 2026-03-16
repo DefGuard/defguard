@@ -52,7 +52,7 @@ const Content = () => {
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: migrationWizardFinishPromise,
     onSuccess: () => {
-      Snackbar.success(`Migration completed`);
+      Snackbar.default(`Migration completed`);
       navigate({ to: '/vpn-overview', replace: true });
       setTimeout(() => {
         useMigrationWizardStore.getState().resetState();

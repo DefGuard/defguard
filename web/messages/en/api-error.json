@@ -1,0 +1,4 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "api_error_network_full": "Network is full, no IP addresses available"
+}

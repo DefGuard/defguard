@@ -11,6 +11,7 @@ import type {
   OpenCEGroupModal,
   OpenCEOpenIdClientModal,
   OpenCEWebhookModal,
+  OpenConfirmActionModal,
   OpenDeleteAliasDestinationBlockedModal,
   OpenDeleteAliasDestinationConfirmModal,
   OpenDeleteGatewayModal,
@@ -74,6 +75,7 @@ export const ModalName = {
   AddNewDevice: 'addNewDevice',
   AssignUserIP: 'assignUserIP',
   AssignUserDeviceIP: 'assignUserDeviceIP',
+  ConfirmAction: 'confirmAction',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -238,6 +240,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.AssignUserDeviceIP),
     data: z.custom<OpenAssignUserDeviceIPModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.ConfirmAction),
+    data: z.custom<OpenConfirmActionModal>(),
   }),
 ]);
 

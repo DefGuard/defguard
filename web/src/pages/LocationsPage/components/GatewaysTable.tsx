@@ -161,6 +161,9 @@ export const GatewaysTable = () => {
         header: 'Used in location',
         size: 220,
         minSize: 200,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>

@@ -57,6 +57,12 @@ pub mod wireguard;
 pub mod worker;
 pub(crate) mod yubikey;
 
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WebErrorCode {
+    NetworkFull,
+}
+
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
@@ -236,6 +242,13 @@ impl From<WebError> for ApiResponse {
             | WebError::BadRequest(msg) => {
                 error!(msg);
                 ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+            }
+            WebError::NetworkFull(msg) => {
+                warn!(msg);
+                ApiResponse::new(
+                    json!({"msg": msg, "code": WebErrorCode::NetworkFull}),
+                    StatusCode::BAD_REQUEST,
+                )
             }
             WebError::TemplateError(err) => {
                 error!("Template error: {err}");

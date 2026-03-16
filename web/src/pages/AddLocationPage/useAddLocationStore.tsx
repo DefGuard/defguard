@@ -9,6 +9,7 @@ import {
 import { AddLocationPageStep, type AddLocationPageStepValue } from './types';
 
 type StoreValues = {
+  isWelcome: boolean;
   activeStep: AddLocationPageStepValue;
   locationType: 'regular' | 'service';
 } & EditNetworkLocation;
@@ -19,6 +20,7 @@ type StoreMethods = {
 };
 
 const defaults: StoreValues = {
+  isWelcome: true,
   locationType: 'regular',
   activeStep: AddLocationPageStep.Start,
   // form values
@@ -27,6 +29,7 @@ const defaults: StoreValues = {
   keepalive_interval: 25,
   mtu: 1420,
   fwmark: 0,
+  allow_all_groups: false,
   peer_disconnect_threshold: 300,
   acl_default_allow: true,
   acl_enabled: false,

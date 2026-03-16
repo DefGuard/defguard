@@ -10,6 +10,7 @@ import {
 import { ModalName } from '../../../../hooks/modalControls/modalTypes';
 import { LicenseModal } from '../../LicenseModal/LicenseModal';
 import { LicenseModalControls } from '../LicenseModalControls';
+import { LicenseModalSideImage } from '../LicenseModalSideImage/LicenseModalSideImage';
 
 const modalNameKey = ModalName.LimitReached;
 
@@ -33,6 +34,7 @@ export const LimitReachedModal = () => {
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {}}
+      image={<LicenseModalSideImage variant="limit" />}
     >
       <ModalContent />
     </LicenseModal>

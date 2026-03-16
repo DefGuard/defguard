@@ -59,7 +59,7 @@ impl ApiToken<Id> {
             Self,
             "SELECT at.id, user_id, created_at, name, token_hash \
              FROM api_token at JOIN \"user\" ON \"user\".id = user_id \
-             WHERE token_hash = $1 AND \"user\".is_active = true",
+             WHERE token_hash = $1 AND \"user\".is_active",
             token_hash
         )
         .fetch_optional(executor)

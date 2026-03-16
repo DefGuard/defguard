@@ -272,7 +272,7 @@ const AssignmentForm = ({
         <ModalControls
           submitProps={{
             text: m.controls_submit(),
-            disabled: isSubmitting,
+            disabled: isSubmitting || !hasDevices,
             onClick: () => form.handleSubmit(),
           }}
           cancelProps={{

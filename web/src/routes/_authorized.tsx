@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { DisplayListModal } from '../shared/components/DisplayListModal/DisplayListModal';
+import { ConfirmActionModal } from '../shared/components/modals/ConfirmActionModal/ConfirmActionModal';
 import { LicenseExpiredModal } from '../shared/components/modals/license/LicenseExpiredModal/LicenseExpiredModal';
 import { LicenseLimitConflictModal } from '../shared/components/modals/license/LicenseLimitConflictModal/LicenseLimitConflictModal';
 import { LimitReachedModal } from '../shared/components/modals/license/LimitReachedModal/LimitReachedModal';
@@ -58,6 +59,7 @@ function RouteComponent() {
         <LicenseExpiredModal />
         <DisplayListModal />
         <SelectionModal />
+        <ConfirmActionModal />
       </AppInfoProvider>
     </AppUserProvider>
   );

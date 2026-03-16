@@ -988,7 +988,7 @@ pub(crate) async fn get_location_active_acl_rules(
         use_manual_destination_settings \
         FROM aclrule a \
         LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
-        WHERE (an.network_id = $1 OR a.all_locations = true) AND enabled = true \
+        WHERE (an.network_id = $1 OR a.all_locations) AND enabled \
         AND state = 'applied'::aclrule_state \
         AND (expires IS NULL OR expires > NOW())",
     )

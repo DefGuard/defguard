@@ -7,9 +7,13 @@ import { formChangeLogic } from '../../../../../formLogic';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import api from '../../../../../api/api';
+import { getApiErrorMessage } from '../../../../../api/apiErrorMessages';
+import type { ApiError } from '../../../../../api/types';
 import { SizedBox } from '../../../../../defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../defguard-ui/types';
 import { patternValidWireguardKey } from '../../../../../patterns';
 import { generateWGKeys } from '../../../../../utils/generateWGKeys';
@@ -79,7 +83,7 @@ export const AddDeviceModalManualSetupStep = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       let publicKey: string;
       let privateKey: string | undefined;
 
@@ -95,10 +99,29 @@ export const AddDeviceModalManualSetupStep = () => {
         name: value.name,
         username,
         wireguard_pubkey: publicKey,
+      }).catch((e: AxiosError<ApiError>) => {
+        const msg = e.response?.data.msg;
+        if (msg?.includes('already exists')) {
+          formApi.setErrorMap({
+            onSubmit: {
+              fields: {
+                publicKey: m.form_error_key_exists(),
+              },
+            },
+          });
+        } else {
+          const code = (e as AxiosError<ApiError>).response?.data?.code;
+          if (code) {
+            Snackbar.error(getApiErrorMessage(code));
+          }
+        }
       });
+
+      if (!createResponse) return;
 
       if (!createResponse.data.configs.length) {
         useAddUserDeviceModal.getState().close();
+        return;
       }
 
       useAddUserDeviceModal.setState({

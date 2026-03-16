@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin AND user_id = $1) \"bool!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bool!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9ef3bbc058409f578f68a6a186dc0d60a34a755bf3acbdbc5620ba88be00872d"
+}

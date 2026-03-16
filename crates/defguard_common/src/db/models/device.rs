@@ -27,7 +27,9 @@ use crate::{
             ModelError, WireguardNetwork,
             user::User,
             vpn_client_session::VpnClientSessionState,
-            wireguard::{LocationMfaMode, NetworkAddressError, ServiceLocationMode},
+            wireguard::{
+                LocationMfaMode, NetworkAddressError, ServiceLocationMode, WireguardNetworkError,
+            },
         },
     },
 };
@@ -502,8 +504,9 @@ impl WireguardNetworkDevice {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
@@ -539,9 +542,13 @@ pub enum DeviceError {
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error(transparent)]
+    ModelError(#[from] ModelError),
+    #[error(transparent)]
     NetworkIpAssignmentError(#[from] NetworkAddressError),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
+    #[error("Network {0} is full, no IP addresses available for device")]
+    NetworkFull(String),
 }
 
 impl Device {
@@ -780,12 +787,23 @@ impl Device<Id> {
                 continue;
             }
 
-            // FIXME: don't ignore the error.
-            let Ok(wireguard_network_device) =
-                network.add_device_to_network(&mut *conn, self, None).await
-            else {
-                warn!("Failed to add device {self} to network {network}");
-                continue;
+            let wireguard_network_device = match network
+                .add_device_to_network(&mut *conn, self, None)
+                .await
+            {
+                Ok(device) => device,
+                Err(WireguardNetworkError::DeviceNotAllowed(_)) => {
+                    debug!("Device {self} is not allowed in network {network}, skipping");
+                    continue;
+                }
+                Err(WireguardNetworkError::DeviceError(DeviceError::NetworkFull(_))) => {
+                    warn!("Network {network} is full, no IP addresses available for device {self}");
+                    return Err(DeviceError::NetworkFull(network.name.clone()));
+                }
+                Err(err) => {
+                    warn!("Failed to add device {self} to network {network}: {err}");
+                    return Err(DeviceError::Unexpected(err.to_string()));
+                }
             };
 
             debug!(
@@ -846,7 +864,7 @@ impl Device<Id> {
     /// # Returns
     ///
     /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.
-    /// - `Err(ModelError::CannotCreate)`: If any subnet lacks an available IP.
+    /// - `Err(DeviceError::NetworkFull)`: If any subnet lacks an available IP.
     pub async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
@@ -854,7 +872,7 @@ impl Device<Id> {
         used_ips: &HashSet<IpAddr>,
         reserved_ips: Option<&[IpAddr]>,
         current_ips: Option<&[IpAddr]>,
-    ) -> Result<WireguardNetworkDevice, ModelError> {
+    ) -> Result<WireguardNetworkDevice, DeviceError> {
         debug!(
             "Assiging IP addresses for device: {} in network {}",
             self.name, network.name
@@ -899,7 +917,7 @@ impl Device<Id> {
                     "Failed to assign address for device {} in network {address:?}",
                     self.name,
                 );
-                ModelError::CannotCreate
+                DeviceError::NetworkFull(address.to_string())
             })?;
 
             // Otherwise, store the IP address
@@ -966,11 +984,13 @@ impl Device<Id> {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, connected_at,  keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
-            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
+            (SELECT wireguard_network_id FROM wireguard_network_device \
+            WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
         )
         .fetch_all(executor)
@@ -1435,11 +1455,15 @@ mod test {
         .await
         .unwrap();
 
-        let mut network = WireguardNetwork::default();
+        let mut network = WireguardNetwork::<NoId> {
+            allow_all_groups: true,
+            ..Default::default()
+        };
         network.try_set_address("10.1.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
         let mut network_2 = WireguardNetwork::<NoId> {
             name: "testnetwork2".into(),
+            allow_all_groups: true,
             ..Default::default()
         };
         network_2.try_set_address("10.1.2.1/24").unwrap();
@@ -1542,6 +1566,7 @@ mod test {
 
         let network = WireguardNetwork::<NoId> {
             address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()],
+            allow_all_groups: true,
             ..Default::default()
         }
         .save(&pool)

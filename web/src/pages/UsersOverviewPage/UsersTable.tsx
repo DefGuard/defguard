@@ -39,6 +39,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../shared/hooks/useApp';
+import { useAuth } from '../../shared/hooks/useAuth';
 import {
   getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
@@ -55,6 +56,7 @@ export const UsersTable = () => {
   const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const appInfo = useApp((s) => s.appInfo);
+  const authUsername = useAuth((s) => s.user?.username);
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
@@ -150,6 +152,9 @@ export const UsersTable = () => {
         enableSorting: true,
         sortingFn: 'text',
         minSize: 250,
+        meta: {
+          flex: true,
+        },
         cell: (info) => {
           const rowData = info.row.original;
           return (
@@ -267,7 +272,7 @@ export const UsersTable = () => {
                   testId: 'change-password',
                   onClick: () => {
                     openModal(ModalName.ChangePassword, {
-                      adminForm: true,
+                      adminForm: rowData.username !== authUsername,
                       user: rowData,
                     });
                   },
@@ -415,6 +420,7 @@ export const UsersTable = () => {
       handleEditGroups,
       groups,
       appInfo,
+      authUsername,
     ],
   );
 
@@ -426,23 +432,16 @@ export const UsersTable = () => {
       m.users_col_connected_through(),
       m.users_col_connected_date(),
       '',
-      '',
     ],
     [],
   );
-
-  const { mutate: deleteDevice } = useMutation({
-    mutationFn: api.device.deleteDevice,
-    meta: {
-      invalidate: [['user-overview'], ['user'], ['network']],
-    },
-  });
 
   const makeDeviceRowMenu = useCallback(
     (
       device: Device,
       username: string,
       reservedDeviceNames: string[],
+      reservedPubkeys: string[],
     ): MenuItemsGroup[] => [
       {
         items: [
@@ -453,6 +452,7 @@ export const UsersTable = () => {
               openModal(ModalName.EditUserDevice, {
                 device,
                 reservedNames: reservedDeviceNames,
+                reservedPubkeys,
                 username,
               });
             },
@@ -489,7 +489,15 @@ export const UsersTable = () => {
           {
             text: m.controls_delete(),
             onClick: () => {
-              deleteDevice(device.id);
+              openModal(ModalName.ConfirmAction, {
+                title: m.modal_delete_user_device_title(),
+                contentMd: m.modal_delete_user_device_body({ name: device.name }),
+                actionPromise: () => api.device.deleteDevice(device.id),
+                invalidateKeys: [['user-overview'], ['user'], ['network']],
+                submitProps: { text: m.controls_delete(), variant: 'critical' },
+                onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+                onError: () => Snackbar.error(m.user_device_delete_failed()),
+              });
             },
             variant: 'danger',
             icon: 'delete',
@@ -497,13 +505,14 @@ export const UsersTable = () => {
         ],
       },
     ],
-    [deleteDevice],
+    [],
   );
 
   const renderExpanded = useCallback(
     (row: Row<RowData>, isLast = false) => {
       const username = row.original.username;
       const reservedDeviceNames = row.original.devices.map((d) => d.name);
+      const reservedPubkeys = row.original.devices.map((d) => d.wireguard_pubkey);
       return row.original.devices.map((device, deviceIndex) => {
         const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
         const latestNetwork = orderBy(
@@ -519,7 +528,12 @@ export const UsersTable = () => {
         const connectionDate = latestNetwork?.last_connected_at
           ? displayDate(latestNetwork.last_connected_at)
           : neverConnected;
-        const menuItems = makeDeviceRowMenu(device, username, reservedDeviceNames);
+        const menuItems = makeDeviceRowMenu(
+          device,
+          username,
+          reservedDeviceNames,
+          reservedPubkeys,
+        );
         return (
           <TableRowContainer
             className={clsx({ last: lastRow })}

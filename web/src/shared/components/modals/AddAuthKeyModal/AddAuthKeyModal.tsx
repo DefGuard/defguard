@@ -12,7 +12,7 @@ import {
 import { ModalName } from '../../../hooks/modalControls/modalTypes';
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../../api/api';
@@ -20,6 +20,7 @@ import { type ApiError, AuthKeyType, type AuthKeyTypeValue } from '../../../api/
 import { Select } from '../../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../../defguard-ui/components/Select/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { getUserAuthKeysQueryOptions } from '../../../query';
 
 const modalNameKey = ModalName.AddAuthKey;
 
@@ -67,9 +68,16 @@ const selectOptions: SelectOption<AuthKeyTypeValue>[] = [
   },
 ] as const;
 
-const getFormSchema = () =>
+const getFormSchema = (existingNames: string[]) =>
   z.object({
-    name: z.string().trim().min(1, m.form_error_required()),
+    name: z
+      .string()
+      .trim()
+      .min(1, m.form_error_required())
+      .refine(
+        (val) => !existingNames.includes(val.trim().toLowerCase()),
+        m.form_error_name_reserved(),
+      ),
     key: z.string().trim().min(1, m.form_error_required()),
   });
 
@@ -82,7 +90,11 @@ const defaultValues: FormFields = {
 
 const ModalContent = ({ username }: { username: string }) => {
   const [selected, setSelected] = useState(selectOptions[0]);
-  const formSchema = useMemo(() => getFormSchema(), []);
+  const { data: authKeys = [] } = useQuery(getUserAuthKeysQueryOptions(username));
+  const existingNames = authKeys
+    .map((k) => k.name?.toLowerCase())
+    .filter(Boolean) as string[];
+  const formSchema = useMemo(() => getFormSchema(existingNames), [existingNames]);
 
   const { mutateAsync: addKey } = useMutation({
     mutationFn: api.user.addAuthKey,
@@ -113,6 +125,14 @@ const ModalContent = ({ username }: { username: string }) => {
             onSubmit: {
               fields: {
                 key: m.form_error_invalid_key(),
+              },
+            },
+          });
+        } else if (msg?.includes('already exists')) {
+          formApi.setErrorMap({
+            onSubmit: {
+              fields: {
+                key: m.form_error_key_exists(),
               },
             },
           });
@@ -151,7 +171,7 @@ const ModalContent = ({ username }: { username: string }) => {
             {(field) => <field.FormInput label={m.form_label_name()} required />}
           </form.AppField>
           <form.AppField name="key">
-            {(field) => <field.FormInput label={m.form_label_key()} required />}
+            {(field) => <field.FormTextarea label={m.form_label_key()} required />}
           </form.AppField>
         </form.AppForm>
       </form>
