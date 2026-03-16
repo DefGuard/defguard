@@ -430,7 +430,6 @@ export const UsersTable = () => {
                   invalidateKeys: [
                     ['user-overview'],
                     ['user'],
-                    ['user', rowData.username],
                     ['session-info'],
                     ['me'],
                   ],
