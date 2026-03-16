@@ -698,21 +698,24 @@ const Content = ({ rule: initialRule }: Props) => {
                               />
                             </ButtonsGroup>
                             <SizedBox height={ThemeSpacing.Xl} />
-                            {isPresent(aliasesOptions) &&
-                              aliasesOptions
-                                .filter((alias) => field.state.value.has(alias.id))
-                                .map((option) => (
-                                  <Chip
-                                    size="sm"
-                                    text={option.label}
-                                    key={option.id}
-                                    onDismiss={() => {
-                                      const newState = new Set(field.state.value);
-                                      newState.delete(option.id);
-                                      field.handleChange(newState);
-                                    }}
-                                  />
-                                ))}
+                            {isPresent(aliasesOptions) && (
+                              <div className="aliases-selected">
+                                {aliasesOptions
+                                  .filter((alias) => field.state.value.has(alias.id))
+                                  .map((option) => (
+                                    <Chip
+                                      size="sm"
+                                      text={option.label}
+                                      key={option.id}
+                                      onDismiss={() => {
+                                        const newState = new Set(field.state.value);
+                                        newState.delete(option.id);
+                                        field.handleChange(newState);
+                                      }}
+                                    />
+                                  ))}
+                              </div>
+                            )}
                           </>
                         )}
                       </form.AppField>
