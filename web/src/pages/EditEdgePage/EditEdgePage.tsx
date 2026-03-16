@@ -62,7 +62,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
       invalidate: ['edge'],
     },
     onSuccess: () => {
-      Snackbar.success(m.edge_edit_success());
+      Snackbar.default(m.edge_edit_success());
     },
     onError: () => {
       Snackbar.error(m.edge_edit_failed());
@@ -79,7 +79,7 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
         to: '/edges',
         replace: true,
       });
-      Snackbar.success(m.edge_delete_success());
+      Snackbar.default(m.edge_delete_success());
     },
     onError: () => {
       Snackbar.error(m.edge_delete_failed());

@@ -21,13 +21,13 @@ export const DeliverTokenStep = ({ enrollmentData }: Props) => {
         <SizedBox height={ThemeSpacing.Lg} />
         <CopyField
           label={m.modal_add_user_enrollment_form_label_instance_url()}
-          copyTooltip={m.controls_copy_clipboard()}
+          copyTooltip={m.misc_clipboard_copy()}
           text={enrollmentData.enrollment_url}
         />
         <SizedBox height={ThemeSpacing.Lg} />
         <CopyField
           label={m.modal_add_user_enrollment_form_label_token()}
-          copyTooltip={m.controls_copy_clipboard()}
+          copyTooltip={m.misc_clipboard_copy()}
           text={enrollmentData.enrollment_token}
         />
       </div>

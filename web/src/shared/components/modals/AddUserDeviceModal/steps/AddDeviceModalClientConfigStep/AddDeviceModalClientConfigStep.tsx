@@ -173,11 +173,11 @@ export const AddDeviceModalClientConfigStep = () => {
           <div className="form-col-2">
             <CopyField
               text={enrollment?.url}
-              copyTooltip={m.controls_copy_clipboard()}
+              copyTooltip={m.misc_clipboard_copy()}
               label={m.form_label_url()}
             />
             <CopyField
-              copyTooltip={m.controls_copy_clipboard()}
+              copyTooltip={m.misc_clipboard_copy()}
               text={enrollment.token}
               label={m.form_label_token()}
             />

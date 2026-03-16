@@ -56,7 +56,7 @@ export const TestSnackbarPage = () => {
         variant="outlined"
         text="Test Success"
         onClick={() => {
-          Snackbar.success(snackbarText);
+          Snackbar.default(snackbarText);
         }}
       />
       <SizedBox height={ThemeSpacing.Xl2} />

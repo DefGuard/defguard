@@ -65,7 +65,7 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
           ))}
           {selectedOptions.length > 5 && <Chip text={counterText(selected.size - 5)} />}
         </div>
-        <SizedBox height={ThemeSpacing.Md} />
+        {selectedOptions.length > 0 && <SizedBox height={ThemeSpacing.Md} />}
         <button type="button" onClick={handleEdit}>
           {editText}
         </button>

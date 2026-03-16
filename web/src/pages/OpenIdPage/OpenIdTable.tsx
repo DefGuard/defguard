@@ -38,13 +38,6 @@ export const OpenIdClientTable = () => {
 
   const { writeToClipboard } = useClipboard();
 
-  const { mutate: deleteClient } = useMutation({
-    mutationFn: api.openIdClient.deleteOpenIdClient,
-    meta: {
-      invalidate: ['oauth'],
-    },
-  });
-
   const { mutate: toggleClient } = useMutation({
     mutationFn: api.openIdClient.changeOpenIdClientState,
     meta: {
@@ -72,7 +65,11 @@ export const OpenIdClientTable = () => {
         header: 'App name',
         enableSorting: true,
         sortingFn: 'text',
+        size: 300,
         minSize: 300,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -81,7 +78,7 @@ export const OpenIdClientTable = () => {
       }),
       columnHelper.accessor('enabled', {
         header: 'Status',
-        minSize: 180,
+        minSize: 125,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
@@ -146,7 +143,10 @@ export const OpenIdClientTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteClient(row.client_id);
+                    openModal(ModalName.DeleteOpenIdClient, {
+                      client_id: row.client_id,
+                      name: row.name,
+                    });
                   },
                 },
               ],
@@ -156,7 +156,7 @@ export const OpenIdClientTable = () => {
         },
       }),
     ],
-    [reservedNames, deleteClient, writeToClipboard, toggleClient],
+    [reservedNames, writeToClipboard, toggleClient],
   );
 
   const table = useReactTable({

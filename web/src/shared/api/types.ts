@@ -305,9 +305,18 @@ export interface MfaFinishResponse {
   user?: User;
 }
 
+export const WebErrorCode = {
+  NetworkFull: 'network_full',
+} as const;
+
+export type WebErrorCode = (typeof WebErrorCode)[keyof typeof WebErrorCode];
+
+export type ApiErrorMessageKey = `api_error_${WebErrorCode}`;
+
 export interface ApiError {
   msg?: string;
   message?: string;
+  code?: WebErrorCode;
 }
 
 export interface AppInfoExceededLimits {
@@ -543,6 +552,7 @@ export interface Webhook {
   on_user_created: boolean;
   on_user_deleted: boolean;
   on_user_modified: boolean;
+  on_hwkey_provision: boolean;
 }
 
 export type AddWebhookRequest = Omit<Webhook, 'id'>;
@@ -623,6 +633,7 @@ export interface NetworkLocation {
   endpoint: string;
   gateways: GatewayInfo[];
   allowed_ips: string[];
+  allow_all_groups: boolean;
   allowed_groups: string[];
   dns: string | null;
   keepalive_interval: number;
@@ -930,7 +941,7 @@ export interface SettingsGatewayNotifications {
 }
 
 export interface SettingsTimeoutsAndMaintenance {
-  disable_stats_purge: boolean;
+  enable_stats_purge: boolean;
   stats_purge_frequency_hours: number;
   stats_purge_threshold_days: number;
   enrollment_token_timeout_hours: number;

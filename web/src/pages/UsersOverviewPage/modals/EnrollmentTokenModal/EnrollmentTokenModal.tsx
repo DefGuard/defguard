@@ -69,7 +69,7 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
   const { mutateAsync: sendEnrollmentEmail } = useMutation({
     mutationFn: api.user.startEnrollment,
     onSuccess: () => {
-      Snackbar.success(m.sucessfull_enrollment_email());
+      Snackbar.default(m.sucessfull_enrollment_email());
       closeModal(modalName);
     },
     onError: (error) => {
@@ -179,12 +179,13 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
         )}
       </form.AppForm>
 
-      <form.Subscribe>
-        {() => (
+      <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
+        {({ isSubmitting }) => (
           <ModalControls
             submitProps={{
               text: sendEmail ? m.controls_send_email() : m.controls_close(),
               onClick: sendEmail ? form.handleSubmit : () => closeModal(modalName),
+              loading: sendEmail && isSubmitting,
             }}
           />
         )}

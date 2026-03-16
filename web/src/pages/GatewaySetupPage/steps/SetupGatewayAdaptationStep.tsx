@@ -162,6 +162,8 @@ export const SetupGatewayAdoptionStep = () => {
               <CodeCard
                 title={m.gateway_setup_adoption_error_log_title()}
                 value={gatewayAdoptionState.gatewayLogs.join('\n')}
+                copy
+                download
               />
             ) : null}
             <Controls>

@@ -86,6 +86,7 @@ async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error>
 
     update_current_settings(pool, settings)
         .await
+        .map_err(anyhow::Error::from)
         .context("Failed to persist automatically generated CA for auto-adoption")?;
 
     info!(
@@ -744,6 +745,7 @@ id={} for new gateway",
             DEFAULT_WIREGUARD_MTU,
             0,
             Vec::new(),
+            true,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
             false,

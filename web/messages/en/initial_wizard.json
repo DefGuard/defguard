@@ -51,6 +51,7 @@
 
   "initial_setup_general_config_error_invalid_url": "Invalid URL",
   "initial_setup_general_config_error_defguard_url_required": "Defguard URL is required",
+  "initial_setup_general_config_error_defguard_url_invalid_host": "Defguard URL must use a hostname, not an IP address",
   "initial_setup_general_config_error_admin_group_required": "Default admin group name is required",
   "initial_setup_general_config_error_auth_period_min": "Authentication period must be at least 1 day",
   "initial_setup_general_config_error_mfa_timeout_min": "MFA code timeout must be at least 60 seconds",
@@ -106,8 +107,8 @@
   "initial_setup_auto_adoption_vpn_intro": "To make the VPN operational, a few basic parameters must be configured. WireGuard® needs to be publicly accessible on a specific IP address and UDP port. This IP does not have to be set directly on the gateway it can be configured on your firewall or router and forwarded to the Defguard Gateway.",
   "initial_setup_auto_adoption_vpn_label_public_ip": "Public IP",
   "initial_setup_auto_adoption_vpn_label_wireguard_port": "WireGuard Port",
-  "initial_setup_auto_adoption_vpn_gateway_description": "Please provide the internal VPN network IP address for the Defguard Gateway. The VPN network will be derived from this address (e.g., 10.10.10.1 → 10.10.10.0). You may specify multiple addresses separated by commas; the first will be used as the primary address for device IP assignment.",
-  "initial_setup_auto_adoption_vpn_label_gateway_address": "Gateway Address",
+  "initial_setup_auto_adoption_vpn_gateway_description": "Please provide the internal VPN network IP address for the Defguard Gateway. The VPN network will be derived from this address (e.g., 10.10.10.1 → 10.10.10.0). You may specify multiple addresses separated by commas.",
+  "initial_setup_auto_adoption_vpn_label_gateway_address": "Internal VPN address",
   "initial_setup_auto_adoption_vpn_allowed_ips_description": "If you want your local networks to be accessible from VPN, list them in addresses/masks format below:",
   "initial_setup_auto_adoption_vpn_label_allowed_ips": "Allowed IPs",
   "initial_setup_auto_adoption_vpn_dns_description": "Configure (optionally) a custom DNS server for VPN connections (e.g., your local network DNS or a preferred DNS to use while connected to the VPN).",

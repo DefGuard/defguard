@@ -11,9 +11,7 @@ import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCa
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { useClipboard } from '../../../shared/defguard-ui/hooks/useClipboard';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { downloadText } from '../../../shared/utils/download';
 import worldMap from '../assets/world-map.png';
 import { AutoAdoptionAdminUserStep } from './steps/AutoAdoptionAdminUserStep';
 import { AutoAdoptionMfaSetupStep } from './steps/AutoAdoptionMfaSetupStep';
@@ -47,8 +45,6 @@ type AutoAdoptionWelcomeContentProps = {
 const AutoAdoptionFailedWelcomeContent = ({
   results,
 }: AutoAdoptionWelcomeContentProps) => {
-  const { writeToClipboard } = useClipboard();
-
   return (
     <div className="auto-adoption-welcome-content">
       <Divider spacing={ThemeSpacing.Xl} />
@@ -94,16 +90,8 @@ const AutoAdoptionFailedWelcomeContent = ({
                         },
                       )}
                       value={componentLogs}
-                      onCopy={() => {
-                        void writeToClipboard(componentLogs);
-                      }}
-                      onDownload={() => {
-                        downloadText(
-                          componentLogs,
-                          `auto-adoption-error-log-${component}`,
-                          'txt',
-                        );
-                      }}
+                      copy
+                      download
                     />
                   </div>
                 )}

@@ -64,7 +64,7 @@ impl MigrationWizardState {
         sqlx::query(
             "UPDATE wizard
              SET migration_wizard_state = $1
-             WHERE is_singleton = TRUE",
+             WHERE is_singleton",
         )
         .bind(state)
         .execute(executor)
@@ -80,7 +80,7 @@ impl MigrationWizardState {
         sqlx::query!(
             "Update wizard \
             SET migration_wizard_state = NULL \
-            WHERE is_singleton = TRUE"
+            WHERE is_singleton"
         )
         .execute(executor)
         .await?;

@@ -76,6 +76,9 @@ export const DestinationsTable = ({
       columnHelper.accessor('name', {
         header: 'Destination name',
         minSize: 210,
+        meta: {
+          flex: true,
+        },
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>

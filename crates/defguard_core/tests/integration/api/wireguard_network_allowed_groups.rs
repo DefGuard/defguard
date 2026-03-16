@@ -156,6 +156,7 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
             "mtu": 1420,
             "fwmark": 0,
             "allowed_groups": ["allowed group"],
+            "allow_all_groups": false,
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
@@ -179,6 +180,61 @@ async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+}
+
+#[sqlx::test]
+async fn test_create_new_network_allow_all_groups(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["allowed group"],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network: WireguardNetwork<Id> = response.json().await;
+    assert!(network.allow_all_groups);
+    let allowed_groups = network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["allowed group"]);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(peers.len(), 4);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
+    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 }
 
 #[sqlx::test]
@@ -206,6 +262,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": [],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -222,15 +279,12 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
-    // network configuration was created for all devices
+    // network configuration was created only for the admin device
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(peers.len(), 4);
+    assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
-    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
-    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
-    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 
     // add an allowed group
     let response = client
@@ -244,6 +298,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -276,6 +331,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group", "not allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -309,6 +365,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["not allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -341,6 +398,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": [],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -357,13 +415,96 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let new_peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(new_peers.len(), 4);
+    assert_eq!(new_peers.len(), 1);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
-    assert_eq!(new_peers[1].pubkey, devices[1].wireguard_pubkey);
-    assert_eq!(new_peers[2].pubkey, devices[2].wireguard_pubkey);
-    assert_eq!(new_peers[3].pubkey, devices[3].wireguard_pubkey);
 
     assert_err!(wg_rx.try_recv());
+}
+
+#[sqlx::test]
+async fn test_modify_network_enable_allow_all_groups(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": false,
+            "allowed_groups": ["allowed group"],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network: WireguardNetwork<Id> = response.json().await;
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(peers.len(), 2);
+
+    let response = client
+        .put(format!("/api/v1/network/{}", network.id))
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": true,
+            "allowed_groups": ["allowed group"],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network: WireguardNetwork<Id> = response.json().await;
+    assert!(network.allow_all_groups);
+    let allowed_groups = network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["allowed group"]);
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(peers.len(), 4);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
+    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 }
 
 /// Test that devices that already exist are handled correctly during config import
@@ -410,7 +551,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allow_all_groups": false, "allowed_groups": ["allowed group"]}))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -507,7 +648,7 @@ PersistentKeepalive = 300
     // import network
     let response = client
         .post("/api/v1/network/import")
-        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allowed_groups": ["allowed group"]}))
+        .json(&json!({"name": "network", "endpoint": "192.168.1.1", "config": wg_config, "allow_all_groups": false, "allowed_groups": ["allowed group"]}))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -599,6 +740,7 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -685,6 +827,119 @@ async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_modify_user_no_effect_when_allow_all_groups(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+    let (_users, devices) = setup_test_users(&client_state.pool).await;
+
+    let mut wg_rx = client_state.wireguard_rx;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": true,
+            "allowed_groups": [],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let network: WireguardNetwork<Id> = response.json().await;
+    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+    assert_err!(wg_rx.try_recv());
+
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(peers.len(), 4);
+
+    let mut user_details = fetch_user_details(&client, "ssnape").await;
+    user_details.user.groups = Vec::new();
+    let response = client
+        .put("/api/v1/user/ssnape")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_err!(wg_rx.try_recv());
+
+    let peers = get_location_allowed_peers(&network, &client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(peers.len(), 4);
+    assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
+    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
+    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
+}
+
+#[sqlx::test]
+async fn test_import_network_allow_all_groups_preserves_allowed_groups(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
+    let (_users, _devices) = setup_test_users(&client_state.pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = &client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let wg_config = "
+[Interface]
+PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+Address = 10.0.0.1/24
+ListenPort = 55055
+DNS = 10.0.0.2
+";
+
+    let response = client
+        .post("/api/v1/network/import")
+        .json(&json!({
+            "name": "network",
+            "endpoint": "192.168.1.1",
+            "config": wg_config,
+            "allow_all_groups": true,
+            "allowed_groups": ["allowed group"]
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response: ImportedNetworkData = response.json().await;
+
+    let allowed_groups = response
+        .network
+        .fetch_allowed_groups(&client_state.pool)
+        .await
+        .unwrap();
+    assert_eq!(allowed_groups, vec!["allowed group"]);
+}
+
+#[sqlx::test]
 async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
@@ -709,6 +964,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
             "dns": "1.1.1.1",
             "mtu": 1420,
             "fwmark": 0,
+            "allow_all_groups": false,
             "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
@@ -736,13 +992,10 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     let response = client.delete("/api/v1/group/allowed%20group").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // network configuration was created for all devices
+    // network configuration was created only for the admin device
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(peers.len(), 4);
+    assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
-    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
-    assert_eq!(peers[2].pubkey, devices[2].wireguard_pubkey);
-    assert_eq!(peers[3].pubkey, devices[3].wireguard_pubkey);
 }

@@ -10,7 +10,9 @@ import { NavLogo } from './assets/NavLogo';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Link, type LinkProps } from '@tanstack/react-router';
+import clsx from 'clsx';
 import { type LicenseInfo, LicenseTier, type LicenseTierValue } from '../../api/types';
+import { externalLink } from '../../constants';
 import { Fold } from '../../defguard-ui/components/Fold/Fold';
 import { TooltipContent } from '../../defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipContext';
@@ -302,20 +304,33 @@ const NavItem = ({
 };
 
 const NavControls = () => {
-  const { theme, changeTheme } = useTheme();
+  const { changeTheme, theme } = useTheme();
 
   return (
     <div className="nav-controls">
       <IconButton
-        icon={theme === 'light' ? 'light-theme' : 'dark-theme'}
+        className={clsx({
+          active: theme === 'light',
+        })}
+        icon="light-theme"
         onClick={() => {
-          if (theme === 'light') {
-            changeTheme('dark');
-          } else {
-            changeTheme('light');
-          }
+          changeTheme('light');
         }}
       />
+      <IconButton
+        className={clsx({
+          active: theme === 'dark',
+        })}
+        icon="dark-theme"
+        onClick={() => {
+          changeTheme('dark');
+        }}
+      />
+      <div className="right">
+        <a rel="noopener noreferrer" target="_blank" href={externalLink.defguard.docs}>
+          <IconButton icon="help" />
+        </a>
+      </div>
     </div>
   );
 };

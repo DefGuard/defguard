@@ -20,6 +20,10 @@
         position: absolute;
         inset: 0;
       }
+
+      & > img {
+        position: absolute;
+      }
     }
 
     & > .content-track {

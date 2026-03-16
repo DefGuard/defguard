@@ -74,18 +74,13 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
-    // relying party id and relying party origin for WebAuthn
-    #[arg(long, env = "DEFGUARD_WEBAUTHN_RP_ID")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.webauthn_rp_id instead")]
-    pub webauthn_rp_id: Option<String>,
-
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
     pub url: Url,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
-    #[deprecated(since = "2.0.0", note = "Use Settings.disable_stats_purge instead")]
+    #[deprecated(since = "2.0.0", note = "Use Settings.enable_stats_purge instead")]
     pub disable_stats_purge: Option<bool>,
 
     #[arg(long, env = "DEFGUARD_STATS_PURGE_FREQUENCY")]
@@ -248,17 +243,9 @@ impl DefGuardConfig {
 
     /// Initialize values that depend on Settings.
     pub fn initialize_post_settings(&mut self) {
-        let url = Settings::url().expect("Unable to parse Defguard URL.");
-        self.initialize_cookie_domain(&url);
-    }
-
-    fn initialize_cookie_domain(&mut self, url: &Url) {
         if self.cookie_domain.is_none() {
-            self.cookie_domain = Some(
-                url.domain()
-                    .expect("Unable to get domain for server URL.")
-                    .to_string(),
-            );
+            let settings = Settings::get_current_settings();
+            self.cookie_domain = settings.cookie_domain().ok();
         }
     }
 
@@ -302,20 +289,7 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_cookie_domain() {
-        unsafe {
-            env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-        }
-
-        let url = Url::parse("https://defguard.example.com").unwrap();
-        let mut config = DefGuardConfig::new();
-        config.initialize_cookie_domain(&url);
-
-        assert_eq!(
-            config.cookie_domain,
-            Some("defguard.example.com".to_string())
-        );
-
+    fn test_cookie_domain_env_override() {
         unsafe {
             env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
         }

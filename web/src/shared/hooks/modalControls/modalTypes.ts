@@ -11,10 +11,13 @@ import type {
   OpenCEGroupModal,
   OpenCEOpenIdClientModal,
   OpenCEWebhookModal,
+  OpenConfirmActionModal,
   OpenDeleteAliasDestinationBlockedModal,
   OpenDeleteAliasDestinationConfirmModal,
   OpenDeleteGatewayModal,
   OpenDeleteLocationModal,
+  OpenDeleteNetworkDeviceModal,
+  OpenDeleteOpenIdClientModal,
   OpenDisplayListModal,
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
@@ -60,6 +63,8 @@ export const ModalName = {
   EditNetworkDevice: 'editNetworkDevice',
   NetworkDeviceConfig: 'networkDeviceConfig',
   NetworkDeviceToken: 'networkDeviceToken',
+  DeleteNetworkDevice: 'deleteNetworkDevice',
+  DeleteOpenIdClient: 'deleteOpenIdClient',
   AddLocation: 'addLocation',
   AddLogStreaming: 'addLogStreaming',
   EditLogStreaming: 'editLogStreaming',
@@ -70,6 +75,7 @@ export const ModalName = {
   AddNewDevice: 'addNewDevice',
   AssignUserIP: 'assignUserIP',
   AssignUserDeviceIP: 'assignUserDeviceIP',
+  ConfirmAction: 'confirmAction',
 } as const;
 
 export type ModalNameValue = (typeof ModalName)[keyof typeof ModalName];
@@ -192,6 +198,14 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
     data: z.custom<OpenDeleteLocationModal>(),
   }),
   z.object({
+    name: z.literal(ModalName.DeleteNetworkDevice),
+    data: z.custom<OpenDeleteNetworkDeviceModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.DeleteOpenIdClient),
+    data: z.custom<OpenDeleteOpenIdClientModal>(),
+  }),
+  z.object({
     name: z.literal(ModalName.SendTestMail),
   }),
   z.object({
@@ -226,6 +240,10 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.AssignUserDeviceIP),
     data: z.custom<OpenAssignUserDeviceIPModal>(),
+  }),
+  z.object({
+    name: z.literal(ModalName.ConfirmAction),
+    data: z.custom<OpenConfirmActionModal>(),
   }),
 ]);
 

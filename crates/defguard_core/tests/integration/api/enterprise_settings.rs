@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
+use super::common::{exceed_enterprise_limits, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_only_enterprise_can_modify_enterpise_settings(
@@ -70,8 +70,30 @@ async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: Pg
 
     exceed_enterprise_limits(&client).await;
 
-    // create network
-    make_network(&client, "network").await;
+    // create network with access for all groups so the user device gets assigned config
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": true,
+            "allowed_groups": [],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // setup admin devices management
     let settings = EnterpriseSettings {
@@ -161,8 +183,30 @@ async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnec
 
     exceed_enterprise_limits(&client).await;
 
-    // create network
-    make_network(&client, "network").await;
+    // create network with access for all groups so the user device gets assigned config
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allow_all_groups": true,
+            "allowed_groups": [],
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // setup admin devices management
     let settings = EnterpriseSettings {
@@ -244,8 +288,30 @@ async fn dg25_12_test_enforce_client_activation_only(_: PgPoolOptions, options: 
 
     exceed_enterprise_limits(&client).await;
 
-    // create network
-    make_network(&client, "network").await;
+    // create network with access for all groups so the user device gets assigned config
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     // disable manual device management
     let settings = EnterpriseSettings {
@@ -320,8 +386,31 @@ async fn dg25_13_test_disable_device_config(_: PgPoolOptions, options: PgConnect
 
     exceed_enterprise_limits(&client).await;
 
-    // create network
-    make_network(&client, "network").await;
+    // Allow all groups for network 1.
+    // Payload based on make_network().
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&json!({
+            "name": "network1",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": ["admin"],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
 
     // disable manual device management
     let settings = EnterpriseSettings {

@@ -9,6 +9,7 @@ import api from '../../../../../../../shared/api/api';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { EvenSplit } from '../../../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { useAppForm } from '../../../../../../../shared/form';
+import { useAuth } from '../../../../../../../shared/hooks/useAuth';
 import {
   patternSafeUsernameCharacters,
   patternValidEmail,
@@ -61,7 +62,7 @@ type FormFields = z.infer<typeof zodSchema>;
 
 export const ProfileGeneralCard = () => {
   const profileUser = useUserProfile((s) => s.user);
-  const isAdmin = profileUser.is_admin;
+  const isAdmin = useAuth((s) => s.isAdmin);
 
   const { mutateAsync } = useMutation({
     mutationFn: api.user.editUser,
@@ -91,6 +92,10 @@ export const ProfileGeneralCard = () => {
       mode: 'change',
       modeAfterSubmission: 'change',
     }),
+    validators: {
+      onSubmit: zodSchema,
+      onChange: zodSchema,
+    },
     onSubmit: async ({ value }) => {
       await mutateAsync({
         username: profileUser.username,

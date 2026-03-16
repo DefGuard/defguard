@@ -1,3 +1,5 @@
+import type { QueryKey } from '@tanstack/react-query';
+import type { HTMLProps } from 'react';
 import type {
   AvailableLocationIpResponse,
   Device,
@@ -13,10 +15,24 @@ import type {
   User,
   Webhook,
 } from '../../api/types';
+import type { ButtonProps } from '../../defguard-ui/components/Button/types';
+
+export interface OpenConfirmActionModal {
+  title: string;
+  contentMd: string;
+  actionPromise: () => Promise<unknown>;
+  invalidateKeys?: QueryKey[];
+  cancelProps?: ButtonProps;
+  submitProps?: ButtonProps;
+  contentContainerProps?: HTMLProps<HTMLDivElement>;
+  onSuccess?: () => void;
+  onError?: () => void;
+}
 
 export interface OpenEditDeviceModal {
   device: Device;
   reservedNames: string[];
+  reservedPubkeys: string[];
   username: string;
 }
 
@@ -24,6 +40,7 @@ export interface OpenAuthKeyRenameModal {
   id: number;
   name: string;
   username: string;
+  reservedNames: string[];
 }
 
 export interface OpenAddApiTokenModal {
@@ -157,5 +174,15 @@ export interface OpenDeleteGatewayModal {
 
 export interface OpenDeleteLocationModal {
   id: number;
+  name: string;
+}
+
+export interface OpenDeleteNetworkDeviceModal {
+  id: number;
+  name: string;
+}
+
+export interface OpenDeleteOpenIdClientModal {
+  client_id: string;
   name: string;
 }

@@ -49,7 +49,7 @@ impl AutoAdoptionWizardState {
 
         query(
             "UPDATE wizard SET auto_adoption_state = $1
-             WHERE is_singleton = TRUE",
+             WHERE is_singleton",
         )
         .bind(auto_adoption_state)
         .execute(executor)
@@ -65,7 +65,7 @@ impl AutoAdoptionWizardState {
         let state: Option<Json<Self>> = query_scalar(
             "SELECT auto_adoption_state
              FROM wizard
-             WHERE is_singleton = TRUE
+             WHERE is_singleton
              LIMIT 1",
         )
         .fetch_one(executor)
@@ -81,7 +81,7 @@ impl AutoAdoptionWizardState {
         query(
             "UPDATE wizard
              SET auto_adoption_state = NULL
-             WHERE is_singleton = TRUE",
+             WHERE is_singleton",
         )
         .execute(executor)
         .await?;

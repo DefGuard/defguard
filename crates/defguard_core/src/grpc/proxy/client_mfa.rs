@@ -380,22 +380,22 @@ impl ClientMfaServer {
                 error!("Failed to fetch allowed groups for location {location}: {err}");
                 Status::internal("unexpected error")
             })?;
-        // if no groups are specified all users are allowed
-        if let Some(groups) = allowed_groups {
-            // check if user belongs to one of allowed groups
-            if !groups
+        // If not all groups are allowed, check if user belongs to one of the allowed groups.
+        if !location.allow_all_groups
+            && !allowed_groups
                 .iter()
                 .any(|allowed_group| user_info.groups.contains(allowed_group))
-            {
-                error!(
-                    "User {} not allowed to connect to location {location} because he doesn't belong to any of the allowed groups.
-                    User groups: {:?}, allowed groups: {:?}",
-                    user_info.username, user_info.groups, groups
-                );
-                return Err(Status::unauthenticated("unauthorized"));
-            }
+        {
+            error!(
+                "User {} is not allowed to connect to location {location} because he/she doesn't \
+                belong to any of the allowed groups. User groups: {:?}, allowed groups: \
+                {allowed_groups:?}",
+                user_info.username, user_info.groups
+            );
+            Err(Status::unauthenticated("unauthorized"))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     #[instrument(skip_all)]
