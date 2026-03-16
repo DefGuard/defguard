@@ -73,6 +73,8 @@ pub struct WireguardNetworkData {
     pub service_location_mode: ServiceLocationMode,
 }
 
+const MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA: i32 = 120;
+
 impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
         self.allowed_ips
@@ -101,6 +103,20 @@ impl WireguardNetworkData {
         }
 
         Ok(subnets)
+    }
+
+    pub(crate) fn validate_peer_disconnect_threshold(&self) -> Result<(), WebError> {
+        if self.location_mfa_mode == LocationMfaMode::Disabled {
+            return Ok(());
+        }
+
+        if self.peer_disconnect_threshold >= MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA {
+            return Ok(());
+        }
+
+        Err(WebError::BadRequest(
+            "peer_disconnect_threshold must be at least 120 when location MFA is enabled".into(),
+        ))
     }
 
     pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
@@ -216,6 +232,7 @@ pub(crate) async fn create_network(
         });
     }
 
+    data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
     let allowed_ips = data.parse_allowed_ips();
@@ -324,6 +341,7 @@ pub(crate) async fn modify_network(
         });
     }
 
+    data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
     let mut network = find_network(network_id, &appstate.pool).await?;

@@ -33,6 +33,9 @@ use super::common::{
     authenticate_admin, exceed_enterprise_limits, make_network, make_test_client, setup_pool,
 };
 
+const INVALID_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 119;
+const MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD: i32 = 120;
+
 #[sqlx::test]
 async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -311,6 +314,121 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // try again
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn test_peer_disconnect_threshold_validation_create(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let mut location_data = WireguardNetworkData {
+        name: "test_location_disabled".into(),
+        address: "10.1.1.0/24".into(),
+        endpoint: "10.1.1.1".parse().unwrap(),
+        port: 55555,
+        allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
+        dns: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
+        allow_all_groups: false,
+        allowed_groups: vec!["admin".into()],
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: INVALID_MFA_PEER_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
+        location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
+    };
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    location_data.name = "test_location_internal".into();
+    location_data.location_mfa_mode = LocationMfaMode::Internal;
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    location_data.name = "test_location_internal_boundary".into();
+    location_data.peer_disconnect_threshold = MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD;
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn test_peer_disconnect_threshold_validation_modify(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let mut location_data = WireguardNetworkData {
+        name: "test_location".into(),
+        address: "10.1.1.0/24".into(),
+        endpoint: "10.1.1.1".parse().unwrap(),
+        port: 55555,
+        allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
+        dns: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
+        allow_all_groups: false,
+        allowed_groups: vec!["admin".into()],
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: INVALID_MFA_PEER_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
+        location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
+    };
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    location_data.location_mfa_mode = LocationMfaMode::Internal;
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&location_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    location_data.peer_disconnect_threshold = MINIMUM_MFA_PEER_DISCONNECT_THRESHOLD;
     let response = client
         .put("/api/v1/network/1")
         .json(&location_data)
