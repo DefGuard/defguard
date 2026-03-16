@@ -11,6 +11,7 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_core::grpc::GatewayEvent;
+use defguard_session_manager::events::SessionManagerEventType;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::{Duration, timeout};
 
@@ -113,6 +114,19 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
         1
     );
 
+    let connected_event = timeout(RECEIVE_TIMEOUT, harness.event_rx.recv())
+        .await
+        .expect("timed out waiting for MfaClientConnected event")
+        .expect("session manager event channel closed");
+    assert!(matches!(
+        connected_event.event,
+        SessionManagerEventType::MfaClientConnected
+    ));
+    assert_eq!(connected_event.context.location.id, location.id);
+    assert_eq!(connected_event.context.user.id, user.id);
+    assert_eq!(connected_event.context.device.id, device.id);
+    assert_eq!(connected_event.context.public_ip, endpoint.ip());
+
     let second_collected_at = handshake + TimeDelta::seconds(30);
     let second_handshake = handshake + TimeDelta::seconds(25);
     harness.send_stats(build_stats_update(
@@ -157,6 +171,9 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     assert_eq!(latest_stats.total_download, 280);
     assert_eq!(latest_stats.upload_diff, 60);
     assert_eq!(latest_stats.download_diff, 80);
+
+    assert_no_session_manager_events(&mut harness);
+    assert_no_gateway_events(&mut harness);
 }
 
 #[sqlx::test]
@@ -226,6 +243,19 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
     assert_eq!(latest_stats.upload_diff, 0);
     assert_eq!(latest_stats.download_diff, 0);
 
+    let connected_event = timeout(RECEIVE_TIMEOUT, harness.event_rx.recv())
+        .await
+        .expect("timed out waiting for MfaClientConnected event in duplicate first-stats test")
+        .expect("session manager event channel closed");
+    assert!(matches!(
+        connected_event.event,
+        SessionManagerEventType::MfaClientConnected
+    ));
+    assert_eq!(connected_event.context.location.id, location.id);
+    assert_eq!(connected_event.context.user.id, user.id);
+    assert_eq!(connected_event.context.device.id, device.id);
+    assert_eq!(connected_event.context.public_ip, endpoint.ip());
+
     assert_no_session_manager_events(&mut harness);
     assert_no_gateway_events(&mut harness);
 }
@@ -274,6 +304,19 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
         .expect("expected session");
     assert_eq!(connected_session.state, VpnClientSessionState::Connected);
     assert_eq!(connected_session.connected_at, Some(first_handshake));
+
+    let connected_event = timeout(RECEIVE_TIMEOUT, harness.event_rx.recv())
+        .await
+        .expect("timed out waiting for MfaClientConnected event in repeated-stats test")
+        .expect("session manager event channel closed");
+    assert!(matches!(
+        connected_event.event,
+        SessionManagerEventType::MfaClientConnected
+    ));
+    assert_eq!(connected_event.context.location.id, location.id);
+    assert_eq!(connected_event.context.user.id, user.id);
+    assert_eq!(connected_event.context.device.id, device.id);
+    assert_eq!(connected_event.context.public_ip, endpoint.ip());
 
     assert_no_session_manager_events(&mut harness);
     assert_no_gateway_events(&mut harness);
@@ -388,6 +431,18 @@ async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization
         }
         other => panic!("unexpected gateway event: {other:?}"),
     }
+
+    let disconnected_event = timeout(RECEIVE_TIMEOUT, harness.event_rx.recv())
+        .await
+        .expect("timed out waiting for MfaClientDisconnected event")
+        .expect("session manager event channel closed");
+    assert!(matches!(
+        disconnected_event.event,
+        SessionManagerEventType::MfaClientDisconnected
+    ));
+    assert_eq!(disconnected_event.context.location.id, location.id);
+    assert_eq!(disconnected_event.context.user.id, user.id);
+    assert_eq!(disconnected_event.context.device.id, device.id);
 }
 
 #[sqlx::test]
@@ -424,4 +479,6 @@ async fn test_never_connected_mfa_new_sessions_disconnect_after_threshold(
         VpnClientSessionState::Disconnected
     );
     assert!(disconnected_session.disconnected_at.is_some());
+
+    assert_no_session_manager_events(&mut harness);
 }
