@@ -13,7 +13,7 @@ import {
 } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
-import { useCallback, useMemo, useState } from 'react';
+import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { Device, UsersListItem } from '../../shared/api/types';
@@ -35,6 +35,7 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -205,6 +206,20 @@ export const UsersTable = () => {
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
+          </TableCell>
+        ),
+      }),
+      columnHelper.accessor('mfa_enabled', {
+        header: m.users_col_mfa(),
+        size: 60,
+        minSize: 60,
+        cell: (info) => (
+          <TableCell className="cell-with-check-icons">
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : (
+              null
+            )}
           </TableCell>
         ),
       }),

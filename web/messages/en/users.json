@@ -9,6 +9,7 @@
   "users_col_name": "User name",
   "users_col_login": "Login",
   "users_col_phone": "Phone",
+  "users_col_mfa": "MFA",
   "users_col_groups": "Groups",
   "users_col_status": "Status",
   "users_col_assigned": "Assigned devices",
