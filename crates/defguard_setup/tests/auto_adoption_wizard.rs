@@ -405,9 +405,12 @@ async fn test_attempt_auto_adoption_requires_both_flags(
 
     // only adopt_edge
     assert!(
-        attempt_auto_adoption(&pool, &config_with_flags(Some("edge.example.com:8080"), None))
-            .await
-            .is_err()
+        attempt_auto_adoption(
+            &pool,
+            &config_with_flags(Some("edge.example.com:8080"), None)
+        )
+        .await
+        .is_err()
     );
 
     // only adopt_gateway

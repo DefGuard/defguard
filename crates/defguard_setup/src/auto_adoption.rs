@@ -899,9 +899,7 @@ pub async fn attempt_auto_adoption(
             );
             auto_state.save(pool).await?;
         } else {
-            info!(
-                "Startup auto-adoption for Edge component completed endpoint={edge_endpoint}"
-            );
+            info!("Startup auto-adoption for Edge component completed endpoint={edge_endpoint}");
         }
     }
 
@@ -910,9 +908,7 @@ pub async fn attempt_auto_adoption(
             "Skipping startup auto-adoption for Gateway component endpoint={gateway_endpoint} as it was already completed"
         );
     } else {
-        info!(
-            "Starting startup auto-adoption for Gateway component endpoint={gateway_endpoint}"
-        );
+        info!("Starting startup auto-adoption for Gateway component endpoint={gateway_endpoint}");
         if let Err(err) = process_startup_auto_adoption(
             pool,
             SetupAutoAdoptionComponent::Gateway,
