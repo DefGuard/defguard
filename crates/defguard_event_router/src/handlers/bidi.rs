@@ -71,6 +71,13 @@ impl EventRouter {
                     })),
                     Some(location),
                 ),
+                DesktopClientMfaEvent::Disconnected { location, device } => (
+                    LoggerEvent::Vpn(Box::new(VpnEvent::MfaDisconnectedFromLocation {
+                        location: location.clone(),
+                        device,
+                    })),
+                    Some(location),
+                ),
             },
         };
 

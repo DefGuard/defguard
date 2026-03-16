@@ -787,7 +787,7 @@ impl ClientMfaServer {
         // disconnect all active sessions
         for session in active_sessions {
             debug!("Disconnecting previous active MFA VPN session {session:?}.");
-            self.disconnect_session(&mut *conn, session, location, device)
+            self.disconnect_mfa_session(&mut *conn, session, location, user, device)
                 .await?;
         }
 
@@ -800,11 +800,12 @@ impl ClientMfaServer {
     }
 
     /// Update session state as disconnected and send relevant gateway update
-    async fn disconnect_session(
+    async fn disconnect_mfa_session(
         &self,
         conn: &mut PgConnection,
         mut session: VpnClientSession<Id>,
         location: &WireguardNetwork<Id>,
+        user: &User<Id>,
         device: &Device<Id>,
     ) -> Result<(), Status> {
         // update session state in DB
@@ -839,14 +840,283 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
         }
-        let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
-        self.wireguard_tx.send(event).map_err(|err| {
-            error!("Error sending WireGuard event: {err}");
-            Status::internal("unexpected error")
-        })?;
 
-        // FIXME: add audit log event
+        // only emit disconnect events if MFA session has actually connected
+        // and not for New sessions
+        if session.state == VpnClientSessionState::Connected {
+            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+            self.wireguard_tx.send(gateway_event).map_err(|err| {
+                error!("Error sending WireGuard event: {err}");
+                Status::internal("unexpected error")
+            })?;
+
+            let context = BidiRequestContext {
+                timestamp: disconnect_timestamp,
+                user_id: user.id,
+                username: user.username.clone(),
+                ip: std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+                device_name: format!("{} (ID {})", device.name, device.id),
+            };
+            self.emit_event(BidiStreamEvent {
+                context,
+                event: BidiStreamEventType::DesktopClientMfa(Box::new(
+                    DesktopClientMfaEvent::Disconnected {
+                        location: location.clone(),
+                        device: device.clone(),
+                    },
+                )),
+            })
+            .map_err(Status::from)?;
+        }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        collections::HashMap,
+        net::{IpAddr, Ipv4Addr},
+        sync::{Arc, RwLock},
+    };
+
+    use defguard_common::db::{
+        models::{DeviceType, device::WireguardNetworkDevice, wireguard::ServiceLocationMode},
+        setup_pool,
+    };
+    use ipnetwork::IpNetwork;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel, oneshot};
+
+    use super::*;
+
+    #[sqlx::test]
+    async fn test_replacing_connected_mfa_session_emits_disconnect_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let old_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            Some(Utc::now().naive_utc()),
+            Some(VpnClientMfaMethod::Totp),
+        )
+        .save(&pool)
+        .await
+        .expect("failed to create existing MFA session");
+
+        let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+        let mut conn = pool.acquire().await.expect("failed to acquire connection");
+
+        server
+            .create_new_mfa_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                VpnClientMfaMethod::Totp,
+            )
+            .await
+            .expect("should replace connected MFA session");
+
+        let event = event_rx
+            .try_recv()
+            .expect("expected MFA disconnect event for replaced connected session");
+        assert!(matches!(
+            event.event,
+            BidiStreamEventType::DesktopClientMfa(event)
+                if matches!(*event, DesktopClientMfaEvent::Disconnected { .. })
+        ));
+        assert_eq!(event.context.user_id, user.id);
+        assert_eq!(event.context.username, user.username);
+
+        let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
+            .await
+            .expect("failed to query old session")
+            .expect("expected old session");
+        assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
+    }
+
+    #[sqlx::test]
+    async fn test_replacing_new_mfa_session_does_not_emit_disconnect_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let old_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            None,
+            Some(VpnClientMfaMethod::Totp),
+        )
+        .save(&pool)
+        .await
+        .expect("failed to create existing new MFA session");
+
+        let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+        let mut conn = pool.acquire().await.expect("failed to acquire connection");
+
+        server
+            .create_new_mfa_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                VpnClientMfaMethod::Totp,
+            )
+            .await
+            .expect("should replace new MFA session");
+
+        assert!(event_rx.try_recv().is_err());
+
+        let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
+            .await
+            .expect("failed to query old session")
+            .expect("expected old session");
+        assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
+    }
+
+    #[sqlx::test]
+    async fn test_replacing_connected_non_mfa_session_does_not_emit_mfa_disconnect_event(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_mfa_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+        attach_device_to_location(&pool, location.id, device.id).await;
+        let old_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        )
+        .save(&pool)
+        .await
+        .expect("failed to create existing connected non-MFA session");
+
+        let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+        let mut conn = pool.acquire().await.expect("failed to acquire connection");
+
+        server
+            .create_new_mfa_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                VpnClientMfaMethod::Totp,
+            )
+            .await
+            .expect("should replace connected non-MFA session");
+
+        assert!(event_rx.try_recv().is_err());
+
+        let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
+            .await
+            .expect("failed to query old session")
+            .expect("expected old session");
+        assert_eq!(old_session.state, VpnClientSessionState::Disconnected);
+    }
+
+    fn make_server(
+        pool: PgPool,
+    ) -> (
+        ClientMfaServer,
+        tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
+        tokio::sync::broadcast::Receiver<GatewayEvent>,
+    ) {
+        let (wireguard_tx, wireguard_rx) = broadcast::channel(8);
+        let (bidi_event_tx, bidi_event_rx) = unbounded_channel();
+        let remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>> =
+            Arc::default();
+        let sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>> = Arc::default();
+
+        (
+            ClientMfaServer::new(
+                pool,
+                wireguard_tx,
+                bidi_event_tx,
+                remote_mfa_responses,
+                sessions,
+            ),
+            bidi_event_rx,
+            wireguard_rx,
+        )
+    }
+
+    async fn create_user(pool: &PgPool) -> User<Id> {
+        User::new(
+            "client-mfa-test",
+            Some("pass123"),
+            "Tester",
+            "ClientMfa",
+            "client-mfa@example.com",
+            None,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create user")
+    }
+
+    async fn create_device(pool: &PgPool, user_id: Id) -> Device<Id> {
+        Device::new(
+            "client-mfa-device".to_string(),
+            "client-mfa-pubkey".to_string(),
+            user_id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create device")
+    }
+
+    async fn create_mfa_location(pool: &PgPool) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            "client-mfa-location".to_string(),
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 0, 0)), 24).unwrap()],
+            51820,
+            "vpn.example.com".to_string(),
+            None,
+            1420,
+            0,
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            25,
+            300,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create location")
+    }
+
+    async fn attach_device_to_location(pool: &PgPool, location_id: Id, device_id: Id) {
+        WireguardNetworkDevice::new(
+            location_id,
+            device_id,
+            vec![IpAddr::V4(Ipv4Addr::new(10, 10, 0, 10))],
+        )
+        .insert(pool)
+        .await
+        .expect("failed to attach device to location");
     }
 }

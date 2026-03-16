@@ -27,8 +27,18 @@ impl EventRouter {
                     device,
                 }))
             }
-            SessionManagerEventType::MfaClientConnected => todo!(),
-            SessionManagerEventType::MfaClientDisconnected => todo!(),
+            SessionManagerEventType::MfaClientConnected => {
+                LoggerEvent::Vpn(Box::new(VpnEvent::MfaConnectedToLocation {
+                    location,
+                    device,
+                }))
+            }
+            SessionManagerEventType::MfaClientDisconnected => {
+                LoggerEvent::Vpn(Box::new(VpnEvent::MfaDisconnectedFromLocation {
+                    location,
+                    device,
+                }))
+            }
         };
         self.log_event(
             EventContext::from_session_manager_context(context),
