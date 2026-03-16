@@ -9,13 +9,11 @@ use std::{
 };
 
 use chrono::DateTime;
-#[cfg(not(test))]
-use defguard_common::db::models::Settings;
 use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
+        models::{Settings, WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -168,6 +166,11 @@ impl GatewayHandler {
     /// Send gateway disconnected notification.
     /// Sends notification only if last notification time is bigger than specified in config.
     async fn send_disconnect_notification(&self) {
+        let settings = Settings::get_current_settings();
+        if !settings.gateway_disconnect_notifications_enabled {
+            return;
+        }
+
         debug!("Sending gateway disconnect email notification");
         let name = self.gateway.name.clone();
         let pool = self.pool.clone();
