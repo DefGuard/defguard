@@ -251,6 +251,23 @@ export const UsersTable = () => {
         enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
+          const accountStatusMenuGroup: MenuItemsGroup = {
+            items: [
+              {
+                text: rowData.is_active
+                  ? m.users_row_menu_disable()
+                  : m.users_row_menu_enable(),
+                icon: rowData.is_active ? 'disabled' : 'check-circle',
+                testId: 'change-account-status',
+                onClick: () => {
+                  changeAccountActiveState({
+                    active: !rowData.is_active,
+                    username: rowData.username,
+                  });
+                },
+              },
+            ],
+          };
 
           const menuItems: MenuItemsGroup[] = [
             {
@@ -333,23 +350,7 @@ export const UsersTable = () => {
                 },
               ],
             },
-            {
-              items: [
-                {
-                  text: rowData.is_active
-                    ? m.users_row_menu_disable()
-                    : m.users_row_menu_enable(),
-                  icon: rowData.is_active ? 'disabled' : 'check-circle',
-                  testId: 'change-account-status',
-                  onClick: () => {
-                    changeAccountActiveState({
-                      active: !rowData.is_active,
-                      username: rowData.username,
-                    });
-                  },
-                },
-              ],
-            },
+            accountStatusMenuGroup,
             {
               items: [
                 {
@@ -403,6 +404,34 @@ export const UsersTable = () => {
                   },
                 },
               ],
+            });
+          }
+          if (rowData.mfa_enabled) {
+            accountStatusMenuGroup.items.splice(1, 0, {
+              text: m.users_row_menu_disable_mfa(),
+              icon: 'disable-mfa',
+              onClick: () => {
+                openModal(ModalName.ConfirmAction, {
+                  title: m.users_modal_disable_mfa_title(),
+                  contentMd: m.users_modal_disable_mfa_content({
+                    name: rowData.name,
+                  }),
+                  actionPromise: () => api.user.disableMfa(rowData.username),
+                  invalidateKeys: [
+                    ['user-overview'],
+                    ['user'],
+                    ['user', rowData.username],
+                    ['session-info'],
+                    ['me'],
+                  ],
+                  submitProps: {
+                    text: m.users_row_menu_disable_mfa(),
+                    variant: 'critical',
+                  },
+                  onSuccess: () => Snackbar.default(m.users_disable_mfa_success()),
+                  onError: () => Snackbar.error(m.users_disable_mfa_error()),
+                });
+              },
             });
           }
 
