@@ -26,7 +26,8 @@ ALTER TABLE settings
 
 ALTER TABLE wireguard_network
     ADD COLUMN mtu integer NOT NULL DEFAULT 1420,
-    ADD COLUMN fwmark bigint NOT NULL DEFAULT 0;
+    ADD COLUMN fwmark bigint NOT NULL DEFAULT 0,
+    ADD COLUMN allow_all_groups boolean NOT NULL DEFAULT false;
 
 -- External OpenID providers gain a provider kind discriminator.
 CREATE TYPE openid_provider_kind AS ENUM (

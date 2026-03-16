@@ -43,7 +43,8 @@ DROP TYPE openid_provider_kind;
 -- Remove 2.0.0 WireGuard network defaults.
 ALTER TABLE wireguard_network
     DROP COLUMN mtu,
-    DROP COLUMN fwmark;
+    DROP COLUMN fwmark,
+    DROP COLUMN allow_all_groups;
 
 -- Remove 2.0.0 setup and settings columns.
 ALTER TABLE settings DROP CONSTRAINT fk_default_admin;
