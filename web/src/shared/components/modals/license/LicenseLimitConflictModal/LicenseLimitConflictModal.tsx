@@ -70,17 +70,6 @@ const ModalContent = ({ conflicts }: OpenLicenseLimitConflictModal) => {
         {`To apply this license, first reduce your usage so it fits within the license limits.`}
       </AppText>
       <SizedBox height={ThemeSpacing.Lg} />
-      <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
-        {`You can also upgrade your plan to the one with higher limits such as:`}
-        <br />
-        {`• 30 users or more`}
-        <br />
-        {`• 5 locations or more`}
-      </AppText>
-      <SizedBox height={ThemeSpacing.Lg} />
-      <AppText font={TextStyle.TBodyXs400} color={ThemeVariable.FgMuted}>
-        {`No changes were made to your current configuration.`}
-      </AppText>
       {conflicts.length > 0 && (
         <div>
           {conflicts.map((conflict) => (
@@ -92,6 +81,10 @@ const ModalContent = ({ conflicts }: OpenLicenseLimitConflictModal) => {
           ))}
         </div>
       )}
+      <SizedBox height={ThemeSpacing.Lg} />
+      <AppText font={TextStyle.TBodyXs400} color={ThemeVariable.FgMuted}>
+        {`No changes were made to your current configuration.`}
+      </AppText>
       <LicenseModalControls modalName={modalNameKey} />
     </>
   );
