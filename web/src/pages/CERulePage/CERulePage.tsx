@@ -1067,23 +1067,29 @@ type AliasDataBlockProps = {
   values: string[];
 };
 
+const normalizeAliasValues = (values: string[]) =>
+  values.map((value) => value.trim()).filter((value) => value.length > 0);
+
 const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
-  if (values.length === 0) return null;
+  const normalizedValues = normalizeAliasValues(values);
+
+  if (normalizedValues.length === 0) return null;
+
   return (
     <div className="alias-data-block">
       <div className="top">
         <p>{`Data from aliases`}</p>
       </div>
       <div className="content-track">
-        {values.map((value) => (
-          <Chip key={value} text={value} />
+        {normalizedValues.map((value, index) => (
+          <Chip key={`${value}-${index}`} text={value} />
         ))}
-        {values.length > 4 && (
+        {normalizedValues.length > 4 && (
           <button
             onClick={() => {
               openModal(ModalName.DisplayList, {
                 title: 'Data from aliases',
-                data: values,
+                data: normalizedValues,
               });
             }}
           >
