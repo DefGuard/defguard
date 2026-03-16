@@ -29,6 +29,8 @@
   "activity_event_activity_log_stream_removed": "Activity log stream removed",
   "activity_event_vpn_client_connected": "VPN client connected",
   "activity_event_vpn_client_disconnected": "VPN client disconnected",
+  "activity_event_vpn_client_mfa_connected": "VPN client MFA connected",
+  "activity_event_vpn_client_mfa_disconnected": "VPN client MFA disconnected",
   "activity_event_vpn_client_mfa_success": "VPN client MFA success",
   "activity_event_vpn_client_mfa_failed": "VPN client MFA failed",
   "activity_event_enrollment_token_added": "Enrollment token added",
