@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, time::Duration};
+use std::{collections::HashMap, fmt, net::IpAddr, time::Duration};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
@@ -12,6 +12,7 @@ use tracing::{debug, info, warn};
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
+use webauthn_rs::prelude::WebauthnBuilder;
 
 use crate::{
     config::DefGuardConfig, db::Id, global_value, secret::SecretStringWrapper, types::AuthFlowType,
@@ -37,9 +38,10 @@ pub async fn initialize_current_settings(pool: &PgPool) -> sqlx::Result<()> {
 /// `SETTINGS` struct.
 pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
     executor: E,
-    new_settings: Settings,
-) -> sqlx::Result<()> {
+    mut new_settings: Settings,
+) -> Result<(), SettingsSaveError> {
     debug!("Updating current settings to: {new_settings:?}");
+    new_settings.validate()?;
     new_settings.save(executor).await?;
     set_settings(Some(new_settings));
     Ok(())
@@ -49,20 +51,42 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
+    #[error("Invalid defguard_url `{0}`")]
+    InvalidDefguardUrl(String),
 }
 
 #[derive(Error, Debug)]
 pub enum SettingsInitializationError {
     #[error(transparent)]
     Db(#[from] sqlx::Error),
+    #[error(transparent)]
+    Save(#[from] SettingsSaveError),
     #[error("Missing required setting: {0}")]
     Missing(&'static str),
     #[error("Invalid required setting `{0}`: {1}")]
     Invalid(&'static str, &'static str),
-    #[error("Unable to derive webauthn_rp_id from defguard_url {0}")]
+}
+
+#[derive(Error, Debug, Clone)]
+pub enum SettingsUrlError {
+    #[error("Unable to parse defguard_url `{0}`")]
     InvalidDefguardUrl(String),
+    #[error("Unable to derive webauthn_rp_id: defguard_url has no host: {0}")]
+    MissingDefguardHost(String),
     #[error("Unable to derive webauthn_rp_id: defguard_url has no domain: {0}")]
     MissingDefguardDomain(String),
+    #[error("defguard_url cannot use an IP address host: {0}")]
+    DefguardUrlUsesIpAddress(String),
+    #[error("Invalid WebAuthn configuration for defguard_url `{0}`: {1}")]
+    InvalidWebauthnConfiguration(String, String),
+}
+
+#[derive(Error, Debug)]
+pub enum SettingsSaveError {
+    #[error(transparent)]
+    Db(#[from] sqlx::Error),
+    #[error(transparent)]
+    Validation(#[from] SettingsValidationError),
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
@@ -178,8 +202,7 @@ pub struct Settings {
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     pub secret_key: Option<String>,
-    pub webauthn_rp_id: Option<String>,
-    pub disable_stats_purge: bool,
+    pub enable_stats_purge: bool,
     stats_purge_frequency_hours: i32,
     stats_purge_threshold_days: i32,
     enrollment_token_timeout_hours: i32,
@@ -303,6 +326,61 @@ impl Settings {
         BASE64_STANDARD.encode(bytes)
     }
 
+    /// Parse `defguard_url` and reject unsupported host forms.
+    fn parse_defguard_url(&self) -> Result<Url, SettingsUrlError> {
+        let url = Url::parse(&self.defguard_url)
+            .map_err(|_| SettingsUrlError::InvalidDefguardUrl(self.defguard_url.clone()))?;
+        let host = url
+            .host_str()
+            .ok_or_else(|| SettingsUrlError::MissingDefguardHost(self.defguard_url.clone()))?;
+        if host.parse::<IpAddr>().is_ok() {
+            return Err(SettingsUrlError::DefguardUrlUsesIpAddress(
+                self.defguard_url.clone(),
+            ));
+        }
+        Ok(url)
+    }
+
+    /// Derive the WebAuthn relying party ID from `defguard_url`.
+    fn webauthn_rp_id(&self) -> Result<String, SettingsUrlError> {
+        let url = self.parse_defguard_url()?;
+        let domain = url
+            .domain()
+            .map(str::to_string)
+            .or_else(|| match url.host_str() {
+                Some("localhost") => Some("localhost".to_string()),
+                _ => None,
+            });
+
+        domain.ok_or_else(|| SettingsUrlError::MissingDefguardDomain(self.defguard_url.clone()))
+    }
+
+    /// Derive the cookie domain from `defguard_url`.
+    pub fn cookie_domain(&self) -> Result<String, SettingsUrlError> {
+        let url = self.parse_defguard_url()?;
+        url.host_str()
+            .map(ToString::to_string)
+            .ok_or_else(|| SettingsUrlError::MissingDefguardHost(self.defguard_url.clone()))
+    }
+
+    /// Build a WebAuthn configuration from the current Defguard URL.
+    pub fn build_webauthn(&self) -> Result<webauthn_rs::Webauthn, SettingsUrlError> {
+        let url = self.parse_defguard_url()?;
+        let rp_id = self.webauthn_rp_id()?;
+        let builder = WebauthnBuilder::new(&rp_id, &url).map_err(|err| {
+            SettingsUrlError::InvalidWebauthnConfiguration(
+                self.defguard_url.clone(),
+                err.to_string(),
+            )
+        })?;
+        builder.build().map_err(|err| {
+            SettingsUrlError::InvalidWebauthnConfiguration(
+                self.defguard_url.clone(),
+                err.to_string(),
+            )
+        })
+    }
+
     pub async fn get<'e, E>(executor: E) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
@@ -331,7 +409,7 @@ impl Settings {
             ca_key_der, ca_cert_der, ca_expiry, defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, \
-            default_admin_id, secret_key, webauthn_rp_id, disable_stats_purge, \
+            default_admin_id, secret_key, enable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -348,6 +426,8 @@ impl Settings {
             warn!("Detected empty UUID in settings. Generating a new one.");
             self.uuid = Uuid::new_v4();
         }
+        self.build_webauthn()
+            .map_err(|_| SettingsValidationError::InvalidDefguardUrl(self.defguard_url.clone()))?;
         // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
         // configured.
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
@@ -422,14 +502,13 @@ impl Settings {
             public_proxy_url = $56, \
             default_admin_id = $57, \
             secret_key = $58, \
-            webauthn_rp_id = $59, \
-            disable_stats_purge = $60, \
-            stats_purge_frequency_hours = $61, \
-            stats_purge_threshold_days = $62, \
-            enrollment_token_timeout_hours = $63, \
-            password_reset_token_timeout_hours = $64, \
-            enrollment_session_timeout_minutes = $65, \
-            password_reset_session_timeout_minutes = $66 \
+            enable_stats_purge = $59, \
+            stats_purge_frequency_hours = $60, \
+            stats_purge_threshold_days = $61, \
+            enrollment_token_timeout_hours = $62, \
+            password_reset_token_timeout_hours = $63, \
+            enrollment_session_timeout_minutes = $64, \
+            password_reset_session_timeout_minutes = $65 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -489,8 +568,7 @@ impl Settings {
             self.public_proxy_url,
             self.default_admin_id,
             self.secret_key,
-            self.webauthn_rp_id,
-            self.disable_stats_purge,
+            self.enable_stats_purge,
             self.stats_purge_frequency_hours,
             self.stats_purge_threshold_days,
             self.enrollment_token_timeout_hours,
@@ -544,16 +622,6 @@ impl Settings {
             None => {
                 settings.secret_key = Some(Settings::generate_secret_key());
             }
-        }
-
-        if settings.webauthn_rp_id.is_none() {
-            let url = Url::parse(&settings.defguard_url).map_err(|_| {
-                SettingsInitializationError::InvalidDefguardUrl(settings.defguard_url.clone())
-            })?;
-            let domain = url.domain().ok_or_else(|| {
-                SettingsInitializationError::MissingDefguardDomain(settings.defguard_url.clone())
-            })?;
-            settings.webauthn_rp_id = Some(domain.to_string());
         }
 
         update_current_settings(pool, settings).await?;
@@ -664,9 +732,6 @@ impl Settings {
                 self.secret_key = Some(secret_key.to_string());
             }
         }
-        if let Some(webauthn_rp_id) = &config.webauthn_rp_id {
-            self.webauthn_rp_id = Some(webauthn_rp_id.clone());
-        }
         if let Some(enrollment_url) = &config.enrollment_url {
             self.public_proxy_url = enrollment_url.to_string();
         }
@@ -677,7 +742,7 @@ impl Settings {
             self.authentication_period_days = (session_timeout.as_secs() / day) as i32;
         }
         if let Some(disable_stats_purge) = config.disable_stats_purge {
-            self.disable_stats_purge = disable_stats_purge;
+            self.enable_stats_purge = !disable_stats_purge;
         }
         if let Some(stats_purge_frequency) = config.stats_purge_frequency {
             self.stats_purge_frequency_hours = (stats_purge_frequency.as_secs() / hour) as i32;
@@ -707,7 +772,7 @@ impl Settings {
         &mut self,
         executor: E,
         config: &DefGuardConfig,
-    ) -> sqlx::Result<()>
+    ) -> Result<(), SettingsSaveError>
     where
         E: PgExecutor<'e>,
     {
@@ -874,13 +939,11 @@ mod test {
     fn test_apply_from_config_maps_migrated_fields() {
         let mut settings = Settings {
             defguard_url: "https://defguard.example.com".into(),
-            webauthn_rp_id: Some("existing-rp".into()),
             ..Default::default()
         };
         let mut config = DefGuardConfig::new_test_config();
 
         config.secret_key = Some(SecretString::from("a".repeat(64)));
-        config.webauthn_rp_id = Some("rp-from-config".into());
         config.enrollment_url = Some(Url::parse("https://proxy.example.com").unwrap());
         config.mfa_code_timeout = Some(Duration::from(std::time::Duration::from_secs(75)));
         config.session_timeout = Some(Duration::from(std::time::Duration::from_secs(
@@ -907,11 +970,11 @@ mod test {
             settings.secret_key.as_deref(),
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         );
-        assert_eq!(settings.webauthn_rp_id.as_deref(), Some("rp-from-config"));
+        assert_eq!(settings.webauthn_rp_id().unwrap(), "defguard.example.com");
         assert_eq!(settings.public_proxy_url, "https://proxy.example.com/");
         assert_eq!(settings.mfa_code_timeout_seconds, 75);
         assert_eq!(settings.authentication_period_days, 10);
-        assert!(settings.disable_stats_purge);
+        assert!(!settings.enable_stats_purge);
         assert_eq!(settings.stats_purge_frequency_hours, 5);
         assert_eq!(settings.stats_purge_threshold_days, 12);
         assert_eq!(settings.enrollment_token_timeout_hours, 7);
@@ -925,11 +988,10 @@ mod test {
         let mut settings = Settings {
             defguard_url: "https://defguard.example.com".into(),
             secret_key: Some("z".repeat(64)),
-            webauthn_rp_id: Some("already-set".into()),
             public_proxy_url: "https://proxy.initial".into(),
             mfa_code_timeout_seconds: 123,
             authentication_period_days: 9,
-            disable_stats_purge: true,
+            enable_stats_purge: false,
             ..Default::default()
         };
         let config = DefGuardConfig::new_test_config();
@@ -941,25 +1003,110 @@ mod test {
             settings.secret_key.as_deref(),
             Some(existing_secret.as_str())
         );
-        assert_eq!(settings.webauthn_rp_id.as_deref(), Some("already-set"));
+        assert_eq!(settings.webauthn_rp_id().unwrap(), "defguard.example.com");
         assert_eq!(settings.public_proxy_url, "https://proxy.initial");
         assert_eq!(settings.mfa_code_timeout_seconds, 123);
         assert_eq!(settings.authentication_period_days, 9);
-        assert!(settings.disable_stats_purge);
+        assert!(!settings.enable_stats_purge);
     }
 
     #[test]
-    fn test_apply_from_config_invalid_defguard_url_does_not_set_webauthn_rp_id() {
+    fn test_webauthn_rp_id_rejects_invalid_defguard_url() {
         let mut settings = Settings {
             defguard_url: "this is not an url".into(),
-            webauthn_rp_id: None,
             ..Default::default()
         };
         let config = DefGuardConfig::new_test_config();
 
         settings.apply_from_config(&config);
 
-        assert!(settings.webauthn_rp_id.is_none());
+        assert!(matches!(
+            settings.webauthn_rp_id(),
+            Err(SettingsUrlError::InvalidDefguardUrl(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_defguard_url_parses_valid_hostname_url() {
+        let settings = Settings {
+            defguard_url: "https://defguard.example.com:8443/path".into(),
+            ..Default::default()
+        };
+
+        let url = settings.parse_defguard_url().unwrap();
+
+        assert_eq!(url.host_str(), Some("defguard.example.com"));
+        assert_eq!(url.port(), Some(8443));
+        assert_eq!(url.path(), "/path");
+    }
+
+    #[test]
+    fn test_parse_defguard_url_rejects_ip_host() {
+        let settings = Settings {
+            defguard_url: "http://127.0.0.1:8000".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.parse_defguard_url(),
+            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
+        ));
+    }
+
+    #[test]
+    fn test_cookie_domain_derives_from_defguard_url() {
+        let settings = Settings {
+            defguard_url: "https://defguard.example.com:8443/path".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.cookie_domain().unwrap(), "defguard.example.com");
+    }
+
+    #[test]
+    fn test_cookie_domain_allows_localhost() {
+        let settings = Settings {
+            defguard_url: "http://localhost:8000".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.cookie_domain().unwrap(), "localhost");
+    }
+
+    #[test]
+    fn test_cookie_domain_rejects_ip_hosts() {
+        let settings = Settings {
+            defguard_url: "http://127.0.0.1:8000".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.cookie_domain(),
+            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
+        ));
+    }
+
+    #[test]
+    fn test_validate_accepts_valid_hostname() {
+        let mut settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            ..Default::default()
+        };
+
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_rejects_invalid_url() {
+        let mut settings = Settings {
+            defguard_url: "not a url".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.validate(),
+            Err(SettingsValidationError::InvalidDefguardUrl(_))
+        ));
     }
 
     #[test]
@@ -1019,15 +1166,15 @@ mod test {
 
         assert_eq!(current.mfa_code_timeout_seconds, 90);
         assert_eq!(current.authentication_period_days, 2);
-        assert!(current.disable_stats_purge);
+        assert!(!current.enable_stats_purge);
 
         assert_eq!(from_db.mfa_code_timeout_seconds, 90);
         assert_eq!(from_db.authentication_period_days, 2);
-        assert!(from_db.disable_stats_purge);
+        assert!(!from_db.enable_stats_purge);
     }
 
     #[sqlx::test]
-    async fn test_initialize_runtime_defaults_derives_webauthn_rp_id_from_defguard_url(
+    async fn test_initialize_runtime_defaults_keeps_valid_defguard_url(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1036,7 +1183,6 @@ mod test {
 
         let mut settings = Settings::get_current_settings();
         settings.defguard_url = "https://defguard.example.com:8443/path".into();
-        settings.webauthn_rp_id = None;
         settings.secret_key = Some("a".repeat(64));
         update_current_settings(&pool, settings).await.unwrap();
 
@@ -1045,14 +1191,8 @@ mod test {
         let current = Settings::get_current_settings();
         let from_db = Settings::get(&pool).await.unwrap().unwrap();
 
-        assert_eq!(
-            current.webauthn_rp_id.as_deref(),
-            Some("defguard.example.com")
-        );
-        assert_eq!(
-            from_db.webauthn_rp_id.as_deref(),
-            Some("defguard.example.com")
-        );
+        assert_eq!(current.webauthn_rp_id().unwrap(), "defguard.example.com");
+        assert_eq!(from_db.webauthn_rp_id().unwrap(), "defguard.example.com");
     }
 
     #[test]

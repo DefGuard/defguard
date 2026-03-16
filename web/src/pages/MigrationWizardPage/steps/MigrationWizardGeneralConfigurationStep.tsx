@@ -11,6 +11,7 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 type FormFields = StoreValues;
@@ -47,8 +48,15 @@ export const MigrationWizardGeneralConfigurationStep = () => {
     () =>
       z.object({
         defguard_url: z
+          .string({
+            error: m.migration_wizard_general_config_error_defguard_url_required(),
+          })
+          .min(1, m.migration_wizard_general_config_error_defguard_url_required())
           .url(m.migration_wizard_general_config_error_invalid_url())
-          .min(1, m.migration_wizard_general_config_error_defguard_url_required()),
+          .refine(
+            isValidDefguardUrl,
+            m.migration_wizard_general_config_error_defguard_url_invalid_host(),
+          ),
         default_admin_group_name: z
           .string()
           .min(1, m.migration_wizard_general_config_error_admin_group_required()),

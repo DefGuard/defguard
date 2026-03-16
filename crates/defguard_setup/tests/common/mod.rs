@@ -135,7 +135,6 @@ pub async fn init_settings_with_secret_key(pool: &PgPool) {
     let mut settings = Settings::get_current_settings();
     settings.secret_key = Some(TEST_SECRET_KEY.to_string());
     settings.defguard_url = "http://localhost:8000".to_string();
-    settings.webauthn_rp_id = Some("localhost".to_string());
     update_current_settings(pool, settings)
         .await
         .expect("Failed to update settings");
