@@ -77,7 +77,7 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse, default_value = "http://localhost:8000")]
     #[serde(skip_serializing)]
     #[deprecated(since = "2.0.0", note = "Use Settings.defguard_url instead")]
-    pub url: Url,
+    pub url: Option<Url>,
 
     #[arg(long, env = "DEFGUARD_DISABLE_STATS_PURGE")]
     #[deprecated(since = "2.0.0", note = "Use Settings.enable_stats_purge instead")]

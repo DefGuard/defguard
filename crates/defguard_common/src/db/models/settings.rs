@@ -721,6 +721,9 @@ impl Settings {
         let hour = minute * 60;
         let day = hour * 24;
 
+        if let Some(url) = &config.url {
+            self.defguard_url = url.to_string();
+        }
         if let Some(secret_key) = &config.secret_key {
             let secret_key = secret_key.expose_secret();
             if let Err(err) = Settings::validate_secret_key(secret_key) {
