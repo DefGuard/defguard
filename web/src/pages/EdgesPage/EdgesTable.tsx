@@ -43,8 +43,6 @@ const isConnected = (edge: EdgeInfo) => {
   return connected > disconnected;
 };
 
-const displayModifiedBy = (edge: EdgeInfo) => `${edge.modified_by}`;
-
 const getStatusBadge = (edge: EdgeInfo) => {
   if (!edge.enabled) {
     return (
@@ -112,7 +110,12 @@ export const EdgesTable = () => {
   const transformedData = useMemo(() => {
     let data = edges;
     if (search.length) {
-      data = data.filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
+      const query = search.toLowerCase();
+      data = data.filter(
+        (edge) =>
+          edge.name.toLowerCase().includes(query) ||
+          edge.modified_by.toLowerCase().includes(query),
+      );
     }
 
     return data;
