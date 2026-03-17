@@ -12,7 +12,9 @@ use std::{
 use defguard_common::{
     db::{
         Id,
-        models::{gateway::Gateway, wireguard::WireguardNetwork},
+        models::{
+            gateway::Gateway, settings::initialize_current_settings, wireguard::WireguardNetwork,
+        },
         setup_pool,
     },
     messages::peer_stats_update::PeerStatsUpdate,
@@ -279,6 +281,9 @@ impl HandlerTestContext {
         events_tx: broadcast::Sender<GatewayEvent>,
     ) -> Self {
         let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to initialize global settings for gateway handler tests");
         let network = create_network(&pool).await;
         let gateway = create_gateway(&pool, network.id).await;
         let (peer_stats_tx, peer_stats_rx) = mpsc::unbounded_channel();

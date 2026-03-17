@@ -188,6 +188,22 @@ async fn test_device_created_for_network_produces_peer_create_update(
 }
 
 #[sqlx::test]
+async fn test_device_created_before_config_handshake_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_device_event_is_ignored_before_config_handshake(
+        options,
+        "created-before-config-device",
+        "tND8hJQhYnI8naBTo59He43zYldagfjlwmSxWEc01Cc=",
+        "10.10.0.11",
+        Some("created-before-config-preshared-key"),
+        GatewayEvent::DeviceCreated,
+    )
+    .await;
+}
+
+#[sqlx::test]
 async fn test_device_modified_for_network_produces_peer_modify_update(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -196,8 +212,9 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
     let expected_keepalive_interval = expected_keepalive_interval(&context);
 
     let _ = context.complete_config_handshake().await;
-    let device = create_device_for_current_network(
+    let device = create_device_for_network(
         &context,
+        context.network.id,
         "modified-peer-device",
         "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
         "10.10.0.20",
@@ -242,6 +259,22 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
 }
 
 #[sqlx::test]
+async fn test_device_modified_before_config_handshake_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_device_event_is_ignored_before_config_handshake(
+        options,
+        "modified-before-config-device",
+        "wyFOHCec/Fi9s+cARikVO71JhyYtYMk0FrQx3fK2PTM=",
+        "10.10.0.22",
+        Some("modified-before-config-preshared-key"),
+        GatewayEvent::DeviceModified,
+    )
+    .await;
+}
+
+#[sqlx::test]
 async fn test_device_deleted_for_network_produces_peer_delete_update(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -277,6 +310,70 @@ async fn test_device_deleted_for_network_produces_peer_delete_update(
     context.mock_gateway_mut().expect_no_outbound().await;
 
     context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_device_deleted_before_config_handshake_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_device_event_is_ignored_before_config_handshake(
+        options,
+        "deleted-before-config-device",
+        "m84QJmDMkqdCj8AB2NTE8F55W7M/i3CaaD3eQbQdInY=",
+        "10.10.0.31",
+        Some("deleted-before-config-preshared-key"),
+        GatewayEvent::DeviceDeleted,
+    )
+    .await;
+}
+
+#[sqlx::test]
+async fn test_device_created_for_different_network_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_device_event_for_different_network_is_ignored(
+        options,
+        "created-other-network-device",
+        "W6wBmd8wgTwvCyGqDRXk6Hf4OMqDUbUn2XWKnG5wVVQ=",
+        "10.11.0.10",
+        Some("created-other-network-preshared-key"),
+        GatewayEvent::DeviceCreated,
+    )
+    .await;
+}
+
+#[sqlx::test]
+async fn test_device_modified_for_different_network_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_device_event_for_different_network_is_ignored(
+        options,
+        "modified-other-network-device",
+        "yjuzq0cLk3Ww5oQcqK6YkSKwXnqQ1V9OlSMFAEkr0lU=",
+        "10.11.0.20",
+        Some("modified-other-network-preshared-key"),
+        GatewayEvent::DeviceModified,
+    )
+    .await;
+}
+
+#[sqlx::test]
+async fn test_device_deleted_for_different_network_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_device_event_for_different_network_is_ignored(
+        options,
+        "deleted-other-network-device",
+        "Jtp+K8xnFXuF4cae+tVGZNwoSM2fXjJbRl3sI6rdcAQ=",
+        "10.11.0.30",
+        Some("deleted-other-network-preshared-key"),
+        GatewayEvent::DeviceDeleted,
+    )
+    .await;
 }
 
 #[sqlx::test]
@@ -580,8 +677,28 @@ async fn create_device_info_for_current_network(
     device_ip: &str,
     preshared_key: Option<&str>,
 ) -> DeviceInfo {
-    let device = create_device_for_current_network(
+    create_device_info_for_network(
         context,
+        context.network.id,
+        device_name,
+        device_pubkey,
+        device_ip,
+        preshared_key,
+    )
+    .await
+}
+
+async fn create_device_info_for_network(
+    context: &HandlerTestContext,
+    network_id: Id,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: Option<&str>,
+) -> DeviceInfo {
+    let device = create_device_for_network(
+        context,
+        network_id,
         device_name,
         device_pubkey,
         device_ip,
@@ -594,8 +711,9 @@ async fn create_device_info_for_current_network(
         .expect("failed to load device info")
 }
 
-async fn create_device_for_current_network(
+async fn create_device_for_network(
     context: &HandlerTestContext,
+    network_id: Id,
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
@@ -626,11 +744,8 @@ async fn create_device_for_current_network(
     .await
     .expect("failed to create test device");
 
-    let mut network_device = WireguardNetworkDevice::new(
-        context.network.id,
-        device.id,
-        vec![parse_test_ip(device_ip)],
-    );
+    let mut network_device =
+        WireguardNetworkDevice::new(network_id, device.id, vec![parse_test_ip(device_ip)]);
     network_device.preshared_key = preshared_key.map(str::to_owned);
     network_device
         .insert(&context.pool)
@@ -638,6 +753,70 @@ async fn create_device_for_current_network(
         .expect("failed to attach device to network");
 
     device
+}
+
+async fn assert_device_event_is_ignored_before_config_handshake(
+    options: PgConnectOptions,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: Option<&str>,
+    build_event: fn(DeviceInfo) -> GatewayEvent,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    assert_eq!(context.events_tx().receiver_count(), 0);
+
+    let _broadcast_guard = context.events_tx().subscribe();
+    let device_info = create_device_info_for_current_network(
+        &context,
+        device_name,
+        device_pubkey,
+        device_ip,
+        preshared_key,
+    )
+    .await;
+
+    assert_send_ok!(
+        context.events_tx().send(build_event(device_info)),
+        "failed to broadcast ignored device event"
+    );
+
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+async fn assert_device_event_for_different_network_is_ignored(
+    options: PgConnectOptions,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: Option<&str>,
+    build_event: fn(DeviceInfo) -> GatewayEvent,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    let other_network = context.create_other_network().await;
+    assert_ne!(other_network.id, context.network.id);
+
+    let _ = context.complete_config_handshake().await;
+    let device_info = create_device_info_for_network(
+        &context,
+        other_network.id,
+        device_name,
+        device_pubkey,
+        device_ip,
+        preshared_key,
+    )
+    .await;
+
+    assert_send_ok!(
+        context.events_tx().send(build_event(device_info)),
+        "failed to broadcast ignored device event"
+    );
+
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
 }
 
 fn expected_keepalive_interval(context: &HandlerTestContext) -> u32 {
