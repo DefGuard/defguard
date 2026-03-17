@@ -145,15 +145,15 @@ export const GatewaysTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.display({
-        id: 'modified_by',
+      columnHelper.accessor('modified_by', {
         size: 175,
         minSize: 175,
         header: m.edges_col_modified_by(),
         enableSorting: true,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
-            <span>{displayModifiedBy(info.row.original)}</span>
+            <span>{info.getValue()}</span>
           </TableCell>
         ),
       }),
