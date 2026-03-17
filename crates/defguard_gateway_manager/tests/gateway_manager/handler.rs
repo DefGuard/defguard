@@ -8,6 +8,10 @@ use defguard_common::db::{
     },
 };
 use defguard_core::grpc::GatewayEvent;
+use defguard_proto::enterprise::firewall::{
+    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol,
+    SnatBinding, ip_address::Address, port::Port as PortInner,
+};
 use defguard_proto::gateway::{
     CoreResponse, Update, UpdateType, core_response,
     update::{self},
@@ -486,6 +490,80 @@ async fn test_matching_location_network_created_event_produces_create_update(
 }
 
 #[sqlx::test]
+async fn test_matching_location_firewall_config_changed_event_produces_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    let expected_firewall_config = build_test_firewall_config();
+
+    let _ = context.complete_config_handshake().await;
+
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayEvent::FirewallConfigChanged(
+                context.network.id,
+                expected_firewall_config.clone(),
+            )),
+        "failed to broadcast firewall config changed event"
+    );
+
+    let outbound = context.mock_gateway_mut().recv_outbound().await;
+    assert_firewall_modify_update(outbound, &expected_firewall_config);
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_matching_location_firewall_disabled_event_produces_disable_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+
+    let _ = context.complete_config_handshake().await;
+
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayEvent::FirewallDisabled(context.network.id)),
+        "failed to broadcast firewall disabled event"
+    );
+
+    let outbound = context.mock_gateway_mut().recv_outbound().await;
+    assert_firewall_disable_update(outbound);
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_different_location_firewall_config_changed_event_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let expected_firewall_config = build_test_firewall_config();
+
+    assert_firewall_event_for_different_network_is_ignored(options, move |other_network_id| {
+        GatewayEvent::FirewallConfigChanged(other_network_id, expected_firewall_config)
+    })
+    .await;
+}
+
+#[sqlx::test]
+async fn test_different_location_firewall_disabled_event_is_ignored(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    assert_firewall_event_for_different_network_is_ignored(options, |other_network_id| {
+        GatewayEvent::FirewallDisabled(other_network_id)
+    })
+    .await;
+}
+
+#[sqlx::test]
 async fn test_only_matching_handler_receives_network_modified_update(
     _: PgPoolOptions,
     options: PgConnectOptions,
@@ -819,6 +897,26 @@ async fn assert_device_event_for_different_network_is_ignored(
     context.finish().await.expect_server_finished().await;
 }
 
+async fn assert_firewall_event_for_different_network_is_ignored(
+    options: PgConnectOptions,
+    build_event: impl FnOnce(Id) -> GatewayEvent,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    let other_network = context.create_other_network().await;
+    assert_ne!(other_network.id, context.network.id);
+
+    let _ = context.complete_config_handshake().await;
+
+    assert_send_ok!(
+        context.events_tx().send(build_event(other_network.id)),
+        "failed to broadcast ignored firewall event"
+    );
+
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
 fn expected_keepalive_interval(context: &HandlerTestContext) -> u32 {
     u32::try_from(context.network.keepalive_interval)
         .expect("expected non-negative network keepalive interval")
@@ -919,5 +1017,116 @@ fn assert_network_modify_update(
             assert_eq!(network.fwmark, expected_fwmark);
         }
         _ => panic_unexpected!("expected network modify update"),
+    }
+}
+
+fn build_test_firewall_config() -> FirewallConfig {
+    FirewallConfig {
+        default_policy: i32::from(FirewallPolicy::Allow),
+        rules: vec![FirewallRule {
+            id: 101,
+            source_addrs: vec![IpAddress {
+                address: Some(Address::IpSubnet("10.10.0.0/24".to_string())),
+            }],
+            destination_addrs: vec![IpAddress {
+                address: Some(Address::Ip("198.51.100.20".to_string())),
+            }],
+            destination_ports: vec![Port {
+                port: Some(PortInner::SinglePort(443)),
+            }],
+            protocols: vec![i32::from(Protocol::Tcp)],
+            verdict: i32::from(FirewallPolicy::Deny),
+            comment: Some("block test https destination".to_string()),
+            ip_version: i32::from(IpVersion::Ipv4),
+        }],
+        snat_bindings: vec![SnatBinding {
+            id: 202,
+            source_addrs: vec![IpAddress {
+                address: Some(Address::IpSubnet("10.10.0.0/24".to_string())),
+            }],
+            public_ip: "203.0.113.44".to_string(),
+            comment: Some("test snat binding".to_string()),
+        }],
+    }
+}
+
+fn assert_firewall_modify_update(
+    outbound: CoreResponse,
+    expected_firewall_config: &FirewallConfig,
+) {
+    match outbound.payload {
+        Some(core_response::Payload::Update(Update {
+            update_type,
+            update: Some(update::Update::FirewallConfig(firewall_config)),
+        })) => {
+            assert_eq!(update_type, UpdateType::Modify as i32);
+            assert_eq!(
+                firewall_config.default_policy,
+                expected_firewall_config.default_policy
+            );
+            assert_eq!(
+                firewall_config.rules.len(),
+                expected_firewall_config.rules.len()
+            );
+            assert_eq!(
+                firewall_config.snat_bindings.len(),
+                expected_firewall_config.snat_bindings.len()
+            );
+
+            let firewall_rule = firewall_config
+                .rules
+                .first()
+                .expect("expected firewall rule in update payload");
+            let expected_firewall_rule = expected_firewall_config
+                .rules
+                .first()
+                .expect("expected firewall rule in test config");
+            assert_eq!(firewall_rule.id, expected_firewall_rule.id);
+            assert_eq!(
+                firewall_rule.source_addrs,
+                expected_firewall_rule.source_addrs
+            );
+            assert_eq!(
+                firewall_rule.destination_addrs,
+                expected_firewall_rule.destination_addrs
+            );
+            assert_eq!(
+                firewall_rule.destination_ports,
+                expected_firewall_rule.destination_ports
+            );
+            assert_eq!(firewall_rule.protocols, expected_firewall_rule.protocols);
+            assert_eq!(firewall_rule.verdict, expected_firewall_rule.verdict);
+            assert_eq!(firewall_rule.comment, expected_firewall_rule.comment);
+            assert_eq!(firewall_rule.ip_version, expected_firewall_rule.ip_version);
+
+            let snat_binding = firewall_config
+                .snat_bindings
+                .first()
+                .expect("expected SNAT binding in update payload");
+            let expected_snat_binding = expected_firewall_config
+                .snat_bindings
+                .first()
+                .expect("expected SNAT binding in test config");
+            assert_eq!(snat_binding.id, expected_snat_binding.id);
+            assert_eq!(
+                snat_binding.source_addrs,
+                expected_snat_binding.source_addrs
+            );
+            assert_eq!(snat_binding.public_ip, expected_snat_binding.public_ip);
+            assert_eq!(snat_binding.comment, expected_snat_binding.comment);
+        }
+        _ => panic_unexpected!("expected firewall config update"),
+    }
+}
+
+fn assert_firewall_disable_update(outbound: CoreResponse) {
+    match outbound.payload {
+        Some(core_response::Payload::Update(Update {
+            update_type,
+            update: Some(update::Update::DisableFirewall(())),
+        })) => {
+            assert_eq!(update_type, UpdateType::Delete as i32);
+        }
+        _ => panic_unexpected!("expected firewall disable update"),
     }
 }
