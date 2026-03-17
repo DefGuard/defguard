@@ -5,6 +5,7 @@ import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
@@ -66,6 +67,12 @@ export const MigrationWizardEdgeComponentStep = () => {
 
   return (
     <WizardCard>
+      <InfoBanner
+        icon="info-outlined"
+        variant="info"
+        text={`We've detected your current Proxy setup. Please upgrade it to the latest 2.0 Edge component so it can be adopted automatically and managed by Defguard.`}
+      />
+      <SizedBox height={ThemeSpacing.Xl} />
       <form
         onSubmit={(e) => {
           e.stopPropagation();
@@ -79,6 +86,7 @@ export const MigrationWizardEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_common_name()}
+                helper={m.edge_setup_component_error_common_name_help()}
                 type="text"
               />
             )}
@@ -89,6 +97,7 @@ export const MigrationWizardEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_ip_or_domain()}
+                helper={m.edge_setup_component_label_ip_or_domain_help()}
                 type="text"
               />
             )}
@@ -99,6 +108,7 @@ export const MigrationWizardEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_grpc_port()}
+                helper={m.edge_setup_component_label_grpc_port_help()}
                 type="number"
               />
             )}

@@ -18,9 +18,6 @@ import {
 interface StoreValues extends MigrationWizardApiState {
   // general config
   defguard_url: string;
-  default_admin_group_name: string;
-  default_authentication_period_days: number;
-  default_mfa_code_timeout_seconds: number;
   public_proxy_url: string;
   // ca
   ca_common_name: string;
@@ -48,11 +45,8 @@ const defaults: StoreValues = {
   current_step: MigrationWizardStep.General,
   location_state: null,
   defguard_url: '',
-  default_admin_group_name: '',
-  default_authentication_period_days: 7,
-  default_mfa_code_timeout_seconds: 60,
   public_proxy_url: '',
-  ca_common_name: '',
+  ca_common_name: 'Defguard Certificate Authority',
   ca_email: '',
   ca_validity_period_years: 5,
   ca_cert_file: null,

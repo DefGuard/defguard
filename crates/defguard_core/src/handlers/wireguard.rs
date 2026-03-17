@@ -53,6 +53,11 @@ pub(crate) struct WireguardNetworkInfo {
     has_devices: bool,
 }
 
+#[derive(Serialize, ToSchema)]
+pub(crate) struct LocationsCount {
+    count: usize,
+}
+
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
@@ -491,6 +496,41 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
     debug!("Listed WireGuard networks");
 
     Ok(ApiResponse::json(network_info, StatusCode::OK))
+}
+
+/// Number of all networks
+///
+/// Retrieve count of all networks.
+///
+/// # Returns
+/// - `LocationsCount` object
+///
+/// - `WebError` if error occurs
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/count",
+    responses(
+        (status = 200, description = "Count of all networks", body = LocationsCount),
+        (status = 401, description = "Unauthorized to count networks.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to count networks.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to count networks.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+    debug!("Counting WireGuard networks");
+    let count = sqlx::query_scalar!("SELECT COUNT(*) FROM wireguard_network")
+        .fetch_one(&appstate.pool)
+        .await?;
+    let count = count.unwrap_or(0).try_into().map_err(|error| {
+        error!("Failed to convert wireguard_network count to usize: {error}");
+        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+    })?;
+
+    Ok(ApiResponse::json(LocationsCount { count }, StatusCode::OK))
 }
 
 /// Details of network

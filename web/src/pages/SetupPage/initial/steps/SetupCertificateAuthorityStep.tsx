@@ -184,6 +184,7 @@ export const SetupCertificateAuthorityStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_ca_label_common_name()}
+                  helper={m.initial_setup_ca_helper_common_name()}
                   type="text"
                   placeholder={m.initial_setup_ca_placeholder_common_name()}
                 />
@@ -195,6 +196,7 @@ export const SetupCertificateAuthorityStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_ca_label_email()}
+                  helper={m.initial_setup_ca_helper_email()}
                   placeholder={m.initial_setup_ca_placeholder_email()}
                 />
               )}

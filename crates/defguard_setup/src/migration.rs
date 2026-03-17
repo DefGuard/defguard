@@ -29,7 +29,7 @@ use defguard_core::{
         resource_display::get_locations_display,
         session_info::get_session_info,
         settings::{get_settings, get_settings_essentials, patch_settings},
-        wireguard::list_networks,
+        wireguard::{count_networks, list_networks},
     },
     health_check,
     version::IncompatibleComponents,
@@ -45,7 +45,7 @@ use tracing::{info, instrument};
 
 use crate::handlers::{
     initial_wizard::{create_ca, get_ca, upload_ca},
-    migration::{finish_setup, get_migration_state, set_general_config, update_migration_state},
+    migration::{finish_setup, get_migration_state, update_migration_state},
 };
 
 /// FIXME: This is a workaround which enables us to reuse the same API handlers
@@ -118,6 +118,7 @@ pub fn build_migration_webapp(
                 .route("/auth/email/verify", post(email_mfa_code))
                 .route("/auth/recovery", post(recovery_code))
                 .route("/network", get(list_networks))
+                .route("/network/count", get(count_networks))
                 .route("/network/display", get(get_locations_display))
                 .route(
                     "/network/{network_id}/gateways/setup",
@@ -130,7 +131,6 @@ pub fn build_migration_webapp(
                             "/state",
                             get(get_migration_state).put(update_migration_state),
                         )
-                        .route("/general_config", post(set_general_config))
                         .route("/ca", post(create_ca).get(get_ca))
                         .route("/ca/upload", post(upload_ca))
                         .route("/finish", post(finish_setup)),

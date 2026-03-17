@@ -8,6 +8,7 @@ import type {
 } from '../../shared/components/wizard/types';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import {
+  getLocationsCountQueryOptions,
   getMigrationStateQueryOptions,
   getSettingsQueryOptions,
 } from '../../shared/query';
@@ -22,20 +23,25 @@ import { MigrationWizardStart } from './steps/MigrationWizardStart';
 import { useMigrationWizardStore } from './store/useMigrationWizardStore';
 import { MigrationWizardStep, type MigrationWizardStepValue } from './types';
 
-const welcomePageConfig: WizardWelcomePageConfig = {
-  title: 'Welcome to Defguard Migration Wizard.',
-  subtitle: `We've detected your previous version 1.X so email.`,
-  content: <MigrationWizardStart />,
-  docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link below.`,
-} as const;
-
 type ConfigurableSteps = Exclude<MigrationWizardStepValue, 'welcome'>;
 
 export const MigrationWizardPage = () => {
+  const { data: locationCount } = useSuspenseQuery(getLocationsCountQueryOptions);
   const { data: wizardState } = useSuspenseQuery(getMigrationStateQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
   const activeStep = useMigrationWizardStore((s) => s.current_step);
+
+  const welcomePageConfig = useMemo(
+    (): WizardWelcomePageConfig =>
+      ({
+        title: 'Welcome to Defguard Migration Wizard.',
+        subtitle: `We've detected your pervious version with ${locationCount} number of locations.`,
+        content: <MigrationWizardStart />,
+        docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link below.`,
+      }) as const,
+    [locationCount],
+  );
 
   const stepsConfig = useMemo(
     (): Record<ConfigurableSteps, WizardPageStep> => ({
@@ -111,10 +117,8 @@ export const MigrationWizardPage = () => {
     if (settings) {
       useMigrationWizardStore.setState({
         defguard_url: settings.defguard_url,
-        default_admin_group_name: settings.default_admin_group_name,
-        default_authentication_period_days: settings.authentication_period_days,
-        default_mfa_code_timeout_seconds: settings.mfa_code_timeout_seconds,
         public_proxy_url: settings.public_proxy_url,
+        ip_or_domain: settings.public_proxy_url,
       });
     }
   }, [settings]);

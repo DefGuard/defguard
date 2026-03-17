@@ -5,8 +5,10 @@ import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
@@ -14,63 +16,39 @@ import { formChangeLogic } from '../../../shared/formLogic';
 import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
-type FormFields = StoreValues;
-
-type StoreValues = {
-  defguard_url: string;
-  default_admin_group_name: string;
-  default_authentication: number;
-  default_mfa_code_lifetime: number;
-  public_proxy_url: string;
-};
-
 export const MigrationWizardGeneralConfigurationStep = () => {
   const { mutateAsync } = useMutation({
-    mutationFn: api.migration.setGeneralConfig,
+    mutationFn: api.settings.patchSettings,
     meta: {
       invalidate: [['settings'], ['migration', 'state']],
     },
   });
 
-  const defaultValues = useMigrationWizardStore(
-    useShallow(
-      (s): FormFields => ({
-        defguard_url: s.defguard_url,
-        default_admin_group_name: s.default_admin_group_name,
-        default_authentication: s.default_authentication_period_days,
-        default_mfa_code_lifetime: s.default_mfa_code_timeout_seconds,
-        public_proxy_url: s.public_proxy_url,
-      }),
-    ),
-  );
-
   const formSchema = useMemo(
     () =>
       z.object({
         defguard_url: z
-          .string({
-            error: m.migration_wizard_general_config_error_defguard_url_required(),
-          })
-          .min(1, m.migration_wizard_general_config_error_defguard_url_required())
           .url(m.migration_wizard_general_config_error_invalid_url())
+          .min(1, m.migration_wizard_general_config_error_defguard_url_required())
           .refine(
             isValidDefguardUrl,
             m.migration_wizard_general_config_error_defguard_url_invalid_host(),
           ),
-        default_admin_group_name: z
-          .string()
-          .min(1, m.migration_wizard_general_config_error_admin_group_required()),
-        default_authentication: z
-          .number()
-          .min(1, m.migration_wizard_general_config_error_auth_period_min()),
-        default_mfa_code_lifetime: z
-          .number()
-          .min(60, m.migration_wizard_general_config_error_mfa_timeout_min()),
         public_proxy_url: z
           .url(m.migration_wizard_general_config_error_public_proxy_url_invalid())
           .min(1, m.migration_wizard_general_config_error_public_proxy_url_required()),
       }),
     [],
+  );
+  type FormFields = z.infer<typeof formSchema>;
+
+  const defaultValues = useMigrationWizardStore(
+    useShallow(
+      (s): FormFields => ({
+        defguard_url: s.defguard_url,
+        public_proxy_url: s.public_proxy_url,
+      }),
+    ),
   );
 
   const form = useAppForm({
@@ -84,9 +62,6 @@ export const MigrationWizardGeneralConfigurationStep = () => {
       await mutateAsync(value);
       useMigrationWizardStore.setState({
         defguard_url: value.defguard_url,
-        default_admin_group_name: value.default_admin_group_name,
-        default_authentication_period_days: value.default_authentication,
-        default_mfa_code_timeout_seconds: value.default_mfa_code_lifetime,
         public_proxy_url: value.public_proxy_url,
       });
       useMigrationWizardStore.getState().next();
@@ -103,6 +78,10 @@ export const MigrationWizardGeneralConfigurationStep = () => {
         }}
       >
         <form.AppForm>
+          <DescriptionBlock title="Private URL">
+            <p>{`This URL will be used to access and control Defguard. It should not be exposed to the Internet only to the internal or VPN network. You can learn more about our security approach in the video below.`}</p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="defguard_url">
             {(field) => (
               <field.FormInput
@@ -112,37 +91,11 @@ export const MigrationWizardGeneralConfigurationStep = () => {
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="default_admin_group_name">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.migration_wizard_general_config_label_admin_group()}
-                type="text"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="default_authentication">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.migration_wizard_general_config_label_auth_period()}
-                type="number"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="default_mfa_code_lifetime">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.migration_wizard_general_config_label_mfa_timeout()}
-                type="number"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
+          <Divider spacing={ThemeSpacing.Xl} />
+          <DescriptionBlock title="Public URL">
+            <p>{`This URL will be used to access and control Defguard. It should not be exposed to the Internet only to the internal or VPN network. You can learn more about our security approach in the video below.`}</p>
+          </DescriptionBlock>
+          <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="public_proxy_url">
             {(field) => (
               <field.FormInput

@@ -2,8 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use axum::{Extension, Json};
 use defguard_common::db::models::{
-    ActiveWizard, Settings, Wizard, group::Group, migration_wizard::MigrationWizardState,
-    settings::update_current_settings,
+    ActiveWizard, Wizard, migration_wizard::MigrationWizardState,
 };
 use defguard_core::{
     auth::AdminOrSetupRole,
@@ -15,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::sync::oneshot;
-use tracing::{debug, info};
+use tracing::info;
 
 pub async fn get_migration_state(
     _: AdminOrSetupRole,
@@ -38,64 +37,8 @@ pub async fn update_migration_state(
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GeneralConfig {
     defguard_url: String,
-    default_admin_group_name: String,
-    default_authentication: u32,
     default_mfa_code_lifetime: u32,
     public_proxy_url: String,
-}
-
-pub async fn set_general_config(
-    _: AdminOrSetupRole,
-    Extension(pool): Extension<PgPool>,
-    Json(general_config): Json<GeneralConfig>,
-) -> ApiResult {
-    info!("Applying initial general configuration settings");
-    debug!(
-        "General configuration received: defguard_url={}, default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}, public_proxy_url={}",
-        general_config.defguard_url,
-        general_config.default_admin_group_name,
-        general_config.default_authentication,
-        general_config.default_mfa_code_lifetime,
-        general_config.public_proxy_url,
-    );
-    let default_admin_group_name = general_config.default_admin_group_name.clone();
-    let mut settings = Settings::get_current_settings();
-    settings.public_proxy_url = general_config.public_proxy_url;
-    settings.defguard_url = general_config.defguard_url;
-    settings.default_admin_group_name = general_config.default_admin_group_name;
-    settings.authentication_period_days = general_config
-        .default_authentication
-        .try_into()
-        .map_err(|err| {
-            WebError::BadRequest(format!("Invalid authentication period days: {err}"))
-        })?;
-    settings.mfa_code_timeout_seconds = general_config
-        .default_mfa_code_lifetime
-        .try_into()
-        .map_err(|err| WebError::BadRequest(format!("Invalid MFA code timeout seconds: {err}")))?;
-    update_current_settings(&pool, settings).await?;
-    debug!("Settings persisted");
-
-    if let Some(mut group) = Group::find_by_name(&pool, &default_admin_group_name).await? {
-        debug!(
-            "Admin group {} found, marking as admin",
-            default_admin_group_name
-        );
-        group.is_admin = true;
-        group.save(&pool).await?;
-    } else {
-        debug!(
-            "Admin group {} not found, creating",
-            default_admin_group_name
-        );
-        let mut group = Group::new(&default_admin_group_name);
-        group.is_admin = true;
-        group.save(&pool).await?;
-    }
-
-    info!("Initial general configuration applied");
-
-    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 pub async fn finish_setup(
