@@ -395,5 +395,6 @@ pub enum DesktopClientMfaEvent {
     Disconnected {
         device: Device<Id>,
         location: WireguardNetwork<Id>,
+        is_mfa_session: bool,
     },
 }

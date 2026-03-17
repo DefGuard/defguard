@@ -844,12 +844,17 @@ impl ClientMfaServer {
         })?;
         }
 
-        if is_connected && is_mfa_session {
-            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
-            self.wireguard_tx.send(gateway_event).map_err(|err| {
-                error!("Error sending WireGuard event: {err}");
-                Status::internal("unexpected error")
-            })?;
+        // only emit disconnect events if a session has actually been connected
+        if is_connected {
+            // gateway update is only needed to remove peer for MFA sessions
+            if is_mfa_session {
+                let gateway_event =
+                    GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+                self.wireguard_tx.send(gateway_event).map_err(|err| {
+                    error!("Error sending WireGuard event: {err}");
+                    Status::internal("unexpected error")
+                })?;
+            }
 
             let context = BidiRequestContext {
                 timestamp: disconnect_timestamp,
@@ -864,6 +869,7 @@ impl ClientMfaServer {
                     DesktopClientMfaEvent::Disconnected {
                         location: location.clone(),
                         device: device.clone(),
+                        is_mfa_session,
                     },
                 )),
             })
