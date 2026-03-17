@@ -85,6 +85,10 @@ impl SessionManagerHarness {
             .expect("failed to send peer stats update");
     }
 
+    pub(crate) fn close_event_channel(&mut self) {
+        self.event_rx.close();
+    }
+
     pub(crate) async fn run_iteration(&mut self) -> IterationOutcome {
         let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
         run_session_manager_iteration(

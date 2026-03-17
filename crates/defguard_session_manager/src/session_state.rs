@@ -1,4 +1,7 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    net::IpAddr,
+};
 
 use chrono::{NaiveDateTime, TimeDelta};
 use defguard_common::{
@@ -91,9 +94,29 @@ pub(crate) struct SessionState {
     session_id: Id,
     state: VpnClientSessionState,
     last_stats_update: LastGatewayUpdate,
+    event_context_data: Option<SessionEventContextData>,
+}
+
+struct SessionEventContextData {
+    location: WireguardNetwork<Id>,
+    user: User<Id>,
+    device: Device<Id>,
+    is_mfa_session: bool,
 }
 
 impl SessionState {
+    fn new(
+        session: &VpnClientSession<Id>,
+        event_context_data: Option<SessionEventContextData>,
+    ) -> Self {
+        Self {
+            session_id: session.id,
+            state: session.state.clone(),
+            last_stats_update: LastGatewayUpdate::new(),
+            event_context_data,
+        }
+    }
+
     fn try_get_last_stats_update(&self, gateway_id: Id) -> Option<&LastStatsUpdate> {
         self.last_stats_update.0.get(&gateway_id)
     }
@@ -107,6 +130,10 @@ impl SessionState {
     ) -> Result<(), SessionManagerError> {
         // mark new MFA session as connected if necessary
         if self.state == VpnClientSessionState::New {
+            let event_context_data = self.event_context_data.as_ref().ok_or(
+                SessionManagerError::MissingSessionEventContextError(self.session_id),
+            )?;
+
             // fetch DB session
             let mut db_session = VpnClientSession::find_by_id(&mut *transaction, self.session_id)
                 .await?
@@ -118,37 +145,18 @@ impl SessionState {
             db_session.connected_at = Some(peer_stats_update.latest_handshake);
             db_session.save(&mut *transaction).await?;
 
-            let user = User::find_by_id(&mut *transaction, db_session.user_id)
-                .await?
-                .ok_or(SessionManagerError::UserDoesNotExistError(
-                    db_session.user_id,
-                ))?;
-            let device = Device::find_by_id(&mut *transaction, db_session.device_id)
-                .await?
-                .ok_or(SessionManagerError::DeviceDoesNotExistError(
-                    db_session.device_id,
-                ))?;
-            let location = WireguardNetwork::find_by_id(&mut *transaction, db_session.location_id)
-                .await?
-                .ok_or(SessionManagerError::LocationDoesNotExistError(
-                    db_session.location_id,
-                ))?;
+            // update local session state before event emission so the transition stays idempotent
+            // even if the event channel is closed.
+            self.state = VpnClientSessionState::Connected;
 
-            let context = SessionManagerEventContext {
-                timestamp: peer_stats_update.latest_handshake,
-                location,
-                user,
-                device,
-                public_ip: peer_stats_update.endpoint.ip(),
-            };
             let event = SessionManagerEvent::connected_for_session(
-                context,
-                db_session.mfa_method.is_some(),
+                event_context_data.build_context(
+                    peer_stats_update.latest_handshake,
+                    peer_stats_update.endpoint.ip(),
+                ),
+                event_context_data.is_mfa_session,
             );
             event_tx.send(event)?;
-
-            // update local session state
-            self.state = VpnClientSessionState::Connected;
         }
 
         // get previous stats for a given gateway if available and calculate transfer change
@@ -189,12 +197,18 @@ impl SessionState {
     }
 }
 
-impl From<&VpnClientSession<Id>> for SessionState {
-    fn from(value: &VpnClientSession<Id>) -> Self {
-        Self {
-            session_id: value.id,
-            state: value.state.clone(),
-            last_stats_update: LastGatewayUpdate::new(),
+impl SessionEventContextData {
+    fn build_context(
+        &self,
+        timestamp: NaiveDateTime,
+        public_ip: IpAddr,
+    ) -> SessionManagerEventContext {
+        SessionManagerEventContext {
+            timestamp,
+            location: self.location.clone(),
+            user: self.user.clone(),
+            device: self.device.clone(),
+            public_ip,
         }
     }
 }
@@ -249,11 +263,22 @@ impl ActiveSessionsMap {
         device_pubkey: String,
     ) -> Result<Option<&mut SessionState>, SessionManagerError> {
         // translate pubkey into device ID
-        let device_id = self.get_device(&mut *transaction, device_pubkey).await?.id;
+        let device = self
+            .get_device(&mut *transaction, device_pubkey)
+            .await?
+            .clone();
+        let device_id = device.id;
 
         // try to get session from current map
-        let session_map = self.get_or_create_location_session_map(location_id);
-        if session_map.0.contains_key(&device_id) {
+        let session_exists_in_batch = self
+            .sessions
+            .get(&location_id)
+            .is_some_and(|session_map| session_map.0.contains_key(&device_id));
+        if session_exists_in_batch {
+            let session_map = self
+                .sessions
+                .get_mut(&location_id)
+                .expect("location session map should exist once checked");
             return Ok(session_map.0.get_mut(&device_id));
         }
 
@@ -265,7 +290,25 @@ impl ActiveSessionsMap {
         match maybe_db_session {
             None => Ok(None),
             Some(db_session) => {
-                let mut session_state = SessionState::from(&db_session);
+                let event_context_data = if db_session.state == VpnClientSessionState::New {
+                    let user = self
+                        .get_user(&mut *transaction, device.user_id)
+                        .await?
+                        .clone();
+                    let location = self
+                        .get_location(&mut *transaction, location_id)
+                        .await?
+                        .clone();
+                    Some(SessionEventContextData {
+                        location,
+                        user,
+                        device,
+                        is_mfa_session: db_session.mfa_method.is_some(),
+                    })
+                } else {
+                    None
+                };
+                let mut session_state = SessionState::new(&db_session, event_context_data);
 
                 // fetch latest available stats for each gateway for a given session
                 let latest_gateway_stats = db_session
@@ -276,6 +319,7 @@ impl ActiveSessionsMap {
                 }
 
                 // put session state in map
+                let session_map = self.get_or_create_location_session_map(location_id);
                 let maybe_existing_session = session_map.insert(device_id, session_state);
 
                 // if a session exists already there was an error in earlier logic
@@ -353,7 +397,15 @@ impl ActiveSessionsMap {
         .await?;
 
         // add to session map
-        let session_state = SessionState::from(&session);
+        let session_state = SessionState::new(
+            &session,
+            Some(SessionEventContextData {
+                location: location.clone(),
+                user: user.clone(),
+                device: device.clone(),
+                is_mfa_session: false,
+            }),
+        );
         let session_map = self.get_or_create_location_session_map(location_id);
         let maybe_existing_session = session_map.insert(device.id, session_state);
 

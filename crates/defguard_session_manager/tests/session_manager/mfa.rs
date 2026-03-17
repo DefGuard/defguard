@@ -365,6 +365,80 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
 }
 
 #[sqlx::test]
+async fn test_closed_event_channel_keeps_mfa_first_stats_upgrade_idempotent(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let location = create_location_with_mfa_mode(&pool, LocationMfaMode::Internal).await;
+    let user = create_user(&pool).await;
+    let device = create_device(&pool, user.id).await;
+    attach_device_to_location(&pool, location.id, device.id).await;
+    let gateway = create_gateway(&pool, location.id, user.fullname()).await;
+    let mut harness = SessionManagerHarness::new(pool.clone());
+
+    let session = create_session(
+        &pool,
+        location.id,
+        user.id,
+        device.id,
+        None,
+        Some(VpnClientMfaMethod::Totp),
+    )
+    .await;
+
+    let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
+    let first_handshake = truncate_timestamp(Utc::now().naive_utc() - TimeDelta::seconds(30));
+    let second_collected_at = first_handshake + TimeDelta::seconds(30);
+    let second_handshake = first_handshake + TimeDelta::seconds(20);
+
+    harness.close_event_channel();
+    harness.send_stats(build_stats_update(
+        location.id,
+        gateway.id,
+        &device.wireguard_pubkey,
+        first_handshake,
+        endpoint,
+        100,
+        200,
+        first_handshake,
+    ));
+    harness.send_stats(build_stats_update(
+        location.id,
+        gateway.id,
+        &device.wireguard_pubkey,
+        second_collected_at,
+        endpoint,
+        160,
+        280,
+        second_handshake,
+    ));
+
+    let _ = harness.run_iteration().await;
+
+    let refreshed_session = VpnClientSession::find_by_id(&pool, session.id)
+        .await
+        .expect("failed to query session")
+        .expect("expected session");
+    assert_eq!(refreshed_session.state, VpnClientSessionState::Connected);
+    assert_eq!(refreshed_session.connected_at, Some(first_handshake));
+
+    assert_eq!(count_session_stats(&pool, session.id).await, 1);
+
+    let latest_stats = VpnSessionStats::fetch_latest_for_device(&pool, device.id, location.id)
+        .await
+        .expect("failed to query latest stats")
+        .expect("expected latest stats");
+    assert_eq!(latest_stats.session_id, session.id);
+    assert_eq!(latest_stats.total_upload, 160);
+    assert_eq!(latest_stats.total_download, 280);
+    assert_eq!(latest_stats.upload_diff, 0);
+    assert_eq!(latest_stats.download_diff, 0);
+
+    assert_no_gateway_events(&mut harness);
+}
+
+#[sqlx::test]
 async fn test_inactive_mfa_connected_sessions_disconnect_and_clear_authorization(
     _: PgPoolOptions,
     options: PgConnectOptions,
