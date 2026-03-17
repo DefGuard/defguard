@@ -205,10 +205,11 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
     )
     .await;
 
-    let mut network_device = WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
-        .await
-        .expect("failed to load device network info")
-        .expect("expected device network info for modified device");
+    let mut network_device =
+        WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
+            .await
+            .expect("failed to load device network info")
+            .expect("expected device network info for modified device");
     network_device.wireguard_ips = vec![parse_test_ip("10.10.0.21")];
     network_device.preshared_key = Some("modified-preshared-key".to_string());
     network_device
@@ -625,8 +626,11 @@ async fn create_device_for_current_network(
     .await
     .expect("failed to create test device");
 
-    let mut network_device =
-        WireguardNetworkDevice::new(context.network.id, device.id, vec![parse_test_ip(device_ip)]);
+    let mut network_device = WireguardNetworkDevice::new(
+        context.network.id,
+        device.id,
+        vec![parse_test_ip(device_ip)],
+    );
     network_device.preshared_key = preshared_key.map(str::to_owned);
     network_device
         .insert(&context.pool)

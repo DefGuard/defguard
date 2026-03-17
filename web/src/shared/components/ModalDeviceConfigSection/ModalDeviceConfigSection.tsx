@@ -1,4 +1,3 @@
-import { QRCodeCanvas } from 'qrcode.react';
 import type { AddDeviceResponse, AddDeviceResponseConfig } from '../../api/types';
 import './style.scss';
 import { ZipArchive } from '@shortercode/webzip';
@@ -7,6 +6,7 @@ import { m } from '../../../paraglide/messages';
 import { Button } from '../../defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../defguard-ui/components/ButtonMenu/MenuButton';
 import type { MenuItemsGroup } from '../../defguard-ui/components/Menu/types';
+import { QrCard } from '../../defguard-ui/components/QrCard/QrCard';
 import { Select } from '../../defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../defguard-ui/components/Select/types';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
@@ -102,7 +102,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   );
   return (
     <div className="modal-device-config-section">
-      <QRCodeCanvas size={200} value={qrConfig} />
+      <QrCard value={qrConfig} />
       <div className="right">
         <Select
           label={m.modal_add_user_device_manual_download_location_label()}
