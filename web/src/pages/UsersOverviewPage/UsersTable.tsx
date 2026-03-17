@@ -115,7 +115,7 @@ export const UsersTable = () => {
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: [['user-overview'], ['user']],
+      invalidate: [['user-overview'], ['user'], ['activity-log']],
     },
   });
 
