@@ -115,6 +115,9 @@ const DockerComposeTab = () => {
   edge:
     image: ghcr.io/defguard/defguard-proxy:latest
     restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50051:50051"
     # Uncomment the following if you are running on Debian 13 or later or have apparmor or SELinux setup
     #security_opt:
     #  - apparmor:unconfined
@@ -139,7 +142,7 @@ const DockerTab = () => {
         subtitle={m.edge_setup_step_deploy_tabs_docker_subtitle()}
       />
       <CodeSnippet
-        value={`docker run --restart unless-stopped --security-opt apparmor:unconfined ghcr.io/defguard/defguard-proxy:latest`}
+        value={`docker run --restart unless-stopped --security-opt apparmor:unconfined -p 8080:8080 -p 50051:50051 -v ./.volumes/certs/edge:/etc/defguard/certs`}
       />
     </>
   );

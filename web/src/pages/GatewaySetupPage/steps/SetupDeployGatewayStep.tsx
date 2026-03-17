@@ -125,7 +125,7 @@ const DockerComposeTab = () => {
       />
       <CodeSnippet
         value={`services:
-  defguard-gateway:
+  gateway:
     image: ghcr.io/defguard/gateway:latest
     restart: unless-stopped
     network_mode: host
