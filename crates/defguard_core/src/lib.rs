@@ -718,7 +718,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .clone()
         .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
         .to_string();
-    settings.defguard_url = config.url.to_string();
+    settings.defguard_url = config.url.clone().unwrap().to_string();
     update_current_settings(&pool, settings)
         .await
         .expect("Failed to update settings");
