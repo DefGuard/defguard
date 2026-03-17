@@ -899,7 +899,7 @@ mod tests {
     use super::*;
 
     #[sqlx::test]
-    async fn test_replacing_connected_mfa_session_emits_disconnect_event(
+    async fn test_replacing_connected_mfa_session_emits_mfa_disconnect_event(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -919,7 +919,7 @@ mod tests {
         .await
         .expect("failed to create existing MFA session");
 
-        let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+        let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
@@ -933,14 +933,35 @@ mod tests {
             .await
             .expect("should replace connected MFA session");
 
+        let gateway_event = gateway_rx
+            .try_recv()
+            .expect("expected MFA gateway disconnect event for replaced connected session");
+        match gateway_event {
+            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(disconnected_device.id, device.id);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
         let event = event_rx
             .try_recv()
-            .expect("expected MFA disconnect event for replaced connected session");
-        assert!(matches!(
-            event.event,
-            BidiStreamEventType::DesktopClientMfa(event)
-                if matches!(*event, DesktopClientMfaEvent::Disconnected { .. })
-        ));
+            .expect("expected MFA disconnect audit event for replaced connected session");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::Disconnected {
+                    location: event_location,
+                    device: event_device,
+                    is_mfa_session,
+                } => {
+                    assert_eq!(event_location.id, location.id);
+                    assert_eq!(event_device.id, device.id);
+                    assert!(is_mfa_session);
+                }
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
+        }
         assert_eq!(event.context.user_id, user.id);
         assert_eq!(event.context.username, user.username);
 
@@ -952,7 +973,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_replacing_new_mfa_session_does_not_emit_disconnect_event(
+    async fn test_replacing_new_mfa_session_marks_session_disconnected_without_disconnect_event(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -972,7 +993,7 @@ mod tests {
         .await
         .expect("failed to create existing new MFA session");
 
-        let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+        let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
@@ -986,7 +1007,14 @@ mod tests {
             .await
             .expect("should replace new MFA session");
 
-        assert!(event_rx.try_recv().is_err());
+        assert!(matches!(
+            event_rx.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        ));
+        assert!(matches!(
+            gateway_rx.try_recv(),
+            Err(broadcast::error::TryRecvError::Empty)
+        ));
 
         let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
             .await
@@ -996,7 +1024,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_replacing_connected_non_mfa_session_does_not_emit_mfa_disconnect_event(
+    async fn test_replacing_connected_non_mfa_session_emits_standard_disconnect_event(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1016,7 +1044,7 @@ mod tests {
         .await
         .expect("failed to create existing connected non-MFA session");
 
-        let (server, mut event_rx, _gateway_rx) = make_server(pool.clone());
+        let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
         server
@@ -1030,7 +1058,31 @@ mod tests {
             .await
             .expect("should replace connected non-MFA session");
 
-        assert!(event_rx.try_recv().is_err());
+        assert!(matches!(
+            gateway_rx.try_recv(),
+            Err(broadcast::error::TryRecvError::Empty)
+        ));
+
+        let event = event_rx
+            .try_recv()
+            .expect("expected standard disconnect audit event for replaced connected non-MFA session");
+        match event.event {
+            BidiStreamEventType::DesktopClientMfa(event) => match *event {
+                DesktopClientMfaEvent::Disconnected {
+                    location: event_location,
+                    device: event_device,
+                    is_mfa_session,
+                } => {
+                    assert_eq!(event_location.id, location.id);
+                    assert_eq!(event_device.id, device.id);
+                    assert!(!is_mfa_session);
+                }
+                other => panic!("unexpected bidi event: {other:?}"),
+            },
+            other => panic!("unexpected bidi stream event type: {other:?}"),
+        }
+        assert_eq!(event.context.user_id, user.id);
+        assert_eq!(event.context.username, user.username);
 
         let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
             .await

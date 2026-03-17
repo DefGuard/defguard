@@ -4,7 +4,7 @@ use defguard_core::events::{
 use defguard_event_logger::message::{EnrollmentEvent, EventContext, LoggerEvent, VpnEvent};
 use tracing::debug;
 
-use crate::{EventRouter, error::EventRouterError};
+use crate::{error::EventRouterError, EventRouter};
 
 impl EventRouter {
     pub(crate) fn handle_bidi_event(&self, event: BidiStreamEvent) -> Result<(), EventRouterError> {
@@ -108,23 +108,23 @@ mod tests {
     };
 
     use defguard_common::db::{
-        NoId,
         models::{
-            Device, DeviceType, WireguardNetwork,
             wireguard::{LocationMfaMode, ServiceLocationMode},
+            Device, DeviceType, WireguardNetwork,
         },
+        NoId,
     };
     use defguard_core::{
         events::{BidiRequestContext, BidiStreamEventType},
         grpc::GatewayEvent,
     };
-    use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel, Notify};
 
     use super::*;
     use crate::RouterReceiverSet;
 
     #[test]
-    fn maps_mfa_disconnect_bidi_events_to_mfa_disconnect_logger_events() {
+    fn maps_disconnect_bidi_events_from_mfa_sessions_to_mfa_disconnect_logger_events() {
         let message = route_disconnect_event(true);
 
         match message.event {
@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn maps_non_mfa_disconnect_bidi_events_to_standard_disconnect_logger_events() {
+    fn maps_disconnect_bidi_events_from_non_mfa_sessions_to_standard_disconnect_logger_events() {
         let message = route_disconnect_event(false);
 
         match message.event {
