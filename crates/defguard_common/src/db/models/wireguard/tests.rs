@@ -1,10 +1,39 @@
-use std::str::FromStr;
+use std::{net::Ipv6Addr, str::FromStr};
 
 use matches::assert_matches;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
 use crate::db::setup_pool;
+
+#[test]
+fn test_set_address() {
+    // This is fine.
+    let result = WireguardNetwork::default().set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 10, 10)), 10).unwrap(),
+        IpNetwork::new(
+            IpAddr::V6(Ipv6Addr::new(0x1010, 0, 0, 0, 0, 0, 0, 0x1010)),
+            10,
+        )
+        .unwrap(),
+    ]);
+    assert!(result.is_ok());
+
+    // This should return error.
+    let result = WireguardNetwork::default().set_address([IpNetwork::new(
+        IpAddr::V4(Ipv4Addr::new(10, 10, 10, 0)),
+        24,
+    )
+    .unwrap()]);
+    assert!(result.is_err());
+
+    let result = WireguardNetwork::default().set_address([IpNetwork::new(
+        IpAddr::V6(Ipv6Addr::new(0x1010, 0, 0, 0, 0, 0, 0, 0)),
+        112,
+    )
+    .unwrap()]);
+    assert!(result.is_err());
+}
 
 // FIXME(mwojcik): rewrite for new stats implementation
 // #[sqlx::test]

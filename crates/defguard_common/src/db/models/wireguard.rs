@@ -253,7 +253,6 @@ impl WireguardNetwork {
     }
 
     /// Try to set `address` from comma-separated string of addresses.
-    /// If there is an error parsing the address list, `address` will be partially set.
     pub fn try_set_address(mut self, address: &str) -> Result<Self, IpNetworkError> {
         self.address = Vec::new();
         for addr in address.split(',') {
