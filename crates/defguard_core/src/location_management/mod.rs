@@ -400,9 +400,12 @@ mod test {
     #[sqlx::test]
     async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/29")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user1 = User::new(
             "testuser1",
@@ -517,9 +520,12 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/29")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user1 = User::new(
             "testuser1",

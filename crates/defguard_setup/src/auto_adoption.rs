@@ -733,9 +733,8 @@ id={} for new gateway",
             .context("Failed to parse default auto-adoption network address")?;
 
         let mut transaction = pool.begin().await.context("Failed to begin transaction")?;
-        let network = WireguardNetwork::new(
+        let mut network = WireguardNetwork::new(
             common_name.to_string(),
-            [network_address],
             DEFAULT_AUTO_ADOPTION_WIREGUARD_PORT,
             host.to_string(),
             None,
@@ -745,10 +744,12 @@ id={} for new gateway",
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        )
-        .save(&mut *transaction)
-        .await
-        .context("Failed to save auto-adopted WireguardNetwork")?;
+        );
+        network.set_address([network_address]);
+        let network = network
+            .save(&mut *transaction)
+            .await
+            .context("Failed to save auto-adopted WireguardNetwork")?;
 
         network
             .add_all_allowed_devices(&mut transaction)

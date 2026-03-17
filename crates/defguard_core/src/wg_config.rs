@@ -90,7 +90,7 @@ pub(crate) fn parse_wireguard_config(
             .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
         None => 0,
     };
-    let mut addresses: Vec<IpNetwork> = Vec::new();
+    let mut addresses = Vec::<IpNetwork>::new();
     for addr in address.split(',') {
         match addr.trim().parse() {
             Ok(ip) => addresses.push(ip),
@@ -107,7 +107,6 @@ pub(crate) fn parse_wireguard_config(
         .collect::<Result<Vec<IpNetwork>, _>>()?;
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
-        addresses.clone(),
         port,
         String::new(),
         dns,
@@ -118,6 +117,7 @@ pub(crate) fn parse_wireguard_config(
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     );
+    network.set_address(addresses.clone());
     network.mtu = mtu;
     network.fwmark = fwmark;
     network.pubkey = pubkey;

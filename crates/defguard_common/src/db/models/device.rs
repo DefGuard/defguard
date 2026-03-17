@@ -1099,9 +1099,12 @@ mod test {
     async fn test_assign_device_ip(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/30").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/30")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user = User::new(
             "testuser",
@@ -1140,11 +1143,12 @@ mod test {
     ) {
         let pool = setup_pool(options).await;
 
-        let mut network = WireguardNetwork::default();
-        network
+        let network = WireguardNetwork::default()
             .try_set_address("10.0.0.1/8,123.10.0.1/16,123.123.123.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
             .unwrap();
-        let network = network.save(&pool).await.unwrap();
 
         let user = User::new(
             "testuser",
@@ -1237,9 +1241,12 @@ mod test {
     ) {
         let pool = setup_pool(options).await;
 
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.0.0.1/8").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.0.0.1/8")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user = User::new(
             "testuser",
@@ -1317,9 +1324,12 @@ mod test {
     ) {
         let pool = setup_pool(options).await;
 
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("123.123.123.1/24").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("123.123.123.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user = User::new(
             "testuser",
@@ -1420,14 +1430,16 @@ mod test {
         .await
         .unwrap();
 
-        let mut network = WireguardNetwork::default();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap();
         network.allow_all_groups = true;
-        network.try_set_address("10.1.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
-        let mut network_2 = WireguardNetwork::default();
+        let mut network_2 = WireguardNetwork::default()
+            .try_set_address("10.1.2.1/24")
+            .unwrap();
         network_2.name = "testnetwork2".into();
         network_2.allow_all_groups = true;
-        network_2.try_set_address("10.1.2.1/24").unwrap();
         let network2 = network_2.save(&pool).await.unwrap();
 
         let device = Device::new(

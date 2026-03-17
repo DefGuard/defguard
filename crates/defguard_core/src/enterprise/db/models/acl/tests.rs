@@ -153,7 +153,6 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     // create 2 networks
     let network1 = WireguardNetwork::new(
         "network1".to_string(),
-        Vec::new(),
         1000,
         "endpoint1".to_string(),
         None,
@@ -169,7 +168,6 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
     let _network2 = WireguardNetwork::new(
         "network2".to_string(),
-        Vec::new(),
         2000,
         "endpoint2".to_string(),
         None,

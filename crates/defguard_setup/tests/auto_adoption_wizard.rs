@@ -42,17 +42,17 @@ async fn assert_auto_adoption_step(pool: &sqlx::PgPool, expected: AutoAdoptionWi
 async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
     let mut location = WireguardNetwork::new(
         "auto-net".to_string(),
-        ["10.0.0.0/24".parse::<IpNetwork>().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,
-        vec!["0.0.0.0/0".parse().unwrap()],
+        ["0.0.0.0/0".parse().unwrap()],
         false,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     );
+    location.set_address(["10.0.0.0/24".parse::<IpNetwork>().unwrap()]);
     location.mtu = 1280;
     location
         .save(pool)

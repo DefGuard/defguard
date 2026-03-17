@@ -265,17 +265,19 @@ mod tests {
         .expect("Failed to create user");
 
         // Create test locations
-        let mut location_a = WireguardNetwork::default();
+        let mut location_a = WireguardNetwork::default()
+            .try_set_address("10.0.1.1/24")
+            .unwrap();
         location_a.name = "Location A".into();
-        location_a.try_set_address("10.0.1.1/24").unwrap();
         let location_a = location_a
             .save(&pool)
             .await
             .expect("Failed to create Location A");
 
-        let mut location_b = WireguardNetwork::default();
+        let mut location_b = WireguardNetwork::default()
+            .try_set_address("10.0.2.1/24")
+            .unwrap();
         location_b.name = "Location B".into();
-        location_b.try_set_address("10.0.2.1/24").unwrap();
         let location_b = location_b
             .save(&pool)
             .await
@@ -434,9 +436,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.0.0.1/24")
+            .unwrap();
         network.name = "Assign Network".into();
-        network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
         let device = Device::new(
@@ -508,9 +511,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.0.0.1/24")
+            .unwrap();
         network.name = "NoDevice Network".into();
-        network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
         let device = Device::new(
@@ -556,9 +560,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.0.0.1/24")
+            .unwrap();
         network.name = "Range Network".into();
-        network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
         let device = Device::new(
@@ -611,9 +616,10 @@ mod tests {
         .await
         .expect("Failed to create user");
 
-        let mut network = WireguardNetwork::default();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.0.0.1/24")
+            .unwrap();
         network.name = "Conflict; Network".into();
-        network.try_set_address("10.0.0.1/24").unwrap();
         let network = network.save(&pool).await.expect("Failed to create network");
 
         let device1 = Device::new(

@@ -32,7 +32,6 @@ use crate::{
         },
     },
     types::user_info::UserInfo,
-    utils::parse_address_list,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -215,11 +214,10 @@ impl WireguardNetwork {
     #[must_use]
     pub fn new<V>(
         name: String,
-        address: V,
         port: i32,
         endpoint: String,
         dns: Option<String>,
-        allowed_ips: Vec<IpNetwork>,
+        allowed_ips: V,
         allow_all_groups: bool,
         acl_enabled: bool,
         acl_default_allow: bool,
@@ -234,7 +232,7 @@ impl WireguardNetwork {
         Self {
             id: NoId,
             name,
-            address: address.into(),
+            address: Vec::new(),
             port,
             pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
@@ -242,7 +240,7 @@ impl WireguardNetwork {
             dns,
             mtu: DEFAULT_WIREGUARD_MTU,
             fwmark: DEFAULT_FWMARK,
-            allowed_ips,
+            allowed_ips: allowed_ips.into(),
             allow_all_groups,
             connected_at: None,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
@@ -254,14 +252,17 @@ impl WireguardNetwork {
         }
     }
 
-    /// Try to set `address` from `&str`.
-    pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
-        let address = parse_address_list(address);
+    /// Try to set `address` from comma-separated string of addresses.
+    /// If there is an error parsing the address list, `address` will be partially set.
+    pub fn try_set_address(mut self, address: &str) -> Result<Self, IpNetworkError> {
+        self.address = Vec::new();
+        for addr in address.split(',') {
+            self.address.push(addr.trim().parse()?);
+        }
         if address.is_empty() {
-            Err(IpNetworkError::InvalidAddr("invalid address".into()))
+            Err(IpNetworkError::InvalidAddr("empty address".into()))
         } else {
-            self.address = address;
-            Ok(())
+            Ok(self)
         }
     }
 }
@@ -1750,11 +1751,10 @@ mod test {
     #[sqlx::test]
     async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::<NoId> {
-            allow_all_groups: true,
-            ..Default::default()
-        };
-        network.try_set_address("10.1.1.1/29").unwrap();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/29")
+            .unwrap();
+        network.allow_all_groups = true;
         let network = network.save(&pool).await.unwrap();
 
         let user1 = User::new(
@@ -1845,9 +1845,12 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/29")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user1 = User::new(
             "user1",
@@ -1928,22 +1931,20 @@ mod test {
     async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let network = WireguardNetwork::new(
+        let mut network = WireguardNetwork::new(
             "network".to_string(),
-            [IpNetwork::from_str("10.1.1.1/24").unwrap()],
             50051,
             String::new(),
             None,
-            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            [IpNetwork::from_str("10.1.1.0/24").unwrap()],
             false,
             false,
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
+        );
+        network.set_address([IpNetwork::from_str("10.1.1.1/24").unwrap()]);
+        let network = network.save(&pool).await.unwrap();
 
         // assign free address
         let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
@@ -2056,25 +2057,23 @@ mod test {
     async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let network = WireguardNetwork::new(
+        let mut network = WireguardNetwork::new(
             "network".to_string(),
-            [
-                IpNetwork::from_str("10.1.1.1/24").unwrap(),
-                IpNetwork::from_str("fc00::1/112").unwrap(),
-            ],
             50051,
             String::new(),
             None,
-            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            [IpNetwork::from_str("10.1.1.0/24").unwrap()],
             false,
             false,
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
+        );
+        network.set_address([
+            IpNetwork::from_str("10.1.1.1/24").unwrap(),
+            IpNetwork::from_str("fc00::1/112").unwrap(),
+        ]);
+        let network = network.save(&pool).await.unwrap();
 
         // assign free addresses
         let addrs = vec![

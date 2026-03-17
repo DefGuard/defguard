@@ -238,7 +238,6 @@ pub(crate) async fn create_network(
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
         data.name,
-        parse_address_list(&data.address),
         data.port,
         data.endpoint,
         data.dns,
@@ -249,6 +248,7 @@ pub(crate) async fn create_network(
         data.location_mfa_mode,
         data.service_location_mode,
     );
+    network.set_address(parse_address_list(&data.address));
     network.mtu = data.mtu;
     network.fwmark = data.fwmark;
     network.keepalive_interval = data.keepalive_interval;

@@ -758,7 +758,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         info!("Creating test network");
         let mut network = WireguardNetwork::new(
             "TestNet".to_string(),
-            [IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()],
             50051,
             "0.0.0.0".to_string(),
             None,
@@ -769,6 +768,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         );
+        network.set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()]);
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
         network
@@ -858,7 +858,6 @@ pub async fn init_vpn_location(
         else {
             let mut network = WireguardNetwork::new(
                 args.name.clone(),
-                vec![args.address],
                 args.port,
                 args.endpoint.clone(),
                 args.dns.clone(),
@@ -869,6 +868,7 @@ pub async fn init_vpn_location(
                 LocationMfaMode::Disabled,
                 ServiceLocationMode::Disabled,
             );
+            network.set_address([args.address]);
             network.mtu = args.mtu as i32;
             network.fwmark = i64::from(args.fwmark);
             let network = network.save(&mut *transaction).await?;
@@ -898,7 +898,6 @@ pub async fn init_vpn_location(
         // create a new network
         let mut location = WireguardNetwork::new(
             args.name.clone(),
-            vec![args.address],
             args.port,
             args.endpoint.clone(),
             args.dns.clone(),
@@ -909,6 +908,7 @@ pub async fn init_vpn_location(
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         );
+        location.set_address([args.address]);
         location.mtu = args.mtu as i32;
         location.fwmark = i64::from(args.fwmark);
         location.save(pool).await?

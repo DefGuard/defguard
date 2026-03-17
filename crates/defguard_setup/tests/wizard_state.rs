@@ -140,17 +140,17 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
 
     let mut location = WireguardNetwork::new(
         "auto-net".to_string(),
-        ["10.0.0.0/24".parse().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,
-        vec!["0.0.0.0/0".parse().unwrap()],
+        ["0.0.0.0/0".parse().unwrap()],
         false,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     );
+    location.set_address(["10.0.0.0/24".parse().unwrap()]);
     location.mtu = 1280;
     location
         .save(&pool)
