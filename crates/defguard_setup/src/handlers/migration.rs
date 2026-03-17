@@ -1,9 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use axum::{Extension, Json};
-use defguard_common::db::models::{
-    ActiveWizard, Wizard, migration_wizard::MigrationWizardState,
-};
+use defguard_common::db::models::{ActiveWizard, Wizard, migration_wizard::MigrationWizardState};
 use defguard_core::{
     auth::AdminOrSetupRole,
     error::WebError,
