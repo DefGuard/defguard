@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { TopBarLicense } from './components/TopBarLicense/TopBarLicense';
 import { TopBarLicenseExpiration } from './components/TopBarLicenseExpiration/TopBarLicenseExpiration';
 import { TopBarProfile } from './components/TopBarProfile/TopBarProfile';
+import { TopBarTheme } from './components/TopBarTheme/TopBarTheme';
 
 type Props = {
   title: string;
@@ -41,6 +42,8 @@ export const PageTopBar = ({ title, navOpen }: Props) => {
         )}
         <Divider orientation="vertical" />
         <TopBarProfile />
+        <Divider orientation="vertical" />
+        <TopBarTheme />
       </div>
     </div>
   );
