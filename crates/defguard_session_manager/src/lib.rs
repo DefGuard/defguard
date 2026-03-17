@@ -278,6 +278,8 @@ impl SessionManager {
         location: &WireguardNetwork<Id>,
     ) -> Result<(), SessionManagerError> {
         let disconnect_timestamp = Utc::now().naive_utc();
+        let is_connected = session.connected_at.is_some();
+        let is_mfa_session = session.mfa_method.is_some();
 
         // update session record in DB
         session.disconnected_at = Some(disconnect_timestamp);
@@ -305,7 +307,10 @@ impl SessionManager {
                 device_network_info.preshared_key = None;
                 device_network_info.update(&mut *transaction).await?;
             }
-            self.send_peer_disconnect_message(location, &device)?;
+
+            if is_mfa_session {
+                self.send_peer_disconnect_message(location, &device)?;
+            }
         }
 
         // emit event
@@ -317,11 +322,8 @@ impl SessionManager {
             // FIXME: this is a workaround since we require an IP for each audit log event
             public_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         };
-        if session.connected_at.is_some() {
-            let event = SessionManagerEvent::disconnected_for_session(
-                context,
-                session.mfa_method.is_some(),
-            );
+        if is_connected {
+            let event = SessionManagerEvent::disconnected_for_session(context, is_mfa_session);
             self.session_manager_event_tx.send(event)?;
         }
 

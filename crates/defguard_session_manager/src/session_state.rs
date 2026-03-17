@@ -130,9 +130,19 @@ impl SessionState {
     ) -> Result<(), SessionManagerError> {
         // mark new MFA session as connected if necessary
         if self.state == VpnClientSessionState::New {
-            let event_context_data = self.event_context_data.as_ref().ok_or(
-                SessionManagerError::MissingSessionEventContextError(self.session_id),
-            )?;
+            let (connected_context, is_mfa_session) = {
+                let event_context_data = self.event_context_data.as_ref().ok_or(
+                    SessionManagerError::MissingSessionEventContextError(self.session_id),
+                )?;
+
+                (
+                    event_context_data.build_context(
+                        peer_stats_update.latest_handshake,
+                        peer_stats_update.endpoint.ip(),
+                    ),
+                    event_context_data.is_mfa_session,
+                )
+            };
 
             // fetch DB session
             let mut db_session = VpnClientSession::find_by_id(&mut *transaction, self.session_id)
@@ -149,13 +159,8 @@ impl SessionState {
             // even if the event channel is closed.
             self.state = VpnClientSessionState::Connected;
 
-            let event = SessionManagerEvent::connected_for_session(
-                event_context_data.build_context(
-                    peer_stats_update.latest_handshake,
-                    peer_stats_update.endpoint.ip(),
-                ),
-                event_context_data.is_mfa_session,
-            );
+            let event =
+                SessionManagerEvent::connected_for_session(connected_context, is_mfa_session);
             event_tx.send(event)?;
         }
 
