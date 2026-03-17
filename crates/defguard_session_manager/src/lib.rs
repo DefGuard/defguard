@@ -308,9 +308,7 @@ impl SessionManager {
                 device_network_info.update(&mut *transaction).await?;
             }
 
-            if is_mfa_session {
-                self.send_peer_disconnect_message(location, &device)?;
-            }
+            self.send_peer_disconnect_message(location, &device)?;
         }
 
         // emit event
