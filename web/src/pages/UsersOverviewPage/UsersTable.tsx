@@ -427,7 +427,13 @@ export const UsersTable = () => {
                     name: rowData.name,
                   }),
                   actionPromise: () => api.user.disableMfa(rowData.username),
-                  invalidateKeys: [['user-overview'], ['user'], ['session-info'], ['me']],
+                  invalidateKeys: [
+                    ['user-overview'],
+                    ['user'],
+                    ['session-info'],
+                    ['me'],
+                    ['activity-log'],
+                  ],
                   submitProps: {
                     text: m.users_row_menu_disable_mfa(),
                     variant: 'critical',

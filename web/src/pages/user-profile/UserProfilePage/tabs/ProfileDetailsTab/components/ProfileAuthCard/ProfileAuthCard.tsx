@@ -48,6 +48,7 @@ export const ProfileAuthCard = () => {
       res.push(['me']);
     }
     res.push(['user', user.username]);
+    res.push(['activity-log']);
     return {
       invalidate: res,
     };
