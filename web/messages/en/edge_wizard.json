@@ -57,7 +57,7 @@
   "edge_setup_step_deploy_tabs_package_subtitle": "To add Defguard APT repository and install the package, run the following commands:",
   "edge_setup_step_deploy_tabs_virtual_image": "Virtual Image",
   "edge_setup_step_deploy_tabs_virtual_title": "Virtual Image",
-  "edge_setup_step_deploy_tabs_virtual_subtitle": "Download latest Edge Virtual Image (in OVA format) from this url: [{url}]({url}). Then, prepare the following cloud init userdata to launch the Edge component: **{filename}**:",
+  "edge_setup_step_deploy_tabs_virtual_subtitle": "Download latest Edge Virtual Image (in OVA format) from this url: [{url}]({url}). Then include the snippet below as part of your cloud-init or create and attach a dedicated cloud-init userdata file: **{filename}**:",
   "edge_setup_step_deploy_tabs_other": "Other methods",
   "edge_setup_step_deploy_tabs_other_title": "Other methods",
   "edge_setup_step_deploy_tabs_other_subtitle": "For other deployment methods, please follow to our documentation section",
