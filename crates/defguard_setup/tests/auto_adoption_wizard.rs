@@ -1,6 +1,7 @@
 use defguard_common::{
     config::DefGuardConfig,
     db::{
+        Id,
         models::{
             Settings, WireguardNetwork,
             settings::initialize_current_settings,
@@ -38,27 +39,25 @@ async fn assert_auto_adoption_step(pool: &sqlx::PgPool, expected: AutoAdoptionWi
 }
 
 /// Seed a minimal WireguardNetwork row required by the auto-adoption VPN/MFA steps.
-async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<defguard_common::db::Id> {
-    WireguardNetwork::new(
+async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+    let mut location = WireguardNetwork::new(
         "auto-net".to_string(),
         ["10.0.0.0/24".parse::<IpNetwork>().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,
-        1280,
-        0,
-        vec!["0.0.0.0/0".parse::<IpNetwork>().unwrap()],
+        vec!["0.0.0.0/0".parse().unwrap()],
         false,
-        180,
-        25,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    )
-    .save(pool)
-    .await
-    .expect("Failed to save wireguard network")
+    );
+    location.mtu = 1280;
+    location
+        .save(pool)
+        .await
+        .expect("Failed to save wireguard network")
 }
 
 #[sqlx::test]

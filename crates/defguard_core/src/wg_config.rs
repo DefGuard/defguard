@@ -5,10 +5,7 @@ use defguard_common::{
     KEY_LENGTH,
     db::models::{
         Device, WireguardNetwork,
-        wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-            LocationMfaMode, ServiceLocationMode,
-        },
+        wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
     },
 };
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -114,17 +111,15 @@ pub(crate) fn parse_wireguard_config(
         port,
         String::new(),
         dns,
-        mtu,
-        fwmark,
         allowed_ips,
         true,
-        DEFAULT_KEEPALIVE_INTERVAL,
-        DEFAULT_DISCONNECT_THRESHOLD,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     );
+    network.mtu = mtu;
+    network.fwmark = fwmark;
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
 

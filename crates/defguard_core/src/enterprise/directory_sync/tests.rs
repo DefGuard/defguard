@@ -54,16 +54,12 @@ mod test {
 
         WireguardNetwork::new(
             "test".to_string(),
-            vec![IpNetwork::from_str("10.10.10.1/24").unwrap()],
+            [IpNetwork::from_str("10.10.10.1/24").unwrap()],
             1234,
             "123.123.123.123".to_string(),
             None,
-            1420,
-            0,
             Vec::new(),
             true,
-            32,
-            32,
             false,
             false,
             LocationMfaMode::Disabled,

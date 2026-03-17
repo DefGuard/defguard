@@ -236,23 +236,23 @@ pub(crate) async fn create_network(
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
     let allowed_ips = data.parse_allowed_ips();
-    let network = WireguardNetwork::new(
+    let mut network = WireguardNetwork::new(
         data.name,
         parse_address_list(&data.address),
         data.port,
         data.endpoint,
         data.dns,
-        data.mtu,
-        data.fwmark,
         allowed_ips,
         data.allow_all_groups,
-        data.keepalive_interval,
-        data.peer_disconnect_threshold,
         data.acl_enabled,
         data.acl_default_allow,
         data.location_mfa_mode,
         data.service_location_mode,
     );
+    network.mtu = data.mtu;
+    network.fwmark = data.fwmark;
+    network.keepalive_interval = data.keepalive_interval;
+    network.peer_disconnect_threshold = data.peer_disconnect_threshold;
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;

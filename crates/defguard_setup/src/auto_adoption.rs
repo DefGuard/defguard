@@ -14,10 +14,7 @@ use defguard_common::{
         setup_auto_adoption::{
             AutoAdoptionComponentResult, AutoAdoptionWizardState, SetupAutoAdoptionComponent,
         },
-        wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-            LocationMfaMode, ServiceLocationMode,
-        },
+        wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
 use defguard_core::version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION};
@@ -742,12 +739,8 @@ id={} for new gateway",
             DEFAULT_AUTO_ADOPTION_WIREGUARD_PORT,
             host.to_string(),
             None,
-            DEFAULT_WIREGUARD_MTU,
-            0,
             Vec::new(),
             true,
-            DEFAULT_KEEPALIVE_INTERVAL,
-            DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
             LocationMfaMode::Disabled,
