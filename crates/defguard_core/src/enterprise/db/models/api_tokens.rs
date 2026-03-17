@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgExecutor, query_as};
+use sqlx::{PgExecutor, query_as};
 
 #[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
 #[table(api_token)]
@@ -33,7 +33,7 @@ impl ApiToken {
 }
 
 impl ApiToken<Id> {
-    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> Result<Vec<Self>, SqlxError>
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -50,7 +50,7 @@ impl ApiToken<Id> {
     pub async fn try_find_by_auth_token<'e, E>(
         executor: E,
         auth_token: &str,
-    ) -> Result<Option<Self>, SqlxError>
+    ) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {

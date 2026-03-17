@@ -116,8 +116,8 @@ pub(crate) fn parse_wireguard_config(
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    );
-    network.set_address(addresses.clone());
+    )
+    .set_address(addresses.clone())?;
     network.mtu = mtu;
     network.fwmark = fwmark;
     network.pubkey = pubkey;
@@ -254,7 +254,7 @@ mod test {
         let config = "
             [Interface]
             PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
-            Address = 10.0.0.1/24,fc00::/112
+            Address = 10.0.0.1/24,fc00::1/112
             ListenPort = 55055
             DNS = 10.0.0.2
 
@@ -279,7 +279,7 @@ mod test {
             network.address(),
             [
                 "10.0.0.1/24".parse().unwrap(),
-                "fc00::/112".parse().unwrap()
+                "fc00::1/112".parse().unwrap()
             ]
         );
         assert_eq!(network.port, 55055);

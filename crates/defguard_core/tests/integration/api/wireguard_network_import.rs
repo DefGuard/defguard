@@ -47,7 +47,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = client_state.pool;
 
     // setup initial network
-    let mut initial_network = WireguardNetwork::new(
+    WireguardNetwork::new(
         "initial".into(),
         51515,
         String::new(),
@@ -58,9 +58,12 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    );
-    initial_network.set_address(["10.1.9.0/24".parse().unwrap()]);
-    initial_network.save(&pool).await.unwrap();
+    )
+    .set_address(["10.1.9.1/24".parse().unwrap()])
+    .unwrap()
+    .save(&pool)
+    .await
+    .unwrap();
 
     // add existing devices
     let mut transaction = pool.begin().await.unwrap();

@@ -35,7 +35,7 @@ pub struct MigrationWizardState {
 }
 
 impl MigrationWizardState {
-    pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
+    pub async fn get<'e, E>(executor: E) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -54,7 +54,7 @@ impl MigrationWizardState {
             .map_err(|error| sqlx::Error::Decode(Box::new(error)))
     }
 
-    pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn save<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -73,7 +73,7 @@ impl MigrationWizardState {
         Ok(())
     }
 
-    pub async fn clear<'e, E>(executor: E) -> Result<(), sqlx::Error>
+    pub async fn clear<'e, E>(executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

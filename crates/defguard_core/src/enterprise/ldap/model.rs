@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{Settings, User},
 };
 use ldap3::{Mod, SearchEntry};
-use sqlx::{Error as SqlxError, PgExecutor};
+use sqlx::PgExecutor;
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{handlers::user::check_username, hashset};
@@ -250,7 +250,7 @@ pub(crate) fn maybe_update_rdn<I>(user: &mut User<I>) {
 pub(crate) async fn ldap_sync_allowed_for_user<'e, E>(
     user: &User<Id>,
     executor: E,
-) -> Result<bool, SqlxError>
+) -> sqlx::Result<bool>
 where
     E: PgExecutor<'e>,
 {
@@ -263,9 +263,7 @@ where
     )
 }
 
-pub(super) async fn get_users_without_ldap_path<'e, E>(
-    executor: E,
-) -> Result<Vec<User<Id>>, SqlxError>
+pub(super) async fn get_users_without_ldap_path<'e, E>(executor: E) -> sqlx::Result<Vec<User<Id>>>
 where
     E: PgExecutor<'e>,
 {

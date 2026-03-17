@@ -150,9 +150,10 @@ async fn test_any_address_overwrites_manual_destination(
 
     let mut rng = thread_rng();
 
-    let mut location = WireguardNetwork::default();
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
     location.acl_enabled = true;
-    location.set_address(["10.0.0.0/16".parse().unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
@@ -230,9 +231,10 @@ async fn test_any_address_overwrites_destination_alias_addrs(
 
     let mut rng = thread_rng();
 
-    let mut location = WireguardNetwork::default();
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
     location.acl_enabled = true;
-    location.set_address(["10.0.0.0/16".parse().unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
@@ -328,9 +330,10 @@ async fn test_manual_destination_includes_component_alias_address_range(
 
     let mut rng = thread_rng();
 
-    let mut location = WireguardNetwork::default();
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
     location.acl_enabled = true;
-    location.set_address(["10.0.0.0/16".parse().unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
@@ -429,9 +432,10 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
 
     let mut rng = thread_rng();
 
-    let mut location = WireguardNetwork::default();
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
     location.acl_enabled = true;
-    location.set_address(["10.0.0.0/16".parse().unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;

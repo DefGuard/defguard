@@ -274,23 +274,23 @@ impl<I> WireguardNetwork<I> {
     }
 
     /// Address list setter.
-    pub fn set_address<V>(&mut self, address: V)
+    pub fn set_address<V>(mut self, address: V) -> Result<Self, IpNetworkError>
     where
         V: Into<Vec<IpNetwork>>,
     {
-        self.address = address.into();
-    }
-
-    /// Validate addresses.
-    pub fn address_is_valid(&self) -> bool {
-        for addr in &self.address {
+        let address = address.into();
+        for addr in &address {
             let ip = addr.ip();
-            if ip == addr.network() || ip == addr.broadcast() {
-                return false;
+            if ip == addr.network() {
+                return Err(IpNetworkError::InvalidAddr("address is network".into()));
+            }
+            if ip == addr.broadcast() {
+                return Err(IpNetworkError::InvalidAddr("address is broadcast".into()));
             }
         }
+        self.address = address;
 
-        true
+        Ok(self)
     }
 }
 
@@ -674,7 +674,7 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardUserStatsRow>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<WireguardUserStatsRow>> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
 
         // Retrieve data series for all active devices and assign them to users
@@ -708,7 +708,7 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
         page: u32,
         page_size: u32,
-    ) -> Result<(Vec<LocationConnectedUserStats>, u32), sqlx::Error> {
+    ) -> sqlx::Result<(Vec<LocationConnectedUserStats>, u32)> {
         // helper struct used to fetch connected users from the DB
         struct ConnectedUserRow {
             user_id: Id,
@@ -830,7 +830,7 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
         page: u32,
         page_size: u32,
-    ) -> Result<(Vec<LocationConnectedNetworkDevice>, u32), sqlx::Error> {
+    ) -> sqlx::Result<(Vec<LocationConnectedNetworkDevice>, u32)> {
         // helper struct used to fetch connected network devices from the DB
         struct ConnectedNetworkDeviceRow {
             device_id: Id,
@@ -940,7 +940,7 @@ impl WireguardNetwork<Id> {
         user_id: Id,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<LocationConnectedUserDevice>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<LocationConnectedUserDevice>> {
         // helper struct used to fetch connected user devices from the DB
         struct ConnectedUserDeviceRow {
             device_id: Id,
@@ -1079,7 +1079,7 @@ impl WireguardNetwork<Id> {
         pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardStatsRow>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<WireguardStatsRow>> {
         let stats = query_as!(
             WireguardStatsRow,
             "SELECT \
@@ -1129,7 +1129,7 @@ impl WireguardNetwork<Id> {
         &self,
         executor: E,
         device_type: DeviceType,
-    ) -> Result<Vec<Device<Id>>, sqlx::Error>
+    ) -> sqlx::Result<Vec<Device<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1931,7 +1931,7 @@ mod test {
     async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let mut network = WireguardNetwork::new(
+        let network = WireguardNetwork::new(
             "network".to_string(),
             50051,
             String::new(),
@@ -1942,9 +1942,12 @@ mod test {
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        );
-        network.set_address([IpNetwork::from_str("10.1.1.1/24").unwrap()]);
-        let network = network.save(&pool).await.unwrap();
+        )
+        .set_address([IpNetwork::from_str("10.1.1.1/24").unwrap()])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
 
         // assign free address
         let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
@@ -2057,7 +2060,7 @@ mod test {
     async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
-        let mut network = WireguardNetwork::new(
+        let network = WireguardNetwork::new(
             "network".to_string(),
             50051,
             String::new(),
@@ -2068,12 +2071,15 @@ mod test {
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        );
-        network.set_address([
+        )
+        .set_address([
             IpNetwork::from_str("10.1.1.1/24").unwrap(),
             IpNetwork::from_str("fc00::1/112").unwrap(),
-        ]);
-        let network = network.save(&pool).await.unwrap();
+        ])
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
 
         // assign free addresses
         let addrs = vec![

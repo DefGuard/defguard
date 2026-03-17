@@ -247,8 +247,8 @@ pub(crate) async fn create_network(
         data.acl_default_allow,
         data.location_mfa_mode,
         data.service_location_mode,
-    );
-    network.set_address(parse_address_list(&data.address));
+    )
+    .try_set_address(&data.address)?;
     network.mtu = data.mtu;
     network.fwmark = data.fwmark;
     network.keepalive_interval = data.keepalive_interval;
@@ -344,11 +344,11 @@ pub(crate) async fn modify_network(
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
-    let mut network = find_network(network_id, &appstate.pool).await?;
+    let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
     let new_addresses = data.parse_addresses()?;
-    network.set_address(new_addresses);
+    let mut network = network.set_address(new_addresses)?;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 

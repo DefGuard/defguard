@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgPool, query_as};
+use sqlx::{PgPool, query_as};
 
 use crate::db::{Id, NoId};
 
@@ -26,7 +26,7 @@ impl OAuth2AuthorizedApp<Id> {
         pool: &PgPool,
         user_id: Id,
         oauth2client_id: Id,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT id, user_id, oauth2client_id \

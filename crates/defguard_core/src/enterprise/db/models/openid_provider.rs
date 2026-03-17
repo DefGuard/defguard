@@ -2,7 +2,7 @@ use std::fmt;
 
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
+use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use utoipa::ToSchema;
 
 // The behavior when a user is deleted from the directory
@@ -181,7 +181,7 @@ impl OpenIdProvider {
         }
     }
 
-    pub(crate) async fn upsert(self, pool: &PgPool) -> Result<OpenIdProvider<Id>, SqlxError> {
+    pub(crate) async fn upsert(self, pool: &PgPool) -> sqlx::Result<OpenIdProvider<Id>> {
         if let Some(provider) = OpenIdProvider::<Id>::get_current(pool).await? {
             query!(
                 "UPDATE openidprovider SET name = $1, base_url = $2, kind = $3, client_id = $4, \
@@ -224,7 +224,7 @@ impl OpenIdProvider {
 }
 
 impl OpenIdProvider<Id> {
-    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -243,7 +243,7 @@ impl OpenIdProvider<Id> {
         .await
     }
 
-    pub async fn get_current<'e, E>(executor: E) -> Result<Option<Self>, SqlxError>
+    pub async fn get_current<'e, E>(executor: E) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {

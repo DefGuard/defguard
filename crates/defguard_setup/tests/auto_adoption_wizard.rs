@@ -51,8 +51,9 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    );
-    location.set_address(["10.0.0.0/24".parse::<IpNetwork>().unwrap()]);
+    )
+    .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])
+    .unwrap();
     location.mtu = 1280;
     location
         .save(pool)

@@ -149,8 +149,9 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    );
-    location.set_address(["10.0.0.0/24".parse().unwrap()]);
+    )
+    .set_address(["10.0.0.1/24".parse().unwrap()])
+    .unwrap();
     location.mtu = 1280;
     location
         .save(&pool)

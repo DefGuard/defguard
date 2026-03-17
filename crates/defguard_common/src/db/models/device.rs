@@ -10,10 +10,7 @@ use rand::{
     prelude::Distribution,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
-    query_scalar,
-};
+use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 use utoipa::ToSchema;
@@ -428,7 +425,7 @@ impl WireguardNetworkDevice {
     pub async fn find_by_device<'e, E>(
         executor: E,
         device_id: Id,
-    ) -> Result<Option<Vec<Self>>, SqlxError>
+    ) -> sqlx::Result<Option<Vec<Self>>>
     where
         E: PgExecutor<'e>,
     {
@@ -616,7 +613,7 @@ impl Device<Id> {
         executor: E,
         ip: IpAddr,
         network_id: Id,
-    ) -> Result<Option<Self>, SqlxError>
+    ) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -634,7 +631,7 @@ impl Device<Id> {
         .await
     }
 
-    pub async fn find_by_pubkey<'e, E>(executor: E, pubkey: &str) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_pubkey<'e, E>(executor: E, pubkey: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -653,7 +650,7 @@ impl Device<Id> {
         executor: E,
         id: Id,
         username: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
@@ -667,7 +664,7 @@ impl Device<Id> {
         .await
     }
 
-    pub async fn all_for_username(pool: &PgPool, username: &str) -> Result<Vec<Self>, SqlxError> {
+    pub async fn all_for_username(pool: &PgPool, username: &str) -> sqlx::Result<Vec<Self>> {
         query_as!(
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
@@ -975,7 +972,7 @@ impl Device<Id> {
     pub async fn find_by_type<'e, E>(
         executor: E,
         device_type: DeviceType,
-    ) -> Result<Vec<Self>, SqlxError>
+    ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -991,7 +988,7 @@ impl Device<Id> {
         executor: E,
         device_type: DeviceType,
         network_id: Id,
-    ) -> Result<Vec<Self>, SqlxError>
+    ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -1006,7 +1003,7 @@ impl Device<Id> {
         ).fetch_all(executor).await
     }
 
-    pub async fn get_owner<'e, E>(&self, executor: E) -> Result<User<Id>, SqlxError>
+    pub async fn get_owner<'e, E>(&self, executor: E) -> sqlx::Result<User<Id>>
     where
         E: PgExecutor<'e>,
     {
@@ -1025,7 +1022,7 @@ impl Device<Id> {
         &self,
         executor: E,
         location_id: Id,
-    ) -> Result<Option<NaiveDateTime>, SqlxError> {
+    ) -> sqlx::Result<Option<NaiveDateTime>> {
         query_scalar!(
             "SELECT connected_at \"connected_at!\" FROM vpn_client_session \
     		WHERE location_id = $1 AND device_id = $2 AND connected_at IS NOT NULL \
@@ -1185,12 +1182,14 @@ mod test {
             .await
             .unwrap();
 
-        let mut updated_network = network.clone();
-        updated_network.set_address([
-            "10.0.0.0/16".parse::<IpNetwork>().unwrap(),
-            "123.12.0.0/16".parse::<IpNetwork>().unwrap(),
-            "123.123.0.0/16".parse::<IpNetwork>().unwrap(),
-        ]);
+        let updated_network = network
+            .clone()
+            .set_address([
+                "10.0.0.1/16".parse().unwrap(),
+                "123.12.0.1/16".parse().unwrap(),
+                "123.123.0.1/16".parse().unwrap(),
+            ])
+            .unwrap();
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
@@ -1281,8 +1280,10 @@ mod test {
             .await
             .unwrap();
 
-        let mut updated_network = network.clone();
-        updated_network.set_address(["10.0.0.0/16".parse::<IpNetwork>().unwrap()]);
+        let updated_network = network
+            .clone()
+            .set_address(["10.0.0.1/16".parse().unwrap()])
+            .unwrap();
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
@@ -1364,8 +1365,10 @@ mod test {
             .await
             .unwrap();
 
-        let mut updated_network = network.clone();
-        updated_network.set_address(["123.123.0.0/16".parse::<IpNetwork>().unwrap()]);
+        let updated_network = network
+            .clone()
+            .set_address(["123.123.0.1/16".parse().unwrap()])
+            .unwrap();
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
@@ -1537,9 +1540,9 @@ mod test {
             .await
             .unwrap();
 
-        let mut network = WireguardNetwork::default();
-        network
-            .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()]);
+        let mut network = WireguardNetwork::default()
+            .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()])
+            .unwrap();
         network.allow_all_groups = true;
         let network = network.save(&pool).await.unwrap();
 

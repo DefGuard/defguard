@@ -63,7 +63,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     // modify network
     let network_data = WireguardNetworkData {
         name: "my network".into(),
-        address: "10.1.1.0/24".into(),
+        address: "10.1.1.1/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
@@ -146,7 +146,7 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
 
     let location_data = WireguardNetworkData {
         name: "test_location".into(),
-        address: "10.1.1.0/24".into(),
+        address: "10.1.1.1/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
@@ -231,7 +231,7 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
 
     let mut location_data = WireguardNetworkData {
         name: "test_location".into(),
-        address: "10.1.1.0/24".into(),
+        address: "10.1.1.254/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
@@ -334,7 +334,7 @@ async fn test_peer_disconnect_threshold_validation_create(
 
     let mut location_data = WireguardNetworkData {
         name: "test_location_disabled".into(),
-        address: "10.1.1.0/24".into(),
+        address: "10.1.1.1/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),
@@ -389,7 +389,7 @@ async fn test_peer_disconnect_threshold_validation_modify(
 
     let mut location_data = WireguardNetworkData {
         name: "test_location".into(),
-        address: "10.1.1.0/24".into(),
+        address: "10.1.1.1/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
         allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16, 10.10.10.54/32".into()),

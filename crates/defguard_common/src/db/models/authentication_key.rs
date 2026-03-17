@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgExecutor, Type, query_as};
+use sqlx::{PgExecutor, Type, query_as};
 
 use crate::db::{Id, NoId};
 
@@ -60,7 +60,7 @@ impl AuthenticationKey<Id> {
         executor: E,
         user_id: Id,
         key_type: Option<AuthenticationKeyType>,
-    ) -> Result<Vec<Self>, SqlxError>
+    ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {

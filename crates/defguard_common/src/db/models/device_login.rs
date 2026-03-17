@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgPool, query_as};
+use sqlx::{PgPool, query_as};
 
 use crate::db::{Id, NoId};
 
@@ -77,7 +77,7 @@ impl DeviceLoginEvent {
     pub async fn find_device_login_event(
         &self,
         pool: &PgPool,
-    ) -> Result<Option<DeviceLoginEvent<Id>>, SqlxError> {
+    ) -> sqlx::Result<Option<DeviceLoginEvent<Id>>> {
         query_as!(
             DeviceLoginEvent::<Id>,
             "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created \

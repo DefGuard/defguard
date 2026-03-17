@@ -116,7 +116,7 @@ pub(crate) async fn create_location_with_mfa_mode(
     pool: &sqlx::PgPool,
     location_mfa_mode: LocationMfaMode,
 ) -> WireguardNetwork<Id> {
-    let mut location = WireguardNetwork::new(
+    WireguardNetwork::new(
         "TestNet".to_string(),
         51820,
         "10.0.0.1".to_string(),
@@ -127,12 +127,12 @@ pub(crate) async fn create_location_with_mfa_mode(
         false,
         location_mfa_mode,
         ServiceLocationMode::Disabled,
-    );
-    location.set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)), 24).unwrap()]);
-    location
-        .save(pool)
-        .await
-        .expect("failed to create WireGuard location")
+    )
+    .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 24).unwrap()])
+    .unwrap()
+    .save(pool)
+    .await
+    .expect("failed to create WireGuard location")
 }
 
 pub(crate) async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
@@ -175,7 +175,7 @@ pub(crate) async fn attach_device_to_location(pool: &sqlx::PgPool, location_id: 
     let network_device = WireguardNetworkDevice::new(
         location_id,
         device_id,
-        vec![IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))],
+        [IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))],
     );
     network_device
         .insert(pool)

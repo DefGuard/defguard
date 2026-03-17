@@ -52,7 +52,7 @@ mod test {
             provider.delete(pool).await.unwrap();
         }
 
-        let mut location = WireguardNetwork::new(
+        WireguardNetwork::new(
             "test".to_string(),
             1234,
             "123.123.123.123".to_string(),
@@ -63,9 +63,12 @@ mod test {
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        );
-        location.set_address([IpNetwork::from_str("10.10.10.1/24").unwrap()]);
-        location.save(pool).await.unwrap();
+        )
+        .set_address([IpNetwork::from_str("10.10.10.1/24").unwrap()])
+        .unwrap()
+        .save(pool)
+        .await
+        .unwrap();
 
         OpenIdProvider::new(
             "Test".to_string(),
