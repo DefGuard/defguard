@@ -143,10 +143,10 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
 
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
-        Snackbar.default(aliasEditedMessage);
+        Snackbar.success(aliasEditedMessage);
       } else {
         await addAlias(toSend);
-        Snackbar.default(aliasCreatedMessage);
+        Snackbar.success(aliasCreatedMessage);
       }
 
       router.history.back();

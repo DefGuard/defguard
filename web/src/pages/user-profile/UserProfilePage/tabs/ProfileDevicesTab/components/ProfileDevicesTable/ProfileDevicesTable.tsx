@@ -172,7 +172,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
               actionPromise: () => api.device.deleteDevice(row.id),
               invalidateKeys: [['user-overview'], ['user', username], ['network']],
               submitProps: { text: m.controls_delete(), variant: 'critical' },
-              onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+              onSuccess: () => Snackbar.success(m.user_device_delete_success()),
               onError: () => Snackbar.error(m.user_device_delete_failed()),
             });
           },

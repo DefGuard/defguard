@@ -129,7 +129,7 @@ const AssignmentForm = ({
       ],
     },
     onSuccess: () => {
-      Snackbar.default(m.modal_assign_user_device_ip_success({ deviceName }));
+      Snackbar.success(m.modal_assign_user_device_ip_success({ deviceName }));
       closeModal(modalNameValue);
     },
     onError: (error) => {

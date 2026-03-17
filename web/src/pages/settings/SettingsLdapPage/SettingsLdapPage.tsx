@@ -158,7 +158,7 @@ const PageForm = () => {
       invalidate: [['settings'], ['info']],
     },
     onSuccess: () => {
-      Snackbar.default(m.settings_msg_saved());
+      Snackbar.success(m.settings_msg_saved());
     },
     onError: (e) => {
       Snackbar.error('Failed to save settings.');
@@ -169,7 +169,7 @@ const PageForm = () => {
   const { mutate: handleLdapTest, isPending: testInProgress } = useMutation({
     mutationFn: api.settings.getLdapConnectionStatus,
     onSuccess: () => {
-      Snackbar.default('LDAP Connected');
+      Snackbar.success('LDAP Connected');
     },
     onError: (e) => {
       Snackbar.error('Connection failed');

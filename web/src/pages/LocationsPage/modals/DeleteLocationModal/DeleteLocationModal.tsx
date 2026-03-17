@@ -45,7 +45,7 @@ export const DeleteLocationModal = () => {
     if (!modalData) return;
     try {
       await deleteLocation(modalData.id);
-      Snackbar.default(m.location_delete_success());
+      Snackbar.success(m.location_delete_success());
       setOpen(false);
     } catch {
       Snackbar.error(m.location_delete_failed());

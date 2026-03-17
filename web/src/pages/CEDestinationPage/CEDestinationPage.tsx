@@ -138,10 +138,10 @@ export const CEDestinationPage = ({ destination }: Props) => {
             ...toSend,
             id: destination.id,
           });
-          Snackbar.default(destinationEditedMessage);
+          Snackbar.success(destinationEditedMessage);
         } else {
           await addDestination(toSend);
-          Snackbar.default(destinationCreatedMessage);
+          Snackbar.success(destinationCreatedMessage);
         }
 
         router.history.back();

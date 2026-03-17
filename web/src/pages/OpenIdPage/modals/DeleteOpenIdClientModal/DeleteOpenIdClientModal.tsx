@@ -45,7 +45,7 @@ export const DeleteOpenIdClientModal = () => {
     if (!modalData) return;
     try {
       await deleteClient(modalData.client_id);
-      Snackbar.default(m.openid_delete_success());
+      Snackbar.success(m.openid_delete_success());
       setOpen(false);
     } catch {
       Snackbar.error(m.openid_delete_failed());

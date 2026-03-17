@@ -110,7 +110,7 @@ export const RulesTable = ({
   const { mutate: deployRule } = useMutation({
     mutationFn: api.acl.rule.applyRules,
     onSuccess: () => {
-      Snackbar.default(`Rule deployed`);
+      Snackbar.success(`Rule deployed`);
     },
     meta: {
       invalidate: ['acl'],

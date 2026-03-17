@@ -80,7 +80,7 @@ const Content = () => {
       invalidate: [['settings_enterprise'], ['settings']],
     },
     onSuccess: () => {
-      Snackbar.default(m.settings_msg_saved());
+      Snackbar.success(m.settings_msg_saved());
     },
     onError: () => {
       Snackbar.error(m.settings_msg_save_failed());

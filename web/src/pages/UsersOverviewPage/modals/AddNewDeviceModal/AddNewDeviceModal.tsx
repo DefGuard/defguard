@@ -141,7 +141,7 @@ const EnrollmentChoice = ({
           send_enrollment_notification: true,
           email: value.email,
         });
-        Snackbar.default(m.sucessfull_enrollment_email());
+        Snackbar.success(m.sucessfull_enrollment_email());
         closeModal(modalName);
       }
     },

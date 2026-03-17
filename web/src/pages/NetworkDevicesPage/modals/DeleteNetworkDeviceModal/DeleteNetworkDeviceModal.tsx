@@ -45,7 +45,7 @@ export const DeleteNetworkDeviceModal = () => {
     if (!modalData) return;
     try {
       await deleteDevice(modalData.id);
-      Snackbar.default(m.network_device_delete_success());
+      Snackbar.success(m.network_device_delete_success());
       setOpen(false);
     } catch {
       Snackbar.error(m.network_device_delete_failed());
