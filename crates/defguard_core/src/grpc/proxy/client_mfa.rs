@@ -844,18 +844,18 @@ impl ClientMfaServer {
         })?;
         }
 
+        // gateway update is only needed to remove peer for MFA sessions
+        // this is needed to remove peers for both Connected and New sessions
+        if is_mfa_session {
+            let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
+            self.wireguard_tx.send(gateway_event).map_err(|err| {
+                error!("Error sending WireGuard event: {err}");
+                Status::internal("unexpected error")
+            })?;
+        }
+
         // only emit disconnect events if a session has actually been connected
         if is_connected {
-            // gateway update is only needed to remove peer for MFA sessions
-            if is_mfa_session {
-                let gateway_event =
-                    GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
-                self.wireguard_tx.send(gateway_event).map_err(|err| {
-                    error!("Error sending WireGuard event: {err}");
-                    Status::internal("unexpected error")
-                })?;
-            }
-
             let context = BidiRequestContext {
                 timestamp: disconnect_timestamp,
                 user_id: user.id,
@@ -973,7 +973,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_replacing_new_mfa_session_marks_session_disconnected_without_disconnect_event(
+    async fn test_replacing_new_mfa_session_marks_session_disconnected_without_disconnect_audit_event(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1007,13 +1007,20 @@ mod tests {
             .await
             .expect("should replace new MFA session");
 
+        let gateway_event = gateway_rx
+            .try_recv()
+            .expect("expected MFA gateway disconnect event for replaced new session");
+        match gateway_event {
+            GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(disconnected_device.id, device.id);
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+
         assert!(matches!(
             event_rx.try_recv(),
             Err(tokio::sync::mpsc::error::TryRecvError::Empty)
-        ));
-        assert!(matches!(
-            gateway_rx.try_recv(),
-            Err(broadcast::error::TryRecvError::Empty)
         ));
 
         let old_session = VpnClientSession::find_by_id(&pool, old_session.id)
