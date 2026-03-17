@@ -618,7 +618,6 @@ const Content = ({ rule: initialRule }: Props) => {
                         });
                       }}
                     />
-                    <DestinationSelectionError />
                     {selectedDestinations.length > 0 && (
                       <div className="selected-destinations">
                         <div className="top">
@@ -649,6 +648,15 @@ const Content = ({ rule: initialRule }: Props) => {
               }}
             </form.AppField>
           )}
+          <form.AppField name="destinations">
+            {() => (
+              <DestinationSelectionError
+                hasPredefinedDestinations={Boolean(
+                  destinations && destinations.length > 0,
+                )}
+              />
+            )}
+          </form.AppField>
           <Divider text="or/and" spacing={ThemeSpacing.Lg} />
           <DescriptionBlock title={`Define destination manually`}>
             <p>{`Manually configure destinations parameters for this rule.`}</p>
@@ -1118,10 +1126,22 @@ const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
   );
 };
 
-const DestinationSelectionError = () => {
+const DestinationSelectionError = ({
+  hasPredefinedDestinations,
+}: {
+  hasPredefinedDestinations: boolean;
+}) => {
   const error = useFormFieldError();
+
   if (!error) return null;
+
   return (
-    <FieldError error="Manual destination is disabled. Select a predefined destination or enable manual config." />
+    <FieldError
+      error={
+        hasPredefinedDestinations
+          ? m.form_error_no_destination()
+          : m.form_error_no_predefined_destination()
+      }
+    />
   );
 };
