@@ -540,14 +540,7 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
 )]
 pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Counting WireGuard networks");
-    let count = sqlx::query_scalar!("SELECT COUNT(*) FROM wireguard_network")
-        .fetch_one(&appstate.pool)
-        .await?;
-    let count = count.unwrap_or(0).try_into().map_err(|error| {
-        error!("Failed to convert wireguard_network count to usize: {error}");
-        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
-    })?;
-
+    let count = WireguardNetwork::count(&appstate.pool).await?;
     Ok(ApiResponse::json(LocationsCount { count }, StatusCode::OK))
 }
 
