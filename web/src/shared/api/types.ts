@@ -72,10 +72,11 @@ export interface SetGeneralConfigRequest {
   admin_username: string;
 }
 
-export type MigrationGeneralConfigRequest = Omit<
-  SetGeneralConfigRequest,
-  'admin_username'
->;
+export interface MigrationGeneralConfigRequest {
+  defguard_url: string;
+  default_mfa_code_lifetime: number;
+  public_proxy_url: string;
+}
 
 export interface SetAutoAdoptionUrlSettingsRequest {
   defguard_url: string;
@@ -1101,6 +1102,10 @@ export const AclProtocolName: Record<AclProtocolValue, string> = {
 export interface AclCount {
   applied: number;
   pending: number;
+}
+
+export interface CountResponse {
+  count: number;
 }
 
 export interface AclDestination {

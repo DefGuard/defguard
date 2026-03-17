@@ -213,6 +213,18 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    pub async fn count<'e, E>(executor: E) -> sqlx::Result<usize>
+    where
+        E: PgExecutor<'e>,
+    {
+        let count = query_scalar!("SELECT COUNT(*) FROM wireguard_network")
+            .fetch_one(executor)
+            .await?
+            .unwrap_or_default();
+
+        Ok(count as usize)
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
