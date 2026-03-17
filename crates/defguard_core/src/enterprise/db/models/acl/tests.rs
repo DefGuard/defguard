@@ -1,7 +1,10 @@
 use std::ops::Bound;
 
 use defguard_common::{
-    db::{models::wireguard::DEFAULT_WIREGUARD_MTU, setup_pool},
+    db::{
+        models::wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
+        setup_pool,
+    },
     utils::parse_address_list,
 };
 use rand::{Rng, thread_rng};

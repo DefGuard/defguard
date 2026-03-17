@@ -40,7 +40,7 @@ async fn setup_user_and_device(
     let device = device.save(pool).await.unwrap();
 
     let wireguard_ips = location
-        .address
+        .address()
         .iter()
         .map(|subnet| match subnet {
             IpNetwork::V4(ipv4_network) => {
@@ -83,19 +83,17 @@ async fn test_gh1868_ipv6_rule_is_not_created_with_v4_only_destination(
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 
-    // Create test location with both IPv4 and IPv6 subnet
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
-            IpNetwork::new(
-                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
-                64,
-            )
-            .unwrap(),
-        ],
-        ..Default::default()
-    };
+    // Create test location with both IPv4 and IPv6 subnet.
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
+        IpNetwork::new(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+            64,
+        )
+        .unwrap(),
+    ]);
     let location = location.save(&pool).await.unwrap();
 
     // setup user & device
@@ -146,19 +144,17 @@ async fn test_gh1868_ipv4_rule_is_not_created_with_v6_only_destination(
 
     let mut rng = thread_rng();
 
-    // Create test location with both IPv4 and IPv6 subnet
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
-            IpNetwork::new(
-                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
-                64,
-            )
-            .unwrap(),
-        ],
-        ..Default::default()
-    };
+    // Create test location with both IPv4 and IPv6 subnet.
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
+        IpNetwork::new(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+            64,
+        )
+        .unwrap(),
+    ]);
     let location = location.save(&pool).await.unwrap();
 
     // setup user & device
@@ -208,18 +204,16 @@ async fn test_gh1868_ipv4_and_ipv6_rules_are_created_with_any_destination(
     let mut rng = thread_rng();
 
     // Create test location with both IPv4 and IPv6 subnet
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
-            IpNetwork::new(
-                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
-                64,
-            )
-            .unwrap(),
-        ],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 80, 1)), 24).unwrap(),
+        IpNetwork::new(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+            64,
+        )
+        .unwrap(),
+    ]);
     let location = location.save(&pool).await.unwrap();
 
     // setup user & device

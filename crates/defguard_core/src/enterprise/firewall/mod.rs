@@ -55,8 +55,8 @@ pub async fn generate_firewall_rules_from_acls(
     let location = WireguardNetwork::find_by_id(&mut *conn, location_id)
         .await?
         .ok_or(ModelError::NotFound)?;
-    let has_ipv4_addresses = location.address.iter().any(IpNetwork::is_ipv4);
-    let has_ipv6_addresses = location.address.iter().any(IpNetwork::is_ipv6);
+    let has_ipv4_addresses = location.address().iter().any(IpNetwork::is_ipv4);
+    let has_ipv6_addresses = location.address().iter().any(IpNetwork::is_ipv6);
 
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {

@@ -20,11 +20,9 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
@@ -94,11 +92,9 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
@@ -168,14 +164,12 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
-        ],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+        IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+    ]);
     let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices

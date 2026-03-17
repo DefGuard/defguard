@@ -201,7 +201,7 @@ pub struct UserDeviceNetworkInfo {
 }
 
 impl UserDevice {
-    pub async fn from_device(pool: &PgPool, device: Device<Id>) -> Result<Option<Self>, SqlxError> {
+    pub async fn from_device(pool: &PgPool, device: Device<Id>) -> sqlx::Result<Option<Self>> {
         // fetch device config and connection info for all allowed networks
         let result = query!(
             "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
@@ -319,7 +319,7 @@ impl WireguardNetworkDevice {
             .collect()
     }
 
-    pub async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn insert<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -343,7 +343,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn update<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -364,7 +364,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn delete<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -384,7 +384,7 @@ impl WireguardNetworkDevice {
         executor: E,
         device_id: Id,
         network_id: Id,
-    ) -> Result<Option<Self>, SqlxError>
+    ) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -406,7 +406,7 @@ impl WireguardNetworkDevice {
 
     /// Get a first network the device was added to. Useful for network devices to
     /// make sure they always pull only one network's config.
-    pub async fn find_first<'e, E>(executor: E, device_id: Id) -> Result<Option<Self>, SqlxError>
+    pub async fn find_first<'e, E>(executor: E, device_id: Id) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -450,7 +450,7 @@ impl WireguardNetworkDevice {
         })
     }
 
-    pub async fn all_for_network<'e, E>(executor: E, network_id: Id) -> Result<Vec<Self>, SqlxError>
+    pub async fn all_for_network<'e, E>(executor: E, network_id: Id) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -476,7 +476,7 @@ impl WireguardNetworkDevice {
         executor: E,
         network_id: Id,
         user_id: Id,
-    ) -> Result<Vec<Self>, SqlxError>
+    ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -497,29 +497,17 @@ impl WireguardNetworkDevice {
         Ok(res)
     }
 
-    pub async fn network<'e, E>(&self, executor: E) -> Result<WireguardNetwork<Id>, SqlxError>
+    pub async fn network<'e, E>(&self, executor: E) -> sqlx::Result<WireguardNetwork<Id>>
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
-            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
-            service_location_mode \"service_location_mode: ServiceLocationMode\" \
-            FROM wireguard_network WHERE id = $1",
-            self.wireguard_network_id
-        )
-        .fetch_one(executor)
-        .await
+        WireguardNetwork::find_by_id(executor, self.wireguard_network_id)
+            .await?
+            .ok_or(sqlx::Error::RowNotFound)
     }
 
     /// Check if any device is assigned to a given network.
-    pub async fn has_devices_in_network<'e, E>(
-        executor: E,
-        network_id: Id,
-    ) -> Result<bool, SqlxError>
+    pub async fn has_devices_in_network<'e, E>(executor: E, network_id: Id) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
@@ -881,7 +869,7 @@ impl Device<Id> {
         let reserved = reserved_ips.unwrap_or_default();
 
         // Iterate over all network addresses and assign new IP for the device in each of them
-        for address in &network.address {
+        for address in network.address() {
             debug!(
                 "Assigning address to device {} in network {} {address}",
                 self.name, network.name,
@@ -892,7 +880,9 @@ impl Device<Id> {
             {
                 debug!(
                     "Skipping reassignment of already assigned valid IP {ip} for device {} in network {} with addresses {:?}",
-                    self.name, network.name, network.address
+                    self.name,
+                    network.name,
+                    network.address()
                 );
                 ips.push(*ip);
                 continue;
@@ -970,31 +960,6 @@ impl Device<Id> {
             self.name, network.name
         );
         Ok(wireguard_network_device)
-    }
-
-    /// Gets the first network of the network device
-    /// FIXME: Return only one network, not a Vec
-    pub async fn find_network_device_networks<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<WireguardNetwork<Id>>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
-            WireguardNetwork,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
-            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
-            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
-            service_location_mode \"service_location_mode: ServiceLocationMode\" \
-            FROM wireguard_network WHERE id IN \
-            (SELECT wireguard_network_id FROM wireguard_network_device \
-            WHERE device_id = $1 ORDER BY id LIMIT 1)",
-            self.id
-        )
-        .fetch_all(executor)
-        .await
     }
 
     pub fn validate_pubkey(pubkey: &str) -> Result<(), String> {
@@ -1093,7 +1058,7 @@ mod test {
             pubkey: String,
             network: &WireguardNetwork<Id>,
         ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
-            if let Some(address) = network.address.first() {
+            if let Some(address) = network.address().first() {
                 let net_ip = address.ip();
                 let net_network = address.network();
                 let net_broadcast = address.broadcast();
@@ -1217,11 +1182,11 @@ mod test {
             .unwrap();
 
         let mut updated_network = network.clone();
-        updated_network.address = vec![
+        updated_network.set_address([
             "10.0.0.0/16".parse::<IpNetwork>().unwrap(),
             "123.12.0.0/16".parse::<IpNetwork>().unwrap(),
             "123.123.0.0/16".parse::<IpNetwork>().unwrap(),
-        ];
+        ]);
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
@@ -1310,7 +1275,7 @@ mod test {
             .unwrap();
 
         let mut updated_network = network.clone();
-        updated_network.address = vec!["10.0.0.0/16".parse::<IpNetwork>().unwrap()];
+        updated_network.set_address(["10.0.0.0/16".parse::<IpNetwork>().unwrap()]);
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
@@ -1390,7 +1355,7 @@ mod test {
             .unwrap();
 
         let mut updated_network = network.clone();
-        updated_network.address = vec!["123.123.0.0/16".parse::<IpNetwork>().unwrap()];
+        updated_network.set_address(["123.123.0.0/16".parse::<IpNetwork>().unwrap()]);
         updated_network.save(&mut *conn).await.unwrap();
 
         let used_ips = updated_network
@@ -1455,17 +1420,13 @@ mod test {
         .await
         .unwrap();
 
-        let mut network = WireguardNetwork::<NoId> {
-            allow_all_groups: true,
-            ..Default::default()
-        };
+        let mut network = WireguardNetwork::default();
+        network.allow_all_groups = true;
         network.try_set_address("10.1.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
-        let mut network_2 = WireguardNetwork::<NoId> {
-            name: "testnetwork2".into(),
-            allow_all_groups: true,
-            ..Default::default()
-        };
+        let mut network_2 = WireguardNetwork::default();
+        network_2.name = "testnetwork2".into();
+        network_2.allow_all_groups = true;
         network_2.try_set_address("10.1.2.1/24").unwrap();
         let network2 = network_2.save(&pool).await.unwrap();
 
@@ -1564,14 +1525,11 @@ mod test {
             .await
             .unwrap();
 
-        let network = WireguardNetwork::<NoId> {
-            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()],
-            allow_all_groups: true,
-            ..Default::default()
-        }
-        .save(&pool)
-        .await
-        .unwrap();
+        let mut network = WireguardNetwork::default();
+        network
+            .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 4)), 29).unwrap()]);
+        network.allow_all_groups = true;
+        let network = network.save(&pool).await.unwrap();
 
         let mut conn = pool.begin().await.unwrap();
 

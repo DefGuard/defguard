@@ -41,7 +41,7 @@ async fn assert_auto_adoption_step(pool: &sqlx::PgPool, expected: AutoAdoptionWi
 async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<defguard_common::db::Id> {
     WireguardNetwork::new(
         "auto-net".to_string(),
-        vec!["10.0.0.0/24".parse::<IpNetwork>().unwrap()],
+        ["10.0.0.0/24".parse::<IpNetwork>().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,

@@ -232,10 +232,10 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::DeviceModified(..));
 
     // Make sure the device is only in the selected network
-    let device_networks = device
-        .find_network_device_networks(&client_state.pool)
-        .await
-        .unwrap();
+    let device_networks =
+        WireguardNetwork::find_network_device_networks(&client_state.pool, device_id)
+            .await
+            .unwrap();
     assert_eq!(device_networks.len(), 1);
     assert_eq!(network_1.id, device_networks[0].id);
 
@@ -277,10 +277,10 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
     assert!(!device.configured);
     assert_eq!(device.name, "device-2");
-    let device_network = device
-        .find_network_device_networks(&client_state.pool)
-        .await
-        .unwrap();
+    let device_network =
+        WireguardNetwork::find_network_device_networks(&client_state.pool, device_id)
+            .await
+            .unwrap();
     assert_eq!(device_network.len(), 1);
     assert_eq!(device_network[0].id, network_1.id);
 

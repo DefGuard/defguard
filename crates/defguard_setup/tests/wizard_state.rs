@@ -140,7 +140,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
 
     WireguardNetwork::new(
         "auto-net".to_string(),
-        vec!["10.0.0.0/24".parse().unwrap()],
+        ["10.0.0.0/24".parse().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,

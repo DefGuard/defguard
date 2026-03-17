@@ -105,7 +105,7 @@ async fn create_test_users_and_devices(
             // Add device to locations' VPN network
             for location in &test_locations {
                 let wireguard_ips = location
-                    .address
+                    .address()
                     .iter()
                     .map(|subnet| match subnet {
                         IpNetwork::V4(ipv4_network) => {
@@ -249,10 +249,8 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: false,
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = false;
     let mut location = location.save(&pool).await.unwrap();
 
     // Setup test users and their devices
@@ -672,11 +670,9 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: false,
-        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = false;
+    location.set_address([IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()]);
     let mut location = location.save(&pool).await.unwrap();
 
     // Setup test users and their devices
@@ -1125,14 +1121,12 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: false,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
-        ],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = false;
+    location.set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+        IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+    ]);
     let mut location = location.save(&pool).await.unwrap();
 
     // Setup test users and their devices
@@ -1764,14 +1758,10 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec!["10.0.0.0/16".parse().unwrap()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address(["10.0.0.0/16".parse().unwrap()]);
+    let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
@@ -1918,14 +1908,10 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec!["10.0.0.0/16".parse().unwrap()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address(["10.0.0.0/16".parse().unwrap()]);
+    let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
@@ -2084,11 +2070,9 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
     let pool = setup_pool(options).await;
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
+    location.set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()]);
     let location = location.save(&pool).await.unwrap();
 
     // create ACL rules
@@ -2145,33 +2129,21 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     let mut rng = thread_rng();
 
     // Create test locations with IPv4 and IPv6 addresses
-    let location_ipv4 = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let location_ipv6 = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
-    let location_ipv4_and_ipv6 = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
-        ],
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    let mut location_ipv4 = WireguardNetwork::default();
+    location_ipv4.acl_enabled = true;
+    location_ipv4.set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()]);
+    let location_ipv4 = location_ipv4.save(&pool).await.unwrap();
+    let mut location_ipv6 = WireguardNetwork::default();
+    location_ipv6.acl_enabled = true;
+    location_ipv6.set_address([IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()]);
+    let location_ipv6 = location_ipv6.save(&pool).await.unwrap();
+    let mut location_ipv4_and_ipv6 = WireguardNetwork::default();
+    location_ipv4_and_ipv6.acl_enabled = true;
+    location_ipv4_and_ipv6.set_address([
+        IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+        IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+    ]);
+    let location_ipv4_and_ipv6 = location_ipv4_and_ipv6.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
     let user_1: User<NoId> = rng.r#gen();

@@ -174,7 +174,7 @@ pub async fn process_device_access_changes(
         if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
             // Network address has changed and IP addresses need to be updated
             if !location.contains_all(&device_network_config.wireguard_ips)
-                || location.address.len() != device_network_config.wireguard_ips.len()
+                || location.address().len() != device_network_config.wireguard_ips.len()
             {
                 let wireguard_network_device = device
                     .assign_next_network_ip(

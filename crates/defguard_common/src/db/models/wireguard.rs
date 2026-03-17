@@ -11,10 +11,7 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
-    query_scalar,
-};
+use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
 use tracing::{debug, info};
 use utoipa::ToSchema;
@@ -109,7 +106,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub name: String,
     #[model(ref)]
     #[schema(value_type = Vec<String>)]
-    pub address: Vec<IpNetwork>,
+    address: Vec<IpNetwork>,
     pub port: i32, // Should be u16
     pub pubkey: String,
     #[serde(default, skip_serializing)]
@@ -215,9 +212,9 @@ pub enum NetworkAddressError {
 impl WireguardNetwork {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
-    pub fn new(
+    pub fn new<V>(
         name: String,
-        address: Vec<IpNetwork>,
+        address: V,
         port: i32,
         endpoint: String,
         dns: Option<String>,
@@ -231,13 +228,16 @@ impl WireguardNetwork {
         acl_default_allow: bool,
         location_mfa_mode: LocationMfaMode,
         service_location_mode: ServiceLocationMode,
-    ) -> Self {
+    ) -> Self
+    where
+        V: Into<Vec<IpNetwork>>,
+    {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
         Self {
             id: NoId,
             name,
-            address,
+            address: address.into(),
             port,
             pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
@@ -261,24 +261,53 @@ impl WireguardNetwork {
     pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
         let address = parse_address_list(address);
         if address.is_empty() {
-            return Err(IpNetworkError::InvalidAddr("invalid address".into()));
+            Err(IpNetworkError::InvalidAddr("invalid address".into()))
+        } else {
+            self.address = address;
+            Ok(())
         }
-        self.address = address;
+    }
+}
 
-        Ok(())
+impl<I> WireguardNetwork<I> {
+    /// Address list getter.
+    pub fn address(&self) -> &[IpNetwork] {
+        self.address.as_slice()
+    }
+
+    /// Address list setter.
+    pub fn set_address<V>(&mut self, address: V)
+    where
+        V: Into<Vec<IpNetwork>>,
+    {
+        self.address = address.into();
+    }
+
+    /// Validate addresses.
+    pub fn address_is_valid(&self) -> bool {
+        for addr in &self.address {
+            let ip = addr.ip();
+            if ip == addr.network() || ip == addr.broadcast() {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
 impl WireguardNetwork<Id> {
+    /// Try to find `WireguardNetwork` with the given name.
     pub async fn find_by_name<'e, E>(executor: E, name: &str) -> sqlx::Result<Option<Vec<Self>>>
     where
         E: PgExecutor<'e>,
     {
         let networks = query_as!(
-            WireguardNetwork,
+            Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
             name
@@ -291,6 +320,52 @@ impl WireguardNetwork<Id> {
         }
 
         Ok(Some(networks))
+    }
+
+    /// Gets the first network of the network device.
+    /// FIXME: Return only one network, not a Vec.
+    pub async fn find_network_device_networks<'e, E>(
+        executor: E,
+        device_id: Id,
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
+            FROM wireguard_network WHERE id IN \
+            (SELECT wireguard_network_id FROM wireguard_network_device \
+            WHERE device_id = $1 ORDER BY id LIMIT 1)",
+            device_id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Find all for a given rule `Id`.
+    pub async fn all_for_rule<'e, E>(executor: E, rule_id: Id) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
+            FROM aclrulenetwork r \
+            JOIN wireguard_network n ON n.id = r.network_id \
+            WHERE r.rule_id = $1",
+            rule_id,
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Check if given number of devices can fit in networks used by this location.
@@ -576,7 +651,7 @@ impl WireguardNetwork<Id> {
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
         device_type: DeviceType,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+    ) -> sqlx::Result<Vec<WireguardDeviceStatsRow>> {
         // Retrieve currently connected devices from database
         let devices = query_as!(
             Device,
@@ -961,7 +1036,7 @@ impl WireguardNetwork<Id> {
         &self,
         pool: &PgPool,
         from: &NaiveDateTime,
-    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    ) -> sqlx::Result<WireguardNetworkActivityStats> {
         let total_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -981,10 +1056,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves currently connected sessions stats
-    async fn current_activity(
-        &self,
-        pool: &PgPool,
-    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    async fn current_activity(&self, pool: &PgPool) -> sqlx::Result<WireguardNetworkActivityStats> {
         let current_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -1038,7 +1110,7 @@ impl WireguardNetwork<Id> {
         pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<WireguardNetworkStats, SqlxError> {
+    ) -> sqlx::Result<WireguardNetworkStats> {
         let total_activity = self.total_activity(pool, from).await?;
         let current_activity = self.current_activity(pool).await?;
         let transfer_series = self.transfer_series(pool, from, aggregation).await?;
@@ -1318,7 +1390,7 @@ impl WireguardNetwork<Id> {
     pub async fn get_active_vpn_sessions<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
-    ) -> Result<Vec<VpnClientSession<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<VpnClientSession<Id>>> {
         query_as!(
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, \
@@ -1336,7 +1408,7 @@ impl WireguardNetwork<Id> {
     pub async fn all_used_ips_for_network(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<HashSet<IpAddr>, SqlxError> {
+    ) -> sqlx::Result<HashSet<IpAddr>> {
         let all_devices =
             WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
         let used_ips: HashSet<IpAddr> = all_devices
@@ -1479,7 +1551,7 @@ pub async fn networks_stats(
     pool: &PgPool,
     from: &NaiveDateTime,
     aggregation: &DateTimeAggregation,
-) -> Result<WireguardNetworkStats, SqlxError> {
+) -> sqlx::Result<WireguardNetworkStats> {
     // get all active users/devices within specified time window
     let total_activity = query_as!(
         WireguardNetworkActivityStats,
@@ -1861,7 +1933,7 @@ mod test {
 
         let network = WireguardNetwork::new(
             "network".to_string(),
-            vec![IpNetwork::from_str("10.1.1.1/24").unwrap()],
+            [IpNetwork::from_str("10.1.1.1/24").unwrap()],
             50051,
             String::new(),
             None,
@@ -1993,7 +2065,7 @@ mod test {
 
         let network = WireguardNetwork::new(
             "network".to_string(),
-            vec![
+            [
                 IpNetwork::from_str("10.1.1.1/24").unwrap(),
                 IpNetwork::from_str("fc00::1/112").unwrap(),
             ],

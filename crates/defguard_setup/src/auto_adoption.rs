@@ -738,7 +738,7 @@ id={} for new gateway",
         let mut transaction = pool.begin().await.context("Failed to begin transaction")?;
         let network = WireguardNetwork::new(
             common_name.to_string(),
-            vec![network_address],
+            [network_address],
             DEFAULT_AUTO_ADOPTION_WIREGUARD_PORT,
             host.to_string(),
             None,

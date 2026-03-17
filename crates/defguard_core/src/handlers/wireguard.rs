@@ -348,8 +348,7 @@ pub(crate) async fn modify_network(
     // store network before mods
     let before = network.clone();
     let new_addresses = data.parse_addresses()?;
-
-    network.address = new_addresses;
+    network.set_address(new_addresses);
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 

@@ -118,7 +118,7 @@ pub(crate) async fn create_location_with_mfa_mode(
 ) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
         "TestNet".to_string(),
-        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)), 24).unwrap()],
+        [IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)), 24).unwrap()],
         51820,
         "10.0.0.1".to_string(),
         None,

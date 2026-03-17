@@ -616,7 +616,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Network(Configuration {
                     name: network.name.clone(),
                     prvkey: network.prvkey.clone(),
-                    addresses: network.address.iter().map(ToString::to_string).collect(),
+                    addresses: network.address().iter().map(ToString::to_string).collect(),
                     port: network.port.cast_unsigned(),
                     peers,
                     firewall_config,
@@ -803,7 +803,7 @@ fn gen_config(
         name: network.name.clone(),
         port: network.port.cast_unsigned(),
         prvkey: network.prvkey.clone(),
-        addresses: network.address.iter().map(ToString::to_string).collect(),
+        addresses: network.address().iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
         mtu: network.mtu.cast_unsigned(),

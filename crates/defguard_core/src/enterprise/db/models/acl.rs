@@ -8,12 +8,7 @@ use std::{
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
-    models::{
-        Device, DeviceType, WireguardNetwork,
-        group::Group,
-        user::User,
-        wireguard::{LocationMfaMode, ServiceLocationMode},
-    },
+    models::{Device, DeviceType, WireguardNetwork, group::Group, user::User},
 };
 use ipnetwork::IpNetwork;
 use model_derive::Model;
@@ -965,28 +960,14 @@ impl AclRule<Id> {
     pub(crate) async fn get_networks<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<WireguardNetwork<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<WireguardNetwork<Id>>>
     where
         E: PgExecutor<'e>,
     {
         if self.all_locations {
             WireguardNetwork::all(executor).await
         } else {
-            query_as!(
-                WireguardNetwork,
-                "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-                allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
-                peer_disconnect_threshold, acl_enabled, acl_default_allow, \
-                location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
-                service_location_mode \"service_location_mode: ServiceLocationMode\" \
-                FROM aclrulenetwork r \
-                JOIN wireguard_network n \
-                ON n.id = r.network_id \
-                WHERE r.rule_id = $1",
-                self.id,
-            )
-            .fetch_all(executor)
-            .await
+            WireguardNetwork::all_for_rule(executor, self.id).await
         }
     }
 

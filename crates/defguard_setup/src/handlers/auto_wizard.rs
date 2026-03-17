@@ -137,7 +137,7 @@ pub async fn set_vpn_settings(
 
     network.endpoint = vpn_settings.public_ip;
     network.port = vpn_settings.wireguard_port;
-    network.address = addresses;
+    network.set_address(addresses);
     network.allowed_ips = allowed_ips;
     network.dns = {
         let dns = vpn_settings.dns_server_ip.trim();
