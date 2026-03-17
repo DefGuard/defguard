@@ -129,11 +129,16 @@ const DockerComposeTab = () => {
     image: ghcr.io/defguard/gateway:latest
     restart: unless-stopped
     network_mode: host
+    cap_add:
+      - NET_ADMIN
     # If you prefer only one port:
     #ports:
     #  - "50066:50066"
+    # Uncomment the following if you are running on Debian 13 or later or have apparmor or SELinux setup
+    #security_opt:
+    #  - apparmor:unconfined
     volumes:
-      - ./certs:/certs`}
+      - ./.volumes/certs/gateway:/etc/defguard/certs`}
       />
       <SizedBox height={ThemeSpacing.Xl2} />
       <AppText font={TextStyle.TBodySm400}>
@@ -153,7 +158,7 @@ const DockerTab = () => {
         subtitle={m.gateway_setup_step_deploy_tabs_docker_subtitle()}
       />
       <CodeSnippet
-        value={`docker run -v ./certs:/certs --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`}
+        value={`docker run -v ./.volumes/certs/gateway:/etc/defguard/certs --restart unless-stopped --security-opt apparmor:unconfined --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`}
       />
     </>
   );
@@ -191,25 +196,18 @@ const VirtualImageTab = () => {
       <TabContentHeader
         title={m.gateway_setup_step_deploy_tabs_virtual_title()}
         subtitle={m.gateway_setup_step_deploy_tabs_virtual_subtitle({
-          url: `https://defguard.net/download/defguard-2x-latest.ovf`,
-          filename: `cloud-init-yaml`,
+          url: `https://defguard-downloads.s3.eu-central-1.amazonaws.com/defguard-alpha2.ova`,
+          filename: `defguard-data.yaml`,
         })}
       />
       <CodeSnippet
-        value={`launch: gateway
-
-runcmd:
-  - |
-    LAUNCH=$(jq -r '.["user-data"].launch' /run/cloud-init/instance-data.json)
-    
-    echo "Launch option = $LAUNCH"
-    
-    if [ "$LAUNCH" = "gateway" ]; then
-      systemctl enable defguard-gateway
-      systemctl start defguard-gateway
-    else
-      echo "Unknown launch: $LAUNCH"
-    fi`}
+        value={`#cloud-config
+write_files:
+  - path: /opt/defguard/active-profiles
+    permissions: '0644'
+    content: |
+      gateway
+`}
       />
     </>
   );
