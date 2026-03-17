@@ -155,7 +155,7 @@ const AssignmentForm = ({
       invalidate: [['user-device-ips', username]],
     },
     onSuccess: () => {
-      Snackbar.success(m.modal_assign_user_ip_success({ firstName, lastName }));
+      Snackbar.default(m.modal_assign_user_ip_success({ firstName, lastName }));
       closeModal(modalNameValue);
     },
     onError: (error) => {

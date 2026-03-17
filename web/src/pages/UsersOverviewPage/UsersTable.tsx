@@ -438,7 +438,7 @@ export const UsersTable = () => {
                     text: m.users_row_menu_disable_mfa(),
                     variant: 'critical',
                   },
-                  onSuccess: () => Snackbar.success(m.users_disable_mfa_success()),
+                  onSuccess: () => Snackbar.default(m.users_disable_mfa_success()),
                   onError: () => Snackbar.error(m.users_disable_mfa_error()),
                 });
               },
@@ -534,7 +534,7 @@ export const UsersTable = () => {
                 actionPromise: () => api.device.deleteDevice(device.id),
                 invalidateKeys: [['user-overview'], ['user'], ['network']],
                 submitProps: { text: m.controls_delete(), variant: 'critical' },
-                onSuccess: () => Snackbar.success(m.user_device_delete_success()),
+                onSuccess: () => Snackbar.default(m.user_device_delete_success()),
                 onError: () => Snackbar.error(m.user_device_delete_failed()),
               });
             },
