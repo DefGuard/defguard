@@ -787,7 +787,7 @@ impl ClientMfaServer {
         // disconnect all active sessions
         for session in active_sessions {
             debug!("Disconnecting previous active MFA VPN session {session:?}.");
-            self.disconnect_mfa_session(&mut *conn, session, location, user, device)
+            self.disconnect_session(&mut *conn, session, location, user, device)
                 .await?;
         }
 
@@ -800,7 +800,7 @@ impl ClientMfaServer {
     }
 
     /// Update session state as disconnected and send relevant gateway update
-    async fn disconnect_mfa_session(
+    async fn disconnect_session(
         &self,
         conn: &mut PgConnection,
         mut session: VpnClientSession<Id>,
@@ -808,6 +808,9 @@ impl ClientMfaServer {
         user: &User<Id>,
         device: &Device<Id>,
     ) -> Result<(), Status> {
+        let is_connected = session.state == VpnClientSessionState::Connected;
+        let is_mfa_session = session.mfa_method.is_some();
+
         // update session state in DB
         let disconnect_timestamp = Utc::now().naive_utc();
         session.disconnected_at = Some(disconnect_timestamp);
@@ -841,9 +844,7 @@ impl ClientMfaServer {
         })?;
         }
 
-        // only emit disconnect events if MFA session has actually connected
-        // and not for New sessions
-        if session.state == VpnClientSessionState::Connected {
+        if is_connected && is_mfa_session {
             let gateway_event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
             self.wireguard_tx.send(gateway_event).map_err(|err| {
                 error!("Error sending WireGuard event: {err}");
