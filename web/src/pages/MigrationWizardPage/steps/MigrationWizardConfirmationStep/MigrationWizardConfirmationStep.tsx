@@ -52,14 +52,14 @@ export const MigrationWizardConfirmationStep = () => {
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: migrationWizardFinishPromise,
     onSuccess: async () => {
-      Snackbar.default(`Migration finished`);
+      Snackbar.default(m.migration_wizard_finish_success_snackbar());
       await navigate({ to: '/vpn-overview', replace: true });
       setTimeout(() => {
         useMigrationWizardStore.getState().resetState();
       }, 2500);
     },
     onError: (e) => {
-      Snackbar.error(`Finishing migration failed`);
+      Snackbar.error(m.migration_wizard_finish_error_snackbar());
       console.error(e);
     },
     meta: {

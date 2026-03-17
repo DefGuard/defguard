@@ -78,8 +78,8 @@ export const MigrationWizardGeneralConfigurationStep = () => {
         }}
       >
         <form.AppForm>
-          <DescriptionBlock title="Private URL">
-            <p>{`This URL will be used to access and control Defguard. It should not be exposed to the Internet only to the internal or VPN network. You can learn more about our security approach in the video below.`}</p>
+          <DescriptionBlock title={m.migration_wizard_general_config_private_url_title()}>
+            <p>{m.migration_wizard_general_config_private_url_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="defguard_url">
@@ -92,8 +92,8 @@ export const MigrationWizardGeneralConfigurationStep = () => {
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
-          <DescriptionBlock title="Public URL">
-            <p>{`This URL will be used to access and control Defguard. It should not be exposed to the Internet only to the internal or VPN network. You can learn more about our security approach in the video below.`}</p>
+          <DescriptionBlock title={m.migration_wizard_general_config_public_url_title()}>
+            <p>{m.migration_wizard_general_config_public_url_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="public_proxy_url">

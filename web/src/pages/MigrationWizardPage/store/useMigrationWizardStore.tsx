@@ -2,6 +2,7 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { queryClient } from '../../../app/query';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type {
   MigrationWizardApiState,
@@ -46,7 +47,7 @@ const defaults: StoreValues = {
   location_state: null,
   defguard_url: '',
   public_proxy_url: '',
-  ca_common_name: 'Defguard Certificate Authority',
+  ca_common_name: m.migration_wizard_ca_placeholder_common_name(),
   ca_email: '',
   ca_validity_period_years: 5,
   ca_cert_file: null,

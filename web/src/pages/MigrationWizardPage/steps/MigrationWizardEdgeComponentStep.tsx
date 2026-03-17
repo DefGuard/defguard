@@ -70,7 +70,7 @@ export const MigrationWizardEdgeComponentStep = () => {
       <InfoBanner
         icon="info-outlined"
         variant="info"
-        text={`We've detected your current Proxy setup. Please upgrade it to the latest 2.0 Edge component so it can be adopted automatically and managed by Defguard.`}
+        text={m.migration_wizard_edge_component_info()}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <form

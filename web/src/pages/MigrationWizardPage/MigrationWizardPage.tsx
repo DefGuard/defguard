@@ -35,10 +35,10 @@ export const MigrationWizardPage = () => {
   const welcomePageConfig = useMemo(
     (): WizardWelcomePageConfig =>
       ({
-        title: 'Welcome to Defguard Migration Wizard.',
-        subtitle: `We've detected your pervious version with ${locationCount} number of locations.`,
+        title: m.migration_wizard_welcome_title(),
+        subtitle: m.migration_wizard_welcome_subtitle({ count: locationCount }),
         content: <MigrationWizardStart />,
-        docsText: `We'll guide you through the process step by step. For full details, see the migration guide following the link below.`,
+        docsText: m.migration_wizard_welcome_docs_text(),
       }) as const,
     [locationCount],
   );
