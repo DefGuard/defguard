@@ -1063,9 +1063,9 @@ mod tests {
             Err(broadcast::error::TryRecvError::Empty)
         ));
 
-        let event = event_rx
-            .try_recv()
-            .expect("expected standard disconnect audit event for replaced connected non-MFA session");
+        let event = event_rx.try_recv().expect(
+            "expected standard disconnect audit event for replaced connected non-MFA session",
+        );
         match event.event {
             BidiStreamEventType::DesktopClientMfa(event) => match *event {
                 DesktopClientMfaEvent::Disconnected {

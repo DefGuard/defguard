@@ -4,7 +4,7 @@ use defguard_core::events::{
 use defguard_event_logger::message::{EnrollmentEvent, EventContext, LoggerEvent, VpnEvent};
 use tracing::debug;
 
-use crate::{error::EventRouterError, EventRouter};
+use crate::{EventRouter, error::EventRouterError};
 
 impl EventRouter {
     pub(crate) fn handle_bidi_event(&self, event: BidiStreamEvent) -> Result<(), EventRouterError> {
@@ -108,17 +108,17 @@ mod tests {
     };
 
     use defguard_common::db::{
-        models::{
-            wireguard::{LocationMfaMode, ServiceLocationMode},
-            Device, DeviceType, WireguardNetwork,
-        },
         NoId,
+        models::{
+            Device, DeviceType, WireguardNetwork,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
     };
     use defguard_core::{
         events::{BidiRequestContext, BidiStreamEventType},
         grpc::GatewayEvent,
     };
-    use tokio::sync::{broadcast, mpsc::unbounded_channel, Notify};
+    use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
 
     use super::*;
     use crate::RouterReceiverSet;
