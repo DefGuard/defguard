@@ -34,7 +34,7 @@
     "humanize-duration": "^3.33.2",
     "ipaddr.js": "^2.3.0",
     "lodash-es": "^4.17.23",
-    "motion": "^12.36.0",
+    "motion": "^12.37.0",
     "qrcode.react": "^4.2.0",
     "qs": "^6.15.0",
     "radashi": "^12.7.2",
