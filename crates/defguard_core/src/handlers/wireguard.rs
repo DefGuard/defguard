@@ -114,9 +114,9 @@ impl WireguardNetworkData {
             return Ok(());
         }
 
-        Err(WebError::BadRequest(
-            "peer_disconnect_threshold must be at least 120 when location MFA is enabled".into(),
-        ))
+        Err(WebError::BadRequest(format!(
+            "peer_disconnect_threshold must be at least {MIN_PEER_DISCONNECT_THRESHOLD_WITH_MFA} when location MFA is enabled"
+        )))
     }
 
     pub(crate) async fn validate_location_mfa_mode<'e, E: sqlx::PgExecutor<'e>>(
