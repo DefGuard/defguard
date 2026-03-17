@@ -1,3 +1,12 @@
+use std::net::IpAddr;
+
+use defguard_common::db::{
+    Id,
+    models::{
+        device::{Device, DeviceInfo, DeviceType, WireguardNetworkDevice},
+        user::User,
+    },
+};
 use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::{
     CoreResponse, Update, UpdateType, core_response,
@@ -135,6 +144,136 @@ async fn test_drops_malformed_or_missing_endpoint_peer_stats(
         .mock_gateway()
         .send_peer_stats(build_peer_stats("not-a-socket-address"));
     context.expect_no_peer_stats().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_device_created_for_network_produces_peer_create_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    let expected_keepalive_interval = expected_keepalive_interval(&context);
+
+    let _ = context.complete_config_handshake().await;
+    let device_info = create_device_info_for_current_network(
+        &context,
+        "created-peer-device",
+        "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "10.10.0.10",
+        Some("created-preshared-key"),
+    )
+    .await;
+
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayEvent::DeviceCreated(device_info)),
+        "failed to broadcast created device event"
+    );
+
+    let outbound = context.mock_gateway_mut().recv_outbound().await;
+    assert_peer_update(
+        outbound,
+        UpdateType::Create,
+        "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        &["10.10.0.10"],
+        Some("created-preshared-key"),
+        Some(expected_keepalive_interval),
+    );
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_device_modified_for_network_produces_peer_modify_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    let expected_keepalive_interval = expected_keepalive_interval(&context);
+
+    let _ = context.complete_config_handshake().await;
+    let device = create_device_for_current_network(
+        &context,
+        "modified-peer-device",
+        "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
+        "10.10.0.20",
+        Some("initial-preshared-key"),
+    )
+    .await;
+
+    let mut network_device = WireguardNetworkDevice::find(&context.pool, device.id, context.network.id)
+        .await
+        .expect("failed to load device network info")
+        .expect("expected device network info for modified device");
+    network_device.wireguard_ips = vec![parse_test_ip("10.10.0.21")];
+    network_device.preshared_key = Some("modified-preshared-key".to_string());
+    network_device
+        .update(&context.pool)
+        .await
+        .expect("failed to update device network info");
+    let device_info = DeviceInfo::from_device(&context.pool, device)
+        .await
+        .expect("failed to load modified device info");
+
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayEvent::DeviceModified(device_info)),
+        "failed to broadcast modified device event"
+    );
+
+    let outbound = context.mock_gateway_mut().recv_outbound().await;
+    assert_peer_update(
+        outbound,
+        UpdateType::Modify,
+        "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
+        &["10.10.0.21"],
+        Some("modified-preshared-key"),
+        Some(expected_keepalive_interval),
+    );
+    context.mock_gateway_mut().expect_no_outbound().await;
+
+    context.finish().await.expect_server_finished().await;
+}
+
+#[sqlx::test]
+async fn test_device_deleted_for_network_produces_peer_delete_update(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+
+    let _ = context.complete_config_handshake().await;
+    let device_info = create_device_info_for_current_network(
+        &context,
+        "deleted-peer-device",
+        "PKY3zg5/ecNyMjqLi6yJ3jwb4PvC/SGzjhJ3jrn2vVQ=",
+        "10.10.0.30",
+        Some("deleted-preshared-key"),
+    )
+    .await;
+
+    assert_send_ok!(
+        context
+            .events_tx()
+            .send(GatewayEvent::DeviceDeleted(device_info)),
+        "failed to broadcast deleted device event"
+    );
+
+    let outbound = context.mock_gateway_mut().recv_outbound().await;
+    assert_peer_update(
+        outbound,
+        UpdateType::Delete,
+        "PKY3zg5/ecNyMjqLi6yJ3jwb4PvC/SGzjhJ3jrn2vVQ=",
+        &[],
+        None,
+        None,
+    );
+    context.mock_gateway_mut().expect_no_outbound().await;
 
     context.finish().await.expect_server_finished().await;
 }
@@ -431,6 +570,108 @@ async fn test_gateway_is_marked_disconnected_when_stream_errors(
     assert!(disconnected_gateway.disconnected_at.is_some());
 
     mock_gateway.expect_server_finished().await;
+}
+
+async fn create_device_info_for_current_network(
+    context: &HandlerTestContext,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: Option<&str>,
+) -> DeviceInfo {
+    let device = create_device_for_current_network(
+        context,
+        device_name,
+        device_pubkey,
+        device_ip,
+        preshared_key,
+    )
+    .await;
+
+    DeviceInfo::from_device(&context.pool, device)
+        .await
+        .expect("failed to load device info")
+}
+
+async fn create_device_for_current_network(
+    context: &HandlerTestContext,
+    device_name: &str,
+    device_pubkey: &str,
+    device_ip: &str,
+    preshared_key: Option<&str>,
+) -> Device<Id> {
+    let username = format!("{device_name}-user");
+    let email = format!("{device_name}@example.com");
+    let user = User::new(
+        username,
+        Some("pass123"),
+        "Peer".to_string(),
+        "Test".to_string(),
+        email,
+        None,
+    )
+    .save(&context.pool)
+    .await
+    .expect("failed to create test user");
+    let device = Device::new(
+        device_name.to_string(),
+        device_pubkey.to_string(),
+        user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&context.pool)
+    .await
+    .expect("failed to create test device");
+
+    let mut network_device =
+        WireguardNetworkDevice::new(context.network.id, device.id, vec![parse_test_ip(device_ip)]);
+    network_device.preshared_key = preshared_key.map(str::to_owned);
+    network_device
+        .insert(&context.pool)
+        .await
+        .expect("failed to attach device to network");
+
+    device
+}
+
+fn expected_keepalive_interval(context: &HandlerTestContext) -> u32 {
+    u32::try_from(context.network.keepalive_interval)
+        .expect("expected non-negative network keepalive interval")
+}
+
+fn parse_test_ip(ip: &str) -> IpAddr {
+    ip.parse().expect("failed to parse test peer IP address")
+}
+
+fn assert_peer_update(
+    outbound: CoreResponse,
+    expected_update_type: UpdateType,
+    expected_pubkey: &str,
+    expected_allowed_ips: &[&str],
+    expected_preshared_key: Option<&str>,
+    expected_keepalive_interval: Option<u32>,
+) {
+    match outbound.payload {
+        Some(core_response::Payload::Update(Update {
+            update_type,
+            update: Some(update::Update::Peer(peer)),
+        })) => {
+            assert_eq!(update_type, expected_update_type as i32);
+            assert_eq!(peer.pubkey, expected_pubkey);
+            assert_eq!(
+                peer.allowed_ips,
+                expected_allowed_ips
+                    .iter()
+                    .map(|allowed_ip| allowed_ip.to_string())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(peer.preshared_key.as_deref(), expected_preshared_key);
+            assert_eq!(peer.keepalive_interval, expected_keepalive_interval);
+        }
+        _ => panic_unexpected!("expected peer update"),
+    }
 }
 
 fn assert_network_delete_update(outbound: CoreResponse, expected_network_name: &str) {
