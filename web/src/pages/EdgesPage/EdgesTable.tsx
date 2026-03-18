@@ -24,6 +24,8 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getEdgesQueryOptions, getLicenseInfoQueryOptions } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
@@ -71,13 +73,6 @@ export const EdgesTable = () => {
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
 
   const navigate = useNavigate();
-
-  const { mutate: deleteEdge } = useMutation({
-    mutationFn: api.edge.deleteEdge,
-    meta: {
-      invalidate: ['edge'],
-    },
-  });
 
   const { mutate: toggleEdge } = useMutation({
     mutationFn: api.edge.editEdge,
@@ -239,7 +234,13 @@ export const EdgesTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteEdge(rowData.id);
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_edge_title(),
+                      contentMd: m.modal_delete_edge_body({ name: rowData.name }),
+                      actionPromise: () => api.edge.deleteEdge(rowData.id),
+                      invalidateKeys: [['edge']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                    });
                   },
                 },
               ],
@@ -250,7 +251,7 @@ export const EdgesTable = () => {
         },
       }),
     ],
-    [deleteEdge, navigate, toggleEdge],
+    [navigate, toggleEdge],
   );
 
   const table = useReactTable({

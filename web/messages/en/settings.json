@@ -44,9 +44,14 @@
   "settings_activity_log_streaming_no_upstreams_subtitle": "Click the button below to add an activity log provider and start streaming events.",
   "settings_activity_log_streaming_add_log_streaming_button": "Add log streaming.",
   "settings_activity_log_streaming_delete_log_streaming_title": "Delete destination confirmation",
+  "settings_activity_log_streaming_delete_log_streaming_failed": "Failed to delete log stream destination.",
   "settings_activity_log_streaming_table_title": "All log streams",
   "settings_activity_log_streaming_table_header_name": "Name",
   "settings_activity_log_streaming_table_stream_type_name": "Destination",
   "settings_msg_saved": "Settings saved",
-  "settings_msg_save_failed": "Failed to save settings"
+  "settings_msg_save_failed": "Failed to save settings",
+  "settings_smtp_reset_confirm_title": "Reset SMTP Settings",
+  "settings_smtp_reset_confirm_body": "Are you sure you want to reset SMTP settings? This action cannot be undone.",
+  "settings_smtp_reset_success": "SMTP settings reset",
+  "settings_smtp_reset_failed": "Failed to reset SMTP settings"
 }

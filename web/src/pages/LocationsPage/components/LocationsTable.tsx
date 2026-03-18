@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import type { NetworkLocation } from '../../../shared/api/types';
 import { GatewaysStatusBadge } from '../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { TableValuesListCell } from '../../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -23,6 +24,7 @@ import { TableBody } from '../../../shared/defguard-ui/components/table/TableBod
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
@@ -281,9 +283,14 @@ export const LocationsTable = () => {
                       text: m.controls_delete(),
                       variant: 'danger',
                       onClick: () => {
-                        openModal(ModalName.DeleteLocation, {
-                          id: row.id,
-                          name: row.name,
+                        openModal(ModalName.ConfirmAction, {
+                          title: m.modal_delete_location_title(),
+                          contentMd: m.modal_delete_location_body({ name: row.name }),
+                          actionPromise: () => api.location.deleteLocation(row.id),
+                          invalidateKeys: [['network'], ['enterprise_info']],
+                          submitProps: { text: m.controls_delete(), variant: 'critical' },
+                          onSuccess: () => Snackbar.default(m.location_delete_success()),
+                          onError: () => Snackbar.error(m.location_delete_failed()),
                         });
                       },
                     },
