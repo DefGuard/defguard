@@ -23,8 +23,8 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getEdgesQueryOptions, getLicenseInfoQueryOptions } from '../../shared/query';

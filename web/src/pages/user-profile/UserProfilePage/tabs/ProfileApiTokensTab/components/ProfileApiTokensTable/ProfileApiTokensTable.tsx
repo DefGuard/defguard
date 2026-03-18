@@ -97,7 +97,8 @@ export const ProfileApiTokensTable = () => {
                             ['user', username, 'api_token'],
                           ],
                           submitProps: { text: m.controls_delete(), variant: 'critical' },
-                          onSuccess: () => Snackbar.default(m.modal_delete_api_token_success()),
+                          onSuccess: () =>
+                            Snackbar.default(m.modal_delete_api_token_success()),
                           onError: () => Snackbar.error(m.modal_delete_api_token_error()),
                         });
                       },
