@@ -13,7 +13,7 @@ use defguard_proto::enterprise::firewall::{
     port::Port as PortInner,
 };
 use ipnetwork::IpNetwork;
-use sqlx::{Error as SqlxError, PgConnection, query_as, query_scalar};
+use sqlx::{PgConnection, query_as, query_scalar};
 
 use super::{
     db::models::acl::{AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange, Protocol},
@@ -55,8 +55,8 @@ pub async fn generate_firewall_rules_from_acls(
     let location = WireguardNetwork::find_by_id(&mut *conn, location_id)
         .await?
         .ok_or(ModelError::NotFound)?;
-    let has_ipv4_addresses = location.address.iter().any(IpNetwork::is_ipv4);
-    let has_ipv6_addresses = location.address.iter().any(IpNetwork::is_ipv6);
+    let has_ipv4_addresses = location.address().iter().any(IpNetwork::is_ipv4);
+    let has_ipv6_addresses = location.address().iter().any(IpNetwork::is_ipv6);
 
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
@@ -480,7 +480,7 @@ async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
     user_ids: &[Id],
     location_id: Id,
     executor: E,
-) -> Result<Vec<Vec<IpAddr>>, SqlxError> {
+) -> sqlx::Result<Vec<Vec<IpAddr>>> {
     // fetch network IPs
     query_scalar!(
             "SELECT wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
@@ -515,7 +515,7 @@ async fn get_network_device_ips(
     network_devices: &[Device<Id>],
     location_id: Id,
     conn: &mut PgConnection,
-) -> Result<Vec<Vec<IpAddr>>, SqlxError> {
+) -> sqlx::Result<Vec<Vec<IpAddr>>> {
     // prepare a list of IDs
     let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
 
@@ -898,7 +898,7 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
 async fn generate_user_snat_bindings_for_location(
     location_id: Id,
     conn: &mut PgConnection,
-) -> Result<Vec<SnatBindingProto>, SqlxError> {
+) -> sqlx::Result<Vec<SnatBindingProto>> {
     debug!("Generating SNAT bindings for location {location_id}");
 
     let user_snat_bindings = UserSnatBinding::all_for_location(&mut *conn, location_id).await?;
@@ -978,7 +978,7 @@ async fn generate_user_snat_bindings_for_location(
 pub(crate) async fn get_location_active_acl_rules(
     location: &WireguardNetwork<Id>,
     conn: &mut PgConnection,
-) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
+) -> sqlx::Result<Vec<AclRuleInfo<Id>>> {
     debug!("Fetching active ACL rules for location {location}");
     let rules: Vec<AclRule<Id>> = query_as(
         "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_locations, \

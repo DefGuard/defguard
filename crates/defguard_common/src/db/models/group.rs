@@ -2,7 +2,7 @@ use std::fmt;
 
 use model_derive::Model;
 use serde::Serialize;
-use sqlx::{Error as SqlxError, FromRow, PgExecutor, query, query_as, query_scalar};
+use sqlx::{FromRow, PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
 use crate::db::{Id, NoId, models::user::User};
@@ -48,7 +48,7 @@ impl Group {
 }
 
 impl Group<Id> {
-    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_name<'e, E>(executor: E, name: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -61,7 +61,7 @@ impl Group<Id> {
         .await
     }
 
-    pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    pub async fn member_usernames<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
     where
         E: PgExecutor<'e>,
     {
@@ -74,7 +74,7 @@ impl Group<Id> {
         .await
     }
 
-    pub async fn members<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub async fn members<'e, E>(&self, executor: E) -> sqlx::Result<Vec<User<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -94,7 +94,7 @@ impl Group<Id> {
     }
 
     /// Fetches a list of VPN locations where a given group is allowed.
-    pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
     where
         E: PgExecutor<'e>,
     {
@@ -111,7 +111,7 @@ impl Group<Id> {
     pub async fn find_by_permission<'e, E>(
         executor: E,
         permission: Permission,
-    ) -> Result<Vec<Self>, SqlxError>
+    ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -124,7 +124,7 @@ impl Group<Id> {
         &self,
         executor: E,
         permission: Permission,
-    ) -> Result<bool, SqlxError>
+    ) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
@@ -141,7 +141,7 @@ impl Group<Id> {
         executor: E,
         permission: Permission,
         value: bool,
-    ) -> Result<(), SqlxError>
+    ) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

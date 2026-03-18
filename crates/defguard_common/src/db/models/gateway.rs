@@ -89,10 +89,7 @@ impl Gateway<Id> {
         Ok(())
     }
 
-    pub async fn find_by_location_id<'e, E>(
-        executor: E,
-        location_id: Id,
-    ) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn find_by_location_id<'e, E>(executor: E, location_id: Id) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {

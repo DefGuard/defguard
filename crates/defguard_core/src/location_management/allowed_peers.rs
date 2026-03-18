@@ -1,6 +1,6 @@
 use defguard_common::db::{Id, models::WireguardNetwork};
 use defguard_proto::gateway::Peer;
-use sqlx::{Error as SqlxError, PgExecutor, query};
+use sqlx::{PgExecutor, query};
 
 use crate::grpc::should_prevent_service_location_usage;
 
@@ -13,7 +13,7 @@ use crate::grpc::should_prevent_service_location_usage;
 pub async fn get_location_allowed_peers<'e, E>(
     location: &WireguardNetwork<Id>,
     executor: E,
-) -> Result<Vec<Peer>, SqlxError>
+) -> sqlx::Result<Vec<Peer>>
 where
     E: PgExecutor<'e>,
 {
@@ -127,13 +127,12 @@ mod test {
         .unwrap();
 
         // Normal location (service_location_mode = Disabled) should return peers
-        let mut network_normal = WireguardNetwork {
-            name: "normal-location".to_string(),
-            service_location_mode: ServiceLocationMode::Disabled,
-            location_mfa_mode: LocationMfaMode::Disabled,
-            ..Default::default()
-        };
-        network_normal.try_set_address("10.1.1.1/24").unwrap();
+        let mut network_normal = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap();
+        network_normal.name = "normal-location".to_string();
+        network_normal.service_location_mode = ServiceLocationMode::Disabled;
+        network_normal.location_mfa_mode = LocationMfaMode::Disabled;
         let network_normal = network_normal.save(&pool).await.unwrap();
 
         WireguardNetworkDevice::new(
@@ -152,13 +151,12 @@ mod test {
         assert_eq!(peers_normal[0].pubkey, "pubkey1");
 
         // Service location with PreLogon mode returns peers when enterprise is enabled (test env default)
-        let mut network_prelogon = WireguardNetwork {
-            name: "prelogon-service-location".to_string(),
-            service_location_mode: ServiceLocationMode::PreLogon,
-            location_mfa_mode: LocationMfaMode::Disabled,
-            ..Default::default()
-        };
-        network_prelogon.try_set_address("10.2.1.1/24").unwrap();
+        let mut network_prelogon = WireguardNetwork::default()
+            .try_set_address("10.2.1.1/24")
+            .unwrap();
+        network_prelogon.name = "prelogon-service-location".to_string();
+        network_prelogon.service_location_mode = ServiceLocationMode::PreLogon;
+        network_prelogon.location_mfa_mode = LocationMfaMode::Disabled;
         let network_prelogon = network_prelogon.save(&pool).await.unwrap();
 
         WireguardNetworkDevice::new(
@@ -182,13 +180,12 @@ mod test {
         assert_eq!(peers_prelogon[0].pubkey, "pubkey2");
 
         // Service location with AlwaysOn mode also returns peers when enterprise is enabled
-        let mut network_alwayson = WireguardNetwork {
-            name: "alwayson-service-location".to_string(),
-            service_location_mode: ServiceLocationMode::AlwaysOn,
-            location_mfa_mode: LocationMfaMode::Disabled,
-            ..Default::default()
-        };
-        network_alwayson.try_set_address("10.3.1.1/24").unwrap();
+        let mut network_alwayson = WireguardNetwork::default()
+            .try_set_address("10.3.1.1/24")
+            .unwrap();
+        network_alwayson.name = "alwayson-service-location".to_string();
+        network_alwayson.service_location_mode = ServiceLocationMode::AlwaysOn;
+        network_alwayson.location_mfa_mode = LocationMfaMode::Disabled;
         let network_alwayson = network_alwayson.save(&pool).await.unwrap();
 
         let device3 = Device::new(

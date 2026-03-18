@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgConnection, PgPool};
+use sqlx::{PgConnection, PgPool};
 use utoipa::ToSchema;
 
 use crate::{
@@ -39,7 +39,7 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Self> {
         let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
 
@@ -71,7 +71,7 @@ impl UserInfo {
         &self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
-    ) -> Result<bool, SqlxError> {
+    ) -> sqlx::Result<bool> {
         if self.is_active == user.is_active {
             Ok(false)
         } else {
@@ -91,7 +91,7 @@ impl UserInfo {
         &self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
-    ) -> Result<GroupDiff, SqlxError> {
+    ) -> sqlx::Result<GroupDiff> {
         // initialize return value
         let mut group_diff = GroupDiff::default();
 
@@ -126,7 +126,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub fn into_user_safe_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub fn into_user_safe_fields(self, user: &mut User<Id>) -> sqlx::Result<()> {
         user.phone = self.phone;
         user.mfa_method = self.mfa_method;
 
@@ -134,7 +134,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub fn into_user_all_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub fn into_user_all_fields(self, user: &mut User<Id>) -> sqlx::Result<()> {
         user.phone = self.phone;
         user.username = self.username;
         user.last_name = self.last_name;

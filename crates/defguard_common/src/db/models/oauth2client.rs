@@ -1,6 +1,6 @@
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query_as};
+use sqlx::{PgExecutor, PgPool, query_as};
 
 use crate::{
     db::{Id, NoId, models::OAuth2Token},
@@ -43,7 +43,7 @@ impl OAuth2Client<Id> {
     pub async fn find_by_client_id<'e, E>(
         executor: E,
         client_id: &str,
-    ) -> Result<Option<Self>, SqlxError>
+    ) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -57,7 +57,7 @@ impl OAuth2Client<Id> {
         .await
     }
 
-    pub async fn clear_authorizations<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn clear_authorizations<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -75,7 +75,7 @@ impl OAuth2Client<Id> {
         pool: &PgPool,
         client_id: &str,
         client_secret: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT id, client_id, client_secret, redirect_uri, scope, name, enabled \
@@ -87,10 +87,7 @@ impl OAuth2Client<Id> {
         .await
     }
 
-    pub async fn find_by_token(
-        pool: &PgPool,
-        token: &OAuth2Token,
-    ) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_token(pool: &PgPool, token: &OAuth2Token) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT c.id, c.client_id, c.client_secret, c.redirect_uri, c.scope, c.name, c.enabled \

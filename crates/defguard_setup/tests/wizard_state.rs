@@ -138,26 +138,25 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .await
         .expect("Failed to initialize settings");
 
-    WireguardNetwork::new(
+    let mut location = WireguardNetwork::new(
         "auto-net".to_string(),
-        vec!["10.0.0.0/24".parse().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,
-        1280,
-        0,
-        vec!["0.0.0.0/0".parse().unwrap()],
+        ["0.0.0.0/0".parse().unwrap()],
         false,
-        180,
-        25,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )
-    .save(&pool)
-    .await
-    .expect("Failed to seed wireguard network");
+    .set_address(["10.0.0.1/24".parse().unwrap()])
+    .unwrap();
+    location.mtu = 1280;
+    location
+        .save(&pool)
+        .await
+        .expect("Failed to seed wireguard network");
 
     Wizard::init(&pool, true)
         .await

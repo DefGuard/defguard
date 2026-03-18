@@ -21,7 +21,7 @@ use pgp::{
     types::KeyDetails,
 };
 use prost::Message;
-use sqlx::{PgPool, error::Error as SqlxError};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::time::sleep;
 
@@ -50,7 +50,7 @@ pub enum LicenseError {
     #[error("Provided signature is invalid")]
     InvalidSignature,
     #[error("Database error")]
-    DbError(#[from] SqlxError),
+    DbError(#[from] sqlx::Error),
     #[error(transparent)]
     SettingsSave(#[from] SettingsSaveError),
     #[error("License decoding error: {0}")]

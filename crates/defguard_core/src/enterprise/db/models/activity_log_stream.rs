@@ -4,7 +4,7 @@ use defguard_common::{
 };
 use model_derive::Model;
 use serde::Serialize;
-use sqlx::{Error as SqlxError, FromRow, PgExecutor, Type, query_as};
+use sqlx::{FromRow, PgExecutor, Type, query_as};
 use strum_macros::{Display, EnumString};
 
 use crate::enterprise::activity_log_stream::error::ActivityLogStreamError;
@@ -89,7 +89,7 @@ impl ActivityLogStream<Id> {
     pub async fn find_by_stream_type<'e, E>(
         executor: E,
         stream_type: &ActivityLogStreamType,
-    ) -> Result<Vec<Self>, SqlxError>
+    ) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
