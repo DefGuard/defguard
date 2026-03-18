@@ -39,9 +39,7 @@ mod tests {
     use defguard_common::db::{
         Id,
         models::{
-            gateway::Gateway,
-            settings::initialize_current_settings,
-            wireguard::WireguardNetwork,
+            gateway::Gateway, settings::initialize_current_settings, wireguard::WireguardNetwork,
         },
         setup_pool,
     };
@@ -88,14 +86,16 @@ mod tests {
         let mut gateway_with_new_cert =
             create_gateway(&pool, network.id, "gateway-with-new-cert", Some("cert-3")).await;
 
-        let (tx, rx) =
-            watch::channel(Arc::new(HashMap::from([(999, "stale-cert".to_string())])));
+        let (tx, rx) = watch::channel(Arc::new(HashMap::from([(999, "stale-cert".to_string())])));
         let mut lagging_rx = rx.clone();
         let mut rx = rx;
 
         refresh_certs(&pool, &tx).await;
 
-        assert!(rx.has_changed().expect("cert watch sender should still be alive"));
+        assert!(
+            rx.has_changed()
+                .expect("cert watch sender should still be alive")
+        );
 
         let published = Arc::clone(&rx.borrow_and_update());
         let expected = HashMap::from([
@@ -127,7 +127,10 @@ mod tests {
 
         refresh_certs(&pool, &tx).await;
 
-        assert!(rx.has_changed().expect("cert watch sender should still be alive"));
+        assert!(
+            rx.has_changed()
+                .expect("cert watch sender should still be alive")
+        );
 
         let published = Arc::clone(&rx.borrow_and_update());
         let expected = HashMap::from([
@@ -139,16 +142,21 @@ mod tests {
         assert!(!published.contains_key(&gateway_with_new_cert.id));
         assert!(!published.contains_key(&999));
 
-        assert!(lagging_rx
-            .has_changed()
-            .expect("cert watch sender should still be alive"));
+        assert!(
+            lagging_rx
+                .has_changed()
+                .expect("cert watch sender should still be alive")
+        );
         let latest_only = Arc::clone(&lagging_rx.borrow_and_update());
 
         assert_eq!(latest_only.as_ref(), &expected);
-        assert_ne!(latest_only.as_ref(), &HashMap::from([
-            (gateway_with_cert.id, "cert-1".to_string()),
-            (gateway_with_new_cert.id, "cert-3".to_string()),
-        ]));
+        assert_ne!(
+            latest_only.as_ref(),
+            &HashMap::from([
+                (gateway_with_cert.id, "cert-1".to_string()),
+                (gateway_with_new_cert.id, "cert-3".to_string()),
+            ])
+        );
     }
 
     async fn create_gateway(

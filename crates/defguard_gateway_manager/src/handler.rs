@@ -996,7 +996,10 @@ mod tests {
         )
         .expect("valid endpoint should still produce stats");
 
-        assert_eq!(stats.latest_handshake, DateTime::<Utc>::default().naive_utc());
+        assert_eq!(
+            stats.latest_handshake,
+            DateTime::<Utc>::default().naive_utc()
+        );
     }
 
     #[test]
