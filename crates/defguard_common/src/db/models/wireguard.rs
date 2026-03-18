@@ -263,20 +263,6 @@ impl WireguardNetwork {
             service_location_mode,
         }
     }
-
-    /// Try to set `address` from comma-separated string of addresses.
-    pub fn try_set_address(self, address: &str) -> Result<Self, IpNetworkError> {
-        let mut parsed_addresses = Vec::new();
-        for addr_str in address.split(',') {
-            let addr = addr_str.trim().parse::<IpNetwork>()?;
-            parsed_addresses.push(addr);
-        }
-        if parsed_addresses.is_empty() {
-            Err(IpNetworkError::InvalidAddr("empty address".into()))
-        } else {
-            self.set_address(parsed_addresses)
-        }
-    }
 }
 
 impl<I> WireguardNetwork<I> {
@@ -292,6 +278,9 @@ impl<I> WireguardNetwork<I> {
     {
         let address = address.into();
         for addr in &address {
+            if addr.prefix() == 0 {
+                return Err(IpNetworkError::InvalidAddr("prefix is zero".into()));
+            }
             let ip = addr.ip();
             if ip == addr.network() {
                 return Err(IpNetworkError::InvalidAddr("address is network".into()));
@@ -303,6 +292,20 @@ impl<I> WireguardNetwork<I> {
         self.address = address;
 
         Ok(self)
+    }
+
+    /// Try to set `address` from comma-separated string of addresses.
+    pub fn try_set_address(self, address: &str) -> Result<Self, IpNetworkError> {
+        let mut parsed_addresses = Vec::new();
+        for addr_str in address.split(',') {
+            let addr = addr_str.trim().parse::<IpNetwork>()?;
+            parsed_addresses.push(addr);
+        }
+        if parsed_addresses.is_empty() {
+            Err(IpNetworkError::InvalidAddr("empty address".into()))
+        } else {
+            self.set_address(parsed_addresses)
+        }
     }
 }
 

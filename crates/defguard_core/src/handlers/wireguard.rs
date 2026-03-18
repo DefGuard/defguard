@@ -14,7 +14,7 @@ use defguard_common::{
             wireguard::{LocationMfaMode, MappedDevice, ServiceLocationMode},
         },
     },
-    utils::{parse_address_list, parse_network_address_list},
+    utils::parse_network_address_list,
 };
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
@@ -85,29 +85,6 @@ impl WireguardNetworkData {
         self.allowed_ips
             .as_ref()
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
-    }
-
-    pub(crate) fn parse_addresses(&self) -> Result<Vec<IpNetwork>, WebError> {
-        // first parse the addresses
-        let subnets = parse_address_list(self.address.as_ref());
-
-        // check if address list is not empty
-        if subnets.is_empty() {
-            return Err(WebError::BadRequest(
-                "Must provide at least one valid network address".to_owned(),
-            ));
-        }
-
-        // check if any subnet has an invalid /0 netmask
-        for subnet in &subnets {
-            if subnet.prefix() == 0 {
-                return Err(WebError::BadRequest(format!(
-                    "{subnet} is not a valid address"
-                )));
-            }
-        }
-
-        Ok(subnets)
     }
 
     pub(crate) fn validate_peer_disconnect_threshold(&self) -> Result<(), WebError> {
@@ -352,8 +329,7 @@ pub(crate) async fn modify_network(
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
-    let new_addresses = data.parse_addresses()?;
-    let mut network = network.set_address(new_addresses)?;
+    let mut network = network.try_set_address(&data.address)?;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
