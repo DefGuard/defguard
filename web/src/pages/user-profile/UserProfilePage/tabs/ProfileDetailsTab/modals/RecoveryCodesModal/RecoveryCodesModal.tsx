@@ -47,9 +47,15 @@ const ModalContent = ({ codes }: { codes: string[] }) => {
   const [confirmed, setConfirmed] = useState(false);
   const [confirmError, setConfirmError] = useState(false);
   const navigate = useNavigate();
+  const username = useAuth((s) => s.user?.username);
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.auth.mfa.enable,
+    meta: {
+      invalidate: username
+        ? [['session-info'], ['me'], ['user', username]]
+        : [['session-info'], ['me']],
+    },
     onSuccess: () => {
       useAuth.getState().setUser();
       navigate({
