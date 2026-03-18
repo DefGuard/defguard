@@ -184,6 +184,7 @@ const Content = ({ rule: initialRule }: Props) => {
   }, [users]);
 
   const { data: destinations } = useQuery(getAppliedDestinationsQueryOptions);
+  const hasPredefinedDestinations = Boolean(destinations && destinations.length > 0);
 
   const destinationsOptions = useMemo(() => {
     if (isPresent(destinations)) {
@@ -437,14 +438,22 @@ const Content = ({ rule: initialRule }: Props) => {
               });
             }
           } else if (vals.destinations.size === 0) {
+            // If no predefined destinations exist, show error under the "Add manual destination settings" checkbox.
+            // If predefined destinations exist - show it at the end of "Destination" section.
             ctx.addIssue({
-              path: ['destinations'],
+              path: [
+                hasPredefinedDestinations
+                  ? 'destinations'
+                  : 'use_manual_destination_settings',
+              ],
               code: 'custom',
-              message: m.form_error_required(),
+              message: hasPredefinedDestinations
+                ? m.form_error_no_destination()
+                : m.form_error_no_predefined_destination(),
             });
           }
         }),
-    [restrictDevices, restrictGroups, restrictUsers],
+    [hasPredefinedDestinations, restrictDevices, restrictGroups, restrictUsers],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -618,7 +627,6 @@ const Content = ({ rule: initialRule }: Props) => {
                         });
                       }}
                     />
-                    <DestinationSelectionError />
                     {selectedDestinations.length > 0 && (
                       <div className="selected-destinations">
                         <div className="top">
@@ -813,6 +821,13 @@ const Content = ({ rule: initialRule }: Props) => {
               </Fold>
             )}
           </form.Subscribe>
+          <form.AppField name="destinations">
+            {() => (
+              <DestinationSelectionError
+                hasPredefinedDestinations={hasPredefinedDestinations}
+              />
+            )}
+          </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="enrollment">
@@ -1118,10 +1133,14 @@ const AliasDataBlock = ({ values }: AliasDataBlockProps) => {
   );
 };
 
-const DestinationSelectionError = () => {
+const DestinationSelectionError = ({
+  hasPredefinedDestinations,
+}: {
+  hasPredefinedDestinations: boolean;
+}) => {
   const error = useFormFieldError();
-  if (!error) return null;
-  return (
-    <FieldError error="Manual destination is disabled. Select a predefined destination or enable manual config." />
-  );
+
+  if (!hasPredefinedDestinations || !error) return null;
+
+  return <FieldError error={error} />;
 };
