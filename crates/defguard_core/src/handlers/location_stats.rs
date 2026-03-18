@@ -20,7 +20,7 @@ use crate::{
     error::WebError,
     handlers::{
         ApiResponse, ApiResult,
-        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
 };
 
@@ -131,9 +131,11 @@ pub(crate) async fn location_connected_users(
         )
         .await?;
 
-    let pagination = PaginationMeta::from_pagination(pagination, total_items);
-
-    Ok(PaginatedApiResponse::new(connected_users, pagination))
+    Ok(PaginatedApiResponse::new(
+        connected_users,
+        pagination,
+        total_items,
+    ))
 }
 
 /// Returns paginated list of connected network devices for a given location
@@ -172,10 +174,10 @@ pub(crate) async fn location_connected_network_devices(
         )
         .await?;
 
-    let pagination = PaginationMeta::from_pagination(pagination, total_items);
     Ok(PaginatedApiResponse::new(
         connected_network_devices,
         pagination,
+        total_items,
     ))
 }
 

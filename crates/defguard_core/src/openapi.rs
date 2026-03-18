@@ -19,7 +19,7 @@ use super::{
     handlers::{
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         SESSION_COOKIE_NAME, StartEnrollmentRequest, Username, auth,
-        group::{self, BulkAssignToGroupsRequest, Groups},
+        group::{self, BulkAssignToGroupsRequest},
         license,
         user::{self, UserDetails},
         wireguard as device, wireguard as network,
@@ -113,7 +113,7 @@ use super::{
     ),
     components(
         schemas(
-            ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username,
+            ApiResponse, UserInfo, UserDetails, UserDevice, Username,
             StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult,
             Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo, WebError,
             license::CheckParams

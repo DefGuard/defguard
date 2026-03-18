@@ -54,7 +54,7 @@ impl fmt::Display for PaginationParams {
 
 /// Metadata about the pagination included in response
 #[derive(Serialize)]
-pub(crate) struct PaginationMeta {
+struct PaginationMeta {
     current_page: u32,
     page_size: u32,
     total_items: u32,
@@ -65,7 +65,7 @@ pub(crate) struct PaginationMeta {
 impl PaginationMeta {
     /// Prepares pagination metadata that's part of the response.
     #[must_use]
-    pub(crate) fn from_pagination(pagination: PaginationParams, total_items: u32) -> Self {
+    fn from_pagination(pagination: PaginationParams, total_items: u32) -> Self {
         let PaginationParams { page, per_page } = pagination;
         let total_pages = if per_page <= 1 {
             // For 0 and 1, assume per_page is 1.
@@ -99,8 +99,11 @@ pub(crate) struct PaginatedApiResponse<T> {
 
 impl<T> PaginatedApiResponse<T> {
     #[must_use]
-    pub(crate) fn new(data: Vec<T>, pagination: PaginationMeta) -> Self {
-        Self { data, pagination }
+    pub(crate) fn new(data: Vec<T>, pagination: PaginationParams, total_items: u32) -> Self {
+        Self {
+            data,
+            pagination: PaginationMeta::from_pagination(pagination, total_items),
+        }
     }
 }
 

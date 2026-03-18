@@ -229,6 +229,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let insert_query =
         format!("INSERT INTO \"{table_name}\" ({cs_fields}) VALUES ({cs_values}) RETURNING id");
     let update_query = format!("UPDATE \"{table_name}\" SET {cs_setters} WHERE id = $1");
+    let count_query = format!("SELECT count(*) FROM \"{table_name}\"");
 
     // TODO: add limit and offset for all().
     quote! {
@@ -284,12 +285,19 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 Ok(())
             }
 
+            pub async fn count<'e, E>(executor: E) -> sqlx::Result<i64>
+            where
+                E: sqlx::PgExecutor<'e>,
+            {
+                let count = sqlx::query_scalar!(#count_query).fetch_one(executor).await?
+                    .unwrap_or_default();
+                Ok(count)
+            }
+
             pub fn as_noid(self) -> #name {
                 #name { id: NoId, #(#struct_fields,)* }
             }
-
         }
-
     }
     .into()
 }

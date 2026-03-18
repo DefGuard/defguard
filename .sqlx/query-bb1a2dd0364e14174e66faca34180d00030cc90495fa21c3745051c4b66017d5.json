@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"timestamp\",\"user_id\",\"username\",\"location\",\"ip\" \"ip?: _\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"description\",\"metadata\" FROM \"activity_log_event\"",
+  "query": "SELECT id, \"timestamp\",\"user_id\",\"username\",\"location\",\"ip\" \"ip?: _\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"description\",\"metadata\" FROM \"activity_log_event\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -72,7 +72,10 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -88,5 +91,5 @@
       true
     ]
   },
-  "hash": "59d048f8110a53745afd80c607fc52cb537dfded663e6bbee73d5f908f0ca89e"
+  "hash": "bb1a2dd0364e14174e66faca34180d00030cc90495fa21c3745051c4b66017d5"
 }

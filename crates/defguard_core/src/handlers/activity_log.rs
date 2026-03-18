@@ -7,9 +7,7 @@ use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
-use super::pagination::{
-    PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams,
-};
+use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
 use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
 
 #[derive(Debug, Deserialize, Default)]
@@ -179,8 +177,11 @@ pub async fn get_activity_log_events(
         .fetch_one(&appstate.pool)
         .await?;
 
-    let pagination = PaginationMeta::from_pagination(pagination, total_items as u32);
-    Ok(PaginatedApiResponse::new(events, pagination))
+    Ok(PaginatedApiResponse::new(
+        events,
+        pagination,
+        total_items as u32,
+    ))
 }
 
 /// Adds optional filtering statements to SQL query based on request query params
