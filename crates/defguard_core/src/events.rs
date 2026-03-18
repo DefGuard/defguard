@@ -402,4 +402,9 @@ pub enum DesktopClientMfaEvent {
         method: ClientMFAMethod,
         message: String,
     },
+    Disconnected {
+        device: Device<Id>,
+        location: WireguardNetwork<Id>,
+        is_mfa_session: bool,
+    },
 }

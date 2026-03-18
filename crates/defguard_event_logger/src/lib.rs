@@ -37,6 +37,55 @@ pub mod message;
 
 const MESSAGE_LIMIT: usize = 100;
 
+fn map_vpn_event(event: VpnEvent) -> (EventType, Option<serde_json::Value>) {
+    match event {
+        VpnEvent::ClientMfaFailed {
+            location,
+            device,
+            method,
+            message,
+        } => (
+            EventType::VpnClientMfaFailed,
+            serde_json::to_value(VpnClientMfaFailedMetadata {
+                location,
+                device,
+                method,
+                message,
+            })
+            .ok(),
+        ),
+        VpnEvent::ClientMfaSuccess {
+            location,
+            device,
+            method,
+        } => (
+            EventType::VpnClientMfaSuccess,
+            serde_json::to_value(VpnClientMfaMetadata {
+                location,
+                device,
+                method,
+            })
+            .ok(),
+        ),
+        VpnEvent::ConnectedToLocation { location, device } => (
+            EventType::VpnClientConnected,
+            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+        ),
+        VpnEvent::DisconnectedFromLocation { location, device } => (
+            EventType::VpnClientDisconnected,
+            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+        ),
+        VpnEvent::MfaConnectedToLocation { location, device } => (
+            EventType::VpnClientMfaConnected,
+            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+        ),
+        VpnEvent::MfaDisconnectedFromLocation { location, device } => (
+            EventType::VpnClientMfaDisconnected,
+            serde_json::to_value(VpnClientMetadata { location, device }).ok(),
+        ),
+    }
+}
+
 /// Run the event logger service
 ///
 /// This function runs in an infinite loop, receiving messages from the event_logger_rx channel
@@ -493,44 +542,7 @@ pub async fn run_event_logger(
                         let module = ActivityLogModule::Vpn;
                         let description = get_vpn_event_description(&event);
 
-                        let (event_type, metadata) = match *event {
-                            VpnEvent::ClientMfaFailed {
-                                location,
-                                device,
-                                method,
-                                message,
-                            } => (
-                                EventType::VpnClientMfaFailed,
-                                serde_json::to_value(VpnClientMfaFailedMetadata {
-                                    location,
-                                    device,
-                                    method,
-                                    message,
-                                })
-                                .ok(),
-                            ),
-                            VpnEvent::ClientMfaSuccess {
-                                location,
-                                device,
-                                method,
-                            } => (
-                                EventType::VpnClientMfaSuccess,
-                                serde_json::to_value(VpnClientMfaMetadata {
-                                    location,
-                                    device,
-                                    method,
-                                })
-                                .ok(),
-                            ),
-                            VpnEvent::ConnectedToLocation { location, device } => (
-                                EventType::VpnClientConnected,
-                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-                            ),
-                            VpnEvent::DisconnectedFromLocation { location, device } => (
-                                EventType::VpnClientDisconnected,
-                                serde_json::to_value(VpnClientMetadata { location, device }).ok(),
-                            ),
-                        };
+                        let (event_type, metadata) = map_vpn_event(*event);
                         (module, event_type, description, metadata)
                     }
                     LoggerEvent::Enrollment(event) => {
@@ -614,10 +626,64 @@ pub async fn run_event_logger(
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use defguard_common::db::NoId;
+    use defguard_common::db::{
+        NoId,
+        models::{
+            Device, DeviceType, WireguardNetwork,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
+    };
+    use ipnetwork::IpNetwork;
     use serde_json::Value;
+    use std::net::{IpAddr, Ipv4Addr};
 
     use super::*;
+
+    fn sample_device() -> Device<i64> {
+        Device::new(
+            "vpn-device".to_string(),
+            "pubkey".to_string(),
+            1,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .with_id(20)
+    }
+
+    fn sample_location() -> WireguardNetwork<i64> {
+        WireguardNetwork::new(
+            "vpn-location".to_string(),
+            51820,
+            "vpn.example.com".to_string(),
+            None,
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 24).unwrap()])
+        .expect("sample location address should be valid")
+        .with_id(10)
+    }
+
+    #[test]
+    fn maps_mfa_vpn_connect_and_disconnect_events() {
+        let location = sample_location();
+        let device = sample_device();
+
+        let (event_type, _) = map_vpn_event(VpnEvent::MfaConnectedToLocation {
+            location: location.clone(),
+            device: device.clone(),
+        });
+        assert!(matches!(event_type, EventType::VpnClientMfaConnected));
+
+        let (event_type, _) =
+            map_vpn_event(VpnEvent::MfaDisconnectedFromLocation { location, device });
+        assert!(matches!(event_type, EventType::VpnClientMfaDisconnected));
+    }
 
     #[test]
     fn activity_log_event_serialization_supports_null_ip() {

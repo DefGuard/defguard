@@ -292,6 +292,12 @@ pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
         VpnEvent::DisconnectedFromLocation { location, device } => Some(format!(
             "Device {device} disconnected from location {location}"
         )),
+        VpnEvent::MfaConnectedToLocation { location, device } => Some(format!(
+            "Device {device} connected to MFA location {location}"
+        )),
+        VpnEvent::MfaDisconnectedFromLocation { location, device } => Some(format!(
+            "Device {device} disconnected from MFA location {location}"
+        )),
     }
 }
 

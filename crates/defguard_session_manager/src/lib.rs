@@ -23,7 +23,7 @@ use tracing::{debug, error, info, trace, warn};
 
 use crate::{
     error::SessionManagerError,
-    events::{SessionManagerEvent, SessionManagerEventContext, SessionManagerEventType},
+    events::{SessionManagerEvent, SessionManagerEventContext},
     session_state::ActiveSessionsMap,
 };
 
@@ -190,7 +190,9 @@ impl SessionManager {
 
         if let Some(session) = maybe_session {
             // update session stats
-            session.update_stats(transaction, message).await?;
+            session
+                .update_stats(transaction, message, &self.session_manager_event_tx)
+                .await?;
         }
 
         trace!("Finished processing peer stats update");
@@ -274,6 +276,8 @@ impl SessionManager {
         location: &WireguardNetwork<Id>,
     ) -> Result<(), SessionManagerError> {
         let disconnect_timestamp = Utc::now().naive_utc();
+        let is_connected = session.connected_at.is_some();
+        let is_mfa_session = session.mfa_method.is_some();
 
         // update session record in DB
         session.disconnected_at = Some(disconnect_timestamp);
@@ -301,6 +305,7 @@ impl SessionManager {
                 device_network_info.preshared_key = None;
                 device_network_info.update(&mut *transaction).await?;
             }
+
             self.send_peer_disconnect_message(location, &device)?;
         }
 
@@ -312,11 +317,10 @@ impl SessionManager {
             device,
             public_ip: None,
         };
-        let event = SessionManagerEvent {
-            context,
-            event: SessionManagerEventType::ClientDisconnected,
-        };
-        self.session_manager_event_tx.send(event)?;
+        if is_connected {
+            let event = SessionManagerEvent::disconnected_for_session(context, is_mfa_session);
+            self.session_manager_event_tx.send(event)?;
+        }
 
         Ok(())
     }

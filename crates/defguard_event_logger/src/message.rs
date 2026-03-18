@@ -360,6 +360,14 @@ pub enum VpnEvent {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
     },
+    MfaConnectedToLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+    MfaDisconnectedFromLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
 }
 
 /// Represents activity log events related to user enrollment process

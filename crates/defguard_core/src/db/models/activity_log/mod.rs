@@ -75,6 +75,8 @@ pub enum EventType {
     // VPN client events
     VpnClientConnected,
     VpnClientDisconnected,
+    VpnClientMfaConnected,
+    VpnClientMfaDisconnected,
     VpnClientMfaSuccess,
     VpnClientMfaFailed,
     // Enrollment events
