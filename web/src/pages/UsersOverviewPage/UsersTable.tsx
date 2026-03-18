@@ -47,6 +47,7 @@ import {
   getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
+import { isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
 type RowData = UsersListItem;
@@ -158,6 +159,8 @@ export const UsersTable = () => {
         },
         cell: (info) => {
           const rowData = info.row.original;
+          const online = isUserOnline(rowData);
+
           return (
             <TableCell>
               <Avatar
@@ -165,6 +168,7 @@ export const UsersTable = () => {
                 variant="initials"
                 firstName={rowData.first_name}
                 lastName={rowData.last_name}
+                online={online}
               />
               <span>{info.getValue()}</span>
             </TableCell>
