@@ -866,14 +866,28 @@ fn gen_config(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use tokio::sync::{broadcast, mpsc::unbounded_channel};
+    use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
 
-    use super::GatewayUpdatesHandler;
+    use chrono::Utc;
     use defguard_common::db::{
-        Id,
-        models::wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+        models::{
+            Device, DeviceType, User,
+            device::WireguardNetworkDevice,
+            gateway::Gateway,
+            vpn_client_session::VpnClientSession,
+            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+        },
+        setup_pool,
     };
+    use defguard_core::grpc::GatewayEvent;
+    use defguard_proto::gateway::core_response;
+    use serde_json::json;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel};
+    use tokio::sync::watch;
+
+    use super::{GatewayHandler, GatewayUpdatesHandler};
+    use defguard_common::db::Id;
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
         serde_json::from_value(json!({
@@ -959,5 +973,120 @@ mod tests {
             .unwrap();
 
         assert_eq!(peer.preshared_key, Some("session-psk".into()));
+    }
+
+    #[sqlx::test]
+    async fn test_send_configuration_includes_mfa_peers_with_session_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let new_device = Device::new(
+            "device-new".into(),
+            "pubkey-new".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let connected_device = Device::new(
+            "device-connected".into(),
+            "pubkey-connected".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.7.1.1/24")
+            .unwrap();
+        network.name = "mfa-full-config-location".to_string();
+        network.location_mfa_mode = LocationMfaMode::Internal;
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        let network = network.save(&pool).await.unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            new_device.id,
+            vec![IpAddr::from_str("10.7.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            connected_device.id,
+            vec![IpAddr::from_str("10.7.1.3").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let mut new_session = VpnClientSession::new(network.id, user.id, new_device.id, None, None);
+        new_session.preshared_key = Some("new-session-psk".into());
+        new_session.save(&pool).await.unwrap();
+
+        let mut connected_session = VpnClientSession::new(
+            network.id,
+            user.id,
+            connected_device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        connected_session.preshared_key = Some("connected-session-psk".into());
+        connected_session.save(&pool).await.unwrap();
+
+        let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, "test")
+            .save(&pool)
+            .await
+            .unwrap();
+        let (events_tx, _events_rx) = broadcast::channel::<GatewayEvent>(1);
+        let (peer_stats_tx, _peer_stats_rx) = unbounded_channel();
+        let (_certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::<Id, String>::new()));
+        let handler =
+            GatewayHandler::new(gateway, pool.clone(), events_tx, peer_stats_tx, certs_rx).unwrap();
+        let (tx, mut rx) = unbounded_channel();
+
+        handler.send_configuration(&tx).await.unwrap();
+
+        let response = rx.recv().await.unwrap();
+        let Some(core_response::Payload::Config(configuration)) = response.payload else {
+            panic!("expected gateway config payload");
+        };
+
+        assert_eq!(configuration.peers.len(), 2);
+        assert_eq!(
+            configuration
+                .peers
+                .iter()
+                .map(|peer| (peer.pubkey.as_str(), peer.preshared_key.as_deref()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("pubkey-new", Some("new-session-psk")),
+                ("pubkey-connected", Some("connected-session-psk")),
+            ]
+        );
     }
 }

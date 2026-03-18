@@ -84,6 +84,7 @@ where
 mod test {
     use std::{net::IpAddr, str::FromStr};
 
+    use chrono::Utc;
     use defguard_common::db::{
         models::{
             Device, DeviceType, WireguardNetwork,
@@ -346,5 +347,103 @@ mod test {
         assert_eq!(peers.len(), 1);
         assert_eq!(peers[0].pubkey, "pubkey1");
         assert_eq!(peers[0].preshared_key, None);
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_includes_active_mfa_peers_with_session_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let new_device = Device::new(
+            "device-new".into(),
+            "pubkey-new".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let connected_device = Device::new(
+            "device-connected".into(),
+            "pubkey-connected".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.6.1.1/24")
+            .unwrap();
+        network.name = "mfa-location-with-session-psk".to_string();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.location_mfa_mode = LocationMfaMode::Internal;
+        let network = network.save(&pool).await.unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            new_device.id,
+            vec![IpAddr::from_str("10.6.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            connected_device.id,
+            vec![IpAddr::from_str("10.6.1.3").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let mut new_session = VpnClientSession::new(network.id, user.id, new_device.id, None, None);
+        new_session.preshared_key = Some("new-session-psk".into());
+        new_session.save(&pool).await.unwrap();
+
+        let mut connected_session = VpnClientSession::new(
+            network.id,
+            user.id,
+            connected_device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        connected_session.preshared_key = Some("connected-session-psk".into());
+        connected_session.save(&pool).await.unwrap();
+
+        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+
+        assert_eq!(peers.len(), 2);
+        assert_eq!(
+            peers
+                .iter()
+                .map(|peer| (peer.pubkey.as_str(), peer.preshared_key.as_deref()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("pubkey-new", Some("new-session-psk")),
+                ("pubkey-connected", Some("connected-session-psk")),
+            ]
+        );
     }
 }
