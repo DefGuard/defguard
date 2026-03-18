@@ -1,8 +1,8 @@
 import { m } from '../../../../../../../paraglide/messages';
-import expiredImage from '../../../../../../../shared/components/modals/license/LicenseModalSideImage/assets/expired.png';
 import { SettingsCard } from '../../../../../../../shared/components/SettingsCard/SettingsCard';
 import { externalLink } from '../../../../../../../shared/constants';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
+import expiredImage from '../../assets/expired.png';
 
 export const SettingsLicenseExpiredNotice = () => {
   return (
