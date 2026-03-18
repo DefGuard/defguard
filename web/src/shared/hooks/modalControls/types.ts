@@ -165,8 +165,3 @@ export interface OpenAssignUserDeviceIPModal {
   username: string;
   locationData: DeviceLocationIpsResponse;
 }
-
-export interface OpenDeleteOpenIdClientModal {
-  client_id: string;
-  name: string;
-}
