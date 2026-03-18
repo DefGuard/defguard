@@ -24,6 +24,7 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../shared/hooks/useApp';
@@ -155,16 +156,6 @@ const Content = ({ settings }: { settings: Settings }) => {
     },
   });
 
-  const { mutateAsync: deleteSmtp, isPending: deletePending } = useMutation({
-    mutationFn: () => api.settings.patchSettings(emptyValues),
-    meta: {
-      invalidate: [['settings'], ['info']],
-    },
-    onSuccess: () => {
-      form.reset(emptyValues);
-    },
-  });
-
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -230,9 +221,19 @@ const Content = ({ settings }: { settings: Settings }) => {
                 <Button
                   variant="critical"
                   text="Reset settings"
-                  loading={deletePending}
                   onClick={() => {
-                    deleteSmtp();
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.settings_smtp_reset_confirm_title(),
+                      contentMd: m.settings_smtp_reset_confirm_body(),
+                      actionPromise: () => api.settings.patchSettings(emptyValues),
+                      invalidateKeys: [['settings'], ['info']],
+                      submitProps: { text: m.controls_reset(), variant: 'critical' },
+                      onSuccess: () => {
+                        form.reset(emptyValues);
+                        Snackbar.default(m.settings_smtp_reset_success());
+                      },
+                      onError: () => Snackbar.error(m.settings_smtp_reset_failed()),
+                    });
                   }}
                 />
               )}
