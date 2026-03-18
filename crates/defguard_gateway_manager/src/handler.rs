@@ -13,7 +13,10 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
+        models::{
+            DeviceNetworkInfo, Settings, WireguardNetwork, gateway::Gateway,
+            wireguard::DEFAULT_WIREGUARD_MTU,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -450,7 +453,7 @@ impl GatewayUpdatesHandler {
         &self,
         peer_label: &str,
         peer_pubkey: String,
-        network_info: &defguard_common::db::models::DeviceNetworkInfo,
+        network_info: &DeviceNetworkInfo,
         update_type: i32,
     ) -> Result<(), Status> {
         let allowed_ips = network_info
@@ -578,33 +581,21 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
-                GatewayEvent::MfaSessionAuthorized(location_id, device, network_device) => {
+                GatewayEvent::MfaSessionAuthorized(location_id, device, network_info) => {
                     if location_id == self.network_id {
-                        // validate that network info is for the correct location
-                        if network_device.wireguard_network_id != location_id {
+                        if network_info.network_id != location_id {
                             error!(
-                                "Received MFA authorization success event for location {location_id} with invalid device config: {network_device:?}"
+                                "Received MFA authorization success event for location {location_id} with invalid runtime network info: {network_info:?}"
                             );
                             continue;
                         }
 
-                        let allowed_ips = network_device
-                            .wireguard_ips
-                            .iter()
-                            .map(IpAddr::to_string)
-                            .collect();
-
-                        let Some(peer) = self.runtime_peer_update(
+                        self.send_runtime_device_update(
                             &device.name,
                             device.wireguard_pubkey,
-                            allowed_ips,
-                            true,
-                            network_device.preshared_key.clone(),
-                        ) else {
-                            continue;
-                        };
-
-                        self.send_peer_update(peer, 0)
+                            &network_info,
+                            0,
+                        )
                     } else {
                         Ok(())
                     }

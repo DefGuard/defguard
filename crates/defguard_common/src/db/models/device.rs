@@ -155,6 +155,25 @@ pub struct DeviceNetworkInfo {
     pub is_authorized: bool,
 }
 
+impl DeviceNetworkInfo {
+    #[must_use]
+    pub fn from_authorized_mfa_session<I>(
+        network_id: Id,
+        device_wireguard_ips: I,
+        preshared_key: String,
+    ) -> Self
+    where
+        I: Into<Vec<IpAddr>>,
+    {
+        Self {
+            network_id,
+            device_wireguard_ips: device_wireguard_ips.into(),
+            preshared_key: Some(preshared_key),
+            is_authorized: true,
+        }
+    }
+}
+
 impl DeviceInfo {
     pub async fn from_device<'e, E>(executor: E, device: Device<Id>) -> Result<Self, ModelError>
     where

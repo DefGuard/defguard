@@ -11,7 +11,7 @@ use defguard_common::{
         Id,
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
-            device::WireguardNetworkDevice,
+            device::{DeviceNetworkInfo, WireguardNetworkDevice},
             vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
         },
@@ -79,21 +79,15 @@ pub struct ClientMfaServer {
 }
 
 impl ClientMfaServer {
-    fn build_mfa_authorized_gateway_network_device(
+    fn build_mfa_authorized_gateway_network_info(
         network_device: WireguardNetworkDevice,
-        vpn_client_session: &VpnClientSession<Id>,
         preshared_key: String,
-    ) -> WireguardNetworkDevice {
-        WireguardNetworkDevice {
-            wireguard_network_id: network_device.wireguard_network_id,
-            wireguard_ips: network_device.wireguard_ips,
-            device_id: network_device.device_id,
-            preshared_key: Some(preshared_key),
-            is_authorized: true,
-            authorized_at: vpn_client_session
-                .connected_at
-                .or(Some(vpn_client_session.created_at)),
-        }
+    ) -> DeviceNetworkInfo {
+        DeviceNetworkInfo::from_authorized_mfa_session(
+            network_device.wireguard_network_id,
+            network_device.wireguard_ips,
+            preshared_key,
+        )
     }
 
     #[must_use]
@@ -689,30 +683,27 @@ impl ClientMfaServer {
 
         // create new VPN client session
         let vpn_client_session = self.create_new_mfa_session(
-        	&mut transaction,
+            &mut transaction,
             &location,
             &user,
             &device,
             method.into(),
             key.public.clone(),
         )
-            .await
+        .await
             .map_err(|err| {
                 error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
                 Status::internal("unexpected error")
             })?;
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
-        let gateway_network_device = Self::build_mfa_authorized_gateway_network_device(
-            network_device,
-            &vpn_client_session,
-            key.public.clone(),
-        );
+        let gateway_network_info =
+            Self::build_mfa_authorized_gateway_network_info(network_device, key.public.clone());
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
         let event =
-            GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), gateway_network_device);
+            GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), gateway_network_info);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
