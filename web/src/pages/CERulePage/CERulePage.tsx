@@ -438,6 +438,8 @@ const Content = ({ rule: initialRule }: Props) => {
               });
             }
           } else if (vals.destinations.size === 0) {
+            // If no predefined destinations exist, show error under the "Add manual destination settings" checkbox.
+            // If predefined destinations exist - show it at the end of "Destination" section.
             ctx.addIssue({
               path: [
                 hasPredefinedDestinations
