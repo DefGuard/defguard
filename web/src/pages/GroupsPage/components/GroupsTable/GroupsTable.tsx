@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -33,12 +32,6 @@ const columnHelper = createColumnHelper<RowData>();
 export const GroupsTable = ({ groups, users }: Props) => {
   const [search, setSearch] = useState('');
   const reservedNames = useMemo(() => groups.map((g) => g.name), [groups]);
-  const { mutate: deleteGroup } = useMutation({
-    mutationFn: api.group.deleteGroup,
-    meta: {
-      invalidate: [['group'], ['group-info']],
-    },
-  });
 
   const transformedData = useMemo(() => {
     let data = groups;
@@ -123,7 +116,13 @@ export const GroupsTable = ({ groups, users }: Props) => {
               icon: 'delete',
               variant: 'danger',
               onClick: () => {
-                deleteGroup(rowData.name);
+                openModal(ModalName.ConfirmAction, {
+                  title: m.modal_delete_group_title(),
+                  contentMd: m.modal_delete_group_body({ name: rowData.name }),
+                  actionPromise: () => api.group.deleteGroup(rowData.name),
+                  invalidateKeys: [['group'], ['group-info']],
+                  submitProps: { text: m.controls_delete(), variant: 'critical' },
+                });
               },
             },
           ];
@@ -131,7 +130,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
         },
       }),
     ],
-    [deleteGroup, reservedNames, users],
+    [reservedNames, users],
   );
 
   const table = useReactTable({

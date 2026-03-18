@@ -16,6 +16,8 @@
   "modal_delete_user_body": "Are you sure you want to delete user {name}? This action cannot be undone.",
   "modal_delete_edge_title": "Delete edge",
   "modal_delete_edge_body": "Are you sure you want to delete edge {name}? This action cannot be undone.",
+  "modal_delete_group_title": "Delete group",
+  "modal_delete_group_body": "Are you sure you want to delete group {name}? This action cannot be undone.",
   "modal_delete_user_device_title": "Delete device",
   "modal_delete_user_device_body": "Are you sure you want to delete the {name} device? This action cannot be undone.",
   "modal_delete_openid_client_title": "Delete application",
