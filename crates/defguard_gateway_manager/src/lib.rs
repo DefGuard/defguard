@@ -503,7 +503,11 @@ impl GatewayManager {
                             } else {
                                 self.remove_client(old.id);
                                 if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                                    old.touch_disconnected(&self.pool).await?;
+                                    if let Err(err) = old.touch_disconnected(&self.pool).await {
+                                        error!(
+                                            "Failed to update disconnection time for Gateway {old} after database change: {err}"
+                                        );
+                                    }
                                     info!(
                                         "Aborting connection to Gateway {old}, it has changed in the \
                                         database"
@@ -552,7 +556,7 @@ impl GatewayManager {
                             // Kill the `GatewayHandler` and the connection.
                             if let Some(abort_handle) = abort_handles.remove(&old.id) {
                                 info!(
-                                    "Aborting connection to Gateway {old}, it has disappeard from the \
+                                    "Aborting connection to Gateway {old}, it has disappeared from the \
                                     database"
                                 );
                                 abort_handle.abort();

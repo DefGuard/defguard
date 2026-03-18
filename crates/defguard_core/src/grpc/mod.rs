@@ -96,7 +96,7 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-pub async fn build_grpc_service_router(
+pub(crate) async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
@@ -126,6 +126,27 @@ pub async fn build_grpc_service_router(
     let router = router.add_service(worker_service);
 
     Ok(router)
+}
+
+#[doc(hidden)]
+pub mod test_support {
+    use std::sync::{Arc, Mutex};
+
+    use sqlx::PgPool;
+    use tonic::transport::{Server, server::Router};
+
+    use crate::auth::failed_login::FailedLoginMap;
+
+    use super::WorkerState;
+
+    pub async fn build_grpc_service_router(
+        server: Server,
+        pool: PgPool,
+        worker_state: Arc<Mutex<WorkerState>>,
+        failed_logins: Arc<Mutex<FailedLoginMap>>,
+    ) -> Result<Router, anyhow::Error> {
+        super::build_grpc_service_router(server, pool, worker_state, failed_logins).await
+    }
 }
 
 pub struct Job {

@@ -1,5 +1,6 @@
 use std::{
     env,
+    sync::OnceLock,
     time::{Duration, SystemTime},
 };
 
@@ -12,6 +13,8 @@ pub static JWT_ISSUER: &str = "DefGuard";
 pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
 pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
+
+static JWT_SECRET_OVERRIDES: OnceLock<JwtSecretOverrides> = OnceLock::new();
 
 #[derive(Clone, Copy, Default)]
 pub enum ClaimsType {
@@ -39,6 +42,31 @@ pub struct Claims {
     pub nbf: u64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct JwtSecretOverrides {
+    auth: String,
+    gateway: String,
+    yubibridge: String,
+}
+
+impl JwtSecretOverrides {
+    fn new(auth: String, gateway: String, yubibridge: String) -> Self {
+        Self {
+            auth,
+            gateway,
+            yubibridge,
+        }
+    }
+
+    fn secret_for(&self, claims_type: ClaimsType) -> &str {
+        match claims_type {
+            ClaimsType::Auth | ClaimsType::DesktopClient => &self.auth,
+            ClaimsType::Gateway => &self.gateway,
+            ClaimsType::YubiBridge => &self.yubibridge,
+        }
+    }
+}
+
 impl Claims {
     #[must_use]
     pub fn new(claims_type: ClaimsType, sub: String, client_id: String, duration: u64) -> Self {
@@ -64,12 +92,11 @@ impl Claims {
     }
 
     fn get_secret(claims_type: ClaimsType) -> String {
-        let env_var = match claims_type {
-            ClaimsType::Auth | ClaimsType::DesktopClient => AUTH_SECRET_ENV,
-            ClaimsType::Gateway => GATEWAY_SECRET_ENV,
-            ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
-        };
-        env::var(env_var).unwrap_or_default()
+        if let Some(secret_overrides) = JWT_SECRET_OVERRIDES.get() {
+            return secret_overrides.secret_for(claims_type).to_string();
+        }
+
+        env::var(secret_env(claims_type)).unwrap_or_default()
     }
 
     /// Convert claims to JWT.
@@ -94,5 +121,40 @@ impl Claims {
             &validation,
         )
         .map(|data| data.claims)
+    }
+}
+
+fn secret_env(claims_type: ClaimsType) -> &'static str {
+    match claims_type {
+        ClaimsType::Auth | ClaimsType::DesktopClient => AUTH_SECRET_ENV,
+        ClaimsType::Gateway => GATEWAY_SECRET_ENV,
+        ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
+    }
+}
+
+#[doc(hidden)]
+pub mod test_support {
+    use super::{JWT_SECRET_OVERRIDES, JwtSecretOverrides};
+
+    pub fn initialize_jwt_secret_overrides(
+        auth_secret: impl Into<String>,
+        gateway_secret: impl Into<String>,
+        yubibridge_secret: impl Into<String>,
+    ) {
+        let secret_overrides = JwtSecretOverrides::new(
+            auth_secret.into(),
+            gateway_secret.into(),
+            yubibridge_secret.into(),
+        );
+
+        if let Err(secret_overrides) = JWT_SECRET_OVERRIDES.set(secret_overrides) {
+            let existing_overrides = JWT_SECRET_OVERRIDES
+                .get()
+                .expect("JWT secret overrides should be initialized");
+            assert_eq!(
+                existing_overrides, &secret_overrides,
+                "JWT secret overrides already initialized with different values"
+            );
+        }
     }
 }

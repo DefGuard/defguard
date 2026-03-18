@@ -1,18 +1,13 @@
-use std::{
-    env,
-    sync::{Arc, Mutex, Once},
-};
+use std::sync::{Arc, Mutex};
 
 use defguard_common::{
-    auth::claims::{
-        AUTH_SECRET_ENV, Claims, ClaimsType, GATEWAY_SECRET_ENV, YUBIBRIDGE_SECRET_ENV,
-    },
+    auth::claims::{Claims, ClaimsType, test_support::initialize_jwt_secret_overrides},
     db::setup_pool,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    grpc::{AUTHORIZATION_HEADER, WorkerState, build_grpc_service_router},
+    grpc::{AUTHORIZATION_HEADER, WorkerState, test_support::build_grpc_service_router},
 };
 use hyper_util::rt::TokioIo;
 use sqlx::{
@@ -31,8 +26,6 @@ use tonic::{
 use tower::service_fn;
 
 use crate::common::initialize_users;
-
-static JWT_SECRETS: Once = Once::new();
 
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
@@ -169,9 +162,9 @@ pub(crate) fn worker_request<T>(message: T, username: &str) -> Request<T> {
 }
 
 fn initialize_jwt_secrets() {
-    JWT_SECRETS.call_once(|| unsafe {
-        env::set_var(AUTH_SECRET_ENV, "defguard-test-auth-secret");
-        env::set_var(GATEWAY_SECRET_ENV, "defguard-test-gateway-secret");
-        env::set_var(YUBIBRIDGE_SECRET_ENV, "defguard-test-yubibridge-secret");
-    });
+    initialize_jwt_secret_overrides(
+        "defguard-test-auth-secret",
+        "defguard-test-gateway-secret",
+        "defguard-test-yubibridge-secret",
+    );
 }

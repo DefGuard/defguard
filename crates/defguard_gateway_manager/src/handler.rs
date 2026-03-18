@@ -268,6 +268,30 @@ impl GatewayHandler {
         self.mark_disconnected().await;
     }
 
+    fn remove_client(&self, clients: &Arc<Mutex<HashMap<Id, Client>>>) {
+        clients
+            .lock()
+            .expect("GatewayHandler failed to lock clients")
+            .remove(&self.gateway.id);
+    }
+
+    async fn handle_stream_disconnection(
+        &mut self,
+        clients: &Arc<Mutex<HashMap<Id, Client>>>,
+        retry_on_connect_failure: bool,
+        retry_delay: std::time::Duration,
+    ) {
+        self.remove_client(clients);
+        self.handle_disconnection_error().await;
+
+        if !retry_on_connect_failure {
+            return;
+        }
+
+        debug!("Waiting {retry_delay:?} to re-establish the connection");
+        sleep(retry_delay).await;
+    }
+
     async fn handle_connection_iteration(
         &mut self,
         clients: Arc<Mutex<HashMap<Id, Client>>>,
@@ -314,10 +338,6 @@ impl GatewayHandler {
         if let Some(test_support) = &self.test_support {
             test_support.note_handler_connection_attempt(self.gateway.id);
         }
-        clients
-            .lock()
-            .expect("GatewayHandler failed to lock clients")
-            .insert(self.gateway.id, client.clone());
         let (tx, rx) = mpsc::unbounded_channel();
         let retry_delay = self
             .test_support
@@ -335,8 +355,6 @@ impl GatewayHandler {
                 return Err(err.into());
             }
         };
-        info!("Connected to Defguard Gateway {uri}");
-
         let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
         let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
 
@@ -345,6 +363,12 @@ impl GatewayHandler {
             gateway.save(&self.pool).await?;
         }
 
+        clients
+            .lock()
+            .expect("GatewayHandler failed to lock clients")
+            .insert(self.gateway.id, client.clone());
+        info!("Connected to Defguard Gateway {uri}");
+
         let mut resp_stream = response.into_inner();
         let mut config_sent = false;
 
@@ -352,7 +376,12 @@ impl GatewayHandler {
             match resp_stream.message().await {
                 Ok(None) => {
                     info!("Stream was closed by the sender.");
-                    self.mark_disconnected().await;
+                    self.handle_stream_disconnection(
+                        &clients,
+                        retry_on_connect_failure,
+                        retry_delay,
+                    )
+                    .await;
                     return Ok(());
                 }
                 Ok(Some(received)) => {
@@ -428,11 +457,12 @@ impl GatewayHandler {
                 }
                 Err(err) => {
                     error!("Disconnected from Gateway at {uri}, error: {err}");
-                    self.handle_disconnection_error().await;
-                    if retry_on_connect_failure {
-                        debug!("Waiting {retry_delay:?} to re-establish the connection");
-                        sleep(retry_delay).await;
-                    }
+                    self.handle_stream_disconnection(
+                        &clients,
+                        retry_on_connect_failure,
+                        retry_delay,
+                    )
+                    .await;
                     return Ok(());
                 }
             }
