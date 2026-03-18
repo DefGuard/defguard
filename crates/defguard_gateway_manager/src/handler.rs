@@ -106,7 +106,7 @@ impl GatewayHandler {
         })
     }
 
-    fn new_with_test_socket(
+    pub(crate) fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,

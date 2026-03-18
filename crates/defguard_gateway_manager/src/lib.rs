@@ -1,6 +1,10 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    path::PathBuf,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 
@@ -13,7 +17,7 @@ use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
 use tokio::{
-    sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
+    sync::{Notify, broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
     task::{AbortHandle, JoinSet},
 };
 use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
@@ -36,10 +40,119 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 
 type Client = GatewayClient<InterceptedService<Channel, ClientVersionInterceptor>>;
 
+struct AbortTaskOnDrop<T> {
+    handle: Option<tokio::task::JoinHandle<T>>,
+}
+
+impl<T> AbortTaskOnDrop<T> {
+    fn new(handle: tokio::task::JoinHandle<T>) -> Self {
+        Self {
+            handle: Some(handle),
+        }
+    }
+}
+
+impl<T> Drop for AbortTaskOnDrop<T> {
+    fn drop(&mut self) {
+        if let Some(handle) = self.handle.take() {
+            handle.abort();
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+struct GatewayManagerTestSupport {
+    socket_paths_by_url: Arc<Mutex<HashMap<String, PathBuf>>>,
+    handler_spawn_attempts_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
+    listener_ready: Arc<AtomicBool>,
+    listener_ready_notify: Arc<Notify>,
+}
+
+impl GatewayManagerTestSupport {
+    fn register_gateway_url(&self, gateway_url: String, socket_path: PathBuf) {
+        self.socket_paths_by_url
+            .lock()
+            .expect("Failed to lock GatewayManager test socket registry")
+            .insert(gateway_url, socket_path);
+    }
+
+    fn socket_path_for(&self, gateway: &Gateway<Id>) -> Option<PathBuf> {
+        self.socket_paths_by_url
+            .lock()
+            .expect("Failed to lock GatewayManager test socket registry")
+            .get(&gateway.url())
+            .cloned()
+    }
+
+    fn note_handler_spawn_attempt(&self, gateway_id: Id) {
+        let mut handler_spawn_attempts = self
+            .handler_spawn_attempts_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager handler spawn attempts registry");
+        *handler_spawn_attempts.entry(gateway_id).or_default() += 1;
+    }
+
+    fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
+        self.handler_spawn_attempts_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager handler spawn attempts registry")
+            .get(&gateway_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    fn mark_listener_ready(&self) {
+        self.listener_ready.store(true, Ordering::Release);
+        self.listener_ready_notify.notify_waiters();
+    }
+
+    async fn wait_until_listener_ready(&self) {
+        loop {
+            if self.listener_ready.load(Ordering::Acquire) {
+                return;
+            }
+
+            let notified = self.listener_ready_notify.notified();
+            if self.listener_ready.load(Ordering::Acquire) {
+                return;
+            }
+
+            notified.await;
+        }
+    }
+}
+
+#[doc(hidden)]
+#[derive(Clone, Default)]
+pub struct TestGatewayManagerControl {
+    inner: GatewayManagerTestSupport,
+}
+
+impl TestGatewayManagerControl {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn register_gateway_url(&self, gateway_url: String, socket_path: PathBuf) {
+        self.inner.register_gateway_url(gateway_url, socket_path);
+    }
+
+    #[doc(hidden)]
+    pub fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
+        self.inner.handler_spawn_attempt_count(gateway_id)
+    }
+
+    pub async fn wait_until_listener_ready(&self) {
+        self.inner.wait_until_listener_ready().await;
+    }
+}
+
 pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
     pool: PgPool,
     handlers: JoinSet<Result<(), GatewayError>>,
+    test_support: GatewayManagerTestSupport,
     tx: GatewayTxSet,
 }
 
@@ -50,6 +163,23 @@ impl GatewayManager {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
+            test_support: GatewayManagerTestSupport::default(),
+            tx,
+        }
+    }
+
+    #[doc(hidden)]
+    #[must_use]
+    pub fn new_for_test(
+        pool: PgPool,
+        tx: GatewayTxSet,
+        control: TestGatewayManagerControl,
+    ) -> Self {
+        Self {
+            clients: Arc::default(),
+            handlers: JoinSet::new(),
+            pool,
+            test_support: control.inner,
             tx,
         }
     }
@@ -59,14 +189,19 @@ impl GatewayManager {
         let (certs_tx, certs_rx) = tokio::sync::watch::channel(Arc::new(HashMap::new()));
         certs::refresh_certs(&self.pool, &certs_tx).await;
         let refresh_pool = self.pool.clone();
-        tokio::spawn(async move {
+        let _refresh_certs_task = AbortTaskOnDrop::new(tokio::spawn(async move {
             loop {
                 certs::refresh_certs(&refresh_pool, &certs_tx).await;
                 tokio::time::sleep(TEN_SECS).await;
             }
-        });
+        }));
         let mut abort_handles = HashMap::new();
         for gateway in Gateway::all(&self.pool).await? {
+            if !gateway.enabled {
+                debug!("Existing Gateway is disabled, so it won't be handled");
+                continue;
+            }
+
             let id = gateway.id;
             let abort_handle =
                 self.run_handler(gateway, Arc::clone(&self.clients), certs_rx.clone())?;
@@ -76,6 +211,7 @@ impl GatewayManager {
         // Observe gateway URL changes.
         let mut listener = PgListener::connect_with(&self.pool).await?;
         listener.listen(GATEWAY_TABLE_TRIGGER).await?;
+        self.test_support.mark_listener_ready();
         while let Ok(notification) = listener.recv().await {
             let payload = notification.payload();
             match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
@@ -181,13 +317,26 @@ impl GatewayManager {
         clients: Arc<Mutex<HashMap<Id, Client>>>,
         certs_rx: Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<AbortHandle, GatewayError> {
-        let mut gateway_handler = GatewayHandler::new(
-            gateway,
-            self.pool.clone(),
-            self.tx.events.clone(),
-            self.tx.peer_stats.clone(),
-            certs_rx.clone(),
-        )?;
+        self.test_support.note_handler_spawn_attempt(gateway.id);
+        let mut gateway_handler =
+            if let Some(socket_path) = self.test_support.socket_path_for(&gateway) {
+                GatewayHandler::new_with_test_socket(
+                    gateway,
+                    self.pool.clone(),
+                    self.tx.events.clone(),
+                    self.tx.peer_stats.clone(),
+                    certs_rx.clone(),
+                    socket_path,
+                )?
+            } else {
+                GatewayHandler::new(
+                    gateway,
+                    self.pool.clone(),
+                    self.tx.events.clone(),
+                    self.tx.peer_stats.clone(),
+                    certs_rx.clone(),
+                )?
+            };
         let abort_handle = self.handlers.spawn(async move {
             loop {
                 if let Err(err) = gateway_handler

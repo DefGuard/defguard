@@ -20,7 +20,9 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::grpc::GatewayEvent;
-use defguard_gateway_manager::TestGatewayHandler;
+use defguard_gateway_manager::{
+    GatewayManager, GatewayTxSet, TestGatewayHandler, TestGatewayManagerControl,
+};
 use defguard_proto::gateway::{
     ConfigurationRequest, CoreRequest, CoreResponse, PeerStats, core_request, gateway_server,
 };
@@ -28,7 +30,7 @@ use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::UnixListener,
     sync::{
-        broadcast,
+        Notify, broadcast,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
         oneshot, watch,
     },
@@ -76,6 +78,8 @@ struct MockGatewayState {
     outbound_tx: UnboundedSender<CoreResponse>,
     inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
+    purge_count: AtomicU64,
+    purge_notify: Notify,
 }
 
 impl MockGatewayState {
@@ -96,6 +100,11 @@ impl MockGatewayState {
             .expect("failed to lock inbound receiver")
             .take()
             .ok_or_else(|| Status::failed_precondition("mock gateway already connected"))
+    }
+
+    fn note_purge(&self) {
+        self.purge_count.fetch_add(1, Ordering::Relaxed);
+        self.purge_notify.notify_waiters();
     }
 }
 
@@ -124,11 +133,13 @@ impl gateway_server::Gateway for MockGatewayService {
     }
 
     async fn purge(&self, _request: Request<()>) -> Result<Response<()>, Status> {
+        self.state.note_purge();
         Ok(Response::new(()))
     }
 }
 
 pub(crate) struct MockGatewayHarness {
+    state: Arc<MockGatewayState>,
     socket_path: PathBuf,
     inbound_tx: Option<UnboundedSender<Result<CoreRequest, Status>>>,
     outbound_rx: UnboundedReceiver<CoreResponse>,
@@ -147,12 +158,15 @@ impl MockGatewayHarness {
         let (outbound_tx, outbound_rx) = mpsc::unbounded_channel();
         let (inbound_tx, inbound_rx) = mpsc::unbounded_channel();
         let (connected_tx, connected_rx) = oneshot::channel();
+        let state = Arc::new(MockGatewayState {
+            outbound_tx,
+            inbound_rx: Mutex::new(Some(inbound_rx)),
+            connected_tx: Mutex::new(Some(connected_tx)),
+            purge_count: AtomicU64::new(0),
+            purge_notify: Notify::new(),
+        });
         let service = MockGatewayService {
-            state: Arc::new(MockGatewayState {
-                outbound_tx,
-                inbound_rx: Mutex::new(Some(inbound_rx)),
-                connected_tx: Mutex::new(Some(connected_tx)),
-            }),
+            state: Arc::clone(&state),
         };
 
         let server_task = tokio::spawn(async move {
@@ -165,6 +179,7 @@ impl MockGatewayHarness {
         });
 
         Self {
+            state,
             socket_path,
             inbound_tx: Some(inbound_tx),
             outbound_rx,
@@ -183,6 +198,20 @@ impl MockGatewayHarness {
             .await
             .expect("timed out waiting for mock gateway connection")
             .expect("mock gateway connection notifier dropped");
+    }
+
+    pub(crate) async fn wait_purged(&self) {
+        timeout(TEST_TIMEOUT, async {
+            loop {
+                if self.state.purge_count.load(Ordering::Relaxed) > 0 {
+                    return;
+                }
+
+                self.state.purge_notify.notified().await;
+            }
+        })
+        .await
+        .expect("timed out waiting for purge request");
     }
 
     pub(crate) fn send_config_request(&self) {
@@ -257,6 +286,99 @@ impl Drop for MockGatewayHarness {
             server_task.abort();
         }
         let _ = std::fs::remove_file(&self.socket_path);
+    }
+}
+
+pub(crate) struct ManagerTestContext {
+    pub(crate) pool: PgPool,
+    control: TestGatewayManagerControl,
+    manager_task: Option<JoinHandle<Result<(), anyhow::Error>>>,
+}
+
+impl ManagerTestContext {
+    pub(crate) async fn new(options: PgConnectOptions) -> Self {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to initialize global settings for gateway manager tests");
+
+        Self {
+            pool,
+            control: TestGatewayManagerControl::new(),
+            manager_task: None,
+        }
+    }
+
+    pub(crate) fn register_gateway_mock(
+        &self,
+        gateway: &Gateway<Id>,
+        mock_gateway: &MockGatewayHarness,
+    ) {
+        self.control
+            .register_gateway_url(gateway.url(), mock_gateway.socket_path());
+    }
+
+    pub(crate) fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
+        self.control.handler_spawn_attempt_count(gateway_id)
+    }
+
+    pub(crate) async fn wait_for_handler_spawn_attempt_count(
+        &self,
+        gateway_id: Id,
+        expected_count: u64,
+    ) {
+        timeout(TEST_TIMEOUT, async {
+            loop {
+                if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
+                    return;
+                }
+
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("timed out waiting for gateway manager handler spawn attempt");
+    }
+
+    pub(crate) async fn start(&mut self) {
+        assert!(
+            self.manager_task.is_none(),
+            "gateway manager already started"
+        );
+
+        let (events_tx, _) = broadcast::channel(16);
+        let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
+        let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
+        let mut manager = GatewayManager::new_for_test(self.pool.clone(), tx, self.control.clone());
+        let manager_task = tokio::spawn(async move { manager.run().await });
+
+        timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())
+            .await
+            .expect("timed out waiting for gateway manager listener to become ready");
+        self.manager_task = Some(manager_task);
+    }
+
+    pub(crate) async fn finish(mut self) {
+        if let Some(manager_task) = self.manager_task.take() {
+            manager_task.abort();
+
+            match manager_task.await {
+                Err(err) if err.is_cancelled() => {}
+                Err(err) => panic!("gateway manager task panicked: {err}"),
+                Ok(Ok(())) => {}
+                Ok(Err(err)) => panic!("gateway manager exited with error: {err}"),
+            }
+        }
+
+        self.pool.close().await;
+    }
+}
+
+impl Drop for ManagerTestContext {
+    fn drop(&mut self) {
+        if let Some(manager_task) = self.manager_task.take() {
+            manager_task.abort();
+        }
     }
 }
 
@@ -460,7 +582,7 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
     }
 }
 
-async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
+pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
     let mut network = WireguardNetwork {
         name: unique_name("network"),
         endpoint: "198.51.100.10".to_string(),
@@ -476,15 +598,26 @@ async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
         .expect("failed to create test network")
 }
 
-async fn create_gateway(pool: &PgPool, location_id: Id) -> Gateway<Id> {
-    Gateway::new(
+pub(crate) async fn create_gateway(pool: &PgPool, location_id: Id) -> Gateway<Id> {
+    create_gateway_with_enabled(pool, location_id, true).await
+}
+
+pub(crate) async fn create_gateway_with_enabled(
+    pool: &PgPool,
+    location_id: Id,
+    enabled: bool,
+) -> Gateway<Id> {
+    let port = 20_000 + i32::try_from(next_test_id() % 40_000).expect("port offset fits in i32");
+    let mut gateway = Gateway::new(
         location_id,
         unique_name("gateway"),
         "127.0.0.1".to_string(),
-        51820,
+        port,
         "test-admin".to_string(),
-    )
-    .save(pool)
-    .await
-    .expect("failed to create test gateway")
+    );
+    gateway.enabled = enabled;
+    gateway
+        .save(pool)
+        .await
+        .expect("failed to create test gateway")
 }
