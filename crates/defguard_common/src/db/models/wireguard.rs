@@ -267,10 +267,18 @@ impl WireguardNetwork {
     /// Try to set `address` from comma-separated string of addresses.
     pub fn try_set_address(mut self, address: &str) -> Result<Self, IpNetworkError> {
         self.address = Vec::new();
-        for addr in address.split(',') {
-            self.address.push(addr.trim().parse()?);
+        for addr_str in address.split(',') {
+            let addr = addr_str.trim().parse::<IpNetwork>()?;
+            let ip = addr.ip();
+            if ip == addr.network() {
+                return Err(IpNetworkError::InvalidAddr("address is network".into()));
+            }
+            if ip == addr.broadcast() {
+                return Err(IpNetworkError::InvalidAddr("address is broadcast".into()));
+            }
+            self.address.push(addr);
         }
-        if address.is_empty() {
+        if self.address.is_empty() {
             Err(IpNetworkError::InvalidAddr("empty address".into()))
         } else {
             Ok(self)

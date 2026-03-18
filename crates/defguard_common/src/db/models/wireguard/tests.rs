@@ -35,6 +35,19 @@ fn test_set_address() {
     assert!(result.is_err());
 }
 
+#[test]
+fn test_try_set_address() {
+    // Valid host address should be accepted.
+    let result = WireguardNetwork::default().try_set_address("10.10.10.10/24");
+    assert!(result.is_ok());
+    // Network address should be rejected.
+    let result = WireguardNetwork::default().try_set_address("10.10.10.0/24");
+    assert!(result.is_err());
+    // Broadcast address should be rejected.
+    let result = WireguardNetwork::default().try_set_address("10.10.10.255/24");
+    assert!(result.is_err());
+}
+
 // FIXME(mwojcik): rewrite for new stats implementation
 // #[sqlx::test]
 // async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
