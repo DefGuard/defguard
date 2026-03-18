@@ -28,7 +28,8 @@
       "./messages/{locale}/gateway_wizard.json",
       "./messages/{locale}/initial_wizard.json",
       "./messages/{locale}/migration_wizard.json",
-      "./messages/{locale}/api-error.json"
+      "./messages/{locale}/api-error.json",
+      "./messages/{locale}/flow_end.json"
     ]
   }
 }

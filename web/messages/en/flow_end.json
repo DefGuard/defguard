@@ -1,0 +1,9 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "flow_end_404_title": "Error 404",
+  "flow_end_404_subtitle": "We're sorry, but the page you're looking for doesn't exist.",
+  "flow_end_404_action": "Go to homepage",
+  "flow_end_migration_auth_user_title": "Migration in progress",
+  "flow_end_migration_auth_user_subtitle": "Please login as an administrator to finish the migration process.",
+  "flow_end_migration_auth_user_action": "Log out"
+}
