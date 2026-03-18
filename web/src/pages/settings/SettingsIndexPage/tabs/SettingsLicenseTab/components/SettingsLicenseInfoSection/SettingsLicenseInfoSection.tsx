@@ -1,6 +1,7 @@
 import { Fragment, type PropsWithChildren, useMemo } from 'react';
 import './style.scss';
 import dayjs from 'dayjs';
+import { m } from '../../../../../../../paraglide/messages';
 import type {
   LicenseInfo,
   LicenseLimitsInfo,
@@ -25,28 +26,32 @@ export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
   return (
     <div className="license-general-info">
       <div className="top">
-        <PropertyInfo title={`Current plan`}>
+        <PropertyInfo title={m.settings_license_current_plan()}>
           {isPresent(licenseTier) && (
             <>
               <p>{licenseTier}</p>
-              {license.expired && <Badge variant="critical" text="Expired" />}
-              {!license.expired && <Badge variant="success" text="Active" />}
+              {license.expired && <Badge variant="critical" text={m.state_expired()} />}
+              {!license.expired && <Badge variant="success" text={m.misc_active()} />}
             </>
           )}
           {!isPresent(licenseTier) && (
             <div>
-              <Badge text="Unknown" variant="critical" />
+              <Badge text={m.settings_license_unknown()} variant="critical" />
             </div>
           )}
         </PropertyInfo>
-        <PropertyInfo title={`License type`}>
-          <p>{license.subscription ? 'Subscription' : 'Offline'}</p>
+        <PropertyInfo title={m.settings_license_type_title()}>
+          <p>
+            {license.subscription
+              ? m.settings_license_subscription_type()
+              : m.settings_license_offline_type()}
+          </p>
         </PropertyInfo>
-        <PropertyInfo title={`Support type`}>
-          <p>{`Placeholder`}</p>
+        <PropertyInfo title={m.settings_license_support_type_title()}>
+          <p>{m.settings_license_support_type_value()}</p>
         </PropertyInfo>
-        {!license.expired && isPresent(license.valid_until) && (
-          <PropertyInfo title={`Valid until`}>
+        {isPresent(license.valid_until) && (
+          <PropertyInfo title={m.settings_license_valid_until_title()}>
             <ValidUntil validUntil={license.valid_until} />
           </PropertyInfo>
         )}
@@ -54,7 +59,7 @@ export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
       <Divider spacing={ThemeSpacing.Xl} />
       {isPresent(license.limits) && (
         <Fragment>
-          <p className="limits-label">{`Current plan limits`}</p>
+          <p className="limits-label">{m.settings_license_limits_title()}</p>
           <SizedBox height={ThemeSpacing.Xl2} />
           <LimitsSection limits={license.limits} />
         </Fragment>
@@ -72,9 +77,9 @@ const ValidUntil = ({ validUntil }: ValidUntilProps) => {
     const untilDay = dayjs.utc(validUntil).local();
     const nowDay = dayjs();
     const diff = untilDay.diff(nowDay, 'days');
-    let res = untilDay.format('DD/MM/YYYY');
+    let res = untilDay.format('ll');
     if (diff > 0 && diff <= 28) {
-      res += ` (${untilDay.fromNow(true)})`;
+      res += ` (${untilDay.fromNow(true)} left)`;
     }
     return res;
   }, [validUntil]);
@@ -90,13 +95,13 @@ const LimitsSection = ({ limits }: LimitSectionProps) => {
   return (
     <div className="license-limits">
       <LicenseLimitProgress
-        title="Added users"
+        title={m.settings_license_users_limit_label()}
         icon="users"
         value={limits.users.current}
         maxValue={limits.users.limit}
       />
       <LicenseLimitProgress
-        title="VPN locations"
+        title={m.settings_license_locations_limit_label()}
         icon="location-tracking"
         value={limits.locations.current}
         maxValue={limits.locations.limit}
