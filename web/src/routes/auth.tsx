@@ -82,7 +82,11 @@ function RouteComponent() {
           sessionInfo.active_wizard &&
           sessionInfo.active_wizard === ActiveWizard.Migration
         ) {
-          navigate({ to: '/migration', replace: true });
+          if (sessionInfo.is_admin) {
+            navigate({ to: '/migration', replace: true });
+          } else {
+            navigate({ to: '/error/migration-auth', replace: true });
+          }
           return;
         }
         if (isPresent(basicResponse.url)) {
