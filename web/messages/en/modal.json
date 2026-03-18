@@ -190,5 +190,7 @@
   "modal_delete_mfa_passkey_success": "Passkey deleted",
   "modal_delete_mfa_passkey_error": "Failed to delete passkey",
   "modal_delete_auth_key_title": "Delete authentication key",
-  "modal_delete_auth_key_content": "Are you sure you want to delete authentication key {name}? This action cannot be undone."
+  "modal_delete_auth_key_content": "Are you sure you want to delete authentication key {name}? This action cannot be undone.",
+  "modal_delete_api_token_title": "Delete API token",
+  "modal_delete_api_token_content": "Are you sure you want to delete API token {name}? This action cannot be undone."
 }
