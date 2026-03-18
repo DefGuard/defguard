@@ -9,7 +9,6 @@ import { SettingsHeader } from '../../../../../shared/components/SettingsHeader/
 import { SettingsLayout } from '../../../../../shared/components/SettingsLayout/SettingsLayout';
 import { AppText } from '../../../../../shared/defguard-ui/components/AppText/AppText';
 import { Badge } from '../../../../../shared/defguard-ui/components/Badge/Badge';
-import { BadgeVariant } from '../../../../../shared/defguard-ui/components/Badge/types';
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -25,14 +24,10 @@ import {
   getLicenseInfoQueryOptions,
   getSettingsQueryOptions,
 } from '../../../../../shared/query';
-import businessImage from './assets/business.png';
-import enterpriseImage from './assets/enterprise.png';
+import { SettingsLicenseBusinessUpsellSection } from './components/SettingsLicenseBusinessUpsellSection/SettingsLicenseBusinessUpsellSection';
 import { SettingsLicenseExpiredNotice } from './components/SettingsLicenseExpiredNotice/SettingsLicenseExpiredNotice';
 import { SettingsLicenseInfoSection } from './components/SettingsLicenseInfoSection/SettingsLicenseInfoSection';
-import {
-  type LicensePlanCardData,
-  SettingsLicensePlansSection,
-} from './components/SettingsLicensePlansSection/SettingsLicensePlansSection';
+import { SettingsLicenseNoLicenseSection } from './components/SettingsLicenseNoLicenseSection/SettingsLicenseNoLicenseSection';
 import { SettingsLicenseModal } from './modals/SettingsLicenseModal/SettingsLicenseModal';
 
 type LicenseSectionState =
@@ -40,23 +35,6 @@ type LicenseSectionState =
   | 'noLicense'
   | 'validBusiness'
   | 'validEnterprise';
-
-const licenseCards: Array<LicensePlanCardData> = [
-  {
-    badges: [{ text: m.misc_recommended(), variant: BadgeVariant.Plan }],
-    description: m.settings_license_plan_business_description(),
-    imageSrc: businessImage,
-    promotionalCopy: m.settings_license_plan_business_promotional_copy(),
-    tier: 'Business',
-    title: 'Business',
-  },
-  {
-    description: m.settings_license_plan_enterprise_description(),
-    imageSrc: enterpriseImage,
-    tier: 'Enterprise',
-    title: 'Enterprise',
-  },
-];
 
 const getLicenseSectionState = (
   licenseInfo: LicenseInfo | null | undefined,
@@ -144,23 +122,9 @@ const LicenseSection = ({ state }: { state: LicenseSectionState | null }) => {
   return (
     <>
       <SizedBox height={ThemeSpacing.Xl} />
-      {state === 'expiredLicense' && (
-        <>
-          <SettingsLicenseExpiredNotice />
-          <SizedBox height={ThemeSpacing.Xl} />
-          <SettingsLicensePlansSection cards={licenseCards} variant="choose" />
-        </>
-      )}
-      {state === 'noLicense' && (
-        <SettingsLicensePlansSection
-          cards={licenseCards}
-          showTryBusinessButton
-          variant="choose"
-        />
-      )}
-      {state === 'validBusiness' && (
-        <SettingsLicensePlansSection cards={[licenseCards[1]]} variant="expand" />
-      )}
+      {state === 'expiredLicense' && <SettingsLicenseExpiredNotice />}
+      {state === 'noLicense' && <SettingsLicenseNoLicenseSection />}
+      {state === 'validBusiness' && <SettingsLicenseBusinessUpsellSection />}
     </>
   );
 };

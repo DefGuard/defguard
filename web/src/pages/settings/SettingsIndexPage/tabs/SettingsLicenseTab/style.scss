@@ -16,12 +16,6 @@
   }
 
   .license-item {
-    &:not(:first-child) {
-      border-top: 1px solid var(--surface-border-primary);
-      margin-top: var(--spacing-xl2);
-      padding-top: var(--spacing-xl2);
-    }
-
     & > .track {
       display: grid;
       grid-template-columns: 68px 1fr;
@@ -73,7 +67,6 @@
           display: flex;
           flex-flow: row wrap;
           gap: var(--spacing-md);
-          margin-top: var(--spacing-sm);
         }
       }
     }
