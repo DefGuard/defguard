@@ -3,7 +3,7 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use model_derive::Model;
-use sqlx::{Error as SqlxError, FromRow, PgPool, query_as};
+use sqlx::{FromRow, PgPool, query_as};
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -63,7 +63,7 @@ pub struct WebHook<I = NoId> {
 
 impl WebHook<Id> {
     /// Fetch all enabled webhooks.
-    pub async fn all_enabled(pool: &PgPool, trigger: &AppEvent) -> Result<Vec<Self>, SqlxError> {
+    pub async fn all_enabled(pool: &PgPool, trigger: &AppEvent) -> sqlx::Result<Vec<Self>> {
         let column_name = trigger.column_name();
         let query = format!(
             "SELECT id, url, description, token, enabled, on_user_created, \
@@ -74,7 +74,7 @@ impl WebHook<Id> {
     }
 
     /// Find [`WebHook`] by URL.
-    pub async fn find_by_url(pool: &PgPool, url: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_url(pool: &PgPool, url: &str) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT id, url, description, token, enabled, on_user_created, \

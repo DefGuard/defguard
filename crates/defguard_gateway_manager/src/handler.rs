@@ -711,7 +711,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Network(Configuration {
                     name: network.name.clone(),
                     prvkey: network.prvkey.clone(),
-                    addresses: network.address.iter().map(ToString::to_string).collect(),
+                    addresses: network.address().iter().map(ToString::to_string).collect(),
                     port: network.port.cast_unsigned(),
                     peers,
                     firewall_config,
@@ -889,8 +889,8 @@ fn try_protos_into_stats_message(
     ))
 }
 
-fn gen_config(
-    network: &WireguardNetwork<Id>,
+fn gen_config<I>(
+    network: &WireguardNetwork<I>,
     peers: Vec<Peer>,
     maybe_firewall_config: Option<FirewallConfig>,
 ) -> Configuration {
@@ -898,7 +898,7 @@ fn gen_config(
         name: network.name.clone(),
         port: network.port.cast_unsigned(),
         prvkey: network.prvkey.clone(),
-        addresses: network.address.iter().map(ToString::to_string).collect(),
+        addresses: network.address().iter().map(ToString::to_string).collect(),
         peers,
         firewall_config: maybe_firewall_config,
         mtu: network.mtu.cast_unsigned(),
@@ -909,10 +909,7 @@ fn gen_config(
 #[cfg(test)]
 mod tests {
     use chrono::{DateTime, Utc};
-    use defguard_common::db::{
-        Id,
-        models::wireguard::{LocationMfaMode, ServiceLocationMode},
-    };
+    use defguard_common::db::models::wireguard::{LocationMfaMode, ServiceLocationMode};
 
     use super::{
         FirewallConfig, Peer, PeerStats, WireguardNetwork, gen_config,
@@ -931,31 +928,31 @@ mod tests {
         }
     }
 
-    fn build_network() -> WireguardNetwork<Id> {
-        WireguardNetwork {
-            id: 7,
-            name: "test-network".to_string(),
-            address: vec![
-                "10.10.0.1/24".parse().expect("valid IPv4 network"),
-                "fd00::1/64".parse().expect("valid IPv6 network"),
-            ],
-            port: 51820,
-            pubkey: "network-public-key".to_string(),
-            prvkey: "network-private-key".to_string(),
-            endpoint: "198.51.100.10".to_string(),
-            dns: Some("1.1.1.1".to_string()),
-            mtu: 1420,
-            fwmark: 4321,
-            allowed_ips: vec!["0.0.0.0/0".parse().expect("valid allowed IP network")],
-            allow_all_groups: false,
-            connected_at: None,
-            acl_enabled: false,
-            acl_default_allow: false,
-            keepalive_interval: 25,
-            peer_disconnect_threshold: 180,
-            location_mfa_mode: LocationMfaMode::default(),
-            service_location_mode: ServiceLocationMode::default(),
-        }
+    fn build_network() -> WireguardNetwork {
+        let mut network = WireguardNetwork::new(
+            "test-network".to_string(),
+            51820,
+            "198.51.100.10".to_string(),
+            Some("1.1.1.1".to_string()),
+            ["0.0.0.0/0".parse().expect("valid allowed IP network")],
+            false,
+            false,
+            false,
+            LocationMfaMode::default(),
+            ServiceLocationMode::default(),
+        )
+        .set_address([
+            "10.10.0.1/24".parse().expect("valid IPv4 network"),
+            "fd00::1/64".parse().expect("valid IPv6 network"),
+        ])
+        .expect("valid network addresses");
+        network.pubkey = "network-public-key".to_string();
+        network.prvkey = "network-private-key".to_string();
+        network.mtu = 1420;
+        network.fwmark = 4321;
+        network.keepalive_interval = 25;
+        network.peer_disconnect_threshold = 180;
+        network
     }
 
     #[test]

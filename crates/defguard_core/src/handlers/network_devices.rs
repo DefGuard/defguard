@@ -59,8 +59,7 @@ impl NetworkDeviceInfo {
         device: Device<Id>,
         transaction: &mut PgConnection,
     ) -> Result<Self, WebError> {
-        let network = device
-            .find_network_device_networks(&mut *transaction)
+        let network = WireguardNetwork::find_network_device_networks(&mut *transaction, device.id)
             .await?
             .pop()
             .ok_or(WebError::ObjectNotFound(format!(
@@ -121,8 +120,7 @@ pub async fn download_network_device_config(
             .ok_or(WebError::ObjectNotFound(format!(
                 "Network device with ID {device_id} not found"
             )))?;
-    let network = device
-        .find_network_device_networks(&appstate.pool)
+    let network = WireguardNetwork::find_network_device_networks(&appstate.pool, device_id)
         .await?
         .pop()
         .ok_or(WebError::ObjectNotFound(format!(
@@ -328,7 +326,7 @@ pub(crate) async fn find_available_ips(
 
     let mut transaction = appstate.pool.begin().await?;
     let mut split_ips = Vec::new();
-    for network_address in &network.address {
+    for network_address in network.address() {
         let net_ip = network_address.ip();
         let net_network = network_address.network();
         let net_broadcast = network_address.broadcast();
@@ -349,10 +347,11 @@ pub(crate) async fn find_available_ips(
     }
 
     transaction.commit().await?;
-    if split_ips.len() != network.address.len() {
+    if split_ips.len() != network.address().len() {
         warn!(
             "Failed to find available IPs for new device in network {} ({:?})",
-            network.name, network.address
+            network.name,
+            network.address()
         );
         return Err(WebError::NetworkFull(format!(
             "Network {} is full, no IP addresses available",
@@ -361,7 +360,9 @@ pub(crate) async fn find_available_ips(
     }
     debug!(
         "Found addresses {:?} for new device in network {} ({:?})",
-        split_ips, network.name, network.address
+        split_ips,
+        network.name,
+        network.address()
     );
     Ok(ApiResponse::json(split_ips, StatusCode::OK))
 }
@@ -693,14 +694,14 @@ pub async fn modify_network_device(
         })?;
     // store device before modifications
     let before = device.clone();
-    let device_network = device
-        .find_network_device_networks(&mut *transaction)
-        .await?
-        .pop()
-        .ok_or_else(|| {
-            error!("Failed to update device {device_id}, device not found in any network");
-            WebError::ObjectNotFound(format!("Device {device_id} not found in any network"))
-        })?;
+    let device_network =
+        WireguardNetwork::find_network_device_networks(&mut *transaction, device_id)
+            .await?
+            .pop()
+            .ok_or_else(|| {
+                error!("Failed to update device {device_id}, device not found in any network");
+                WebError::ObjectNotFound(format!("Device {device_id} not found in any network"))
+            })?;
     let mut wireguard_network_device =
         WireguardNetworkDevice::find(&mut *transaction, device.id, device_network.id)
             .await?

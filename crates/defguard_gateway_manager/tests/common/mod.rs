@@ -636,15 +636,20 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
 }
 
 pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
-    let mut network = WireguardNetwork {
-        name: unique_name("network"),
-        endpoint: "198.51.100.10".to_string(),
-        port: 51820,
-        ..Default::default()
-    };
-    network
-        .try_set_address("10.10.0.1/24")
-        .expect("failed to set network address");
+    let network = WireguardNetwork::new(
+        unique_name("network"),
+        51820,
+        "198.51.100.10".to_string(),
+        None,
+        Vec::new(),
+        false,
+        false,
+        false,
+        Default::default(),
+        Default::default(),
+    )
+    .try_set_address("10.10.0.1/24")
+    .expect("failed to set network address");
     network
         .save(pool)
         .await

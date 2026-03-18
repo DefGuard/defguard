@@ -30,13 +30,16 @@ async fn test_matching_location_network_modified_event_produces_modify_update(
 
     let _ = context.complete_config_handshake().await;
 
-    let mut modified_network = context.network.clone();
+    let mut modified_network = context
+        .network
+        .clone()
+        .set_address([
+            "10.20.0.1/24"
+                .parse()
+                .expect("failed to parse modified network address"),
+        ])
+        .expect("failed to set modified network address");
     modified_network.name = format!("{}-modified", context.network.name);
-    modified_network.address = vec![
-        "10.20.0.1/24"
-            .parse()
-            .expect("failed to parse modified network address"),
-    ];
     modified_network.port = 51821;
     modified_network.mtu = 1380;
     modified_network.fwmark = 42;
@@ -74,13 +77,16 @@ async fn test_matching_location_network_created_event_produces_create_update(
 
     let _ = context.complete_config_handshake().await;
 
-    let mut created_network = context.network.clone();
+    let mut created_network = context
+        .network
+        .clone()
+        .set_address([
+            "10.40.0.1/24"
+                .parse()
+                .expect("failed to parse created network address"),
+        ])
+        .expect("failed to set created network address");
     created_network.name = format!("{}-created", context.network.name);
-    created_network.address = vec![
-        "10.40.0.1/24"
-            .parse()
-            .expect("failed to parse created network address"),
-    ];
     created_network.port = 51841;
     created_network.mtu = 1410;
     created_network.fwmark = 17;
@@ -122,13 +128,16 @@ async fn test_only_matching_handler_receives_network_modified_update(
     let _ = matching_context.complete_config_handshake().await;
     let _ = unrelated_context.complete_config_handshake().await;
 
-    let mut modified_network = matching_context.network.clone();
+    let mut modified_network = matching_context
+        .network
+        .clone()
+        .set_address([
+            "10.30.0.1/24"
+                .parse()
+                .expect("failed to parse modified network address"),
+        ])
+        .expect("failed to set modified network address");
     modified_network.name = format!("{}-modified", matching_context.network.name);
-    modified_network.address = vec![
-        "10.30.0.1/24"
-            .parse()
-            .expect("failed to parse modified network address"),
-    ];
     modified_network.port = 51831;
     modified_network.mtu = 1400;
     modified_network.fwmark = 7;

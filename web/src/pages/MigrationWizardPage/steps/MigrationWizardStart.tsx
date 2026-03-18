@@ -1,3 +1,4 @@
+import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { IconKind } from '../../../shared/defguard-ui/components/Icon';
@@ -14,20 +15,20 @@ export const MigrationWizardStart = () => {
       <InfoBanner
         icon={IconKind.InfoOutlined}
         variant="warning"
-        text={`IMPORTANT: Until you finish this migration process your VPN Locations will not work!.`}
+        text={m.migration_wizard_start_warning()}
       />
       <SizedBox height={ThemeSpacing.Lg} />
       <RenderMarkdown
         containerProps={{
           id: 'migration-start-md-block',
         }}
-        content={`${explain1}</br></br>${explain2}`}
+        content={`${m.migration_wizard_start_explain_1()}</br></br>${m.migration_wizard_start_explain_2()}`}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
         <div className="left">
           <Button
-            text="Start migration process"
+            text={m.migration_wizard_start_button()}
             onClick={() => {
               useMigrationWizardStore.getState().next();
             }}
@@ -37,7 +38,3 @@ export const MigrationWizardStart = () => {
     </>
   );
 };
-
-const explain1 = `We will first automatically upgrade the Core instance (what you see now), followed by the public communication component, Edge (called Proxy prior to 2.0).`;
-
-const explain2 = `Next, each VPN location must be upgraded. This will likely require manual changes to your internal network (firewall rules), as the Core ↔ Gateway communication has changed: the Core now initiates the connection to the Gateway (in 1.x Gateway connected to Core).`;

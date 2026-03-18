@@ -8,18 +8,13 @@ use std::{
 use chrono::NaiveDateTime;
 use defguard_common::db::{
     Id, NoId,
-    models::{
-        Device, DeviceType, WireguardNetwork,
-        group::Group,
-        user::User,
-        wireguard::{LocationMfaMode, ServiceLocationMode},
-    },
+    models::{Device, DeviceType, WireguardNetwork, group::Group, user::User},
 };
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, error::ErrorKind,
-    postgres::types::PgRange, query, query_as, query_scalar,
+    FromRow, PgConnection, PgExecutor, PgPool, Type, error::ErrorKind, postgres::types::PgRange,
+    query, query_as, query_scalar,
 };
 use thiserror::Error;
 use utoipa::ToSchema;
@@ -46,7 +41,7 @@ pub enum AclError {
     #[error(transparent)]
     AddrParseError(#[from] std::net::AddrParseError),
     #[error(transparent)]
-    DbError(#[from] SqlxError),
+    DbError(#[from] sqlx::Error),
     #[error("InvalidRelationError: {0}")]
     InvalidRelationError(String),
     #[error("RuleNotFoundError: {0}")]
@@ -669,8 +664,8 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
 }
 
 /// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
-fn map_relation_error(err: SqlxError, class: &str, id: Id) -> AclError {
-    if let SqlxError::Database(dberror) = &err {
+fn map_relation_error(err: sqlx::Error, class: &str, id: Id) -> AclError {
+    if let sqlx::Error::Database(dberror) = &err {
         if dberror.kind() == ErrorKind::ForeignKeyViolation {
             error!(
                 "Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}"
@@ -802,10 +797,7 @@ impl AclRule<Id> {
     }
 
     /// Deletes relation objects for given [`AclRule`]
-    async fn delete_related_objects(
-        &self,
-        transaction: &mut PgConnection,
-    ) -> Result<(), SqlxError> {
+    async fn delete_related_objects(&self, transaction: &mut PgConnection) -> sqlx::Result<()> {
         let rule_id = self.id;
         debug!("Deleting related objects for ACL rule {rule_id}");
         // networks
@@ -965,36 +957,19 @@ impl AclRule<Id> {
     pub(crate) async fn get_networks<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<WireguardNetwork<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<WireguardNetwork<Id>>>
     where
         E: PgExecutor<'e>,
     {
         if self.all_locations {
             WireguardNetwork::all(executor).await
         } else {
-            query_as!(
-                WireguardNetwork,
-                "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-                allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
-                peer_disconnect_threshold, acl_enabled, acl_default_allow, \
-                location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
-                service_location_mode \"service_location_mode: ServiceLocationMode\" \
-                FROM aclrulenetwork r \
-                JOIN wireguard_network n \
-                ON n.id = r.network_id \
-                WHERE r.rule_id = $1",
-                self.id,
-            )
-            .fetch_all(executor)
-            .await
+            WireguardNetwork::all_for_rule(executor, self.id).await
         }
     }
 
     /// Returns all [`AclAlias`]es the rule applies to
-    pub(crate) async fn get_aliases<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<AclAlias<Id>>, SqlxError>
+    pub(crate) async fn get_aliases<'e, E>(&self, executor: E) -> sqlx::Result<Vec<AclAlias<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1017,7 +992,7 @@ impl AclRule<Id> {
         &self,
         executor: E,
         allowed: bool,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<User<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1029,10 +1004,7 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are allowed by the rule
-    pub(crate) async fn get_allowed_users<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_allowed_users<'e, E>(&self, executor: E) -> sqlx::Result<Vec<User<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1055,10 +1027,7 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are denied by the rule
-    pub(crate) async fn get_denied_users<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_denied_users<'e, E>(&self, executor: E) -> sqlx::Result<Vec<User<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1085,7 +1054,7 @@ impl AclRule<Id> {
         &self,
         executor: E,
         allowed: bool,
-    ) -> Result<Vec<Group<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<Group<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1107,7 +1076,7 @@ impl AclRule<Id> {
         &self,
         executor: E,
         allowed: bool,
-    ) -> Result<Vec<Device<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<Device<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1121,7 +1090,7 @@ impl AclRule<Id> {
     pub(crate) async fn get_allowed_network_devices<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<Device<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<Device<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1141,7 +1110,7 @@ impl AclRule<Id> {
     pub(crate) async fn get_denied_network_devices<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<Device<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<Device<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1162,7 +1131,7 @@ impl AclRule<Id> {
     pub(crate) async fn get_destination_address_ranges<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<AclRuleDestinationRange<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<AclRuleDestinationRange<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1179,7 +1148,7 @@ impl AclRule<Id> {
 
     /// Retrieves all related objects from the db and converts [`AclRule`]
     /// instance to [`AclRuleInfo`].
-    pub async fn to_info(&self, conn: &mut PgConnection) -> Result<AclRuleInfo<Id>, SqlxError> {
+    pub async fn to_info(&self, conn: &mut PgConnection) -> sqlx::Result<AclRuleInfo<Id>> {
         let locations = self.get_networks(&mut *conn).await?;
         let allowed_users = self.get_users(&mut *conn, true).await?;
         let denied_users = self.get_users(&mut *conn, false).await?;
@@ -1237,7 +1206,7 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_allowed_users(
         &self,
         conn: &mut PgConnection,
-    ) -> Result<Vec<User<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<User<Id>>> {
         debug!(
             "Preparing list of all allowed users for ACL rule {}",
             self.id
@@ -1293,7 +1262,7 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_denied_users(
         &self,
         conn: &mut PgConnection,
-    ) -> Result<Vec<User<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<User<Id>>> {
         debug!(
             "Preparing list of all denied users for ACL rule {}",
             self.id
@@ -1351,7 +1320,7 @@ impl AclRuleInfo<Id> {
         &self,
         executor: E,
         location_id: Id,
-    ) -> Result<Vec<Device<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<Device<Id>>> {
         debug!(
             "Preparing list of all allowed network devices for ACL rule {}",
             self.id
@@ -1383,7 +1352,7 @@ impl AclRuleInfo<Id> {
         &self,
         executor: E,
         location_id: Id,
-    ) -> Result<Vec<Device<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<Device<Id>>> {
         debug!(
             "Preparing list of all denied network devices for ACL rule {}",
             self.id
@@ -1803,7 +1772,7 @@ impl AclAlias<Id> {
     pub(crate) async fn get_destination_ranges<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<AclAliasDestinationRange<Id>>, SqlxError>
+    ) -> sqlx::Result<Vec<AclAliasDestinationRange<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1819,7 +1788,7 @@ impl AclAlias<Id> {
     }
 
     /// Returns all [`AclRule`]s which use this alias
-    pub(crate) async fn get_rules<'e, E>(&self, executor: E) -> Result<Vec<AclRule<Id>>, SqlxError>
+    pub(crate) async fn get_rules<'e, E>(&self, executor: E) -> sqlx::Result<Vec<AclRule<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -1840,7 +1809,7 @@ impl AclAlias<Id> {
 
     /// Retrieves all related objects from the db and converts [`AclAlias`]
     /// instance to [`AclAliasInfo`].
-    pub(crate) async fn to_info(&self, pool: &PgPool) -> Result<AclAliasInfo, SqlxError> {
+    pub(crate) async fn to_info(&self, pool: &PgPool) -> sqlx::Result<AclAliasInfo> {
         let destination_ranges = self.get_destination_ranges(pool).await?;
         let rules = self.get_rules(pool).await?;
 
@@ -2026,7 +1995,7 @@ pub struct AclRuleDestinationRange<I = NoId> {
 }
 
 impl AclRuleDestinationRange {
-    pub async fn save<'e, E>(self, executor: E) -> Result<AclRuleDestinationRange<Id>, SqlxError>
+    pub async fn save<'e, E>(self, executor: E) -> sqlx::Result<AclRuleDestinationRange<Id>>
     where
         E: PgExecutor<'e>,
     {
@@ -2066,7 +2035,7 @@ pub(crate) struct AclAliasDestinationRange<I = NoId> {
 }
 
 impl AclAliasDestinationRange {
-    pub async fn save<'e, E>(self, executor: E) -> Result<AclAliasDestinationRange<Id>, SqlxError>
+    pub async fn save<'e, E>(self, executor: E) -> sqlx::Result<AclAliasDestinationRange<Id>>
     where
         E: PgExecutor<'e>,
     {

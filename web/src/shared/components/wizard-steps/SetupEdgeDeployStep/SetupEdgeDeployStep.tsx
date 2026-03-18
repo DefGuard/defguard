@@ -112,12 +112,17 @@ const DockerComposeTab = () => {
       />
       <CodeSnippet
         value={`services:
-  proxy:
+  edge:
     image: ghcr.io/defguard/defguard-proxy:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:8080"
-      - "50051:50051"`}
+      - "8080:8080"
+      - "50051:50051"
+    # Uncomment the following if you are running on Debian 13 or later or have apparmor or SELinux setup
+    #security_opt:
+    #  - apparmor:unconfined
+    volumes:
+      - ./.volumes/certs/edge:/etc/defguard/certs`}
       />
       <SizedBox height={ThemeSpacing.Xl2} />
       <AppText font={TextStyle.TBodySm400}>
@@ -137,7 +142,7 @@ const DockerTab = () => {
         subtitle={m.edge_setup_step_deploy_tabs_docker_subtitle()}
       />
       <CodeSnippet
-        value={`docker run --restart unless-stopped ghcr.io/defguard/defguard-proxy:latest`}
+        value={`docker run --restart unless-stopped --security-opt apparmor:unconfined -p 8080:8080 -p 50051:50051 -v ./.volumes/certs/edge:/etc/defguard/certs ghcr.io/defguard/defguard-proxy:latest`}
       />
     </>
   );
@@ -175,25 +180,18 @@ const VirtualImageTab = () => {
       <TabContentHeader
         title={m.edge_setup_step_deploy_tabs_virtual_title()}
         subtitle={m.edge_setup_step_deploy_tabs_virtual_subtitle({
-          url: `https://defguard.net/download/defguard-2x-latest.ovf`,
-          filename: `cloud-init-yaml`,
+          url: `https://defguard-downloads.s3.eu-central-1.amazonaws.com/defguard-alpha2.ova`,
+          filename: `defguard-data.yaml`,
         })}
       />
       <CodeSnippet
-        value={`launch: gateway
-
-runcmd:
-  - |
-    LAUNCH=$(jq -r '.["user-data"].launch' /run/cloud-init/instance-data.json)
-    
-    echo "Launch option = $LAUNCH"
-    
-    if [ "$LAUNCH" = "gateway" ]; then
-      systemctl enable defguard-gateway
-      systemctl start defguard-gateway
-    else
-      echo "Unknown launch: $LAUNCH"
-    fi`}
+        value={`#cloud-config
+write_files:
+  - path: /opt/defguard/active-profiles
+    permissions: '0644'
+    content: |
+      edge
+`}
       />
     </>
   );

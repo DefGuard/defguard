@@ -29,7 +29,7 @@ impl PollingToken {
 }
 
 impl PollingToken<Id> {
-    pub async fn find<'e, E>(executor: E, token: &str) -> Result<Option<Self>, sqlx::Error>
+    pub async fn find<'e, E>(executor: E, token: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -43,7 +43,7 @@ impl PollingToken<Id> {
         .await
     }
 
-    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: Id) -> Result<(), sqlx::Error>
+    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: Id) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

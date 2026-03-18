@@ -72,10 +72,11 @@ export interface SetGeneralConfigRequest {
   admin_username: string;
 }
 
-export type MigrationGeneralConfigRequest = Omit<
-  SetGeneralConfigRequest,
-  'admin_username'
->;
+export interface MigrationGeneralConfigRequest {
+  defguard_url: string;
+  default_mfa_code_lifetime: number;
+  public_proxy_url: string;
+}
 
 export interface SetAutoAdoptionUrlSettingsRequest {
   defguard_url: string;
@@ -1103,6 +1104,10 @@ export interface AclCount {
   pending: number;
 }
 
+export interface CountResponse {
+  count: number;
+}
+
 export interface AclDestination {
   id: number;
   parent_id: number | null;
@@ -1186,7 +1191,7 @@ export interface ActivityLogEvent {
   user_id: number;
   username: string;
   location?: string;
-  ip: string;
+  ip: string | null;
   event: ActivityLogEventTypeValue;
   module: ActivityLogModuleValue;
   device: string;

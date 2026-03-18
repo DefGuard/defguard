@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{Error as SqlxError, PgPool, query_as};
+use sqlx::{PgPool, query_as};
 
 use crate::db::{
     Id,
@@ -15,7 +15,7 @@ pub struct MFAInfo {
 }
 
 impl MFAInfo {
-    pub async fn for_user(pool: &PgPool, user: &User<Id>) -> Result<Option<Self>, SqlxError> {
+    pub async fn for_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, \

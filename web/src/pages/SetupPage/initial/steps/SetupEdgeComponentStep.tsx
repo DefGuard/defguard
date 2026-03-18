@@ -86,6 +86,7 @@ export const SetupEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_common_name()}
+                helper={m.edge_setup_component_error_common_name_help()}
                 type="text"
               />
             )}
@@ -96,6 +97,7 @@ export const SetupEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_ip_or_domain()}
+                helper={m.edge_setup_component_label_ip_or_domain_help()}
                 type="text"
               />
             )}
@@ -106,6 +108,7 @@ export const SetupEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_grpc_port()}
+                helper={m.edge_setup_component_label_grpc_port_help()}
                 type="number"
               />
             )}
