@@ -14,6 +14,8 @@ import { TableCell } from '../../../shared/defguard-ui/components/table/TableCel
 import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
+import api from '../../../shared/api/api';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 
 type RowData = ActivityLogStream;
 
@@ -78,7 +80,14 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    openModal(ModalName.DeleteLogStreaming, row);
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.settings_activity_log_streaming_delete_log_streaming_title(),
+                      contentMd: m.modal_delete_logstream_destination(),
+                      actionPromise: () => api.activityLogStream.deleteStream(row.id),
+                      invalidateKeys: [['activity_log_stream']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onError: () => Snackbar.error(m.common_error()),
+                    });
                   },
                 },
               ],

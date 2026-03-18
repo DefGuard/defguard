@@ -66,7 +66,6 @@ export const ModalName = {
   AddLocation: 'addLocation',
   AddLogStreaming: 'addLogStreaming',
   EditLogStreaming: 'editLogStreaming',
-  DeleteLogStreaming: 'deleteLogStreaming',
   SelfEnrollmentToken: 'selfEnrollmentToken',
   AddNewDevice: 'addNewDevice',
   AssignUserIP: 'assignUserIP',
@@ -179,10 +178,6 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   }),
   z.object({
     name: z.literal(ModalName.EditLogStreaming),
-    data: z.custom<ActivityLogStream>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteLogStreaming),
     data: z.custom<ActivityLogStream>(),
   }),
   z.object({
