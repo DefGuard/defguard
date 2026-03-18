@@ -26,7 +26,7 @@ async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectO
 
     // Create another test location
     let mut location_2 = WireguardNetwork::default()
-        .set_address(["fb00::1/112".parse().unwrap()])
+        .set_address(["192.168.0.1/24".parse().unwrap()])
         .unwrap();
     location_2.acl_enabled = true;
     let location_2 = location_2.save(&pool).await.unwrap();
