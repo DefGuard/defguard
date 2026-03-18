@@ -905,3 +905,146 @@ fn gen_config(
         fwmark: network.fwmark as u32,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::{DateTime, Utc};
+    use defguard_common::db::{
+        Id,
+        models::wireguard::{LocationMfaMode, ServiceLocationMode},
+    };
+
+    use super::{
+        FirewallConfig, Peer, PeerStats, WireguardNetwork, gen_config,
+        try_protos_into_stats_message,
+    };
+
+    fn build_peer_stats(endpoint: &str) -> PeerStats {
+        PeerStats {
+            public_key: "peer-public-key".to_string(),
+            endpoint: endpoint.to_string(),
+            upload: 123,
+            download: 456,
+            keepalive_interval: 25,
+            latest_handshake: 1_700_000_000,
+            allowed_ips: "10.10.0.2/32".to_string(),
+        }
+    }
+
+    fn build_network() -> WireguardNetwork<Id> {
+        WireguardNetwork {
+            id: 7,
+            name: "test-network".to_string(),
+            address: vec![
+                "10.10.0.1/24".parse().expect("valid IPv4 network"),
+                "fd00::1/64".parse().expect("valid IPv6 network"),
+            ],
+            port: 51820,
+            pubkey: "network-public-key".to_string(),
+            prvkey: "network-private-key".to_string(),
+            endpoint: "198.51.100.10".to_string(),
+            dns: Some("1.1.1.1".to_string()),
+            mtu: 1420,
+            fwmark: 4321,
+            allowed_ips: vec!["0.0.0.0/0".parse().expect("valid allowed IP network")],
+            allow_all_groups: false,
+            connected_at: None,
+            acl_enabled: false,
+            acl_default_allow: false,
+            keepalive_interval: 25,
+            peer_disconnect_threshold: 180,
+            location_mfa_mode: LocationMfaMode::default(),
+            service_location_mode: ServiceLocationMode::default(),
+        }
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_maps_valid_peer_stats() {
+        let stats = try_protos_into_stats_message(build_peer_stats("203.0.113.10:51820"), 11, 22)
+            .expect("valid peer stats should be converted");
+
+        assert_eq!(stats.location_id, 11);
+        assert_eq!(stats.gateway_id, 22);
+        assert_eq!(stats.device_pubkey, "peer-public-key");
+        assert_eq!(stats.endpoint.to_string(), "203.0.113.10:51820");
+        assert_eq!(stats.upload, 123);
+        assert_eq!(stats.download, 456);
+        assert_eq!(
+            stats.latest_handshake,
+            DateTime::from_timestamp(1_700_000_000, 0)
+                .expect("valid handshake timestamp")
+                .naive_utc()
+        );
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_rejects_invalid_endpoint() {
+        let stats = try_protos_into_stats_message(build_peer_stats("not-a-socket-address"), 11, 22);
+
+        assert!(stats.is_none());
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_falls_back_to_default_timestamp() {
+        let stats = try_protos_into_stats_message(
+            PeerStats {
+                latest_handshake: i64::MAX as u64,
+                ..build_peer_stats("203.0.113.10:51820")
+            },
+            11,
+            22,
+        )
+        .expect("valid endpoint should still produce stats");
+
+        assert_eq!(stats.latest_handshake, DateTime::<Utc>::default().naive_utc());
+    }
+
+    #[test]
+    fn gen_config_maps_network_fields() {
+        let config = gen_config(
+            &build_network(),
+            vec![Peer {
+                pubkey: "peer-public-key".to_string(),
+                allowed_ips: vec!["10.10.0.2/32".to_string()],
+                preshared_key: Some("peer-preshared-key".to_string()),
+                keepalive_interval: Some(25),
+            }],
+            Some(FirewallConfig {
+                default_policy: 0,
+                rules: Vec::new(),
+                snat_bindings: Vec::new(),
+            }),
+        );
+
+        assert_eq!(config.name, "test-network");
+        assert_eq!(config.port, 51820);
+        assert_eq!(config.prvkey, "network-private-key");
+        assert_eq!(config.addresses, vec!["10.10.0.1/24", "fd00::1/64"]);
+        assert_eq!(config.mtu, 1420);
+        assert_eq!(config.fwmark, 4321);
+
+        let peer = config
+            .peers
+            .first()
+            .expect("generated config should include peer");
+        assert_eq!(peer.pubkey, "peer-public-key");
+        assert_eq!(peer.allowed_ips, vec!["10.10.0.2/32"]);
+        assert_eq!(peer.preshared_key.as_deref(), Some("peer-preshared-key"));
+        assert_eq!(peer.keepalive_interval, Some(25));
+
+        let firewall_config = config
+            .firewall_config
+            .expect("generated config should include firewall config");
+        assert_eq!(firewall_config.default_policy, 0);
+        assert!(firewall_config.rules.is_empty());
+        assert!(firewall_config.snat_bindings.is_empty());
+    }
+
+    #[test]
+    fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
+        let config = gen_config(&build_network(), Vec::new(), None);
+
+        assert!(config.peers.is_empty());
+        assert!(config.firewall_config.is_none());
+    }
+}

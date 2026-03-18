@@ -1004,10 +1004,7 @@ async fn create_device_for_network(
     device
 }
 
-async fn enable_internal_mfa_for_network(
-    pool: &sqlx::PgPool,
-    network: &mut WireguardNetwork<Id>,
-) {
+async fn enable_internal_mfa_for_network(pool: &sqlx::PgPool, network: &mut WireguardNetwork<Id>) {
     network.location_mfa_mode = LocationMfaMode::Internal;
     network
         .save(pool)
