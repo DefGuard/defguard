@@ -79,6 +79,23 @@ pub struct ClientMfaServer {
 }
 
 impl ClientMfaServer {
+    fn build_mfa_authorized_gateway_network_device(
+        network_device: WireguardNetworkDevice,
+        vpn_client_session: &VpnClientSession<Id>,
+        preshared_key: String,
+    ) -> WireguardNetworkDevice {
+        WireguardNetworkDevice {
+            wireguard_network_id: network_device.wireguard_network_id,
+            wireguard_ips: network_device.wireguard_ips,
+            device_id: network_device.device_id,
+            preshared_key: Some(preshared_key),
+            is_authorized: true,
+            authorized_at: vpn_client_session
+                .connected_at
+                .or(Some(vpn_client_session.created_at)),
+        }
+    }
+
     #[must_use]
     pub fn new(
         pool: PgPool,
@@ -686,20 +703,16 @@ impl ClientMfaServer {
             })?;
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
-        let mut runtime_network_device = network_device;
-        runtime_network_device.preshared_key = Some(key.public.clone());
-        runtime_network_device.is_authorized = true;
-        runtime_network_device.authorized_at = vpn_client_session
-            .connected_at
-            .or(Some(vpn_client_session.created_at));
+        let gateway_network_device = Self::build_mfa_authorized_gateway_network_device(
+            network_device,
+            &vpn_client_session,
+            key.public.clone(),
+        );
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
-        let event = GatewayEvent::MfaSessionAuthorized(
-            location.id,
-            device.clone(),
-            runtime_network_device,
-        );
+        let event =
+            GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), gateway_network_device);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
@@ -791,7 +804,8 @@ impl ClientMfaServer {
         }
 
         // create new MFA session
-        let mut session = VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method));
+        let mut session =
+            VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method));
         session.preshared_key = Some(preshared_key);
         session.save(conn).await.map_err(|err| {
             error!("Failed to create new VPN client session for device {device} in location {location}: {err}");

@@ -281,7 +281,8 @@ pub(crate) async fn create_session(
     mfa_method: Option<VpnClientMfaMethod>,
     preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
-    let mut session = VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method);
+    let mut session =
+        VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method);
     session.preshared_key = preshared_key.map(str::to_owned);
     session
         .save(pool)

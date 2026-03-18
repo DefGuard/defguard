@@ -329,37 +329,19 @@ impl WireguardNetworkDevice {
         VpnClientSession::try_get_active_session(executor, network.id, device_id).await
     }
 
-    fn runtime_mfa_state(
-        &self,
-        network: &WireguardNetwork<Id>,
-        active_session: Option<&VpnClientSession<Id>>,
-    ) -> (Option<String>, bool, Option<NaiveDateTime>) {
-        if !network.mfa_enabled() {
-            return (
-                self.preshared_key.clone(),
-                self.is_authorized,
-                self.authorized_at,
-            );
-        }
-
-        let Some(session) = active_session else {
-            return (None, false, None);
-        };
-
-        (
-            session.preshared_key.clone(),
-            true,
-            session.connected_at.or(Some(session.created_at)),
-        )
-    }
-
     #[must_use]
     pub fn to_device_network_info(
         &self,
         network: &WireguardNetwork<Id>,
         active_session: Option<&VpnClientSession<Id>>,
     ) -> DeviceNetworkInfo {
-        let (preshared_key, is_authorized, _) = self.runtime_mfa_state(network, active_session);
+        let (preshared_key, is_authorized) = if !network.mfa_enabled() {
+            (self.preshared_key.clone(), self.is_authorized)
+        } else if let Some(session) = active_session {
+            (session.preshared_key.clone(), true)
+        } else {
+            (None, false)
+        };
 
         DeviceNetworkInfo {
             network_id: network.id,
@@ -380,26 +362,6 @@ impl WireguardNetworkDevice {
         let active_session = Self::latest_active_session(executor, network, self.device_id).await?;
 
         Ok(self.to_device_network_info(network, active_session.as_ref()))
-    }
-
-    pub async fn with_runtime_authorization<'e, E>(
-        &self,
-        executor: E,
-        network: &WireguardNetwork<Id>,
-    ) -> Result<Self, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        let active_session = Self::latest_active_session(executor, network, self.device_id).await?;
-        let (preshared_key, is_authorized, authorized_at) =
-            self.runtime_mfa_state(network, active_session.as_ref());
-
-        let mut runtime_device = self.clone();
-        runtime_device.preshared_key = preshared_key;
-        runtime_device.is_authorized = is_authorized;
-        runtime_device.authorized_at = authorized_at;
-
-        Ok(runtime_device)
     }
 
     #[must_use]

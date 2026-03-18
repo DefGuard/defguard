@@ -5,8 +5,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceType, ModelError, WireguardNetwork,
-            WireguardNetworkError,
+            Device, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError,
             device::{DeviceInfo, WireguardNetworkDevice},
             user::User,
             wireguard::MappedDevice,
