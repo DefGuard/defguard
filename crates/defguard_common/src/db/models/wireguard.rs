@@ -722,8 +722,8 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-        page: u32,
-        page_size: u32,
+        limit: u32,
+        offset: u32,
     ) -> sqlx::Result<(Vec<LocationConnectedUserStats>, u32)> {
         // helper struct used to fetch connected users from the DB
         struct ConnectedUserRow {
@@ -735,8 +735,6 @@ impl WireguardNetwork<Id> {
             wireguard_ips: Vec<IpAddr>,
             endpoint: String,
         }
-        let limit = page_size;
-        let offset = (page - 1) * page_size;
 
         // fetch currently connected users
         let connected_users = query_as!(

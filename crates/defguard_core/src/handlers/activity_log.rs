@@ -7,9 +7,8 @@ use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
-use super::{
-    DEFAULT_API_PAGE_SIZE,
-    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
+use super::pagination::{
+    PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams,
 };
 use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
 
@@ -133,11 +132,13 @@ pub async fn get_activity_log_events(
     filters: Query<FilterParams>,
     sorting: Query<SortParams>,
 ) -> PaginatedApiResult<ApiActivityLogEvent> {
-    debug!("Fetching activity log with filters {filters:?} and pagination {pagination:?}");
+    let pagination = pagination.0;
+    debug!("Fetching activity log with filters {filters:?} and pagination {pagination}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description FROM activity_log_event WHERE 1=1 ",
+        "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description \
+        FROM activity_log_event WHERE 1=1 ",
     );
 
     // filter events for non-admin users to show only their own events
@@ -155,10 +156,12 @@ pub async fn get_activity_log_events(
     apply_sorting(&mut query_builder, &sorting);
 
     // add limit and offset to fetch a specific page
-    let limit = DEFAULT_API_PAGE_SIZE;
-    query_builder.push(" LIMIT ").push_bind(i64::from(limit));
-    let offset = (pagination.page - 1) * DEFAULT_API_PAGE_SIZE;
-    query_builder.push(" OFFSET ").push_bind(i64::from(offset));
+    query_builder
+        .push(" LIMIT ")
+        .push_bind(i64::from(pagination.per_page()));
+    query_builder
+        .push(" OFFSET ")
+        .push_bind(i64::from(pagination.offset()));
 
     // fetch filtered events
     let events = query_builder
@@ -176,13 +179,8 @@ pub async fn get_activity_log_events(
         .fetch_one(&appstate.pool)
         .await?;
 
-    let pagination =
-        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
-
-    Ok(PaginatedApiResponse {
-        data: events,
-        pagination,
-    })
+    let pagination = PaginationMeta::from_pagination(pagination, total_items as u32);
+    Ok(PaginatedApiResponse::new(events, pagination))
 }
 
 /// Adds optional filtering statements to SQL query based on request query params

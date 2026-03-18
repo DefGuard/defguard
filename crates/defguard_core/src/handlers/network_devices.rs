@@ -140,7 +140,7 @@ pub async fn download_network_device_config(
     Ok(Device::create_config(&network, &network_device))
 }
 
-pub async fn get_network_device(
+pub(crate) async fn get_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
     Path(device_id): Path<Id>,

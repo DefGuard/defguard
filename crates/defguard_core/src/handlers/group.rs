@@ -41,12 +41,12 @@ impl Groups {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, ToSchema)]
+#[derive(Deserialize, ToSchema)]
 pub(crate) struct BulkAssignToGroupsRequest {
     // groups by name
     groups: Vec<String>,
     // users by id
-    users: Vec<i64>,
+    users: Vec<Id>,
 }
 
 /// Bulk assign users to groups
