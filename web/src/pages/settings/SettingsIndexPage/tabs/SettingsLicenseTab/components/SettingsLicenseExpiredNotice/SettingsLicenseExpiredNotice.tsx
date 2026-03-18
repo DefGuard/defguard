@@ -1,10 +1,36 @@
+import dayjs from 'dayjs';
 import { m } from '../../../../../../../paraglide/messages';
+import type { LicenseInfo } from '../../../../../../../shared/api/types';
 import { SettingsCard } from '../../../../../../../shared/components/SettingsCard/SettingsCard';
-import { externalLink } from '../../../../../../../shared/constants';
+import {
+  externalLink,
+  licenseGracePeriodDays,
+} from '../../../../../../../shared/constants';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import expiredImage from '../../assets/expired.png';
 
-export const SettingsLicenseExpiredNotice = () => {
+type Props = {
+  licenseInfo: LicenseInfo;
+};
+
+export const SettingsLicenseExpiredNotice = ({ licenseInfo }: Props) => {
+  const gracePeriodEndsAt = licenseInfo.valid_until
+    ? dayjs.utc(licenseInfo.valid_until).local().add(licenseGracePeriodDays, 'day')
+    : null;
+
+  const gracePeriodDaysLeft = gracePeriodEndsAt
+    ? Math.max(gracePeriodEndsAt.startOf('day').diff(dayjs().startOf('day'), 'day'), 0)
+    : 0;
+
+  const remainingDuration = m.settings_duration_days({ days: gracePeriodDaysLeft });
+
+  const description =
+    gracePeriodDaysLeft > 0
+      ? m.settings_license_expired_notice_description_grace_period({
+          duration: remainingDuration,
+        })
+      : m.settings_license_expired_notice_description_grace_period_ended();
+
   return (
     <SettingsCard id="license-expired-notice">
       <div className="notice-track">
@@ -13,7 +39,7 @@ export const SettingsLicenseExpiredNotice = () => {
         </div>
         <div className="content-track">
           <p className="title">{m.settings_license_expired_notice_title()}</p>
-          <p className="description">{m.settings_license_expired_notice_description()}</p>
+          <p className="description">{description}</p>
           <a
             href={externalLink.defguard.pricing}
             rel="noreferrer noopener"

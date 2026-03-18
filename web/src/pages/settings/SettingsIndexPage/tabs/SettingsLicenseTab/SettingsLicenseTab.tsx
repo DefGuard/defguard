@@ -1,5 +1,6 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { m } from '../../../../../paraglide/messages';
 import type { LicenseInfo } from '../../../../../shared/api/types';
 import { Controls } from '../../../../../shared/components/Controls/Controls';
@@ -45,6 +46,13 @@ const getLicenseSectionState = (
 
   if (licenseInfo === null) {
     return 'noLicense';
+  }
+
+  if (
+    licenseInfo.valid_until !== null &&
+    dayjs().isAfter(dayjs.utc(licenseInfo.valid_until).local())
+  ) {
+    return 'expiredLicense';
   }
 
   if (licenseInfo.expired) {
@@ -108,13 +116,19 @@ export const SettingsLicenseTab = () => {
           </Controls>
         </SettingsCard>
       )}
-      <LicenseSection state={sectionState} />
+      <LicenseSection state={sectionState} licenseInfo={licenseInfo} />
       <SettingsLicenseModal />
     </SettingsLayout>
   );
 };
 
-const LicenseSection = ({ state }: { state: LicenseSectionState | null }) => {
+const LicenseSection = ({
+  licenseInfo,
+  state,
+}: {
+  licenseInfo: LicenseInfo | null | undefined;
+  state: LicenseSectionState | null;
+}) => {
   if (state === null || state === 'validEnterprise') {
     return null;
   }
@@ -122,7 +136,9 @@ const LicenseSection = ({ state }: { state: LicenseSectionState | null }) => {
   return (
     <>
       <SizedBox height={ThemeSpacing.Xl} />
-      {state === 'expiredLicense' && <SettingsLicenseExpiredNotice />}
+      {state === 'expiredLicense' && isPresent(licenseInfo) && (
+        <SettingsLicenseExpiredNotice licenseInfo={licenseInfo} />
+      )}
       {state === 'noLicense' && <SettingsLicenseNoLicenseSection />}
       {state === 'validBusiness' && <SettingsLicenseBusinessUpsellSection />}
     </>
