@@ -866,6 +866,7 @@ fn gen_config(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
     use super::GatewayUpdatesHandler;
@@ -875,29 +876,28 @@ mod tests {
     };
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
-        let defaults = WireguardNetwork::default();
-
-        WireguardNetwork {
-            id: 1,
-            name: "test-network".into(),
-            address: defaults.address,
-            port: 51820,
-            pubkey: "network-pubkey".into(),
-            prvkey: "network-prvkey".into(),
-            endpoint: "127.0.0.1".into(),
-            dns: None,
-            mtu: 1420,
-            fwmark: 0,
-            allowed_ips: Vec::new(),
-            allow_all_groups: true,
-            connected_at: None,
-            keepalive_interval: 25,
-            peer_disconnect_threshold: 300,
-            acl_enabled: false,
-            acl_default_allow: false,
-            location_mfa_mode,
-            service_location_mode: ServiceLocationMode::Disabled,
-        }
+        serde_json::from_value(json!({
+            "id": 1,
+            "name": "test-network",
+            "address": ["10.1.1.1/24"],
+            "port": 51820,
+            "pubkey": "network-pubkey",
+            "prvkey": "network-prvkey",
+            "endpoint": "127.0.0.1",
+            "dns": null,
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_ips": [],
+            "allow_all_groups": true,
+            "connected_at": null,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "location_mfa_mode": location_mfa_mode,
+            "service_location_mode": ServiceLocationMode::Disabled,
+        }))
+        .unwrap()
     }
 
     fn test_handler(location_mfa_mode: LocationMfaMode) -> GatewayUpdatesHandler {

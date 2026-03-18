@@ -10,6 +10,7 @@ use crate::grpc::should_prevent_service_location_usage;
 /// which enables enforcing peer disconnect in MFA-protected networks.
 ///
 /// If the location is a service location, only returns peers if enterprise features are enabled.
+/// MFA-enabled locations only return peers backed by an active session with a runtime preshared key.
 pub async fn get_location_allowed_peers<'e, E>(
     location: &WireguardNetwork<Id>,
     executor: E,
@@ -47,7 +48,8 @@ where
                 ORDER BY created_at DESC, id DESC \
                 LIMIT 1 \
             ) active_session ON true \
-            WHERE wireguard_network_id = $1 AND (NOT $2 OR active_session.id IS NOT NULL) \
+            WHERE wireguard_network_id = $1 \
+                AND (NOT $2 OR active_session.preshared_key IS NOT NULL) \
             AND d.configured AND u.is_active \
             ORDER BY d.id ASC",
         location.id,
@@ -233,7 +235,7 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_location_allowed_peers_does_not_expose_legacy_preshared_key_for_active_mfa_session(
+    async fn test_get_location_allowed_peers_skips_active_mfa_session_without_preshared_key(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -263,19 +265,74 @@ mod test {
         .await
         .unwrap();
 
-        let mut network = WireguardNetwork {
-            name: "mfa-location".to_string(),
-            service_location_mode: ServiceLocationMode::Disabled,
-            location_mfa_mode: LocationMfaMode::Internal,
-            ..Default::default()
-        };
-        network.try_set_address("10.4.1.1/24").unwrap();
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.4.1.1/24")
+            .unwrap();
+        network.name = "mfa-location".to_string();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.location_mfa_mode = LocationMfaMode::Internal;
         let network = network.save(&pool).await.unwrap();
 
         let network_device = WireguardNetworkDevice::new(
             network.id,
             device.id,
             vec![IpAddr::from_str("10.4.1.2").unwrap()],
+        );
+        network_device.insert(&pool).await.unwrap();
+
+        VpnClientSession::new(network.id, user.id, device.id, None, None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+
+        assert!(peers.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_keeps_non_mfa_peer_without_session_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device1".into(),
+            "pubkey1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.5.1.1/24")
+            .unwrap();
+        network.name = "non-mfa-location".to_string();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.location_mfa_mode = LocationMfaMode::Disabled;
+        let network = network.save(&pool).await.unwrap();
+
+        let network_device = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.5.1.2").unwrap()],
         );
         network_device.insert(&pool).await.unwrap();
 

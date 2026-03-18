@@ -386,6 +386,7 @@ async fn test_closed_event_channel_keeps_mfa_first_stats_upgrade_idempotent(
         device.id,
         None,
         Some(VpnClientMfaMethod::Totp),
+        None,
     )
     .await;
 
@@ -532,7 +533,6 @@ async fn test_never_connected_mfa_new_sessions_disconnect_after_threshold(
     let user = create_user(&pool).await;
     let device = create_device(&pool, user.id).await;
     attach_device_to_location(&pool, location.id, device.id).await;
-    authorize_device_in_location(&pool, location.id, device.id, "psk-before-timeout").await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
     let session = create_session(
@@ -558,13 +558,12 @@ async fn test_never_connected_mfa_new_sessions_disconnect_after_threshold(
         VpnClientSessionState::Disconnected
     );
     assert!(disconnected_session.disconnected_at.is_some());
-
-    let network_device = WireguardNetworkDevice::find(&pool, device.id, location.id)
-        .await
-        .expect("failed to query network device")
-        .expect("expected network device");
-    assert!(!network_device.is_authorized);
-    assert_eq!(network_device.preshared_key, None);
+    assert!(
+        VpnClientSession::try_get_active_session(&pool, location.id, device.id)
+            .await
+            .expect("failed to query active session")
+            .is_none()
+    );
 
     let gateway_event = timeout(RECEIVE_TIMEOUT, harness.gateway_rx.recv())
         .await

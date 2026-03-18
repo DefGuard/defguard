@@ -328,7 +328,7 @@ impl WireguardNetworkDevice {
         executor: E,
         network: &WireguardNetwork<Id>,
         device_id: Id,
-    ) -> Result<Option<VpnClientSession<Id>>, SqlxError>
+    ) -> sqlx::Result<Option<VpnClientSession<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -365,7 +365,7 @@ impl WireguardNetworkDevice {
         &self,
         executor: E,
         network: &WireguardNetwork<Id>,
-    ) -> Result<DeviceNetworkInfo, SqlxError>
+    ) -> sqlx::Result<DeviceNetworkInfo>
     where
         E: PgExecutor<'e>,
     {
@@ -1462,30 +1462,31 @@ mod test {
         assert_ok!(Device::validate_pubkey(valid_test_key));
     }
 
-    #[test]
-    fn test_runtime_mfa_state_requires_session_preshared_key_for_mfa_runtime_reads() {
-        let defaults = WireguardNetwork::<NoId>::default();
-        let network = WireguardNetwork {
-            id: 1,
-            name: defaults.name,
-            address: defaults.address,
-            port: defaults.port,
-            pubkey: defaults.pubkey,
-            prvkey: defaults.prvkey,
-            endpoint: defaults.endpoint,
-            dns: defaults.dns,
-            mtu: defaults.mtu,
-            fwmark: defaults.fwmark,
-            allowed_ips: defaults.allowed_ips,
-            allow_all_groups: defaults.allow_all_groups,
-            connected_at: defaults.connected_at,
-            acl_enabled: defaults.acl_enabled,
-            acl_default_allow: defaults.acl_default_allow,
-            keepalive_interval: defaults.keepalive_interval,
-            peer_disconnect_threshold: defaults.peer_disconnect_threshold,
-            location_mfa_mode: LocationMfaMode::Internal,
-            service_location_mode: defaults.service_location_mode,
-        };
+    #[sqlx::test]
+    async fn test_runtime_mfa_state_requires_session_preshared_key_for_mfa_runtime_reads(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::new(
+            "runtime-mfa-network".into(),
+            51820,
+            "vpn.example.com".into(),
+            None,
+            Vec::<IpNetwork>::new(),
+            false,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .try_set_address("10.1.1.1/24")
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
         let wireguard_network_device = WireguardNetworkDevice {
             wireguard_network_id: network.id,
             wireguard_ips: vec![IpAddr::from_str("10.1.1.2").unwrap()],
@@ -1542,11 +1543,20 @@ mod test {
         .await
         .unwrap();
 
-        let mut network = WireguardNetwork::<NoId> {
-            location_mfa_mode: LocationMfaMode::Internal,
-            ..Default::default()
-        };
-        network.try_set_address("10.1.1.1/24").unwrap();
+        let network = WireguardNetwork::new(
+            "device-info-network".into(),
+            51820,
+            "vpn.example.com".into(),
+            None,
+            Vec::<IpNetwork>::new(),
+            false,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .try_set_address("10.1.1.1/24")
+        .unwrap();
         let network = network.save(&pool).await.unwrap();
 
         let wireguard_network_device = WireguardNetworkDevice::new(
