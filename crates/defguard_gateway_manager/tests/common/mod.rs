@@ -21,7 +21,8 @@ use defguard_common::{
 };
 use defguard_core::grpc::GatewayEvent;
 use defguard_gateway_manager::{
-    GatewayManager, GatewayTxSet, TestGatewayHandler, TestGatewayManagerControl,
+    GatewayTxSet,
+    test_support::{GatewayHandler, GatewayManagerControl},
 };
 use defguard_proto::gateway::{
     ConfigurationRequest, CoreRequest, CoreResponse, PeerStats, core_request, gateway_server,
@@ -67,6 +68,10 @@ fn unique_socket_path() -> PathBuf {
         std::process::id(),
         next_test_id()
     ))
+}
+
+pub(crate) fn unique_mock_gateway_socket_path() -> PathBuf {
+    unique_socket_path()
 }
 
 #[derive(Clone)]
@@ -155,7 +160,10 @@ pub(crate) struct MockGatewayHarness {
 
 impl MockGatewayHarness {
     pub(crate) async fn start() -> Self {
-        let socket_path = unique_socket_path();
+        Self::start_at(unique_socket_path()).await
+    }
+
+    pub(crate) async fn start_at(socket_path: PathBuf) -> Self {
         let _ = std::fs::remove_file(&socket_path);
 
         let listener =
@@ -326,7 +334,7 @@ impl Drop for MockGatewayHarness {
 
 pub(crate) struct ManagerTestContext {
     pub(crate) pool: PgPool,
-    control: TestGatewayManagerControl,
+    control: GatewayManagerControl,
     manager_task: Option<JoinHandle<Result<(), anyhow::Error>>>,
 }
 
@@ -339,7 +347,7 @@ impl ManagerTestContext {
 
         Self {
             pool,
-            control: TestGatewayManagerControl::new(),
+            control: GatewayManagerControl::new(),
             manager_task: None,
         }
     }
@@ -352,13 +360,24 @@ impl ManagerTestContext {
         self.register_gateway_url(gateway.url(), mock_gateway);
     }
 
-    pub(crate) fn register_gateway_url(&self, gateway_url: String, mock_gateway: &MockGatewayHarness) {
-        self.control
-            .register_gateway_url(gateway_url, mock_gateway.socket_path());
+    pub(crate) fn register_gateway_url(
+        &self,
+        gateway_url: String,
+        mock_gateway: &MockGatewayHarness,
+    ) {
+        self.register_gateway_socket_path(gateway_url, mock_gateway.socket_path());
+    }
+
+    pub(crate) fn register_gateway_socket_path(&self, gateway_url: String, socket_path: PathBuf) {
+        self.control.register_gateway_url(gateway_url, socket_path);
     }
 
     pub(crate) fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
         self.control.handler_spawn_attempt_count(gateway_id)
+    }
+
+    pub(crate) fn handler_connection_attempt_count(&self, gateway_id: Id) -> u64 {
+        self.control.handler_connection_attempt_count(gateway_id)
     }
 
     pub(crate) fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
@@ -377,6 +396,20 @@ impl ManagerTestContext {
         )
         .await
         .expect("timed out waiting for gateway manager handler spawn attempt");
+    }
+
+    pub(crate) async fn wait_for_handler_connection_attempt_count(
+        &self,
+        gateway_id: Id,
+        expected_count: u64,
+    ) {
+        timeout(
+            TEST_TIMEOUT,
+            self.control
+                .wait_for_handler_connection_attempt_count(gateway_id, expected_count),
+        )
+        .await
+        .expect("timed out waiting for gateway manager handler connection attempt");
     }
 
     pub(crate) async fn wait_for_gateway_notification_count(
@@ -402,13 +435,17 @@ impl ManagerTestContext {
         let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
         let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
-        let mut manager = GatewayManager::new_for_test(self.pool.clone(), tx, self.control.clone());
+        let mut manager = self.control.new_manager(self.pool.clone(), tx);
         let manager_task = tokio::spawn(async move { manager.run().await });
 
         timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())
             .await
             .expect("timed out waiting for gateway manager listener to become ready");
         self.manager_task = Some(manager_task);
+    }
+
+    pub(crate) fn set_retry_delay(&self, retry_delay: Duration) {
+        self.control.set_retry_delay(retry_delay);
     }
 
     pub(crate) async fn finish(mut self) {
@@ -464,7 +501,7 @@ impl HandlerTestContext {
         let (peer_stats_tx, peer_stats_rx) = mpsc::unbounded_channel();
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let mut mock_gateway = MockGatewayHarness::start().await;
-        let mut handler = TestGatewayHandler::new(
+        let mut handler = GatewayHandler::new(
             gateway.clone(),
             pool.clone(),
             events_tx.clone(),

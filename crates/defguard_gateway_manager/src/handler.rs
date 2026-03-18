@@ -47,7 +47,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Code, Status, transport::Endpoint};
 
-use crate::{Client, TEN_SECS, error::GatewayError};
+use crate::{Client, GatewayManagerTestSupport, TEN_SECS, error::GatewayError};
 
 #[derive(Debug, Default)]
 struct GatewayTestTransport {
@@ -77,6 +77,7 @@ pub(super) struct GatewayHandler {
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     test_transport: GatewayTestTransport,
+    test_support: Option<GatewayManagerTestSupport>,
 }
 
 impl GatewayHandler {
@@ -103,6 +104,7 @@ impl GatewayHandler {
             peer_stats_tx,
             certs_rx,
             test_transport: GatewayTestTransport::default(),
+            test_support: None,
         })
     }
 
@@ -117,6 +119,10 @@ impl GatewayHandler {
         let mut handler = Self::new(gateway, pool, events_tx, peer_stats_tx, certs_rx)?;
         handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
         Ok(handler)
+    }
+
+    pub(super) fn attach_test_support(&mut self, test_support: GatewayManagerTestSupport) {
+        self.test_support = Some(test_support);
     }
 
     fn endpoint(&self) -> Result<Endpoint, GatewayError> {
@@ -305,17 +311,24 @@ impl GatewayHandler {
             Version::parse(VERSION).expect("failed to parse self version"),
         );
         let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
+        if let Some(test_support) = &self.test_support {
+            test_support.note_handler_connection_attempt(self.gateway.id);
+        }
         clients
             .lock()
             .expect("GatewayHandler failed to lock clients")
             .insert(self.gateway.id, client.clone());
         let (tx, rx) = mpsc::unbounded_channel();
+        let retry_delay = self
+            .test_support
+            .as_ref()
+            .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay);
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
             Ok(response) => response,
             Err(err) => {
                 error!("Failed to connect to Gateway {uri}, retrying: {err}");
                 if retry_on_connect_failure {
-                    sleep(TEN_SECS).await;
+                    sleep(retry_delay).await;
                     return Ok(());
                 }
 
@@ -417,8 +430,8 @@ impl GatewayHandler {
                     error!("Disconnected from Gateway at {uri}, error: {err}");
                     self.handle_disconnection_error().await;
                     if retry_on_connect_failure {
-                        debug!("Waiting 10s to re-establish the connection");
-                        sleep(TEN_SECS).await;
+                        debug!("Waiting {retry_delay:?} to re-establish the connection");
+                        sleep(retry_delay).await;
                     }
                     return Ok(());
                 }
@@ -438,13 +451,12 @@ impl GatewayHandler {
     }
 }
 
-#[doc(hidden)]
-pub struct TestGatewayHandler {
+pub(crate) struct TestGatewayHandler {
     inner: GatewayHandler,
 }
 
 impl TestGatewayHandler {
-    pub fn new(
+    pub(crate) fn new(
         gateway: Gateway<Id>,
         pool: PgPool,
         events_tx: Sender<GatewayEvent>,
@@ -463,7 +475,7 @@ impl TestGatewayHandler {
         Ok(Self { inner })
     }
 
-    pub async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
+    pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
         let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
         self.inner
             .handle_connection_iteration(clients, false)
