@@ -73,21 +73,18 @@ async fn test_gateway(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     let network = WireguardNetwork::new(
         "TestNet".to_string(),
-        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()],
         50051,
         "0.0.0.0".to_string(),
         None,
-        1420,
-        0,
-        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
+        [IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
         false,
-        25,
-        300,
         false,
         false,
         LocationMfaMode::default(),
         ServiceLocationMode::default(),
     )
+    .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
+    .expect("test network address should be valid")
     .save(&pool)
     .await
     .unwrap();

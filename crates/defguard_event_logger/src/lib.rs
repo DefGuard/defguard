@@ -652,22 +652,19 @@ mod tests {
     fn sample_location() -> WireguardNetwork<i64> {
         WireguardNetwork::new(
             "vpn-location".to_string(),
-            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)), 24).unwrap()],
             51820,
             "vpn.example.com".to_string(),
             None,
-            1420,
-            0,
-            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
-            25,
-            300,
             false,
             false,
             LocationMfaMode::Internal,
             ServiceLocationMode::Disabled,
         )
-        .save_placeholder_id(10)
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 24).unwrap()])
+        .expect("sample location address should be valid")
+        .with_id(10)
     }
 
     #[test]
@@ -701,32 +698,6 @@ mod tests {
                 device_type: self.device_type,
                 description: self.description,
                 configured: self.configured,
-            }
-        }
-    }
-
-    impl WithPlaceholderId<WireguardNetwork<i64>> for WireguardNetwork<NoId> {
-        fn save_placeholder_id(self, id: i64) -> WireguardNetwork<i64> {
-            WireguardNetwork {
-                id,
-                name: self.name,
-                address: self.address,
-                port: self.port,
-                pubkey: self.pubkey,
-                prvkey: self.prvkey,
-                endpoint: self.endpoint,
-                dns: self.dns,
-                mtu: self.mtu,
-                fwmark: self.fwmark,
-                allowed_ips: self.allowed_ips,
-                allow_all_groups: self.allow_all_groups,
-                connected_at: self.connected_at,
-                acl_enabled: self.acl_enabled,
-                acl_default_allow: self.acl_default_allow,
-                keepalive_interval: self.keepalive_interval,
-                peer_disconnect_threshold: self.peer_disconnect_threshold,
-                location_mfa_mode: self.location_mfa_mode,
-                service_location_mode: self.service_location_mode,
             }
         }
     }

@@ -4,7 +4,7 @@ use defguard_core::events::{
 use defguard_event_logger::message::{EnrollmentEvent, EventContext, LoggerEvent, VpnEvent};
 use tracing::debug;
 
-use crate::{EventRouter, error::EventRouterError};
+use crate::{error::EventRouterError, EventRouter};
 
 impl EventRouter {
     pub(crate) fn handle_bidi_event(&self, event: BidiStreamEvent) -> Result<(), EventRouterError> {
@@ -108,17 +108,17 @@ mod tests {
     };
 
     use defguard_common::db::{
-        Id, NoId,
         models::{
-            Device, DeviceType, WireguardNetwork,
             wireguard::{LocationMfaMode, ServiceLocationMode},
+            Device, DeviceType, WireguardNetwork,
         },
+        Id, NoId,
     };
     use defguard_core::{
         events::{BidiRequestContext, BidiStreamEventType},
         grpc::GatewayEvent,
     };
-    use tokio::sync::{Notify, broadcast, mpsc::unbounded_channel};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel, Notify};
 
     use super::*;
     use crate::RouterReceiverSet;
@@ -223,22 +223,19 @@ mod tests {
     fn sample_location() -> WireguardNetwork<Id> {
         WireguardNetwork::new(
             "vpn-location".to_string(),
-            vec!["10.0.0.0/24".parse().unwrap()],
             51820,
             "vpn.example.com".to_string(),
             None,
-            1420,
-            0,
-            vec!["0.0.0.0/0".parse().unwrap()],
+            ["0.0.0.0/0".parse().expect("allowed IP should parse")],
             true,
-            25,
-            300,
             false,
             false,
             LocationMfaMode::Internal,
             ServiceLocationMode::Disabled,
         )
-        .save_placeholder_id(10)
+        .set_address(["10.0.0.1/24".parse().expect("address should parse")])
+        .expect("sample location address should be valid")
+        .with_id(10)
     }
 
     trait WithPlaceholderId<T> {
@@ -256,32 +253,6 @@ mod tests {
                 device_type: self.device_type,
                 description: self.description,
                 configured: self.configured,
-            }
-        }
-    }
-
-    impl WithPlaceholderId<WireguardNetwork<Id>> for WireguardNetwork<NoId> {
-        fn save_placeholder_id(self, id: Id) -> WireguardNetwork<Id> {
-            WireguardNetwork {
-                id,
-                name: self.name,
-                address: self.address,
-                port: self.port,
-                pubkey: self.pubkey,
-                prvkey: self.prvkey,
-                endpoint: self.endpoint,
-                dns: self.dns,
-                mtu: self.mtu,
-                fwmark: self.fwmark,
-                allowed_ips: self.allowed_ips,
-                allow_all_groups: self.allow_all_groups,
-                connected_at: self.connected_at,
-                acl_enabled: self.acl_enabled,
-                acl_default_allow: self.acl_default_allow,
-                keepalive_interval: self.keepalive_interval,
-                peer_disconnect_threshold: self.peer_disconnect_threshold,
-                location_mfa_mode: self.location_mfa_mode,
-                service_location_mode: self.service_location_mode,
             }
         }
     }

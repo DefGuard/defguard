@@ -1152,21 +1152,18 @@ mod tests {
     async fn create_mfa_location(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::new(
             "client-mfa-location".to_string(),
-            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 0, 0)), 24).unwrap()],
             51820,
             "vpn.example.com".to_string(),
             None,
-            1420,
-            0,
-            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
-            25,
-            300,
             false,
             false,
             LocationMfaMode::Internal,
             ServiceLocationMode::Disabled,
         )
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 10, 0, 1)), 24).unwrap()])
+        .expect("failed to set location address")
         .save(pool)
         .await
         .expect("failed to create location")
