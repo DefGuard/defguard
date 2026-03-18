@@ -125,7 +125,7 @@ async fn test_mfa_new_session_upgrades_to_connected_on_stats(
     assert_eq!(connected_event.context.location.id, location.id);
     assert_eq!(connected_event.context.user.id, user.id);
     assert_eq!(connected_event.context.device.id, device.id);
-    assert_eq!(connected_event.context.public_ip, endpoint.ip());
+    assert_eq!(connected_event.context.public_ip, Some(endpoint.ip()));
 
     let second_collected_at = handshake + TimeDelta::seconds(30);
     let second_handshake = handshake + TimeDelta::seconds(25);
@@ -254,7 +254,7 @@ async fn test_duplicate_first_stats_on_mfa_new_session_are_idempotent(
     assert_eq!(connected_event.context.location.id, location.id);
     assert_eq!(connected_event.context.user.id, user.id);
     assert_eq!(connected_event.context.device.id, device.id);
-    assert_eq!(connected_event.context.public_ip, endpoint.ip());
+    assert_eq!(connected_event.context.public_ip, Some(endpoint.ip()));
 
     assert_no_session_manager_events(&mut harness);
     assert_no_gateway_events(&mut harness);
@@ -316,7 +316,7 @@ async fn test_repeated_later_stats_on_mfa_session_remain_idempotent(
     assert_eq!(connected_event.context.location.id, location.id);
     assert_eq!(connected_event.context.user.id, user.id);
     assert_eq!(connected_event.context.device.id, device.id);
-    assert_eq!(connected_event.context.public_ip, endpoint.ip());
+    assert_eq!(connected_event.context.public_ip, Some(endpoint.ip()));
 
     assert_no_session_manager_events(&mut harness);
     assert_no_gateway_events(&mut harness);

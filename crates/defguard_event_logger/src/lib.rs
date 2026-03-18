@@ -625,6 +625,7 @@ pub async fn run_event_logger(
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
     use defguard_common::db::{
         NoId,
         models::{
@@ -633,6 +634,7 @@ mod tests {
         },
     };
     use ipnetwork::IpNetwork;
+    use serde_json::Value;
     use std::net::{IpAddr, Ipv4Addr};
 
     use super::*;
@@ -646,7 +648,7 @@ mod tests {
             None,
             true,
         )
-        .save_placeholder_id(20)
+        .with_id(20)
     }
 
     fn sample_location() -> WireguardNetwork<i64> {

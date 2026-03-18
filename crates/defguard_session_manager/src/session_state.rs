@@ -213,7 +213,7 @@ impl SessionEventContextData {
             location: self.location.clone(),
             user: self.user.clone(),
             device: self.device.clone(),
-            public_ip,
+            public_ip: Some(public_ip),
         }
     }
 }

@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    net::{IpAddr, Ipv4Addr},
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -857,7 +856,7 @@ impl ClientMfaServer {
                 timestamp: disconnect_timestamp,
                 user_id: user.id,
                 username: user.username.clone(),
-                ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                ip: None,
                 device_name: format!("{}", device),
             };
             self.emit_event(BidiStreamEvent {
