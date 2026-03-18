@@ -28,10 +28,39 @@ where
         return Ok(Vec::new());
     }
 
+    if !location.mfa_enabled() {
+        let rows = query!(
+            "SELECT d.wireguard_pubkey pubkey, \
+                    ARRAY(
+                        SELECT host(ip)
+                        FROM unnest(wnd.wireguard_ips) AS ip
+                    ) \"allowed_ips!: Vec<String>\" \
+                FROM wireguard_network_device wnd \
+                JOIN device d ON wnd.device_id = d.id \
+                JOIN \"user\" u ON d.user_id = u.id \
+                WHERE wireguard_network_id = $1 \
+                    AND d.configured \
+                    AND u.is_active \
+                ORDER BY d.id ASC",
+            location.id,
+        )
+        .fetch_all(executor)
+        .await?;
+
+        return Ok(rows
+            .into_iter()
+            .map(|row| Peer {
+                pubkey: row.pubkey,
+                allowed_ips: row.allowed_ips,
+                preshared_key: None,
+                keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
+            })
+            .collect());
+    }
+
     let rows = query!(
         "SELECT d.wireguard_pubkey pubkey, \
-                active_session.preshared_key preshared_key, \
-                -- TODO possible to not use ARRAY-unnest here?
+                active_session.preshared_key \"preshared_key!\", \
                 ARRAY(
                     SELECT host(ip)
                     FROM unnest(wnd.wireguard_ips) AS ip
@@ -39,45 +68,34 @@ where
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
-            LEFT JOIN LATERAL ( \
-                SELECT id, preshared_key \
+            JOIN LATERAL ( \
+                SELECT preshared_key \
                 FROM vpn_client_session \
                 WHERE location_id = wnd.wireguard_network_id \
                     AND device_id = wnd.device_id \
                     AND state IN ('new', 'connected') \
+                    AND preshared_key IS NOT NULL \
                 ORDER BY created_at DESC, id DESC \
                 LIMIT 1 \
             ) active_session ON true \
             WHERE wireguard_network_id = $1 \
-                AND (NOT $2 OR active_session.preshared_key IS NOT NULL) \
-            AND d.configured AND u.is_active \
+                AND d.configured \
+                AND u.is_active \
             ORDER BY d.id ASC",
         location.id,
-        location.mfa_enabled()
     )
     .fetch_all(executor)
     .await?;
 
-    // keepalive has to be added manually because Postgres
-    // doesn't support unsigned integers
-    let result = rows
+    Ok(rows
         .into_iter()
         .map(|row| Peer {
             pubkey: row.pubkey,
             allowed_ips: row.allowed_ips,
-            // Don't send preshared key if MFA is not enabled, it can't be used and may
-            // cause issues with clients connecting if they expect no preshared key
-            // e.g. when you disable MFA on a location
-            preshared_key: if location.mfa_enabled() {
-                row.preshared_key
-            } else {
-                None
-            },
+            preshared_key: Some(row.preshared_key),
             keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
         })
-        .collect();
-
-    Ok(result)
+        .collect())
 }
 
 #[cfg(test)]
@@ -292,7 +310,7 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_location_allowed_peers_keeps_non_mfa_peer_without_session_preshared_key(
+    async fn test_get_location_allowed_peers_keeps_non_mfa_peer_without_session_lookup_dependency(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -336,11 +354,6 @@ mod test {
             vec![IpAddr::from_str("10.5.1.2").unwrap()],
         );
         network_device.insert(&pool).await.unwrap();
-
-        VpnClientSession::new(network.id, user.id, device.id, None, None)
-            .save(&pool)
-            .await
-            .unwrap();
 
         let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
 

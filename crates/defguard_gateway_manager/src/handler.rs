@@ -883,8 +883,8 @@ mod tests {
     use defguard_proto::gateway::core_response;
     use serde_json::json;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-    use tokio::sync::{broadcast, mpsc::unbounded_channel};
     use tokio::sync::watch;
+    use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
     use super::{GatewayHandler, GatewayUpdatesHandler};
     use defguard_common::db::Id;
