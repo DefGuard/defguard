@@ -12,6 +12,7 @@ import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/com
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../../../../../shared/utils/dateSortingFn';
@@ -96,6 +97,8 @@ export const ProfileApiTokensTable = () => {
                             ['user', username, 'api_token'],
                           ],
                           submitProps: { text: m.controls_delete(), variant: 'critical' },
+                          onSuccess: () => Snackbar.default(m.modal_delete_api_token_success()),
+                          onError: () => Snackbar.error(m.modal_delete_api_token_error()),
                         });
                       },
                     },

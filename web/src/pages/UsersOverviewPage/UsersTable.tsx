@@ -393,6 +393,8 @@ export const UsersTable = () => {
                         text: m.users_row_menu_delete(),
                         variant: 'critical',
                       },
+                      onSuccess: () => Snackbar.default(m.modal_delete_user_success()),
+                      onError: () => Snackbar.error(m.modal_delete_user_error()),
                     });
                   },
                 },

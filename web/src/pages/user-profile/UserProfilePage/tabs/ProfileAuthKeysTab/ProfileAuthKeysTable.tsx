@@ -18,6 +18,7 @@ import { TableBody } from '../../../../../shared/defguard-ui/components/table/Ta
 import { TableCell } from '../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { useClipboard } from '../../../../../shared/defguard-ui/hooks/useClipboard';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
@@ -187,6 +188,8 @@ export const ProfileAuthKeysTable = () => {
                         api.user.deleteAuthKey({ id: rowData.id, username }),
                       invalidateKeys: [['user-overview'], ['user', username, 'auth_key']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.modal_delete_auth_key_success()),
+                      onError: () => Snackbar.error(m.modal_delete_auth_key_error()),
                     });
                   },
                 },

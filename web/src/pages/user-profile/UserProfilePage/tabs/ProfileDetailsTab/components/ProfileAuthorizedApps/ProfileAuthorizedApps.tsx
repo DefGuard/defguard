@@ -6,6 +6,7 @@ import api from '../../../../../../../shared/api/api';
 import type { OAuth2AuthorizedApps, User } from '../../../../../../../shared/api/types';
 import { IconButton } from '../../../../../../../shared/defguard-ui/components/IconButton/IconButton';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
@@ -66,6 +67,8 @@ const AuthorizedApp = ({ data }: Props) => {
               actionPromise: deleteAuthorizedApp,
               invalidateKeys: [['oauth'], ['user', username]],
               submitProps: { text: m.controls_delete(), variant: 'critical' },
+              onSuccess: () => Snackbar.default(m.modal_delete_authorized_app_success()),
+              onError: () => Snackbar.error(m.modal_delete_authorized_app_error()),
             });
           }}
         />
