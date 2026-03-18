@@ -12,6 +12,8 @@
   "modal_delete_location_body": "Deleting location {name} will also delete related gateways. This action cannot be undone.",
   "modal_delete_network_device_title": "Delete device",
   "modal_delete_network_device_body": "Are you sure you want to delete this device? This action cannot be undone.",
+  "modal_delete_user_title": "Delete user",
+  "modal_delete_user_body": "Are you sure you want to delete user {name}? This action cannot be undone.",
   "modal_delete_user_device_title": "Delete device",
   "modal_delete_user_device_body": "Are you sure you want to delete the {name} device? This action cannot be undone.",
   "modal_delete_openid_client_title": "Delete application",
