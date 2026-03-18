@@ -184,6 +184,7 @@ const Content = ({ rule: initialRule }: Props) => {
   }, [users]);
 
   const { data: destinations } = useQuery(getAppliedDestinationsQueryOptions);
+  const hasPredefinedDestinations = Boolean(destinations && destinations.length > 0);
 
   const destinationsOptions = useMemo(() => {
     if (isPresent(destinations)) {
@@ -438,13 +439,19 @@ const Content = ({ rule: initialRule }: Props) => {
             }
           } else if (vals.destinations.size === 0) {
             ctx.addIssue({
-              path: ['destinations'],
+              path: [
+                hasPredefinedDestinations
+                  ? 'destinations'
+                  : 'use_manual_destination_settings',
+              ],
               code: 'custom',
-              message: m.form_error_required(),
+              message: hasPredefinedDestinations
+                ? m.form_error_no_destination()
+                : m.form_error_no_predefined_destination(),
             });
           }
         }),
-    [restrictDevices, restrictGroups, restrictUsers],
+    [hasPredefinedDestinations, restrictDevices, restrictGroups, restrictUsers],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -648,15 +655,6 @@ const Content = ({ rule: initialRule }: Props) => {
               }}
             </form.AppField>
           )}
-          <form.AppField name="destinations">
-            {() => (
-              <DestinationSelectionError
-                hasPredefinedDestinations={Boolean(
-                  destinations && destinations.length > 0,
-                )}
-              />
-            )}
-          </form.AppField>
           <Divider text="or/and" spacing={ThemeSpacing.Lg} />
           <DescriptionBlock title={`Define destination manually`}>
             <p>{`Manually configure destinations parameters for this rule.`}</p>
@@ -821,6 +819,13 @@ const Content = ({ rule: initialRule }: Props) => {
               </Fold>
             )}
           </form.Subscribe>
+          <form.AppField name="destinations">
+            {() => (
+              <DestinationSelectionError
+                hasPredefinedDestinations={hasPredefinedDestinations}
+              />
+            )}
+          </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="enrollment">
@@ -1133,15 +1138,7 @@ const DestinationSelectionError = ({
 }) => {
   const error = useFormFieldError();
 
-  if (!error) return null;
+  if (!hasPredefinedDestinations || !error) return null;
 
-  return (
-    <FieldError
-      error={
-        hasPredefinedDestinations
-          ? m.form_error_no_destination()
-          : m.form_error_no_predefined_destination()
-      }
-    />
-  );
+  return <FieldError error={error} />;
 };
