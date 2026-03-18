@@ -337,7 +337,7 @@ impl ActiveSessionsMap {
             location,
             user,
             device,
-            public_ip,
+            public_ip: Some(public_ip),
         };
         let event = SessionManagerEvent {
             context,

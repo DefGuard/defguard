@@ -1,5 +1,3 @@
-use std::net::{IpAddr, Ipv4Addr};
-
 use chrono::Utc;
 use defguard_common::{
     db::{
@@ -312,8 +310,7 @@ impl SessionManager {
             location: location.clone(),
             user,
             device,
-            // FIXME: this is a workaround since we require an IP for each audit log event
-            public_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            public_ip: None,
         };
         let event = SessionManagerEvent {
             context,

@@ -573,7 +573,7 @@ pub async fn run_event_logger(
                     user_id,
                     username,
                     location,
-                    ip: ip.into(),
+                    ip: ip.map(Into::into),
                     event,
                     module,
                     device,
