@@ -366,7 +366,10 @@ export const UsersTable = () => {
                       contentMd: m.modal_delete_user_body({ name: rowData.name }),
                       actionPromise: () => api.user.deleteUser(rowData.username),
                       invalidateKeys: [['user-overview'], ['user'], ['enterprise_info']],
-                      submitProps: { text: m.users_row_menu_delete(), variant: 'critical' },
+                      submitProps: {
+                        text: m.users_row_menu_delete(),
+                        variant: 'critical',
+                      },
                     });
                   },
                 },

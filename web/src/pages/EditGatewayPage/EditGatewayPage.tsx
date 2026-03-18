@@ -58,7 +58,9 @@ type FormFields = z.infer<typeof formSchema>;
 
 const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const navigate = useNavigate();
-  const { data: location } = useSuspenseQuery(getLocationQueryOptions(gateway.location_id));
+  const { data: location } = useSuspenseQuery(
+    getLocationQueryOptions(gateway.location_id),
+  );
 
   const { mutateAsync: editGateway } = useMutation({
     mutationFn: api.gateway.editGateway,

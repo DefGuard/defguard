@@ -24,8 +24,8 @@ import { TableBody } from '../../../shared/defguard-ui/components/table/TableBod
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
-import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import {

@@ -25,9 +25,9 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
