@@ -81,15 +81,17 @@ mod tests {
             .save(&pool)
             .await
             .expect("failed to create network for cert refresh tests");
-        let gateway_with_cert =
+        let mut gateway_with_cert =
             create_gateway(&pool, network.id, "gateway-with-cert", Some("cert-1")).await;
-        let gateway_without_cert =
+        let mut gateway_without_cert =
             create_gateway(&pool, network.id, "gateway-without-cert", None).await;
-        let gateway_with_new_cert =
+        let mut gateway_with_new_cert =
             create_gateway(&pool, network.id, "gateway-with-new-cert", Some("cert-3")).await;
 
-        let (tx, mut rx) =
+        let (tx, rx) =
             watch::channel(Arc::new(HashMap::from([(999, "stale-cert".to_string())])));
+        let mut lagging_rx = rx.clone();
+        let mut rx = rx;
 
         refresh_certs(&pool, &tx).await;
 
@@ -104,6 +106,49 @@ mod tests {
         assert_eq!(published.as_ref(), &expected);
         assert!(!published.contains_key(&gateway_without_cert.id));
         assert!(!published.contains_key(&999));
+
+        gateway_with_cert.certificate = Some("cert-2".to_string());
+        gateway_with_cert
+            .save(&pool)
+            .await
+            .expect("failed to update gateway certificate for cert refresh tests");
+
+        gateway_without_cert.certificate = Some("cert-4".to_string());
+        gateway_without_cert
+            .save(&pool)
+            .await
+            .expect("failed to add gateway certificate for cert refresh tests");
+
+        gateway_with_new_cert.certificate = None;
+        gateway_with_new_cert
+            .save(&pool)
+            .await
+            .expect("failed to remove gateway certificate for cert refresh tests");
+
+        refresh_certs(&pool, &tx).await;
+
+        assert!(rx.has_changed().expect("cert watch sender should still be alive"));
+
+        let published = Arc::clone(&rx.borrow_and_update());
+        let expected = HashMap::from([
+            (gateway_with_cert.id, "cert-2".to_string()),
+            (gateway_without_cert.id, "cert-4".to_string()),
+        ]);
+
+        assert_eq!(published.as_ref(), &expected);
+        assert!(!published.contains_key(&gateway_with_new_cert.id));
+        assert!(!published.contains_key(&999));
+
+        assert!(lagging_rx
+            .has_changed()
+            .expect("cert watch sender should still be alive"));
+        let latest_only = Arc::clone(&lagging_rx.borrow_and_update());
+
+        assert_eq!(latest_only.as_ref(), &expected);
+        assert_ne!(latest_only.as_ref(), &HashMap::from([
+            (gateway_with_cert.id, "cert-1".to_string()),
+            (gateway_with_new_cert.id, "cert-3".to_string()),
+        ]));
     }
 
     async fn create_gateway(
