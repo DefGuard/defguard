@@ -34,6 +34,12 @@ impl<I> Gateway<I> {
             self.connected_at.is_some()
         }
     }
+
+    /// Return address and port as URL with HTTP scheme.
+    #[must_use]
+    pub fn url(&self) -> String {
+        format!("http://{}:{}", self.address, self.port)
+    }
 }
 
 impl Gateway {
@@ -169,12 +175,6 @@ impl Gateway<Id> {
         .await?;
 
         Ok(record)
-    }
-
-    /// Return address and port as URL with HTTP scheme.
-    #[must_use]
-    pub fn url(&self) -> String {
-        format!("http://{}:{}", self.address, self.port)
     }
 
     /// Disable all Gateways except one. Used for expired licence.
