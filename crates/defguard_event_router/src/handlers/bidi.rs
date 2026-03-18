@@ -108,7 +108,7 @@ mod tests {
     };
 
     use defguard_common::db::{
-        NoId,
+        Id, NoId,
         models::{
             Device, DeviceType, WireguardNetwork,
             wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -203,12 +203,12 @@ mod tests {
         BidiRequestContext::new(
             1,
             "alice".to_string(),
-            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
             "desktop-app".to_string(),
         )
     }
 
-    fn sample_device() -> Device<i64> {
+    fn sample_device() -> Device<Id> {
         Device::new(
             "vpn-device".to_string(),
             "pubkey".to_string(),
@@ -220,7 +220,7 @@ mod tests {
         .save_placeholder_id(20)
     }
 
-    fn sample_location() -> WireguardNetwork<i64> {
+    fn sample_location() -> WireguardNetwork<Id> {
         WireguardNetwork::new(
             "vpn-location".to_string(),
             vec!["10.0.0.0/24".parse().unwrap()],
@@ -242,11 +242,11 @@ mod tests {
     }
 
     trait WithPlaceholderId<T> {
-        fn save_placeholder_id(self, id: i64) -> T;
+        fn save_placeholder_id(self, id: Id) -> T;
     }
 
-    impl WithPlaceholderId<Device<i64>> for Device<NoId> {
-        fn save_placeholder_id(self, id: i64) -> Device<i64> {
+    impl WithPlaceholderId<Device<Id>> for Device<NoId> {
+        fn save_placeholder_id(self, id: Id) -> Device<Id> {
             Device {
                 id,
                 name: self.name,
@@ -260,8 +260,8 @@ mod tests {
         }
     }
 
-    impl WithPlaceholderId<WireguardNetwork<i64>> for WireguardNetwork<NoId> {
-        fn save_placeholder_id(self, id: i64) -> WireguardNetwork<i64> {
+    impl WithPlaceholderId<WireguardNetwork<Id>> for WireguardNetwork<NoId> {
+        fn save_placeholder_id(self, id: Id) -> WireguardNetwork<Id> {
             WireguardNetwork {
                 id,
                 name: self.name,

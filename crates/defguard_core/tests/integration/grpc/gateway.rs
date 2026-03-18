@@ -352,7 +352,7 @@ async fn test_vpn_client_disconnected(_: PgPoolOptions, options: PgConnectOption
                 device_pubkey,
                 &test_device,
                 &test_user,
-                SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+                SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8080),
                 &stats,
             )
             .expect("failed to insert connected client");

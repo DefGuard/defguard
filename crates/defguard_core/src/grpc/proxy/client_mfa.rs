@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    net::{IpAddr, Ipv4Addr},
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -469,12 +470,8 @@ impl ClientMfaServer {
 
         // Prepare event context
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
-        let context = BidiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            ip,
-            format!("{} (ID {})", device.name, device.id),
-        );
+        let context =
+            BidiRequestContext::new(user.id, user.username.clone(), ip, format!("{}", device));
 
         // validate code
         match method {
@@ -860,8 +857,8 @@ impl ClientMfaServer {
                 timestamp: disconnect_timestamp,
                 user_id: user.id,
                 username: user.username.clone(),
-                ip: std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
-                device_name: format!("{} (ID {})", device.name, device.id),
+                ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                device_name: format!("{}", device),
             };
             self.emit_event(BidiStreamEvent {
                 context,
