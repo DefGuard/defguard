@@ -186,7 +186,9 @@
   "modal_disable_mfa_all_success": "MFA disabled",
   "modal_disable_mfa_all_error": "Failed to disable MFA",
   "modal_delete_mfa_passkey_title": "Delete passkey",
-  "modal_delete_mfa_passkey_content": "Are you sure you want to delete passkey **{name}**? This action cannot be undone.",
+  "modal_delete_mfa_passkey_content": "Are you sure you want to delete passkey {name}? This action cannot be undone.",
   "modal_delete_mfa_passkey_success": "Passkey deleted",
-  "modal_delete_mfa_passkey_error": "Failed to delete passkey"
+  "modal_delete_mfa_passkey_error": "Failed to delete passkey",
+  "modal_delete_auth_key_title": "Delete authentication key",
+  "modal_delete_auth_key_content": "Are you sure you want to delete authentication key {name}? This action cannot be undone."
 }

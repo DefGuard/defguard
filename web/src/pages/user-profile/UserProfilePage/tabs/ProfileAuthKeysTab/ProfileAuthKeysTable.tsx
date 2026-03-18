@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -83,13 +82,6 @@ export const ProfileAuthKeysTable = () => {
 
   const authKeys = useUserProfile((s) => s.authKeys);
   const mapped = useMemo(() => mapData(authKeys), [authKeys]);
-
-  const { mutate: deleteAuthKey } = useMutation({
-    mutationFn: api.user.deleteAuthKey,
-    meta: {
-      invalidate: [['user-overview'], ['user', username, 'auth_key']],
-    },
-  });
 
   const columns = useMemo(
     () => [
@@ -188,9 +180,13 @@ export const ProfileAuthKeysTable = () => {
                   variant: 'danger',
                   text: m.controls_delete(),
                   onClick: () => {
-                    deleteAuthKey({
-                      id: rowData.id,
-                      username,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_auth_key_title(),
+                      contentMd: m.modal_delete_auth_key_content({ name: rowData.name }),
+                      actionPromise: () =>
+                        api.user.deleteAuthKey({ id: rowData.id, username }),
+                      invalidateKeys: [['user-overview'], ['user', username, 'auth_key']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
                     });
                   },
                 },
@@ -201,7 +197,7 @@ export const ProfileAuthKeysTable = () => {
         },
       }),
     ],
-    [deleteAuthKey, username, writeToClipboard, mapped],
+    [username, writeToClipboard, mapped],
   );
 
   const table = useReactTable({

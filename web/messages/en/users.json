@@ -30,7 +30,7 @@
   "users_row_menu_initiate_self_enrollment": "Initiate self-enrollment",
   "users_row_menu_ip_settings": "User devices IP settings",
   "users_modal_disable_mfa_title": "Disable MFA",
-  "users_modal_disable_mfa_content": "Are you sure you want to disable MFA for **{name}**? This will remove all configured MFA methods and recovery codes.",
+  "users_modal_disable_mfa_content": "Are you sure you want to disable MFA for {name}? This will remove all configured MFA methods and recovery codes.",
   "users_disable_mfa_success": "MFA disabled",
   "users_disable_mfa_error": "Failed to disable MFA",
   "modal_edit_user_groups_title": "Edit user groups"
