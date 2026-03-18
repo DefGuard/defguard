@@ -3,10 +3,7 @@ use std::net::IpAddr;
 use defguard_common::db::models::{
     Device, DeviceType, WireguardNetwork,
     device::UserDevice,
-    wireguard::{
-        DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-        LocationMfaMode, ServiceLocationMode,
-    },
+    wireguard::{LocationMfaMode, ServiceLocationMode},
 };
 use defguard_core::{
     grpc::GatewayEvent,
@@ -50,24 +47,23 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = client_state.pool;
 
     // setup initial network
-    let initial_network = WireguardNetwork::new(
+    WireguardNetwork::new(
         "initial".into(),
-        vec!["10.1.9.0/24".parse().unwrap()],
         51515,
         String::new(),
         None,
-        DEFAULT_WIREGUARD_MTU,
-        0,
         Vec::new(),
         false,
-        DEFAULT_KEEPALIVE_INTERVAL,
-        DEFAULT_DISCONNECT_THRESHOLD,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    );
-    initial_network.save(&pool).await.unwrap();
+    )
+    .set_address(["10.1.9.1/24".parse().unwrap()])
+    .unwrap()
+    .save(&pool)
+    .await
+    .unwrap();
 
     // add existing devices
     let mut transaction = pool.begin().await.unwrap();
@@ -130,7 +126,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     let network = response.network;
     assert_eq!(network.id, 2);
     assert_eq!(network.name, "network");
-    assert_eq!(network.address, vec!["10.0.0.1/24".parse().unwrap()]);
+    assert_eq!(network.address(), ["10.0.0.1/24".parse().unwrap()]);
     assert_eq!(network.port, 55055);
     assert_eq!(
         network.pubkey,

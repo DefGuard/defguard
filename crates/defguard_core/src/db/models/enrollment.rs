@@ -12,7 +12,7 @@ use defguard_mail::{
     Mail,
     templates::{self, TemplateError, safe_tera},
 };
-use sqlx::{Error as SqlxError, PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
+use sqlx::{PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
 use tera::Context;
 use thiserror::Error;
 use tonic::{Code, Status};
@@ -23,7 +23,7 @@ pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
 #[derive(Error, Debug)]
 pub enum TokenError {
     #[error(transparent)]
-    DbError(#[from] SqlxError),
+    DbError(#[from] sqlx::Error),
     #[error("Enrollment token not found")]
     NotFound,
     #[error("Enrollment token expired")]

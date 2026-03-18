@@ -11,10 +11,7 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
-    query_scalar,
-};
+use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
 use tracing::{debug, info};
 use utoipa::ToSchema;
@@ -35,13 +32,13 @@ use crate::{
         },
     },
     types::user_info::UserInfo,
-    utils::parse_address_list,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 300;
 /// Default MTU for WireGuard interfaces.
 pub const DEFAULT_WIREGUARD_MTU: i32 = 1420; // TODO: use u32 once sqlx supports unsigned integers.
+const DEFAULT_FWMARK: i64 = 0; // Zero means: don't use firewall mark.
 
 // Used in process of importing network from WireGuard config.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -109,7 +106,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub name: String,
     #[model(ref)]
     #[schema(value_type = Vec<String>)]
-    pub address: Vec<IpNetwork>,
+    address: Vec<IpNetwork>,
     pub port: i32, // Should be u16
     pub pubkey: String,
     #[serde(default, skip_serializing)]
@@ -213,72 +210,117 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
+    pub async fn count<'e, E>(executor: E) -> sqlx::Result<usize>
+    where
+        E: PgExecutor<'e>,
+    {
+        let count = query_scalar!("SELECT COUNT(*) FROM wireguard_network")
+            .fetch_one(executor)
+            .await?
+            .unwrap_or_default();
+
+        Ok(count as usize)
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[must_use]
-    pub fn new(
+    pub fn new<V>(
         name: String,
-        address: Vec<IpNetwork>,
         port: i32,
         endpoint: String,
         dns: Option<String>,
-        mtu: i32,
-        fwmark: i64,
-        allowed_ips: Vec<IpNetwork>,
+        allowed_ips: V,
         allow_all_groups: bool,
-        keepalive_interval: i32,
-        peer_disconnect_threshold: i32,
         acl_enabled: bool,
         acl_default_allow: bool,
         location_mfa_mode: LocationMfaMode,
         service_location_mode: ServiceLocationMode,
-    ) -> Self {
+    ) -> Self
+    where
+        V: Into<Vec<IpNetwork>>,
+    {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
         Self {
             id: NoId,
             name,
-            address,
+            address: Vec::new(),
             port,
             pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
             endpoint,
             dns,
-            mtu,
-            fwmark,
-            allowed_ips,
+            mtu: DEFAULT_WIREGUARD_MTU,
+            fwmark: DEFAULT_FWMARK,
+            allowed_ips: allowed_ips.into(),
             allow_all_groups,
             connected_at: None,
-            keepalive_interval,
-            peer_disconnect_threshold,
+            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
             acl_enabled,
             acl_default_allow,
             location_mfa_mode,
             service_location_mode,
         }
     }
+}
 
-    /// Try to set `address` from `&str`.
-    pub fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
-        let address = parse_address_list(address);
-        if address.is_empty() {
-            return Err(IpNetworkError::InvalidAddr("invalid address".into()));
+impl<I> WireguardNetwork<I> {
+    /// Address list getter.
+    pub fn address(&self) -> &[IpNetwork] {
+        self.address.as_slice()
+    }
+
+    /// Address list setter.
+    pub fn set_address<V>(mut self, address: V) -> Result<Self, IpNetworkError>
+    where
+        V: Into<Vec<IpNetwork>>,
+    {
+        let address = address.into();
+        for addr in &address {
+            if addr.prefix() == 0 {
+                return Err(IpNetworkError::InvalidAddr("prefix is zero".into()));
+            }
+            let ip = addr.ip();
+            if ip == addr.network() {
+                return Err(IpNetworkError::InvalidAddr("address is network".into()));
+            }
+            if ip == addr.broadcast() {
+                return Err(IpNetworkError::InvalidAddr("address is broadcast".into()));
+            }
         }
         self.address = address;
 
-        Ok(())
+        Ok(self)
+    }
+
+    /// Try to set `address` from comma-separated string of addresses.
+    pub fn try_set_address(self, address: &str) -> Result<Self, IpNetworkError> {
+        let mut parsed_addresses = Vec::new();
+        for addr_str in address.split(',') {
+            let addr = addr_str.trim().parse::<IpNetwork>()?;
+            parsed_addresses.push(addr);
+        }
+        if parsed_addresses.is_empty() {
+            Err(IpNetworkError::InvalidAddr("empty address".into()))
+        } else {
+            self.set_address(parsed_addresses)
+        }
     }
 }
 
 impl WireguardNetwork<Id> {
+    /// Try to find `WireguardNetwork` with the given name.
     pub async fn find_by_name<'e, E>(executor: E, name: &str) -> sqlx::Result<Option<Vec<Self>>>
     where
         E: PgExecutor<'e>,
     {
         let networks = query_as!(
-            WireguardNetwork,
+            Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, \
-            acl_enabled, acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE name = $1",
             name
@@ -291,6 +333,52 @@ impl WireguardNetwork<Id> {
         }
 
         Ok(Some(networks))
+    }
+
+    /// Gets the first network of the network device.
+    /// FIXME: Return only one network, not a Vec.
+    pub async fn find_network_device_networks<'e, E>(
+        executor: E,
+        device_id: Id,
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
+            FROM wireguard_network WHERE id IN \
+            (SELECT wireguard_network_id FROM wireguard_network_device \
+            WHERE device_id = $1 ORDER BY id LIMIT 1)",
+            device_id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Find all for a given rule `Id`.
+    pub async fn all_for_rule<'e, E>(executor: E, rule_id: Id) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
+            FROM aclrulenetwork r \
+            JOIN wireguard_network n ON n.id = r.network_id \
+            WHERE r.rule_id = $1",
+            rule_id,
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Check if given number of devices can fit in networks used by this location.
@@ -514,7 +602,8 @@ impl WireguardNetwork<Id> {
         let stats = query_as!(
             WireguardDeviceTransferRow,
             "SELECT s.device_id, date_trunc($1, collected_at) \"collected_at!: NaiveDateTime\", \
-            CAST(sum(download_diff) AS bigint) \"download!\", CAST(sum(upload_diff) AS bigint) \"upload!\" \
+            CAST(sum(download_diff) AS bigint) \"download!\", \
+            CAST(sum(upload_diff) AS bigint) \"upload!\" \
 			FROM vpn_session_stats \
             INNER JOIN vpn_client_session s ON session_id = s.id \
             WHERE s.device_id = ANY($2) AND collected_at >= $3 AND s.location_id = $4  \
@@ -576,7 +665,7 @@ impl WireguardNetwork<Id> {
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
         device_type: DeviceType,
-    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+    ) -> sqlx::Result<Vec<WireguardDeviceStatsRow>> {
         // Retrieve currently connected devices from database
         let devices = query_as!(
             Device,
@@ -601,7 +690,7 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardUserStatsRow>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<WireguardUserStatsRow>> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
 
         // Retrieve data series for all active devices and assign them to users
@@ -635,7 +724,7 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
         page: u32,
         page_size: u32,
-    ) -> Result<(Vec<LocationConnectedUserStats>, u32), sqlx::Error> {
+    ) -> sqlx::Result<(Vec<LocationConnectedUserStats>, u32)> {
         // helper struct used to fetch connected users from the DB
         struct ConnectedUserRow {
             user_id: Id,
@@ -757,7 +846,7 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
         page: u32,
         page_size: u32,
-    ) -> Result<(Vec<LocationConnectedNetworkDevice>, u32), sqlx::Error> {
+    ) -> sqlx::Result<(Vec<LocationConnectedNetworkDevice>, u32)> {
         // helper struct used to fetch connected network devices from the DB
         struct ConnectedNetworkDeviceRow {
             device_id: Id,
@@ -867,7 +956,7 @@ impl WireguardNetwork<Id> {
         user_id: Id,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<LocationConnectedUserDevice>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<LocationConnectedUserDevice>> {
         // helper struct used to fetch connected user devices from the DB
         struct ConnectedUserDeviceRow {
             device_id: Id,
@@ -961,7 +1050,7 @@ impl WireguardNetwork<Id> {
         &self,
         pool: &PgPool,
         from: &NaiveDateTime,
-    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    ) -> sqlx::Result<WireguardNetworkActivityStats> {
         let total_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -981,10 +1070,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves currently connected sessions stats
-    async fn current_activity(
-        &self,
-        pool: &PgPool,
-    ) -> Result<WireguardNetworkActivityStats, SqlxError> {
+    async fn current_activity(&self, pool: &PgPool) -> sqlx::Result<WireguardNetworkActivityStats> {
         let current_activity = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -1009,7 +1095,7 @@ impl WireguardNetwork<Id> {
         pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardStatsRow>, sqlx::Error> {
+    ) -> sqlx::Result<Vec<WireguardStatsRow>> {
         let stats = query_as!(
             WireguardStatsRow,
             "SELECT \
@@ -1038,7 +1124,7 @@ impl WireguardNetwork<Id> {
         pool: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<WireguardNetworkStats, SqlxError> {
+    ) -> sqlx::Result<WireguardNetworkStats> {
         let total_activity = self.total_activity(pool, from).await?;
         let current_activity = self.current_activity(pool).await?;
         let transfer_series = self.transfer_series(pool, from, aggregation).await?;
@@ -1059,16 +1145,16 @@ impl WireguardNetwork<Id> {
         &self,
         executor: E,
         device_type: DeviceType,
-    ) -> Result<Vec<Device<Id>>, sqlx::Error>
+    ) -> sqlx::Result<Vec<Device<Id>>>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Device,
-            "SELECT \
-                id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-                configured \
-            FROM device WHERE id in (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $1) \
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
+            FROM device WHERE id in (SELECT device_id \
+            FROM wireguard_network_device WHERE wireguard_network_id = $1) \
             AND device_type = $2",
             self.id,
             device_type as DeviceType
@@ -1170,8 +1256,9 @@ impl WireguardNetwork<Id> {
         let locations = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
-            allowed_ips, allow_all_groups, connected_at, keepalive_interval, peer_disconnect_threshold, acl_enabled, \
-            acl_default_allow, location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            allowed_ips, allow_all_groups, connected_at, keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE location_mfa_mode = 'external'::location_mfa_mode",
         )
@@ -1318,11 +1405,11 @@ impl WireguardNetwork<Id> {
     pub async fn get_active_vpn_sessions<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
-    ) -> Result<Vec<VpnClientSession<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<VpnClientSession<Id>>> {
         query_as!(
             VpnClientSession,
-            "SELECT id, location_id, user_id, device_id, \
-            created_at, connected_at, disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", \
+            "SELECT id, location_id, user_id, device_id, created_at, connected_at, \
+            disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", \
             state \"state: VpnClientSessionState\", preshared_key \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
@@ -1336,7 +1423,7 @@ impl WireguardNetwork<Id> {
     pub async fn all_used_ips_for_network(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<HashSet<IpAddr>, SqlxError> {
+    ) -> sqlx::Result<HashSet<IpAddr>> {
         let all_devices =
             WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
         let used_ips: HashSet<IpAddr> = all_devices
@@ -1479,17 +1566,17 @@ pub async fn networks_stats(
     pool: &PgPool,
     from: &NaiveDateTime,
     aggregation: &DateTimeAggregation,
-) -> Result<WireguardNetworkStats, SqlxError> {
+) -> sqlx::Result<WireguardNetworkStats> {
     // get all active users/devices within specified time window
     let total_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM vpn_client_session s \
-            LEFT JOIN device d ON d.id = s.device_id \
-            WHERE s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $1)",
+            COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
+            COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+            COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+        FROM vpn_client_session s \
+        LEFT JOIN device d ON d.id = s.device_id \
+        WHERE s.state = 'connected' OR (s.state = 'disconnected' AND s.disconnected_at >= $1)",
         from
     )
     .fetch_one(pool)
@@ -1499,12 +1586,12 @@ pub async fn networks_stats(
     let current_activity = query_as!(
         WireguardNetworkActivityStats,
         "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM vpn_client_session s \
-            LEFT JOIN device d ON d.id = s.device_id \
-            WHERE s.state = 'connected'",
+            COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN s.user_id END), 0) \"active_users!\", \
+            COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+            COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+        FROM vpn_client_session s \
+        LEFT JOIN device d ON d.id = s.device_id \
+        WHERE s.state = 'connected'",
     )
     .fetch_one(pool)
     .await?;
@@ -1512,15 +1599,15 @@ pub async fn networks_stats(
     // get transfer series for specified time window
     let transfer_series = query_as!(
         WireguardStatsRow,
-            "SELECT \
-                date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
-                cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
-            FROM vpn_session_stats \
-            JOIN vpn_client_session s ON session_id = s.id \
-            WHERE collected_at >= $2 \
-            GROUP BY 1 \
-            ORDER BY 1 \
-            LIMIT $3",
+        "SELECT \
+            date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+            cast(sum(upload_diff) AS bigint) upload, cast(sum(download_diff) AS bigint) download \
+        FROM vpn_session_stats \
+        JOIN vpn_client_session s ON session_id = s.id \
+        WHERE collected_at >= $2 \
+        GROUP BY 1 \
+        ORDER BY 1 \
+        LIMIT $3",
         aggregation.fstring(),
         from,
         PEER_STATS_LIMIT,
@@ -1541,592 +1628,4 @@ pub async fn networks_stats(
 }
 
 #[cfg(test)]
-mod test {
-    use std::str::FromStr;
-
-    use matches::assert_matches;
-    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-    use super::*;
-    use crate::db::setup_pool;
-
-    // FIXME(mwojcik): rewrite for new stats implementation
-    // #[sqlx::test]
-    // async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
-    //     let pool = setup_pool(options).await;
-    //     let mut location = WireguardNetwork::default();
-    //     location.try_set_address("10.1.1.1/29").unwrap();
-    //     let location = location.save(&pool).await.unwrap();
-
-    //     let user = User::new(
-    //         "testuser",
-    //         Some("hunter2"),
-    //         "Tester",
-    //         "Test",
-    //         "test@test.com",
-    //         None,
-    //     )
-    //     .save(&pool)
-    //     .await
-    //     .unwrap();
-    //     let device = Device::new(
-    //         String::new(),
-    //         String::new(),
-    //         user.id,
-    //         DeviceType::User,
-    //         None,
-    //         true,
-    //     )
-    //     .save(&pool)
-    //     .await
-    //     .unwrap();
-
-    //     // insert stats
-    //     let samples = 60; // 1 hour of samples
-    //     let now = Utc::now().naive_utc();
-    //     for i in 0..=samples {
-    //         // simulate connection 30 minutes ago
-    //         let handshake_minutes = i * if i < 31 { 1 } else { 10 };
-    //         WireguardPeerStats {
-    //             id: NoId,
-    //             device_id: device.id,
-    //             collected_at: now - TimeDelta::minutes(i),
-    //             network: location.id,
-    //             endpoint: Some("11.22.33.44".into()),
-    //             upload: (samples - i) * 10,
-    //             download: (samples - i) * 20,
-    //             latest_handshake: now - TimeDelta::minutes(handshake_minutes),
-    //             allowed_ips: Some("10.1.1.0/24".into()),
-    //         }
-    //         .save(&pool)
-    //         .await
-    //         .unwrap();
-    //     }
-
-    //     let connected_at = device
-    //         .last_connected_at(&pool, location.id)
-    //         .await
-    //         .unwrap()
-    //         .unwrap();
-    //     assert_eq!(
-    //         connected_at,
-    //         // PostgreSQL stores 6 sub-second digits while chrono stores 9.
-    //         (now - TimeDelta::minutes(30)).trunc_subsecs(6),
-    //     );
-    // }
-
-    // FIXME(mwojcik): rewrite for new stats implementation
-    // #[sqlx::test]
-    // async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
-    //     let pool = setup_pool(options).await;
-    //     let mut location = WireguardNetwork::default();
-    //     location.try_set_address("10.1.1.1/29").unwrap();
-    //     let location = location.save(&pool).await.unwrap();
-
-    //     let user = User::new(
-    //         "testuser",
-    //         Some("hunter2"),
-    //         "Tester",
-    //         "Test",
-    //         "test@test.com",
-    //         None,
-    //     )
-    //     .save(&pool)
-    //     .await
-    //     .unwrap();
-    //     let device = Device::new(
-    //         String::new(),
-    //         String::new(),
-    //         user.id,
-    //         DeviceType::User,
-    //         None,
-    //         true,
-    //     )
-    //     .save(&pool)
-    //     .await
-    //     .unwrap();
-
-    //     // insert stats
-    //     let samples = 60; // 1 hour of samples
-    //     let now = Utc::now().naive_utc();
-    //     for i in 0..=samples {
-    //         WireguardPeerStats {
-    //             id: NoId,
-    //             device_id: device.id,
-    //             collected_at: now - TimeDelta::minutes(i),
-    //             network: location.id,
-    //             endpoint: Some("11.22.33.44".into()),
-    //             upload: (samples - i) * 10,
-    //             download: (samples - i) * 20,
-    //             latest_handshake: now - TimeDelta::minutes(i), // handshake every minute
-    //             allowed_ips: Some("10.1.1.0/24".into()),
-    //         }
-    //         .save(&pool)
-    //         .await
-    //         .unwrap();
-    //     }
-
-    //     let connected_at = device
-    //         .last_connected_at(&pool, location.id)
-    //         .await
-    //         .unwrap()
-    //         .unwrap();
-    //     assert_eq!(
-    //         connected_at,
-    //         // PostgreSQL stores 6 sub-second digits while chrono stores 9.
-    //         (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
-    //     );
-    // }
-
-    #[sqlx::test]
-    async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::<NoId> {
-            allow_all_groups: true,
-            ..Default::default()
-        };
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
-
-        let user1 = User::new(
-            "user1",
-            Some("pass1"),
-            "Test",
-            "User1",
-            "user1@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let user2 = User::new(
-            "user2",
-            Some("pass2"),
-            "Test",
-            "User2",
-            "user2@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device1 = Device::new(
-            "device1".into(),
-            "key1".into(),
-            user1.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device2 = Device::new(
-            "device2".into(),
-            "key2".into(),
-            user1.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device3 = Device::new(
-            "device3".into(),
-            "key3".into(),
-            user2.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let devices = network
-            .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), user1.id)
-            .await
-            .unwrap();
-        assert_eq!(devices.len(), 2);
-        assert!(devices.iter().any(|d| d.id == device1.id));
-        assert!(devices.iter().any(|d| d.id == device2.id));
-
-        let devices = network
-            .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), user2.id)
-            .await
-            .unwrap();
-        assert_eq!(devices.len(), 1);
-        assert!(devices.iter().any(|d| d.id == device3.id));
-
-        let devices = network
-            .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), Id::from(999))
-            .await
-            .unwrap();
-        assert!(devices.is_empty());
-    }
-
-    #[sqlx::test]
-    async fn test_get_allowed_devices_for_user_with_groups(
-        _: PgPoolOptions,
-        options: PgConnectOptions,
-    ) {
-        let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
-
-        let user1 = User::new(
-            "user1",
-            Some("pass1"),
-            "Test",
-            "User1",
-            "user1@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let user2 = User::new(
-            "user2",
-            Some("pass2"),
-            "Test",
-            "User2",
-            "user2@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let group1 = Group::new("group1").save(&pool).await.unwrap();
-        let group2 = Group::new("group2").save(&pool).await.unwrap();
-
-        user1.add_to_group(&pool, &group1).await.unwrap();
-        user2.add_to_group(&pool, &group2).await.unwrap();
-
-        let device1 = Device::new(
-            "device1".into(),
-            "key1".into(),
-            user1.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        Device::new(
-            "device2".into(),
-            "key2".into(),
-            user2.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let mut transaction = pool.begin().await.unwrap();
-
-        network
-            .set_allowed_groups(&mut transaction, &[group1.name])
-            .await
-            .unwrap();
-
-        let devices = network
-            .get_allowed_devices_for_user(&mut transaction, user1.id)
-            .await
-            .unwrap();
-        assert_eq!(devices.len(), 1);
-        assert_eq!(devices[0].id, device1.id);
-
-        let devices = network
-            .get_allowed_devices_for_user(&mut transaction, user2.id)
-            .await
-            .unwrap();
-        assert!(devices.is_empty());
-    }
-
-    #[sqlx::test]
-    async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-
-        let network = WireguardNetwork::new(
-            "network".to_string(),
-            vec![IpNetwork::from_str("10.1.1.1/24").unwrap()],
-            50051,
-            String::new(),
-            None,
-            DEFAULT_WIREGUARD_MTU,
-            0,
-            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
-            false,
-            300,
-            300,
-            false,
-            false,
-            LocationMfaMode::Disabled,
-            ServiceLocationMode::Disabled,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        // assign free address
-        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Ok(())
-        );
-
-        // assign multiple free addresses
-        let addrs = vec![
-            IpAddr::from_str("10.1.1.2").unwrap(),
-            IpAddr::from_str("10.1.1.3").unwrap(),
-        ];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Ok(())
-        );
-
-        // try to assign address from another network
-        let addrs = vec![IpAddr::from_str("10.2.1.2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::NoContainingNetwork(..))
-        );
-
-        // try to assign already assigned address
-        let user = User::new(
-            "hpotter",
-            Some("pass123"),
-            "Potter",
-            "Harry",
-            "h.potter@hogwart.edu.uk",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device = Device::new(
-            "device".to_string(),
-            String::new(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-        WireguardNetworkDevice::new(
-            network.id,
-            device.id,
-            vec![IpAddr::from_str("10.1.1.2").unwrap()],
-        )
-        .insert(&pool)
-        .await
-        .unwrap();
-        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::AddressAlreadyAssigned(..))
-        );
-
-        // assign with exception for the device
-        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, Some(device.id))
-                .await,
-            Ok(())
-        );
-
-        // try to assign gateway address
-        let addrs = vec![IpAddr::from_str("10.1.1.1").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::ReservedForGateway(..))
-        );
-
-        // try to assign network address
-        let addrs = vec![IpAddr::from_str("10.1.1.0").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::IsNetworkAddress(..))
-        );
-
-        // try to assign broadcast address
-        let addrs = vec![IpAddr::from_str("10.1.1.255").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::IsBroadcastAddress(..))
-        );
-    }
-
-    #[sqlx::test]
-    async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-
-        let network = WireguardNetwork::new(
-            "network".to_string(),
-            vec![
-                IpNetwork::from_str("10.1.1.1/24").unwrap(),
-                IpNetwork::from_str("fc00::1/112").unwrap(),
-            ],
-            50051,
-            String::new(),
-            None,
-            DEFAULT_WIREGUARD_MTU,
-            0,
-            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
-            false,
-            300,
-            300,
-            false,
-            false,
-            LocationMfaMode::Disabled,
-            ServiceLocationMode::Disabled,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        // assign free addresses
-        let addrs = vec![
-            IpAddr::from_str("10.1.1.2").unwrap(),
-            IpAddr::from_str("fc00::2").unwrap(),
-        ];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Ok(())
-        );
-
-        // assign multiple free addresses
-        let addrs = vec![
-            IpAddr::from_str("10.1.1.2").unwrap(),
-            IpAddr::from_str("10.1.1.3").unwrap(),
-            IpAddr::from_str("fc00::2").unwrap(),
-            IpAddr::from_str("fc00::3").unwrap(),
-        ];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Ok(())
-        );
-
-        // try to assign address from another network
-        let addrs = vec![IpAddr::from_str("fa::2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::NoContainingNetwork(..))
-        );
-
-        // try to assign already assigned address
-        let user = User::new(
-            "hpotter",
-            Some("pass123"),
-            "Potter",
-            "Harry",
-            "h.potter@hogwart.edu.uk",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        let device = Device::new(
-            "device".to_string(),
-            String::new(),
-            user.id,
-            DeviceType::User,
-            None,
-            true,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-        WireguardNetworkDevice::new(
-            network.id,
-            device.id,
-            vec![
-                IpAddr::from_str("10.1.1.2").unwrap(),
-                IpAddr::from_str("fc00::2").unwrap(),
-            ],
-        )
-        .insert(&pool)
-        .await
-        .unwrap();
-        let addrs = vec![IpAddr::from_str("fc00::2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::AddressAlreadyAssigned(..))
-        );
-
-        // assign with exception for the device
-        let addrs = vec![IpAddr::from_str("fc00::2").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, Some(device.id))
-                .await,
-            Ok(())
-        );
-
-        // try to assign gateway address
-        let addrs = vec![IpAddr::from_str("fc00::1").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::ReservedForGateway(..))
-        );
-
-        // try to assign network address
-        let addrs = vec![IpAddr::from_str("fc00::0").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::IsNetworkAddress(..))
-        );
-
-        // try to assign broadcast address
-        let addrs = vec![IpAddr::from_str("fc00::ffff").unwrap()];
-        assert_matches!(
-            network
-                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
-                .await,
-            Err(NetworkAddressError::IsBroadcastAddress(..))
-        );
-    }
-}
+mod tests;

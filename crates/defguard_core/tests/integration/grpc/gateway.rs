@@ -49,26 +49,21 @@ async fn setup_test_server(
     let test_server = make_grpc_test_server(&pool).await;
 
     // create a test location
-    let location = WireguardNetwork::new(
+    let mut location = WireguardNetwork::new(
         "test location".to_string(),
-        Vec::new(),
         1000,
         "endpoint1".to_string(),
         None,
-        1420,
-        0,
         Vec::new(),
         false,
-        100,
-        100,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    )
-    .save(&pool)
-    .await
-    .unwrap();
+    );
+    location.keepalive_interval = 100;
+    location.peer_disconnect_threshold = 100;
+    let location = location.save(&pool).await.unwrap();
 
     // set auth token for gateway
     let token = generate_gateway_token(&location);
@@ -352,7 +347,7 @@ async fn test_vpn_client_disconnected(_: PgPoolOptions, options: PgConnectOption
                 device_pubkey,
                 &test_device,
                 &test_user,
-                SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+                SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8080),
                 &stats,
             )
             .expect("failed to insert connected client");
@@ -400,26 +395,21 @@ async fn test_gateway_update_routing(_: PgPoolOptions, options: PgConnectOptions
         setup_test_server(pool.clone()).await;
 
     // setup another test location & gateway
-    let test_location_2 = WireguardNetwork::new(
+    let mut test_location_2 = WireguardNetwork::new(
         "test location 2".to_string(),
-        Vec::new(),
         1000,
         "endpoint2".to_string(),
         None,
-        1420,
-        0,
         Vec::new(),
         false,
-        100,
-        100,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    )
-    .save(&pool)
-    .await
-    .unwrap();
+    );
+    test_location_2.keepalive_interval = 100;
+    test_location_2.peer_disconnect_threshold = 100;
+    let test_location_2 = test_location_2.save(&pool).await.unwrap();
 
     // set auth token for gateway
     let token = generate_gateway_token(&test_location_2);
@@ -520,26 +510,21 @@ async fn test_gateway_config(_: PgPoolOptions, options: PgConnectOptions) {
 
     // unset the license and create another location to exceed limits and disable enterprise features
     set_cached_license(None);
-    let _test_location_2 = WireguardNetwork::new(
+    let mut test_location_2 = WireguardNetwork::new(
         "test location 2".to_string(),
-        Vec::new(),
         1000,
         "endpoint2".to_string(),
         None,
-        1420,
-        0,
         Vec::new(),
         false,
-        100,
-        100,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    )
-    .save(&pool)
-    .await
-    .unwrap();
+    );
+    test_location_2.keepalive_interval = 100;
+    test_location_2.peer_disconnect_threshold = 100;
+    let _test_location_2 = test_location_2.save(&pool).await.unwrap();
     update_counts(&pool).await.unwrap();
 
     let config = gateway.get_gateway_config().await.unwrap().into_inner();

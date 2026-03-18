@@ -1,4 +1,5 @@
 mod acl;
+mod activity_log;
 mod api_tokens;
 mod auth;
 mod common;

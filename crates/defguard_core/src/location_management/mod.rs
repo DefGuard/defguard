@@ -173,7 +173,7 @@ pub async fn process_device_access_changes(
         if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
             // Network address has changed and IP addresses need to be updated
             if !location.contains_all(&device_network_config.wireguard_ips)
-                || location.address.len() != device_network_config.wireguard_ips.len()
+                || location.address().len() != device_network_config.wireguard_ips.len()
             {
                 let wireguard_network_device = device
                     .assign_next_network_ip(
@@ -388,9 +388,12 @@ mod test {
     #[sqlx::test]
     async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/29")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user1 = User::new(
             "testuser1",
@@ -505,9 +508,12 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let network = network.save(&pool).await.unwrap();
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/29")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
 
         let user1 = User::new(
             "testuser1",

@@ -92,6 +92,9 @@ pub enum WebError {
     StaticIpError(#[from] StaticIpError),
     #[error("Network full: {0}")]
     NetworkFull(String),
+    #[error(transparent)]
+    #[schema(value_type=Object)]
+    IpNetwork(#[from] ipnetwork::IpNetworkError),
 }
 
 impl From<tonic::Status> for WebError {

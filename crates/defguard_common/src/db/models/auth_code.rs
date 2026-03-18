@@ -66,10 +66,7 @@ impl From<AuthCode<Id>> for AuthCode<NoId> {
 impl AuthCode<Id> {
     /// Find by code.
     /// If found, delete `AuthCode` from the database right away, so it can't be reused.
-    pub async fn find_code<'e, E>(
-        executor: E,
-        code: &str,
-    ) -> Result<Option<AuthCode<NoId>>, sqlx::Error>
+    pub async fn find_code<'e, E>(executor: E, code: &str) -> sqlx::Result<Option<AuthCode<NoId>>>
     where
         E: PgExecutor<'e>,
     {

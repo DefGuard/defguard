@@ -192,14 +192,13 @@ pub async fn send_gateway_disconnected_email(
 }
 
 pub async fn send_gateway_reconnected_email(
-    gateway_name: Option<String>,
+    gateway_name: String,
     network_name: String,
     gateway_adress: &str,
     pool: &PgPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway reconnect mail to all admin users");
     let admin_users = User::find_admins(pool).await?;
-    let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         Mail::new(
             &user.email,

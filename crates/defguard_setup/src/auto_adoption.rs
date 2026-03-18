@@ -14,10 +14,7 @@ use defguard_common::{
         setup_auto_adoption::{
             AutoAdoptionComponentResult, AutoAdoptionWizardState, SetupAutoAdoptionComponent,
         },
-        wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-            LocationMfaMode, ServiceLocationMode,
-        },
+        wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
 use defguard_core::version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION};
@@ -738,21 +735,17 @@ id={} for new gateway",
         let mut transaction = pool.begin().await.context("Failed to begin transaction")?;
         let network = WireguardNetwork::new(
             common_name.to_string(),
-            vec![network_address],
             DEFAULT_AUTO_ADOPTION_WIREGUARD_PORT,
             host.to_string(),
             None,
-            DEFAULT_WIREGUARD_MTU,
-            0,
             Vec::new(),
             true,
-            DEFAULT_KEEPALIVE_INTERVAL,
-            DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )
+        .set_address([network_address])?
         .save(&mut *transaction)
         .await
         .context("Failed to save auto-adopted WireguardNetwork")?;
@@ -853,13 +846,11 @@ pub async fn attempt_auto_adoption(
     pool: &PgPool,
     config: &DefGuardConfig,
 ) -> Result<(), anyhow::Error> {
-    let (edge_endpoint, gateway_endpoint) = match (&config.adopt_edge, &config.adopt_gateway) {
-        (Some(e), Some(g)) => (e, g),
-        _ => {
-            anyhow::bail!(
-                "Both --adopt-edge and --adopt-gateway must be set to run the auto-adoption wizard"
-            );
-        }
+    let (Some(edge_endpoint), Some(gateway_endpoint)) = (&config.adopt_edge, &config.adopt_gateway)
+    else {
+        anyhow::bail!(
+            "Both --adopt-edge and --adopt-gateway must be set to run the auto-adoption wizard"
+        );
     };
 
     let mut auto_state = AutoAdoptionWizardState::get(pool)

@@ -1,6 +1,6 @@
 use defguard_common::global_value;
 use serde::Serialize;
-use sqlx::{error::Error as SqlxError, query};
+use sqlx::query;
 
 use super::license::License;
 #[cfg(test)]
@@ -18,7 +18,7 @@ global_value!(COUNTS, Counts, Counts::default(), set_counts, get_counts);
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
-pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> Result<(), SqlxError> {
+pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> sqlx::Result<()> {
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
         "SELECT \

@@ -46,6 +46,8 @@ export const ActivityLogEventType = {
 
   VpnClientConnected: 'vpn_client_connected',
   VpnClientDisconnected: 'vpn_client_disconnected',
+  VpnClientMfaConnected: 'vpn_client_mfa_connected',
+  VpnClientMfaDisconnected: 'vpn_client_mfa_disconnected',
   VpnClientMfaSuccess: 'vpn_client_mfa_success',
   VpnClientMfaFailed: 'vpn_client_mfa_failed',
 

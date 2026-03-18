@@ -105,7 +105,7 @@ pub struct ApiActivityLogEvent {
     pub user_id: Id,
     pub username: String,
     pub location: Option<String>,
-    pub ip: IpNetwork,
+    pub ip: Option<IpNetwork>,
     pub event: String,
     pub module: ActivityLogModule,
     pub device: String,

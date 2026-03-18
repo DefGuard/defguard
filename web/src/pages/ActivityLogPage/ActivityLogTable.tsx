@@ -21,6 +21,18 @@ import { displayDate } from '../../shared/utils/displayDate';
 type RowData = ActivityLogEvent;
 
 const columnHelper = createColumnHelper<RowData>();
+const missingValuePlaceholder = '—';
+
+const renderOptionalTableValue = (
+  value: string | null | undefined,
+  missingValueLabel: string,
+) => {
+  if (!isPresent(value)) {
+    return <span aria-label={missingValueLabel}>{missingValuePlaceholder}</span>;
+  }
+
+  return <span>{value}</span>;
+};
 
 interface Props {
   data: RowData[];
@@ -73,11 +85,12 @@ export const ActivityLogTable = ({
       columnHelper.accessor('ip', {
         header: 'IP',
         minSize: 150,
-        cell: (info) => (
-          <TableCell>
-            <span>{info.getValue()}</span>
-          </TableCell>
-        ),
+        cell: (info) => {
+          const value = info.getValue();
+          return (
+            <TableCell>{renderOptionalTableValue(value, 'No IP recorded')}</TableCell>
+          );
+        },
       }),
       columnHelper.accessor('location', {
         header: 'Location',
@@ -86,7 +99,7 @@ export const ActivityLogTable = ({
           const value = info.getValue();
           return (
             <TableCell>
-              {isPresent(value) ? <span>{value}</span> : <span>{`~`}</span>}
+              {renderOptionalTableValue(value, 'No location recorded')}
             </TableCell>
           );
         },

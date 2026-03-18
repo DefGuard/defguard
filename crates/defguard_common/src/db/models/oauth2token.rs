@@ -1,5 +1,5 @@
 use chrono::{TimeDelta, Utc};
-use sqlx::{Error as SqlxError, PgPool, query, query_as};
+use sqlx::{PgPool, query, query_as};
 
 use crate::{
     db::{Id, models::Settings},
@@ -32,7 +32,7 @@ impl OAuth2Token {
     }
 
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
-    pub async fn refresh_and_save(&mut self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn refresh_and_save(&mut self, pool: &PgPool) -> sqlx::Result<()> {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
         let new_access_token = gen_alphanumeric(24);
@@ -60,7 +60,7 @@ impl OAuth2Token {
     }
 
     /// Store data in the database.
-    pub async fn save(&self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn save(&self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
             "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in) \
             VALUES ($1, $2, $3, $4, $5, $6)",
@@ -76,7 +76,7 @@ impl OAuth2Token {
     }
 
     /// Delete token from the database.
-    pub async fn delete(self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn delete(self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
             "DELETE FROM oauth2token WHERE access_token = $1 AND refresh_token = $2",
             self.access_token,
@@ -91,7 +91,7 @@ impl OAuth2Token {
     pub async fn find_access_token(
         pool: &PgPool,
         access_token: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
             "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
@@ -118,7 +118,7 @@ impl OAuth2Token {
     pub async fn find_refresh_token(
         pool: &PgPool,
         refresh_token: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
             "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \
@@ -145,7 +145,7 @@ impl OAuth2Token {
     pub async fn find_by_authorized_app_id(
         pool: &PgPool,
         oauth2authorizedapp_id: Id,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         match query_as!(
             Self,
             "SELECT oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in \

@@ -14,6 +14,7 @@ import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as R404RouteImport } from './routes/404'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
@@ -30,6 +31,7 @@ import { Route as AuthMfaTotpRouteImport } from './routes/auth/mfa/totp'
 import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
 import { Route as WizardMigrationLocationsRouteImport } from './routes/_wizard/migration/locations'
+import { Route as AuthorizedErrorMigrationAuthRouteImport } from './routes/_authorized/error/migration-auth'
 import { Route as AuthorizedWizardSetupEdgeRouteImport } from './routes/_authorized/_wizard/setup-edge'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
@@ -88,6 +90,11 @@ const AuthorizedRoute = AuthorizedRouteImport.update({
 const R404Route = R404RouteImport.update({
   id: '/404',
   path: '/404',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
@@ -169,6 +176,12 @@ const WizardMigrationLocationsRoute =
     id: '/_wizard/migration/locations',
     path: '/migration/locations',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthorizedErrorMigrationAuthRoute =
+  AuthorizedErrorMigrationAuthRouteImport.update({
+    id: '/error/migration-auth',
+    path: '/error/migration-auth',
+    getParentRoute: () => AuthorizedRoute,
   } as any)
 const AuthorizedWizardSetupEdgeRoute =
   AuthorizedWizardSetupEdgeRouteImport.update({
@@ -378,8 +391,8 @@ const AuthorizedDefaultEdgeEdgeIdEditRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
@@ -402,6 +415,7 @@ export interface FileRoutesByFullPath {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
+  '/error/migration-auth': typeof AuthorizedErrorMigrationAuthRoute
   '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
@@ -435,8 +449,8 @@ export interface FileRoutesByFullPath {
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
   '/playground': typeof AuthorizedPlaygroundRoute
@@ -458,6 +472,7 @@ export interface FileRoutesByTo {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
+  '/error/migration-auth': typeof AuthorizedErrorMigrationAuthRoute
   '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
@@ -492,6 +507,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
@@ -517,6 +533,7 @@ export interface FileRoutesById {
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/_authorized/_wizard/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
+  '/_authorized/error/migration-auth': typeof AuthorizedErrorMigrationAuthRoute
   '/_wizard/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
   '/auth/mfa/recovery': typeof AuthMfaRecoveryRoute
@@ -552,8 +569,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/404'
     | '/'
+    | '/404'
     | '/auth'
     | '/consent'
     | '/snackbar'
@@ -576,6 +593,7 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/setup-edge'
+    | '/error/migration-auth'
     | '/migration/locations'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
@@ -609,8 +627,8 @@ export interface FileRouteTypes {
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/404'
     | '/'
+    | '/404'
     | '/consent'
     | '/snackbar'
     | '/playground'
@@ -632,6 +650,7 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/setup-edge'
+    | '/error/migration-auth'
     | '/migration/locations'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
@@ -665,6 +684,7 @@ export interface FileRouteTypes {
     | '/locations/$locationId/edit'
   id:
     | '__root__'
+    | '/'
     | '/404'
     | '/_authorized'
     | '/auth'
@@ -690,6 +710,7 @@ export interface FileRouteTypes {
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
     | '/_authorized/_wizard/setup-edge'
+    | '/_authorized/error/migration-auth'
     | '/_wizard/migration/locations'
     | '/auth/mfa/email'
     | '/auth/mfa/recovery'
@@ -724,6 +745,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
@@ -771,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/404'
       fullPath: '/404'
       preLoaderRoute: typeof R404RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/': {
@@ -884,6 +913,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/migration/locations'
       preLoaderRoute: typeof WizardMigrationLocationsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authorized/error/migration-auth': {
+      id: '/_authorized/error/migration-auth'
+      path: '/error/migration-auth'
+      fullPath: '/error/migration-auth'
+      preLoaderRoute: typeof AuthorizedErrorMigrationAuthRouteImport
+      parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/setup-edge': {
       id: '/_authorized/_wizard/setup-edge'
@@ -1222,6 +1258,7 @@ interface AuthorizedRouteChildren {
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
+  AuthorizedErrorMigrationAuthRoute: typeof AuthorizedErrorMigrationAuthRoute
 }
 
 const AuthorizedRouteChildren: AuthorizedRouteChildren = {
@@ -1231,6 +1268,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
   AuthorizedWizardSetupEdgeRoute: AuthorizedWizardSetupEdgeRoute,
+  AuthorizedErrorMigrationAuthRoute: AuthorizedErrorMigrationAuthRoute,
 }
 
 const AuthorizedRouteWithChildren = AuthorizedRoute._addFileChildren(
@@ -1273,6 +1311,7 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,

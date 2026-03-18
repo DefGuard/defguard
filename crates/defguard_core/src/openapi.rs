@@ -71,6 +71,7 @@ use super::{
         network::modify_network,
         network::delete_network,
         network::list_networks,
+        network::count_networks,
         network::network_details,
         // /license
         license::license_check,

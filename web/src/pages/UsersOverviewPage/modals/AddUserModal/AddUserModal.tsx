@@ -479,7 +479,9 @@ const AddUserModalForm = () => {
         cancelProps={{
           disabled: isSubmitting,
           text: m.controls_cancel(),
-          onClick: () => {},
+          onClick: () => {
+            useAddUserModal.setState({ isOpen: false });
+          },
         }}
         submitProps={{
           text: m.modal_add_user_submit(),
