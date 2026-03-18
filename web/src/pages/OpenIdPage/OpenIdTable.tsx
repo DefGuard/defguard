@@ -20,9 +20,9 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { useClipboard } from '../../shared/defguard-ui/hooks/useClipboard';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { getOpenIdClientQueryOptions } from '../../shared/query';
 
 type RowData = OpenIdClient;
@@ -147,7 +147,8 @@ export const OpenIdClientTable = () => {
                     openModal(ModalName.ConfirmAction, {
                       title: m.modal_delete_openid_client_title(),
                       contentMd: m.modal_delete_openid_client_body(),
-                      actionPromise: () => api.openIdClient.deleteOpenIdClient(row.client_id),
+                      actionPromise: () =>
+                        api.openIdClient.deleteOpenIdClient(row.client_id),
                       invalidateKeys: [['oauth']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
                       onSuccess: () => Snackbar.default(m.openid_delete_success()),
