@@ -11,7 +11,7 @@ use std::{
 
 use defguard_common::{
     db::{
-        Id,
+        Id, NoId,
         models::{
             gateway::Gateway, settings::initialize_current_settings, wireguard::WireguardNetwork,
         },
@@ -78,12 +78,17 @@ struct MockGatewayState {
     outbound_tx: UnboundedSender<CoreResponse>,
     inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
+    connection_count: AtomicU64,
+    connection_notify: Notify,
     purge_count: AtomicU64,
     purge_notify: Notify,
 }
 
 impl MockGatewayState {
     fn notify_connected(&self) {
+        self.connection_count.fetch_add(1, Ordering::Relaxed);
+        self.connection_notify.notify_waiters();
+
         if let Some(tx) = self
             .connected_tx
             .lock()
@@ -162,6 +167,8 @@ impl MockGatewayHarness {
             outbound_tx,
             inbound_rx: Mutex::new(Some(inbound_rx)),
             connected_tx: Mutex::new(Some(connected_tx)),
+            connection_count: AtomicU64::new(0),
+            connection_notify: Notify::new(),
             purge_count: AtomicU64::new(0),
             purge_notify: Notify::new(),
         });
@@ -200,6 +207,29 @@ impl MockGatewayHarness {
             .expect("mock gateway connection notifier dropped");
     }
 
+    pub(crate) fn connection_count(&self) -> u64 {
+        self.state.connection_count.load(Ordering::Relaxed)
+    }
+
+    pub(crate) async fn wait_for_connection_count(&self, expected_count: u64) {
+        timeout(TEST_TIMEOUT, async {
+            loop {
+                if self.connection_count() >= expected_count {
+                    return;
+                }
+
+                let notified = self.state.connection_notify.notified();
+                if self.connection_count() >= expected_count {
+                    return;
+                }
+
+                notified.await;
+            }
+        })
+        .await
+        .expect("timed out waiting for mock gateway connection count");
+    }
+
     pub(crate) async fn wait_purged(&self) {
         timeout(TEST_TIMEOUT, async {
             loop {
@@ -207,7 +237,12 @@ impl MockGatewayHarness {
                     return;
                 }
 
-                self.state.purge_notify.notified().await;
+                let notified = self.state.purge_notify.notified();
+                if self.state.purge_count.load(Ordering::Relaxed) > 0 {
+                    return;
+                }
+
+                notified.await;
             }
         })
         .await
@@ -314,12 +349,20 @@ impl ManagerTestContext {
         gateway: &Gateway<Id>,
         mock_gateway: &MockGatewayHarness,
     ) {
+        self.register_gateway_url(gateway.url(), mock_gateway);
+    }
+
+    pub(crate) fn register_gateway_url(&self, gateway_url: String, mock_gateway: &MockGatewayHarness) {
         self.control
-            .register_gateway_url(gateway.url(), mock_gateway.socket_path());
+            .register_gateway_url(gateway_url, mock_gateway.socket_path());
     }
 
     pub(crate) fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
         self.control.handler_spawn_attempt_count(gateway_id)
+    }
+
+    pub(crate) fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
+        self.control.gateway_notification_count(gateway_id)
     }
 
     pub(crate) async fn wait_for_handler_spawn_attempt_count(
@@ -327,17 +370,27 @@ impl ManagerTestContext {
         gateway_id: Id,
         expected_count: u64,
     ) {
-        timeout(TEST_TIMEOUT, async {
-            loop {
-                if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
-                    return;
-                }
-
-                tokio::time::sleep(Duration::from_millis(20)).await;
-            }
-        })
+        timeout(
+            TEST_TIMEOUT,
+            self.control
+                .wait_for_handler_spawn_attempt_count(gateway_id, expected_count),
+        )
         .await
         .expect("timed out waiting for gateway manager handler spawn attempt");
+    }
+
+    pub(crate) async fn wait_for_gateway_notification_count(
+        &self,
+        gateway_id: Id,
+        expected_count: u64,
+    ) {
+        timeout(
+            TEST_TIMEOUT,
+            self.control
+                .wait_for_gateway_notification_count(gateway_id, expected_count),
+        )
+        .await
+        .expect("timed out waiting for gateway manager database notification");
     }
 
     pub(crate) async fn start(&mut self) {
@@ -607,6 +660,14 @@ pub(crate) async fn create_gateway_with_enabled(
     location_id: Id,
     enabled: bool,
 ) -> Gateway<Id> {
+    let gateway = build_gateway_with_enabled(location_id, enabled);
+    gateway
+        .save(pool)
+        .await
+        .expect("failed to create test gateway")
+}
+
+pub(crate) fn build_gateway_with_enabled(location_id: Id, enabled: bool) -> Gateway<NoId> {
     let port = 20_000 + i32::try_from(next_test_id() % 40_000).expect("port offset fits in i32");
     let mut gateway = Gateway::new(
         location_id,
@@ -617,7 +678,4 @@ pub(crate) async fn create_gateway_with_enabled(
     );
     gateway.enabled = enabled;
     gateway
-        .save(pool)
-        .await
-        .expect("failed to create test gateway")
 }

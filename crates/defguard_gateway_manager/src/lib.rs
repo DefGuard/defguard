@@ -64,6 +64,9 @@ impl<T> Drop for AbortTaskOnDrop<T> {
 struct GatewayManagerTestSupport {
     socket_paths_by_url: Arc<Mutex<HashMap<String, PathBuf>>>,
     handler_spawn_attempts_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
+    handler_spawn_attempt_notify: Arc<Notify>,
+    gateway_notifications_by_gateway: Arc<Mutex<HashMap<Id, u64>>>,
+    gateway_notification_notify: Arc<Notify>,
     listener_ready: Arc<AtomicBool>,
     listener_ready_notify: Arc<Notify>,
 }
@@ -90,6 +93,7 @@ impl GatewayManagerTestSupport {
             .lock()
             .expect("Failed to lock GatewayManager handler spawn attempts registry");
         *handler_spawn_attempts.entry(gateway_id).or_default() += 1;
+        self.handler_spawn_attempt_notify.notify_waiters();
     }
 
     fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
@@ -99,6 +103,54 @@ impl GatewayManagerTestSupport {
             .get(&gateway_id)
             .copied()
             .unwrap_or_default()
+    }
+
+    async fn wait_for_handler_spawn_attempt_count(&self, gateway_id: Id, expected_count: u64) {
+        loop {
+            if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            let notified = self.handler_spawn_attempt_notify.notified();
+            if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            notified.await;
+        }
+    }
+
+    fn note_gateway_notification(&self, gateway_id: Id) {
+        let mut gateway_notifications = self
+            .gateway_notifications_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager gateway notification registry");
+        *gateway_notifications.entry(gateway_id).or_default() += 1;
+        self.gateway_notification_notify.notify_waiters();
+    }
+
+    fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
+        self.gateway_notifications_by_gateway
+            .lock()
+            .expect("Failed to lock GatewayManager gateway notification registry")
+            .get(&gateway_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    async fn wait_for_gateway_notification_count(&self, gateway_id: Id, expected_count: u64) {
+        loop {
+            if self.gateway_notification_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            let notified = self.gateway_notification_notify.notified();
+            if self.gateway_notification_count(gateway_id) >= expected_count {
+                return;
+            }
+
+            notified.await;
+        }
     }
 
     fn mark_listener_ready(&self) {
@@ -141,6 +193,25 @@ impl TestGatewayManagerControl {
     #[doc(hidden)]
     pub fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
         self.inner.handler_spawn_attempt_count(gateway_id)
+    }
+
+    #[doc(hidden)]
+    pub async fn wait_for_handler_spawn_attempt_count(&self, gateway_id: Id, expected_count: u64) {
+        self.inner
+            .wait_for_handler_spawn_attempt_count(gateway_id, expected_count)
+            .await;
+    }
+
+    #[doc(hidden)]
+    pub fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
+        self.inner.gateway_notification_count(gateway_id)
+    }
+
+    #[doc(hidden)]
+    pub async fn wait_for_gateway_notification_count(&self, gateway_id: Id, expected_count: u64) {
+        self.inner
+            .wait_for_gateway_notification_count(gateway_id, expected_count)
+            .await;
     }
 
     pub async fn wait_until_listener_ready(&self) {
@@ -215,9 +286,13 @@ impl GatewayManager {
         while let Ok(notification) = listener.recv().await {
             let payload = notification.payload();
             match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
-                Ok(gateway_notification) => match gateway_notification.operation {
-                    TriggerOperation::Insert => {
-                        if let Some(new) = gateway_notification.new {
+                Ok(gateway_notification) => {
+                    let maybe_gateway_id = match gateway_notification.operation {
+                        TriggerOperation::Insert => {
+                            let Some(new) = gateway_notification.new else {
+                                continue;
+                            };
+
                             let id = new.id;
                             if new.enabled {
                                 let abort_handle = self.run_handler(
@@ -229,77 +304,93 @@ impl GatewayManager {
                             } else {
                                 debug!("New Gateway is disabled, so it won't be handled");
                             }
+
+                            Some(id)
                         }
-                    }
-                    TriggerOperation::Update => {
-                        let (Some(old), Some(new)) =
-                            (gateway_notification.old, gateway_notification.new)
-                        else {
-                            continue;
-                        };
-                        if old.address == new.address
-                            && old.port == new.port
-                            && old.enabled == new.enabled
-                        {
-                            debug!("Gateway address/port/state didn't change");
-                            continue;
-                        }
-                        if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                            info!(
-                                "Aborting connection to Gateway {old}, it has changed in the \
-                                database"
-                            );
-                            abort_handle.abort();
-                        } else if old.enabled {
-                            warn!("Cannot find Gateway {old} on the list of connected gateways");
-                        }
-                        if new.enabled {
+                        TriggerOperation::Update => {
+                            let (Some(old), Some(new)) =
+                                (gateway_notification.old, gateway_notification.new)
+                            else {
+                                continue;
+                            };
+
                             let id = new.id;
-                            let abort_handle =
-                                self.run_handler(new, Arc::clone(&self.clients), certs_rx.clone())?;
-                            abort_handles.insert(id, abort_handle);
-                        } else {
-                            debug!("Updated Gateway is disabled, so it won't be handled");
-                        }
-                    }
-                    TriggerOperation::Delete => {
-                        let Some(old) = gateway_notification.old else {
-                            continue;
-                        };
-
-                        // Send purge request to Gateway.
-                        let maybe_client = {
-                            self.clients
-                                .lock()
-                                .expect("Failed to lock GatewayManager::clients")
-                                .remove(&old.id)
-                        };
-
-                        if let Some(mut client) = maybe_client {
-                            debug!("Sending purge request to Gateway {old}");
-                            if let Err(err) = client.purge(Request::new(())).await {
-                                error!("Error sending purge request to Gateway {old}: {err}");
+                            if old.address == new.address
+                                && old.port == new.port
+                                && old.enabled == new.enabled
+                            {
+                                debug!("Gateway address/port/state didn't change");
                             } else {
-                                info!("Sent purge request to Gateway {old}");
+                                if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                    info!(
+                                        "Aborting connection to Gateway {old}, it has changed in the \
+                                        database"
+                                    );
+                                    abort_handle.abort();
+                                } else if old.enabled {
+                                    warn!(
+                                        "Cannot find Gateway {old} on the list of connected gateways"
+                                    );
+                                }
+                                if new.enabled {
+                                    let abort_handle = self.run_handler(
+                                        new,
+                                        Arc::clone(&self.clients),
+                                        certs_rx.clone(),
+                                    )?;
+                                    abort_handles.insert(id, abort_handle);
+                                } else {
+                                    debug!("Updated Gateway is disabled, so it won't be handled");
+                                }
                             }
-                        } else {
-                            warn!(
-                                "Cannot find gRPC client for Gateway {old}; skipping purge request"
-                            );
-                        }
 
-                        // Kill the `GatewayHandler` and the connection.
-                        if let Some(abort_handle) = abort_handles.remove(&old.id) {
-                            info!(
-                                "Aborting connection to Gateway {old}, it has disappeard from the \
-                                database"
-                            );
-                            abort_handle.abort();
-                        } else if old.enabled {
-                            warn!("Cannot find Gateway {old} on the list of connected gateways");
+                            Some(id)
                         }
+                        TriggerOperation::Delete => {
+                            let Some(old) = gateway_notification.old else {
+                                continue;
+                            };
+
+                            // Send purge request to Gateway.
+                            let maybe_client = {
+                                self.clients
+                                    .lock()
+                                    .expect("Failed to lock GatewayManager::clients")
+                                    .remove(&old.id)
+                            };
+
+                            if let Some(mut client) = maybe_client {
+                                debug!("Sending purge request to Gateway {old}");
+                                if let Err(err) = client.purge(Request::new(())).await {
+                                    error!("Error sending purge request to Gateway {old}: {err}");
+                                } else {
+                                    info!("Sent purge request to Gateway {old}");
+                                }
+                            } else {
+                                warn!(
+                                    "Cannot find gRPC client for Gateway {old}; skipping purge request"
+                                );
+                            }
+
+                            // Kill the `GatewayHandler` and the connection.
+                            if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!(
+                                    "Aborting connection to Gateway {old}, it has disappeard from the \
+                                    database"
+                                );
+                                abort_handle.abort();
+                            } else if old.enabled {
+                                warn!("Cannot find Gateway {old} on the list of connected gateways");
+                            }
+
+                            Some(old.id)
+                        }
+                    };
+
+                    if let Some(gateway_id) = maybe_gateway_id {
+                        self.test_support.note_gateway_notification(gateway_id);
                     }
-                },
+                }
                 Err(err) => error!("Failed to de-serialize database notification object: {err}"),
             }
         }
