@@ -22,6 +22,7 @@ import {
   type UserMfaMethodValue,
 } from '../../../../../../../shared/api/types';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
@@ -66,41 +67,8 @@ export const ProfileAuthCard = () => {
     meta: invalidateAfterMfaChange,
   });
 
-  const { mutate: disableMfaMutation } = useMutation({
-    mutationFn: () => {
-      if (user.username === authUsername) {
-        return api.auth.mfa.disable();
-      }
-      return api.user.disableMfa(user.username);
-    },
-    meta: invalidateAfterMfaChange,
-  });
-
   const { mutate: mutateEnableMfa } = useMutation({
     mutationFn: api.auth.mfa.enable,
-    meta: invalidateAfterMfaChange,
-  });
-
-  const { mutate: mutateDisableEmailMfa } = useMutation({
-    mutationFn: api.user.mfa.email.disable,
-    meta: invalidateAfterMfaChange,
-  });
-
-  const { mutate: mutateDisableTotp } = useMutation({
-    mutationFn: api.user.mfa.totp.disable,
-    meta: invalidateAfterMfaChange,
-  });
-
-  const { mutate: mutateDisableWebauthn } = useMutation({
-    mutationFn: () => {
-      const res = securityKeys.map((key) =>
-        api.auth.mfa.webauthn.deleteKey({
-          username: user.username,
-          keyId: key.id,
-        }),
-      );
-      return Promise.all(res);
-    },
     meta: invalidateAfterMfaChange,
   });
   const emailMenuItems = useMemo(() => {
@@ -124,7 +92,16 @@ export const ProfileAuthCard = () => {
       items.push({
         text: m.controls_disable(),
         icon: 'minus-circle',
-        onClick: () => mutateDisableEmailMfa(user.username),
+        onClick: () =>
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_disable_mfa_email_title(),
+            contentMd: m.modal_disable_mfa_email_content(),
+            actionPromise: () => api.user.mfa.email.disable(user.username),
+            invalidateKeys: invalidateAfterMfaChange.invalidate,
+            submitProps: { text: m.controls_disable(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.modal_disable_mfa_email_success()),
+            onError: () => Snackbar.error(m.modal_disable_mfa_email_error()),
+          }),
       });
     }
     const res: MenuItemsGroup = {
@@ -133,11 +110,11 @@ export const ProfileAuthCard = () => {
     return items.length > 0 ? res : null;
   }, [
     user.email_mfa_enabled,
-    mutateDisableEmailMfa,
     mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
     authUsername,
+    invalidateAfterMfaChange,
   ]);
 
   const mfaMenuItems = useMemo(() => {
@@ -167,7 +144,21 @@ export const ProfileAuthCard = () => {
           icon: 'disabled',
           variant: 'danger',
           text: m.profile_auth_card_2fa_controls_disable_all(),
-          onClick: disableMfaMutation,
+          onClick: () =>
+            openModal(ModalName.ConfirmAction, {
+              title: m.modal_disable_mfa_all_title(),
+              contentMd: m.modal_disable_mfa_all_content(),
+              actionPromise: () => {
+                if (user.username === authUsername) {
+                  return api.auth.mfa.disable();
+                }
+                return api.user.disableMfa(user.username);
+              },
+              invalidateKeys: invalidateAfterMfaChange.invalidate,
+              submitProps: { text: m.controls_disable(), variant: 'critical' },
+              onSuccess: () => Snackbar.default(m.modal_disable_mfa_all_success()),
+              onError: () => Snackbar.error(m.modal_disable_mfa_all_error()),
+            }),
         },
       ],
     });
@@ -177,8 +168,10 @@ export const ProfileAuthCard = () => {
     user.email_mfa_enabled,
     user.mfa_enabled,
     user.totp_enabled,
+    user.username,
+    authUsername,
     mutateEnableMfa,
-    disableMfaMutation,
+    invalidateAfterMfaChange,
   ]);
 
   const webauthnMenuItems = useMemo(() => {
@@ -203,17 +196,34 @@ export const ProfileAuthCard = () => {
         text: m.profile_auth_card_disable_passkeys(),
         variant: 'danger',
         icon: 'delete',
-        onClick: () => mutateDisableWebauthn(),
+        onClick: () =>
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_disable_mfa_passkeys_title(),
+            contentMd: m.modal_disable_mfa_passkeys_content(),
+            actionPromise: () =>
+              Promise.all(
+                securityKeys.map((key) =>
+                  api.auth.mfa.webauthn.deleteKey({
+                    username: user.username,
+                    keyId: key.id,
+                  }),
+                ),
+              ),
+            invalidateKeys: invalidateAfterMfaChange.invalidate,
+            submitProps: { text: m.controls_delete(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.modal_disable_mfa_passkeys_success()),
+            onError: () => Snackbar.error(m.modal_disable_mfa_passkeys_error()),
+          }),
       });
     }
     return items.length > 0 ? { items } : null;
   }, [
-    mutateDisableWebauthn,
-    securityKeys.length,
+    securityKeys,
     mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
     authUsername,
+    invalidateAfterMfaChange,
   ]);
 
   const totpMenuItems = useMemo(() => {
@@ -242,18 +252,27 @@ export const ProfileAuthCard = () => {
       items.push({
         icon: 'minus-circle',
         text: m.controls_disable(),
-        onClick: () => mutateDisableTotp(user.username),
+        onClick: () =>
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_disable_mfa_totp_title(),
+            contentMd: m.modal_disable_mfa_totp_content(),
+            actionPromise: () => api.user.mfa.totp.disable(user.username),
+            invalidateKeys: invalidateAfterMfaChange.invalidate,
+            submitProps: { text: m.controls_disable(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.modal_disable_mfa_totp_success()),
+            onError: () => Snackbar.error(m.modal_disable_mfa_totp_error()),
+          }),
       });
     }
 
     return items.length > 0 ? { items } : null;
   }, [
-    mutateDisableTotp,
     user.totp_enabled,
     mutateSetDefaultMfa,
     user.mfa_method,
     user.username,
     authUsername,
+    invalidateAfterMfaChange,
   ]);
   return (
     <ProfileCard id="profile-auth-card">
@@ -363,13 +382,6 @@ const WebauthnRow = ({
   securityKey: SecurityKey;
   username: string;
 }) => {
-  const { mutate } = useMutation({
-    mutationFn: api.auth.mfa.webauthn.deleteKey,
-    meta: {
-      invalidate: [['user', username]],
-    },
-  });
-
   const menuItems = useMemo(() => {
     const items: MenuItemProps[] = [];
     items.push({
@@ -377,15 +389,21 @@ const WebauthnRow = ({
       icon: 'delete',
       variant: 'danger',
       onClick: () =>
-        mutate({
-          keyId: securityKey.id,
-          username,
+        openModal(ModalName.ConfirmAction, {
+          title: m.modal_delete_mfa_passkey_title(),
+          contentMd: m.modal_delete_mfa_passkey_content({ name: securityKey.name }),
+          actionPromise: () =>
+            api.auth.mfa.webauthn.deleteKey({ keyId: securityKey.id, username }),
+          invalidateKeys: [['user', username]],
+          submitProps: { text: m.controls_delete(), variant: 'critical' },
+          onSuccess: () => Snackbar.default(m.modal_delete_mfa_passkey_success()),
+          onError: () => Snackbar.error(m.modal_delete_mfa_passkey_error()),
         }),
     });
     return {
       items,
     };
-  }, [mutate, securityKey.id, username]);
+  }, [securityKey.id, securityKey.name, username]);
 
   return (
     <div className="webauthn-row">
