@@ -194,21 +194,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const handleDeleteLocation = () => {
-    openModal(ModalName.ConfirmAction, {
-      title: m.modal_delete_location_title(),
-      contentMd: m.modal_delete_location_body({ name: location.name }),
-      actionPromise: () => api.location.deleteLocation(location.id),
-      invalidateKeys: [['network'], ['enterprise_info']],
-      submitProps: { text: m.controls_delete(), variant: 'critical' },
-      onSuccess: () => {
-        Snackbar.default(m.location_delete_success());
-        navigate({ to: '/locations', replace: true });
-      },
-      onError: () => Snackbar.error(m.location_delete_failed()),
-    });
-  };
-
   const defaultValues = useMemo(
     (): FormFields => ({
       name: location.name,
@@ -541,7 +526,20 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <EditPageControls
               deleteProps={{
                 text: 'Delete location',
-                onClick: handleDeleteLocation,
+                onClick: () => {
+                  openModal(ModalName.ConfirmAction, {
+                    title: m.modal_delete_location_title(),
+                    contentMd: m.modal_delete_location_body({ name: location.name }),
+                    actionPromise: () => api.location.deleteLocation(location.id),
+                    invalidateKeys: [['network'], ['enterprise_info']],
+                    submitProps: { text: m.controls_delete(), variant: 'critical' },
+                    onSuccess: () => {
+                      Snackbar.default(m.location_delete_success());
+                      navigate({ to: '/locations', replace: true });
+                    },
+                    onError: () => Snackbar.error(m.location_delete_failed()),
+                  });
+                },
                 disabled: isSubmitting,
               }}
               cancelProps={{
