@@ -36,7 +36,6 @@ type FormFields = z.infer<typeof discriminatedSchema>;
 
 export const EditOktaProviderForm = ({
   provider,
-  loading,
   onDelete,
   onSubmit,
 }: EditProviderFormProps) => {
@@ -188,18 +187,17 @@ export const EditOktaProviderForm = ({
                 disabled: submitting,
                 text: 'Delete provider',
                 onClick: onDelete,
-                loading: loading,
               }}
               cancelProps={{
                 text: m.controls_cancel(),
-                disabled: submitting || loading,
+                disabled: submitting,
                 onClick: () => {
                   window.history.back();
                 },
               }}
               submitProps={{
                 text: m.controls_save_changes(),
-                loading: submitting || loading,
+                loading: submitting,
                 type: 'submit',
                 onClick: () => {
                   form.handleSubmit();

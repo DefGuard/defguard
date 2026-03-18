@@ -13,6 +13,8 @@ import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getEdgeQueryOptions } from '../../shared/query';
 
 export const EditEdgePage = () => {
@@ -66,23 +68,6 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
     },
     onError: () => {
       Snackbar.error(m.edge_edit_failed());
-    },
-  });
-
-  const { mutate: deleteEdge, isPending: deletePending } = useMutation({
-    mutationFn: () => api.edge.deleteEdge(edge.id),
-    meta: {
-      invalidate: ['edge'],
-    },
-    onSuccess: () => {
-      navigate({
-        to: '/edges',
-        replace: true,
-      });
-      Snackbar.default(m.edge_delete_success());
-    },
-    onError: () => {
-      Snackbar.error(m.edge_delete_failed());
     },
   });
 
@@ -142,9 +127,19 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
               deleteProps={{
                 text: m.edge_edit_delete(),
                 onClick: () => {
-                  deleteEdge();
+                  openModal(ModalName.ConfirmAction, {
+                    title: m.modal_delete_edge_title(),
+                    contentMd: m.modal_delete_edge_body({ name: edge.name }),
+                    actionPromise: () => api.edge.deleteEdge(edge.id),
+                    invalidateKeys: [['edge']],
+                    submitProps: { text: m.edge_edit_delete(), variant: 'critical' },
+                    onSuccess: () => {
+                      navigate({ to: '/edges', replace: true });
+                      Snackbar.default(m.edge_delete_success());
+                    },
+                    onError: () => Snackbar.error(m.edge_delete_failed()),
+                  });
                 },
-                loading: deletePending,
                 disabled: isSubmitting,
               }}
               submitProps={{

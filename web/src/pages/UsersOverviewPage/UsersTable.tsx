@@ -98,13 +98,6 @@ export const UsersTable = () => {
     [groups?.map, groups],
   );
 
-  const { mutate: deleteUser } = useMutation({
-    mutationFn: api.user.deleteUser,
-    meta: {
-      invalidate: [['user-overview'], ['user'], ['enterprise_info']],
-    },
-  });
-
   const { mutate: changeAccountActiveState } = useMutation({
     mutationFn: api.user.activeStateChange,
     meta: {
@@ -368,7 +361,16 @@ export const UsersTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteUser(rowData.username);
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_user_title(),
+                      contentMd: m.modal_delete_user_body({ name: rowData.name }),
+                      actionPromise: () => api.user.deleteUser(rowData.username),
+                      invalidateKeys: [['user-overview'], ['user'], ['enterprise_info']],
+                      submitProps: {
+                        text: m.users_row_menu_delete(),
+                        variant: 'critical',
+                      },
+                    });
                   },
                 },
               ],
@@ -454,7 +456,6 @@ export const UsersTable = () => {
       reservedEmails,
       reservedUsernames,
       changeAccountActiveState,
-      deleteUser,
       groupsOptions,
       handleEditGroups,
       groups,

@@ -4,5 +4,9 @@
   "webhooks_table_title": "All Webhooks",
   "webhooks_add": "Add new webhook",
   "webhooks_empty_title": "You don't have any Webhooks.",
-  "webhooks_empty_subtitle": "To add one, click the button below."
+  "webhooks_empty_subtitle": "To add one, click the button below.",
+  "webhooks_delete_confirm_title": "Delete Webhook",
+  "webhooks_delete_confirm_body": "Are you sure you want to delete this webhook? This action cannot be undone.",
+  "webhooks_delete_success": "Webhook deleted",
+  "webhooks_delete_failed": "Failed to delete webhook"
 }
