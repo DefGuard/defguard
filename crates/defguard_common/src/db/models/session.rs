@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, Type, query, query_as};
+use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
 use crate::{
@@ -58,7 +58,7 @@ impl Session {
         self.expires < Utc::now().naive_utc()
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_id(pool: &PgPool, id: &str) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, \
@@ -69,7 +69,7 @@ impl Session {
         .await
     }
 
-    pub async fn save(&self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn save(&self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
             "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, ip_address, device_info) \
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
@@ -88,7 +88,7 @@ impl Session {
         Ok(())
     }
 
-    pub async fn set_state(&mut self, pool: &PgPool, state: SessionState) -> Result<(), SqlxError> {
+    pub async fn set_state(&mut self, pool: &PgPool, state: SessionState) -> sqlx::Result<()> {
         query!(
             "UPDATE session SET state = $1 WHERE id = $2",
             state.clone() as i16,
@@ -119,7 +119,7 @@ impl Session {
         &mut self,
         executor: E,
         passkey_auth: &PasskeyAuthentication,
-    ) -> Result<(), SqlxError>
+    ) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -141,7 +141,7 @@ impl Session {
         &mut self,
         executor: E,
         passkey_reg: &PasskeyRegistration,
-    ) -> Result<(), SqlxError>
+    ) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -159,7 +159,7 @@ impl Session {
         Ok(())
     }
 
-    pub async fn delete<'e, E>(self, executor: E) -> Result<(), SqlxError>
+    pub async fn delete<'e, E>(self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -170,7 +170,7 @@ impl Session {
         Ok(())
     }
 
-    pub async fn delete_expired<'e, E>(executor: E) -> Result<(), SqlxError>
+    pub async fn delete_expired<'e, E>(executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -181,7 +181,7 @@ impl Session {
         Ok(())
     }
 
-    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: i64) -> Result<(), SqlxError>
+    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: i64) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

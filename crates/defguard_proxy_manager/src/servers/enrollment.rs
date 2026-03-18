@@ -627,16 +627,16 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-            let mut networks = device
-                .find_network_device_networks(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to find networks for device {} for user {}({:?}): {err}",
-                        device.name, user.username, user.id
-                    );
-                    Status::internal("unexpected error")
-                })?;
+            let mut networks =
+                WireguardNetwork::find_network_device_networks(&mut *transaction, device_id)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to find networks for device {} for user {}({:?}): {err}",
+                            device.name, user.username, user.id
+                        );
+                        Status::internal("unexpected error")
+                    })?;
 
             let Some(network) = networks.pop() else {
                 error!(

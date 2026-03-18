@@ -57,7 +57,7 @@
   "gateway_setup_step_deploy_tabs_package_subtitle": "To add Defguard APT repository and install the package, run the following commands:",
   "gateway_setup_step_deploy_tabs_virtual_image": "Virtual Image",
   "gateway_setup_step_deploy_tabs_virtual_title": "Virtual Image",
-  "gateway_setup_step_deploy_tabs_virtual_subtitle": "Download latest Defguard Virtual Image (in OVH format) from this url: [{url}]({url}) Prepare a Cloud Init configuration: **{filename}**:",
+  "gateway_setup_step_deploy_tabs_virtual_subtitle": "Download latest Defguard Virtual Image (in OVA format) from this url: [{url}]({url}). Then include the snippet below as part of your cloud-init or create and attach a dedicated cloud-init userdata file: **{filename}**:",
   "gateway_setup_step_deploy_tabs_other": "Other methods",
   "gateway_setup_step_deploy_tabs_other_title": "Other methods",
   "gateway_setup_step_deploy_tabs_other_subtitle": "For other deployment methods, please follow to our documentation section",

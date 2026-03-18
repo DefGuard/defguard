@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{Error as SqlxError, Type, query_as};
+use sqlx::{Type, query_as};
 
 use crate::db::{
     Id, NoId,
@@ -81,7 +81,7 @@ impl VpnClientSession<Id> {
         executor: E,
         location_id: Id,
         device_id: Id,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
@@ -99,7 +99,7 @@ impl VpnClientSession<Id> {
     pub async fn get_latest_stats_for_all_gateways<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
-    ) -> Result<Vec<VpnSessionStats<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<VpnSessionStats<Id>>> {
         query_as!(
             VpnSessionStats,
             "SELECT DISTINCT ON (gateway_id) id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \
@@ -117,7 +117,7 @@ impl VpnClientSession<Id> {
     pub async fn get_all_inactive_for_location<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         location: &WireguardNetwork<Id>,
-    ) -> Result<Vec<Self>, SqlxError> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
     		Self,
             "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
@@ -141,7 +141,7 @@ impl VpnClientSession<Id> {
     pub async fn get_never_connected<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         location: &WireguardNetwork<Id>,
-    ) -> Result<Vec<Self>, SqlxError> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
@@ -159,7 +159,7 @@ impl VpnClientSession<Id> {
         executor: E,
         location_id: Id,
         device_id: Id,
-    ) -> Result<Vec<Self>, SqlxError> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \

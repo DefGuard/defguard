@@ -28,8 +28,6 @@ type RowData = GatewayInfo;
 
 const columnHelper = createColumnHelper<RowData>();
 
-const displayModifiedBy = (gateway: GatewayInfo) => `${gateway.modified_by}`;
-
 const getStatusBadge = (gateway: GatewayInfo) => {
   if (!gateway.enabled) {
     return (
@@ -69,7 +67,7 @@ export const GatewaysTable = () => {
 
     if (query.length > 0) {
       data = data.filter((gateway) => {
-        const modifiedBy = displayModifiedBy(gateway).toLowerCase();
+        const modifiedBy = gateway.modified_by.toLowerCase();
         return (
           gateway.name.toLowerCase().includes(query) ||
           gateway.location_name.toLowerCase().includes(query) ||
@@ -145,15 +143,15 @@ export const GatewaysTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.display({
-        id: 'modified_by',
+      columnHelper.accessor('modified_by', {
         size: 175,
         minSize: 175,
         header: m.edges_col_modified_by(),
         enableSorting: true,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
-            <span>{displayModifiedBy(info.row.original)}</span>
+            <span>{info.getValue()}</span>
           </TableCell>
         ),
       }),

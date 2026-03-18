@@ -337,16 +337,11 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     for net in ["net 1", "net 2"] {
         WireguardNetwork::new(
             net.to_string(),
-            Vec::new(),
             1000,
             "endpoint1".to_string(),
             None,
-            DEFAULT_WIREGUARD_MTU,
-            0,
             Vec::new(),
             true,
-            100,
-            100,
             false,
             false,
             LocationMfaMode::Disabled,
@@ -858,16 +853,11 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
     // create a location
     WireguardNetwork::new(
         "test location".to_string(),
-        Vec::new(),
         1000,
         "endpoint1".to_string(),
         None,
-        DEFAULT_WIREGUARD_MTU,
-        0,
         Vec::new(),
         true,
-        100,
-        100,
         false,
         false,
         LocationMfaMode::Disabled,

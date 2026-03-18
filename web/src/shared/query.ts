@@ -16,6 +16,12 @@ export const getEnterpriseSettingsQueryOptions = queryOptions({
   select: (resp) => resp.data,
 });
 
+export const getLocationsCountQueryOptions = queryOptions({
+  queryFn: api.location.getCount,
+  queryKey: ['network', 'count'],
+  select: (resp) => resp.data.count,
+});
+
 export const getLocationQueryOptions = (id: number) =>
   queryOptions({
     queryFn: () => api.location.getLocation(id),

@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query, query_as, query_scalar};
+use sqlx::{PgExecutor, PgPool, query, query_as, query_scalar};
 use webauthn_rs::prelude::Passkey;
 
 use crate::db::{Id, NoId, models::ModelError};
@@ -37,7 +37,7 @@ impl<I> WebAuthn<I> {
 
 impl WebAuthn<Id> {
     /// Fetch all [`Passkey`]s for a given user.
-    pub async fn passkeys_for_user(pool: &PgPool, user_id: Id) -> Result<Vec<Passkey>, SqlxError> {
+    pub async fn passkeys_for_user(pool: &PgPool, user_id: Id) -> sqlx::Result<Vec<Passkey>> {
         query_scalar!("SELECT passkey FROM webauthn WHERE user_id = $1", user_id)
             .fetch_all(pool)
             .await
@@ -50,7 +50,7 @@ impl WebAuthn<Id> {
     }
 
     /// Fetch all for a given user.
-    pub async fn all_for_user(pool: &PgPool, user_id: Id) -> Result<Vec<Self>, SqlxError> {
+    pub async fn all_for_user(pool: &PgPool, user_id: Id) -> sqlx::Result<Vec<Self>> {
         query_as!(
             Self,
             "SELECT id, user_id, name, passkey FROM webauthn WHERE user_id = $1",
@@ -61,7 +61,7 @@ impl WebAuthn<Id> {
     }
 
     /// Delete all for a given user.
-    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: Id) -> Result<(), SqlxError>
+    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

@@ -1,7 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
 use defguard_common::db::{models::WireguardNetwork, setup_pool};
-use ipnetwork::IpNetwork;
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -20,11 +17,10 @@ async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptio
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default()
+        .set_address(["192.168.0.1/24".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
@@ -94,11 +90,10 @@ async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptio
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default()
+        .set_address(["fb00::1/112".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices
@@ -168,14 +163,13 @@ async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgCon
     let mut rng = thread_rng();
 
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
-        ],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default()
+        .set_address([
+            "192.168.0.1/24".parse().unwrap(),
+            "fb00::1/112".parse().unwrap(),
+        ])
+        .unwrap();
+    location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
     // Setup some test users and their devices

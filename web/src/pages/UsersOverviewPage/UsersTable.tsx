@@ -115,7 +115,7 @@ export const UsersTable = () => {
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: [['user-overview'], ['user']],
+      invalidate: [['user-overview'], ['user'], ['activity-log']],
     },
   });
 
@@ -427,7 +427,13 @@ export const UsersTable = () => {
                     name: rowData.name,
                   }),
                   actionPromise: () => api.user.disableMfa(rowData.username),
-                  invalidateKeys: [['user-overview'], ['user'], ['session-info'], ['me']],
+                  invalidateKeys: [
+                    ['user-overview'],
+                    ['user'],
+                    ['session-info'],
+                    ['me'],
+                    ['activity-log'],
+                  ],
                   submitProps: {
                     text: m.users_row_menu_disable_mfa(),
                     variant: 'critical',

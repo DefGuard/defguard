@@ -40,7 +40,7 @@ pub struct AutoAdoptionWizardState {
 }
 
 impl AutoAdoptionWizardState {
-    pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
+    pub async fn save<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -58,7 +58,7 @@ impl AutoAdoptionWizardState {
         Ok(())
     }
 
-    pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
+    pub async fn get<'e, E>(executor: E) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -74,7 +74,7 @@ impl AutoAdoptionWizardState {
         Ok(state.map(|j| j.0))
     }
 
-    pub async fn clear<'e, E>(executor: E) -> Result<(), sqlx::Error>
+    pub async fn clear<'e, E>(executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

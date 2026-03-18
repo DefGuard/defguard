@@ -97,17 +97,16 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert_migration_step(&pool, "general").await;
 
     let resp = client
-        .post("/api/v1/migration/general_config")
+        .client
+        .patch(format!("{}/api/v1/settings", client.base_url()))
         .json(&json!({
             "defguard_url": "https://migration.example.com",
-            "default_admin_group_name": "admins",
-            "default_authentication": 14,
-            "default_mfa_code_lifetime": 120,
-            "public_proxy_url": "https://proxy.migration.example.com"
+            "authentication_period_days": 14,
+            "mfa_code_timeout_seconds": 120
         }))
         .send()
         .await
-        .expect("Failed to POST /api/v1/migration/general_config");
+        .expect("Failed to PATCH /api/v1/settings");
     assert_eq!(resp.status(), StatusCode::OK);
 
     let settings = Settings::get(&pool)
@@ -225,22 +224,20 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
     );
 
     let resp = unauth
-        .post(format!("{base}/api/v1/migration/general_config"))
+        .patch(format!("{base}/api/v1/settings"))
         .header(USER_AGENT, "test/0.0")
         .json(&json!({
             "defguard_url": "https://x.example.com",
-            "default_admin_group_name": "admins",
-            "default_authentication": 14,
-            "default_mfa_code_lifetime": 120,
-            "public_proxy_url": "https://px.example.com"
+            "authentication_period_days": 14,
+            "mfa_code_timeout_seconds": 120
         }))
         .send()
         .await
-        .expect("Failed POST migration/general_config");
+        .expect("Failed PATCH settings");
     assert_eq!(
         resp.status(),
         StatusCode::UNAUTHORIZED,
-        "POST /migration/general_config should require auth"
+        "PATCH /settings should require auth"
     );
 
     let resp = unauth
