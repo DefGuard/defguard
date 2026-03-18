@@ -832,3 +832,152 @@ impl ClientMfaServer {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        collections::HashMap,
+        net::{IpAddr, Ipv4Addr},
+        sync::{Arc, RwLock},
+    };
+
+    use defguard_common::db::{
+        Id,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
+        setup_pool,
+    };
+    use ipnetwork::IpNetwork;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc, oneshot};
+
+    use super::{ClientLoginSession, ClientMfaServer};
+    use crate::grpc::GatewayEvent;
+
+    async fn create_location(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            "TestNet".to_string(),
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)), 24).unwrap()],
+            51820,
+            "10.0.0.1".to_string(),
+            None,
+            1420,
+            0,
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            true,
+            25,
+            300,
+            false,
+            false,
+            LocationMfaMode::Internal,
+            ServiceLocationMode::Disabled,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create WireGuard location")
+    }
+
+    async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
+        User::new("tester", None, "Test", "User", "tester@example.com", None)
+            .save(pool)
+            .await
+            .expect("failed to create user")
+    }
+
+    async fn create_device(pool: &sqlx::PgPool, user_id: Id) -> Device<Id> {
+        Device::new(
+            "test-device".to_string(),
+            "device-pubkey-test".to_string(),
+            user_id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(pool)
+        .await
+        .expect("failed to create device")
+    }
+
+    #[sqlx::test]
+    async fn test_create_new_mfa_session_disconnects_previous_active_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let location = create_location(&pool).await;
+        let user = create_user(&pool).await;
+        let device = create_device(&pool, user.id).await;
+
+        let mut previous_session = VpnClientSession::new(
+            location.id,
+            user.id,
+            device.id,
+            Some(chrono::Utc::now().naive_utc()),
+            Some(VpnClientMfaMethod::Totp),
+        );
+        previous_session.preshared_key = Some("old-psk".to_string());
+        previous_session.state = VpnClientSessionState::Connected;
+        let previous_session = previous_session
+            .save(&pool)
+            .await
+            .expect("failed to create previous active MFA session");
+
+        let (gateway_tx, mut gateway_rx) = broadcast::channel(4);
+        let (bidi_event_tx, _bidi_event_rx) = mpsc::unbounded_channel();
+        let server = ClientMfaServer::new(
+            pool.clone(),
+            gateway_tx,
+            bidi_event_tx,
+            Arc::new(RwLock::new(
+                HashMap::<String, oneshot::Sender<String>>::new(),
+            )),
+            Arc::new(RwLock::new(HashMap::<String, ClientLoginSession>::new())),
+        );
+        let mut conn = pool
+            .acquire()
+            .await
+            .expect("failed to acquire database connection");
+
+        let new_session = server
+            .create_new_mfa_session(
+                &mut conn,
+                &location,
+                &user,
+                &device,
+                VpnClientMfaMethod::Totp,
+                "new-psk".to_string(),
+            )
+            .await
+            .expect("failed to create replacement MFA session");
+
+        let previous_session = VpnClientSession::find_by_id(&pool, previous_session.id)
+            .await
+            .expect("failed to reload previous session")
+            .expect("expected previous session to exist");
+        assert_eq!(previous_session.state, VpnClientSessionState::Disconnected);
+        assert!(previous_session.disconnected_at.is_some());
+
+        let active_sessions = VpnClientSession::get_all_active_device_sessions_in_location(
+            &pool,
+            location.id,
+            device.id,
+        )
+        .await
+        .expect("failed to fetch active sessions");
+        assert_eq!(active_sessions.len(), 1);
+        assert_eq!(active_sessions[0].id, new_session.id);
+        assert_eq!(active_sessions[0].preshared_key.as_deref(), Some("new-psk"));
+
+        match gateway_rx.try_recv() {
+            Ok(GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device)) => {
+                assert_eq!(location_id, location.id);
+                assert_eq!(disconnected_device.id, device.id);
+            }
+            Ok(other) => panic!("unexpected gateway event: {other:?}"),
+            Err(error) => panic!("expected MFA disconnect gateway event, got {error:?}"),
+        }
+    }
+}
