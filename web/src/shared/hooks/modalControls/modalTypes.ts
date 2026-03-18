@@ -14,7 +14,6 @@ import type {
   OpenConfirmActionModal,
   OpenDeleteAliasDestinationBlockedModal,
   OpenDeleteAliasDestinationConfirmModal,
-  OpenDeleteLocationModal,
   OpenDeleteNetworkDeviceModal,
   OpenDeleteOpenIdClientModal,
   OpenDisplayListModal,
@@ -68,7 +67,6 @@ export const ModalName = {
   AddLogStreaming: 'addLogStreaming',
   EditLogStreaming: 'editLogStreaming',
   DeleteLogStreaming: 'deleteLogStreaming',
-  DeleteLocation: 'deleteLocation',
   SelfEnrollmentToken: 'selfEnrollmentToken',
   AddNewDevice: 'addNewDevice',
   AssignUserIP: 'assignUserIP',
@@ -186,10 +184,6 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.DeleteLogStreaming),
     data: z.custom<ActivityLogStream>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteLocation),
-    data: z.custom<OpenDeleteLocationModal>(),
   }),
   z.object({
     name: z.literal(ModalName.DeleteNetworkDevice),

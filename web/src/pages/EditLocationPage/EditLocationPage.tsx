@@ -26,6 +26,8 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
@@ -192,18 +194,20 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const { mutate: deleteLocation, isPending: deletePending } = useMutation({
-    mutationFn: () => api.location.deleteLocation(location.id),
-    meta: {
-      invalidate: ['network'],
-    },
-    onSuccess: () => {
-      navigate({
-        to: '/locations',
-        replace: true,
-      });
-    },
-  });
+  const handleDeleteLocation = () => {
+    openModal(ModalName.ConfirmAction, {
+      title: m.modal_delete_location_title(),
+      contentMd: m.modal_delete_location_body({ name: location.name }),
+      actionPromise: () => api.location.deleteLocation(location.id),
+      invalidateKeys: [['network'], ['enterprise_info']],
+      submitProps: { text: m.controls_delete(), variant: 'critical' },
+      onSuccess: () => {
+        Snackbar.default(m.location_delete_success());
+        navigate({ to: '/locations', replace: true });
+      },
+      onError: () => Snackbar.error(m.location_delete_failed()),
+    });
+  };
 
   const defaultValues = useMemo(
     (): FormFields => ({
@@ -537,10 +541,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             <EditPageControls
               deleteProps={{
                 text: 'Delete location',
-                onClick: () => {
-                  deleteLocation();
-                },
-                loading: deletePending,
+                onClick: handleDeleteLocation,
                 disabled: isSubmitting,
               }}
               cancelProps={{
