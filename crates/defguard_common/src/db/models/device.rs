@@ -26,7 +26,7 @@ use crate::{
         models::{
             ModelError, WireguardNetwork,
             user::User,
-            vpn_client_session::VpnClientSessionState,
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
             wireguard::{
                 LocationMfaMode, NetworkAddressError, ServiceLocationMode, WireguardNetworkError,
             },
@@ -163,11 +163,29 @@ impl DeviceInfo {
         debug!("Generating device info for {device}");
         let network_info = query_as!(
             DeviceNetworkInfo,
-            "SELECT wireguard_network_id network_id, \
-                wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
-                preshared_key, is_authorized \
-            FROM wireguard_network_device \
-            WHERE device_id = $1",
+            "SELECT wnd.wireguard_network_id network_id, \
+                wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
+                CASE \
+                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.preshared_key \
+                    ELSE COALESCE(active_session.preshared_key, wnd.preshared_key) \
+                END preshared_key, \
+                CASE \
+                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.is_authorized \
+                    ELSE active_session.id IS NOT NULL \
+                END \"is_authorized!\" \
+            FROM wireguard_network_device wnd \
+            JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
+            LEFT JOIN LATERAL ( \
+                SELECT id, preshared_key \
+                FROM vpn_client_session \
+                WHERE location_id = wnd.wireguard_network_id \
+                    AND device_id = wnd.device_id \
+                    AND state IN ('new', 'connected') \
+                ORDER BY created_at DESC, id DESC \
+                LIMIT 1 \
+            ) active_session ON true \
+            WHERE wnd.device_id = $1 \
+            ORDER BY wnd.wireguard_network_id ASC",
             device.id
         )
         .fetch_all(executor)
@@ -221,7 +239,7 @@ impl UserDevice {
 					LIMIT 1 \
 	            ) vss ON vss.session_id = vpn_client_session.id \
 				WHERE location_id = n.id and device_id = $1 \
-				ORDER BY created_at DESC \
+				ORDER BY created_at DESC, id DESC \
 				LIMIT 1 \
             ) vs ON vs.location_id = n.id \
             WHERE wnd.device_id = $1",
@@ -296,6 +314,100 @@ pub struct ModifyDevice {
 }
 
 impl WireguardNetworkDevice {
+    async fn latest_active_session<'e, E>(
+        executor: E,
+        network: &WireguardNetwork<Id>,
+        device_id: Id,
+    ) -> Result<Option<VpnClientSession<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if !network.mfa_enabled() {
+            return Ok(None);
+        }
+
+        VpnClientSession::try_get_active_session(executor, network.id, device_id).await
+    }
+
+    fn runtime_mfa_state(
+        &self,
+        network: &WireguardNetwork<Id>,
+        active_session: Option<&VpnClientSession<Id>>,
+    ) -> (Option<String>, bool, Option<NaiveDateTime>) {
+        if !network.mfa_enabled() {
+            return (
+                self.preshared_key.clone(),
+                self.is_authorized,
+                self.authorized_at,
+            );
+        }
+
+        let Some(session) = active_session else {
+            return (None, false, None);
+        };
+
+        // TODO: remove legacy device PSK fallback after pre-rollout MFA sessions age out.
+        let preshared_key = session
+            .preshared_key
+            .clone()
+            .or_else(|| self.preshared_key.clone());
+
+        (
+            preshared_key,
+            true,
+            session.connected_at.or(Some(session.created_at)),
+        )
+    }
+
+    #[must_use]
+    pub fn to_device_network_info(
+        &self,
+        network: &WireguardNetwork<Id>,
+        active_session: Option<&VpnClientSession<Id>>,
+    ) -> DeviceNetworkInfo {
+        let (preshared_key, is_authorized, _) = self.runtime_mfa_state(network, active_session);
+
+        DeviceNetworkInfo {
+            network_id: network.id,
+            device_wireguard_ips: self.wireguard_ips.clone(),
+            preshared_key,
+            is_authorized,
+        }
+    }
+
+    pub async fn to_device_network_info_runtime<'e, E>(
+        &self,
+        executor: E,
+        network: &WireguardNetwork<Id>,
+    ) -> Result<DeviceNetworkInfo, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let active_session = Self::latest_active_session(executor, network, self.device_id).await?;
+
+        Ok(self.to_device_network_info(network, active_session.as_ref()))
+    }
+
+    pub async fn with_runtime_authorization<'e, E>(
+        &self,
+        executor: E,
+        network: &WireguardNetwork<Id>,
+    ) -> Result<Self, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let active_session = Self::latest_active_session(executor, network, self.device_id).await?;
+        let (preshared_key, is_authorized, authorized_at) =
+            self.runtime_mfa_state(network, active_session.as_ref());
+
+        let mut runtime_device = self.clone();
+        runtime_device.preshared_key = preshared_key;
+        runtime_device.is_authorized = is_authorized;
+        runtime_device.authorized_at = authorized_at;
+
+        Ok(runtime_device)
+    }
+
     #[must_use]
     pub fn new<I>(network_id: Id, device_id: Id, wireguard_ips: I) -> Self
     where
@@ -701,12 +813,9 @@ impl Device<Id> {
             WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
                 .await?
                 .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
-        let device_network_info = DeviceNetworkInfo {
-            network_id: network.id,
-            device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
-            preshared_key: wireguard_network_device.preshared_key.clone(),
-            is_authorized: wireguard_network_device.is_authorized,
-        };
+        let device_network_info = wireguard_network_device
+            .to_device_network_info_runtime(&mut *transaction, network)
+            .await?;
 
         let config = Self::create_config(network, &wireguard_network_device);
         let device_config = DeviceConfig {
@@ -735,12 +844,9 @@ impl Device<Id> {
         let wireguard_network_device = self
             .assign_network_ips(&mut *transaction, network, ip)
             .await?;
-        let device_network_info = DeviceNetworkInfo {
-            network_id: network.id,
-            device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
-            preshared_key: wireguard_network_device.preshared_key.clone(),
-            is_authorized: wireguard_network_device.is_authorized,
-        };
+        let device_network_info = wireguard_network_device
+            .to_device_network_info_runtime(&mut *transaction, network)
+            .await?;
 
         let config = Self::create_config(network, &wireguard_network_device);
         let device_config = DeviceConfig {
@@ -812,12 +918,9 @@ impl Device<Id> {
                 self.name,
                 self.user_id
             );
-            let device_network_info = DeviceNetworkInfo {
-                network_id: network.id,
-                device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
-                preshared_key: wireguard_network_device.preshared_key.clone(),
-                is_authorized: wireguard_network_device.is_authorized,
-            };
+            let device_network_info = wireguard_network_device
+                .to_device_network_info_runtime(&mut *conn, &network)
+                .await?;
             network_info.push(device_network_info);
 
             let config = Self::create_config(&network, &wireguard_network_device);
@@ -1425,6 +1528,120 @@ mod test {
 
         let valid_test_key = "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=";
         assert_ok!(Device::validate_pubkey(valid_test_key));
+    }
+
+    #[test]
+    fn test_runtime_mfa_state_falls_back_to_legacy_preshared_key() {
+        let defaults = WireguardNetwork::<NoId>::default();
+        let network = WireguardNetwork {
+            id: 1,
+            name: defaults.name,
+            address: defaults.address,
+            port: defaults.port,
+            pubkey: defaults.pubkey,
+            prvkey: defaults.prvkey,
+            endpoint: defaults.endpoint,
+            dns: defaults.dns,
+            mtu: defaults.mtu,
+            fwmark: defaults.fwmark,
+            allowed_ips: defaults.allowed_ips,
+            allow_all_groups: defaults.allow_all_groups,
+            connected_at: defaults.connected_at,
+            acl_enabled: defaults.acl_enabled,
+            acl_default_allow: defaults.acl_default_allow,
+            keepalive_interval: defaults.keepalive_interval,
+            peer_disconnect_threshold: defaults.peer_disconnect_threshold,
+            location_mfa_mode: LocationMfaMode::Internal,
+            service_location_mode: defaults.service_location_mode,
+        };
+        let wireguard_network_device = WireguardNetworkDevice {
+            wireguard_network_id: network.id,
+            wireguard_ips: vec![IpAddr::from_str("10.1.1.2").unwrap()],
+            device_id: 1,
+            preshared_key: Some("legacy-psk".into()),
+            is_authorized: false,
+            authorized_at: None,
+        };
+        let active_session = VpnClientSession {
+            id: 1,
+            location_id: network.id,
+            user_id: 1,
+            device_id: wireguard_network_device.device_id,
+            created_at: Utc::now().naive_utc(),
+            connected_at: None,
+            disconnected_at: None,
+            mfa_method: None,
+            state: VpnClientSessionState::New,
+            preshared_key: None,
+        };
+
+        let network_info =
+            wireguard_network_device.to_device_network_info(&network, Some(&active_session));
+
+        assert_eq!(network_info.preshared_key.as_deref(), Some("legacy-psk"));
+        assert!(network_info.is_authorized);
+    }
+
+    #[sqlx::test]
+    async fn test_device_info_uses_legacy_preshared_key_for_rollout_compatibility(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".into(),
+            "pubkey".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::<NoId> {
+            location_mfa_mode: LocationMfaMode::Internal,
+            ..Default::default()
+        };
+        network.try_set_address("10.1.1.1/24").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let mut wireguard_network_device = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        );
+        wireguard_network_device.preshared_key = Some("legacy-psk".into());
+        wireguard_network_device.insert(&pool).await.unwrap();
+
+        VpnClientSession::new(network.id, user.id, device.id, None, None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let device_info = DeviceInfo::from_device(&pool, device).await.unwrap();
+        let network_info = device_info
+            .network_info
+            .into_iter()
+            .find(|info| info.network_id == network.id)
+            .unwrap();
+
+        assert!(network_info.is_authorized);
+        assert_eq!(network_info.preshared_key.as_deref(), Some("legacy-psk"));
     }
 
     #[sqlx::test]

@@ -33,6 +33,7 @@ async fn test_inactive_connected_sessions_are_disconnected_after_threshold(
         device.id,
         Some(stale_handshake),
         None,
+        None,
     )
     .await;
     create_session_stats(
@@ -79,6 +80,7 @@ async fn test_recent_connected_sessions_remain_active(_: PgPoolOptions, options:
         user.id,
         device.id,
         Some(recent_handshake),
+        None,
         None,
     )
     .await;

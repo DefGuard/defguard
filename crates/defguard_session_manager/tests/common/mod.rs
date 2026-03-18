@@ -11,7 +11,7 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             gateway::Gateway,
-            vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -215,20 +215,23 @@ pub(crate) async fn create_gateway_named(
 pub(crate) async fn authorize_device_in_location(
     pool: &sqlx::PgPool,
     location_id: Id,
+    user_id: Id,
     device_id: Id,
     preshared_key: &str,
-) {
-    let mut network_device = WireguardNetworkDevice::find(pool, device_id, location_id)
+) -> VpnClientSession<Id> {
+    let mut session = VpnClientSession::new(
+        location_id,
+        user_id,
+        device_id,
+        Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
+        Some(VpnClientMfaMethod::Totp),
+    );
+    session.preshared_key = Some(preshared_key.to_string());
+    session.state = VpnClientSessionState::Connected;
+    session
+        .save(pool)
         .await
-        .expect("failed to load device network info")
-        .expect("expected device network info");
-    network_device.is_authorized = true;
-    network_device.authorized_at = Some(chrono::Utc::now().naive_utc());
-    network_device.preshared_key = Some(preshared_key.to_string());
-    network_device
-        .update(pool)
-        .await
-        .expect("failed to authorize device in location");
+        .expect("failed to create authorized session")
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -276,8 +279,11 @@ pub(crate) async fn create_session(
     device_id: Id,
     connected_at: Option<NaiveDateTime>,
     mfa_method: Option<VpnClientMfaMethod>,
+    preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
-    VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method)
+    let mut session = VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method);
+    session.preshared_key = preshared_key.map(str::to_owned);
+    session
         .save(pool)
         .await
         .expect("failed to create vpn client session")

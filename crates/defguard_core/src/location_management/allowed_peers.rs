@@ -28,7 +28,11 @@ where
     }
 
     let rows = query!(
-        "SELECT d.wireguard_pubkey pubkey, preshared_key, \
+        "SELECT d.wireguard_pubkey pubkey, \
+                CASE \
+                    WHEN $2 THEN COALESCE(active_session.preshared_key, wnd.preshared_key) \
+                    ELSE wnd.preshared_key \
+                END preshared_key, \
                 -- TODO possible to not use ARRAY-unnest here?
                 ARRAY(
                     SELECT host(ip)
@@ -37,7 +41,16 @@ where
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
-            WHERE wireguard_network_id = $1 AND (is_authorized OR NOT $2) \
+            LEFT JOIN LATERAL ( \
+                SELECT id, preshared_key \
+                FROM vpn_client_session \
+                WHERE location_id = wnd.wireguard_network_id \
+                    AND device_id = wnd.device_id \
+                    AND state IN ('new', 'connected') \
+                ORDER BY created_at DESC, id DESC \
+                LIMIT 1 \
+            ) active_session ON true \
+            WHERE wireguard_network_id = $1 AND (NOT $2 OR active_session.id IS NOT NULL) \
             AND d.configured AND u.is_active \
             ORDER BY d.id ASC",
         location.id,
@@ -77,6 +90,7 @@ mod test {
             Device, DeviceType, WireguardNetwork,
             device::WireguardNetworkDevice,
             user::User,
+            vpn_client_session::VpnClientSession,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
         setup_pool,
@@ -222,5 +236,65 @@ mod test {
             "AlwaysOn service location should return peers when enterprise is enabled"
         );
         assert_eq!(peers_alwayson[0].pubkey, "pubkey3");
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_uses_legacy_preshared_key_for_active_mfa_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device1".into(),
+            "pubkey1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork {
+            name: "mfa-location".to_string(),
+            service_location_mode: ServiceLocationMode::Disabled,
+            location_mfa_mode: LocationMfaMode::Internal,
+            ..Default::default()
+        };
+        network.try_set_address("10.4.1.1/24").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let mut network_device = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.4.1.2").unwrap()],
+        );
+        network_device.preshared_key = Some("legacy-psk".into());
+        network_device.insert(&pool).await.unwrap();
+
+        VpnClientSession::new(network.id, user.id, device.id, None, None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+
+        assert_eq!(peers.len(), 1);
+        assert_eq!(peers[0].pubkey, "pubkey1");
+        assert_eq!(peers[0].preshared_key.as_deref(), Some("legacy-psk"));
     }
 }

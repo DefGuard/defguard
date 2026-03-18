@@ -660,12 +660,15 @@ impl ClientMfaServer {
         })?;
 
         // fetch device config for the location
-        let Ok(Some(mut network_device)) =
+        let Ok(Some(network_device)) =
             WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
         else {
             error!("Failed to fetch network config for device {device} and location {location}");
             return Err(Status::internal("unexpected error"));
         };
+
+        // generate PSK
+        let key = WireguardNetwork::genkey();
 
         // create new VPN client session
         let vpn_client_session = self.create_new_mfa_session(
@@ -674,6 +677,7 @@ impl ClientMfaServer {
             &user,
             &device,
             method.into(),
+            key.public.clone(),
         )
             .await
             .map_err(|err| {
@@ -682,26 +686,20 @@ impl ClientMfaServer {
             })?;
         debug!("Created new VPN client session: {vpn_client_session:?}");
 
-        // generate PSK
-        let key = WireguardNetwork::genkey();
-        network_device.preshared_key = Some(key.public.clone());
-
-        // authorize device for given location
-        network_device.is_authorized = true;
-        network_device.authorized_at = Some(Utc::now().naive_utc());
-
-        // save updated network config
-        network_device
-            .update(&mut *transaction)
-            .await
-            .map_err(|err| {
-                error!("Failed to update device network config {network_device:?}: {err}");
-                Status::internal("unexpected error")
-            })?;
+        let mut runtime_network_device = network_device;
+        runtime_network_device.preshared_key = Some(key.public.clone());
+        runtime_network_device.is_authorized = true;
+        runtime_network_device.authorized_at = vpn_client_session
+            .connected_at
+            .or(Some(vpn_client_session.created_at));
 
         // send gateway event
         debug!("Sending `peer_create` message to gateway");
-        let event = GatewayEvent::MfaSessionAuthorized(location.id, device.clone(), network_device);
+        let event = GatewayEvent::MfaSessionAuthorized(
+            location.id,
+            device.clone(),
+            runtime_network_device,
+        );
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
@@ -766,6 +764,7 @@ impl ClientMfaServer {
         user: &User<Id>,
         device: &Device<Id>,
         mfa_method: VpnClientMfaMethod,
+        preshared_key: String,
     ) -> Result<VpnClientSession<Id>, Status> {
         debug!(
             "Creating new VPN session for device {device} of user {user} in location {location} after successful MFA authorization."
@@ -792,11 +791,12 @@ impl ClientMfaServer {
         }
 
         // create new MFA session
-        VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method)).save(conn).await
-            .map_err(|err| {
-                error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
-                Status::internal("unexpected error")
-            })
+        let mut session = VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method));
+        session.preshared_key = Some(preshared_key);
+        session.save(conn).await.map_err(|err| {
+            error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
+            Status::internal("unexpected error")
+        })
     }
 
     /// Update session state as disconnected and send relevant gateway update
@@ -816,29 +816,6 @@ impl ClientMfaServer {
             Status::internal("unexpected error")
         })?;
 
-        // FIXME: remove once MFA-related data is no longer stored here
-        // update device network config
-        if let Some(mut device_network_info) = WireguardNetworkDevice::find(
-            &mut *conn,
-            device.id,
-            location.id,
-        )
-        .await
-        .map_err(|err| {
-            error!(
-                "Failed to fetch WireGuard config for device {device} in location {location}: {err}"
-            );
-            Status::internal("unexpected error")
-        })? {
-            device_network_info.is_authorized = false;
-            device_network_info.preshared_key = None;
-            device_network_info.update(&mut *conn).await.map_err(|err| {
-            error!(
-                "Failed to update WireGuard config for device {device} in location {location}: {err}"
-            );
-            Status::internal("unexpected error")
-        })?;
-        }
         let event = GatewayEvent::MfaSessionDisconnected(location.id, device.clone());
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
