@@ -30,7 +30,7 @@ where
     let rows = query!(
         "SELECT d.wireguard_pubkey pubkey, \
                 CASE \
-                    WHEN $2 THEN COALESCE(active_session.preshared_key, wnd.preshared_key) \
+                    WHEN $2 THEN active_session.preshared_key \
                     ELSE wnd.preshared_key \
                 END preshared_key, \
                 -- TODO possible to not use ARRAY-unnest here?
@@ -239,7 +239,7 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_location_allowed_peers_uses_legacy_preshared_key_for_active_mfa_session(
+    async fn test_get_location_allowed_peers_does_not_expose_legacy_preshared_key_for_active_mfa_session(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -295,6 +295,6 @@ mod test {
 
         assert_eq!(peers.len(), 1);
         assert_eq!(peers[0].pubkey, "pubkey1");
-        assert_eq!(peers[0].preshared_key.as_deref(), Some("legacy-psk"));
+        assert_eq!(peers[0].preshared_key, None);
     }
 }

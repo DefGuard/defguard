@@ -167,7 +167,7 @@ impl DeviceInfo {
                 wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
                 CASE \
                     WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.preshared_key \
-                    ELSE COALESCE(active_session.preshared_key, wnd.preshared_key) \
+                    ELSE active_session.preshared_key \
                 END preshared_key, \
                 CASE \
                     WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.is_authorized \
@@ -346,14 +346,8 @@ impl WireguardNetworkDevice {
             return (None, false, None);
         };
 
-        // TODO: remove legacy device PSK fallback after pre-rollout MFA sessions age out.
-        let preshared_key = session
-            .preshared_key
-            .clone()
-            .or_else(|| self.preshared_key.clone());
-
         (
-            preshared_key,
+            session.preshared_key.clone(),
             true,
             session.connected_at.or(Some(session.created_at)),
         )
@@ -1531,7 +1525,7 @@ mod test {
     }
 
     #[test]
-    fn test_runtime_mfa_state_falls_back_to_legacy_preshared_key() {
+    fn test_runtime_mfa_state_requires_session_preshared_key_for_mfa_runtime_reads() {
         let defaults = WireguardNetwork::<NoId>::default();
         let network = WireguardNetwork {
             id: 1,
@@ -1578,12 +1572,12 @@ mod test {
         let network_info =
             wireguard_network_device.to_device_network_info(&network, Some(&active_session));
 
-        assert_eq!(network_info.preshared_key.as_deref(), Some("legacy-psk"));
+        assert_eq!(network_info.preshared_key, None);
         assert!(network_info.is_authorized);
     }
 
     #[sqlx::test]
-    async fn test_device_info_uses_legacy_preshared_key_for_rollout_compatibility(
+    async fn test_device_info_does_not_expose_legacy_preshared_key_for_active_mfa_session(
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
@@ -1641,7 +1635,7 @@ mod test {
             .unwrap();
 
         assert!(network_info.is_authorized);
-        assert_eq!(network_info.preshared_key.as_deref(), Some("legacy-psk"));
+        assert_eq!(network_info.preshared_key, None);
     }
 
     #[sqlx::test]

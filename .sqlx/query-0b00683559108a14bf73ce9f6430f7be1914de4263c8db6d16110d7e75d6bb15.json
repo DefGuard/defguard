@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.wireguard_pubkey pubkey, CASE WHEN $2 THEN active_session.preshared_key ELSE wnd.preshared_key END preshared_key, -- TODO possible to not use ARRAY-unnest here?\n                ARRAY(\n                    SELECT host(ip)\n                    FROM unnest(wnd.wireguard_ips) AS ip\n                ) \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd JOIN device d ON wnd.device_id = d.id JOIN \"user\" u ON d.user_id = u.id LEFT JOIN LATERAL ( SELECT id, preshared_key FROM vpn_client_session WHERE location_id = wnd.wireguard_network_id AND device_id = wnd.device_id AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC LIMIT 1 ) active_session ON true WHERE wireguard_network_id = $1 AND (NOT $2 OR active_session.id IS NOT NULL) AND d.configured AND u.is_active ORDER BY d.id ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "preshared_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "allowed_ips!: Vec<String>",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "0b00683559108a14bf73ce9f6430f7be1914de4263c8db6d16110d7e75d6bb15"
+}

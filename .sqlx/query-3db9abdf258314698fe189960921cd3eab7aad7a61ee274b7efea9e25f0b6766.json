@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wnd.wireguard_network_id network_id, wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", CASE WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.preshared_key ELSE active_session.preshared_key END preshared_key, CASE WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.is_authorized ELSE active_session.id IS NOT NULL END \"is_authorized!\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN LATERAL ( SELECT id, preshared_key FROM vpn_client_session WHERE location_id = wnd.wireguard_network_id AND device_id = wnd.device_id AND state IN ('new', 'connected') ORDER BY created_at DESC, id DESC LIMIT 1 ) active_session ON true WHERE wnd.device_id = $1 ORDER BY wnd.wireguard_network_id ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "network_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "device_wireguard_ips: Vec<IpAddr>",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "preshared_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_authorized!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "3db9abdf258314698fe189960921cd3eab7aad7a61ee274b7efea9e25f0b6766"
+}
