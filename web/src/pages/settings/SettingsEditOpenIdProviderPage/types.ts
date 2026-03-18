@@ -8,5 +8,4 @@ export interface EditProviderFormProps {
   provider: OpenIdProvider & OpenIdProviderSettings;
   onSubmit: (value: Partial<AddOpenIdProvider>) => Promise<void>;
   onDelete: () => void;
-  loading: boolean;
 }
