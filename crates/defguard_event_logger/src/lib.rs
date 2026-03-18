@@ -610,3 +610,33 @@ pub async fn run_event_logger(
         transaction.commit().await?;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+    use defguard_common::db::NoId;
+    use serde_json::Value;
+
+    use super::*;
+
+    #[test]
+    fn activity_log_event_serialization_supports_null_ip() {
+        let event = ActivityLogEvent {
+            id: NoId,
+            timestamp: Utc::now().naive_utc(),
+            user_id: 1,
+            username: "admin".to_string(),
+            location: None,
+            ip: None,
+            event: EventType::UserLogin,
+            module: ActivityLogModule::Defguard,
+            device: "test-device".to_string(),
+            description: None,
+            metadata: None,
+        };
+
+        let serialized = serde_json::to_value(event).expect("activity log event should serialize");
+
+        assert_eq!(serialized.get("ip"), Some(&Value::Null));
+    }
+}
