@@ -1,0 +1,1 @@
+ALTER TABLE activity_log_event ALTER COLUMN ip DROP NOT NULL;

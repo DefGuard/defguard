@@ -585,7 +585,7 @@ pub async fn run_event_logger(
                     user_id,
                     username,
                     location,
-                    ip: ip.into(),
+                    ip: ip.map(Into::into),
                     event,
                     module,
                     device,
@@ -683,22 +683,24 @@ mod tests {
         assert!(matches!(event_type, EventType::VpnClientMfaDisconnected));
     }
 
-    trait WithPlaceholderId<T> {
-        fn save_placeholder_id(self, id: i64) -> T;
-    }
+    #[test]
+    fn activity_log_event_serialization_supports_null_ip() {
+        let event = ActivityLogEvent {
+            id: NoId,
+            timestamp: Utc::now().naive_utc(),
+            user_id: 1,
+            username: "admin".to_string(),
+            location: None,
+            ip: None,
+            event: EventType::UserLogin,
+            module: ActivityLogModule::Defguard,
+            device: "test-device".to_string(),
+            description: None,
+            metadata: None,
+        };
 
-    impl WithPlaceholderId<Device<i64>> for Device<NoId> {
-        fn save_placeholder_id(self, id: i64) -> Device<i64> {
-            Device {
-                id,
-                name: self.name,
-                wireguard_pubkey: self.wireguard_pubkey,
-                user_id: self.user_id,
-                created: self.created,
-                device_type: self.device_type,
-                description: self.description,
-                configured: self.configured,
-            }
-        }
+        let serialized = serde_json::to_value(event).expect("activity log event should serialize");
+
+        assert_eq!(serialized.get("ip"), Some(&Value::Null));
     }
 }

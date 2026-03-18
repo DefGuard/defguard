@@ -424,7 +424,7 @@ impl ActiveSessionsMap {
             location,
             user,
             device,
-            public_ip,
+            public_ip: Some(public_ip),
         };
         let event = SessionManagerEvent::connected_for_session(context, false);
         event_tx.send(event)?;

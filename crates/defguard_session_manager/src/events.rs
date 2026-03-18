@@ -48,7 +48,7 @@ pub struct SessionManagerEventContext {
     pub location: WireguardNetwork<Id>,
     pub user: User<Id>,
     pub device: Device<Id>,
-    pub public_ip: IpAddr,
+    pub public_ip: Option<IpAddr>,
 }
 
 #[derive(Debug)]

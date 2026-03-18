@@ -28,19 +28,24 @@ pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpAddr,
+    pub ip: Option<IpAddr>,
     pub device: String,
 }
 
 impl ApiRequestContext {
     #[must_use]
-    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
+    pub fn new(
+        user_id: Id,
+        username: String,
+        ip: impl Into<Option<IpAddr>>,
+        device: String,
+    ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
-            ip,
+            ip: ip.into(),
             device,
         }
     }
@@ -54,7 +59,7 @@ pub struct GrpcRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpAddr,
+    pub ip: Option<IpAddr>,
     pub device_id: Id,
     pub device_name: String,
     pub location: WireguardNetwork<Id>,
@@ -65,7 +70,7 @@ impl GrpcRequestContext {
     pub fn new(
         user_id: Id,
         username: String,
-        ip: IpAddr,
+        ip: impl Into<Option<IpAddr>>,
         device_id: Id,
         device_name: String,
         location: WireguardNetwork<Id>,
@@ -75,7 +80,7 @@ impl GrpcRequestContext {
             timestamp,
             user_id,
             username,
-            ip,
+            ip: ip.into(),
             device_id,
             device_name,
             location,
@@ -328,19 +333,24 @@ pub struct BidiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpAddr,
+    pub ip: Option<IpAddr>,
     pub device_name: String,
 }
 
 impl BidiRequestContext {
     #[must_use]
-    pub fn new(user_id: Id, username: String, ip: IpAddr, device_name: String) -> Self {
+    pub fn new(
+        user_id: Id,
+        username: String,
+        ip: impl Into<Option<IpAddr>>,
+        device_name: String,
+    ) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
             user_id,
             username,
-            ip,
+            ip: ip.into(),
             device_name,
         }
     }
