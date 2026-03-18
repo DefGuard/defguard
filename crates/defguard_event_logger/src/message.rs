@@ -44,7 +44,7 @@ pub struct EventContext {
     pub user_id: Id,
     pub username: String,
     pub location: Option<String>,
-    pub ip: IpAddr,
+    pub ip: Option<IpAddr>,
     pub device: String,
 }
 

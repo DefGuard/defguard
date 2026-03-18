@@ -130,7 +130,8 @@ pub struct ActivityLogEvent<I = NoId> {
     pub user_id: Id,
     pub username: String,
     pub location: Option<String>,
-    pub ip: IpNetwork,
+    #[model(option)]
+    pub ip: Option<IpNetwork>,
     #[model(enum)]
     pub event: EventType,
     #[model(enum)]
