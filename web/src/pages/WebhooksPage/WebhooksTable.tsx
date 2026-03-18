@@ -18,6 +18,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 
@@ -32,12 +33,6 @@ type Props = {
 export const WebhooksTable = ({ webhooks }: Props) => {
   const { mutate: toggleWebhook } = useMutation({
     mutationFn: api.webhook.changeWebhookState,
-    meta: {
-      invalidate: ['webhook'],
-    },
-  });
-  const { mutate: deleteWebhook } = useMutation({
-    mutationFn: api.webhook.deleteWebhook,
     meta: {
       invalidate: ['webhook'],
     },
@@ -131,7 +126,15 @@ export const WebhooksTable = ({ webhooks }: Props) => {
                   testId: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteWebhook(row.id);
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.webhooks_delete_confirm_title(),
+                      contentMd: m.webhooks_delete_confirm_body(),
+                      actionPromise: () => api.webhook.deleteWebhook(row.id),
+                      invalidateKeys: [['webhook']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.webhooks_delete_success()),
+                      onError: () => Snackbar.error(m.webhooks_delete_failed()),
+                    });
                   },
                 },
               ],
@@ -141,7 +144,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
         },
       }),
     ],
-    [deleteWebhook, toggleWebhook],
+    [toggleWebhook],
   );
   const table = useReactTable({
     columns,
