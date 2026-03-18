@@ -13,7 +13,9 @@ import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
-import { getGatewayQueryOptions } from '../../shared/query';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
+import { getGatewayQueryOptions, getLocationQueryOptions } from '../../shared/query';
 
 export const EditGatewayPage = () => {
   const { gatewayId } = useParams({
@@ -56,6 +58,7 @@ type FormFields = z.infer<typeof formSchema>;
 
 const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const navigate = useNavigate();
+  const { data: location } = useSuspenseQuery(getLocationQueryOptions(gateway.location_id));
 
   const { mutateAsync: editGateway } = useMutation({
     mutationFn: api.gateway.editGateway,
@@ -67,23 +70,6 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
     },
     onError: () => {
       Snackbar.error(m.gateway_edit_failed());
-    },
-  });
-
-  const { mutate: deleteGateway, isPending: deletePending } = useMutation({
-    mutationFn: () => api.gateway.deleteGateway(gateway.id),
-    meta: {
-      invalidate: [['gateway'], ['network']],
-    },
-    onSuccess: () => {
-      navigate({
-        to: '/locations',
-        replace: true,
-      });
-      Snackbar.default(m.gateway_delete_success());
-    },
-    onError: () => {
-      Snackbar.error(m.gateway_delete_failed());
     },
   });
 
@@ -144,9 +130,22 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
               deleteProps={{
                 text: m.gateway_edit_delete(),
                 onClick: () => {
-                  deleteGateway();
+                  openModal(ModalName.ConfirmAction, {
+                    title: m.modal_delete_gateway_title(),
+                    contentMd: m.modal_delete_gateway_body({
+                      name: gateway.name,
+                      locationName: location.name,
+                    }),
+                    actionPromise: () => api.gateway.deleteGateway(gateway.id),
+                    invalidateKeys: [['gateway'], ['network']],
+                    submitProps: { text: m.gateway_edit_delete(), variant: 'critical' },
+                    onSuccess: () => {
+                      navigate({ to: '/locations', replace: true });
+                      Snackbar.default(m.gateway_delete_success());
+                    },
+                    onError: () => Snackbar.error(m.gateway_delete_failed()),
+                  });
                 },
-                loading: deletePending,
                 disabled: isSubmitting,
               }}
               submitProps={{

@@ -19,6 +19,7 @@ import { TableBody } from '../../../shared/defguard-ui/components/table/TableBod
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getGatewaysQueryOptions } from '../../../shared/query';
@@ -211,10 +212,17 @@ export const GatewaysTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    openModal(ModalName.DeleteGateway, {
-                      id: rowData.id,
-                      name: rowData.name,
-                      locationName: rowData.location_name,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_gateway_title(),
+                      contentMd: m.modal_delete_gateway_body({
+                        name: rowData.name,
+                        locationName: rowData.location_name,
+                      }),
+                      actionPromise: () => api.gateway.deleteGateway(rowData.id),
+                      invalidateKeys: [['gateway'], ['network']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.gateway_delete_success()),
+                      onError: () => Snackbar.error(m.gateway_delete_failed()),
                     });
                   },
                 },
