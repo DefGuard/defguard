@@ -130,9 +130,6 @@ async fn create_test_users_and_devices(
                     device_id: device.id,
                     wireguard_network_id: location.id,
                     wireguard_ips,
-                    preshared_key: None,
-                    is_authorized: true,
-                    authorized_at: None,
                 };
                 network_device.insert(pool).await.unwrap();
             }
@@ -292,9 +289,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
                     user.id as u8,
                     device_num as u8,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }
@@ -391,9 +385,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
             device_id,
             wireguard_network_id: location.id,
             wireguard_ips: vec![ip],
-            preshared_key: None,
-            is_authorized: true,
-            authorized_at: None,
         };
         network_device.insert(&pool).await.unwrap();
     }
@@ -720,9 +711,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
                     user.id as u16,
                     device_num as u16,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }
@@ -819,9 +807,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
             device_id,
             wireguard_network_id: location.id,
             wireguard_ips: vec![ip],
-            preshared_key: None,
-            is_authorized: true,
-            authorized_at: None,
         };
         network_device.insert(&pool).await.unwrap();
     }
@@ -1179,9 +1164,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                         device_num as u16,
                     )),
                 ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }
@@ -1287,9 +1269,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
             device_id,
             wireguard_network_id: location.id,
             wireguard_ips: ips,
-            preshared_key: None,
-            is_authorized: true,
-            authorized_at: None,
         };
         network_device.insert(&pool).await.unwrap();
     }
@@ -2204,9 +2183,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                     user.id as u8,
                     device_num as u8,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
             let network_device = WireguardNetworkDevice {
@@ -2222,9 +2198,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                     user.id as u16,
                     device_num as u16,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
             let network_device = WireguardNetworkDevice {
@@ -2243,9 +2216,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                         device_num as u16,
                     )),
                 ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }

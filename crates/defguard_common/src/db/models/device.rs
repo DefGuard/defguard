@@ -184,12 +184,9 @@ impl DeviceInfo {
             DeviceNetworkInfo,
             "SELECT wnd.wireguard_network_id network_id, \
                 wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
+                active_session.preshared_key preshared_key, \
                 CASE \
-                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.preshared_key \
-                    ELSE active_session.preshared_key \
-                END preshared_key, \
-                CASE \
-                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN wnd.is_authorized \
+                    WHEN n.location_mfa_mode = 'disabled'::location_mfa_mode THEN TRUE \
                     ELSE active_session.id IS NOT NULL \
                 END \"is_authorized!\" \
             FROM wireguard_network_device wnd \
@@ -314,9 +311,6 @@ pub struct WireguardNetworkDevice {
     pub wireguard_network_id: Id,
     pub wireguard_ips: Vec<IpAddr>,
     pub device_id: Id,
-    pub preshared_key: Option<String>,
-    pub is_authorized: bool,
-    pub authorized_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -355,7 +349,7 @@ impl WireguardNetworkDevice {
         active_session: Option<&VpnClientSession<Id>>,
     ) -> DeviceNetworkInfo {
         let (preshared_key, is_authorized) = if !network.mfa_enabled() {
-            (self.preshared_key.clone(), self.is_authorized)
+            (None, true)
         } else if let Some(session) = active_session {
             (session.preshared_key.clone(), true)
         } else {
@@ -392,9 +386,6 @@ impl WireguardNetworkDevice {
             wireguard_network_id: network_id,
             wireguard_ips: wireguard_ips.into(),
             device_id,
-            preshared_key: None,
-            is_authorized: false,
-            authorized_at: None,
         }
     }
 
@@ -412,17 +403,13 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-            (device_id, wireguard_network_id, wireguard_ips, is_authorized, authorized_at, \
-            preshared_key) \
-            VALUES ($1, $2, $3, $4, $5, $6) \
+            (device_id, wireguard_network_id, wireguard_ips) \
+            VALUES ($1, $2, $3) \
             ON CONFLICT ON CONSTRAINT device_network \
-            DO UPDATE SET wireguard_ips = $3, is_authorized = $4",
+            DO UPDATE SET wireguard_ips = $3",
             self.device_id,
             self.wireguard_network_id,
             &self.ips_as_network(),
-            self.is_authorized,
-            self.authorized_at,
-            self.preshared_key,
         )
         .execute(executor)
         .await?;
@@ -436,14 +423,11 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ips = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
+            SET wireguard_ips = $3 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
             &self.ips_as_network(),
-            self.is_authorized,
-            self.authorized_at,
-            self.preshared_key,
         )
         .execute(executor)
         .await?;
@@ -478,8 +462,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
-                preshared_key, is_authorized, authorized_at \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
@@ -500,8 +483,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
-                preshared_key, is_authorized, authorized_at \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device \
             WHERE device_id = $1 ORDER BY id LIMIT 1",
             device_id
@@ -522,8 +504,7 @@ impl WireguardNetworkDevice {
         let result = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
-                preshared_key, is_authorized, authorized_at \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -544,8 +525,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
-                preshared_key, is_authorized, authorized_at \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
@@ -570,8 +550,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
-                preshared_key, is_authorized, authorized_at \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1 AND device_id IN \
             (SELECT id FROM device WHERE user_id = $2 AND device_type = 'user'::device_type)",
@@ -1533,9 +1512,6 @@ mod test {
             wireguard_network_id: network.id,
             wireguard_ips: vec![IpAddr::from_str("10.1.1.2").unwrap()],
             device_id: 1,
-            preshared_key: Some("legacy-psk".into()),
-            is_authorized: false,
-            authorized_at: None,
         };
         let active_session = VpnClientSession {
             id: 1,
@@ -1595,12 +1571,11 @@ mod test {
         network.try_set_address("10.1.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
 
-        let mut wireguard_network_device = WireguardNetworkDevice::new(
+        let wireguard_network_device = WireguardNetworkDevice::new(
             network.id,
             device.id,
             [IpAddr::from_str("10.1.1.2").unwrap()],
         );
-        wireguard_network_device.preshared_key = Some("legacy-psk".into());
         wireguard_network_device.insert(&pool).await.unwrap();
 
         VpnClientSession::new(network.id, user.id, device.id, None, None)

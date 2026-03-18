@@ -29,10 +29,7 @@ where
 
     let rows = query!(
         "SELECT d.wireguard_pubkey pubkey, \
-                CASE \
-                    WHEN $2 THEN active_session.preshared_key \
-                    ELSE wnd.preshared_key \
-                END preshared_key, \
+                active_session.preshared_key preshared_key, \
                 -- TODO possible to not use ARRAY-unnest here?
                 ARRAY(
                     SELECT host(ip)
@@ -278,12 +275,11 @@ mod test {
         network.try_set_address("10.4.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
 
-        let mut network_device = WireguardNetworkDevice::new(
+        let network_device = WireguardNetworkDevice::new(
             network.id,
             device.id,
             vec![IpAddr::from_str("10.4.1.2").unwrap()],
         );
-        network_device.preshared_key = Some("legacy-psk".into());
         network_device.insert(&pool).await.unwrap();
 
         VpnClientSession::new(network.id, user.id, device.id, None, None)

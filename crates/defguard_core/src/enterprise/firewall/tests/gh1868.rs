@@ -67,9 +67,6 @@ async fn setup_user_and_device(
         device_id: device.id,
         wireguard_network_id: location.id,
         wireguard_ips,
-        preshared_key: None,
-        is_authorized: true,
-        authorized_at: None,
     };
     network_device.insert(pool).await.unwrap();
 }

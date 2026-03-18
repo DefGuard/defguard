@@ -1,4 +1,9 @@
--- Preserve unmatched legacy values during rollback; refresh only rows with canonical active session data.
+ALTER TABLE wireguard_network_device
+    ADD COLUMN preshared_key text NULL,
+    ADD COLUMN is_authorized bool NOT NULL DEFAULT false,
+    ADD COLUMN authorized_at timestamp without time zone NULL;
+
+-- Restore legacy preshared keys when canonical active session data exists; unmatched rows stay NULL.
 UPDATE wireguard_network_device AS network_device
 SET preshared_key = latest_active_session.preshared_key
 FROM (
