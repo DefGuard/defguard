@@ -203,20 +203,13 @@ impl UserDevice {
         let result = query!(
             "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
 	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vs.endpoint \"device_endpoint?\", \
-	            vs.latest_handshake \"latest_handshake?\", \
+	            vs.connected_at \"connected_at?\", \
 	            vs.state \"state?: VpnClientSessionState\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN LATERAL ( \
-				SELECT id, state, location_id, endpoint, latest_handshake \
+				SELECT id, state, location_id, endpoint, connected_at \
 				FROM vpn_client_session \
-	            LEFT JOIN LATERAL ( \
-					SELECT session_id, endpoint, latest_handshake \
-					FROM vpn_session_stats \
-					WHERE session_id = vpn_client_session.id \
-					ORDER BY collected_at DESC \
-					LIMIT 1 \
-	            ) vss ON vss.session_id = vpn_client_session.id \
 				WHERE location_id = n.id and device_id = $1 \
 				ORDER BY created_at DESC, id DESC \
 				LIMIT 1 \
@@ -256,7 +249,7 @@ impl UserDevice {
                         .map(IpAddr::to_string)
                         .collect(),
                     last_connected_ip: device_ip,
-                    last_connected_at: r.latest_handshake,
+                    last_connected_at: r.connected_at,
                     is_active,
                 }
             })
