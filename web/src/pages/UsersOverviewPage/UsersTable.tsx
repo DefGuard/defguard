@@ -213,18 +213,6 @@ export const UsersTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('mfa_enabled', {
-        header: m.users_col_mfa(),
-        size: 60,
-        minSize: 60,
-        cell: (info) => (
-          <TableCell className="cell-with-check-icons">
-            {info.getValue() ? (
-              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
-            ) : null}
-          </TableCell>
-        ),
-      }),
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
         size: 370,
@@ -242,6 +230,18 @@ export const UsersTable = () => {
             ) ?? [],
         },
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
+      }),
+      columnHelper.accessor('mfa_enabled', {
+        header: m.users_col_mfa(),
+        size: 56,
+        minSize: 56,
+        cell: (info) => (
+          <TableCell className="cell-with-check-icons">
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : null}
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('enrolled', {
         header: m.users_col_enrolled(),
