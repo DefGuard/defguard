@@ -63,7 +63,7 @@ export const SetupEdgeComponentStep = () => {
         grpc_port: z
           .number()
           .min(1, m.edge_setup_component_error_grpc_port_required())
-          .refine((val) => Validate.any(val.toString(), [Validate.Port], false)),
+          .max(65535, m.edge_setup_component_error_grpc_port_max()),
       }),
     [],
   );
