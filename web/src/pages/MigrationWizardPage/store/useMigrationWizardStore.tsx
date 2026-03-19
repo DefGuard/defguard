@@ -4,11 +4,11 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { queryClient } from '../../../app/query';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
-import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import type {
   MigrationWizardApiState,
   MigrationWizardLocationState,
 } from '../../../shared/api/types';
+import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import { getMigrationStateQueryOptions } from '../../../shared/query';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import {
