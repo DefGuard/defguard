@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{self, Display},
+    fmt,
     iter::zip,
     net::{IpAddr, Ipv4Addr},
 };
@@ -78,13 +78,13 @@ pub enum LocationMfaMode {
     External,
 }
 
-impl Display for LocationMfaMode {
+impl fmt::Display for LocationMfaMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LocationMfaMode::Disabled => write!(f, "MFA disabled"),
-            LocationMfaMode::Internal => write!(f, "Internal MFA"),
-            LocationMfaMode::External => write!(f, "External MFA"),
-        }
+        f.write_str(match self {
+            LocationMfaMode::Disabled => "MFA disabled",
+            LocationMfaMode::Internal => "Internal MFA",
+            LocationMfaMode::External => "External MFA",
+        })
     }
 }
 
@@ -137,7 +137,7 @@ pub struct WireguardKey {
 
 impl fmt::Display for WireguardNetwork<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        f.write_str(&self.name)
     }
 }
 

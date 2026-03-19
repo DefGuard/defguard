@@ -29,7 +29,7 @@ pub struct Proxy<I = NoId> {
 
 impl fmt::Display for Proxy<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        f.write_str(&self.name)
     }
 }
 

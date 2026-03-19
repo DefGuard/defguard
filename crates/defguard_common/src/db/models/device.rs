@@ -61,10 +61,10 @@ pub enum DeviceType {
 
 impl fmt::Display for DeviceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::User => write!(f, "user"),
-            Self::Network => write!(f, "network"),
-        }
+        f.write_str(match self {
+            Self::User => "user",
+            Self::Network => "network",
+        })
     }
 }
 
@@ -94,7 +94,7 @@ pub struct Device<I = NoId> {
 
 impl fmt::Display for Device<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        f.write_str(&self.name)
     }
 }
 

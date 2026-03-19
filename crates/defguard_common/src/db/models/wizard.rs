@@ -22,12 +22,12 @@ pub enum ActiveWizard {
 
 impl fmt::Display for ActiveWizard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::None => write!(f, "none"),
-            Self::Initial => write!(f, "initial setup"),
-            Self::AutoAdoption => write!(f, "auto-adoption"),
-            Self::Migration => write!(f, "migration"),
-        }
+        f.write_str(match self {
+            Self::None => "none",
+            Self::Initial => "initial setup",
+            Self::AutoAdoption => "auto-adoption",
+            Self::Migration => "migration",
+        })
     }
 }
 

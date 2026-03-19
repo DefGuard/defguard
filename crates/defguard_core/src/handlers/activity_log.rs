@@ -1,4 +1,4 @@
-use std::fmt::{self, Display, Formatter};
+use std::fmt;
 
 use axum::extract::State;
 use axum_extra::extract::Query;
@@ -63,17 +63,17 @@ pub enum SortKey {
     Device,
 }
 
-impl Display for SortKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Timestamp => write!(f, "timestamp"),
-            Self::Username => write!(f, "username"),
-            Self::Location => write!(f, "location"),
-            Self::Ip => write!(f, "ip"),
-            Self::Event => write!(f, "event"),
-            Self::Module => write!(f, "module"),
-            Self::Device => write!(f, "device"),
-        }
+impl fmt::Display for SortKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Timestamp => "timestamp",
+            Self::Username => "username",
+            Self::Location => "location",
+            Self::Ip => "ip",
+            Self::Event => "event",
+            Self::Module => "module",
+            Self::Device => "device",
+        })
     }
 }
 
@@ -85,12 +85,12 @@ pub enum SortOrder {
     Desc,
 }
 
-impl Display for SortOrder {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Asc => write!(f, "ASC"),
-            Self::Desc => write!(f, "DESC"),
-        }
+impl fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Asc => "ASC",
+            Self::Desc => "DESC",
+        })
     }
 }
 
