@@ -27,7 +27,7 @@ export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
 
   const description =
     state === 'expiredLicense'
-      ? m.settings_license_expired_notice_description_grace_period_ended()
+      ? m.settings_license_expired_notice_description()
       : m.settings_license_expired_notice_description_grace_period({
           duration: remainingDuration,
         });
