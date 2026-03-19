@@ -41,6 +41,7 @@ pub struct VpnClientSession<I = NoId> {
     pub mfa_method: Option<VpnClientMfaMethod>,
     #[model(enum)]
     pub state: VpnClientSessionState,
+    pub preshared_key: Option<String>,
 }
 
 impl VpnClientSession {
@@ -69,6 +70,7 @@ impl VpnClientSession {
             disconnected_at: None,
             mfa_method,
             state,
+            preshared_key: None,
         }
     }
 }
@@ -85,9 +87,11 @@ impl VpnClientSession<Id> {
         query_as!(
             Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
-			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
+			ORDER BY created_at DESC, id DESC \
+			LIMIT 1",
             location_id,
             device_id
         )
@@ -121,7 +125,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session s \
 			LEFT JOIN LATERAL ( \
 				SELECT latest_handshake \
@@ -145,7 +149,7 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND state = 'new' \
             AND (NOW() - created_at) > $2 * interval '1 second'",
@@ -163,9 +167,10 @@ impl VpnClientSession<Id> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
-			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
+			ORDER BY created_at DESC, id DESC",
 			location_id,
 			device_id,
     	).fetch_all(executor).await

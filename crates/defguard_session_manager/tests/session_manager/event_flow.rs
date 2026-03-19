@@ -79,6 +79,7 @@ async fn test_reusing_existing_connected_session_does_not_emit_duplicate_connect
         device.id,
         Some(connected_at),
         None,
+        None,
     )
     .await;
 
@@ -119,6 +120,7 @@ async fn test_session_manager_emits_disconnect_event_for_inactive_standard_sessi
         user.id,
         device.id,
         Some(stale_handshake),
+        None,
         None,
     )
     .await;
