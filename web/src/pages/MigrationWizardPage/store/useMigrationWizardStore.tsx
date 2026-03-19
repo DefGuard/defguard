@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { queryClient } from '../../../app/query';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import type {
   MigrationWizardApiState,
   MigrationWizardLocationState,
@@ -54,7 +55,7 @@ const defaults: StoreValues = {
   ca_option: null,
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50051,
+  grpc_port: edgeDefaultGrpcPort,
   edgeAdoptionState: edgeAdoptionStateDefaults,
 };
 

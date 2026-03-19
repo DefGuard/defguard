@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useMemo } from 'react';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
-import { externalProviderName, SUPPORTED_SYNC_PROVIDERS } from '../../shared/constants';
+import { externalProviderName, supportedSyncProviders } from '../../shared/constants';
 import { AddExternalOpenIdClientSettingsStep } from './steps/AddExternalOpenIdClientSettingsStep/AddExternalOpenIdClientSettingsStep';
 import { AddExternalOpenIdDirectoryStep } from './steps/AddExternalOpenIdDirectoryStep/AddExternalOpenIdDirectoryStep';
 import { AddExternalOpenIdValidationStep } from './steps/AddExternalOpenIdValidationStep/AddExternalOpenIdValidationStep';
@@ -36,7 +36,7 @@ export const AddExternalOpenIdWizardPage = () => {
         order: 1,
         description:
           'Manage core details and connection parameters for your VPN location.',
-        hidden: !SUPPORTED_SYNC_PROVIDERS.has(provider),
+        hidden: !supportedSyncProviders.has(provider),
       },
       validation: {
         id: AddExternalProviderStep.Validation,
