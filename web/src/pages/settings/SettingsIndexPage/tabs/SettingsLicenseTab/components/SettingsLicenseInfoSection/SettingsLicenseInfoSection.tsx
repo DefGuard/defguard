@@ -16,7 +16,7 @@ import { ProgressionBar } from '../../../../../../../shared/defguard-ui/componen
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
-import type { LicenseState } from '../../SettingsLicenseTab';
+import type { LicenseState } from '../../../../../../../shared/utils/license';
 
 type Props = {
   licenseInfo: LicenseInfo;

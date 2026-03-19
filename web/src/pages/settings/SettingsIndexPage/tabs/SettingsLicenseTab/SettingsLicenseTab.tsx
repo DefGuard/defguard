@@ -1,6 +1,5 @@
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
-import dayjs from 'dayjs';
 import { m } from '../../../../../paraglide/messages';
 import type { LicenseInfo } from '../../../../../shared/api/types';
 import { Controls } from '../../../../../shared/components/Controls/Controls';
@@ -25,48 +24,12 @@ import {
   getLicenseInfoQueryOptions,
   getSettingsQueryOptions,
 } from '../../../../../shared/query';
+import { getLicenseState, type LicenseState } from '../../../../../shared/utils/license';
 import { SettingsLicenseBusinessUpsellSection } from './components/SettingsLicenseBusinessUpsellSection/SettingsLicenseBusinessUpsellSection';
 import { SettingsLicenseExpiredNotice } from './components/SettingsLicenseExpiredNotice/SettingsLicenseExpiredNotice';
 import { SettingsLicenseInfoSection } from './components/SettingsLicenseInfoSection/SettingsLicenseInfoSection';
 import { SettingsLicenseNoLicenseSection } from './components/SettingsLicenseNoLicenseSection/SettingsLicenseNoLicenseSection';
 import { SettingsLicenseModal } from './modals/SettingsLicenseModal/SettingsLicenseModal';
-
-export type LicenseState =
-  | 'noLicense'
-  | 'gracePeriod'
-  | 'expiredLicense'
-  | 'validBusiness'
-  | 'validEnterprise';
-
-const getLicenseState = (
-  licenseInfo: LicenseInfo | null | undefined,
-): LicenseState | null => {
-  if (licenseInfo === undefined) {
-    return null;
-  }
-
-  if (licenseInfo === null) {
-    return 'noLicense';
-  }
-
-  if (licenseInfo.expired) {
-    return 'expiredLicense';
-  }
-
-  if (
-    licenseInfo.subscription &&
-    licenseInfo.valid_until !== null &&
-    dayjs().isAfter(dayjs.utc(licenseInfo.valid_until).local())
-  ) {
-    return 'gracePeriod';
-  }
-
-  if (licenseInfo.tier === 'Enterprise') {
-    return 'validEnterprise';
-  }
-
-  return 'validBusiness';
-};
 
 export const SettingsLicenseTab = () => {
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
