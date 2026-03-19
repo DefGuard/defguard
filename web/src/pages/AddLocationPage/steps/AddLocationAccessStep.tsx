@@ -24,7 +24,6 @@ export const AddLocationAccessStep = () => {
   const { data: groups } = useQuery({
     queryFn: api.group.getGroups,
     queryKey: ['group'],
-    select: (resp) => resp.data.groups,
   });
 
   const selectionOptions = useMemo(() => {

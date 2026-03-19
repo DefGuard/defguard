@@ -167,8 +167,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
     queryKey: ['group'],
-    select: (resp) =>
-      resp.data.groups.map(
+    select: (groups) =>
+      groups.map(
         (group): SelectionOption<string> => ({
           id: group,
           label: group,

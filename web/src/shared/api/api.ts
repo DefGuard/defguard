@@ -58,7 +58,6 @@ import type {
   GatewayInfo,
   GetCAResponse,
   GroupInfo,
-  GroupsResponse,
   IpValidation,
   LicenseCheckResponse,
   LicenseInfoResponse,
@@ -166,7 +165,23 @@ const api = {
   },
   group: {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),
-    getGroups: () => client.get<GroupsResponse>('/group'),
+    getGroups: async () => {
+      const groups: string[] = [];
+      let page: number | null = 1;
+
+      while (page !== null) {
+        const response: PaginatedResponse<string> = await client
+          .get<PaginatedResponse<string>>('/group', {
+            params: { page },
+          })
+          .then((resp) => resp.data);
+
+        groups.push(...response.data);
+        page = response.pagination.next_page;
+      }
+
+      return groups;
+    },
     getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
     editGroup: ({ originalName, ...data }: EditGroupRequest) =>
       client.put(`/group/${originalName ?? data.name}`, data),
