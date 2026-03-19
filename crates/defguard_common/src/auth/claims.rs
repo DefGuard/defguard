@@ -5,7 +5,7 @@ use std::{
 };
 
 use jsonwebtoken::{
-    decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
+    DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::Error as JWTError,
 };
 use serde::{Deserialize, Serialize};
 
@@ -127,7 +127,7 @@ fn secret_env(claims_type: ClaimsType) -> &'static str {
 #[cfg(any(test, feature = "test-support"))]
 #[doc(hidden)]
 pub mod test_support {
-    use super::{JwtSecretOverrides, JWT_SECRET_OVERRIDES};
+    use super::{JWT_SECRET_OVERRIDES, JwtSecretOverrides};
 
     pub fn initialize_jwt_secret_overrides(
         auth_secret: impl Into<String>,
