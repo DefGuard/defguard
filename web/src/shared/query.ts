@@ -142,7 +142,6 @@ export const getUsersQueryOptions = queryOptions({
   queryKey: ['user'],
   refetchOnMount: true,
   refetchOnReconnect: true,
-  select: (resp) => resp.data,
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({

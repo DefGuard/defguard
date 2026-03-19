@@ -231,7 +231,6 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let update_query = format!("UPDATE \"{table_name}\" SET {cs_setters} WHERE id = $1");
     let count_query = format!("SELECT count(*) FROM \"{table_name}\"");
 
-    // TODO: add limit and offset for all().
     quote! {
         impl #name<NoId> {
             pub async fn save<'e, E>(self, executor: E) -> sqlx::Result<#name<Id>>

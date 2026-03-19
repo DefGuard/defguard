@@ -114,7 +114,7 @@ import type {
 
 const api = {
   getUsersOverview: async (): Promise<UsersListItem[]> => {
-    const { data: users } = await api.user.getUsers();
+    const users = await api.user.getUsers();
     const res: UsersListItem[] = [];
     for (const user of users) {
       const { data: profile } = await api.user.getUser(user.username);
@@ -199,7 +199,23 @@ const api = {
         username,
       }),
     getMe: () => client.get<User>('/me'),
-    getUsers: () => client.get<User[]>('/user'),
+    getUsers: async () => {
+      const users: User[] = [];
+      let page: number | null = 1;
+
+      while (page !== null) {
+        const response: PaginatedResponse<User> = await client
+          .get<PaginatedResponse<User>>('/user', {
+            params: { page },
+          })
+          .then((resp) => resp.data);
+
+        users.push(...response.data);
+        page = response.pagination.next_page;
+      }
+
+      return users;
+    },
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),

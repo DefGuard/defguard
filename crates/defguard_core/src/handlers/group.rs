@@ -66,7 +66,7 @@ pub(crate) async fn bulk_assign_to_groups(
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Assigning groups to users.");
-    let mut users: Vec<User<Id>> = query_as!(
+    let mut users = query_as!(
         User,
         "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
         totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
@@ -196,7 +196,7 @@ pub(crate) async fn list_groups_info(
     get,
     path = "/api/v1/group",
     responses(
-        (status = 200, description = "Retrieve all groups.", body = Vec<String>, example = json!({"groups": ["admin"]})),
+        (status = 200, description = "Retrieve all groups.", body = [String], example = json!({"groups": ["admin"]})),
         (status = 401, description = "Unauthorized to retrieve all groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Cannot retrieve all groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -213,7 +213,8 @@ pub(crate) async fn list_groups(
 ) -> PaginatedApiResult<String> {
     let pagination = pagination.0;
 
-    debug!("User {} lists groups", &session.user.username);
+    debug!("User {} is listing groups", &session.user.username);
+
     let groups = Group::all_paginated(
         &appstate.pool,
         i64::from(pagination.per_page()),
@@ -224,6 +225,7 @@ pub(crate) async fn list_groups(
     .map(|group| group.name)
     .collect();
     let count = Group::count(&appstate.pool).await?;
+
     info!("User {} listed groups", &session.user.username);
 
     Ok(PaginatedApiResponse::new(groups, pagination, count as u32))
