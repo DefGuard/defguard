@@ -218,7 +218,7 @@ impl UserDevice {
 					LIMIT 1 \
 	            ) vss ON vss.session_id = vpn_client_session.id \
 				WHERE location_id = n.id and device_id = $1 \
-				ORDER BY created_at DESC \
+				ORDER BY created_at DESC, id DESC \
 				LIMIT 1 \
             ) vs ON vs.location_id = n.id \
             WHERE wnd.device_id = $1",
@@ -1403,6 +1403,286 @@ mod test {
 
         let valid_test_key = "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=";
         assert_ok!(Device::validate_pubkey(valid_test_key));
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_is_active_tracks_vpn_client_session_state(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("hunter2"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "testdevice".into(),
+            "key".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device.clone())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(user_device.networks.len(), 1);
+        assert!(!user_device.networks[0].is_active);
+
+        let mut session = crate::db::models::vpn_client_session::VpnClientSession::new(
+            network.id, user.id, device.id, None, None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device.clone())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(!user_device.networks[0].is_active);
+
+        session.state = VpnClientSessionState::Connected;
+        session.connected_at = Some(Utc::now().naive_utc());
+        session.save(&pool).await.unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device.clone())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(user_device.networks[0].is_active);
+
+        session.state = VpnClientSessionState::Disconnected;
+        session.disconnected_at = Some(Utc::now().naive_utc());
+        session.save(&pool).await.unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(!user_device.networks[0].is_active);
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_is_active_uses_newest_vpn_client_session_state(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("hunter2"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "testdevice".into(),
+            "key".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let older_created_at = NaiveDate::from_ymd_opt(2026, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let newer_created_at = NaiveDate::from_ymd_opt(2026, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 1, 0)
+            .unwrap();
+
+        let mut older_session = crate::db::models::vpn_client_session::VpnClientSession::new(
+            network.id, user.id, device.id, None, None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        older_session.state = VpnClientSessionState::Connected;
+        older_session.connected_at = Some(older_created_at);
+        older_session.save(&pool).await.unwrap();
+        sqlx::query("UPDATE vpn_client_session SET created_at = $1 WHERE id = $2")
+            .bind(older_created_at)
+            .bind(older_session.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let mut newer_session = crate::db::models::vpn_client_session::VpnClientSession::new(
+            network.id, user.id, device.id, None, None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        newer_session.state = VpnClientSessionState::Disconnected;
+        newer_session.disconnected_at = Some(newer_created_at);
+        newer_session.save(&pool).await.unwrap();
+        sqlx::query("UPDATE vpn_client_session SET created_at = $1 WHERE id = $2")
+            .bind(newer_created_at)
+            .bind(newer_session.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(user_device.networks.len(), 1);
+        assert!(!user_device.networks[0].is_active);
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_is_active_uses_newest_vpn_client_session_state_when_created_at_ties(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let user = User::new(
+            "testuser",
+            Some("hunter2"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "testdevice".into(),
+            "key".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let tied_created_at = NaiveDate::from_ymd_opt(2026, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+
+        let mut older_session = crate::db::models::vpn_client_session::VpnClientSession::new(
+            network.id, user.id, device.id, None, None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        older_session.state = VpnClientSessionState::Connected;
+        older_session.connected_at = Some(tied_created_at);
+        older_session.save(&pool).await.unwrap();
+        sqlx::query("UPDATE vpn_client_session SET created_at = $1 WHERE id = $2")
+            .bind(tied_created_at)
+            .bind(older_session.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let mut newer_session = crate::db::models::vpn_client_session::VpnClientSession::new(
+            network.id, user.id, device.id, None, None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        newer_session.state = VpnClientSessionState::Disconnected;
+        newer_session.disconnected_at = Some(tied_created_at);
+        newer_session.save(&pool).await.unwrap();
+        sqlx::query("UPDATE vpn_client_session SET created_at = $1 WHERE id = $2")
+            .bind(tied_created_at)
+            .bind(newer_session.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        assert!(newer_session.id > older_session.id);
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(user_device.networks.len(), 1);
+        assert!(!user_device.networks[0].is_active);
     }
 
     #[sqlx::test]
