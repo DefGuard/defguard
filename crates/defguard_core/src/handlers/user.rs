@@ -231,7 +231,6 @@ pub(crate) async fn list_users(
 ///
 /// # Returns
 /// - `UserDetails` object
-///
 /// - `WebError` if error occurs
 #[utoipa::path(
     get,
@@ -290,7 +289,6 @@ pub(crate) async fn get_user(
 ///
 /// # Returns
 /// - `UserInfo` object
-///
 /// - `WebError` if error occurs
 #[utoipa::path(
     post,

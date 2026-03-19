@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
+import { fetchAllPages, fetchPage } from './pagination';
 import type {
   AclAlias,
   AclCount,
@@ -80,7 +81,6 @@ import type {
   OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
-  PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   ResourceDisplay,
@@ -165,23 +165,7 @@ const api = {
   },
   group: {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),
-    getGroups: async () => {
-      const groups: string[] = [];
-      let page: number | null = 1;
-
-      while (page !== null) {
-        const response: PaginatedResponse<string> = await client
-          .get<PaginatedResponse<string>>('/group', {
-            params: { page },
-          })
-          .then((resp) => resp.data);
-
-        groups.push(...response.data);
-        page = response.pagination.next_page;
-      }
-
-      return groups;
-    },
+    getGroups: () => fetchAllPages<string>('/group'),
     getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
     editGroup: ({ originalName, ...data }: EditGroupRequest) =>
       client.put(`/group/${originalName ?? data.name}`, data),
@@ -199,23 +183,7 @@ const api = {
         username,
       }),
     getMe: () => client.get<User>('/me'),
-    getUsers: async () => {
-      const users: User[] = [];
-      let page: number | null = 1;
-
-      while (page !== null) {
-        const response: PaginatedResponse<User> = await client
-          .get<PaginatedResponse<User>>('/user', {
-            params: { page },
-          })
-          .then((resp) => resp.data);
-
-        users.push(...response.data);
-        page = response.pagination.next_page;
-      }
-
-      return users;
-    },
+    getUsers: () => fetchAllPages<User>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
@@ -338,7 +306,7 @@ const api = {
     editDevice: ({ id, ...data }: EditNetworkDeviceRequest) =>
       client.put(`/device/network/${id}`, data),
     getDevice: (id: number) => client.get<NetworkDevice>(`/device/network/${id}`),
-    getDevices: () => client.get<NetworkDevice[]>(`/device/network`),
+    getDevices: () => fetchAllPages<NetworkDevice>('/device/network'),
     getDeviceConfig: (id: number) => client.get<string>(`/device/network/${id}/config`),
     generateToken: (id: number) =>
       client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
@@ -379,36 +347,25 @@ const api = {
     getLocationGatewaysStatus: (id: number) =>
       client.get<GatewayInfo[]>(`/network/${id}/gateways`),
     getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
-      client
-        .get<PaginatedResponse<LocationConnectedUser>>(
-          `/network/${id}/stats/connected_users`,
-          {
-            params: {
-              ...params,
-              from: params.from
-                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-                : undefined,
-            },
-          },
-        )
-        .then((resp) => resp.data),
+      fetchPage<LocationConnectedUser>(`/network/${id}/stats/connected_users`, {
+        ...params,
+        from: params.from
+          ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+          : undefined,
+      }),
     getLocationConnectedNetworkDevices: ({
       id,
       ...params
     }: LocationConnectedNetworkDevicesRequest) =>
-      client
-        .get<PaginatedResponse<LocationConnectedNetworkDevice>>(
-          `/network/${id}/stats/connected_network_devices`,
-          {
-            params: {
-              ...params,
-              from: params.from
-                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-                : undefined,
-            },
-          },
-        )
-        .then((resp) => resp.data),
+      fetchPage<LocationConnectedNetworkDevice>(
+        `/network/${id}/stats/connected_network_devices`,
+        {
+          ...params,
+          from: params.from
+            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+            : undefined,
+        },
+      ),
     getLocationConnectedUserDevices: ({
       locationId,
       userId,
@@ -570,11 +527,7 @@ const api = {
     client.post<LicenseCheckResponse>('/license/check', data),
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
-    client
-      .get<PaginatedResponse<ActivityLogEvent>>(`/activity_log`, {
-        params: data,
-      })
-      .then((resp) => resp.data),
+    fetchPage<ActivityLogEvent>(`/activity_log`, data),
   info: () => client.get<ApplicationInfo>('/info'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
 } as const;

@@ -75,7 +75,6 @@ export const getGatewayQueryOptions = (id: number) =>
 export const getNetworkDevicesQueryOptions = queryOptions({
   queryFn: api.network_device.getDevices,
   queryKey: ['device', 'network'],
-  select: (resp) => resp.data,
 });
 
 export const getUserMeQueryOptions = queryOptions({

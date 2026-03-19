@@ -224,10 +224,10 @@ pub(crate) async fn list_groups(
     .into_iter()
     .map(|group| group.name)
     .collect();
-    let count = Group::count(&appstate.pool).await?;
 
     info!("User {} listed groups", &session.user.username);
 
+    let count = Group::count(&appstate.pool).await?;
     Ok(PaginatedApiResponse::new(groups, pagination, count as u32))
 }
 
