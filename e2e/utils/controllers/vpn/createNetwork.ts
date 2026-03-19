@@ -13,6 +13,7 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.goto(routes.base + routes.locations);
   await page.getByTestId('add-location').click();
   await page.getByTestId('add-regular-location').click();
+  await page.locator('button[data-variant="primary"]').filter({ hasText: 'Create new location' }).click();
 
   await page.getByTestId('field-name').fill(network.name);
   await page.getByTestId('field-endpoint').fill(network.endpoint);
@@ -50,6 +51,7 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
 
   await page.getByTestId('acl-continue').click();
   await page.getByTestId('create-location').click();
+  await page.locator('.icon-button .icon[data-kind="close"]').click();
 
   await page.waitForURL('**/locations');
 
@@ -65,6 +67,7 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.goto(routes.base + routes.locations);
   await page.getByTestId('add-location').click();
   await page.getByTestId('add-service-location').click();
+  await page.locator('button[data-variant="primary"]').filter({ hasText: 'Create new location' }).click();
 
   await page.getByTestId('field-name').fill(network.name);
   await page.getByTestId('field-address').fill(network.endpoint);
@@ -88,6 +91,7 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('finish').click();
   await page.getByTestId('acl-continue').click();
   await page.getByTestId('create-location').click();
+  await page.locator('.icon-button .icon[data-kind="close"]').click();
 
   await page.waitForURL('**/locations');
   await expect(page.url()).toBe(routes.base + routes.locations);
