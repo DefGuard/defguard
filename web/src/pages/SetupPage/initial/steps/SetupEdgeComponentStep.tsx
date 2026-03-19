@@ -9,9 +9,9 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import { Validate } from '../../../../shared/validate';
 import { SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
-import { Validate } from '../../../../shared/validate';
 
 type FormFields = StoreValues;
 
@@ -52,7 +52,7 @@ export const SetupEdgeComponentStep = () => {
               val,
               [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
               false,
-            )
+            ),
           ),
         grpc_port: z
           .number()

@@ -10,8 +10,8 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 import { Validate } from '../../../shared/validate';
+import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 type FormFields = StoreValues;
 
@@ -46,7 +46,7 @@ export const MigrationWizardEdgeComponentStep = () => {
               val,
               [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
               false,
-            )
+            ),
           ),
         grpc_port: z
           .number()

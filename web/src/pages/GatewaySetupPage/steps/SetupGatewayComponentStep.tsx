@@ -59,7 +59,7 @@ export const SetupGatewayComponentStep = () => {
               val,
               [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
               false,
-            )
+            ),
           ),
         grpc_port: z
           .number()

@@ -30,9 +30,9 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
 import { getSettingsQueryOptions } from '../../../shared/query';
+import { Validate } from '../../../shared/validate';
 import { configuredBadge, notConfiguredBadge } from '../SettingsIndexPage/types';
 import { SendTestEmailModal } from './SendTestEmailModal';
-import { Validate } from '../../../shared/validate';
 
 const breadcrumbsLinks = [
   <Link
@@ -109,7 +109,15 @@ const Content = ({ settings }: { settings: Settings }) => {
           .string()
           .trim()
           .min(1, m.form_error_required())
-          .refine((val) => (!val ? true : Validate.any(val,[Validate.IPv4,Validate.IPv6,Validate.Domain,Validate.Hostname],false))),
+          .refine((val) =>
+            !val
+              ? true
+              : Validate.any(
+                  val,
+                  [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+                  false,
+                ),
+          ),
         smtp_port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
         smtp_password: z.string().trim(),
         smtp_user: z.string().trim(),
