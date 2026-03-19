@@ -27,7 +27,7 @@ export const SettingsLicenseBusinessUpsellSection = () => {
           </div>
           <div className="content">
             <div className="top">
-              <p className="title">Enterprise</p>
+              <p className="title">{m.settings_license_plan_enterprise_title()}</p>
             </div>
             <p className="description">
               {m.settings_license_plan_enterprise_description()}

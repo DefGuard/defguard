@@ -32,7 +32,7 @@ export const SettingsLicenseNoLicenseSection = () => {
           </div>
           <div className="content">
             <div className="top">
-              <p className="title">Business</p>
+              <p className="title">{m.settings_license_plan_business_title()}</p>
               <Badge
                 text={m.settings_license_plan_business_badge()}
                 variant={BadgeVariant.Plan}
@@ -70,7 +70,7 @@ export const SettingsLicenseNoLicenseSection = () => {
           </div>
           <div className="content">
             <div className="top">
-              <p className="title">Enterprise</p>
+              <p className="title">{m.settings_license_plan_enterprise_title()}</p>
             </div>
             <p className="description">
               {m.settings_license_plan_enterprise_description()}
