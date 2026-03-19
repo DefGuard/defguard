@@ -22,7 +22,13 @@ const formSchema = z.object({
     .trim()
     .min(1, m.form_error_required())
     .refine(
-      (value) => Validate.any(value, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
+      (value) =>
+        Validate.any(value, [
+          Validate.IPv4,
+          Validate.IPv6,
+          Validate.Domain,
+          Validate.Hostname,
+        ]),
       m.initial_setup_auto_adoption_vpn_error_invalid_value(),
     ),
   vpn_wireguard_port: z
@@ -37,8 +43,35 @@ const formSchema = z.object({
       (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
       m.initial_setup_auto_adoption_vpn_error_invalid_value(),
     ),
-  vpn_allowed_ips: z.string().trim(),
-  vpn_dns_server_ip: z.string().trim(),
+  vpn_allowed_ips: z
+    .string()
+    .trim()
+    .nullable()
+    .refine((val) => {
+      if (!val) return true;
+      return Validate.any(
+        val,
+        [
+          Validate.IPv4,
+          Validate.IPv6,
+          (v) => Validate.CIDRv4(v, true),
+          (v) => Validate.CIDRv6(v, true),
+        ],
+        true,
+      );
+    }, m.form_error_invalid()),
+  vpn_dns_server_ip: z
+    .string()
+    .trim()
+    .nullable()
+    .refine((val) => {
+      if (!val) return true;
+      return Validate.any(
+        val,
+        [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+        true,
+      );
+    }),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -72,8 +105,13 @@ export const AutoAdoptionVpnSettingsStep = () => {
       onChange: formSchema,
     },
     onSubmit: ({ value }) => {
-      useAutoAdoptionSetupWizardStore.setState(value);
-      setVpnSettings(value);
+      const storeValue = {
+        ...value,
+        vpn_allowed_ips: value.vpn_allowed_ips ?? '',
+        vpn_dns_server_ip: value.vpn_dns_server_ip ?? '',
+      };
+      useAutoAdoptionSetupWizardStore.setState(storeValue);
+      setVpnSettings(storeValue);
     },
   });
 
@@ -144,7 +182,11 @@ export const AutoAdoptionVpnSettingsStep = () => {
               variant="outlined"
               text={m.initial_setup_controls_back()}
               onClick={() => {
-                useAutoAdoptionSetupWizardStore.setState(form.state.values);
+                useAutoAdoptionSetupWizardStore.setState({
+                  ...form.state.values,
+                  vpn_allowed_ips: form.state.values.vpn_allowed_ips ?? '',
+                  vpn_dns_server_ip: form.state.values.vpn_dns_server_ip ?? '',
+                });
                 setActiveStep(AutoAdoptionSetupStep.UrlSettings);
               }}
             />

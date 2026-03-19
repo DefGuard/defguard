@@ -30,7 +30,10 @@ const formSchema = z.object({
         ]),
       m.form_error_invalid(),
     ),
-  port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
+  port: z
+    .number(m.form_error_required())
+    .min(1, m.form_min_value({ value: 1 }))
+    .max(65535, m.form_error_port_max()),
 });
 
 type FormFields = z.infer<typeof formSchema>;

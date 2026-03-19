@@ -39,7 +39,18 @@ const formSchema = z.object({
         true,
       );
     }, m.form_error_invalid()),
-  dns: z.string().nullable(),
+  dns: z
+    .string()
+    .trim()
+    .nullable()
+    .refine((val) => {
+      if (!val) return true;
+      return Validate.any(
+        val,
+        [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+        true,
+      );
+    }),
 });
 
 type FormFields = z.infer<typeof formSchema>;

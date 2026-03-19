@@ -71,7 +71,7 @@ export const domainPattern =
 export const domainWithPortPattern =
   /^(?:(?:(?:[A-Za-z-]+):\/{1,3})?(?:[A-Za-z0-9])(?:[A-Za-z0-9\-.]){1,61}(?:\.[A-Za-z]{2,})+|\[(?:(?:(?:[a-fA-F0-9]){1,4})(?::(?:[a-fA-F0-9]){1,4}){7}|::1|::)\]|(?:(?:[0-9]{1,3})(?:\.[0-9]{1,3}){3})):[0-9]{1,5}$/;
 
-export const hostnamePattern = /^[A-Za-z]([A-Za-z0-9-]*[A-Za-z0-9])?$/;
+export const hostnamePattern = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$/;
 
 export const patternSafeUsernameCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]*$/;
 
