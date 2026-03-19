@@ -152,7 +152,7 @@ const api = {
     callback: (data: unknown) => client.post<LoginResponse>(`/openid/callback`, data),
   },
   openIdClient: {
-    getOpenIdClients: () => client.get<OpenIdClient[]>(`/oauth`),
+    getOpenIdClients: () => fetchAllPages<OpenIdClient>(`/oauth`),
     getOpenIdClient: (clientId: string) => client.get<OpenIdClient>(`/oauth/${clientId}`),
     addOpenIdClient: (data: AddOpenIdClient) => client.post(`/oauth`, data),
     editOpenIdClient: (data: OpenIdClient) =>

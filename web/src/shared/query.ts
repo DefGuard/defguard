@@ -161,7 +161,6 @@ export const getGroupsInfoQueryOptions = queryOptions({
 export const getOpenIdClientQueryOptions = queryOptions({
   queryFn: api.openIdClient.getOpenIdClients,
   queryKey: ['oauth'],
-  select: (resp) => resp.data,
 });
 
 export const getWebhooksQueryOptions = queryOptions({
