@@ -12,6 +12,7 @@ import {
   Icon,
   type IconKindValue,
 } from '../../../../../../../shared/defguard-ui/components/Icon';
+import { InfoBanner } from '../../../../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { ProgressionBar } from '../../../../../../../shared/defguard-ui/components/ProgressionBar/ProgressionBar';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
@@ -64,8 +65,18 @@ export const SettingsLicenseInfoSection = ({
           </PropertyInfo>
         )}
       </div>
+      {isExpired && (
+        <>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <InfoBanner
+            icon="warning-filled"
+            text={m.settings_license_grace_period_banner({ tier: license.tier })}
+            variant="warning"
+          />
+        </>
+      )}
       <Divider spacing={ThemeSpacing.Xl} />
-      {isPresent(license.limits) && (
+      {!isExpired && isPresent(license.limits) && (
         <Fragment>
           <p className="limits-label">{m.settings_license_limits_title()}</p>
           <SizedBox height={ThemeSpacing.Xl2} />

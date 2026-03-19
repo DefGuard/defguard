@@ -67,6 +67,7 @@
   "settings_license_plan_enterprise_title": "Enterprise",
   "settings_license_plan_enterprise_description": "Custom integrations, and dedicated support tailored to your organization's security and scalability needs.",
   "settings_license_try_business_button": "Try Business for free now",
+  "settings_license_grace_period_banner": "Your license key has expired. Please renew your license to continue using Defguard {tier} features.",
   "settings_license_expired_notice_title": "License expiration notice",
   "settings_license_expired_notice_description_grace_period": "Defguard will continue to work for {duration}, after which it will downgrade to the Open Source version. Please renew your license as soon as possible to avoid losing access to the features included in your current plan.",
   "settings_license_expired_notice_description": "Your license has expired.",
