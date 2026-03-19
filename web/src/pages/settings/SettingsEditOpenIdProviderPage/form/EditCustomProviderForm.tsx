@@ -17,7 +17,6 @@ type FormFields = z.infer<typeof formSchema>;
 
 export const EditCustomProviderForm = ({
   provider,
-  loading,
   onDelete,
   onSubmit,
 }: EditProviderFormProps) => {
@@ -98,18 +97,17 @@ export const EditCustomProviderForm = ({
                 disabled: submitting,
                 text: 'Delete provider',
                 onClick: onDelete,
-                loading: loading,
               }}
               cancelProps={{
                 text: m.controls_cancel(),
-                disabled: submitting || loading,
+                disabled: submitting,
                 onClick: () => {
                   window.history.back();
                 },
               }}
               submitProps={{
                 text: m.controls_save_changes(),
-                loading: submitting || loading,
+                loading: submitting,
                 type: 'submit',
                 onClick: () => {
                   form.handleSubmit();

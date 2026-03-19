@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -13,6 +12,7 @@ import { tableEditColumnSize } from '../../../../../../../shared/defguard-ui/com
 import { TableBody } from '../../../../../../../shared/defguard-ui/components/table/TableBody/TableBody';
 import { TableCell } from '../../../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { tableSortingFns } from '../../../../../../../shared/utils/dateSortingFn';
@@ -26,13 +26,6 @@ const columnHelper = createColumnHelper<RowData>();
 export const ProfileApiTokensTable = () => {
   const username = useUserProfile((s) => s.user.username);
   const data = useUserProfile((s) => s.apiTokens);
-
-  const { mutate: deleteApiToken } = useMutation({
-    mutationFn: api.user.deleteApiToken,
-    meta: {
-      invalidate: [['user-overview'], ['user', username, 'api_token']],
-    },
-  });
 
   const columns = useMemo(
     () => [
@@ -92,9 +85,21 @@ export const ProfileApiTokensTable = () => {
                       variant: 'danger',
                       text: m.controls_delete(),
                       onClick: () => {
-                        deleteApiToken({
-                          id: rowData.id,
-                          username,
+                        openModal(ModalName.ConfirmAction, {
+                          title: m.modal_delete_api_token_title(),
+                          contentMd: m.modal_delete_api_token_content({
+                            name: rowData.name,
+                          }),
+                          actionPromise: () =>
+                            api.user.deleteApiToken({ id: rowData.id, username }),
+                          invalidateKeys: [
+                            ['user-overview'],
+                            ['user', username, 'api_token'],
+                          ],
+                          submitProps: { text: m.controls_delete(), variant: 'critical' },
+                          onSuccess: () =>
+                            Snackbar.default(m.modal_delete_api_token_success()),
+                          onError: () => Snackbar.error(m.modal_delete_api_token_error()),
                         });
                       },
                     },
@@ -106,7 +111,7 @@ export const ProfileApiTokensTable = () => {
         },
       }),
     ],
-    [deleteApiToken, username],
+    [username],
   );
 
   const table = useReactTable({

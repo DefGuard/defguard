@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -19,6 +18,7 @@ import { TableBody } from '../../../../../shared/defguard-ui/components/table/Ta
 import { TableCell } from '../../../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { useClipboard } from '../../../../../shared/defguard-ui/hooks/useClipboard';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
@@ -83,13 +83,6 @@ export const ProfileAuthKeysTable = () => {
 
   const authKeys = useUserProfile((s) => s.authKeys);
   const mapped = useMemo(() => mapData(authKeys), [authKeys]);
-
-  const { mutate: deleteAuthKey } = useMutation({
-    mutationFn: api.user.deleteAuthKey,
-    meta: {
-      invalidate: [['user-overview'], ['user', username, 'auth_key']],
-    },
-  });
 
   const columns = useMemo(
     () => [
@@ -188,9 +181,16 @@ export const ProfileAuthKeysTable = () => {
                   variant: 'danger',
                   text: m.controls_delete(),
                   onClick: () => {
-                    deleteAuthKey({
-                      id: rowData.id,
-                      username,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_auth_key_title(),
+                      contentMd: m.modal_delete_auth_key_content({ name: rowData.name }),
+                      actionPromise: () =>
+                        api.user.deleteAuthKey({ id: rowData.id, username }),
+                      invalidateKeys: [['user-overview'], ['user', username, 'auth_key']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () =>
+                        Snackbar.default(m.modal_delete_auth_key_success()),
+                      onError: () => Snackbar.error(m.modal_delete_auth_key_error()),
                     });
                   },
                 },
@@ -201,7 +201,7 @@ export const ProfileAuthKeysTable = () => {
         },
       }),
     ],
-    [deleteAuthKey, username, writeToClipboard, mapped],
+    [username, writeToClipboard, mapped],
   );
 
   const table = useReactTable({
