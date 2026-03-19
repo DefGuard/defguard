@@ -23,6 +23,7 @@ import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/T
 import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -240,6 +241,8 @@ export const EdgesTable = () => {
                       actionPromise: () => api.edge.deleteEdge(rowData.id),
                       invalidateKeys: [['edge']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.modal_delete_edge_success()),
+                      onError: () => Snackbar.error(m.modal_delete_edge_error()),
                     });
                   },
                 },

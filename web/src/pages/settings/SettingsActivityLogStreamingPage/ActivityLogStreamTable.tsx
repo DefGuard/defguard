@@ -87,6 +87,10 @@ export const ActivityLogStreamTable = ({ data: rowData }: Props) => {
                       actionPromise: () => api.activityLogStream.deleteStream(row.id),
                       invalidateKeys: [['activity_log_stream']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () =>
+                        Snackbar.default(
+                          m.settings_activity_log_streaming_delete_log_streaming_success(),
+                        ),
                       onError: () =>
                         Snackbar.error(
                           m.settings_activity_log_streaming_delete_log_streaming_failed(),
