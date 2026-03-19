@@ -113,6 +113,7 @@ export const SetupGatewayComponentStep = () => {
               <field.FormInput
                 required
                 label={m.gateway_setup_component_label_grpc_port()}
+                helper={m.gateway_setup_component_label_grpc_port_help()}
                 type="number"
               />
             )}
