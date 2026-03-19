@@ -17,6 +17,7 @@ use crate::{
     enterprise::{
         license::{License, LicenseTier, set_cached_license},
         limits::get_counts,
+        test_state_lock,
     },
     grpc::proto::enterprise::license::LicenseLimits,
 };
@@ -1719,6 +1720,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
@@ -2066,6 +2068,7 @@ async fn test_sync_incremental_with_nested_ou_conflicts(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
@@ -2284,6 +2287,7 @@ async fn test_sync_defguard_authority_with_complex_nested_ous(
 
 #[sqlx::test]
 async fn test_sync_with_ou_path_edge_cases(_: PgPoolOptions, options: PgConnectOptions) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
     let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
@@ -2453,6 +2457,7 @@ async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
 
@@ -2510,6 +2515,7 @@ async fn test_ldap_login_does_not_create_user_when_user_license_limit_is_reached
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
 
@@ -3215,6 +3221,7 @@ async fn test_ldap_sync_allowed_with_empty_sync_groups(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();
@@ -3340,6 +3347,7 @@ async fn test_ldap_sync_allowed_with_multiple_sync_groups(
 
 #[sqlx::test]
 async fn test_ldap_sync_allowed_enrolled_via_openid(_: PgPoolOptions, options: PgConnectOptions) {
+    let _test_guard = test_state_lock().lock_owned().await;
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
     set_test_license_business();

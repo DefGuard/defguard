@@ -724,7 +724,7 @@ pub async fn modify_user(
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
-    let ldap_sync_allowed = ldap_sync_allowed_for_user(&user, &mut *transaction).await?;
+    let ldap_sync_allowed = ldap_sync_allowed_for_user(&user, &appstate.pool).await?;
 
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
@@ -891,7 +891,7 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
-        let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
+        let user_for_ldap = if ldap_sync_allowed_for_user(&user, &appstate.pool).await? {
             Some(user.clone().as_noid())
         } else {
             None

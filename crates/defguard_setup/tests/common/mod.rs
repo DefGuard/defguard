@@ -1,6 +1,6 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::Arc,
+    sync::{Arc, OnceLock},
 };
 
 use axum::serve;
@@ -24,21 +24,43 @@ use reqwest::{
 };
 use semver::Version;
 use sqlx::PgPool;
-use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
+use tokio::{
+    net::TcpListener,
+    sync::{Mutex, OwnedMutexGuard, oneshot},
+    task::JoinHandle,
+};
 
 #[allow(dead_code)]
 pub const TEST_SECRET_KEY: &str =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
+#[allow(dead_code)]
+pub async fn setup_test_guard() -> OwnedMutexGuard<()> {
+    setup_test_lock().lock_owned().await
+}
+
 pub struct TestClient {
     pub client: Client,
     pub _jar: Arc<Jar>,
     pub port: u16,
+    pub _test_guard: OwnedMutexGuard<()>,
     pub _task: JoinHandle<()>,
 }
 
+fn setup_test_lock() -> Arc<Mutex<()>> {
+    static SETUP_TEST_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
+
+    SETUP_TEST_LOCK
+        .get_or_init(|| Arc::new(Mutex::new(())))
+        .clone()
+}
+
 impl TestClient {
-    pub fn new(router: axum::Router, listener: TcpListener) -> Self {
+    pub fn new(
+        router: axum::Router,
+        listener: TcpListener,
+        test_guard: OwnedMutexGuard<()>,
+    ) -> Self {
         let port = listener.local_addr().unwrap().port();
         let task = tokio::spawn(async move {
             serve(
@@ -62,6 +84,7 @@ impl TestClient {
             client,
             _jar: jar,
             port,
+            _test_guard: test_guard,
             _task: task,
         }
     }
@@ -85,7 +108,10 @@ impl TestClient {
 }
 
 #[allow(dead_code)]
-pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Receiver<()>) {
+pub async fn make_setup_test_client(
+    pool: PgPool,
+    test_guard: OwnedMutexGuard<()>,
+) -> (TestClient, oneshot::Receiver<()>) {
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
     let app = build_setup_webapp(
         pool,
@@ -96,12 +122,16 @@ pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Recei
     let listener = TcpListener::bind(addr)
         .await
         .expect("Could not bind ephemeral socket");
-    (TestClient::new(app, listener), setup_shutdown_rx)
+    (
+        TestClient::new(app, listener, test_guard),
+        setup_shutdown_rx,
+    )
 }
 
 #[allow(dead_code)]
 pub async fn make_migration_test_client(
     pool: PgPool,
+    test_guard: OwnedMutexGuard<()>,
 ) -> (
     TestClient,
     oneshot::Receiver<()>,
@@ -121,7 +151,11 @@ pub async fn make_migration_test_client(
     let listener = TcpListener::bind(addr)
         .await
         .expect("Could not bind ephemeral socket");
-    (TestClient::new(router, listener), setup_shutdown_rx, webapp)
+    (
+        TestClient::new(router, listener, test_guard),
+        setup_shutdown_rx,
+        webapp,
+    )
 }
 
 /// Initialise settings with a known secret key so `build_migration_webapp` can

@@ -31,8 +31,8 @@ use sqlx::{
 use tokio::net::TcpListener;
 
 use super::common::{
-    authenticate_admin, client::TestClient, exceed_enterprise_limits, make_base_client,
-    make_test_client, setup_pool,
+    acquire_api_test_guard, authenticate_admin, client::TestClient, exceed_enterprise_limits,
+    make_base_client, make_test_client, setup_pool,
 };
 use crate::common::{init_config, initialize_users};
 
@@ -41,6 +41,7 @@ mod destinations;
 mod rules;
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
+    let test_guard = acquire_api_test_guard().await;
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");
@@ -48,7 +49,7 @@ async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");
-    let (client, _) = make_base_client(pool, config, listener).await;
+    let (client, _) = make_base_client(pool, config, listener, test_guard).await;
     client
 }
 

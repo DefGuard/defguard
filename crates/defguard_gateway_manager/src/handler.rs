@@ -16,7 +16,10 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, WireguardNetwork, gateway::Gateway, wireguard::DEFAULT_WIREGUARD_MTU},
+        models::{
+            DeviceNetworkInfo, Settings, WireguardNetwork, gateway::Gateway,
+            wireguard::DEFAULT_WIREGUARD_MTU,
+        },
     },
     messages::peer_stats_update::PeerStatsUpdate,
 };
@@ -612,6 +615,74 @@ impl GatewayUpdatesHandler {
         }
     }
 
+    #[must_use]
+    fn runtime_peer_update(
+        &self,
+        peer_label: &str,
+        peer_pubkey: String,
+        allowed_ips: Vec<String>,
+        is_authorized: bool,
+        preshared_key: Option<String>,
+    ) -> Option<Peer> {
+        if !self.network.mfa_enabled() {
+            return Some(Peer {
+                pubkey: peer_pubkey,
+                allowed_ips,
+                preshared_key: None,
+                keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
+            });
+        }
+
+        if !is_authorized {
+            debug!(
+                "Skipping gateway peer update for WireGuard device {peer_label} in MFA enabled location {} because there is no active MFA session",
+                self.network.name
+            );
+            return None;
+        }
+
+        let Some(preshared_key) = preshared_key else {
+            debug!(
+                "Skipping gateway peer update for WireGuard device {peer_label} in location {} because the runtime preshared key is missing",
+                self.network.name
+            );
+            return None;
+        };
+
+        Some(Peer {
+            pubkey: peer_pubkey,
+            allowed_ips,
+            preshared_key: Some(preshared_key),
+            keepalive_interval: Some(self.network.keepalive_interval.cast_unsigned()),
+        })
+    }
+
+    fn send_runtime_device_update(
+        &self,
+        peer_label: &str,
+        peer_pubkey: String,
+        network_info: &DeviceNetworkInfo,
+        update_type: i32,
+    ) -> Result<(), Status> {
+        let allowed_ips = network_info
+            .device_wireguard_ips
+            .iter()
+            .map(IpAddr::to_string)
+            .collect();
+
+        let Some(peer) = self.runtime_peer_update(
+            peer_label,
+            peer_pubkey,
+            allowed_ips,
+            network_info.is_authorized,
+            network_info.preshared_key.clone(),
+        ) else {
+            return Ok(());
+        };
+
+        self.send_peer_update(peer, update_type)
+    }
+
     /// Process incoming Gateway events
     ///
     /// Main gRPC server uses a shared channel for broadcasting all gateway events
@@ -661,33 +732,12 @@ impl GatewayUpdatesHandler {
                         .iter()
                         .find(|info| info.network_id == self.network_id)
                     {
-                        Some(network_info) => {
-                            // FIXME: this shouldn't happen, since when the device is created
-                            // it's impossible for MFA authorization to already be completed
-                            if self.network.mfa_enabled() && !network_info.is_authorized {
-                                debug!(
-                                    "Created WireGuard device {} is not authorized to connect to \
-                                    MFA enabled location {}",
-                                    device.device.name, self.network.name
-                                );
-                                continue;
-                            }
-                            self.send_peer_update(
-                                Peer {
-                                    pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: network_info
-                                        .device_wireguard_ips
-                                        .iter()
-                                        .map(IpAddr::to_string)
-                                        .collect(),
-                                    preshared_key: network_info.preshared_key.clone(),
-                                    keepalive_interval: Some(
-                                        self.network.keepalive_interval.cast_unsigned(),
-                                    ),
-                                },
-                                0,
-                            )
-                        }
+                        Some(network_info) => self.send_runtime_device_update(
+                            &device.device.name,
+                            device.device.wireguard_pubkey,
+                            network_info,
+                            0,
+                        ),
                         None => Ok(()),
                     }
                 }
@@ -698,31 +748,12 @@ impl GatewayUpdatesHandler {
                         .iter()
                         .find(|info| info.network_id == self.network_id)
                     {
-                        Some(network_info) => {
-                            if self.network.mfa_enabled() && !network_info.is_authorized {
-                                debug!(
-                                    "Modified WireGuard device {} is not authorized to connect to \
-                                    MFA enabled location {}",
-                                    device.device.name, self.network.name
-                                );
-                                continue;
-                            }
-                            self.send_peer_update(
-                                Peer {
-                                    pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: network_info
-                                        .device_wireguard_ips
-                                        .iter()
-                                        .map(IpAddr::to_string)
-                                        .collect(),
-                                    preshared_key: network_info.preshared_key.clone(),
-                                    keepalive_interval: Some(
-                                        self.network.keepalive_interval.cast_unsigned(),
-                                    ),
-                                },
-                                1,
-                            )
-                        }
+                        Some(network_info) => self.send_runtime_device_update(
+                            &device.device.name,
+                            device.device.wireguard_pubkey,
+                            network_info,
+                            1,
+                        ),
                         None => Ok(()),
                     }
                 }
@@ -758,39 +789,19 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
-                GatewayEvent::MfaSessionAuthorized(location_id, device, network_device) => {
+                GatewayEvent::MfaSessionAuthorized(location_id, device, network_info) => {
                     if location_id == self.network_id {
-                        // validate that network info is for the correct location
-                        if network_device.wireguard_network_id != location_id {
+                        if network_info.network_id != location_id {
                             error!(
-                                "Received MFA authorization success event for location {location_id} with invalid device config: {network_device:?}"
+                                "Received MFA authorization success event for location {location_id} with invalid runtime network info: {network_info:?}"
                             );
                             continue;
                         }
 
-                        // FIXME: at this point the device authorization should already have been verified
-                        if self.network.mfa_enabled() && !network_device.is_authorized {
-                            debug!(
-                                "Created WireGuard device {} is not authorized to connect to \
-                                    MFA enabled location {}",
-                                device.name, self.network.name
-                            );
-                            continue;
-                        }
-
-                        self.send_peer_update(
-                            Peer {
-                                pubkey: device.wireguard_pubkey,
-                                allowed_ips: network_device
-                                    .wireguard_ips
-                                    .iter()
-                                    .map(IpAddr::to_string)
-                                    .collect(),
-                                preshared_key: network_device.preshared_key.clone(),
-                                keepalive_interval: Some(
-                                    self.network.keepalive_interval.cast_unsigned(),
-                                ),
-                            },
+                        self.send_runtime_device_update(
+                            &device.name,
+                            device.wireguard_pubkey,
+                            &network_info,
                             0,
                         )
                     } else {
@@ -1021,13 +1032,45 @@ fn gen_config<I>(
 
 #[cfg(test)]
 mod tests {
+    use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
+
     use chrono::{DateTime, Utc};
-    use defguard_common::db::models::wireguard::{LocationMfaMode, ServiceLocationMode};
+    use defguard_common::db::{
+        Id,
+        models::{
+            Device, DeviceType, User,
+            device::WireguardNetworkDevice,
+            gateway::Gateway,
+            vpn_client_session::VpnClientSession,
+            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+        },
+        setup_pool,
+    };
+    use defguard_core::grpc::GatewayEvent;
+    use defguard_proto::gateway::{Peer, PeerStats, core_response};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
     use super::{
-        FirewallConfig, Peer, PeerStats, WireguardNetwork, gen_config,
+        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, gen_config,
         try_protos_into_stats_message,
     };
+
+    fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
+        WireguardNetwork::new(
+            "test-network".into(),
+            51820,
+            "127.0.0.1".into(),
+            None,
+            Vec::new(),
+            true,
+            false,
+            false,
+            location_mfa_mode,
+            ServiceLocationMode::Disabled,
+        )
+        .with_id(1)
+    }
 
     fn build_peer_stats(endpoint: &str) -> PeerStats {
         PeerStats {
@@ -1041,7 +1084,7 @@ mod tests {
         }
     }
 
-    fn build_network() -> WireguardNetwork {
+    fn build_network() -> WireguardNetwork<Id> {
         let mut network = WireguardNetwork::new(
             "test-network".to_string(),
             51820,
@@ -1058,7 +1101,8 @@ mod tests {
             "10.10.0.1/24".parse().expect("valid IPv4 network"),
             "fd00::1/64".parse().expect("valid IPv6 network"),
         ])
-        .expect("valid network addresses");
+        .expect("valid network addresses")
+        .with_id(1);
         network.pubkey = "network-public-key".to_string();
         network.prvkey = "network-private-key".to_string();
         network.mtu = 1420;
@@ -1159,5 +1203,181 @@ mod tests {
 
         assert!(config.peers.is_empty());
         assert!(config.firewall_config.is_none());
+    }
+
+    fn test_handler(location_mfa_mode: LocationMfaMode) -> GatewayUpdatesHandler {
+        let network = test_network(location_mfa_mode);
+        let (events_tx, events_rx) = broadcast::channel(1);
+        let (tx, _rx) = unbounded_channel();
+        drop(events_tx);
+
+        GatewayUpdatesHandler::new(network.id, network, "gateway".into(), events_rx, tx)
+    }
+
+    #[test]
+    fn test_runtime_peer_update_strips_preshared_key_for_non_mfa_locations() {
+        let handler = test_handler(LocationMfaMode::Disabled);
+
+        let peer = handler
+            .runtime_peer_update(
+                "device",
+                "device-pubkey".into(),
+                vec!["10.1.1.2".into()],
+                true,
+                Some("legacy-psk".into()),
+            )
+            .unwrap();
+
+        assert_eq!(peer.pubkey, "device-pubkey");
+        assert_eq!(peer.allowed_ips, ["10.1.1.2"]);
+        assert_eq!(peer.preshared_key, None);
+        assert_eq!(peer.keepalive_interval, Some(25));
+    }
+
+    #[test]
+    fn test_runtime_peer_update_skips_authorized_mfa_peer_without_session_preshared_key() {
+        let handler = test_handler(LocationMfaMode::Internal);
+
+        let peer = handler.runtime_peer_update(
+            "device",
+            "device-pubkey".into(),
+            vec!["10.1.1.2".into()],
+            true,
+            None,
+        );
+
+        assert_eq!(peer, None);
+    }
+
+    #[test]
+    fn test_runtime_peer_update_preserves_session_preshared_key_for_authorized_mfa_peer() {
+        let handler = test_handler(LocationMfaMode::Internal);
+
+        let peer = handler
+            .runtime_peer_update(
+                "device",
+                "device-pubkey".into(),
+                vec!["10.1.1.2".into()],
+                true,
+                Some("session-psk".into()),
+            )
+            .unwrap();
+
+        assert_eq!(peer.preshared_key, Some("session-psk".into()));
+    }
+
+    #[sqlx::test]
+    async fn test_send_configuration_includes_mfa_peers_with_session_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let new_device = Device::new(
+            "device-new".into(),
+            "pubkey-new".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let connected_device = Device::new(
+            "device-connected".into(),
+            "pubkey-connected".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.7.1.1/24")
+            .unwrap();
+        network.name = "mfa-full-config-location".to_string();
+        network.location_mfa_mode = LocationMfaMode::Internal;
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        let network = network.save(&pool).await.unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            new_device.id,
+            vec![IpAddr::from_str("10.7.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            connected_device.id,
+            vec![IpAddr::from_str("10.7.1.3").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let mut new_session = VpnClientSession::new(network.id, user.id, new_device.id, None, None);
+        new_session.preshared_key = Some("new-session-psk".into());
+        new_session.save(&pool).await.unwrap();
+
+        let mut connected_session = VpnClientSession::new(
+            network.id,
+            user.id,
+            connected_device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        connected_session.preshared_key = Some("connected-session-psk".into());
+        connected_session.save(&pool).await.unwrap();
+
+        let gateway = Gateway::new(network.id, "gateway", "127.0.0.1", 50051, "test")
+            .save(&pool)
+            .await
+            .unwrap();
+        let (events_tx, _events_rx) = broadcast::channel::<GatewayEvent>(1);
+        let (peer_stats_tx, _peer_stats_rx) = unbounded_channel();
+        let (_certs_tx, certs_rx) = watch::channel(Arc::new(HashMap::<Id, String>::new()));
+        let handler =
+            GatewayHandler::new(gateway, pool.clone(), events_tx, peer_stats_tx, certs_rx).unwrap();
+        let (tx, mut rx) = unbounded_channel();
+
+        handler.send_configuration(&tx).await.unwrap();
+
+        let response = rx.recv().await.unwrap();
+        let Some(core_response::Payload::Config(configuration)) = response.payload else {
+            panic!("expected gateway config payload");
+        };
+
+        assert_eq!(configuration.peers.len(), 2);
+        assert_eq!(
+            configuration
+                .peers
+                .iter()
+                .map(|peer| (peer.pubkey.as_str(), peer.preshared_key.as_deref()))
+                .collect::<Vec<_>>(),
+            [
+                ("pubkey-new", Some("new-session-psk")),
+                ("pubkey-connected", Some("connected-session-psk")),
+            ]
+        );
     }
 }

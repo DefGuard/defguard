@@ -11,3 +11,6 @@ vulnerabilities:
   - id: CVE-2025-7709
     expired_at: 2026-03-30
     statement: "Not yet fixed in Debian"
+  - id: CVE-2026-32763
+    expired_at: 2026-03-26
+    statement: "Waiting for upstream patch in paraglide"

@@ -15,7 +15,10 @@ use reqwest::{
 };
 use tokio::{
     net::TcpListener,
-    sync::mpsc::{UnboundedReceiver, error::TryRecvError},
+    sync::{
+        OwnedMutexGuard,
+        mpsc::{UnboundedReceiver, error::TryRecvError},
+    },
     task::JoinHandle,
 };
 
@@ -24,6 +27,7 @@ pub struct TestClient {
     jar: Arc<Jar>,
     port: u16,
     api_event_rx: UnboundedReceiver<ApiEvent>,
+    _test_guard: OwnedMutexGuard<()>,
     // Has to live during whole test
     api_task_handle: JoinHandle<()>,
 }
@@ -34,6 +38,7 @@ impl TestClient {
         app: Router,
         listener: TcpListener,
         api_event_rx: UnboundedReceiver<ApiEvent>,
+        test_guard: OwnedMutexGuard<()>,
     ) -> Self {
         let port = listener.local_addr().unwrap().port();
 
@@ -62,6 +67,7 @@ impl TestClient {
             jar,
             port,
             api_event_rx,
+            _test_guard: test_guard,
             api_task_handle,
         }
     }

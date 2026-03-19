@@ -16,6 +16,7 @@ use common::make_setup_test_client;
 
 #[sqlx::test]
 async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) {
+    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -24,7 +25,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
         .await
         .expect("Failed to init wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
 
     let resp = client
         .get("/api/v1/wizard")
@@ -133,6 +134,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
 
 #[sqlx::test]
 async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOptions) {
+    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -162,7 +164,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .await
         .expect("Failed to init wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
 
     let state: serde_json::Value = client
         .get("/api/v1/wizard")

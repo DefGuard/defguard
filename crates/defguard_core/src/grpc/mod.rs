@@ -12,7 +12,7 @@ use defguard_common::{
         Id,
         models::{
             Device, Settings, WireguardNetwork,
-            device::{DeviceInfo, WireguardNetworkDevice},
+            device::{DeviceInfo, DeviceNetworkInfo},
             wireguard::ServiceLocationMode,
         },
     },
@@ -253,7 +253,7 @@ pub enum GatewayEvent {
     DeviceDeleted(DeviceInfo),
     FirewallConfigChanged(Id, FirewallConfig),
     FirewallDisabled(Id),
-    MfaSessionAuthorized(Id, Device<Id>, WireguardNetworkDevice),
+    MfaSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
     MfaSessionDisconnected(Id, Device<Id>),
 }
 

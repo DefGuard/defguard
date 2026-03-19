@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.wireguard_pubkey pubkey, active_session.preshared_key \"preshared_key!\", ARRAY( SELECT host(ip) FROM unnest(wnd.wireguard_ips) AS ip ) \"allowed_ips!: Vec<String>\" FROM wireguard_network_device wnd JOIN device d ON wnd.device_id = d.id JOIN \"user\" u ON d.user_id = u.id JOIN LATERAL ( SELECT preshared_key FROM vpn_client_session WHERE location_id = wnd.wireguard_network_id AND device_id = wnd.device_id AND state IN ('new', 'connected') AND preshared_key IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 1 ) active_session ON true WHERE wireguard_network_id = $1 AND d.configured AND u.is_active ORDER BY d.id ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "preshared_key!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "allowed_ips!: Vec<String>",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "cfd57ee3fa1f81e46368f8ee1488bf72f6b253c79b8429d1c0dfa9a935393afd"
+}

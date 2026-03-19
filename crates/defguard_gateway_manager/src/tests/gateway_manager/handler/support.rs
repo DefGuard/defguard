@@ -3,8 +3,9 @@ use std::net::IpAddr;
 use defguard_common::db::{
     Id,
     models::{
-        device::{Device, DeviceInfo, DeviceType, WireguardNetworkDevice},
+        device::{Device, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
         user::User,
+        vpn_client_session::VpnClientSession,
         wireguard::{LocationMfaMode, WireguardNetwork},
     },
 };
@@ -41,7 +42,6 @@ pub(crate) async fn create_device_info_for_current_network(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    preshared_key: Option<&str>,
 ) -> DeviceInfo {
     create_device_info_for_network(
         context,
@@ -49,7 +49,6 @@ pub(crate) async fn create_device_info_for_current_network(
         device_name,
         device_pubkey,
         device_ip,
-        preshared_key,
     )
     .await
 }
@@ -60,7 +59,7 @@ pub(crate) async fn create_authorized_mfa_device_for_current_network(
     device_pubkey: &str,
     device_ip: &str,
     preshared_key: Option<&str>,
-) -> (Device<Id>, WireguardNetworkDevice) {
+) -> (Device<Id>, DeviceNetworkInfo) {
     create_authorized_mfa_device_for_network(
         context,
         context.network.id,
@@ -79,28 +78,42 @@ pub(crate) async fn create_authorized_mfa_device_for_network(
     device_pubkey: &str,
     device_ip: &str,
     preshared_key: Option<&str>,
-) -> (Device<Id>, WireguardNetworkDevice) {
-    let device = create_device_for_network(
-        context,
-        network_id,
-        device_name,
-        device_pubkey,
-        device_ip,
-        preshared_key,
-    )
-    .await;
-    let mut network_device = WireguardNetworkDevice::find(&context.pool, device.id, network_id)
+) -> (Device<Id>, DeviceNetworkInfo) {
+    let Some(preshared_key) = preshared_key else {
+        panic!("authorized MFA test device requires a preshared key")
+    };
+
+    let device =
+        create_device_for_network(context, network_id, device_name, device_pubkey, device_ip).await;
+    let network_device = WireguardNetworkDevice::find(&context.pool, device.id, network_id)
         .await
         .expect("failed to load MFA device network info")
         .expect("expected MFA device network info");
-    network_device.is_authorized = true;
-    network_device.preshared_key = preshared_key.map(str::to_owned);
-    network_device
-        .update(&context.pool)
-        .await
-        .expect("failed to persist MFA device network info");
 
-    (device, network_device)
+    let network = WireguardNetwork::find_by_id(&context.pool, network_id)
+        .await
+        .expect("failed to load MFA test network")
+        .expect("expected MFA test network");
+
+    let mut session = VpnClientSession::new(network_id, device.user_id, device.id, None, None);
+    session.preshared_key = Some(preshared_key.to_owned());
+    session
+        .save(&context.pool)
+        .await
+        .expect("failed to persist MFA device session");
+
+    let device_network_info = network_device
+        .to_device_network_info_runtime(&context.pool, &network)
+        .await
+        .expect("failed to build MFA device network info");
+
+    assert!(device_network_info.is_authorized);
+    assert_eq!(
+        device_network_info.preshared_key.as_deref(),
+        Some(preshared_key)
+    );
+
+    (device, device_network_info)
 }
 
 pub(crate) async fn create_device_info_for_network(
@@ -109,17 +122,9 @@ pub(crate) async fn create_device_info_for_network(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    preshared_key: Option<&str>,
 ) -> DeviceInfo {
-    let device = create_device_for_network(
-        context,
-        network_id,
-        device_name,
-        device_pubkey,
-        device_ip,
-        preshared_key,
-    )
-    .await;
+    let device =
+        create_device_for_network(context, network_id, device_name, device_pubkey, device_ip).await;
 
     DeviceInfo::from_device(&context.pool, device)
         .await
@@ -132,7 +137,6 @@ pub(crate) async fn create_device_for_network(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    preshared_key: Option<&str>,
 ) -> Device<Id> {
     let username = format!("{device_name}-user");
     let email = format!("{device_name}@example.com");
@@ -159,10 +163,7 @@ pub(crate) async fn create_device_for_network(
     .await
     .expect("failed to create test device");
 
-    let mut network_device =
-        WireguardNetworkDevice::new(network_id, device.id, vec![parse_test_ip(device_ip)]);
-    network_device.preshared_key = preshared_key.map(str::to_owned);
-    network_device
+    WireguardNetworkDevice::new(network_id, device.id, vec![parse_test_ip(device_ip)])
         .insert(&context.pool)
         .await
         .expect("failed to attach device to network");
@@ -187,21 +188,15 @@ pub(crate) async fn assert_device_event_is_ignored_before_config_handshake(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    preshared_key: Option<&str>,
     build_event: fn(DeviceInfo) -> GatewayEvent,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     assert_eq!(context.events_tx().receiver_count(), 0);
 
     let _broadcast_guard = context.events_tx().subscribe();
-    let device_info = create_device_info_for_current_network(
-        &context,
-        device_name,
-        device_pubkey,
-        device_ip,
-        preshared_key,
-    )
-    .await;
+    let device_info =
+        create_device_info_for_current_network(&context, device_name, device_pubkey, device_ip)
+            .await;
 
     assert_send_ok!(
         context.events_tx().send(build_event(device_info)),
@@ -218,7 +213,6 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
     device_name: &str,
     device_pubkey: &str,
     device_ip: &str,
-    preshared_key: Option<&str>,
     build_event: fn(DeviceInfo) -> GatewayEvent,
 ) {
     let mut context = HandlerTestContext::new(options).await;
@@ -232,7 +226,6 @@ pub(crate) async fn assert_device_event_for_different_network_is_ignored(
         device_name,
         device_pubkey,
         device_ip,
-        preshared_key,
     )
     .await;
 

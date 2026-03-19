@@ -12,7 +12,6 @@ async fn test_device_created_for_network_produces_peer_create_update(
         "created-peer-device",
         "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
         "10.10.0.10",
-        Some("created-preshared-key"),
     )
     .await;
 
@@ -29,7 +28,7 @@ async fn test_device_created_for_network_produces_peer_create_update(
         UpdateType::Create,
         "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
         &["10.10.0.10"],
-        Some("created-preshared-key"),
+        None,
         Some(expected_keepalive_interval),
     );
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -47,7 +46,6 @@ async fn test_device_created_before_config_handshake_is_ignored(
         "created-before-config-device",
         "tND8hJQhYnI8naBTo59He43zYldagfjlwmSxWEc01Cc=",
         "10.10.0.11",
-        Some("created-before-config-preshared-key"),
         GatewayEvent::DeviceCreated,
     )
     .await;
@@ -68,7 +66,6 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
         "modified-peer-device",
         "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
         "10.10.0.20",
-        Some("initial-preshared-key"),
     )
     .await;
 
@@ -77,11 +74,11 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
         .expect("failed to load device network info")
         .expect("expected device network info for modified device");
     network_device.wireguard_ips = vec![parse_test_ip("10.10.0.21")];
-    network_device.preshared_key = Some("modified-preshared-key".to_string());
     network_device
         .update(&context.pool)
         .await
         .expect("failed to update device network info");
+
     let device_info = DeviceInfo::from_device(&context.pool, device)
         .await
         .expect("failed to load modified device info");
@@ -99,7 +96,7 @@ async fn test_device_modified_for_network_produces_peer_modify_update(
         UpdateType::Modify,
         "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
         &["10.10.0.21"],
-        Some("modified-preshared-key"),
+        None,
         Some(expected_keepalive_interval),
     );
     context.mock_gateway_mut().expect_no_outbound().await;
@@ -117,7 +114,6 @@ async fn test_device_modified_before_config_handshake_is_ignored(
         "modified-before-config-device",
         "wyFOHCec/Fi9s+cARikVO71JhyYtYMk0FrQx3fK2PTM=",
         "10.10.0.22",
-        Some("modified-before-config-preshared-key"),
         GatewayEvent::DeviceModified,
     )
     .await;
@@ -136,7 +132,6 @@ async fn test_device_deleted_for_network_produces_peer_delete_update(
         "deleted-peer-device",
         "PKY3zg5/ecNyMjqLi6yJ3jwb4PvC/SGzjhJ3jrn2vVQ=",
         "10.10.0.30",
-        Some("deleted-preshared-key"),
     )
     .await;
 
@@ -171,7 +166,6 @@ async fn test_device_deleted_before_config_handshake_is_ignored(
         "deleted-before-config-device",
         "m84QJmDMkqdCj8AB2NTE8F55W7M/i3CaaD3eQbQdInY=",
         "10.10.0.31",
-        Some("deleted-before-config-preshared-key"),
         GatewayEvent::DeviceDeleted,
     )
     .await;
@@ -187,7 +181,6 @@ async fn test_device_created_for_different_network_is_ignored(
         "created-other-network-device",
         "W6wBmd8wgTwvCyGqDRXk6Hf4OMqDUbUn2XWKnG5wVVQ=",
         "10.11.0.10",
-        Some("created-other-network-preshared-key"),
         GatewayEvent::DeviceCreated,
     )
     .await;
@@ -203,7 +196,6 @@ async fn test_device_modified_for_different_network_is_ignored(
         "modified-other-network-device",
         "yjuzq0cLk3Ww5oQcqK6YkSKwXnqQ1V9OlSMFAEkr0lU=",
         "10.11.0.20",
-        Some("modified-other-network-preshared-key"),
         GatewayEvent::DeviceModified,
     )
     .await;
@@ -219,7 +211,6 @@ async fn test_device_deleted_for_different_network_is_ignored(
         "deleted-other-network-device",
         "Jtp+K8xnFXuF4cae+tVGZNwoSM2fXjJbRl3sI6rdcAQ=",
         "10.11.0.30",
-        Some("deleted-other-network-preshared-key"),
         GatewayEvent::DeviceDeleted,
     )
     .await;

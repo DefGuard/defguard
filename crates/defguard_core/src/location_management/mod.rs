@@ -5,8 +5,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceNetworkInfo, DeviceType, ModelError, WireguardNetwork,
-            WireguardNetworkError,
+            Device, DeviceType, ModelError, WireguardNetwork, WireguardNetworkError,
             device::{DeviceInfo, WireguardNetworkDevice},
             user::User,
             wireguard::MappedDevice,
@@ -186,14 +185,12 @@ pub async fn process_device_access_changes(
                     )
                     .await?;
                 used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
+                let network_info = wireguard_network_device
+                    .to_device_network_info_runtime(&mut *transaction, location)
+                    .await?;
                 events.push(GatewayEvent::DeviceModified(DeviceInfo {
                     device,
-                    network_info: vec![DeviceNetworkInfo {
-                        network_id: location.id,
-                        device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                        preshared_key: wireguard_network_device.preshared_key,
-                        is_authorized: wireguard_network_device.is_authorized,
-                    }],
+                    network_info: vec![network_info],
                 }));
             }
         // Device is no longer allowed
@@ -208,14 +205,10 @@ pub async fn process_device_access_changes(
             if let Some(device) =
                 Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
             {
+                let network_info = device_network_config.to_device_network_info(location, None);
                 events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
                     device,
-                    network_info: vec![DeviceNetworkInfo {
-                        network_id: location.id,
-                        device_wireguard_ips: device_network_config.wireguard_ips,
-                        preshared_key: device_network_config.preshared_key,
-                        is_authorized: device_network_config.is_authorized,
-                    }],
+                    network_info: vec![network_info],
                 }));
             } else {
                 let msg = format!("Device {} does not exist", device_network_config.device_id);
@@ -230,14 +223,12 @@ pub async fn process_device_access_changes(
             .assign_next_network_ip(&mut *transaction, location, &used_ips, reserved_ips, None)
             .await?;
         used_ips.extend(wireguard_network_device.wireguard_ips.iter().copied());
+        let network_info = wireguard_network_device
+            .to_device_network_info_runtime(&mut *transaction, location)
+            .await?;
         events.push(GatewayEvent::DeviceCreated(DeviceInfo {
             device,
-            network_info: vec![DeviceNetworkInfo {
-                network_id: location.id,
-                device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                preshared_key: wireguard_network_device.preshared_key,
-                is_authorized: wireguard_network_device.is_authorized,
-            }],
+            network_info: vec![network_info],
         }));
     }
 
@@ -283,15 +274,13 @@ pub(crate) async fn handle_imported_devices(
                         wireguard_network_device.insert(&mut *transaction).await?;
                         // store ID of device with already generated config
                         assigned_device_ids.push(existing_device.id);
+                        let network_info = wireguard_network_device
+                            .to_device_network_info_runtime(&mut *transaction, location)
+                            .await?;
                         // send device to connected gateways
                         events.push(GatewayEvent::DeviceModified(DeviceInfo {
                             device: existing_device,
-                            network_info: vec![DeviceNetworkInfo {
-                                network_id: location.id,
-                                device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                                preshared_key: wireguard_network_device.preshared_key,
-                                is_authorized: wireguard_network_device.is_authorized,
-                            }],
+                            network_info: vec![network_info],
                         }));
                     }
                     None => {
@@ -365,12 +354,11 @@ pub(crate) async fn handle_mapped_devices(
                 mapped_device.wireguard_ips.clone(),
             );
             wireguard_network_device.insert(&mut *conn).await?;
-            network_info.push(DeviceNetworkInfo {
-                network_id: location.id,
-                device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                preshared_key: wireguard_network_device.preshared_key,
-                is_authorized: wireguard_network_device.is_authorized,
-            });
+            network_info.push(
+                wireguard_network_device
+                    .to_device_network_info_runtime(&mut *conn, location)
+                    .await?,
+            );
         }
 
         // Assign IP addresses in other networks.

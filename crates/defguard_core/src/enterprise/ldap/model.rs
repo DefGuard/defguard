@@ -5,7 +5,7 @@ use defguard_common::db::{
     models::{Settings, User},
 };
 use ldap3::{Mod, SearchEntry};
-use sqlx::PgExecutor;
+use sqlx::{Acquire, PgExecutor, Postgres};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{handlers::user::check_username, hashset};
@@ -252,10 +252,14 @@ pub(crate) async fn ldap_sync_allowed_for_user<'e, E>(
     executor: E,
 ) -> sqlx::Result<bool>
 where
-    E: PgExecutor<'e>,
+    E: Acquire<'e, Database = Postgres>,
 {
-    let sync_groups = Settings::get_current_settings().ldap_sync_groups;
-    let my_groups = user.member_of(executor).await?;
+    let mut connection = executor.acquire().await?;
+    let sync_groups = Settings::get(&mut *connection)
+        .await?
+        .unwrap_or_default()
+        .ldap_sync_groups;
+    let my_groups = user.member_of(&mut *connection).await?;
     Ok(
         (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
             && user.is_active
