@@ -3,9 +3,10 @@ ALTER TABLE wireguard_network_device
     ADD COLUMN is_authorized bool NOT NULL DEFAULT false,
     ADD COLUMN authorized_at timestamp without time zone NULL;
 
--- Rollback is lossy: only preshared_key is repopulated from the latest active
--- session per (device_id, location_id); is_authorized and authorized_at are
--- recreated with default/NULL values and are not reconstructed.
+-- Rollback is lossy: only preshared_key is repopulated from an active
+-- session with a non-null preshared_key per (device_id, location_id);
+-- is_authorized and authorized_at are recreated with default/NULL values and
+-- are not reconstructed.
 UPDATE wireguard_network_device AS network_device
 SET preshared_key = latest_active_session.preshared_key
 FROM (
