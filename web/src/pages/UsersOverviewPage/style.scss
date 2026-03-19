@@ -4,9 +4,23 @@
     box-sizing: border-box;
   }
 
-  .table .device-name-cell {
-    svg path {
-      fill: var(--fg-success);
+  .expanded-device-icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    overflow: visible;
+
+    .expanded-device-online-indicator {
+      position: absolute;
+      right: -6px;
+      bottom: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background-color: var(--fg-success);
+      border: 2px solid var(--bg-default, #fff);
+      box-sizing: content-box;
+      pointer-events: none;
     }
   }
 }
