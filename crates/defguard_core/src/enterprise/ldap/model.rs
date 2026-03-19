@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, future::Future};
 
 use defguard_common::db::{
     Id,
@@ -247,24 +247,26 @@ pub(crate) fn maybe_update_rdn<I>(user: &mut User<I>) {
 /// - he is in a group that is allowed to be synced or no such groups are configured
 /// - he is active (not disabled)
 /// - he is enrolled
-pub(crate) async fn ldap_sync_allowed_for_user<'e, E>(
-    user: &User<Id>,
+pub(crate) fn ldap_sync_allowed_for_user<'a, 'e, E>(
+    user: &'a User<Id>,
     executor: E,
-) -> sqlx::Result<bool>
+) -> impl Future<Output = sqlx::Result<bool>> + Send + 'a
 where
-    E: Acquire<'e, Database = Postgres>,
+    E: Acquire<'e, Database = Postgres> + Send + 'a,
 {
-    let mut connection = executor.acquire().await?;
-    let sync_groups = Settings::get(&mut *connection)
-        .await?
-        .unwrap_or_default()
-        .ldap_sync_groups;
-    let my_groups = user.member_of(&mut *connection).await?;
-    Ok(
-        (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
-            && user.is_active
-            && user.is_enrolled(),
-    )
+    async move {
+        let mut connection = executor.acquire().await?;
+        let sync_groups = Settings::get(&mut *connection)
+            .await?
+            .unwrap_or_default()
+            .ldap_sync_groups;
+        let my_groups = user.member_of(&mut *connection).await?;
+        Ok(
+            (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
+                && user.is_active
+                && user.is_enrolled(),
+        )
+    }
 }
 
 pub(super) async fn get_users_without_ldap_path<'e, E>(executor: E) -> sqlx::Result<Vec<User<Id>>>

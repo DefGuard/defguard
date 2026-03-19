@@ -3,18 +3,18 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::{VERSION, db::models::Settings};
+use crate::{db::models::Settings, VERSION};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -228,10 +228,13 @@ impl DefGuardConfig {
     }
 
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
-    #[allow(deprecated)]
     #[must_use]
     pub fn new_test_config() -> Self {
-        Self {
+        #[expect(
+            deprecated,
+            reason = "Test config still initializes compatibility-only deprecated fields"
+        )]
+        let config = Self {
             log_level: "info".to_string(),
             log_file: None,
             secret_key: None,
@@ -259,14 +262,16 @@ impl DefGuardConfig {
             cookie_domain: None,
             cookie_insecure: false,
             cmd: None,
-            check_period: Duration::from(std::time::Duration::from_secs(12 * 3600)),
-            check_period_no_license: Duration::from(std::time::Duration::from_secs(24 * 3600)),
-            check_period_renewal_window: Duration::from(std::time::Duration::from_secs(3600)),
+            check_period: std::time::Duration::from_secs(12 * 3600).into(),
+            check_period_no_license: std::time::Duration::from_secs(24 * 3600).into(),
+            check_period_renewal_window: std::time::Duration::from_secs(3600).into(),
             http_bind_address: None,
             grpc_bind_address: None,
             adopt_gateway: None,
             adopt_edge: None,
-        }
+        };
+
+        config
     }
 
     /// Validate that the auto-adoption flags are consistent.
@@ -364,15 +369,11 @@ mod tests {
         );
 
         // only one flag at a time: must be an error
-        assert!(
-            make_config(Some("edge.example.com:8080"), None)
-                .validate_adopt_flags()
-                .is_err()
-        );
-        assert!(
-            make_config(None, Some("gw.example.com:8080"))
-                .validate_adopt_flags()
-                .is_err()
-        );
+        assert!(make_config(Some("edge.example.com:8080"), None)
+            .validate_adopt_flags()
+            .is_err());
+        assert!(make_config(None, Some("gw.example.com:8080"))
+            .validate_adopt_flags()
+            .is_err());
     }
 }

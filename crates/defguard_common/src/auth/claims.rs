@@ -5,7 +5,7 @@ use std::{
 };
 
 use jsonwebtoken::{
-    DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::Error as JWTError,
+    decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -50,14 +50,6 @@ struct JwtSecretOverrides {
 }
 
 impl JwtSecretOverrides {
-    fn new(auth: String, gateway: String, yubibridge: String) -> Self {
-        Self {
-            auth,
-            gateway,
-            yubibridge,
-        }
-    }
-
     fn secret_for(&self, claims_type: ClaimsType) -> &str {
         match claims_type {
             ClaimsType::Auth | ClaimsType::DesktopClient => &self.auth,
@@ -132,20 +124,21 @@ fn secret_env(claims_type: ClaimsType) -> &'static str {
     }
 }
 
+#[cfg(any(test, feature = "test-support"))]
 #[doc(hidden)]
 pub mod test_support {
-    use super::{JWT_SECRET_OVERRIDES, JwtSecretOverrides};
+    use super::{JwtSecretOverrides, JWT_SECRET_OVERRIDES};
 
     pub fn initialize_jwt_secret_overrides(
         auth_secret: impl Into<String>,
         gateway_secret: impl Into<String>,
         yubibridge_secret: impl Into<String>,
     ) {
-        let secret_overrides = JwtSecretOverrides::new(
-            auth_secret.into(),
-            gateway_secret.into(),
-            yubibridge_secret.into(),
-        );
+        let secret_overrides = JwtSecretOverrides {
+            auth: auth_secret.into(),
+            gateway: gateway_secret.into(),
+            yubibridge: yubibridge_secret.into(),
+        };
 
         if let Err(secret_overrides) = JWT_SECRET_OVERRIDES.set(secret_overrides) {
             let existing_overrides = JWT_SECRET_OVERRIDES

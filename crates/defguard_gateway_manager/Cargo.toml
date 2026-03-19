@@ -17,7 +17,6 @@ defguard_version.workspace = true
 
 anyhow.workspace = true
 chrono.workspace = true
-hyper-util = "0.1"
 hyper-rustls.workspace = true
 reqwest.workspace = true
 semver.workspace = true
@@ -29,3 +28,6 @@ tokio-stream.workspace = true
 tonic.workspace = true
 tower.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+hyper-util = "0.1"

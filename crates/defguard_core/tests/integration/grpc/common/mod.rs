@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use defguard_common::{
     auth::claims::{Claims, ClaimsType, test_support::initialize_jwt_secret_overrides},
-    db::setup_pool,
+    db::{models::settings::initialize_current_settings, setup_pool},
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
@@ -94,6 +94,9 @@ pub(crate) async fn create_client_channel(client_stream: DuplexStream) -> Channe
 pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     initialize_jwt_secrets();
     initialize_users(pool).await;
+    initialize_current_settings(pool)
+        .await
+        .expect("failed to initialize current settings for gRPC tests");
 
     let (client_stream, server_stream) = tokio::io::duplex(1024);
     let client_channel = create_client_channel(client_stream).await;
