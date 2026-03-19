@@ -5,7 +5,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use reqwest::StatusCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::WebError;
 
@@ -33,7 +33,11 @@ impl PaginationParams {
     /// Calculate offset.
     #[must_use]
     pub fn offset(&self) -> u32 {
-        (self.page - 1) * self.per_page
+        if self.page == 0 {
+            self.per_page
+        } else {
+            (self.page - 1) * self.per_page
+        }
     }
 }
 
