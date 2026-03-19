@@ -47,6 +47,7 @@ import {
   getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
+import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
 type RowData = UsersListItem;
@@ -144,6 +145,8 @@ export const UsersTable = () => {
         },
         cell: (info) => {
           const rowData = info.row.original;
+          const online = isUserOnline(rowData);
+
           return (
             <TableCell>
               <Avatar
@@ -151,6 +154,7 @@ export const UsersTable = () => {
                 variant="initials"
                 firstName={rowData.first_name}
                 lastName={rowData.last_name}
+                online={online}
               />
               <span>{info.getValue()}</span>
             </TableCell>
@@ -195,18 +199,6 @@ export const UsersTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('mfa_enabled', {
-        header: m.users_col_mfa(),
-        size: 60,
-        minSize: 60,
-        cell: (info) => (
-          <TableCell className="cell-with-check-icons">
-            {info.getValue() ? (
-              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
-            ) : null}
-          </TableCell>
-        ),
-      }),
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
         size: 370,
@@ -224,6 +216,18 @@ export const UsersTable = () => {
             ) ?? [],
         },
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
+      }),
+      columnHelper.accessor('mfa_enabled', {
+        header: m.users_col_mfa(),
+        size: 56,
+        minSize: 56,
+        cell: (info) => (
+          <TableCell className="cell-with-check-icons">
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : null}
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('enrolled', {
         header: m.users_col_enrolled(),
@@ -579,6 +583,7 @@ export const UsersTable = () => {
       const reservedPubkeys = row.original.devices.map((d) => d.wireguard_pubkey);
       return row.original.devices.map((device, deviceIndex) => {
         const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
+        const deviceOnline = isDeviceOnline(device);
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
           (d) => d.last_connected_at,
@@ -608,8 +613,13 @@ export const UsersTable = () => {
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />
             </TableCell>
-            <TableCell className="device-name-cell">
-              <Icon icon="devices" />
+            <TableCell>
+              <div className="expanded-device-icon-wrapper">
+                <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
+                {deviceOnline && (
+                  <span className="expanded-device-online-indicator" aria-hidden="true" />
+                )}
+              </div>
               <span>{device.name}</span>
             </TableCell>
             <TableCell empty />

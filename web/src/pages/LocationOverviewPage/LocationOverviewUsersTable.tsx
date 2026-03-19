@@ -109,7 +109,7 @@ const ExpandedUserDevicesRow = ({
             <Icon icon="enter" />
           </TableCell>
           <TableCell>
-            <Icon icon="devices" staticColor={ThemeVariable.FgSuccess} />
+            <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
             <span>{device.device_name}</span>
           </TableCell>
           <TableCell>

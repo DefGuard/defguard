@@ -1,6 +1,7 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { gatewayDefaultGrpcPort } from '../../shared/constants';
 import type { SetupStepId } from './steps/types';
 import { GatewaySetupStep, type GatewaySetupStepValue } from './types';
 
@@ -48,7 +49,7 @@ const defaults: StoreValues = {
   isOnWelcomePage: true,
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50066,
+  grpc_port: gatewayDefaultGrpcPort,
   network_id: null,
   gatewayAdoptionState: gatewayAdoptionStateDefaults,
 };

@@ -28,7 +28,7 @@ export const externalProviderName: Record<OpenIdProviderKindValue, string> = {
   Zitadel: 'Zitadel',
 };
 
-export const SUPPORTED_SYNC_PROVIDERS: Set<OpenIdProviderKindValue> = new Set([
+export const supportedSyncProviders: Set<OpenIdProviderKindValue> = new Set([
   OpenIdProviderKind.Google,
   OpenIdProviderKind.Microsoft,
   OpenIdProviderKind.Okta,
@@ -38,3 +38,7 @@ export const SUPPORTED_SYNC_PROVIDERS: Set<OpenIdProviderKindValue> = new Set([
 export const googleProviderBaseUrl = 'https://accounts.google.com';
 
 export const jumpcloudProviderBaseUrl = 'https://oauth.id.jumpcloud.com';
+
+export const edgeDefaultGrpcPort = 50051;
+
+export const gatewayDefaultGrpcPort = 50066;

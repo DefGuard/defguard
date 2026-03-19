@@ -1,7 +1,15 @@
+use std::net::{IpAddr, Ipv4Addr};
+
+use chrono::NaiveDate;
 use defguard_common::{
     db::{
         Id,
-        models::{MFAMethod, WebAuthn, device::AddDevice, oauth2client::OAuth2Client},
+        models::{
+            Device, DeviceType, MFAMethod, User, WebAuthn, WireguardNetwork,
+            device::{AddDevice, WireguardNetworkDevice},
+            oauth2client::OAuth2Client,
+            vpn_client_session::{VpnClientSession, VpnClientSessionState},
+        },
     },
     types::user_info::UserInfo,
 };
@@ -265,6 +273,185 @@ async fn test_get_user(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(user_info.user.last_name, "Potter");
 
     client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_get_user_exposes_active_network_state(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let username = "active-user";
+    let device_name = "active-device";
+    let device_wireguard_ip = IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2));
+
+    let user = User::new(
+        username,
+        Some("pass123"),
+        "Active",
+        "User",
+        "active.user@example.com",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let network_response = make_network(&client, "active-network").await;
+    let network: WireguardNetwork<Id> = network_response.json().await;
+
+    let device = Device::new(
+        device_name.into(),
+        "key".into(),
+        user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    WireguardNetworkDevice::new(network.id, device.id, [device_wireguard_ip])
+        .insert(&pool)
+        .await
+        .unwrap();
+
+    let session_connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+        .expect("expected valid connected_at date")
+        .and_hms_opt(3, 4, 5)
+        .expect("expected valid connected_at time");
+
+    VpnClientSession::new(
+        network.id,
+        user.id,
+        device.id,
+        Some(session_connected_at),
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let user_details = fetch_user_details(&client, username).await;
+
+    assert_eq!(user_details.user.username, username);
+    assert_eq!(user_details.devices.len(), 1);
+
+    let user_device = user_details
+        .devices
+        .iter()
+        .find(|user_device| user_device.device.id == device.id)
+        .expect("expected created device in user details response");
+    assert_eq!(user_device.device.name, device_name);
+    assert_eq!(user_device.networks.len(), 1);
+
+    let network_info = user_device
+        .networks
+        .iter()
+        .find(|network_info| network_info.network_id == network.id)
+        .expect("expected created network in user details response");
+    assert_eq!(network_info.network_name, "active-network");
+    assert_eq!(network_info.network_gateway_ip, "192.168.4.14");
+    assert_eq!(
+        network_info.device_wireguard_ips,
+        vec![device_wireguard_ip.to_string()]
+    );
+    assert!(network_info.is_active);
+    assert_eq!(network_info.last_connected_at, Some(session_connected_at));
+}
+
+#[sqlx::test]
+async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_session(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let username = "inactive-user";
+    let device_name = "inactive-device";
+    let device_wireguard_ip = IpAddr::V4(Ipv4Addr::new(10, 1, 1, 2));
+
+    let user = User::new(
+        username,
+        Some("pass123"),
+        "Inactive",
+        "User",
+        "inactive.user@example.com",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    let network_response = make_network(&client, "inactive-network").await;
+    let network: WireguardNetwork<Id> = network_response.json().await;
+
+    let device = Device::new(
+        device_name.into(),
+        "key".into(),
+        user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    WireguardNetworkDevice::new(network.id, device.id, [device_wireguard_ip])
+        .insert(&pool)
+        .await
+        .unwrap();
+
+    let last_successful_connection = NaiveDate::from_ymd_opt(2026, 1, 2)
+        .expect("expected valid connected_at date")
+        .and_hms_opt(3, 4, 5)
+        .expect("expected valid connected_at time");
+    let disconnected_at = NaiveDate::from_ymd_opt(2026, 1, 3)
+        .expect("expected valid disconnected date")
+        .and_hms_opt(4, 5, 6)
+        .expect("expected valid disconnected time");
+
+    let mut connected_session = VpnClientSession::new(
+        network.id,
+        user.id,
+        device.id,
+        Some(last_successful_connection),
+        None,
+    );
+    connected_session.created_at = last_successful_connection;
+    connected_session.save(&pool).await.unwrap();
+
+    let mut disconnected_session =
+        VpnClientSession::new(network.id, user.id, device.id, None, None);
+    disconnected_session.created_at = disconnected_at;
+    disconnected_session.disconnected_at = Some(disconnected_at);
+    disconnected_session.state = VpnClientSessionState::Disconnected;
+    disconnected_session.save(&pool).await.unwrap();
+
+    let user_details = fetch_user_details(&client, username).await;
+
+    let user_device = user_details
+        .devices
+        .iter()
+        .find(|user_device| user_device.device.id == device.id)
+        .expect("expected created device in user details response");
+    let network_info = user_device
+        .networks
+        .iter()
+        .find(|network_info| network_info.network_id == network.id)
+        .expect("expected created network in user details response");
+
+    assert!(!network_info.is_active);
+    assert_eq!(
+        network_info.last_connected_at,
+        Some(last_successful_connection)
+    );
 }
 
 #[sqlx::test]
