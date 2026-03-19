@@ -894,10 +894,7 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
-        let user_for_ldap = if {
-            let transaction_connection = transaction.acquire().await?;
-            ldap_sync_allowed_for_user(&user, transaction_connection).await?
-        } {
+        let user_for_ldap = if ldap_sync_allowed_for_user(&user, &mut *transaction).await? {
             Some(user.clone().as_noid())
         } else {
             None
