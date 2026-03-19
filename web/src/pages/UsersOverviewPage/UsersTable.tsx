@@ -587,8 +587,8 @@ export const UsersTable = () => {
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />
             </TableCell>
-            <TableCell className="device-name-cell">
-              <Icon icon="devices" />
+            <TableCell>
+              <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
               <span>{device.name}</span>
             </TableCell>
             <TableCell empty />
