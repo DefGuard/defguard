@@ -491,7 +491,7 @@ const api = {
     },
     rule: {
       getCount: () => client.get<AclCount>('acl/rule/count'),
-      getRules: () => client.get<AclRule[]>(`/acl/rule`),
+      getRules: () => fetchAllPages<AclRule>(`/acl/rule`),
       getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),
       editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`, data),

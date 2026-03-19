@@ -202,7 +202,6 @@ export const getRulesCountQueryOptions = queryOptions({
 export const getRulesQueryOptions = queryOptions({
   queryFn: api.acl.rule.getRules,
   queryKey: ['acl', 'rule'],
-  select: (resp) => resp.data,
 });
 
 export const getAliasesQueryOptions = queryOptions({
