@@ -78,10 +78,10 @@ export const routes = {
 
 export const defaultUserAdmin: User = {
   username: 'admin',
-  password: 'pass123',
+  password: 'DefaultPass123@',
   firstName: 'Administrator',
   lastName: 'Defguard',
-  mail: 'admin@defguard',
+  mail: 'admin@defguard.com',
   phone: '',
 };
 
