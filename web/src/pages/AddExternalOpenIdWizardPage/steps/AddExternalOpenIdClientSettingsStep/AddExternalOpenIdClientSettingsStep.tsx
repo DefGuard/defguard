@@ -9,7 +9,7 @@ import {
 } from '../../../../shared/api/types';
 import { Controls } from '../../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { SUPPORTED_SYNC_PROVIDERS } from '../../../../shared/constants';
+import { supportedSyncProviders } from '../../../../shared/constants';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
@@ -118,7 +118,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      if (SUPPORTED_SYNC_PROVIDERS.has(provider)) {
+      if (supportedSyncProviders.has(provider)) {
         next(value);
       } else {
         const storeState = useAddExternalOpenIdStore.getState().providerState;

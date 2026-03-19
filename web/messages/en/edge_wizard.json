@@ -26,7 +26,7 @@
   "edge_setup_component_label_ip_or_domain": "IP or Domain",
   "edge_setup_component_label_ip_or_domain_help": "Enter the IP or domain name of the server where the Edge Component is deployed. Core will then connect to it and perform the adoption automatically.",
   "edge_setup_component_label_grpc_port": "gRPC Port",
-  "edge_setup_component_label_grpc_port_help": "Specify the gRPC TCP port for Edge Component communication. If unchanged, leave the default value. Ensure this port is open and accessible to the Core instance through any server or network firewalls.",
+  "edge_setup_component_label_grpc_port_help": "If you have changed the default Edge gRPC port, please change it here.",
   "edge_setup_component_error_common_name_required": "Edge Name is required",
   "edge_setup_component_error_ip_or_domain_required": "IP or Domain is required",
   "edge_setup_component_error_grpc_port_required": "gRPC Port is required",

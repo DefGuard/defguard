@@ -8,6 +8,7 @@ import type {
   MigrationWizardApiState,
   MigrationWizardLocationState,
 } from '../../../shared/api/types';
+import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import { getMigrationStateQueryOptions } from '../../../shared/query';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import {
@@ -54,7 +55,7 @@ const defaults: StoreValues = {
   ca_option: null,
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50051,
+  grpc_port: edgeDefaultGrpcPort,
   edgeAdoptionState: edgeAdoptionStateDefaults,
 };
 
