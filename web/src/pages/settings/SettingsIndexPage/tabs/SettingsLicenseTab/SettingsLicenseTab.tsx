@@ -32,8 +32,9 @@ import { SettingsLicenseNoLicenseSection } from './components/SettingsLicenseNoL
 import { SettingsLicenseModal } from './modals/SettingsLicenseModal/SettingsLicenseModal';
 
 type LicenseSectionState =
-  | 'expiredLicense'
   | 'noLicense'
+  | 'gracePeriod'
+  | 'expiredLicense'
   | 'validBusiness'
   | 'validEnterprise';
 
@@ -48,15 +49,16 @@ const getLicenseSectionState = (
     return 'noLicense';
   }
 
-  if (
-    licenseInfo.valid_until !== null &&
-    dayjs().isAfter(dayjs.utc(licenseInfo.valid_until).local())
-  ) {
+  if (licenseInfo.expired) {
     return 'expiredLicense';
   }
 
-  if (licenseInfo.expired) {
-    return 'expiredLicense';
+  if (
+    licenseInfo.subscription &&
+    licenseInfo.valid_until !== null &&
+    dayjs().isAfter(dayjs.utc(licenseInfo.valid_until).local())
+  ) {
+    return 'gracePeriod';
   }
 
   if (licenseInfo.tier === 'Enterprise') {
@@ -136,10 +138,13 @@ const LicenseSection = ({
   return (
     <>
       <SizedBox height={ThemeSpacing.Xl} />
-      {state === 'expiredLicense' && isPresent(licenseInfo) && (
-        <SettingsLicenseExpiredNotice licenseInfo={licenseInfo} />
-      )}
       {state === 'noLicense' && <SettingsLicenseNoLicenseSection />}
+      {state === 'gracePeriod' && isPresent(licenseInfo) && (
+        <SettingsLicenseExpiredNotice licenseInfo={licenseInfo} state="gracePeriod" />
+      )}
+      {state === 'expiredLicense' && isPresent(licenseInfo) && (
+        <SettingsLicenseExpiredNotice licenseInfo={licenseInfo} state="expiredLicense" />
+      )}
       {state === 'validBusiness' && <SettingsLicenseBusinessUpsellSection />}
     </>
   );

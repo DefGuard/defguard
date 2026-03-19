@@ -11,9 +11,10 @@ import expiredImage from '../../assets/expired.png';
 
 type Props = {
   licenseInfo: LicenseInfo;
+  state: 'gracePeriod' | 'expiredLicense';
 };
 
-export const SettingsLicenseExpiredNotice = ({ licenseInfo }: Props) => {
+export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
   const gracePeriodEndsAt = licenseInfo.valid_until
     ? dayjs.utc(licenseInfo.valid_until).local().add(licenseGracePeriodDays, 'day')
     : null;
@@ -25,11 +26,11 @@ export const SettingsLicenseExpiredNotice = ({ licenseInfo }: Props) => {
   const remainingDuration = m.settings_duration_days({ days: gracePeriodDaysLeft });
 
   const description =
-    gracePeriodDaysLeft > 0
-      ? m.settings_license_expired_notice_description_grace_period({
+    state === 'expiredLicense'
+      ? m.settings_license_expired_notice_description_grace_period_ended()
+      : m.settings_license_expired_notice_description_grace_period({
           duration: remainingDuration,
-        })
-      : m.settings_license_expired_notice_description_grace_period_ended();
+        });
 
   return (
     <SettingsCard id="license-expired-notice">
