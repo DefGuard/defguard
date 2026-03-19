@@ -19,7 +19,7 @@ use defguard_proto::gateway::{
 };
 use sqlx::postgres::PgConnectOptions;
 
-use crate::common::HandlerTestContext;
+use crate::tests::common::HandlerTestContext;
 
 macro_rules! assert_send_ok {
     ($result:expr, $message:literal) => {

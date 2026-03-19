@@ -17,7 +17,7 @@ use self::support::{
     create_device_for_network, create_device_info_for_current_network,
     enable_internal_mfa_for_network, expected_keepalive_interval, panic_unexpected, parse_test_ip,
 };
-use crate::common::{HandlerTestContext, build_peer_stats, reload_gateway};
+use crate::tests::common::{HandlerTestContext, build_peer_stats, reload_gateway};
 
 include!("handler/handshake.rs");
 include!("handler/lifecycle.rs");

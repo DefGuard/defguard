@@ -1,13 +1,15 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
-    path::PathBuf,
     str::FromStr,
     sync::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
 };
+
+#[cfg(test)]
+use std::path::PathBuf;
 
 use chrono::DateTime;
 use defguard_common::{
@@ -47,13 +49,18 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Code, Status, transport::Endpoint};
 
-use crate::{Client, GatewayManagerTestSupport, TEN_SECS, error::GatewayError};
+use crate::{Client, TEN_SECS, error::GatewayError};
 
+#[cfg(test)]
+use crate::GatewayManagerTestSupport;
+
+#[cfg(test)]
 #[derive(Debug, Default)]
 struct GatewayTestTransport {
     socket_path: Option<PathBuf>,
 }
 
+#[cfg(test)]
 impl GatewayTestTransport {
     fn with_socket_path(socket_path: PathBuf) -> Self {
         Self {
@@ -67,7 +74,7 @@ impl GatewayTestTransport {
 }
 
 /// One instance per connected Gateway.
-pub(super) struct GatewayHandler {
+pub(crate) struct GatewayHandler {
     // Gateway server endpoint URL.
     url: Url,
     gateway: Gateway<Id>,
@@ -76,7 +83,9 @@ pub(super) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    #[cfg(test)]
     test_transport: GatewayTestTransport,
+    #[cfg(test)]
     test_support: Option<GatewayManagerTestSupport>,
 }
 
@@ -103,11 +112,14 @@ impl GatewayHandler {
             events_tx,
             peer_stats_tx,
             certs_rx,
+            #[cfg(test)]
             test_transport: GatewayTestTransport::default(),
+            #[cfg(test)]
             test_support: None,
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn new_with_test_socket(
         gateway: Gateway<Id>,
         pool: PgPool,
@@ -121,8 +133,83 @@ impl GatewayHandler {
         Ok(handler)
     }
 
-    pub(super) fn attach_test_support(&mut self, test_support: GatewayManagerTestSupport) {
+    #[cfg(test)]
+    pub(crate) fn attach_test_support(&mut self, test_support: GatewayManagerTestSupport) {
         self.test_support = Some(test_support);
+    }
+
+    #[cfg(test)]
+    fn note_handler_connection_attempt_for_tests(&self) {
+        if let Some(test_support) = &self.test_support {
+            test_support.note_handler_connection_attempt(self.gateway.id);
+        }
+    }
+
+    #[cfg(not(test))]
+    fn note_handler_connection_attempt_for_tests(&self) {}
+
+    #[cfg(test)]
+    fn handler_retry_delay(&self) -> std::time::Duration {
+        self.test_support
+            .as_ref()
+            .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
+    }
+
+    #[cfg(not(test))]
+    fn handler_retry_delay(&self) -> std::time::Duration {
+        TEN_SECS
+    }
+
+    #[cfg(test)]
+    fn connect_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        if let Some(socket_path) = self.test_transport.socket_path().cloned() {
+            return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
+                move |_: tonic::transport::Uri| {
+                    let socket_path = socket_path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                            tokio::net::UnixStream::connect(socket_path).await?,
+                        ))
+                    }
+                },
+            )));
+        }
+
+        self.connect_tls_channel(endpoint)
+    }
+
+    #[cfg(not(test))]
+    fn connect_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        self.connect_tls_channel(endpoint)
+    }
+
+    fn connect_tls_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        let settings = Settings::get_current_settings();
+        let Some(ca_cert_der) = settings.ca_cert_der else {
+            return Err(GatewayError::EndpointError(
+                "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+            ));
+        };
+        let tls_config =
+            tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
+                .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
+        let connector = HttpsConnectorBuilder::new()
+            .with_tls_config(tls_config)
+            .https_only()
+            .enable_http2()
+            .build();
+        let connector = HttpsSchemeConnector::new(connector);
+
+        Ok(endpoint.connect_with_connector_lazy(connector))
     }
 
     fn endpoint(&self) -> Result<Endpoint, GatewayError> {
@@ -300,49 +387,16 @@ impl GatewayHandler {
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
 
-        let channel = if let Some(socket_path) = self.test_transport.socket_path().cloned() {
-            endpoint.connect_with_connector_lazy(tower::service_fn(
-                move |_: tonic::transport::Uri| {
-                    let socket_path = socket_path.clone();
-                    async move {
-                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                            tokio::net::UnixStream::connect(socket_path).await?,
-                        ))
-                    }
-                },
-            ))
-        } else {
-            let settings = Settings::get_current_settings();
-            let Some(ca_cert_der) = settings.ca_cert_der else {
-                return Err(GatewayError::EndpointError(
-                    "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
-                ));
-            };
-            let tls_config =
-                tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
-                    .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
-            let connector = HttpsConnectorBuilder::new()
-                .with_tls_config(tls_config)
-                .https_only()
-                .enable_http2()
-                .build();
-            let connector = HttpsSchemeConnector::new(connector);
-            endpoint.connect_with_connector_lazy(connector)
-        };
+        let channel = self.connect_channel(endpoint)?;
 
         debug!("Connecting to Gateway {uri}");
         let interceptor = ClientVersionInterceptor::new(
             Version::parse(VERSION).expect("failed to parse self version"),
         );
         let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
-        if let Some(test_support) = &self.test_support {
-            test_support.note_handler_connection_attempt(self.gateway.id);
-        }
+        self.note_handler_connection_attempt_for_tests();
         let (tx, rx) = mpsc::unbounded_channel();
-        let retry_delay = self
-            .test_support
-            .as_ref()
-            .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay);
+        let retry_delay = self.handler_retry_delay();
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
             Ok(response) => response,
             Err(err) => {
@@ -479,36 +533,11 @@ impl GatewayHandler {
                 .await?;
         }
     }
-}
 
-pub(crate) struct TestGatewayHandler {
-    inner: GatewayHandler,
-}
-
-impl TestGatewayHandler {
-    pub(crate) fn new(
-        gateway: Gateway<Id>,
-        pool: PgPool,
-        events_tx: Sender<GatewayEvent>,
-        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
-        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-        socket_path: PathBuf,
-    ) -> anyhow::Result<Self> {
-        let inner = GatewayHandler::new_with_test_socket(
-            gateway,
-            pool,
-            events_tx,
-            peer_stats_tx,
-            certs_rx,
-            socket_path,
-        )?;
-        Ok(Self { inner })
-    }
-
+    #[cfg(test)]
     pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
         let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
-        self.inner
-            .handle_connection_iteration(clients, false)
+        self.handle_connection_iteration(clients, false)
             .await
             .map_err(anyhow::Error::from)
     }

@@ -163,14 +163,8 @@ async fn test_only_matching_handler_receives_network_modified_update(
         1400,
         7,
     );
-    matching_context
-        .mock_gateway_mut()
-        .expect_no_outbound()
-        .await;
-    unrelated_context
-        .mock_gateway_mut()
-        .expect_no_outbound()
-        .await;
+    matching_context.mock_gateway_mut().expect_no_outbound().await;
+    unrelated_context.mock_gateway_mut().expect_no_outbound().await;
 
     matching_context
         .finish()

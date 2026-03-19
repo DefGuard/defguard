@@ -20,10 +20,6 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::grpc::GatewayEvent;
-use defguard_gateway_manager::{
-    GatewayTxSet,
-    test_support::{GatewayHandler, GatewayManagerControl},
-};
 use defguard_proto::gateway::{
     ConfigurationRequest, CoreRequest, CoreResponse, PeerStats, core_request, gateway_server,
 };
@@ -40,6 +36,8 @@ use tokio::{
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
+
+use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -334,7 +332,7 @@ impl Drop for MockGatewayHarness {
 
 pub(crate) struct ManagerTestContext {
     pub(crate) pool: PgPool,
-    control: GatewayManagerControl,
+    control: GatewayManagerTestSupport,
     manager_task: Option<JoinHandle<Result<(), anyhow::Error>>>,
 }
 
@@ -347,7 +345,7 @@ impl ManagerTestContext {
 
         Self {
             pool,
-            control: GatewayManagerControl::new(),
+            control: GatewayManagerTestSupport::default(),
             manager_task: None,
         }
     }
@@ -435,7 +433,7 @@ impl ManagerTestContext {
         let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
         let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
-        let mut manager = self.control.new_manager(self.pool.clone(), tx);
+        let mut manager = GatewayManager::new_for_test(self.pool.clone(), tx, self.control.clone());
         let manager_task = tokio::spawn(async move { manager.run().await });
 
         timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())
@@ -501,7 +499,7 @@ impl HandlerTestContext {
         let (peer_stats_tx, peer_stats_rx) = mpsc::unbounded_channel();
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let mut mock_gateway = MockGatewayHarness::start().await;
-        let mut handler = GatewayHandler::new(
+        let mut handler = GatewayHandler::new_with_test_socket(
             gateway.clone(),
             pool.clone(),
             events_tx.clone(),

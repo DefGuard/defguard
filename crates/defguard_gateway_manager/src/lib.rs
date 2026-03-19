@@ -1,11 +1,13 @@
 use std::{
     collections::HashMap,
-    path::PathBuf,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::{Arc, Mutex},
     time::Duration,
+};
+
+#[cfg(test)]
+use std::{
+    path::PathBuf,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use defguard_common::{
@@ -17,10 +19,13 @@ use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
 use tokio::{
-    sync::{Notify, broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
+    sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
     task::{AbortHandle, JoinSet},
 };
 use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
+
+#[cfg(test)]
+use tokio::sync::Notify;
 
 use crate::{error::GatewayError, handler::GatewayHandler};
 
@@ -30,6 +35,9 @@ extern crate tracing;
 mod certs;
 mod error;
 mod handler;
+
+#[cfg(test)]
+mod tests;
 
 const GATEWAY_TABLE_TRIGGER: &str = "gateway_change";
 const GATEWAY_RECONNECT_DELAY: Duration = Duration::from_secs(5);
@@ -57,6 +65,7 @@ impl<T> Drop for AbortTaskOnDrop<T> {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Default)]
 struct GatewayManagerTestSupport {
     socket_paths_by_url: Arc<Mutex<HashMap<String, PathBuf>>>,
@@ -71,6 +80,7 @@ struct GatewayManagerTestSupport {
     retry_delay_override: Arc<Mutex<Option<Duration>>>,
 }
 
+#[cfg(test)]
 impl GatewayManagerTestSupport {
     fn register_gateway_url(&self, gateway_url: String, socket_path: PathBuf) {
         self.socket_paths_by_url
@@ -96,6 +106,7 @@ impl GatewayManagerTestSupport {
         self.handler_spawn_attempt_notify.notify_waiters();
     }
 
+    #[cfg(test)]
     fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
         self.handler_spawn_attempts_by_gateway
             .lock()
@@ -105,6 +116,7 @@ impl GatewayManagerTestSupport {
             .unwrap_or_default()
     }
 
+    #[cfg(test)]
     async fn wait_for_handler_spawn_attempt_count(&self, gateway_id: Id, expected_count: u64) {
         loop {
             if self.handler_spawn_attempt_count(gateway_id) >= expected_count {
@@ -129,6 +141,7 @@ impl GatewayManagerTestSupport {
         self.handler_connection_attempt_notify.notify_waiters();
     }
 
+    #[cfg(test)]
     fn handler_connection_attempt_count(&self, gateway_id: Id) -> u64 {
         self.handler_connection_attempts_by_gateway
             .lock()
@@ -138,6 +151,7 @@ impl GatewayManagerTestSupport {
             .unwrap_or_default()
     }
 
+    #[cfg(test)]
     async fn wait_for_handler_connection_attempt_count(&self, gateway_id: Id, expected_count: u64) {
         loop {
             if self.handler_connection_attempt_count(gateway_id) >= expected_count {
@@ -162,6 +176,7 @@ impl GatewayManagerTestSupport {
         self.gateway_notification_notify.notify_waiters();
     }
 
+    #[cfg(test)]
     fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
         self.gateway_notifications_by_gateway
             .lock()
@@ -171,6 +186,7 @@ impl GatewayManagerTestSupport {
             .unwrap_or_default()
     }
 
+    #[cfg(test)]
     async fn wait_for_gateway_notification_count(&self, gateway_id: Id, expected_count: u64) {
         loop {
             if self.gateway_notification_count(gateway_id) >= expected_count {
@@ -191,6 +207,7 @@ impl GatewayManagerTestSupport {
         self.listener_ready_notify.notify_waiters();
     }
 
+    #[cfg(test)]
     async fn wait_until_listener_ready(&self) {
         loop {
             if self.listener_ready.load(Ordering::Acquire) {
@@ -206,6 +223,7 @@ impl GatewayManagerTestSupport {
         }
     }
 
+    #[cfg(test)]
     fn set_retry_delay(&self, retry_delay: Duration) {
         *self
             .retry_delay_override
@@ -228,183 +246,11 @@ impl GatewayManagerTestSupport {
     }
 }
 
-#[derive(Clone, Default)]
-struct TestGatewayManagerControl {
-    inner: GatewayManagerTestSupport,
-}
-
-impl TestGatewayManagerControl {
-    #[must_use]
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn register_gateway_url(&self, gateway_url: String, socket_path: PathBuf) {
-        self.inner.register_gateway_url(gateway_url, socket_path);
-    }
-
-    fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
-        self.inner.handler_spawn_attempt_count(gateway_id)
-    }
-
-    async fn wait_for_handler_spawn_attempt_count(&self, gateway_id: Id, expected_count: u64) {
-        self.inner
-            .wait_for_handler_spawn_attempt_count(gateway_id, expected_count)
-            .await;
-    }
-
-    fn handler_connection_attempt_count(&self, gateway_id: Id) -> u64 {
-        self.inner.handler_connection_attempt_count(gateway_id)
-    }
-
-    async fn wait_for_handler_connection_attempt_count(&self, gateway_id: Id, expected_count: u64) {
-        self.inner
-            .wait_for_handler_connection_attempt_count(gateway_id, expected_count)
-            .await;
-    }
-
-    fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
-        self.inner.gateway_notification_count(gateway_id)
-    }
-
-    async fn wait_for_gateway_notification_count(&self, gateway_id: Id, expected_count: u64) {
-        self.inner
-            .wait_for_gateway_notification_count(gateway_id, expected_count)
-            .await;
-    }
-
-    async fn wait_until_listener_ready(&self) {
-        self.inner.wait_until_listener_ready().await;
-    }
-
-    fn set_retry_delay(&self, retry_delay: Duration) {
-        self.inner.set_retry_delay(retry_delay);
-    }
-}
-
-#[doc(hidden)]
-pub mod test_support {
-    use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Duration};
-
-    use defguard_common::{
-        db::{Id, models::gateway::Gateway},
-        messages::peer_stats_update::PeerStatsUpdate,
-    };
-    use defguard_core::grpc::GatewayEvent;
-    use sqlx::PgPool;
-    use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver};
-
-    use crate::{
-        GatewayManager, GatewayTxSet, TestGatewayManagerControl, handler::TestGatewayHandler,
-    };
-
-    #[derive(Clone, Default)]
-    pub struct GatewayManagerControl {
-        inner: TestGatewayManagerControl,
-    }
-
-    impl GatewayManagerControl {
-        #[must_use]
-        pub fn new() -> Self {
-            Self {
-                inner: TestGatewayManagerControl::new(),
-            }
-        }
-
-        pub fn register_gateway_url(&self, gateway_url: String, socket_path: PathBuf) {
-            self.inner.register_gateway_url(gateway_url, socket_path);
-        }
-
-        #[must_use]
-        pub fn new_manager(&self, pool: PgPool, tx: GatewayTxSet) -> GatewayManager {
-            GatewayManager::new_for_test(pool, tx, self.inner.clone())
-        }
-
-        pub fn handler_spawn_attempt_count(&self, gateway_id: Id) -> u64 {
-            self.inner.handler_spawn_attempt_count(gateway_id)
-        }
-
-        pub async fn wait_for_handler_spawn_attempt_count(
-            &self,
-            gateway_id: Id,
-            expected_count: u64,
-        ) {
-            self.inner
-                .wait_for_handler_spawn_attempt_count(gateway_id, expected_count)
-                .await;
-        }
-
-        pub fn handler_connection_attempt_count(&self, gateway_id: Id) -> u64 {
-            self.inner.handler_connection_attempt_count(gateway_id)
-        }
-
-        pub async fn wait_for_handler_connection_attempt_count(
-            &self,
-            gateway_id: Id,
-            expected_count: u64,
-        ) {
-            self.inner
-                .wait_for_handler_connection_attempt_count(gateway_id, expected_count)
-                .await;
-        }
-
-        pub fn gateway_notification_count(&self, gateway_id: Id) -> u64 {
-            self.inner.gateway_notification_count(gateway_id)
-        }
-
-        pub async fn wait_for_gateway_notification_count(
-            &self,
-            gateway_id: Id,
-            expected_count: u64,
-        ) {
-            self.inner
-                .wait_for_gateway_notification_count(gateway_id, expected_count)
-                .await;
-        }
-
-        pub async fn wait_until_listener_ready(&self) {
-            self.inner.wait_until_listener_ready().await;
-        }
-
-        pub fn set_retry_delay(&self, retry_delay: Duration) {
-            self.inner.set_retry_delay(retry_delay);
-        }
-    }
-
-    pub struct GatewayHandler {
-        inner: TestGatewayHandler,
-    }
-
-    impl GatewayHandler {
-        pub fn new(
-            gateway: Gateway<Id>,
-            pool: PgPool,
-            events_tx: Sender<GatewayEvent>,
-            peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
-            certs_rx: Receiver<Arc<HashMap<Id, String>>>,
-            socket_path: PathBuf,
-        ) -> anyhow::Result<Self> {
-            let inner = TestGatewayHandler::new(
-                gateway,
-                pool,
-                events_tx,
-                peer_stats_tx,
-                certs_rx,
-                socket_path,
-            )?;
-            Ok(Self { inner })
-        }
-
-        pub async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
-            self.inner.handle_connection_once().await
-        }
-    }
-}
-
 pub struct GatewayManager {
     clients: Arc<Mutex<HashMap<Id, Client>>>,
     pool: PgPool,
     handlers: JoinSet<Result<(), GatewayError>>,
+    #[cfg(test)]
     test_support: Option<GatewayManagerTestSupport>,
     tx: GatewayTxSet,
 }
@@ -416,20 +262,102 @@ impl GatewayManager {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
+            #[cfg(test)]
             test_support: None,
             tx,
         }
     }
 
+    #[cfg(test)]
     #[must_use]
-    fn new_for_test(pool: PgPool, tx: GatewayTxSet, control: TestGatewayManagerControl) -> Self {
+    fn new_for_test(
+        pool: PgPool,
+        tx: GatewayTxSet,
+        test_support: GatewayManagerTestSupport,
+    ) -> Self {
         Self {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
-            test_support: Some(control.inner),
+            test_support: Some(test_support),
             tx,
         }
+    }
+
+    fn mark_listener_ready_for_tests(&self) {
+        #[cfg(test)]
+        if let Some(test_support) = &self.test_support {
+            test_support.mark_listener_ready();
+        }
+    }
+
+    fn note_gateway_notification_for_tests(&self, maybe_gateway_id: Option<Id>) {
+        #[cfg(test)]
+        if let (Some(gateway_id), Some(test_support)) =
+            (maybe_gateway_id, self.test_support.as_ref())
+        {
+            test_support.note_gateway_notification(gateway_id);
+        }
+
+        #[cfg(not(test))]
+        let _ = maybe_gateway_id;
+    }
+
+    fn manager_reconnect_delay(&self) -> Duration {
+        #[cfg(test)]
+        {
+            return self.test_support.as_ref().map_or(
+                GATEWAY_RECONNECT_DELAY,
+                GatewayManagerTestSupport::manager_reconnect_delay,
+            );
+        }
+
+        #[cfg(not(test))]
+        {
+            GATEWAY_RECONNECT_DELAY
+        }
+    }
+
+    fn build_handler(
+        &self,
+        gateway: Gateway<Id>,
+        certs_rx: Receiver<Arc<HashMap<Id, String>>>,
+    ) -> Result<GatewayHandler, GatewayError> {
+        #[cfg(test)]
+        if let Some(test_support) = self.test_support.clone() {
+            test_support.note_handler_spawn_attempt(gateway.id);
+
+            let mut gateway_handler =
+                if let Some(socket_path) = test_support.socket_path_for(&gateway) {
+                    GatewayHandler::new_with_test_socket(
+                        gateway,
+                        self.pool.clone(),
+                        self.tx.events.clone(),
+                        self.tx.peer_stats.clone(),
+                        certs_rx,
+                        socket_path,
+                    )?
+                } else {
+                    GatewayHandler::new(
+                        gateway,
+                        self.pool.clone(),
+                        self.tx.events.clone(),
+                        self.tx.peer_stats.clone(),
+                        certs_rx,
+                    )?
+                };
+            gateway_handler.attach_test_support(test_support);
+
+            return Ok(gateway_handler);
+        }
+
+        GatewayHandler::new(
+            gateway,
+            self.pool.clone(),
+            self.tx.events.clone(),
+            self.tx.peer_stats.clone(),
+            certs_rx,
+        )
     }
 
     /// Bi-directional gRPC stream for communication with Defguard Gateway.
@@ -459,9 +387,7 @@ impl GatewayManager {
         // Observe gateway URL changes.
         let mut listener = PgListener::connect_with(&self.pool).await?;
         listener.listen(GATEWAY_TABLE_TRIGGER).await?;
-        if let Some(test_support) = &self.test_support {
-            test_support.mark_listener_ready();
-        }
+        self.mark_listener_ready_for_tests();
         while let Ok(notification) = listener.recv().await {
             let payload = notification.payload();
             match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
@@ -570,11 +496,7 @@ impl GatewayManager {
                         }
                     };
 
-                    if let (Some(gateway_id), Some(test_support)) =
-                        (maybe_gateway_id, self.test_support.as_ref())
-                    {
-                        test_support.note_gateway_notification(gateway_id);
-                    }
+                    self.note_gateway_notification_for_tests(maybe_gateway_id);
                 }
                 Err(err) => error!("Failed to de-serialize database notification object: {err}"),
             }
@@ -593,42 +515,8 @@ impl GatewayManager {
         clients: Arc<Mutex<HashMap<Id, Client>>>,
         certs_rx: Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<AbortHandle, GatewayError> {
-        let maybe_test_support = self.test_support.clone();
-
-        if let Some(test_support) = &maybe_test_support {
-            test_support.note_handler_spawn_attempt(gateway.id);
-        }
-
-        let mut gateway_handler = if let Some(socket_path) = maybe_test_support
-            .as_ref()
-            .and_then(|test_support| test_support.socket_path_for(&gateway))
-        {
-            GatewayHandler::new_with_test_socket(
-                gateway,
-                self.pool.clone(),
-                self.tx.events.clone(),
-                self.tx.peer_stats.clone(),
-                certs_rx.clone(),
-                socket_path,
-            )?
-        } else {
-            GatewayHandler::new(
-                gateway,
-                self.pool.clone(),
-                self.tx.events.clone(),
-                self.tx.peer_stats.clone(),
-                certs_rx.clone(),
-            )?
-        };
-
-        if let Some(test_support) = maybe_test_support {
-            gateway_handler.attach_test_support(test_support);
-        }
-
-        let manager_reconnect_delay = self.test_support.as_ref().map_or(
-            GATEWAY_RECONNECT_DELAY,
-            GatewayManagerTestSupport::manager_reconnect_delay,
-        );
+        let mut gateway_handler = self.build_handler(gateway, certs_rx)?;
+        let manager_reconnect_delay = self.manager_reconnect_delay();
         let abort_handle = self.handlers.spawn(async move {
             loop {
                 if let Err(err) = gateway_handler

@@ -5,7 +5,7 @@ use defguard_proto::gateway::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tonic::Status;
 
-use crate::common::{
+use crate::tests::common::{
     ManagerTestContext, MockGatewayHarness, build_gateway_with_enabled, create_gateway,
     create_gateway_with_enabled, create_network, reload_gateway, unique_mock_gateway_socket_path,
     wait_for_gateway_connection_state,
