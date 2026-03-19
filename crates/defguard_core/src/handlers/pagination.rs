@@ -117,7 +117,7 @@ where
             Ok(json) => Response::new(Body::from(json)),
             Err(err) => {
                 error!("Failed to convert paginated response into JSON: {err}");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
     }

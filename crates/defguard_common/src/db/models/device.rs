@@ -348,12 +348,12 @@ impl WireguardNetworkDevice {
         network: &WireguardNetwork<Id>,
         active_session: Option<&VpnClientSession<Id>>,
     ) -> DeviceNetworkInfo {
-        let (preshared_key, is_authorized) = if !network.mfa_enabled() {
-            (None, true)
-        } else {
+        let (preshared_key, is_authorized) = if network.mfa_enabled() {
             let preshared_key = active_session.and_then(|session| session.preshared_key.clone());
             let is_authorized = preshared_key.is_some();
             (preshared_key, is_authorized)
+        } else {
+            (None, true)
         };
 
         DeviceNetworkInfo {
