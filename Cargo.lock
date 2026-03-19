@@ -6945,7 +6945,6 @@ dependencies = [
  "anyhow",
  "derive_builder",
  "rustversion",
- "time",
  "vergen-lib",
 ]
 

@@ -1,12 +1,14 @@
 import './style.scss';
-import { useMutation } from '@tanstack/react-query';
 import { cloneDeep } from 'lodash-es';
 import { useCallback } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
 import type { OAuth2AuthorizedApps, User } from '../../../../../../../shared/api/types';
 import { IconButton } from '../../../../../../../shared/defguard-ui/components/IconButton/IconButton';
+import { Snackbar } from '../../../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
+import { openModal } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { ProfileCard } from '../../../../components/ProfileCard/ProfileCard';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 import { AuthorizedAppIconPlaceholder } from './icons/AuthorizedAppIconPlaceholder';
@@ -51,13 +53,6 @@ const AuthorizedApp = ({ data }: Props) => {
     });
   }, [data.oauth2client_id, username]);
 
-  const { mutate } = useMutation({
-    mutationFn: deleteAuthorizedApp,
-    meta: {
-      invalidate: [['oauth'], ['user', username]],
-    },
-  });
-
   return (
     <div className="app">
       <AuthorizedAppIconPlaceholder />
@@ -66,7 +61,15 @@ const AuthorizedApp = ({ data }: Props) => {
         <IconButton
           icon="delete"
           onClick={() => {
-            mutate();
+            openModal(ModalName.ConfirmAction, {
+              title: m.modal_delete_authorized_app_title(),
+              contentMd: m.modal_delete_authorized_app(),
+              actionPromise: deleteAuthorizedApp,
+              invalidateKeys: [['oauth'], ['user', username]],
+              submitProps: { text: m.controls_delete(), variant: 'critical' },
+              onSuccess: () => Snackbar.default(m.modal_delete_authorized_app_success()),
+              onError: () => Snackbar.error(m.modal_delete_authorized_app_error()),
+            });
           }}
         />
       </div>

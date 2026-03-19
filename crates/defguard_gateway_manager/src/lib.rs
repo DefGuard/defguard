@@ -306,10 +306,10 @@ impl GatewayManager {
     fn manager_reconnect_delay(&self) -> Duration {
         #[cfg(test)]
         {
-            return self.test_support.as_ref().map_or(
+            self.test_support.as_ref().map_or(
                 GATEWAY_RECONNECT_DELAY,
                 GatewayManagerTestSupport::manager_reconnect_delay,
-            );
+            )
         }
 
         #[cfg(not(test))]

@@ -11,7 +11,7 @@ use std::{
 #[cfg(test)]
 use std::path::PathBuf;
 
-use chrono::DateTime;
+use chrono::{DateTime, TimeDelta};
 use defguard_common::{
     VERSION,
     db::{
@@ -21,8 +21,9 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::{
-    enterprise::firewall::try_get_location_firewall_config, grpc::GatewayEvent,
-    handlers::mail::send_gateway_disconnected_email,
+    enterprise::firewall::try_get_location_firewall_config,
+    grpc::GatewayEvent,
+    handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     location_management::allowed_peers::get_location_allowed_peers,
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
@@ -287,7 +288,7 @@ impl GatewayHandler {
         }
     }
 
-    /// Send gateway disconnected notification.
+    /// Send Gateway disconnected notification.
     /// Sends notification only if last notification time is bigger than specified in config.
     async fn send_disconnect_notification(&self) {
         let settings = Settings::get_current_settings();
@@ -295,7 +296,17 @@ impl GatewayHandler {
             return;
         }
 
-        debug!("Sending gateway disconnect email notification");
+        // Send email only if disconnection time is before the connection time.
+        if let (Some(connected_at), Some(disconnected_at)) =
+            (self.gateway.connected_at, self.gateway.disconnected_at)
+        {
+            if disconnected_at > connected_at {
+                info!("{} disconnected; email notification not sent", self.gateway);
+                return;
+            }
+        };
+
+        debug!("Sending Gateway disconnect email notification");
         let name = self.gateway.name.clone();
         let pool = self.pool.clone();
         let url = format!("{}:{}", self.gateway.address, self.gateway.port);
@@ -310,32 +321,51 @@ impl GatewayHandler {
             return;
         };
 
-        // Send email only if disconnection time is before the connection time.
-        let send_email = if let (Some(connected_at), Some(disconnected_at)) =
-            (self.gateway.connected_at, self.gateway.disconnected_at)
-        {
-            disconnected_at <= connected_at
-        } else {
-            true
-        };
-        if send_email {
-            // FIXME: Try to get rid of spawn and use something like block_on
-            // To return result instead of logging
-            tokio::spawn(async move {
-                if let Err(err) =
-                    send_gateway_disconnected_email(name, network.name, &url, &pool).await
-                {
-                    error!("Failed to send gateway disconnect notification: {err}");
-                } else {
-                    info!("Email notification sent about gateway being disconnected");
-                }
-            });
-        } else {
-            info!(
-                "{} disconnected. Email notification not sent.",
-                self.gateway
-            );
+        // FIXME: Try to get rid of spawn and use something like block_on
+        // To return result instead of logging
+        tokio::spawn(async move {
+            if let Err(err) = send_gateway_disconnected_email(name, network.name, &url, &pool).await
+            {
+                error!("Failed to send Gateway disconnect notification: {err}");
+            } else {
+                info!("Sent email notification about Gateway being disconnected");
+            }
+        });
+    }
+
+    /// Send Gateway reconnected notification.
+    fn send_reconnect_notification(&self, network_name: String) {
+        let settings = Settings::get_current_settings();
+        if !settings.gateway_disconnect_notifications_reconnect_notification_enabled {
+            return;
         }
+
+        let (Some(connected_at), Some(disconnected_at)) =
+            (self.gateway.connected_at, self.gateway.disconnected_at)
+        else {
+            return;
+        };
+        let inactivity_threshold = TimeDelta::minutes(i64::from(
+            settings.gateway_disconnect_notifications_inactivity_threshold,
+        ));
+        if connected_at - disconnected_at <= inactivity_threshold {
+            return;
+        }
+
+        debug!("Sending Gateway reconnect email notification");
+        let gateway_name = self.gateway.name.clone();
+        let pool = self.pool.clone();
+        let url = format!("{}:{}", self.gateway.address, self.gateway.port);
+
+        tokio::spawn(async move {
+            if let Err(err) =
+                send_gateway_reconnected_email(gateway_name, network_name, &url, &pool).await
+            {
+                error!("Failed to send Gateway reconnect notification: {err}");
+            } else {
+                info!("Sent email notification about Gateway being reconnected");
+            }
+        });
     }
 
     async fn mark_disconnected(&mut self) {
@@ -353,6 +383,18 @@ impl GatewayHandler {
         }
 
         self.mark_disconnected().await;
+    }
+
+    async fn mark_connected_and_maybe_notify(&mut self, network_name: &str) {
+        if let Err(err) = self.gateway.touch_connected(&self.pool).await {
+            error!(
+                "Failed to update connection time for {} in the database: {err}",
+                self.gateway
+            );
+            return;
+        }
+
+        self.send_reconnect_notification(network_name.to_owned());
     }
 
     fn remove_client(&self, clients: &Arc<Mutex<HashMap<Id, Client>>>) {
@@ -456,7 +498,7 @@ impl GatewayHandler {
                                 Ok(network) => {
                                     info!("Sent configuration to {}", self.gateway);
                                     config_sent = true;
-                                    let _ = self.gateway.touch_connected(&self.pool).await;
+                                    self.mark_connected_and_maybe_notify(&network.name).await;
                                     let mut updates_handler = GatewayUpdatesHandler::new(
                                         self.gateway.location_id,
                                         network,

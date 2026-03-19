@@ -98,20 +98,6 @@ export const UsersTable = () => {
     [groups?.map, groups],
   );
 
-  const { mutate: deleteUser } = useMutation({
-    mutationFn: api.user.deleteUser,
-    meta: {
-      invalidate: [['user-overview'], ['user'], ['enterprise_info']],
-    },
-  });
-
-  const { mutate: changeAccountActiveState } = useMutation({
-    mutationFn: api.user.activeStateChange,
-    meta: {
-      invalidate: [['user-overview'], ['user']],
-    },
-  });
-
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
@@ -270,10 +256,40 @@ export const UsersTable = () => {
                 icon: rowData.is_active ? 'disabled' : 'check-circle',
                 testId: 'change-account-status',
                 onClick: () => {
-                  changeAccountActiveState({
-                    active: !rowData.is_active,
-                    username: rowData.username,
-                  });
+                  if (rowData.is_active) {
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.users_modal_disable_title(),
+                      contentMd: m.users_modal_disable_content({ name: rowData.name }),
+                      actionPromise: () =>
+                        api.user.activeStateChange({
+                          active: false,
+                          username: rowData.username,
+                        }),
+                      invalidateKeys: [['user-overview'], ['user']],
+                      submitProps: {
+                        text: m.users_row_menu_disable(),
+                        variant: 'critical',
+                      },
+                      onSuccess: () => Snackbar.default(m.users_disable_success()),
+                      onError: () => Snackbar.error(m.users_disable_error()),
+                    });
+                  } else {
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.users_modal_enable_title(),
+                      contentMd: m.users_modal_enable_content({ name: rowData.name }),
+                      actionPromise: () =>
+                        api.user.activeStateChange({
+                          active: true,
+                          username: rowData.username,
+                        }),
+                      invalidateKeys: [['user-overview'], ['user']],
+                      submitProps: {
+                        text: m.users_row_menu_enable(),
+                      },
+                      onSuccess: () => Snackbar.default(m.users_enable_success()),
+                      onError: () => Snackbar.error(m.users_enable_error()),
+                    });
+                  }
                 },
               },
             ],
@@ -368,7 +384,18 @@ export const UsersTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteUser(rowData.username);
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_user_title(),
+                      contentMd: m.modal_delete_user_body({ name: rowData.name }),
+                      actionPromise: () => api.user.deleteUser(rowData.username),
+                      invalidateKeys: [['user-overview'], ['user'], ['enterprise_info']],
+                      submitProps: {
+                        text: m.users_row_menu_delete(),
+                        variant: 'critical',
+                      },
+                      onSuccess: () => Snackbar.default(m.modal_delete_user_success()),
+                      onError: () => Snackbar.error(m.modal_delete_user_error()),
+                    });
                   },
                 },
               ],
@@ -453,8 +480,6 @@ export const UsersTable = () => {
       navigate,
       reservedEmails,
       reservedUsernames,
-      changeAccountActiveState,
-      deleteUser,
       groupsOptions,
       handleEditGroups,
       groups,
