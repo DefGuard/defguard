@@ -10,6 +10,7 @@ use crate::grpc::should_prevent_service_location_usage;
 /// which enables enforcing peer disconnect in MFA-protected networks.
 ///
 /// If the location is a service location, only returns peers if enterprise features are enabled.
+/// MFA-enabled locations only return peers backed by an active session with a runtime preshared key.
 pub async fn get_location_allowed_peers<'e, E>(
     location: &WireguardNetwork<Id>,
     executor: E,
@@ -27,56 +28,87 @@ where
         return Ok(Vec::new());
     }
 
+    if !location.mfa_enabled() {
+        let rows = query!(
+            "SELECT d.wireguard_pubkey pubkey, \
+                    ARRAY( \
+                        SELECT host(ip) \
+                        FROM unnest(wnd.wireguard_ips) AS ip \
+                    ) \"allowed_ips!: Vec<String>\" \
+                FROM wireguard_network_device wnd \
+                JOIN device d ON wnd.device_id = d.id \
+                JOIN \"user\" u ON d.user_id = u.id \
+                WHERE wireguard_network_id = $1 \
+                    AND d.configured \
+                    AND u.is_active \
+                ORDER BY d.id ASC",
+            location.id,
+        )
+        .fetch_all(executor)
+        .await?;
+
+        return Ok(rows
+            .into_iter()
+            .map(|row| Peer {
+                pubkey: row.pubkey,
+                allowed_ips: row.allowed_ips,
+                preshared_key: None,
+                keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
+            })
+            .collect());
+    }
+
     let rows = query!(
-        "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-                -- TODO possible to not use ARRAY-unnest here?
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wnd.wireguard_ips) AS ip
+        "SELECT d.wireguard_pubkey pubkey, \
+                active_session.preshared_key \"preshared_key!\", \
+                ARRAY( \
+                    SELECT host(ip) \
+                    FROM unnest(wnd.wireguard_ips) AS ip \
                 ) \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
-            WHERE wireguard_network_id = $1 AND (is_authorized OR NOT $2) \
-            AND d.configured AND u.is_active \
+            JOIN LATERAL ( \
+                SELECT preshared_key \
+                FROM vpn_client_session \
+                WHERE location_id = wnd.wireguard_network_id \
+                    AND device_id = wnd.device_id \
+                    AND state IN ('new', 'connected') \
+                    AND preshared_key IS NOT NULL \
+                ORDER BY created_at DESC, id DESC \
+                LIMIT 1 \
+            ) active_session ON true \
+            WHERE wireguard_network_id = $1 \
+                AND d.configured \
+                AND u.is_active \
             ORDER BY d.id ASC",
         location.id,
-        location.mfa_enabled()
     )
     .fetch_all(executor)
     .await?;
 
-    // keepalive has to be added manually because Postgres
-    // doesn't support unsigned integers
-    let result = rows
+    Ok(rows
         .into_iter()
         .map(|row| Peer {
             pubkey: row.pubkey,
             allowed_ips: row.allowed_ips,
-            // Don't send preshared key if MFA is not enabled, it can't be used and may
-            // cause issues with clients connecting if they expect no preshared key
-            // e.g. when you disable MFA on a location
-            preshared_key: if location.mfa_enabled() {
-                row.preshared_key
-            } else {
-                None
-            },
+            preshared_key: Some(row.preshared_key),
             keepalive_interval: Some(location.keepalive_interval.cast_unsigned()),
         })
-        .collect();
-
-    Ok(result)
+        .collect())
 }
 
 #[cfg(test)]
 mod test {
     use std::{net::IpAddr, str::FromStr};
 
+    use chrono::Utc;
     use defguard_common::db::{
         models::{
             Device, DeviceType, WireguardNetwork,
             device::WireguardNetworkDevice,
             user::User,
+            vpn_client_session::VpnClientSession,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
         setup_pool,
@@ -219,5 +251,212 @@ mod test {
             "AlwaysOn service location should return peers when enterprise is enabled"
         );
         assert_eq!(peers_alwayson[0].pubkey, "pubkey3");
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_skips_active_mfa_session_without_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device1".into(),
+            "pubkey1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.4.1.1/24")
+            .unwrap();
+        network.name = "mfa-location".to_string();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.location_mfa_mode = LocationMfaMode::Internal;
+        let network = network.save(&pool).await.unwrap();
+
+        let network_device = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.4.1.2").unwrap()],
+        );
+        network_device.insert(&pool).await.unwrap();
+
+        VpnClientSession::new(network.id, user.id, device.id, None, None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+
+        assert!(peers.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_keeps_non_mfa_peer_without_session_lookup_dependency(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device1".into(),
+            "pubkey1".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.5.1.1/24")
+            .unwrap();
+        network.name = "non-mfa-location".to_string();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.location_mfa_mode = LocationMfaMode::Disabled;
+        let network = network.save(&pool).await.unwrap();
+
+        let network_device = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.5.1.2").unwrap()],
+        );
+        network_device.insert(&pool).await.unwrap();
+
+        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+
+        assert_eq!(peers.len(), 1);
+        assert_eq!(peers[0].pubkey, "pubkey1");
+        assert_eq!(peers[0].preshared_key, None);
+    }
+
+    #[sqlx::test]
+    async fn test_get_location_allowed_peers_includes_active_mfa_peers_with_session_preshared_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password123"),
+            "Test",
+            "User",
+            "test@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let new_device = Device::new(
+            "device-new".into(),
+            "pubkey-new".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let connected_device = Device::new(
+            "device-connected".into(),
+            "pubkey-connected".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default()
+            .try_set_address("10.6.1.1/24")
+            .unwrap();
+        network.name = "mfa-location-with-session-psk".to_string();
+        network.service_location_mode = ServiceLocationMode::Disabled;
+        network.location_mfa_mode = LocationMfaMode::Internal;
+        let network = network.save(&pool).await.unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            new_device.id,
+            vec![IpAddr::from_str("10.6.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            connected_device.id,
+            vec![IpAddr::from_str("10.6.1.3").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let mut new_session = VpnClientSession::new(network.id, user.id, new_device.id, None, None);
+        new_session.preshared_key = Some("new-session-psk".into());
+        new_session.save(&pool).await.unwrap();
+
+        let mut connected_session = VpnClientSession::new(
+            network.id,
+            user.id,
+            connected_device.id,
+            Some(Utc::now().naive_utc()),
+            None,
+        );
+        connected_session.preshared_key = Some("connected-session-psk".into());
+        connected_session.save(&pool).await.unwrap();
+
+        let peers = get_location_allowed_peers(&network, &pool).await.unwrap();
+
+        assert_eq!(peers.len(), 2);
+        assert_eq!(
+            peers
+                .iter()
+                .map(|peer| (peer.pubkey.as_str(), peer.preshared_key.as_deref()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("pubkey-new", Some("new-session-psk")),
+                ("pubkey-connected", Some("connected-session-psk")),
+            ]
+        );
     }
 }

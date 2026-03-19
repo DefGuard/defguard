@@ -270,7 +270,8 @@ async fn test_existing_new_session_becomes_connected_on_stats(
     let gateway = create_gateway(&pool, location.id, user.fullname()).await;
     let mut harness = SessionManagerHarness::new(pool.clone());
 
-    let existing_session = create_session(&pool, location.id, user.id, device.id, None, None).await;
+    let existing_session =
+        create_session(&pool, location.id, user.id, device.id, None, None, None).await;
     assert_eq!(existing_session.state, VpnClientSessionState::New);
 
     let endpoint: SocketAddr = "203.0.113.10:51820".parse().unwrap();
@@ -494,6 +495,7 @@ async fn test_existing_session_in_db_is_reused_instead_of_creating_duplicate(
         user.id,
         device.id,
         Some(base_time - TimeDelta::seconds(5)),
+        None,
         None,
     )
     .await;

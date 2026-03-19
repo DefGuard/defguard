@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vs.endpoint \"device_endpoint?\", vs.latest_handshake \"latest_handshake?\", vs.state \"state?: VpnClientSessionState\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN LATERAL ( SELECT id, state, location_id, endpoint, latest_handshake FROM vpn_client_session LEFT JOIN LATERAL ( SELECT session_id, endpoint, latest_handshake FROM vpn_session_stats WHERE session_id = vpn_client_session.id ORDER BY collected_at DESC LIMIT 1 ) vss ON vss.session_id = vpn_client_session.id WHERE location_id = n.id and device_id = $1 ORDER BY created_at DESC LIMIT 1 ) vs ON vs.location_id = n.id WHERE wnd.device_id = $1",
+  "query": "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", vs.endpoint \"device_endpoint?\", vs.latest_handshake \"latest_handshake?\", vs.state \"state?: VpnClientSessionState\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN LATERAL ( SELECT id, state, location_id, endpoint, latest_handshake FROM vpn_client_session LEFT JOIN LATERAL ( SELECT session_id, endpoint, latest_handshake FROM vpn_session_stats WHERE session_id = vpn_client_session.id ORDER BY collected_at DESC LIMIT 1 ) vss ON vss.session_id = vpn_client_session.id WHERE location_id = n.id and device_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1 ) vs ON vs.location_id = n.id WHERE wnd.device_id = $1",
   "describe": {
     "columns": [
       {
@@ -65,5 +65,5 @@
       false
     ]
   },
-  "hash": "f64a22a8141030a41aa9b85275158a3a75e5ebfa0f14c84b1aefc8582156eb03"
+  "hash": "3ea2a5fbb1ec0dc86448b6145cf8b5f8fa8c6ab81da002d0d1ddb5445e7c6d31"
 }
