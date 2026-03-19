@@ -47,7 +47,7 @@ import {
   getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
-import { isUserOnline } from '../../shared/utils/userOnlineStatus';
+import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
 type RowData = UsersListItem;
@@ -583,6 +583,7 @@ export const UsersTable = () => {
       const reservedPubkeys = row.original.devices.map((d) => d.wireguard_pubkey);
       return row.original.devices.map((device, deviceIndex) => {
         const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
+        const deviceOnline = isDeviceOnline(device);
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
           (d) => d.last_connected_at,
@@ -613,7 +614,12 @@ export const UsersTable = () => {
               <Icon icon="enter" />
             </TableCell>
             <TableCell>
-              <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
+              <div className="expanded-device-icon-wrapper">
+                <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
+                {deviceOnline && (
+                  <span className="expanded-device-online-indicator" aria-hidden="true" />
+                )}
+              </div>
               <span>{device.name}</span>
             </TableCell>
             <TableCell empty />
