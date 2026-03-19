@@ -31,9 +31,9 @@ where
     if !location.mfa_enabled() {
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, \
-                    ARRAY(
-                        SELECT host(ip)
-                        FROM unnest(wnd.wireguard_ips) AS ip
+                    ARRAY( \
+                        SELECT host(ip) \
+                        FROM unnest(wnd.wireguard_ips) AS ip \
                     ) \"allowed_ips!: Vec<String>\" \
                 FROM wireguard_network_device wnd \
                 JOIN device d ON wnd.device_id = d.id \
@@ -61,9 +61,9 @@ where
     let rows = query!(
         "SELECT d.wireguard_pubkey pubkey, \
                 active_session.preshared_key \"preshared_key!\", \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wnd.wireguard_ips) AS ip
+                ARRAY( \
+                    SELECT host(ip) \
+                    FROM unnest(wnd.wireguard_ips) AS ip \
                 ) \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \

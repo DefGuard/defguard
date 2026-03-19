@@ -469,16 +469,16 @@ impl GatewayUpdatesHandler {
 
         if !is_authorized {
             debug!(
-                "Skipping gateway peer update for WireGuard device {} in MFA enabled location {} because there is no active MFA session",
-                peer_label, self.network.name
+                "Skipping gateway peer update for WireGuard device {peer_label} in MFA enabled location {} because there is no active MFA session",
+                self.network.name
             );
             return None;
         }
 
         let Some(preshared_key) = preshared_key else {
             debug!(
-                "Skipping gateway peer update for WireGuard device {} in location {} because the runtime preshared key is missing",
-                peer_label, self.network.name
+                "Skipping gateway peer update for WireGuard device {peer_label} in location {} because the runtime preshared key is missing",
+                self.network.name
             );
             return None;
         };
@@ -870,6 +870,7 @@ mod tests {
 
     use chrono::Utc;
     use defguard_common::db::{
+        Id,
         models::{
             Device, DeviceType, User,
             device::WireguardNetworkDevice,
@@ -881,37 +882,25 @@ mod tests {
     };
     use defguard_core::grpc::GatewayEvent;
     use defguard_proto::gateway::core_response;
-    use serde_json::json;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-    use tokio::sync::watch;
-    use tokio::sync::{broadcast, mpsc::unbounded_channel};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
     use super::{GatewayHandler, GatewayUpdatesHandler};
-    use defguard_common::db::Id;
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
-        serde_json::from_value(json!({
-            "id": 1,
-            "name": "test-network",
-            "address": ["10.1.1.1/24"],
-            "port": 51820,
-            "pubkey": "network-pubkey",
-            "prvkey": "network-prvkey",
-            "endpoint": "127.0.0.1",
-            "dns": null,
-            "mtu": 1420,
-            "fwmark": 0,
-            "allowed_ips": [],
-            "allow_all_groups": true,
-            "connected_at": null,
-            "acl_enabled": false,
-            "acl_default_allow": false,
-            "keepalive_interval": 25,
-            "peer_disconnect_threshold": 300,
-            "location_mfa_mode": location_mfa_mode,
-            "service_location_mode": ServiceLocationMode::Disabled,
-        }))
-        .unwrap()
+        WireguardNetwork::new(
+            "test-network".into(),
+            51820,
+            "127.0.0.1".into(),
+            None,
+            Vec::new(),
+            true,
+            false,
+            false,
+            location_mfa_mode,
+            ServiceLocationMode::Disabled,
+        )
+        .with_id(1)
     }
 
     fn test_handler(location_mfa_mode: LocationMfaMode) -> GatewayUpdatesHandler {
@@ -938,7 +927,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(peer.pubkey, "device-pubkey");
-        assert_eq!(peer.allowed_ips, vec!["10.1.1.2"]);
+        assert_eq!(peer.allowed_ips, ["10.1.1.2"]);
         assert_eq!(peer.preshared_key, None);
         assert_eq!(peer.keepalive_interval, Some(25));
     }
@@ -1083,7 +1072,7 @@ mod tests {
                 .iter()
                 .map(|peer| (peer.pubkey.as_str(), peer.preshared_key.as_deref()))
                 .collect::<Vec<_>>(),
-            vec![
+            [
                 ("pubkey-new", Some("new-session-psk")),
                 ("pubkey-connected", Some("connected-session-psk")),
             ]

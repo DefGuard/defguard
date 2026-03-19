@@ -889,6 +889,9 @@ mod tests {
         grpc::GatewayEvent,
     };
 
+    const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
+    const NEW_MFA_PRESHARED_KEY: &str = "new-psk";
+
     #[sqlx::test]
     async fn test_replacing_connected_mfa_session_emits_mfa_disconnect_event(
         _: PgPoolOptions,
@@ -920,7 +923,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                "replacement-mfa-psk".to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace connected MFA session");
@@ -995,7 +998,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                "replacement-mfa-psk".to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace new MFA session");
@@ -1054,7 +1057,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                "replacement-mfa-psk".to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("should replace connected non-MFA session");
@@ -1194,7 +1197,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                "new-psk".to_string(),
+                NEW_MFA_PRESHARED_KEY.to_string(),
             )
             .await
             .expect("failed to create replacement MFA session");
@@ -1215,7 +1218,10 @@ mod tests {
         .expect("failed to fetch active sessions");
         assert_eq!(active_sessions.len(), 1);
         assert_eq!(active_sessions[0].id, new_session.id);
-        assert_eq!(active_sessions[0].preshared_key.as_deref(), Some("new-psk"));
+        assert_eq!(
+            active_sessions[0].preshared_key.as_deref(),
+            Some(NEW_MFA_PRESHARED_KEY)
+        );
 
         match gateway_rx.try_recv() {
             Ok(GatewayEvent::MfaSessionDisconnected(location_id, disconnected_device)) => {
