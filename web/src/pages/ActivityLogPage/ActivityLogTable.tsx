@@ -22,6 +22,7 @@ type RowData = ActivityLogEvent;
 
 const columnHelper = createColumnHelper<RowData>();
 const missingValuePlaceholder = '—';
+const activityLogTimestampFormat = 'DD/MM/YYYY | HH:mm:ss';
 
 const renderOptionalTableValue = (
   value: string | null | undefined,
@@ -65,7 +66,7 @@ export const ActivityLogTable = ({
         minSize: 160,
         cell: (info) => {
           const data = info.getValue();
-          const formatted = displayDate(data);
+          const formatted = displayDate(data, activityLogTimestampFormat);
           return (
             <TableCell>
               <span>{formatted}</span>
