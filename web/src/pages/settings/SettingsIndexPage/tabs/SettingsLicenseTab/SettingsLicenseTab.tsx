@@ -31,16 +31,16 @@ import { SettingsLicenseInfoSection } from './components/SettingsLicenseInfoSect
 import { SettingsLicenseNoLicenseSection } from './components/SettingsLicenseNoLicenseSection/SettingsLicenseNoLicenseSection';
 import { SettingsLicenseModal } from './modals/SettingsLicenseModal/SettingsLicenseModal';
 
-type LicenseSectionState =
+export type LicenseState =
   | 'noLicense'
   | 'gracePeriod'
   | 'expiredLicense'
   | 'validBusiness'
   | 'validEnterprise';
 
-const getLicenseSectionState = (
+const getLicenseState = (
   licenseInfo: LicenseInfo | null | undefined,
-): LicenseSectionState | null => {
+): LicenseState | null => {
   if (licenseInfo === undefined) {
     return null;
   }
@@ -72,7 +72,7 @@ export const SettingsLicenseTab = () => {
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useQuery(getSettingsQueryOptions);
 
-  const sectionState = getLicenseSectionState(licenseInfo);
+  const licenseState = getLicenseState(licenseInfo);
 
   return (
     <SettingsLayout id="settings-license-tab">
@@ -83,9 +83,14 @@ export const SettingsLicenseTab = () => {
       />
       {isPresent(settings) && (
         <SettingsCard>
-          {isPresent(licenseInfo) && (
-            <SettingsLicenseInfoSection licenseInfo={licenseInfo} />
-          )}
+          {isPresent(licenseInfo) &&
+            isPresent(licenseState) &&
+            licenseState !== 'noLicense' && (
+              <SettingsLicenseInfoSection
+                licenseInfo={licenseInfo}
+                licenseState={licenseState}
+              />
+            )}
           {!isPresent(licenseInfo) && (
             <div className="empty-plan">
               <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
@@ -118,7 +123,7 @@ export const SettingsLicenseTab = () => {
           </Controls>
         </SettingsCard>
       )}
-      <LicenseSection state={sectionState} licenseInfo={licenseInfo} />
+      <LicenseSection state={licenseState} licenseInfo={licenseInfo} />
       <SettingsLicenseModal />
     </SettingsLayout>
   );
@@ -129,7 +134,7 @@ const LicenseSection = ({
   state,
 }: {
   licenseInfo: LicenseInfo | null | undefined;
-  state: LicenseSectionState | null;
+  state: LicenseState | null;
 }) => {
   if (state === null || state === 'validEnterprise') {
     return null;

@@ -16,13 +16,21 @@ import { ProgressionBar } from '../../../../../../../shared/defguard-ui/componen
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
+import type { LicenseState } from '../../SettingsLicenseTab';
 
 type Props = {
   licenseInfo: LicenseInfo;
+  licenseState: LicenseState;
 };
 
-export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
+export const SettingsLicenseInfoSection = ({
+  licenseInfo: license,
+  licenseState,
+}: Props) => {
   const licenseTier = license.tier;
+  // In the settings UI, grace period should use the expired badge.
+  const isExpired = licenseState === 'gracePeriod' || licenseState === 'expiredLicense';
+
   return (
     <div className="license-general-info">
       <div className="top">
@@ -30,8 +38,8 @@ export const SettingsLicenseInfoSection = ({ licenseInfo: license }: Props) => {
           {isPresent(licenseTier) && (
             <>
               <p>{licenseTier}</p>
-              {license.expired && <Badge variant="critical" text={m.state_expired()} />}
-              {!license.expired && <Badge variant="success" text={m.misc_active()} />}
+              {isExpired && <Badge variant="critical" text={m.state_expired()} />}
+              {!isExpired && <Badge variant="success" text={m.misc_active()} />}
             </>
           )}
           {!isPresent(licenseTier) && (
