@@ -39,7 +39,7 @@ export const SettingsLicenseInfoSection = ({
           {isPresent(licenseTier) && (
             <>
               <p>{licenseTier}</p>
-              {isExpired && <Badge variant="critical" text={m.state_expired()} />}
+              {isExpired && <Badge variant="critical" text={m.misc_disabled()} />}
               {!isExpired && <Badge variant="success" text={m.misc_active()} />}
             </>
           )}
