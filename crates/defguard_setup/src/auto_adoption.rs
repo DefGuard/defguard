@@ -192,9 +192,6 @@ fn merge_failure_logs(
     error!("{msg}");
     let mut logs = collect_core_logs(log_buffer);
     logs.extend(collect_stream_logs(log_rx));
-    if !logs.iter().any(|line| line.contains(&msg)) {
-        logs.push(msg);
-    }
     (false, logs, None)
 }
 
