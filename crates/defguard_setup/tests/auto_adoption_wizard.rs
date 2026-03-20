@@ -12,6 +12,7 @@ use defguard_common::{
         setup_pool,
     },
 };
+use defguard_core::setup_logs::CoreSetupLogLayer;
 use defguard_setup::auto_adoption::attempt_auto_adoption;
 use ipnetwork::IpNetwork;
 use reqwest::{
@@ -20,11 +21,23 @@ use reqwest::{
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use std::sync::Once;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod common;
 use common::make_setup_test_client;
 
 const SESSION_COOKIE_NAME: &str = "defguard_session";
+
+fn init_tracing_once() {
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        tracing_subscriber::registry()
+            .with(CoreSetupLogLayer)
+            .try_init()
+            .ok();
+    });
+}
 
 async fn assert_auto_adoption_step(pool: &sqlx::PgPool, expected: AutoAdoptionWizardStep) {
     let state = AutoAdoptionWizardState::get(pool)
@@ -425,5 +438,119 @@ async fn test_attempt_auto_adoption_requires_both_flags(
         attempt_auto_adoption(&pool, &config_with_flags(None, None))
             .await
             .is_err()
+    );
+}
+
+#[sqlx::test]
+async fn test_attempt_auto_adoption_persists_actionable_edge_failure_logs(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    init_tracing_once();
+
+    let pool = defguard_common::db::setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    Wizard::init(&pool, true)
+        .await
+        .expect("Failed to init wizard");
+
+    attempt_auto_adoption(
+        &pool,
+        &config_with_flags(Some("bad host:50051"), Some("127.0.0.1:50052")),
+    )
+    .await
+    .expect("Auto-adoption should store per-component failures instead of erroring");
+
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to fetch auto-adoption state")
+        .expect("Expected auto-adoption state to exist");
+
+    let edge_result = state
+        .adoption_result
+        .get(&defguard_common::db::models::setup_auto_adoption::SetupAutoAdoptionComponent::Edge)
+        .expect("Expected edge adoption result");
+
+    assert!(!edge_result.success, "Edge auto-adoption should fail");
+    assert!(
+        edge_result.logs.len() >= 2,
+        "Expected multiple actionable log lines, got {:?}",
+        edge_result.logs
+    );
+    assert!(
+        edge_result
+            .logs
+            .iter()
+            .any(|line| line.contains("Invalid edge endpoint URL")),
+        "Expected explicit edge failure message in logs: {:?}",
+        edge_result.logs
+    );
+    assert!(
+        edge_result.logs.iter().any(|line| {
+            line.contains("DEBUG defguard_setup::auto_adoption")
+                && line.contains("Starting edge adoption attempt")
+        }),
+        "Expected captured Core debug log in edge logs: {:?}",
+        edge_result.logs
+    );
+}
+
+#[sqlx::test]
+async fn test_attempt_auto_adoption_persists_actionable_gateway_failure_logs(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    init_tracing_once();
+
+    let pool = defguard_common::db::setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    Wizard::init(&pool, true)
+        .await
+        .expect("Failed to init wizard");
+
+    attempt_auto_adoption(
+        &pool,
+        &config_with_flags(Some("127.0.0.1:50051"), Some("bad host:50052")),
+    )
+    .await
+    .expect("Auto-adoption should store per-component failures instead of erroring");
+
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to fetch auto-adoption state")
+        .expect("Expected auto-adoption state to exist");
+
+    let gateway_result = state
+        .adoption_result
+        .get(&defguard_common::db::models::setup_auto_adoption::SetupAutoAdoptionComponent::Gateway)
+        .expect("Expected gateway adoption result");
+
+    assert!(!gateway_result.success, "Gateway auto-adoption should fail");
+    assert!(
+        gateway_result.logs.len() >= 2,
+        "Expected multiple actionable log lines, got {:?}",
+        gateway_result.logs
+    );
+    assert!(
+        gateway_result
+            .logs
+            .iter()
+            .any(|line| line.contains("Invalid gateway endpoint URL")),
+        "Expected explicit gateway failure message in logs: {:?}",
+        gateway_result.logs
+    );
+    assert!(
+        gateway_result.logs.iter().any(|line| {
+            line.contains("DEBUG defguard_setup::auto_adoption")
+                && line.contains("Starting gateway adoption attempt")
+        }),
+        "Expected captured Core debug log in gateway logs: {:?}",
+        gateway_result.logs
     );
 }
