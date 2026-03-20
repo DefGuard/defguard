@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use defguard_common::{
-    auth::claims::{Claims, ClaimsType, test_support::initialize_jwt_secret_overrides},
+    auth::claims::{Claims, ClaimsType},
     db::{models::settings::initialize_current_settings, setup_pool},
 };
 use defguard_core::{
@@ -92,7 +92,6 @@ pub(crate) async fn create_client_channel(client_stream: DuplexStream) -> Channe
 }
 
 pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
-    initialize_jwt_secrets();
     initialize_users(pool).await;
     initialize_current_settings(pool)
         .await
@@ -124,7 +123,6 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 }
 
 pub(crate) fn create_yubibridge_jwt(username: &str) -> String {
-    initialize_jwt_secrets();
     Claims::new(
         ClaimsType::YubiBridge,
         username.to_string(),
@@ -136,7 +134,6 @@ pub(crate) fn create_yubibridge_jwt(username: &str) -> String {
 }
 
 pub(crate) fn create_gateway_jwt(username: &str, client_id: &str) -> String {
-    initialize_jwt_secrets();
     Claims::new(
         ClaimsType::Gateway,
         username.to_string(),
@@ -162,12 +159,4 @@ pub(crate) fn worker_request<T>(message: T, username: &str) -> Request<T> {
     let mut request = Request::new(message);
     add_worker_auth_metadata(&mut request, username);
     request
-}
-
-fn initialize_jwt_secrets() {
-    initialize_jwt_secret_overrides(
-        "defguard-test-auth-secret",
-        "defguard-test-gateway-secret",
-        "defguard-test-yubibridge-secret",
-    );
 }

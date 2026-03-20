@@ -28,7 +28,6 @@ use crate::enterprise::{
     },
     firewall::try_get_location_firewall_config,
     license::{License, LicenseTier, set_cached_license},
-    test_state_lock,
 };
 
 mod all_locations;
@@ -61,10 +60,6 @@ fn set_test_license_business() {
         version_date_limit: None,
     };
     set_cached_license(Some(license));
-}
-
-pub(super) async fn lock_enterprise_test_state() -> tokio::sync::OwnedMutexGuard<()> {
-    test_state_lock().lock_owned().await
 }
 
 fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {

@@ -10,10 +10,7 @@ use defguard_proto::enterprise::firewall::{
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::{
-    create_acl_rule, create_test_users_and_devices, lock_enterprise_test_state,
-    set_test_license_business,
-};
+use super::{create_acl_rule, create_test_users_and_devices, set_test_license_business};
 use crate::enterprise::{
     db::models::acl::{
         AclAlias, AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AliasKind, RuleState,
@@ -148,7 +145,6 @@ async fn test_any_address_overwrites_manual_destination(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let _test_guard = lock_enterprise_test_state().await;
     set_test_license_business();
     let pool = setup_pool(options).await;
 
@@ -230,7 +226,6 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let _test_guard = lock_enterprise_test_state().await;
     set_test_license_business();
     let pool = setup_pool(options).await;
 
@@ -330,7 +325,6 @@ async fn test_manual_destination_includes_component_alias_address_range(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let _test_guard = lock_enterprise_test_state().await;
     set_test_license_business();
     let pool = setup_pool(options).await;
 
@@ -433,7 +427,6 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let _test_guard = lock_enterprise_test_state().await;
     set_test_license_business();
     let pool = setup_pool(options).await;
 

@@ -23,7 +23,6 @@ mod test {
             db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind},
             license::{License, LicenseTier, set_cached_license},
             limits::{get_counts, update_counts},
-            test_state_lock,
         },
         grpc::proto::enterprise::license::LicenseLimits,
     };
@@ -143,7 +142,6 @@ mod test {
     // Keep both users and admins
     #[sqlx::test]
     async fn test_users_state_keep_both(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -184,7 +182,6 @@ mod test {
     // Delete users, keep admins
     #[sqlx::test]
     async fn test_users_state_delete_users(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -228,7 +225,6 @@ mod test {
     }
     #[sqlx::test]
     async fn test_users_state_delete_admins(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -284,7 +280,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_users_state_delete_both(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -354,7 +349,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_users_state_disable_users(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -438,7 +432,6 @@ mod test {
     }
     #[sqlx::test]
     async fn test_users_state_disable_admins(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -517,7 +510,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_users_groups(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -575,7 +567,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_sync_user_groups(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -605,7 +596,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_sync_target_users(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -631,7 +621,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_sync_target_all(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -683,7 +672,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_sync_target_groups(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -712,7 +700,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_sync_unassign_last_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -760,7 +747,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_sync_delete_last_admin_user(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -801,7 +787,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_users_no_prefetch(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -836,7 +821,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_users_prefetch(_: PgPoolOptions, options: PgConnectOptions) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
@@ -874,7 +858,6 @@ mod test {
         _: PgPoolOptions,
         options: PgConnectOptions,
     ) {
-        let _test_guard = test_state_lock().lock_owned().await;
         let pool = setup_pool(options).await;
 
         let config = DefGuardConfig::new_test_config();
