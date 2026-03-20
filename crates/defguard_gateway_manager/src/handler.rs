@@ -145,7 +145,7 @@ impl GatewayHandler {
         let peers = get_location_allowed_peers(&network, &self.pool).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
-        let payload = Some(core_response::Payload::Config(gen_config(
+        let payload = Some(core_response::Payload::Config(Configuration::new(
             &network,
             peers,
             maybe_firewall_config,
@@ -846,24 +846,6 @@ fn try_protos_into_stats_message(
         latest_handshake,
     ))
 }
-
-fn gen_config(
-    network: &WireguardNetwork<Id>,
-    peers: Vec<Peer>,
-    maybe_firewall_config: Option<FirewallConfig>,
-) -> Configuration {
-    Configuration {
-        name: network.name.clone(),
-        port: network.port.cast_unsigned(),
-        prvkey: network.prvkey.clone(),
-        addresses: network.address().iter().map(ToString::to_string).collect(),
-        peers,
-        firewall_config: maybe_firewall_config,
-        mtu: network.mtu.cast_unsigned(),
-        fwmark: network.fwmark as u32,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};

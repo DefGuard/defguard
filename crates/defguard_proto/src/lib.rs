@@ -21,17 +21,22 @@ pub mod enterprise {
 use defguard_common::{
     csv::AsCsv,
     db::{
-        Id,
         models::{
-            Device, DeviceConfig, User,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
+            Device, DeviceConfig, User, WireguardNetwork,
         },
+        Id,
     },
 };
 use proxy::{CoreError, MfaMethod};
 use serde::Serialize;
 use tonic::Status;
+
+use crate::{
+    enterprise::firewall::FirewallConfig,
+    gateway::{Configuration, Peer},
+};
 
 // Client MFA methods
 impl fmt::Display for MfaMethod {
@@ -152,6 +157,25 @@ impl From<ServiceLocationMode> for proxy::ServiceLocationMode {
             ServiceLocationMode::Disabled => proxy::ServiceLocationMode::Disabled,
             ServiceLocationMode::PreLogon => proxy::ServiceLocationMode::Prelogon,
             ServiceLocationMode::AlwaysOn => proxy::ServiceLocationMode::Alwayson,
+        }
+    }
+}
+
+impl Configuration {
+    pub fn new(
+        location: &WireguardNetwork<Id>,
+        peers: Vec<Peer>,
+        maybe_firewall_config: Option<FirewallConfig>,
+    ) -> Self {
+        Self {
+            name: location.name.clone(),
+            port: location.port.cast_unsigned(),
+            prvkey: location.prvkey.clone(),
+            addresses: location.address().iter().map(ToString::to_string).collect(),
+            peers,
+            firewall_config: maybe_firewall_config,
+            mtu: location.mtu.cast_unsigned(),
+            fwmark: location.fwmark as u32,
         }
     }
 }

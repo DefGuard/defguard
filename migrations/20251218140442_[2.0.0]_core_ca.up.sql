@@ -1,3 +1,0 @@
-ALTER TABLE settings
-    ADD COLUMN ca_key_der BYTEA DEFAULT NULL,
-    ADD COLUMN ca_cert_der BYTEA DEFAULT NULL;
