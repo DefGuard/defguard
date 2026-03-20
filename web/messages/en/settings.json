@@ -84,7 +84,7 @@
   "settings_license_valid_until_title": "Valid until",
   "settings_license_limits_title": "Current plan limits",
   "settings_license_users_limit_label": "Added users",
-  "settings_license_locations_limit_label": "VPN locations"
+  "settings_license_locations_limit_label": "VPN locations",
   "settings_smtp_reset_confirm_title": "Reset SMTP Settings",
   "settings_smtp_reset_confirm_body": "Are you sure you want to reset SMTP settings? This action cannot be undone.",
   "settings_smtp_reset_success": "SMTP settings reset",
