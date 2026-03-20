@@ -23,6 +23,8 @@ use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
+use crate::api::PaginatedApiResponse;
+
 use super::{
     TEST_SERVER_URL,
     common::{
@@ -63,7 +65,10 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let openid_clients: Vec<OAuth2Client<Id>> = response.json().await;
+    let openid_clients = response
+        .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
+        .await
+        .data;
     assert_eq!(openid_clients.len(), 1);
 
     openid_client.name = "Test changed".into();
@@ -93,8 +98,10 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
-    let openid_clients: Vec<OAuth2Client<Id>> = response.json().await;
+    let openid_clients = response
+        .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
+        .await
+        .data;
     assert!(openid_clients.is_empty());
 }
 

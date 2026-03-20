@@ -63,16 +63,12 @@ pub enum MFAMethod {
 // Web MFA methods
 impl fmt::Display for MFAMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                MFAMethod::None => "None",
-                MFAMethod::OneTimePassword => "TOTP",
-                MFAMethod::Webauthn => "WebAuthn",
-                MFAMethod::Email => "Email",
-            }
-        )
+        f.write_str(match self {
+            MFAMethod::None => "None",
+            MFAMethod::OneTimePassword => "TOTP",
+            MFAMethod::Webauthn => "WebAuthn",
+            MFAMethod::Email => "Email",
+        })
     }
 }
 
@@ -244,7 +240,7 @@ impl User {
 
 impl<I> fmt::Display for User<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.username)
+        f.write_str(&self.username)
     }
 }
 

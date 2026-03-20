@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
+import { fetchAllPages, fetchPage } from './pagination';
 import type {
   AclAlias,
   AclCount,
@@ -58,7 +59,6 @@ import type {
   GatewayInfo,
   GetCAResponse,
   GroupInfo,
-  GroupsResponse,
   IpValidation,
   LicenseCheckResponse,
   LicenseInfoResponse,
@@ -81,7 +81,6 @@ import type {
   OpenIdAuthInfo,
   OpenIdClient,
   OpenIdProvidersResponse,
-  PaginatedResponse,
   RenameApiTokenRequest,
   RenameAuthKeyRequest,
   ResourceDisplay,
@@ -115,7 +114,7 @@ import type {
 
 const api = {
   getUsersOverview: async (): Promise<UsersListItem[]> => {
-    const { data: users } = await api.user.getUsers();
+    const users = await api.user.getUsers();
     const res: UsersListItem[] = [];
     for (const user of users) {
       const { data: profile } = await api.user.getUser(user.username);
@@ -153,7 +152,7 @@ const api = {
     callback: (data: unknown) => client.post<LoginResponse>(`/openid/callback`, data),
   },
   openIdClient: {
-    getOpenIdClients: () => client.get<OpenIdClient[]>(`/oauth`),
+    getOpenIdClients: () => fetchAllPages<OpenIdClient>(`/oauth`),
     getOpenIdClient: (clientId: string) => client.get<OpenIdClient>(`/oauth/${clientId}`),
     addOpenIdClient: (data: AddOpenIdClient) => client.post(`/oauth`, data),
     editOpenIdClient: (data: OpenIdClient) =>
@@ -166,7 +165,7 @@ const api = {
   },
   group: {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),
-    getGroups: () => client.get<GroupsResponse>('/group'),
+    getGroups: () => fetchAllPages<string>('/group'),
     getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
     editGroup: ({ originalName, ...data }: EditGroupRequest) =>
       client.put(`/group/${originalName ?? data.name}`, data),
@@ -184,7 +183,7 @@ const api = {
         username,
       }),
     getMe: () => client.get<User>('/me'),
-    getUsers: () => client.get<User[]>('/user'),
+    getUsers: () => fetchAllPages<User>('/user'),
     getUser: (username: string) => client.get<UserProfileResponse>(`/user/${username}`),
     editUser: (data: { username: string; body: User }) =>
       client.put(`/user/${data.username}`, data.body),
@@ -307,7 +306,7 @@ const api = {
     editDevice: ({ id, ...data }: EditNetworkDeviceRequest) =>
       client.put(`/device/network/${id}`, data),
     getDevice: (id: number) => client.get<NetworkDevice>(`/device/network/${id}`),
-    getDevices: () => client.get<NetworkDevice[]>(`/device/network`),
+    getDevices: () => fetchAllPages<NetworkDevice>('/device/network'),
     getDeviceConfig: (id: number) => client.get<string>(`/device/network/${id}/config`),
     generateToken: (id: number) =>
       client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
@@ -348,36 +347,25 @@ const api = {
     getLocationGatewaysStatus: (id: number) =>
       client.get<GatewayInfo[]>(`/network/${id}/gateways`),
     getLocationConnectedUsers: ({ id, ...params }: LocationConnectedUsersRequest) =>
-      client
-        .get<PaginatedResponse<LocationConnectedUser>>(
-          `/network/${id}/stats/connected_users`,
-          {
-            params: {
-              ...params,
-              from: params.from
-                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-                : undefined,
-            },
-          },
-        )
-        .then((resp) => resp.data),
+      fetchPage<LocationConnectedUser>(`/network/${id}/stats/connected_users`, {
+        ...params,
+        from: params.from
+          ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+          : undefined,
+      }),
     getLocationConnectedNetworkDevices: ({
       id,
       ...params
     }: LocationConnectedNetworkDevicesRequest) =>
-      client
-        .get<PaginatedResponse<LocationConnectedNetworkDevice>>(
-          `/network/${id}/stats/connected_network_devices`,
-          {
-            params: {
-              ...params,
-              from: params.from
-                ? dayjs.utc().subtract(params.from, 'hour').toISOString()
-                : undefined,
-            },
-          },
-        )
-        .then((resp) => resp.data),
+      fetchPage<LocationConnectedNetworkDevice>(
+        `/network/${id}/stats/connected_network_devices`,
+        {
+          ...params,
+          from: params.from
+            ? dayjs.utc().subtract(params.from, 'hour').toISOString()
+            : undefined,
+        },
+      ),
     getLocationConnectedUserDevices: ({
       locationId,
       userId,
@@ -503,7 +491,7 @@ const api = {
     },
     rule: {
       getCount: () => client.get<AclCount>('acl/rule/count'),
-      getRules: () => client.get<AclRule[]>(`/acl/rule`),
+      getRules: () => fetchAllPages<AclRule>(`/acl/rule`),
       getRule: (ruleId: number | string) => client.get<AclRule>(`/acl/rule/${ruleId}`),
       addRule: (data: AddAclRuleRequest) => client.post(`/acl/rule`, data),
       editRule: (data: EditAclRuleRequest) => client.put(`/acl/rule/${data.id}`, data),
@@ -539,11 +527,7 @@ const api = {
     client.post<LicenseCheckResponse>('/license/check', data),
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
-    client
-      .get<PaginatedResponse<ActivityLogEvent>>(`/activity_log`, {
-        params: data,
-      })
-      .then((resp) => resp.data),
+    fetchPage<ActivityLogEvent>(`/activity_log`, data),
   info: () => client.get<ApplicationInfo>('/info'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
 } as const;

@@ -1,4 +1,5 @@
 import { type HTMLProps, useMemo } from 'react';
+import { m } from '../../../../../paraglide/messages';
 import type { LicenseInfo } from '../../../../api/types';
 import { externalLink } from '../../../../constants';
 import { Button } from '../../../../defguard-ui/components/Button/Button';
@@ -29,12 +30,12 @@ export const TopBarLicenseFloating = ({ license, ...props }: Props) => {
   }, [license]);
 
   const title = useMemo(() => {
-    if (license === null) return 'No License';
+    if (license === null) return m.license_no_license();
     switch (license.tier) {
       case 'Business':
-        return 'Business Plan usage';
+        return m.license_plan_usage_business();
       case 'Enterprise':
-        return 'Enterprise Plan usage';
+        return m.license_plan_usage_enterprise();
     }
   }, [license]);
 
@@ -49,34 +50,36 @@ export const TopBarLicenseFloating = ({ license, ...props }: Props) => {
                 icon={IconKind.Users}
                 value={license.limits.users.current}
                 maxValue={license.limits.users.limit}
-                label="Added users"
+                label={m.settings_license_users_limit_label()}
               />
               <TopBarLicenseProgress
                 icon={IconKind.LocationTracking}
                 value={license.limits.locations.current}
                 maxValue={license.limits.locations.limit}
-                label="VPN locations"
+                label={m.settings_license_locations_limit_label()}
               />
             </div>
           )}
           {!license.limits_exceeded && warning && (
-            <p className="warning">{`You're approaching the limits of your current plan. To increase your limits, please upgrade to a higher-tier plan.`}</p>
+            <p className="warning">{m.license_approaching_limits()}</p>
           )}
           {license.limits_exceeded && (
-            <p className="critical">{`You've reached your plan's maximum capacity. Upgrade today to avoid interruptions and gain more flexibility.`}</p>
+            <p className="critical">{m.license_capacity_reached()}</p>
           )}
         </>
       )}
       {!isPresent(license) && (
-        <p className="no-license">
-          {`You're using the open-source version with limited features.\n\nTo unlock more flexibility, upgrade your license to “Starter” for free.`}
-        </p>
+        <p className="no-license">{m.license_open_source_message()}</p>
       )}
       <a href={externalLink.defguard.pricing} rel="noopener noreferrer" target="_blank">
         <Button
           variant="primary"
           iconRight="open-in-new-window"
-          text={license === null ? `Upgrade for free` : `See other plans`}
+          text={
+            license === null
+              ? m.settings_license_try_business_button()
+              : m.license_see_other_plans()
+          }
         />
       </a>
     </div>
