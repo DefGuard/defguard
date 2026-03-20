@@ -7,6 +7,7 @@ import { Icon, IconKind } from '../../../../defguard-ui/components/Icon';
 import { ThemeVariable } from '../../../../defguard-ui/types';
 import { isPresent } from '../../../../defguard-ui/utils/isPresent';
 import { getLicenseInfoQueryOptions } from '../../../../query';
+import { getLicenseState } from '../../../../utils/license';
 import { TopBarElementSkeleton } from '../../TopBarElementSkeleton';
 
 export const TopBarLicenseExpiration = () => {
@@ -21,16 +22,9 @@ type MessageVariant = 'warning' | 'expired' | 'critical' | 'safe';
 
 const Content = () => {
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
+  const licenseState = getLicenseState(license);
 
-  const isGracePeriod = useMemo(() => {
-    if (!license) return false;
-    const current = dayjs();
-    const expires = dayjs(license.valid_until);
-    if (current.isAfter(expires) && !license.expired) {
-      return true;
-    }
-    return false;
-  }, [license]);
+  const isGracePeriod = licenseState === 'gracePeriod';
 
   const expiresDisplay = useMemo(() => {
     if (license === null || license.valid_until === null) return '';
@@ -48,20 +42,18 @@ const Content = () => {
   const variant = useMemo((): MessageVariant => {
     if (!isPresent(license) || license.valid_until === null || daysToEnd === null)
       return 'safe';
-    if (license.subscription) {
-      if (isGracePeriod) {
-        return 'critical';
-      }
-      if (!license.expired) {
-        return 'safe';
-      }
+    if (isGracePeriod) {
+      return 'critical';
     }
-    if (license.expired) return 'expired';
+    if (licenseState === 'expiredLicense') return 'expired';
+    if (license.subscription) {
+      return 'safe';
+    }
     if (daysToEnd > 14) return 'safe';
     if (daysToEnd <= 14 && daysToEnd > 7) return 'warning';
     if (daysToEnd <= 7) return 'critical';
     return 'expired';
-  }, [daysToEnd, license, isGracePeriod]);
+  }, [daysToEnd, isGracePeriod, license, licenseState]);
 
   if (!isPresent(license) || daysToEnd === null || variant === 'safe') return null;
   return (
