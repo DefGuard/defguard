@@ -1,6 +1,7 @@
 import { m } from '../../../../../../../paraglide/messages';
 import { SettingsCard } from '../../../../../../../shared/components/SettingsCard/SettingsCard';
 import { externalLink } from '../../../../../../../shared/constants';
+import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { ExternalLink } from '../../../../../../../shared/defguard-ui/components/ExternalLink/ExternalLink';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
@@ -32,6 +33,20 @@ export const SettingsLicenseBusinessUpsellSection = () => {
             <p className="description">
               {m.settings_license_plan_enterprise_description()}
             </p>
+            <SizedBox height={ThemeSpacing.Md} />
+            <div className="actions">
+              <a
+                href={externalLink.defguard.sales}
+                rel="noreferrer noopener"
+                target="_blank"
+              >
+                <Button
+                  variant="outlined"
+                  text={m.contact_sales()}
+                  iconRight="open-in-new-window"
+                />
+              </a>
+            </div>
           </div>
         </div>
       </div>

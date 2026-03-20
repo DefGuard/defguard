@@ -75,6 +75,20 @@ export const SettingsLicenseNoLicenseSection = () => {
             <p className="description">
               {m.settings_license_plan_enterprise_description()}
             </p>
+            <SizedBox height={ThemeSpacing.Md} />
+            <div className="actions">
+              <a
+                href={externalLink.defguard.sales}
+                rel="noreferrer noopener"
+                target="_blank"
+              >
+                <Button
+                  variant="outlined"
+                  text={m.contact_sales()}
+                  iconRight="open-in-new-window"
+                />
+              </a>
+            </div>
           </div>
         </div>
       </div>
