@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS certificates (
     -- ACME / Let's Encrypt state (only used when source = 'letsencrypt')
     acme_domain                 TEXT,
     acme_account_credentials    TEXT,
+    -- Core HTTP/HTTPS certificate
+    -- Which source is active: 'none' | 'self_signed' | 'custom'
+    core_http_cert_source       TEXT NOT NULL DEFAULT 'none',
+    core_http_cert_pem          TEXT,
+    core_http_cert_key_pem      TEXT,
+    core_http_cert_expiry       TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT single_row CHECK (id = 1)
 );
 

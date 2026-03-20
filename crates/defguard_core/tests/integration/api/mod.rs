@@ -4,6 +4,7 @@ mod api_tokens;
 mod auth;
 mod common;
 mod component_setup;
+mod core_certs;
 mod enrollment;
 mod enterprise_settings;
 mod forward_auth;

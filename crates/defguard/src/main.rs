@@ -54,6 +54,10 @@ extern crate tracing;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .ok();
+
     if dotenvy::from_filename(".env.local").is_err() {
         dotenvy::dotenv().ok();
     }
