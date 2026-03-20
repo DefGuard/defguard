@@ -257,5 +257,7 @@ fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParam
         .push(" ORDER BY ")
         .push(sorting.sort_by.to_string())
         .push(" ")
+        .push(sorting.sort_order.to_string())
+        .push(", id ")
         .push(sorting.sort_order.to_string());
 }
