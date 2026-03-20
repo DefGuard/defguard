@@ -53,7 +53,7 @@ pub async fn create_activity_log_stream(
     debug!("User {session_username} creates activity log stream");
     // validate config
     let _ = ActivityLogStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
-    let stream_model: ActivityLogStream<NoId> = ActivityLogStream {
+    let stream_model = ActivityLogStream {
         id: NoId,
         name: data.name,
         stream_type: data.stream_type,

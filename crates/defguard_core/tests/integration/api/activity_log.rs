@@ -5,7 +5,7 @@ use defguard_common::db::{Id, NoId, models::User, setup_pool};
 use defguard_core::db::models::activity_log::{ActivityLogEvent, ActivityLogModule, EventType};
 use reqwest::StatusCode;
 use serde::Deserialize;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 
 use super::common::{client::TestClient, get_db_user, make_client_with_db};
 
@@ -23,7 +23,7 @@ struct PaginationMeta {
 
 #[derive(Clone, Deserialize)]
 struct ApiActivityLogEvent {
-    id: i64,
+    id: Id,
     timestamp: NaiveDateTime,
     username: String,
     ip: Option<String>,
@@ -54,12 +54,17 @@ async fn fetch_activity_log(
         .get(activity_log_url(marker, extra_query))
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "{}",
+        response.text().await
+    );
     response.json().await
 }
 
 async fn save_activity_log_event(
-    db: &sqlx::PgPool,
+    db: &PgPool,
     user: &User<Id>,
     marker: &str,
     description_suffix: &str,
@@ -154,7 +159,11 @@ async fn test_activity_log_timestamp_desc_uses_id_desc_for_equal_timestamps(
         save_activity_log_event(&db, &admin, &marker, "third", shared_timestamp).await;
 
     let payload = fetch_activity_log(&client, &marker, "sort_by=timestamp&sort_order=desc").await;
-    let ids: Vec<i64> = payload.data.into_iter().map(|event| event.id).collect();
+    let ids = payload
+        .data
+        .into_iter()
+        .map(|event| event.id)
+        .collect::<Vec<_>>();
 
     assert_eq!(
         ids,
@@ -196,11 +205,11 @@ async fn test_activity_log_timestamp_desc_orders_by_timestamp_then_id(
     .await;
 
     let payload = fetch_activity_log(&client, &marker, "sort_by=timestamp&sort_order=desc").await;
-    let ordered_events: Vec<(i64, NaiveDateTime)> = payload
+    let ordered_events = payload
         .data
         .into_iter()
         .map(|event| (event.id, event.timestamp))
-        .collect();
+        .collect::<Vec<_>>();
 
     assert_eq!(
         ordered_events,
@@ -239,11 +248,15 @@ async fn test_activity_log_timestamp_asc_uses_id_asc_for_equal_timestamps(
     .await;
 
     let payload = fetch_activity_log(&client, &marker, "sort_by=timestamp&sort_order=asc").await;
-    let ids: Vec<i64> = payload.data.into_iter().map(|event| event.id).collect();
+    let ids = payload
+        .data
+        .into_iter()
+        .map(|event| event.id)
+        .collect::<Vec<_>>();
 
     assert_eq!(
         ids,
-        vec![first_event.id, second_event.id, later_event.id],
+        [first_event.id, second_event.id, later_event.id],
         "ascending timestamp sort should use ascending ids for equal timestamps",
     );
 }
@@ -270,11 +283,11 @@ async fn test_activity_log_non_timestamp_sort_uses_id_as_stable_tiebreaker(
         save_activity_log_event(&db, &admin, &marker, "admin-second", shared_timestamp).await;
 
     let payload = fetch_activity_log(&client, &marker, "sort_by=username&sort_order=asc").await;
-    let ordered_events: Vec<(String, i64)> = payload
+    let ordered_events = payload
         .data
         .into_iter()
         .map(|event| (event.username, event.id))
-        .collect();
+        .collect::<Vec<_>>();
 
     assert_eq!(
         ordered_events,
@@ -333,14 +346,14 @@ async fn test_activity_log_pagination_is_stable_across_pages_for_equal_timestamp
     assert_eq!(page_one.pagination.next_page, Some(2));
     assert_eq!(page_two.pagination.next_page, None);
 
-    let combined_ids: Vec<i64> = page_one
+    let combined_ids = page_one
         .data
         .iter()
         .chain(page_two.data.iter())
         .map(|event| event.id)
-        .collect();
-    let unique_ids: HashSet<i64> = combined_ids.iter().copied().collect();
-    let expected_ids: Vec<i64> = inserted_ids.into_iter().rev().collect();
+        .collect::<Vec<_>>();
+    let unique_ids = combined_ids.iter().copied().collect::<HashSet<_>>();
+    let expected_ids = inserted_ids.into_iter().rev().collect::<Vec<_>>();
 
     assert_eq!(
         combined_ids, expected_ids,
