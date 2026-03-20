@@ -32,6 +32,20 @@ export const SettingsLicenseInfoSection = ({
   const isGracePeriod = licenseState === 'gracePeriod';
   const isExpired = licenseState === 'expiredLicense';
   const isValid = licenseState === 'validBusiness' || licenseState === 'validEnterprise';
+  const daysUntilExpiration = isPresent(license.valid_until)
+    ? dayjs
+        .utc(license.valid_until)
+        .local()
+        .startOf('day')
+        .diff(dayjs().startOf('day'), 'day')
+    : null;
+  const isOfflineExpiringSoon =
+    isValid &&
+    !license.subscription &&
+    daysUntilExpiration !== null &&
+    daysUntilExpiration > 0 &&
+    daysUntilExpiration <= 30;
+
   return (
     <div className="license-general-info">
       <div className="top">
@@ -72,6 +86,16 @@ export const SettingsLicenseInfoSection = ({
           <InfoBanner
             icon="warning-filled"
             text={m.settings_license_expired_banner({ tier: license.tier })}
+            variant="warning"
+          />
+        </>
+      )}
+      {!isExpired && isOfflineExpiringSoon && (
+        <>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <InfoBanner
+            icon="warning-filled"
+            text={m.settings_license_expiring_soon_banner({ days: daysUntilExpiration })}
             variant="warning"
           />
         </>

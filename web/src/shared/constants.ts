@@ -39,4 +39,4 @@ export const googleProviderBaseUrl = 'https://accounts.google.com';
 
 export const jumpcloudProviderBaseUrl = 'https://oauth.id.jumpcloud.com';
 
-export const licenseGracePeriodDays = 40;
+export const licenseGracePeriodDays = 14;

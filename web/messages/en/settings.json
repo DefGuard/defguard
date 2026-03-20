@@ -68,6 +68,7 @@
   "settings_license_plan_enterprise_description": "Expand your security with: High Availability, Pre-logon/Always-on VPN, and upcoming support for Device Posture and Hardware based MFA.",
   "settings_license_try_business_button": "Try Business for free now",
   "settings_license_expired_banner": "Your license key has expired. Please renew your license to continue using Defguard {tier} features.",
+  "settings_license_expiring_soon_banner": "Your license will expire in {days} days. Please renew your license to avoid losing access to the features included in your current plan.",
   "settings_license_expired_notice_title": "License expiration notice",
   "settings_license_expired_notice_description_grace_period": "Defguard will continue to work for {duration}, after which it will downgrade to the Open Source version. Please renew your license as soon as possible to avoid losing access to the features included in your current plan.",
   "settings_license_expired_notice_description": "Your license has expired. Please renew your license to continue using Defguard {tier} features.",
