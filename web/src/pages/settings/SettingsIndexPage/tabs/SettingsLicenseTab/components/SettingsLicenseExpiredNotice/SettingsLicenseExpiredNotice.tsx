@@ -15,13 +15,7 @@ type Props = {
 };
 
 export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
-  const gracePeriodEndsAt = licenseInfo.valid_until
-    ? dayjs.utc(licenseInfo.valid_until).local().add(licenseGracePeriodDays, 'day')
-    : null;
-
-  const gracePeriodDaysLeft = gracePeriodEndsAt
-    ? Math.max(gracePeriodEndsAt.startOf('day').diff(dayjs().startOf('day'), 'day'), 0)
-    : 0;
+  const gracePeriodDaysLeft = getGracePeriodDaysLeft(licenseInfo.valid_until);
 
   const remainingDuration = m.settings_duration_days({ days: gracePeriodDaysLeft });
 
@@ -55,4 +49,14 @@ export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
       </div>
     </SettingsCard>
   );
+};
+
+const getGracePeriodDaysLeft = (validUntil: string | null): number => {
+  const gracePeriodEndsAt = validUntil
+    ? dayjs.utc(validUntil).local().add(licenseGracePeriodDays, 'day')
+    : null;
+
+  return gracePeriodEndsAt
+    ? Math.max(gracePeriodEndsAt.startOf('day').diff(dayjs().startOf('day'), 'day'), 0)
+    : 0;
 };
