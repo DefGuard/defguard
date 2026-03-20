@@ -32,7 +32,7 @@ import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
-import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
+import { Validate } from '../../shared/validate';
 
 export const EditLocationPage = () => {
   const { locationId: paramsId } = useParams({
@@ -76,17 +76,51 @@ const formSchema = z
       .string(m.form_error_required())
       .trim()
       .min(1, m.form_error_required())
-      .refine((value) => validateIpList(value, ',', true), m.form_error_invalid()),
-    endpoint: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+      .refine(
+        (val) => Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true),
+        m.form_error_invalid(),
+      ),
+    endpoint: z
+      .string(m.form_error_required())
+      .trim()
+      .min(1, m.form_error_required())
+      .refine((val) =>
+        Validate.any(val, [
+          Validate.IPv4,
+          Validate.IPv6,
+          Validate.Domain,
+          Validate.Hostname,
+        ]),
+      ),
     port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-    allowed_ips: z.string(m.form_error_required()).trim(),
+    allowed_ips: z
+      .string()
+      .trim()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        return Validate.any(
+          val,
+          [
+            Validate.IPv4,
+            Validate.IPv6,
+            (v) => Validate.CIDRv4(v, true),
+            (v) => Validate.CIDRv6(v, true),
+          ],
+          true,
+        );
+      }, m.form_error_invalid()),
     dns: z
       .string()
       .trim()
       .nullable()
       .refine((val) => {
         if (!val) return true;
-        return validateIpOrDomainList(val, ',', true, true);
+        return Validate.any(
+          val,
+          [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+          true,
+        );
       }),
     peer_disconnect_threshold: z.number().nullable(),
     keepalive_interval: z
@@ -237,6 +271,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           ...omit(clone, ['firewall']),
           allow_all_groups: clone.allow_all_groups,
           allowed_groups: clone.allowed_groups,
+          allowed_ips: clone.allowed_ips ?? '',
           acl_default_allow: clone.firewall === LocationFirewall.Allow,
           acl_enabled: !(clone.firewall === LocationFirewall.Disabled),
           peer_disconnect_threshold: peerDisconnectThreshold,

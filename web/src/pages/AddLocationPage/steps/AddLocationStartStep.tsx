@@ -21,10 +21,19 @@ const formSchema = z.object({
     .trim()
     .min(1, m.form_error_required())
     .refine(
-      (value) => Validate.any(value, [Validate.IPv4, Validate.IPv6, Validate.Domain]),
+      (value) =>
+        Validate.any(value, [
+          Validate.IPv4,
+          Validate.IPv6,
+          Validate.Domain,
+          Validate.Hostname,
+        ]),
       m.form_error_invalid(),
     ),
-  port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
+  port: z
+    .number(m.form_error_required())
+    .min(1, m.form_min_value({ value: 1 }))
+    .max(65535, m.form_error_port_max()),
 });
 
 type FormFields = z.infer<typeof formSchema>;

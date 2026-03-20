@@ -1,12 +1,50 @@
+import dayjs from 'dayjs';
 import type { LicenseInfo } from '../api/types';
 import { openModal } from '../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../hooks/modalControls/modalTypes';
+
+export type LicenseState =
+  | 'noLicense'
+  | 'gracePeriod'
+  | 'expiredLicense'
+  | 'validBusiness'
+  | 'validEnterprise';
 
 interface LicenseCheckResult {
   result: boolean;
   error: 'expired' | 'tier' | null;
   tierCheck: 'Business' | 'Enterprise';
 }
+
+export const getLicenseState = (
+  licenseInfo: LicenseInfo | null | undefined,
+): LicenseState | null => {
+  if (licenseInfo === undefined) {
+    return null;
+  }
+
+  if (licenseInfo === null) {
+    return 'noLicense';
+  }
+
+  if (licenseInfo.expired) {
+    return 'expiredLicense';
+  }
+
+  if (
+    licenseInfo.subscription &&
+    licenseInfo.valid_until !== null &&
+    dayjs().isAfter(dayjs.utc(licenseInfo.valid_until).local())
+  ) {
+    return 'gracePeriod';
+  }
+
+  if (licenseInfo.tier === 'Enterprise') {
+    return 'validEnterprise';
+  }
+
+  return 'validBusiness';
+};
 
 export const licenseActionCheck = (
   checkResult: LicenseCheckResult,

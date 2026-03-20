@@ -365,7 +365,6 @@ export interface LicenseCheckResponse {
 }
 
 export const LicenseTier = {
-  Starter: 'Starter',
   Business: 'Business',
   Enterprise: 'Enterprise',
 } as const;
