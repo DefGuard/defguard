@@ -10,11 +10,6 @@
     }
   }
 
-  .tiers {
-    display: flex;
-    flex-flow: column;
-  }
-
   .license-item {
     & > .track {
       display: grid;

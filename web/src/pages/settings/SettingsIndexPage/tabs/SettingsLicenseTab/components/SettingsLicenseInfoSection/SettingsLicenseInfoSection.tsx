@@ -121,11 +121,16 @@ const ValidUntil = ({ validUntil }: ValidUntilProps) => {
     const untilDay = dayjs.utc(validUntil).local();
     const nowDay = dayjs();
     const diff = untilDay.diff(nowDay, 'days');
-    let res = untilDay.format('ll');
+    const formattedDate = untilDay.format('ll');
+
     if (diff > 0 && diff <= 28) {
-      res += ` (${untilDay.fromNow(true)} left)`;
+      return m.settings_license_valid_until_with_time_left({
+        date: formattedDate,
+        duration: untilDay.fromNow(true),
+      });
     }
-    return res;
+
+    return formattedDate;
   }, [validUntil]);
 
   return <p>{display}</p>;
