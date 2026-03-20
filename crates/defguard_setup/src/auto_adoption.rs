@@ -198,6 +198,10 @@ fn merge_failure_logs(
     (false, logs, None)
 }
 
+fn logs_to_persist(success: bool, logs: Vec<String>) -> Vec<String> {
+    if success { Vec::new() } else { logs }
+}
+
 async fn run_edge_adoption_attempt(
     _pool: &PgPool,
     host: &str,
@@ -859,7 +863,7 @@ async fn process_startup_auto_adoption(
         component,
         AutoAdoptionComponentResult {
             success: status,
-            logs: logs.clone(),
+            logs: logs_to_persist(status, logs),
             updated_at: chrono::Utc::now().naive_utc(),
         },
     );
