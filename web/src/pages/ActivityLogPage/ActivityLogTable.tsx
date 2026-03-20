@@ -64,7 +64,7 @@ export const ActivityLogTable = ({
       columnHelper.accessor('timestamp', {
         header: 'Date',
         enableSorting: true,
-        minSize: 160,
+        minSize: 180,
         cell: (info) => {
           const data = info.getValue();
           const formatted = displayDate(data, activityLogTimestampFormat);
@@ -123,7 +123,7 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('module', {
         header: 'Module',
-        minSize: 140,
+        minSize: 120,
         cell: (info) => {
           const value = info.getValue();
           return (
