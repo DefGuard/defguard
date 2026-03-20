@@ -238,6 +238,7 @@ async fn run_edge_adoption_attempt_scoped(
 			)
 		}
 	};
+	debug!("Successfully validated Edge address: {endpoint_str}");
 
 	let cert_pem = match der_to_pem(&ca_cert_der, PemLabel::Certificate) {
 		Ok(pem) => pem,
@@ -249,6 +250,7 @@ async fn run_edge_adoption_attempt_scoped(
 			);
 		}
 	};
+	debug!("Loaded CA certificate for secure Edge communication");
 
 	let base_endpoint = match Endpoint::from_shared(endpoint_str.clone()) {
 		Ok(endpoint) => endpoint,
@@ -277,6 +279,7 @@ async fn run_edge_adoption_attempt_scoped(
 			);
 		}
 	};
+	debug!("Prepared secure connection endpoint for Edge at {host}:{port}");
 
 	let core_version = match Version::parse(VERSION) {
 		Ok(version) => version,
@@ -288,6 +291,7 @@ async fn run_edge_adoption_attempt_scoped(
 			)
 		}
 	};
+	debug!("Parsed Core version {core_version} for Edge auto-adoption");
 
     let token = match Claims::new(
         ClaimsType::Gateway,
@@ -306,6 +310,7 @@ async fn run_edge_adoption_attempt_scoped(
 			)
 		}
 	};
+	debug!("Generated secure setup token for Edge authentication");
 
     let version_interceptor = ClientVersionInterceptor::new(core_version.clone());
     let auth_interceptor = AuthInterceptor::new(token);
@@ -337,6 +342,7 @@ async fn run_edge_adoption_attempt_scoped(
 				);
 			}
 		};
+	debug!("Successfully connected to Edge setup stream");
 
     let edge_version = response_with_metadata
         .metadata()
@@ -530,6 +536,7 @@ async fn run_gateway_adoption_attempt_scoped(
 			)
 		}
 	};
+	debug!("Successfully validated Gateway address: {endpoint_str}");
 
 	let cert_pem = match der_to_pem(&ca_cert_der, PemLabel::Certificate) {
 		Ok(pem) => pem,
@@ -541,6 +548,7 @@ async fn run_gateway_adoption_attempt_scoped(
 			);
 		}
 	};
+	debug!("Loaded CA certificate for secure Gateway communication");
 
 	let base_endpoint = match Endpoint::from_shared(endpoint_str.clone()) {
 		Ok(endpoint) => endpoint,
@@ -569,6 +577,7 @@ async fn run_gateway_adoption_attempt_scoped(
 			);
 		}
 	};
+	debug!("Prepared secure connection endpoint for Gateway at {host}:{port}");
 
 	let core_version = match Version::parse(VERSION) {
 		Ok(version) => version,
@@ -580,6 +589,7 @@ async fn run_gateway_adoption_attempt_scoped(
 			)
 		}
 	};
+	debug!("Parsed Core version {core_version} for Gateway auto-adoption");
 
     let token = match Claims::new(
         ClaimsType::Gateway,
@@ -598,6 +608,7 @@ async fn run_gateway_adoption_attempt_scoped(
 			)
 		}
 	};
+	debug!("Generated secure setup token for Gateway authentication");
 
     let version_interceptor = ClientVersionInterceptor::new(core_version.clone());
     let auth_interceptor = AuthInterceptor::new(token);
@@ -631,6 +642,7 @@ async fn run_gateway_adoption_attempt_scoped(
 				);
 			}
 		};
+	debug!("Successfully connected to Gateway setup stream");
 
     let gateway_version = response_with_metadata
         .metadata()
