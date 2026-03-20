@@ -26,11 +26,40 @@ impl<'de> Deserialize<'de> for PaginationParams {
     where
         D: Deserializer<'de>,
     {
-        #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "snake_case")]
         enum Field {
             Page,
             PerPage,
+            Other, // ignore other fields
+        }
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl de::Visitor<'_> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                        f.write_str("`page` or `per_page`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            "page" => Ok(Field::Page),
+                            "per_page" => Ok(Field::PerPage),
+                            _ => Ok(Field::Other),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
         }
 
         struct PaginationParamsVisitor;
@@ -61,6 +90,9 @@ impl<'de> Deserialize<'de> for PaginationParams {
                                 return Err(de::Error::duplicate_field("per_page"));
                             }
                             per_page = Some(map.next_value()?);
+                        }
+                        Field::Other => {
+                            let _ = map.next_value::<de::IgnoredAny>()?;
                         }
                     }
                 }
@@ -192,6 +224,14 @@ mod tests {
     #[test]
     fn deserialize_pagination_params_defaults() {
         let params = serde_urlencoded::from_str::<PaginationParams>("").unwrap();
+        assert_eq!(params.page(), 1);
+        assert_eq!(params.per_page(), 50);
+        assert_eq!(params.offset(), 0);
+    }
+
+    #[test]
+    fn deserialize_pagination_foreign_params() {
+        let params = serde_urlencoded::from_str::<PaginationParams>("search=term").unwrap();
         assert_eq!(params.page(), 1);
         assert_eq!(params.per_page(), 50);
         assert_eq!(params.offset(), 0);
