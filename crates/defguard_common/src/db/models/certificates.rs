@@ -133,3 +133,40 @@ impl Certificates {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_proxy_http_cert_pair() {
+        let mut c = Certificates {
+            proxy_http_cert_source: ProxyCertSource::None,
+            proxy_http_cert_pem: Some("cert".to_string()),
+            proxy_http_cert_key_pem: Some("key".to_string()),
+            ..Default::default()
+        };
+
+        // None always returns None even with PEM fields set
+        assert!(c.proxy_http_cert_pair().is_none());
+
+        // All active sources return Some when both fields are present
+        for source in [
+            ProxyCertSource::SelfSigned,
+            ProxyCertSource::LetsEncrypt,
+            ProxyCertSource::Custom,
+        ] {
+            c.proxy_http_cert_source = source;
+            assert_eq!(c.proxy_http_cert_pair(), Some(("cert", "key")));
+        }
+
+        // Missing either field returns None
+        c.proxy_http_cert_source = ProxyCertSource::SelfSigned;
+        c.proxy_http_cert_pem = None;
+        assert!(c.proxy_http_cert_pair().is_none());
+
+        c.proxy_http_cert_pem = Some("cert".to_string());
+        c.proxy_http_cert_key_pem = None;
+        assert!(c.proxy_http_cert_pair().is_none());
+    }
+}
