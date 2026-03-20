@@ -436,8 +436,8 @@ async fn test_attempt_auto_adoption_requires_both_flags(
     // neither flag
     assert!(
         attempt_auto_adoption(&pool, &config_with_flags(None, None))
-        .await
-        .is_err()
+            .await
+            .is_err()
     );
 }
 

@@ -1,7 +1,7 @@
 use std::{
-	collections::VecDeque,
-	sync::{Arc, Mutex},
-	time::Duration,
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use anyhow::Context;
@@ -21,8 +21,10 @@ use defguard_common::{
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
-use defguard_core::version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION};
-use defguard_core::setup_logs::scope_setup_logs;
+use defguard_core::{
+    setup_logs::scope_setup_logs,
+    version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
+};
 use defguard_proto::{
     gateway::{
         CertificateInfo as GatewayCertificateInfo, DerPayload as GatewayDerPayload,
@@ -167,150 +169,154 @@ fn format_component_log(timestamp: &str, level: &str, target: &str, message: &st
 }
 
 fn collect_stream_logs(log_rx: &mut UnboundedReceiver<String>) -> Vec<String> {
-	let mut logs = Vec::new();
-	while let Ok(log) = log_rx.try_recv() {
-		logs.push(log);
-	}
-	logs
+    let mut logs = Vec::new();
+    while let Ok(log) = log_rx.try_recv() {
+        logs.push(log);
+    }
+    logs
 }
 
 fn collect_core_logs(log_buffer: &SetupLogBuffer) -> Vec<String> {
-	let mut guard = log_buffer
-		.lock()
-		.unwrap_or_else(std::sync::PoisonError::into_inner);
-	std::mem::take(&mut *guard).into_iter().collect()
+    let mut guard = log_buffer
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    std::mem::take(&mut *guard).into_iter().collect()
 }
 
 fn merge_failure_logs(
-	message: impl Into<String>,
-	log_buffer: &SetupLogBuffer,
-	log_rx: &mut UnboundedReceiver<String>,
+    message: impl Into<String>,
+    log_buffer: &SetupLogBuffer,
+    log_rx: &mut UnboundedReceiver<String>,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
-	let msg = message.into();
-	error!("{msg}");
-	let mut logs = collect_core_logs(log_buffer);
-	logs.extend(collect_stream_logs(log_rx));
-	if !logs.iter().any(|line| line.contains(&msg)) {
-		logs.push(msg);
-	}
-	(false, logs, None)
+    let msg = message.into();
+    error!("{msg}");
+    let mut logs = collect_core_logs(log_buffer);
+    logs.extend(collect_stream_logs(log_rx));
+    if !logs.iter().any(|line| line.contains(&msg)) {
+        logs.push(msg);
+    }
+    (false, logs, None)
 }
 
 async fn run_edge_adoption_attempt(
-	_pool: &PgPool,
-	host: &str,
-	port: u16,
+    _pool: &PgPool,
+    host: &str,
+    port: u16,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
-	let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
-	scope_setup_logs(Arc::clone(&log_buffer), async move {
-		run_edge_adoption_attempt_scoped(host, port, log_buffer).await
-	})
-	.await
+    let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
+    scope_setup_logs(Arc::clone(&log_buffer), async move {
+        run_edge_adoption_attempt_scoped(host, port, log_buffer).await
+    })
+    .await
 }
 
 async fn run_edge_adoption_attempt_scoped(
-	host: &str,
-	port: u16,
-	log_buffer: SetupLogBuffer,
+    host: &str,
+    port: u16,
+    log_buffer: SetupLogBuffer,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
-	debug!("Starting edge adoption attempt host={host} port={port}");
-	let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    debug!("Starting edge adoption attempt host={host} port={port}");
+    let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
-	let settings = Settings::get_current_settings();
-	let Some(ca_cert_der) = settings.ca_cert_der else {
-		return merge_failure_logs("CA certificate not found in settings", &log_buffer, &mut log_rx);
-	};
-	let Some(ca_key_der) = settings.ca_key_der else {
-		return merge_failure_logs(
-			"CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.",
-			&log_buffer,
-			&mut log_rx,
-		);
-	};
-	let endpoint_str = format!("http://{host}:{port}");
-	let url = match Url::parse(&endpoint_str) {
-		Ok(url) => url,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Invalid edge endpoint URL: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
-	debug!("Successfully validated Edge address: {endpoint_str}");
+    let settings = Settings::get_current_settings();
+    let Some(ca_cert_der) = settings.ca_cert_der else {
+        return merge_failure_logs(
+            "CA certificate not found in settings",
+            &log_buffer,
+            &mut log_rx,
+        );
+    };
+    let Some(ca_key_der) = settings.ca_key_der else {
+        return merge_failure_logs(
+            "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.",
+            &log_buffer,
+            &mut log_rx,
+        );
+    };
+    let endpoint_str = format!("http://{host}:{port}");
+    let url = match Url::parse(&endpoint_str) {
+        Ok(url) => url,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Invalid edge endpoint URL: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Successfully validated Edge address: {endpoint_str}");
 
-	let cert_pem = match der_to_pem(&ca_cert_der, PemLabel::Certificate) {
-		Ok(pem) => pem,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to convert CA certificate to PEM: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
-	debug!("Loaded CA certificate for secure Edge communication");
+    let cert_pem = match der_to_pem(&ca_cert_der, PemLabel::Certificate) {
+        Ok(pem) => pem,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to convert CA certificate to PEM: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Loaded CA certificate for secure Edge communication");
 
-	let base_endpoint = match Endpoint::from_shared(endpoint_str.clone()) {
-		Ok(endpoint) => endpoint,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to build edge endpoint: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
+    let base_endpoint = match Endpoint::from_shared(endpoint_str.clone()) {
+        Ok(endpoint) => endpoint,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to build edge endpoint: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
 
     let base_endpoint = base_endpoint
         .http2_keep_alive_interval(KEEPALIVE_INTERVAL_SECONDS)
         .tcp_keepalive(Some(KEEPALIVE_INTERVAL_SECONDS))
         .keep_alive_while_idle(true);
 
-	let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-	let endpoint = match base_endpoint.tls_config(tls) {
-		Ok(endpoint) => endpoint,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to configure TLS for edge endpoint: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
-	debug!("Prepared secure connection endpoint for Edge at {host}:{port}");
+    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
+    let endpoint = match base_endpoint.tls_config(tls) {
+        Ok(endpoint) => endpoint,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to configure TLS for edge endpoint: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Prepared secure connection endpoint for Edge at {host}:{port}");
 
-	let core_version = match Version::parse(VERSION) {
-		Ok(version) => version,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to parse core version: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
-	debug!("Parsed Core version {core_version} for Edge auto-adoption");
+    let core_version = match Version::parse(VERSION) {
+        Ok(version) => version,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to parse core version: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Parsed Core version {core_version} for Edge auto-adoption");
 
     let token = match Claims::new(
         ClaimsType::Gateway,
         url.to_string(),
         TOKEN_CLIENT_ID.to_string(),
         u32::MAX.into(),
-	)
-	.to_jwt()
-	{
-		Ok(token) => token,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to generate setup token: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
-	debug!("Generated secure setup token for Edge authentication");
+    )
+    .to_jwt()
+    {
+        Ok(token) => token,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to generate setup token: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Generated secure setup token for Edge authentication");
 
     let version_interceptor = ClientVersionInterceptor::new(core_version.clone());
     let auth_interceptor = AuthInterceptor::new(token);
@@ -321,28 +327,28 @@ async fn run_edge_adoption_attempt_scoped(
             auth_interceptor.clone().call(req)
         });
 
-	let response_with_metadata =
-		match tokio::time::timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
-			Ok(Ok(response)) => response,
-			Ok(Err(err)) => {
-				return merge_failure_logs(
-					format!("Failed to start edge setup stream: {err}"),
-					&log_buffer,
-					&mut log_rx,
-				);
-			}
-			Err(_) => {
-				return merge_failure_logs(
-					format!(
-					"Timed out connecting to edge setup endpoint after {} seconds",
-					STARTUP_ADOPTION_TIMEOUT.as_secs()
-					),
-					&log_buffer,
-					&mut log_rx,
-				);
-			}
-		};
-	debug!("Successfully connected to Edge setup stream");
+    let response_with_metadata =
+        match tokio::time::timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
+            Ok(Ok(response)) => response,
+            Ok(Err(err)) => {
+                return merge_failure_logs(
+                    format!("Failed to start edge setup stream: {err}"),
+                    &log_buffer,
+                    &mut log_rx,
+                );
+            }
+            Err(_) => {
+                return merge_failure_logs(
+                    format!(
+                        "Timed out connecting to edge setup endpoint after {} seconds",
+                        STARTUP_ADOPTION_TIMEOUT.as_secs()
+                    ),
+                    &log_buffer,
+                    &mut log_rx,
+                );
+            }
+        };
+    debug!("Successfully connected to Edge setup stream");
 
     let edge_version = response_with_metadata
         .metadata()
@@ -352,58 +358,58 @@ async fn run_edge_adoption_attempt_scoped(
         .transpose()
         .unwrap_or(None);
 
-	if let Some(edge_version) = edge_version {
-		if edge_version < MIN_PROXY_VERSION {
-			return merge_failure_logs(
-				format!(
-					"Edge version {edge_version} is below minimum required {MIN_PROXY_VERSION}; aborting adoption"
-				),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-		debug!("Edge version {edge_version} accepted; proceeding with CSR exchange");
-	} else {
-		return merge_failure_logs(
-			"Edge component did not return a version header; cannot verify compatibility",
-			&log_buffer,
-			&mut log_rx,
-		);
-	}
+    if let Some(edge_version) = edge_version {
+        if edge_version < MIN_PROXY_VERSION {
+            return merge_failure_logs(
+                format!(
+                    "Edge version {edge_version} is below minimum required {MIN_PROXY_VERSION}; aborting adoption"
+                ),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+        debug!("Edge version {edge_version} accepted; proceeding with CSR exchange");
+    } else {
+        return merge_failure_logs(
+            "Edge component did not return a version header; cannot verify compatibility",
+            &log_buffer,
+            &mut log_rx,
+        );
+    }
 
-	let mut response = response_with_metadata.into_inner();
-	let spawn_log_buffer = Arc::clone(&log_buffer);
-	let log_reader_task = tokio::spawn(scope_setup_logs(spawn_log_buffer, async move {
-		loop {
-			match response.message().await {
-				Ok(Some(entry)) => {
-					let formatted = format_component_log(
-						&entry.timestamp,
-						&entry.level,
-						&entry.target,
-						&entry.message,
-					);
-					if log_tx.send(formatted).is_err() {
-						break;
-					}
-				}
-				Ok(None) => break,
-				Err(err) => {
-					let _ = log_tx.send(format!("Error reading log: {err}"));
-					break;
-				}
-			}
-		}
-	}));
-	let _log_task_guard = TaskGuard(log_reader_task);
+    let mut response = response_with_metadata.into_inner();
+    let spawn_log_buffer = Arc::clone(&log_buffer);
+    let log_reader_task = tokio::spawn(scope_setup_logs(spawn_log_buffer, async move {
+        loop {
+            match response.message().await {
+                Ok(Some(entry)) => {
+                    let formatted = format_component_log(
+                        &entry.timestamp,
+                        &entry.level,
+                        &entry.target,
+                        &entry.message,
+                    );
+                    if log_tx.send(formatted).is_err() {
+                        break;
+                    }
+                }
+                Ok(None) => break,
+                Err(err) => {
+                    let _ = log_tx.send(format!("Error reading log: {err}"));
+                    break;
+                }
+            }
+        }
+    }));
+    let _log_task_guard = TaskGuard(log_reader_task);
 
-	let Some(hostname) = url.host_str() else {
-		return merge_failure_logs(
-			format!("Failed to extract hostname from edge/proxy URL: {url}"),
-			&log_buffer,
-			&mut log_rx,
-		);
-	};
+    let Some(hostname) = url.host_str() else {
+        return merge_failure_logs(
+            format!("Failed to extract hostname from edge/proxy URL: {url}"),
+            &log_buffer,
+            &mut log_rx,
+        );
+    };
 
     debug!("Requesting CSR from proxy hostname={hostname}");
     let csr_response = match client
@@ -411,76 +417,76 @@ async fn run_edge_adoption_attempt_scoped(
             cert_hostname: hostname.to_string(),
         })
         .await
-	{
-		Ok(response) => response.into_inner(),
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to get CSR from proxy: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    {
+        Ok(response) => response.into_inner(),
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to get CSR from proxy: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!("CSR received from proxy hostname={hostname}");
 
-	let csr = match Csr::from_der(&csr_response.der_data) {
-		Ok(csr) => csr,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to parse CSR from proxy: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let csr = match Csr::from_der(&csr_response.der_data) {
+        Ok(csr) => csr,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to parse CSR from proxy: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
 
-	let ca = match CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_der) {
-		Ok(ca) => ca,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to build certificate authority: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let ca = match CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_der) {
+        Ok(ca) => ca,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to build certificate authority: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
 
-	let cert = match ca.sign_csr(&csr) {
-		Ok(cert) => cert,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to sign CSR for proxy: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let cert = match ca.sign_csr(&csr) {
+        Ok(cert) => cert,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to sign CSR for proxy: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!("CSR signed for proxy hostname={hostname}; sending certificate");
 
     if let Err(err) = client
         .send_cert(ProxyDerPayload {
             der_data: cert.der().to_vec(),
         })
-		.await
-	{
-		return merge_failure_logs(
-			format!("Failed to send certificate to proxy: {err}"),
-			&log_buffer,
-			&mut log_rx,
-		);
-	}
+        .await
+    {
+        return merge_failure_logs(
+            format!("Failed to send certificate to proxy: {err}"),
+            &log_buffer,
+            &mut log_rx,
+        );
+    }
     debug!("Certificate delivered to proxy hostname={hostname}");
 
-	let cert_info = match CertificateInfo::from_der(cert.der()) {
-		Ok(info) => info,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to parse certificate info from proxy cert: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let cert_info = match CertificateInfo::from_der(cert.der()) {
+        Ok(info) => info,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to parse certificate info from proxy cert: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!(
         "Edge adoption handshake complete hostname={hostname} cert_serial={} expires={}",
         cert_info.serial, cert_info.not_after
@@ -495,71 +501,75 @@ async fn run_edge_adoption_attempt_scoped(
 }
 
 async fn run_gateway_adoption_attempt(
-	host: &str,
-	port: u16,
+    host: &str,
+    port: u16,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
-	let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
-	scope_setup_logs(Arc::clone(&log_buffer), async move {
-		run_gateway_adoption_attempt_scoped(host, port, log_buffer).await
-	})
-	.await
+    let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
+    scope_setup_logs(Arc::clone(&log_buffer), async move {
+        run_gateway_adoption_attempt_scoped(host, port, log_buffer).await
+    })
+    .await
 }
 
 async fn run_gateway_adoption_attempt_scoped(
-	host: &str,
-	port: u16,
-	log_buffer: SetupLogBuffer,
+    host: &str,
+    port: u16,
+    log_buffer: SetupLogBuffer,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
-	debug!("Starting gateway adoption attempt host={host} port={port}");
-	let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    debug!("Starting gateway adoption attempt host={host} port={port}");
+    let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
-	let settings = Settings::get_current_settings();
-	let Some(ca_cert_der) = settings.ca_cert_der else {
-		return merge_failure_logs("CA certificate not found in settings", &log_buffer, &mut log_rx);
-	};
-	let Some(ca_key_der) = settings.ca_key_der else {
-		return merge_failure_logs(
-			"CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.",
-			&log_buffer,
-			&mut log_rx,
-		);
-	};
+    let settings = Settings::get_current_settings();
+    let Some(ca_cert_der) = settings.ca_cert_der else {
+        return merge_failure_logs(
+            "CA certificate not found in settings",
+            &log_buffer,
+            &mut log_rx,
+        );
+    };
+    let Some(ca_key_der) = settings.ca_key_der else {
+        return merge_failure_logs(
+            "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.",
+            &log_buffer,
+            &mut log_rx,
+        );
+    };
 
-	let endpoint_str = format!("http://{host}:{port}");
-	let url = match Url::parse(&endpoint_str) {
-		Ok(url) => url,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Invalid gateway endpoint URL: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
-	debug!("Successfully validated Gateway address: {endpoint_str}");
+    let endpoint_str = format!("http://{host}:{port}");
+    let url = match Url::parse(&endpoint_str) {
+        Ok(url) => url,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Invalid gateway endpoint URL: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Successfully validated Gateway address: {endpoint_str}");
 
-	let cert_pem = match der_to_pem(&ca_cert_der, PemLabel::Certificate) {
-		Ok(pem) => pem,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to convert CA certificate to PEM: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
-	debug!("Loaded CA certificate for secure Gateway communication");
+    let cert_pem = match der_to_pem(&ca_cert_der, PemLabel::Certificate) {
+        Ok(pem) => pem,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to convert CA certificate to PEM: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Loaded CA certificate for secure Gateway communication");
 
-	let base_endpoint = match Endpoint::from_shared(endpoint_str.clone()) {
-		Ok(endpoint) => endpoint,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to build gateway endpoint: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
+    let base_endpoint = match Endpoint::from_shared(endpoint_str.clone()) {
+        Ok(endpoint) => endpoint,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to build gateway endpoint: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
 
     let base_endpoint = base_endpoint
         .http2_keep_alive_interval(KEEPALIVE_INTERVAL_SECONDS)
@@ -567,48 +577,48 @@ async fn run_gateway_adoption_attempt_scoped(
         .keep_alive_while_idle(true);
 
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-	let endpoint = match base_endpoint.tls_config(tls) {
-		Ok(endpoint) => endpoint,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to configure TLS for gateway endpoint: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
-	debug!("Prepared secure connection endpoint for Gateway at {host}:{port}");
+    let endpoint = match base_endpoint.tls_config(tls) {
+        Ok(endpoint) => endpoint,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to configure TLS for gateway endpoint: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Prepared secure connection endpoint for Gateway at {host}:{port}");
 
-	let core_version = match Version::parse(VERSION) {
-		Ok(version) => version,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to parse core version: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
-	debug!("Parsed Core version {core_version} for Gateway auto-adoption");
+    let core_version = match Version::parse(VERSION) {
+        Ok(version) => version,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to parse core version: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Parsed Core version {core_version} for Gateway auto-adoption");
 
     let token = match Claims::new(
         ClaimsType::Gateway,
         url.to_string(),
         TOKEN_CLIENT_ID.to_string(),
         u32::MAX.into(),
-	)
-	.to_jwt()
-	{
-		Ok(token) => token,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to generate setup token: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			)
-		}
-	};
-	debug!("Generated secure setup token for Gateway authentication");
+    )
+    .to_jwt()
+    {
+        Ok(token) => token,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to generate setup token: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+    debug!("Generated secure setup token for Gateway authentication");
 
     let version_interceptor = ClientVersionInterceptor::new(core_version.clone());
     let auth_interceptor = AuthInterceptor::new(token);
@@ -621,28 +631,28 @@ async fn run_gateway_adoption_attempt_scoped(
         },
     );
 
-	let response_with_metadata =
-		match tokio::time::timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
-			Ok(Ok(response)) => response,
-			Ok(Err(err)) => {
-				return merge_failure_logs(
-					format!("Failed to start gateway setup stream: {err}"),
-					&log_buffer,
-					&mut log_rx,
-				);
-			}
-			Err(_) => {
-				return merge_failure_logs(
-					format!(
-					"Timed out connecting to gateway setup endpoint after {} seconds",
-					STARTUP_ADOPTION_TIMEOUT.as_secs()
-					),
-					&log_buffer,
-					&mut log_rx,
-				);
-			}
-		};
-	debug!("Successfully connected to Gateway setup stream");
+    let response_with_metadata =
+        match tokio::time::timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
+            Ok(Ok(response)) => response,
+            Ok(Err(err)) => {
+                return merge_failure_logs(
+                    format!("Failed to start gateway setup stream: {err}"),
+                    &log_buffer,
+                    &mut log_rx,
+                );
+            }
+            Err(_) => {
+                return merge_failure_logs(
+                    format!(
+                        "Timed out connecting to gateway setup endpoint after {} seconds",
+                        STARTUP_ADOPTION_TIMEOUT.as_secs()
+                    ),
+                    &log_buffer,
+                    &mut log_rx,
+                );
+            }
+        };
+    debug!("Successfully connected to Gateway setup stream");
 
     let gateway_version = response_with_metadata
         .metadata()
@@ -652,58 +662,58 @@ async fn run_gateway_adoption_attempt_scoped(
         .transpose()
         .unwrap_or(None);
 
-	if let Some(gateway_version) = gateway_version {
-		if gateway_version < MIN_GATEWAY_VERSION {
-			return merge_failure_logs(
-				format!(
-					"Gateway version {gateway_version} is below minimum required {MIN_GATEWAY_VERSION}; aborting adoption"
-				),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-		debug!("Gateway version {gateway_version} accepted; proceeding with CSR exchange");
-	} else {
-		return merge_failure_logs(
-			"Gateway component did not return a version header; cannot verify compatibility",
-			&log_buffer,
-			&mut log_rx,
-		);
-	}
+    if let Some(gateway_version) = gateway_version {
+        if gateway_version < MIN_GATEWAY_VERSION {
+            return merge_failure_logs(
+                format!(
+                    "Gateway version {gateway_version} is below minimum required {MIN_GATEWAY_VERSION}; aborting adoption"
+                ),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+        debug!("Gateway version {gateway_version} accepted; proceeding with CSR exchange");
+    } else {
+        return merge_failure_logs(
+            "Gateway component did not return a version header; cannot verify compatibility",
+            &log_buffer,
+            &mut log_rx,
+        );
+    }
 
-	let mut response = response_with_metadata.into_inner();
-	let spawn_log_buffer = Arc::clone(&log_buffer);
-	let log_reader_task = tokio::spawn(scope_setup_logs(spawn_log_buffer, async move {
-		loop {
-			match response.message().await {
-				Ok(Some(entry)) => {
-					let formatted = format_component_log(
-						&entry.timestamp,
-						&entry.level,
-						&entry.target,
-						&entry.message,
-					);
-					if log_tx.send(formatted).is_err() {
-						break;
-					}
-				}
-				Ok(None) => break,
-				Err(err) => {
-					let _ = log_tx.send(format!("Error reading log: {err}"));
-					break;
-				}
-			}
-		}
-	}));
-	let _log_task_guard = TaskGuard(log_reader_task);
+    let mut response = response_with_metadata.into_inner();
+    let spawn_log_buffer = Arc::clone(&log_buffer);
+    let log_reader_task = tokio::spawn(scope_setup_logs(spawn_log_buffer, async move {
+        loop {
+            match response.message().await {
+                Ok(Some(entry)) => {
+                    let formatted = format_component_log(
+                        &entry.timestamp,
+                        &entry.level,
+                        &entry.target,
+                        &entry.message,
+                    );
+                    if log_tx.send(formatted).is_err() {
+                        break;
+                    }
+                }
+                Ok(None) => break,
+                Err(err) => {
+                    let _ = log_tx.send(format!("Error reading log: {err}"));
+                    break;
+                }
+            }
+        }
+    }));
+    let _log_task_guard = TaskGuard(log_reader_task);
 
-	let Some(hostname) = url.host_str() else {
-		return merge_failure_logs(
-			format!("Failed to extract hostname from gateway URL: {url}"),
-			&log_buffer,
-			&mut log_rx,
-		);
-	};
+    let Some(hostname) = url.host_str() else {
+        return merge_failure_logs(
+            format!("Failed to extract hostname from gateway URL: {url}"),
+            &log_buffer,
+            &mut log_rx,
+        );
+    };
 
     debug!("Requesting CSR from gateway hostname={hostname}");
     let csr_response = match client
@@ -711,76 +721,76 @@ async fn run_gateway_adoption_attempt_scoped(
             cert_hostname: hostname.to_string(),
         })
         .await
-	{
-		Ok(response) => response.into_inner(),
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to get CSR from gateway: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    {
+        Ok(response) => response.into_inner(),
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to get CSR from gateway: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!("CSR received from gateway hostname={hostname}");
 
-	let csr = match Csr::from_der(&csr_response.der_data) {
-		Ok(csr) => csr,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to parse CSR from gateway: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let csr = match Csr::from_der(&csr_response.der_data) {
+        Ok(csr) => csr,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to parse CSR from gateway: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
 
-	let ca = match CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_der) {
-		Ok(ca) => ca,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to build certificate authority: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let ca = match CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_der) {
+        Ok(ca) => ca,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to build certificate authority: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
 
-	let cert = match ca.sign_csr(&csr) {
-		Ok(cert) => cert,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to sign CSR for gateway: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let cert = match ca.sign_csr(&csr) {
+        Ok(cert) => cert,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to sign CSR for gateway: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!("CSR signed for gateway hostname={hostname}; sending certificate");
 
     if let Err(err) = client
         .send_cert(GatewayDerPayload {
             der_data: cert.der().to_vec(),
         })
-		.await
-	{
-		return merge_failure_logs(
-			format!("Failed to send certificate to gateway: {err}"),
-			&log_buffer,
-			&mut log_rx,
-		);
-	}
+        .await
+    {
+        return merge_failure_logs(
+            format!("Failed to send certificate to gateway: {err}"),
+            &log_buffer,
+            &mut log_rx,
+        );
+    }
     debug!("Certificate delivered to gateway hostname={hostname}");
 
-	let cert_info = match CertificateInfo::from_der(cert.der()) {
-		Ok(info) => info,
-		Err(err) => {
-			return merge_failure_logs(
-				format!("Failed to parse certificate info from gateway cert: {err}"),
-				&log_buffer,
-				&mut log_rx,
-			);
-		}
-	};
+    let cert_info = match CertificateInfo::from_der(cert.der()) {
+        Ok(info) => info,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to parse certificate info from gateway cert: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!(
         "Gateway adoption handshake complete hostname={hostname} cert_serial={} expires={}",
         cert_info.serial, cert_info.not_after
