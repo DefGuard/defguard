@@ -25,7 +25,11 @@ export const Route = createFileRoute('/_authorized')({
         case 'auto_adoption':
           throw redirect({ to: '/setup', replace: true });
         case 'migration':
-          throw redirect({ to: '/migration', replace: true });
+          if (sessionInfo.is_admin) {
+            throw redirect({ to: '/migration', replace: true });
+          } else {
+            throw redirect({ to: '/error/migration-auth', replace: true });
+          }
       }
     }
 

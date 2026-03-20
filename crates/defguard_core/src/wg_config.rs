@@ -5,10 +5,7 @@ use defguard_common::{
     KEY_LENGTH,
     db::models::{
         Device, WireguardNetwork,
-        wireguard::{
-            DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-            LocationMfaMode, ServiceLocationMode,
-        },
+        wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
     },
 };
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -93,7 +90,7 @@ pub(crate) fn parse_wireguard_config(
             .map_err(|_| WireguardConfigParseError::InvalidFwMark(value.to_string()))?,
         None => 0,
     };
-    let mut addresses: Vec<IpNetwork> = Vec::new();
+    let mut addresses = Vec::<IpNetwork>::new();
     for addr in address.split(',') {
         match addr.trim().parse() {
             Ok(ip) => addresses.push(ip),
@@ -110,21 +107,19 @@ pub(crate) fn parse_wireguard_config(
         .collect::<Result<Vec<IpNetwork>, _>>()?;
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
-        addresses.clone(),
         port,
         String::new(),
         dns,
-        mtu,
-        fwmark,
         allowed_ips,
         true,
-        DEFAULT_KEEPALIVE_INTERVAL,
-        DEFAULT_DISCONNECT_THRESHOLD,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
-    );
+    )
+    .set_address(addresses.clone())?;
+    network.mtu = mtu;
+    network.fwmark = fwmark;
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
 
@@ -214,7 +209,7 @@ mod test {
         );
         assert_eq!(network.id, NoId);
         assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
-        assert_eq!(network.address, vec!["10.0.0.1/24".parse().unwrap()]);
+        assert_eq!(network.address(), ["10.0.0.1/24".parse().unwrap()]);
         assert_eq!(network.port, 55055);
         assert_eq!(
             network.pubkey,
@@ -259,7 +254,7 @@ mod test {
         let config = "
             [Interface]
             PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
-            Address = 10.0.0.1/24,fc00::/112
+            Address = 10.0.0.1/24,fc00::1/112
             ListenPort = 55055
             DNS = 10.0.0.2
 
@@ -281,10 +276,10 @@ mod test {
         assert_eq!(network.id, NoId);
         assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
         assert_eq!(
-            network.address,
-            vec![
+            network.address(),
+            [
                 "10.0.0.1/24".parse().unwrap(),
-                "fc00::/112".parse().unwrap()
+                "fc00::1/112".parse().unwrap()
             ]
         );
         assert_eq!(network.port, 55055);

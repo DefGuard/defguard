@@ -57,10 +57,7 @@ impl BiometricAuth {
 }
 
 impl BiometricAuth<Id> {
-    pub async fn find_by_device_id<'e, E>(
-        executor: E,
-        device_id: Id,
-    ) -> Result<Option<Self>, sqlx::Error>
+    pub async fn find_by_device_id<'e, E>(executor: E, device_id: Id) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -73,11 +70,7 @@ impl BiometricAuth<Id> {
         .await
     }
 
-    pub async fn verify_owner<'e, E>(
-        executor: E,
-        user_id: Id,
-        pub_key: &str,
-    ) -> Result<bool, sqlx::Error>
+    pub async fn verify_owner<'e, E>(executor: E, user_id: Id, pub_key: &str) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
@@ -91,7 +84,7 @@ impl BiometricAuth<Id> {
         Ok(q_result.is_some())
     }
 
-    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> Result<Vec<Self>, sqlx::Error>
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {

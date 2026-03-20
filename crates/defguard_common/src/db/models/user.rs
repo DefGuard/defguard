@@ -17,10 +17,7 @@ use rand::{
     prelude::Distribution,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as,
-    query_scalar,
-};
+use sqlx::{FromRow, PgConnection, PgExecutor, PgPool, Type, query, query_as, query_scalar};
 use thiserror::Error;
 use totp_lite::{Sha1, totp_custom};
 use tracing::{debug, error, info, warn};
@@ -49,7 +46,7 @@ pub enum UserError {
     #[error("Invalid MFA state for user {username}")]
     InvalidMfaState { username: String },
     #[error(transparent)]
-    DbError(#[from] SqlxError),
+    DbError(#[from] sqlx::Error),
     #[error("{0}")]
     EmailMfaError(String),
 }
@@ -306,7 +303,7 @@ impl<I> User<I> {
 
 impl User<Id> {
     /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
-    pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> Result<String, SqlxError>
+    pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> sqlx::Result<String>
     where
         E: PgExecutor<'e>,
     {
@@ -325,7 +322,7 @@ impl User<Id> {
     }
 
     /// Generate new email secret, similar to TOTP secret above, but don't return generated value.
-    pub async fn new_email_secret<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    pub async fn new_email_secret<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -347,7 +344,7 @@ impl User<Id> {
         &mut self,
         executor: E,
         mfa_method: MFAMethod,
-    ) -> Result<(), SqlxError>
+    ) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -370,7 +367,7 @@ impl User<Id> {
     /// Check if any of the multi-factor authentication methods is on.
     /// - TOTP is enabled
     /// - a security key for Webauthn
-    async fn check_mfa_enabled<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    async fn check_mfa_enabled<'e, E>(&self, executor: E) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
@@ -463,7 +460,7 @@ impl User<Id> {
     pub async fn get_recovery_codes<'e, E>(
         &mut self,
         executor: E,
-    ) -> Result<Option<Vec<String>>, SqlxError>
+    ) -> sqlx::Result<Option<Vec<String>>>
     where
         E: PgExecutor<'e>,
     {
@@ -487,7 +484,7 @@ impl User<Id> {
     }
 
     /// Disable MFA; discard recovery codes, TOTP secret, and security keys.
-    pub async fn disable_mfa(&mut self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn disable_mfa(&mut self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
             "UPDATE \"user\" SET mfa_enabled = FALSE, mfa_method = 'none', totp_enabled = FALSE, email_mfa_enabled = FALSE, \
             totp_secret = NULL, email_mfa_secret = NULL, recovery_codes = '{}' WHERE id = $1",
@@ -497,6 +494,7 @@ impl User<Id> {
         .await?;
         WebAuthn::delete_all_for_user(pool, self.id).await?;
 
+        self.mfa_enabled = false;
         self.totp_secret = None;
         self.email_mfa_secret = None;
         self.totp_enabled = false;
@@ -508,7 +506,7 @@ impl User<Id> {
     }
 
     /// Enable TOTP
-    pub async fn enable_totp<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    pub async fn enable_totp<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -526,7 +524,7 @@ impl User<Id> {
     }
 
     /// Disable TOTP; discard the secret.
-    pub async fn disable_totp(&mut self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn disable_totp(&mut self, pool: &PgPool) -> sqlx::Result<()> {
         if self.totp_enabled {
             // FIXME: check if this flag is set correctly when TOTP is the only method
             self.mfa_enabled = self.check_mfa_enabled(pool).await?;
@@ -549,7 +547,7 @@ impl User<Id> {
     }
 
     /// Enable email MFA
-    pub async fn enable_email_mfa<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    pub async fn enable_email_mfa<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -568,7 +566,7 @@ impl User<Id> {
     }
 
     /// Disable email MFA; discard the secret.
-    pub async fn disable_email_mfa(&mut self, pool: &PgPool) -> Result<(), SqlxError> {
+    pub async fn disable_email_mfa(&mut self, pool: &PgPool) -> sqlx::Result<()> {
         if self.email_mfa_enabled {
             self.mfa_enabled = self.check_mfa_enabled(pool).await?;
             self.email_mfa_enabled = false;
@@ -591,9 +589,7 @@ impl User<Id> {
 
     /// Select all users without sensitive data.
     // FIXME: Remove it when Model macro will support SecretString
-    pub async fn all_without_sensitive_data(
-        pool: &PgPool,
-    ) -> Result<Vec<UserDiagnostic>, SqlxError> {
+    pub async fn all_without_sensitive_data(pool: &PgPool) -> sqlx::Result<Vec<UserDiagnostic>> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
                 mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, \
@@ -619,7 +615,7 @@ impl User<Id> {
     }
 
     /// Return all active users.
-    pub async fn all_active<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    pub async fn all_active<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -640,7 +636,7 @@ impl User<Id> {
     pub async fn find_by_group_name(
         pool: &PgPool,
         group_name: &str,
-    ) -> Result<Vec<User<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<User<Id>>> {
         let users = query_as!(
             Self,
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
@@ -767,11 +763,7 @@ impl User<Id> {
     }
 
     /// Verify recovery code. If it is valid, consume it, so it can't be used again.
-    pub async fn verify_recovery_code(
-        &mut self,
-        pool: &PgPool,
-        code: &str,
-    ) -> Result<bool, SqlxError> {
+    pub async fn verify_recovery_code(&mut self, pool: &PgPool, code: &str) -> sqlx::Result<bool> {
         if let Some(index) = self.recovery_codes.iter().position(|c| c == code) {
             // Note: swap_remove() should be faster than remove().
             self.recovery_codes.swap_remove(index);
@@ -790,10 +782,7 @@ impl User<Id> {
         }
     }
 
-    pub async fn find_by_username<'e, E>(
-        executor: E,
-        username: &str,
-    ) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_username<'e, E>(executor: E, username: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -810,7 +799,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn find_by_email<'e, E>(executor: E, email: &str) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_email<'e, E>(executor: E, email: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -831,7 +820,7 @@ impl User<Id> {
     pub async fn find_by_username_or_email(
         conn: &mut PgConnection,
         username_or_email: &str,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         let maybe_user = Self::find_by_username(&mut *conn, username_or_email).await?;
         if let Some(user) = maybe_user {
             Ok(Some(user))
@@ -843,10 +832,7 @@ impl User<Id> {
         }
     }
 
-    pub async fn find_many_by_emails<'e, E>(
-        executor: E,
-        emails: &[&str],
-    ) -> Result<Vec<Self>, SqlxError>
+    pub async fn find_many_by_emails<'e, E>(executor: E, emails: &[&str]) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -862,7 +848,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -879,7 +865,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn member_of_names<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    pub async fn member_of_names<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
     where
         E: PgExecutor<'e>,
     {
@@ -892,7 +878,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub async fn member_of<'e, E>(&self, executor: E) -> sqlx::Result<Vec<Group<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -909,7 +895,7 @@ impl User<Id> {
     /// Returns a vector of [`UserDevice`]s (hence the name).
     /// [`UserDevice`] is a struct containing additional network info about a device.
     /// If you only need [`Device`]s, use [`User::devices()`] instead.
-    pub async fn user_devices(&self, pool: &PgPool) -> Result<Vec<UserDevice>, SqlxError> {
+    pub async fn user_devices(&self, pool: &PgPool) -> sqlx::Result<Vec<UserDevice>> {
         let devices = self.devices(pool).await?;
         let mut user_devices = Vec::new();
         for device in devices {
@@ -923,7 +909,7 @@ impl User<Id> {
 
     /// Returns a vector of [`Device`]s related to a user. If you want to get [`UserDevice`]s (which contain additional network info),
     /// use [`User::user_devices()`] instead.
-    pub async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device<Id>>, SqlxError>
+    pub async fn devices<'e, E>(&self, executor: E) -> sqlx::Result<Vec<Device<Id>>>
     where
         E: PgExecutor<'e>,
     {
@@ -942,7 +928,7 @@ impl User<Id> {
     pub async fn oauth2authorizedapps<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError>
+    ) -> sqlx::Result<Vec<OAuth2AuthorizedAppInfo>>
     where
         E: PgExecutor<'e>,
     {
@@ -959,7 +945,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn security_keys(&self, pool: &PgPool) -> Result<Vec<SecurityKey>, SqlxError> {
+    pub async fn security_keys(&self, pool: &PgPool) -> sqlx::Result<Vec<SecurityKey>> {
         query_as!(
             SecurityKey,
             "SELECT id \"id!\", name FROM webauthn WHERE user_id = $1",
@@ -969,7 +955,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group<Id>) -> Result<(), SqlxError>
+    pub async fn add_to_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -984,11 +970,7 @@ impl User<Id> {
         Ok(())
     }
 
-    pub async fn remove_from_group<'e, E>(
-        &self,
-        executor: E,
-        group: &Group<Id>,
-    ) -> Result<(), SqlxError>
+    pub async fn remove_from_group<'e, E>(&self, executor: E, group: &Group<Id>) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -1007,7 +989,7 @@ impl User<Id> {
         &self,
         executor: E,
         app_client_ids: &[i64],
-    ) -> Result<(), SqlxError>
+    ) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -1081,7 +1063,7 @@ impl User<Id> {
         Ok(())
     }
 
-    pub async fn logout_all_sessions<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub async fn logout_all_sessions<'e, E>(&self, executor: E) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {
@@ -1089,10 +1071,7 @@ impl User<Id> {
         Ok(())
     }
 
-    pub async fn find_by_device_id<'e, E>(
-        executor: E,
-        device_id: Id,
-    ) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_device_id<'e, E>(executor: E, device_id: Id) -> sqlx::Result<Option<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -1113,7 +1092,7 @@ impl User<Id> {
     }
 
     /// Find users which emails are NOT in `user_emails`.
-    pub async fn exclude<'e, E>(executor: E, user_emails: &[&str]) -> Result<Vec<Self>, SqlxError>
+    pub async fn exclude<'e, E>(executor: E, user_emails: &[&str]) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {
@@ -1130,7 +1109,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn is_admin<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    pub async fn is_admin<'e, E>(&self, executor: E) -> sqlx::Result<bool>
     where
         E: PgExecutor<'e>,
     {
@@ -1141,7 +1120,7 @@ impl User<Id> {
     }
 
     /// Find all users that are admins and are active.
-    pub async fn find_admins<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    pub async fn find_admins<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {

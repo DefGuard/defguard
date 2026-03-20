@@ -23,10 +23,7 @@ use defguard_common::{
             Device, DeviceType, Settings, User, WireguardNetwork,
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
-            wireguard::{
-                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
-                LocationMfaMode, ServiceLocationMode,
-            },
+            wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
     types::proxy::ProxyControlMessage,
@@ -165,9 +162,10 @@ use crate::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
         },
         wireguard::{
-            add_device, add_user_devices, create_network, delete_device, delete_network,
-            download_config, gateway_status, get_device, import_network, list_devices,
-            list_networks, list_user_devices, modify_device, modify_network, network_details,
+            add_device, add_user_devices, count_networks, create_network, delete_device,
+            delete_network, download_config, gateway_status, get_device, import_network,
+            list_devices, list_networks, list_user_devices, modify_device, modify_network,
+            network_details,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -541,6 +539,7 @@ pub fn build_webapp(
                 post(start_network_device_setup_for_device),
             )
             .route("/network", post(create_network).get(list_networks))
+            .route("/network/count", get(count_networks))
             .route("/network/display", get(get_locations_display))
             .route("/network/import", post(import_network))
             .route("/network/stats", get(locations_overview_stats))
@@ -722,7 +721,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .clone()
         .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
         .to_string();
-    settings.defguard_url = config.url.to_string();
+    settings.defguard_url = config.url.clone().unwrap().to_string();
     update_current_settings(&pool, settings)
         .await
         .expect("Failed to update settings");
@@ -765,21 +764,18 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         info!("Creating test network");
         let mut network = WireguardNetwork::new(
             "TestNet".to_string(),
-            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()],
             50051,
             "0.0.0.0".to_string(),
             None,
-            DEFAULT_WIREGUARD_MTU,
-            0,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
             true,
-            DEFAULT_KEEPALIVE_INTERVAL,
-            DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
-        );
+        )
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
+        .unwrap();
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
         network
@@ -856,7 +852,7 @@ pub async fn init_vpn_location(
             WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
         {
             network.name.clone_from(&args.name);
-            network.address = vec![args.address];
+            let mut network = network.set_address([args.address])?;
             network.port = args.port;
             network.endpoint.clone_from(&args.endpoint);
             network.dns.clone_from(&args.dns);
@@ -867,25 +863,22 @@ pub async fn init_vpn_location(
         }
         // Otherwise create it with the predefined ID
         else {
-            let network = WireguardNetwork::new(
+            let mut network = WireguardNetwork::new(
                 args.name.clone(),
-                vec![args.address],
                 args.port,
                 args.endpoint.clone(),
                 args.dns.clone(),
-                args.mtu as i32,
-                i64::from(args.fwmark),
                 args.allowed_ips.clone(),
                 true,
-                DEFAULT_KEEPALIVE_INTERVAL,
-                DEFAULT_DISCONNECT_THRESHOLD,
                 false,
                 false,
                 LocationMfaMode::Disabled,
                 ServiceLocationMode::Disabled,
             )
-            .save(&mut *transaction)
-            .await?;
+            .set_address([args.address])?;
+            network.mtu = args.mtu as i32;
+            network.fwmark = i64::from(args.fwmark);
+            let network = network.save(&mut *transaction).await?;
             if network.id != location_id {
                 return Err(anyhow!(
                     "Failed to initialize VPN location. The ID of the newly created network ({}) does not match \
@@ -910,25 +903,22 @@ pub async fn init_vpn_location(
         }
 
         // create a new network
-        WireguardNetwork::new(
+        let mut location = WireguardNetwork::new(
             args.name.clone(),
-            vec![args.address],
             args.port,
             args.endpoint.clone(),
             args.dns.clone(),
-            args.mtu as i32,
-            i64::from(args.fwmark),
             args.allowed_ips.clone(),
             true,
-            DEFAULT_KEEPALIVE_INTERVAL,
-            DEFAULT_DISCONNECT_THRESHOLD,
             false,
             false,
             LocationMfaMode::Disabled,
             ServiceLocationMode::Disabled,
         )
-        .save(pool)
-        .await?
+        .set_address([args.address])?;
+        location.mtu = args.mtu as i32;
+        location.fwmark = i64::from(args.fwmark);
+        location.save(pool).await?
     };
 
     // generate gateway token

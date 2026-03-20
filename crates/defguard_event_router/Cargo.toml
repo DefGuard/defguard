@@ -17,3 +17,6 @@ defguard_session_manager = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+defguard_common = { workspace = true }

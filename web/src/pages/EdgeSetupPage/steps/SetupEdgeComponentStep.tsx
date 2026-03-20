@@ -9,7 +9,7 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { validateIpOrDomain } from '../../../shared/validators';
+import { Validate } from '../../../shared/validate';
 import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
 
@@ -53,7 +53,13 @@ export const SetupEdgeComponentStep = () => {
         ip_or_domain: z
           .string()
           .min(1, m.edge_setup_component_error_ip_or_domain_required())
-          .refine((val) => validateIpOrDomain(val, false, true)),
+          .refine((val) =>
+            Validate.any(
+              val,
+              [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+              false,
+            ),
+          ),
         grpc_port: z
           .number()
           .min(1, m.edge_setup_component_error_grpc_port_required())
@@ -92,6 +98,7 @@ export const SetupEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_common_name()}
+                helper={m.edge_setup_component_error_common_name_help()}
                 type="text"
               />
             )}
@@ -102,6 +109,7 @@ export const SetupEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_ip_or_domain()}
+                helper={m.edge_setup_component_label_ip_or_domain_help()}
                 type="text"
               />
             )}
@@ -112,6 +120,7 @@ export const SetupEdgeComponentStep = () => {
               <field.FormInput
                 required
                 label={m.edge_setup_component_label_grpc_port()}
+                helper={m.edge_setup_component_label_grpc_port_help()}
                 type="number"
               />
             )}

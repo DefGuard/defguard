@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{Error as SqlxError, Type, query_as};
+use sqlx::{Type, query_as};
 
 use crate::db::{
     Id, NoId,
@@ -41,6 +41,7 @@ pub struct VpnClientSession<I = NoId> {
     pub mfa_method: Option<VpnClientMfaMethod>,
     #[model(enum)]
     pub state: VpnClientSessionState,
+    pub preshared_key: Option<String>,
 }
 
 impl VpnClientSession {
@@ -69,6 +70,7 @@ impl VpnClientSession {
             disconnected_at: None,
             mfa_method,
             state,
+            preshared_key: None,
         }
     }
 }
@@ -81,13 +83,15 @@ impl VpnClientSession<Id> {
         executor: E,
         location_id: Id,
         device_id: Id,
-    ) -> Result<Option<Self>, SqlxError> {
+    ) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
-			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
+			ORDER BY created_at DESC, id DESC \
+			LIMIT 1",
             location_id,
             device_id
         )
@@ -99,7 +103,7 @@ impl VpnClientSession<Id> {
     pub async fn get_latest_stats_for_all_gateways<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
-    ) -> Result<Vec<VpnSessionStats<Id>>, SqlxError> {
+    ) -> sqlx::Result<Vec<VpnSessionStats<Id>>> {
         query_as!(
             VpnSessionStats,
             "SELECT DISTINCT ON (gateway_id) id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \
@@ -117,11 +121,11 @@ impl VpnClientSession<Id> {
     pub async fn get_all_inactive_for_location<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         location: &WireguardNetwork<Id>,
-    ) -> Result<Vec<Self>, SqlxError> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
     		Self,
             "SELECT s.id, location_id, user_id, device_id, created_at, s.connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session s \
 			LEFT JOIN LATERAL ( \
 				SELECT latest_handshake \
@@ -141,11 +145,11 @@ impl VpnClientSession<Id> {
     pub async fn get_never_connected<'e, E: sqlx::PgExecutor<'e>>(
         executor: E,
         location: &WireguardNetwork<Id>,
-    ) -> Result<Vec<Self>, SqlxError> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
 			WHERE location_id = $1 AND state = 'new' \
             AND (NOW() - created_at) > $2 * interval '1 second'",
@@ -159,13 +163,14 @@ impl VpnClientSession<Id> {
         executor: E,
         location_id: Id,
         device_id: Id,
-    ) -> Result<Vec<Self>, SqlxError> {
+    ) -> sqlx::Result<Vec<Self>> {
         query_as!(
     		Self,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, disconnected_at, \
-	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\" \
+	            mfa_method \"mfa_method: VpnClientMfaMethod\", state \"state: VpnClientSessionState\", preshared_key \
 			FROM vpn_client_session \
-			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected')",
+			WHERE location_id = $1 AND device_id = $2 AND state IN ('new', 'connected') \
+			ORDER BY created_at DESC, id DESC",
 			location_id,
 			device_id,
     	).fetch_all(executor).await

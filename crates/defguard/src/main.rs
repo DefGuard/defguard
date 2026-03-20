@@ -127,7 +127,12 @@ async fn main() -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
-    let has_auto_adopt_flags = config.adopt_edge.is_some() || config.adopt_gateway.is_some();
+    // Both flags must be provided together
+    if let Err(msg) = config.validate_adopt_flags() {
+        anyhow::bail!("{msg}");
+    }
+
+    let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 

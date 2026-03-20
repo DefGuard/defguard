@@ -4,7 +4,7 @@ import { defineConfig, loadEnv, type ProxyOptions } from 'vite';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import autoprefixer from 'autoprefixer';
-import react from '@vitejs/plugin-react-swc';
+import react from "@vitejs/plugin-react";
 import * as path from 'path';
 
 const isEnvTrue = (val: string | null | undefined) => {

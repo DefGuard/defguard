@@ -6,7 +6,7 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             group::Group,
             settings::initialize_current_settings,
-            wireguard::{DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
+            wireguard::{LocationMfaMode, ServiceLocationMode},
         },
     },
 };

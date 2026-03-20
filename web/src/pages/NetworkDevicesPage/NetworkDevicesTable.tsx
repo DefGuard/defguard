@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -45,6 +46,7 @@ type RowData = NetworkDevice;
 const columnHelper = createColumnHelper<RowData>();
 
 export const NetworkDevicesTable = ({ networkDevices }: Props) => {
+  const navigate = useNavigate();
   const reservedNames = useMemo(
     () => networkDevices.map((n) => n.name),
     [networkDevices],
@@ -60,7 +62,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ['name'],
         ['asc'],
       );
-      if (!availableLocations.length) return;
+      if (!availableLocations.length) {
+        openModal(ModalName.ConfirmAction, {
+          title: m.modal_no_available_locations_title(),
+          contentMd: m.modal_no_available_locations_body(),
+          actionPromise: async () => navigate({ to: '/locations' }),
+          submitProps: { text: m.modal_no_available_locations_go_to_locations() },
+        });
+        return;
+      }
       const { data: availableIps } = await api.network_device.getAvailableIp(
         availableLocations[0].id,
       );
@@ -231,9 +241,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   onClick: () => {
-                    openModal(ModalName.DeleteNetworkDevice, {
-                      id: row.id,
-                      name: row.name,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_network_device_title(),
+                      contentMd: m.modal_delete_network_device_body(),
+                      actionPromise: () => api.network_device.deleteDevice(row.id),
+                      invalidateKeys: [['device', 'network'], ['network']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () =>
+                        Snackbar.default(m.network_device_delete_success()),
+                      onError: () => Snackbar.error(m.network_device_delete_failed()),
                     });
                   },
                 },

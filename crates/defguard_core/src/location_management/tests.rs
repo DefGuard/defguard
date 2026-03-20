@@ -1,7 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use defguard_common::db::{
-    NoId,
     models::{Device, DeviceType, User, WireguardNetwork, device::WireguardNetworkDevice},
     setup_pool,
 };
@@ -23,14 +22,11 @@ fn test_network_readdress(_: PgPoolOptions, options: PgConnectOptions) {
     // 192.168.42.45: device
     // 192.168.42.46: gateway
     // 192.168.42.47: broadcast
-    let mut network = WireguardNetwork::<NoId> {
-        address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 46)), 30).unwrap()],
-        allow_all_groups: true,
-        ..Default::default()
-    }
-    .save(&pool)
-    .await
-    .unwrap();
+    let mut network = WireguardNetwork::default()
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 46)), 30).unwrap()])
+        .unwrap();
+    network.allow_all_groups = true;
+    let network = network.save(&pool).await.unwrap();
 
     let mut conn = pool.begin().await.unwrap();
 
@@ -73,8 +69,9 @@ fn test_network_readdress(_: PgPoolOptions, options: PgConnectOptions) {
     // 192.168.42.77: gateway
     // 192.168.42.78: device
     // 192.168.42.79: broadcast
-    network.address =
-        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 77)), 30).unwrap()];
+    let network = network
+        .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(192, 168, 42, 77)), 30).unwrap()])
+        .unwrap();
     network.save(&pool).await.unwrap();
 
     // Re-address the network.

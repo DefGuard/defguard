@@ -1,13 +1,18 @@
-use defguard_common::db::{
-    models::{
-        Settings, WireguardNetwork,
-        settings::initialize_current_settings,
-        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-        wireguard::{LocationMfaMode, ServiceLocationMode},
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        Id,
+        models::{
+            Settings, WireguardNetwork,
+            settings::initialize_current_settings,
+            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
+use defguard_setup::auto_adoption::attempt_auto_adoption;
 use ipnetwork::IpNetwork;
 use reqwest::{
     Client, StatusCode,
@@ -34,27 +39,26 @@ async fn assert_auto_adoption_step(pool: &sqlx::PgPool, expected: AutoAdoptionWi
 }
 
 /// Seed a minimal WireguardNetwork row required by the auto-adoption VPN/MFA steps.
-async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<defguard_common::db::Id> {
-    WireguardNetwork::new(
+async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+    let mut location = WireguardNetwork::new(
         "auto-net".to_string(),
-        vec!["10.0.0.0/24".parse::<IpNetwork>().unwrap()],
         51820,
         "1.2.3.4".to_string(),
         None,
-        1280,
-        0,
-        vec!["0.0.0.0/0".parse::<IpNetwork>().unwrap()],
+        ["0.0.0.0/0".parse().unwrap()],
         false,
-        180,
-        25,
         false,
         false,
         LocationMfaMode::Disabled,
         ServiceLocationMode::Disabled,
     )
-    .save(pool)
-    .await
-    .expect("Failed to save wireguard network")
+    .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])
+    .unwrap();
+    location.mtu = 1280;
+    location
+        .save(pool)
+        .await
+        .expect("Failed to save wireguard network")
 }
 
 #[sqlx::test]
@@ -379,4 +383,47 @@ async fn test_auto_adoption_vpn_settings_missing_network(
 
     // Step must NOT have advanced past VpnSettings
     assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::VpnSettings).await;
+}
+
+fn config_with_flags(adopt_edge: Option<&str>, adopt_gateway: Option<&str>) -> DefGuardConfig {
+    let mut config = DefGuardConfig::new_test_config();
+    config.adopt_edge = adopt_edge.map(str::to_string);
+    config.adopt_gateway = adopt_gateway.map(str::to_string);
+    config
+}
+
+/// attempt_auto_adoption must fail immediately when fewer than both flags are set.
+#[sqlx::test]
+async fn test_attempt_auto_adoption_requires_both_flags(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = defguard_common::db::setup_pool(options).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Failed to initialize settings");
+
+    // only adopt_edge
+    assert!(
+        attempt_auto_adoption(
+            &pool,
+            &config_with_flags(Some("edge.example.com:8080"), None)
+        )
+        .await
+        .is_err()
+    );
+
+    // only adopt_gateway
+    assert!(
+        attempt_auto_adoption(&pool, &config_with_flags(None, Some("gw.example.com:8080")))
+            .await
+            .is_err()
+    );
+
+    // neither flag
+    assert!(
+        attempt_auto_adoption(&pool, &config_with_flags(None, None))
+            .await
+            .is_err()
+    );
 }

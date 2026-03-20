@@ -25,12 +25,14 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
+import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getLicenseInfoQueryOptions, getLocationQueryOptions } from '../../shared/query';
 import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
-import { validateIpList, validateIpOrDomainList } from '../../shared/validators';
+import { Validate } from '../../shared/validate';
 
 export const EditLocationPage = () => {
   const { locationId: paramsId } = useParams({
@@ -65,38 +67,97 @@ const locationToFirewall = (location: NetworkLocation): LocationFirewallValue =>
   return 'deny';
 };
 
-const formSchema = z.object({
-  name: z.string(m.form_error_required()).min(1, m.form_error_required()),
-  address: z
-    .string(m.form_error_required())
-    .trim()
-    .min(1, m.form_error_required())
-    .refine((value) => validateIpList(value, ',', true), m.form_error_invalid()),
-  endpoint: z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-  port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-  allowed_ips: z.string(m.form_error_required()).trim(),
-  dns: z
-    .string()
-    .trim()
-    .nullable()
-    .refine((val) => {
-      if (!val) return true;
-      return validateIpOrDomainList(val, ',', true, true);
-    }),
-  peer_disconnect_threshold: z.number(m.form_error_required()),
-  keepalive_interval: z
-    .number(m.form_error_required())
-    .max(65535, m.form_error_port_max()),
-  mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
-  fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
-  allow_all_groups: z.boolean(),
-  allowed_groups: z.array(
-    z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
-  ),
-  location_mfa_mode: z.enum(LocationMfaMode),
-  service_location_mode: z.enum(LocationServiceMode),
-  firewall: z.enum(LocationFirewall),
-});
+const peerDisconnectThresholdMinimum = 120;
+
+const formSchema = z
+  .object({
+    name: z.string(m.form_error_required()).min(1, m.form_error_required()),
+    address: z
+      .string(m.form_error_required())
+      .trim()
+      .min(1, m.form_error_required())
+      .refine(
+        (val) => Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true),
+        m.form_error_invalid(),
+      ),
+    endpoint: z
+      .string(m.form_error_required())
+      .trim()
+      .min(1, m.form_error_required())
+      .refine((val) =>
+        Validate.any(val, [
+          Validate.IPv4,
+          Validate.IPv6,
+          Validate.Domain,
+          Validate.Hostname,
+        ]),
+      ),
+    port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
+    allowed_ips: z
+      .string()
+      .trim()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        return Validate.any(
+          val,
+          [
+            Validate.IPv4,
+            Validate.IPv6,
+            (v) => Validate.CIDRv4(v, true),
+            (v) => Validate.CIDRv6(v, true),
+          ],
+          true,
+        );
+      }, m.form_error_invalid()),
+    dns: z
+      .string()
+      .trim()
+      .nullable()
+      .refine((val) => {
+        if (!val) return true;
+        return Validate.any(
+          val,
+          [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+          true,
+        );
+      }),
+    peer_disconnect_threshold: z.number().nullable(),
+    keepalive_interval: z
+      .number(m.form_error_required())
+      .max(65535, m.form_error_port_max()),
+    mtu: z.number(m.form_error_required()).min(72).max(0xffffffff),
+    fwmark: z.number(m.form_error_required()).min(0).max(0xffffffff),
+    allow_all_groups: z.boolean(),
+    allowed_groups: z.array(
+      z.string(m.form_error_required()).trim().min(1, m.form_error_required()),
+    ),
+    location_mfa_mode: z.enum(LocationMfaMode),
+    service_location_mode: z.enum(LocationServiceMode),
+    firewall: z.enum(LocationFirewall),
+  })
+  .superRefine((value, context) => {
+    if (value.location_mfa_mode === LocationMfaMode.Disabled) {
+      return;
+    }
+
+    if (value.peer_disconnect_threshold === null) {
+      context.addIssue({
+        code: 'custom',
+        path: ['peer_disconnect_threshold'],
+        message: m.form_error_required(),
+      });
+      return;
+    }
+
+    if (value.peer_disconnect_threshold < peerDisconnectThresholdMinimum) {
+      context.addIssue({
+        code: 'custom',
+        path: ['peer_disconnect_threshold'],
+        message: m.form_min_value({ value: peerDisconnectThresholdMinimum }),
+      });
+    }
+  });
 
 type FormFields = z.infer<typeof formSchema>;
 
@@ -167,19 +228,6 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
   });
 
-  const { mutate: deleteLocation, isPending: deletePending } = useMutation({
-    mutationFn: () => api.location.deleteLocation(location.id),
-    meta: {
-      invalidate: ['network'],
-    },
-    onSuccess: () => {
-      navigate({
-        to: '/locations',
-        replace: true,
-      });
-    },
-  });
-
   const defaultValues = useMemo(
     (): FormFields => ({
       name: location.name,
@@ -213,14 +261,20 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       if (clone.location_mfa_mode !== LocationMfaMode.Disabled) {
         clone.service_location_mode = LocationServiceMode.Disabled;
       }
+
+      const peerDisconnectThreshold =
+        clone.peer_disconnect_threshold ?? location.peer_disconnect_threshold;
+
       await editLocation({
         id: location.id,
         data: {
           ...omit(clone, ['firewall']),
           allow_all_groups: clone.allow_all_groups,
           allowed_groups: clone.allowed_groups,
+          allowed_ips: clone.allowed_ips ?? '',
           acl_default_allow: clone.firewall === LocationFirewall.Allow,
           acl_enabled: !(clone.firewall === LocationFirewall.Disabled),
+          peer_disconnect_threshold: peerDisconnectThreshold,
         },
       });
     },
@@ -301,66 +355,90 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             s.values.service_location_mode !== LocationServiceMode.Disabled
           }
         >
-          {(disabled) => (
-            <form.AppField
-              name="location_mfa_mode"
-              validators={{
-                onChangeListenTo: ['service_location_mode'],
-              }}
-              listeners={{
-                onChange: ({ value, fieldApi }) => {
-                  const service = fieldApi.form.getFieldValue('service_location_mode');
-                  if (
-                    value !== LocationMfaMode.Disabled &&
-                    service !== LocationServiceMode.Disabled
-                  ) {
-                    fieldApi.form.setFieldValue(
-                      'service_location_mode',
-                      LocationServiceMode.Disabled,
-                    );
-                  }
-                },
-              }}
-            >
-              {(field) => {
-                return (
-                  <>
-                    {disabled && (
-                      <InfoBanner
-                        icon="info-outlined"
-                        variant="warning"
-                        text={`You can't use MFA on any service locations. If you want to enforce MFA please select “Regular location” type`}
-                      />
-                    )}
-                    <EditPageFormSection label="Multi-Factor Authentication">
+          {(isServiceLocation) => (
+            <>
+              {isServiceLocation && (
+                <InfoBanner
+                  icon="info-outlined"
+                  variant="warning"
+                  text={`You can't use MFA on any service locations. If you want to enforce MFA please select “Regular location” type`}
+                />
+              )}
+              <EditPageFormSection label="Multi-Factor Authentication">
+                <form.AppField
+                  name="location_mfa_mode"
+                  validators={{
+                    onChangeListenTo: ['service_location_mode'],
+                  }}
+                  listeners={{
+                    onChange: ({ value, fieldApi }) => {
+                      const service = fieldApi.form.getFieldValue(
+                        'service_location_mode',
+                      );
+                      if (
+                        value !== LocationMfaMode.Disabled &&
+                        service !== LocationServiceMode.Disabled
+                      ) {
+                        fieldApi.form.setFieldValue(
+                          'service_location_mode',
+                          LocationServiceMode.Disabled,
+                        );
+                      }
+                    },
+                  }}
+                >
+                  {(field) => (
+                    <>
                       <field.FormRadio
                         value={LocationMfaMode.Disabled}
                         text="Do not enforce MFA"
-                        disabled={disabled}
+                        disabled={isServiceLocation}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationMfaMode.Internal}
                         text="Internal MFA"
-                        disabled={disabled}
+                        disabled={isServiceLocation}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationMfaMode.External}
                         text="External MFA"
-                        disabled={disabled}
+                        disabled={isServiceLocation}
                       />
-                    </EditPageFormSection>
-                  </>
-                );
-              }}
-            </form.AppField>
+                    </>
+                  )}
+                </form.AppField>
+                <form.Subscribe
+                  selector={(state) =>
+                    state.values.location_mfa_mode !== LocationMfaMode.Disabled
+                  }
+                >
+                  {(showDisconnectThreshold) =>
+                    showDisconnectThreshold ? (
+                      <>
+                        <SizedBox height={ThemeSpacing.Xl2} />
+                        <form.AppField name="peer_disconnect_threshold">
+                          {(field) => (
+                            <field.FormInput
+                              required
+                              label="Client disconnect threshold (seconds)"
+                              type="number"
+                            />
+                          )}
+                        </form.AppField>
+                      </>
+                    ) : null
+                  }
+                </form.Subscribe>
+              </EditPageFormSection>
+            </>
           )}
         </form.Subscribe>
         <form.Subscribe
           selector={(s) => s.values.location_mfa_mode !== LocationMfaMode.Disabled}
         >
-          {(disabled) => (
+          {(mfaEnabled) => (
             <form.AppField
               name="service_location_mode"
               validators={{ onChangeListenTo: ['location_mfa_mode'] }}
@@ -382,7 +460,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               {(field) => {
                 return (
                   <>
-                    {disabled && (
+                    {mfaEnabled && (
                       <InfoBanner
                         variant="warning"
                         icon="info-outlined"
@@ -398,19 +476,19 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <field.FormRadio
                         value={LocationServiceMode.Disabled}
                         text="Regular location"
-                        disabled={disabled || serviceLocationLocked}
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Prelogon}
                         text="Service location: Pre-logon"
-                        disabled={disabled || serviceLocationLocked}
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                       <SizedBox height={ThemeSpacing.Md} />
                       <field.FormRadio
                         value={LocationServiceMode.Alwayson}
                         text="Service location: Always on"
-                        disabled={disabled || serviceLocationLocked}
+                        disabled={mfaEnabled || serviceLocationLocked}
                       />
                     </EditPageFormSection>
                   </>
@@ -484,9 +562,19 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
               deleteProps={{
                 text: 'Delete location',
                 onClick: () => {
-                  deleteLocation();
+                  openModal(ModalName.ConfirmAction, {
+                    title: m.modal_delete_location_title(),
+                    contentMd: m.modal_delete_location_body({ name: location.name }),
+                    actionPromise: () => api.location.deleteLocation(location.id),
+                    invalidateKeys: [['network'], ['enterprise_info']],
+                    submitProps: { text: m.controls_delete(), variant: 'critical' },
+                    onSuccess: () => {
+                      Snackbar.default(m.location_delete_success());
+                      navigate({ to: '/locations', replace: true });
+                    },
+                    onError: () => Snackbar.error(m.location_delete_failed()),
+                  });
                 },
-                loading: deletePending,
                 disabled: isSubmitting,
               }}
               cancelProps={{

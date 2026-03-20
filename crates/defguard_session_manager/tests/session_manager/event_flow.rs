@@ -55,7 +55,7 @@ async fn test_session_manager_emits_connected_event_for_first_stats(
     assert_eq!(event.context.location.id, location.id);
     assert_eq!(event.context.user.id, user.id);
     assert_eq!(event.context.device.id, device.id);
-    assert_eq!(event.context.public_ip, endpoint.ip());
+    assert_eq!(event.context.public_ip, Some(endpoint.ip()));
 }
 
 #[sqlx::test]
@@ -78,6 +78,7 @@ async fn test_reusing_existing_connected_session_does_not_emit_duplicate_connect
         user.id,
         device.id,
         Some(connected_at),
+        None,
         None,
     )
     .await;
@@ -120,6 +121,7 @@ async fn test_session_manager_emits_disconnect_event_for_inactive_standard_sessi
         device.id,
         Some(stale_handshake),
         None,
+        None,
     )
     .await;
     create_session_stats(
@@ -149,6 +151,7 @@ async fn test_session_manager_emits_disconnect_event_for_inactive_standard_sessi
     assert_eq!(event.context.location.id, location.id);
     assert_eq!(event.context.user.id, user.id);
     assert_eq!(event.context.device.id, device.id);
+    assert_eq!(event.context.public_ip, None);
 
     let disconnected_session = VpnClientSession::find_by_id(&pool, session.id)
         .await

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO wireguard_network_device (device_id, wireguard_network_id, wireguard_ips) VALUES ($1, $2, $3) ON CONFLICT ON CONSTRAINT device_network DO UPDATE SET wireguard_ips = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "InetArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "153fa42e3a61b24b7a264d9ef236841ab88a9361a52129ef199768e900dd12ad"
+}

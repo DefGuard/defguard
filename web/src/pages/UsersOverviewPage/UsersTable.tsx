@@ -35,6 +35,7 @@ import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEd
 import { TableRowContainer } from '../../shared/defguard-ui/components/table/TableRowContainer/TableRowContainer';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
@@ -46,6 +47,7 @@ import {
   getUsersOverviewQueryOptions,
 } from '../../shared/query';
 import { displayDate } from '../../shared/utils/displayDate';
+import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
 type RowData = UsersListItem;
@@ -97,24 +99,10 @@ export const UsersTable = () => {
     [groups?.map, groups],
   );
 
-  const { mutate: deleteUser } = useMutation({
-    mutationFn: api.user.deleteUser,
-    meta: {
-      invalidate: [['user-overview'], ['user'], ['enterprise_info']],
-    },
-  });
-
-  const { mutate: changeAccountActiveState } = useMutation({
-    mutationFn: api.user.activeStateChange,
-    meta: {
-      invalidate: [['user-overview'], ['user']],
-    },
-  });
-
   const { mutate: editUser } = useMutation({
     mutationFn: api.user.editUser,
     meta: {
-      invalidate: [['user-overview'], ['user']],
+      invalidate: [['user-overview'], ['user'], ['activity-log']],
     },
   });
 
@@ -157,6 +145,8 @@ export const UsersTable = () => {
         },
         cell: (info) => {
           const rowData = info.row.original;
+          const online = isUserOnline(rowData);
+
           return (
             <TableCell>
               <Avatar
@@ -164,6 +154,7 @@ export const UsersTable = () => {
                 variant="initials"
                 firstName={rowData.first_name}
                 lastName={rowData.last_name}
+                online={online}
               />
               <span>{info.getValue()}</span>
             </TableCell>
@@ -196,20 +187,17 @@ export const UsersTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.accessor('phone', {
-        size: 175,
-        minSize: 175,
-        header: m.users_col_phone(),
-        enableSorting: false,
-        cell: (info) => {
-          const phone = info.getValue();
-          const display = isPresent(phone) && phone.length ? phone : '~';
-          return (
-            <TableCell>
-              <span>{display}</span>
-            </TableCell>
-          );
-        },
+      columnHelper.accessor('email', {
+        header: m.form_label_email(),
+        size: 200,
+        minSize: 150,
+        enableSorting: true,
+        sortingFn: 'text',
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('groups', {
         header: m.users_col_groups(),
@@ -228,6 +216,18 @@ export const UsersTable = () => {
             ) ?? [],
         },
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
+      }),
+      columnHelper.accessor('mfa_enabled', {
+        header: m.users_col_mfa(),
+        size: 56,
+        minSize: 56,
+        cell: (info) => (
+          <TableCell className="cell-with-check-icons">
+            {info.getValue() ? (
+              <Icon icon="check-filled" staticColor={ThemeVariable.FgSuccess} />
+            ) : null}
+          </TableCell>
+        ),
       }),
       columnHelper.accessor('enrolled', {
         header: m.users_col_enrolled(),
@@ -251,6 +251,53 @@ export const UsersTable = () => {
         enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
+          const accountStatusMenuGroup: MenuItemsGroup = {
+            items: [
+              {
+                text: rowData.is_active
+                  ? m.users_row_menu_disable()
+                  : m.users_row_menu_enable(),
+                icon: rowData.is_active ? 'disabled' : 'check-circle',
+                testId: 'change-account-status',
+                onClick: () => {
+                  if (rowData.is_active) {
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.users_modal_disable_title(),
+                      contentMd: m.users_modal_disable_content({ name: rowData.name }),
+                      actionPromise: () =>
+                        api.user.activeStateChange({
+                          active: false,
+                          username: rowData.username,
+                        }),
+                      invalidateKeys: [['user-overview'], ['user']],
+                      submitProps: {
+                        text: m.users_row_menu_disable(),
+                        variant: 'critical',
+                      },
+                      onSuccess: () => Snackbar.default(m.users_disable_success()),
+                      onError: () => Snackbar.error(m.users_disable_error()),
+                    });
+                  } else {
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.users_modal_enable_title(),
+                      contentMd: m.users_modal_enable_content({ name: rowData.name }),
+                      actionPromise: () =>
+                        api.user.activeStateChange({
+                          active: true,
+                          username: rowData.username,
+                        }),
+                      invalidateKeys: [['user-overview'], ['user']],
+                      submitProps: {
+                        text: m.users_row_menu_enable(),
+                      },
+                      onSuccess: () => Snackbar.default(m.users_enable_success()),
+                      onError: () => Snackbar.error(m.users_enable_error()),
+                    });
+                  }
+                },
+              },
+            ],
+          };
 
           const menuItems: MenuItemsGroup[] = [
             {
@@ -333,23 +380,7 @@ export const UsersTable = () => {
                 },
               ],
             },
-            {
-              items: [
-                {
-                  text: rowData.is_active
-                    ? m.users_row_menu_disable()
-                    : m.users_row_menu_enable(),
-                  icon: rowData.is_active ? 'disabled' : 'check-circle',
-                  testId: 'change-account-status',
-                  onClick: () => {
-                    changeAccountActiveState({
-                      active: !rowData.is_active,
-                      username: rowData.username,
-                    });
-                  },
-                },
-              ],
-            },
+            accountStatusMenuGroup,
             {
               items: [
                 {
@@ -357,7 +388,18 @@ export const UsersTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    deleteUser(rowData.username);
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_user_title(),
+                      contentMd: m.modal_delete_user_body({ name: rowData.name }),
+                      actionPromise: () => api.user.deleteUser(rowData.username),
+                      invalidateKeys: [['user-overview'], ['user'], ['enterprise_info']],
+                      submitProps: {
+                        text: m.users_row_menu_delete(),
+                        variant: 'critical',
+                      },
+                      onSuccess: () => Snackbar.default(m.modal_delete_user_success()),
+                      onError: () => Snackbar.error(m.modal_delete_user_error()),
+                    });
                   },
                 },
               ],
@@ -405,6 +447,34 @@ export const UsersTable = () => {
               ],
             });
           }
+          if (rowData.mfa_enabled) {
+            accountStatusMenuGroup.items.splice(1, 0, {
+              text: m.users_row_menu_disable_mfa(),
+              icon: 'disable-mfa',
+              onClick: () => {
+                openModal(ModalName.ConfirmAction, {
+                  title: m.users_modal_disable_mfa_title(),
+                  contentMd: m.users_modal_disable_mfa_content({
+                    name: rowData.name,
+                  }),
+                  actionPromise: () => api.user.disableMfa(rowData.username),
+                  invalidateKeys: [
+                    ['user-overview'],
+                    ['user'],
+                    ['session-info'],
+                    ['me'],
+                    ['activity-log'],
+                  ],
+                  submitProps: {
+                    text: m.users_row_menu_disable_mfa(),
+                    variant: 'critical',
+                  },
+                  onSuccess: () => Snackbar.default(m.users_disable_mfa_success()),
+                  onError: () => Snackbar.error(m.users_disable_mfa_error()),
+                });
+              },
+            });
+          }
 
           return <TableEditCell menuItems={menuItems} />;
         },
@@ -414,8 +484,6 @@ export const UsersTable = () => {
       navigate,
       reservedEmails,
       reservedUsernames,
-      changeAccountActiveState,
-      deleteUser,
       groupsOptions,
       handleEditGroups,
       groups,
@@ -515,6 +583,7 @@ export const UsersTable = () => {
       const reservedPubkeys = row.original.devices.map((d) => d.wireguard_pubkey);
       return row.original.devices.map((device, deviceIndex) => {
         const lastRow = isLast && deviceIndex === row.original.devices.length - 1;
+        const deviceOnline = isDeviceOnline(device);
         const latestNetwork = orderBy(
           device.networks.filter((n) => isPresent(n.last_connected_at)),
           (d) => d.last_connected_at,
@@ -544,8 +613,13 @@ export const UsersTable = () => {
             <TableCell alignContent="center" noPadding>
               <Icon icon="enter" />
             </TableCell>
-            <TableCell className="device-name-cell">
-              <Icon icon="devices" />
+            <TableCell>
+              <div className="expanded-device-icon-wrapper">
+                <Icon icon="devices" staticColor={ThemeVariable.FgNeutral} />
+                {deviceOnline && (
+                  <span className="expanded-device-online-indicator" aria-hidden="true" />
+                )}
+              </div>
               <span>{device.name}</span>
             </TableCell>
             <TableCell empty />

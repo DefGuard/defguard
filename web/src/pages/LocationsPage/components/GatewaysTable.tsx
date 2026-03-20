@@ -19,6 +19,7 @@ import { TableBody } from '../../../shared/defguard-ui/components/table/TableBod
 import { TableCell } from '../../../shared/defguard-ui/components/table/TableCell/TableCell';
 import { TableEditCell } from '../../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { getGatewaysQueryOptions } from '../../../shared/query';
@@ -27,8 +28,6 @@ import { displayDate } from '../../../shared/utils/displayDate';
 type RowData = GatewayInfo;
 
 const columnHelper = createColumnHelper<RowData>();
-
-const displayModifiedBy = (gateway: GatewayInfo) => `${gateway.modified_by}`;
 
 const getStatusBadge = (gateway: GatewayInfo) => {
   if (!gateway.enabled) {
@@ -69,7 +68,7 @@ export const GatewaysTable = () => {
 
     if (query.length > 0) {
       data = data.filter((gateway) => {
-        const modifiedBy = displayModifiedBy(gateway).toLowerCase();
+        const modifiedBy = gateway.modified_by.toLowerCase();
         return (
           gateway.name.toLowerCase().includes(query) ||
           gateway.location_name.toLowerCase().includes(query) ||
@@ -145,15 +144,15 @@ export const GatewaysTable = () => {
           </TableCell>
         ),
       }),
-      columnHelper.display({
-        id: 'modified_by',
+      columnHelper.accessor('modified_by', {
         size: 175,
         minSize: 175,
         header: m.edges_col_modified_by(),
         enableSorting: true,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
-            <span>{displayModifiedBy(info.row.original)}</span>
+            <span>{info.getValue()}</span>
           </TableCell>
         ),
       }),
@@ -213,10 +212,17 @@ export const GatewaysTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    openModal(ModalName.DeleteGateway, {
-                      id: rowData.id,
-                      name: rowData.name,
-                      locationName: rowData.location_name,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_gateway_title(),
+                      contentMd: m.modal_delete_gateway_body({
+                        name: rowData.name,
+                        locationName: rowData.location_name,
+                      }),
+                      actionPromise: () => api.gateway.deleteGateway(rowData.id),
+                      invalidateKeys: [['gateway'], ['network']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.gateway_delete_success()),
+                      onError: () => Snackbar.error(m.gateway_delete_failed()),
                     });
                   },
                 },

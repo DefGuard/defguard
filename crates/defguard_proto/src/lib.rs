@@ -21,12 +21,12 @@ pub mod enterprise {
 use defguard_common::{
     csv::AsCsv,
     db::{
-        Id,
         models::{
-            Device, DeviceConfig, User, WireguardNetwork,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
+            Device, DeviceConfig, User, WireguardNetwork,
         },
+        Id,
     },
 };
 use proxy::{CoreError, MfaMethod};
@@ -175,7 +175,7 @@ impl Configuration {
             name: location.name.clone(),
             port: location.port.cast_unsigned(),
             prvkey: location.prvkey.clone(),
-            addresses: location.address.iter().map(ToString::to_string).collect(),
+            addresses: location.address().iter().map(ToString::to_string).collect(),
             peers,
             firewall_config: maybe_firewall_config,
             mtu: location.mtu.cast_unsigned(),

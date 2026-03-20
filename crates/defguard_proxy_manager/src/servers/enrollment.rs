@@ -627,16 +627,16 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-            let mut networks = device
-                .find_network_device_networks(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to find networks for device {} for user {}({:?}): {err}",
-                        device.name, user.username, user.id
-                    );
-                    Status::internal("unexpected error")
-                })?;
+            let mut networks =
+                WireguardNetwork::find_network_device_networks(&mut *transaction, device_id)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                            "Failed to find networks for device {} for user {}({:?}): {err}",
+                            device.name, user.username, user.id
+                        );
+                        Status::internal("unexpected error")
+                    })?;
 
             let Some(network) = networks.pop() else {
                 error!(
@@ -727,7 +727,7 @@ impl EnrollmentServer {
             if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id)
                 .await
                 .map_err(|err| {
-                    error!("Failed to fetch WireguardNetwork with ID {location_id}: {err}",);
+                    error!("Failed to fetch WireguardNetwork with ID {location_id}: {err}");
                     Status::internal("unexpected error")
                 })?
             {
@@ -735,12 +735,13 @@ impl EnrollmentServer {
                     try_get_location_firewall_config(&location, &mut transaction)
                         .await
                         .map_err(|err| {
-                            error!("Failed to get firewall config for location {location}: {err}",);
+                            error!("Failed to get firewall config for location {location}: {err}");
                             Status::internal("unexpected error")
                         })?
                 {
                     debug!(
-                        "Sending firewall config update for location {location} affected by adding new device {}, user {}({})",
+                        "Sending firewall config update for location {location} affected by \
+                        adding new device {}, user {}({})",
                         device.wireguard_pubkey, user.username, user.id
                     );
                     self.send_wireguard_event(GatewayEvent::FirewallConfigChanged(

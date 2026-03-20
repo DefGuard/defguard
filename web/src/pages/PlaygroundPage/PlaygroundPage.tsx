@@ -125,15 +125,12 @@ export const PlaygroundPage = () => {
         <SizedBox height={1} width={600} />
         <CodeSnippet
           value={`services:
-  defguard-gateway:
-    image: ghcr.io/defguard/defguard-proxy:latest
-    restart: unless-stopped
-    network_mode: host
-    # If you prefer only one port:
-    #ports:
-    #  - "50066:50066"
+  gateway:
+    image: ghcr.io/defguard/gateway:latest
+    cap_add:
+      - NET_ADMIN
     volumes:
-      - ./certs:/certs`}
+      - ./.volumes/certs/gateway:/etc/defguard/certs`}
         />
       </Card>
       <Divider spacing={ThemeSpacing.Sm} />

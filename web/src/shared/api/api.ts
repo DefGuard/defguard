@@ -34,6 +34,7 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
+  CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
   CreateCARequest,
@@ -74,7 +75,6 @@ import type {
   LoginResponse,
   LoginResponseBasic,
   MfaCompleteResponse,
-  MigrationGeneralConfigRequest,
   MigrationWizardApiState,
   NetworkDevice,
   NetworkLocation,
@@ -326,6 +326,7 @@ const api = {
       }),
   },
   location: {
+    getCount: () => client.get<CountResponse>(`/network/count`),
     getLocationsDisplay: () => client.get<ResourceDisplay[]>(`/network/display`),
     deleteLocation: (locationId: number) => client.delete(`/network/${locationId}`),
     getLocationsSummary: (from?: number) =>
@@ -533,8 +534,6 @@ const api = {
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },
-    setGeneralConfig: (data: MigrationGeneralConfigRequest) =>
-      client.post(`/migration/general_config`, data),
   },
   checkLicense: (data: { license: string }) =>
     client.post<LicenseCheckResponse>('/license/check', data),

@@ -2,11 +2,13 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { queryClient } from '../../../app/query';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type {
   MigrationWizardApiState,
   MigrationWizardLocationState,
 } from '../../../shared/api/types';
+import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import { getMigrationStateQueryOptions } from '../../../shared/query';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import {
@@ -18,9 +20,6 @@ import {
 interface StoreValues extends MigrationWizardApiState {
   // general config
   defguard_url: string;
-  default_admin_group_name: string;
-  default_authentication_period_days: number;
-  default_mfa_code_timeout_seconds: number;
   public_proxy_url: string;
   // ca
   ca_common_name: string;
@@ -48,18 +47,15 @@ const defaults: StoreValues = {
   current_step: MigrationWizardStep.General,
   location_state: null,
   defguard_url: '',
-  default_admin_group_name: '',
-  default_authentication_period_days: 7,
-  default_mfa_code_timeout_seconds: 60,
   public_proxy_url: '',
-  ca_common_name: '',
+  ca_common_name: m.migration_wizard_ca_placeholder_common_name(),
   ca_email: '',
   ca_validity_period_years: 5,
   ca_cert_file: null,
   ca_option: null,
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50051,
+  grpc_port: edgeDefaultGrpcPort,
   edgeAdoptionState: edgeAdoptionStateDefaults,
 };
 

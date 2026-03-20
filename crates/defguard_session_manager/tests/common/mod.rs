@@ -11,7 +11,7 @@ use defguard_common::{
             Device, DeviceType, User, WireguardNetwork,
             device::WireguardNetworkDevice,
             gateway::Gateway,
-            vpn_client_session::{VpnClientMfaMethod, VpnClientSession},
+            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             vpn_session_stats::VpnSessionStats,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -85,6 +85,10 @@ impl SessionManagerHarness {
             .expect("failed to send peer stats update");
     }
 
+    pub(crate) fn close_event_channel(&mut self) {
+        self.event_rx.close();
+    }
+
     pub(crate) async fn run_iteration(&mut self) -> IterationOutcome {
         let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
         run_session_manager_iteration(
@@ -118,24 +122,21 @@ pub(crate) async fn create_location_with_mfa_mode(
 ) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
         "TestNet".to_string(),
-        vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)), 24).unwrap()],
         51820,
         "10.0.0.1".to_string(),
         None,
-        1420,
-        0,
         vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         true,
-        25,
-        300,
         false,
         false,
         location_mfa_mode,
         ServiceLocationMode::Disabled,
     )
+    .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 24).unwrap()])
+    .unwrap()
     .save(pool)
     .await
-    .expect("failed to create Wireguard location")
+    .expect("failed to create WireGuard location")
 }
 
 pub(crate) async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
@@ -178,7 +179,7 @@ pub(crate) async fn attach_device_to_location(pool: &sqlx::PgPool, location_id: 
     let network_device = WireguardNetworkDevice::new(
         location_id,
         device_id,
-        vec![IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))],
+        [IpAddr::V4(Ipv4Addr::new(10, 0, 0, 10))],
     );
     network_device
         .insert(pool)
@@ -215,20 +216,23 @@ pub(crate) async fn create_gateway_named(
 pub(crate) async fn authorize_device_in_location(
     pool: &sqlx::PgPool,
     location_id: Id,
+    user_id: Id,
     device_id: Id,
     preshared_key: &str,
-) {
-    let mut network_device = WireguardNetworkDevice::find(pool, device_id, location_id)
+) -> VpnClientSession<Id> {
+    let mut session = VpnClientSession::new(
+        location_id,
+        user_id,
+        device_id,
+        Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
+        Some(VpnClientMfaMethod::Totp),
+    );
+    session.preshared_key = Some(preshared_key.to_string());
+    session.state = VpnClientSessionState::Connected;
+    session
+        .save(pool)
         .await
-        .expect("failed to load device network info")
-        .expect("expected device network info");
-    network_device.is_authorized = true;
-    network_device.authorized_at = Some(chrono::Utc::now().naive_utc());
-    network_device.preshared_key = Some(preshared_key.to_string());
-    network_device
-        .update(pool)
-        .await
-        .expect("failed to authorize device in location");
+        .expect("failed to create authorized session")
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -276,8 +280,12 @@ pub(crate) async fn create_session(
     device_id: Id,
     connected_at: Option<NaiveDateTime>,
     mfa_method: Option<VpnClientMfaMethod>,
+    preshared_key: Option<&str>,
 ) -> VpnClientSession<Id> {
-    VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method)
+    let mut session =
+        VpnClientSession::new(location_id, user_id, device_id, connected_at, mfa_method);
+    session.preshared_key = preshared_key.map(str::to_owned);
+    session
         .save(pool)
         .await
         .expect("failed to create vpn client session")

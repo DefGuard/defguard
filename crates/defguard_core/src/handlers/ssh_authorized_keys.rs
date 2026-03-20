@@ -7,7 +7,7 @@ use defguard_common::db::{
     Id,
     models::{AuthenticationKey, AuthenticationKeyType, User, group::Group},
 };
-use sqlx::{Error as SqlxError, PgExecutor, PgPool, query};
+use sqlx::{PgExecutor, PgPool, query};
 use ssh_key::PublicKey;
 
 use super::{ApiResponse, ApiResult, user_for_admin_or_self};
@@ -31,7 +31,7 @@ pub(crate) struct AuthenticationKeyInfo {
 }
 
 impl AuthenticationKeyInfo {
-    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> Result<Vec<Self>, SqlxError>
+    pub async fn find_by_user_id<'e, E>(executor: E, user_id: Id) -> sqlx::Result<Vec<Self>>
     where
         E: PgExecutor<'e>,
     {

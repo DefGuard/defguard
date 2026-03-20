@@ -1,6 +1,7 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { edgeDefaultGrpcPort } from '../../shared/constants';
 import { type EdgeAdoptionState, EdgeSetupStep, type EdgeSetupStepValue } from './types';
 
 type StoreValues = {
@@ -35,7 +36,7 @@ const defaults: StoreValues = {
   isOnWelcomePage: true,
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50051,
+  grpc_port: edgeDefaultGrpcPort,
   edgeAdoptionState: edgeAdoptionStateDefaults,
 };
 
