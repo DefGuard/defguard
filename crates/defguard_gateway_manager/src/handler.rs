@@ -8,6 +8,9 @@ use std::{
     },
 };
 
+#[cfg(test)]
+use std::path::PathBuf;
+
 use chrono::{DateTime, TimeDelta};
 use defguard_common::{
     VERSION,
@@ -26,7 +29,6 @@ use defguard_core::{
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     location_management::allowed_peers::get_location_allowed_peers,
 };
-#[cfg(not(test))]
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
@@ -36,7 +38,6 @@ use defguard_proto::{
     },
 };
 use defguard_version::client::ClientVersionInterceptor;
-#[cfg(not(test))]
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
 use semver::Version;
@@ -54,8 +55,30 @@ use tonic::{Code, Status, transport::Endpoint};
 
 use crate::{Client, TEN_SECS, error::GatewayError};
 
+#[cfg(test)]
+use crate::GatewayManagerTestSupport;
+
+#[cfg(test)]
+#[derive(Debug, Default)]
+struct GatewayTestTransport {
+    socket_path: Option<PathBuf>,
+}
+
+#[cfg(test)]
+impl GatewayTestTransport {
+    fn with_socket_path(socket_path: PathBuf) -> Self {
+        Self {
+            socket_path: Some(socket_path),
+        }
+    }
+
+    fn socket_path(&self) -> Option<&PathBuf> {
+        self.socket_path.as_ref()
+    }
+}
+
 /// One instance per connected Gateway.
-pub(super) struct GatewayHandler {
+pub(crate) struct GatewayHandler {
     // Gateway server endpoint URL.
     url: Url,
     gateway: Gateway<Id>,
@@ -64,6 +87,10 @@ pub(super) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    #[cfg(test)]
+    test_transport: GatewayTestTransport,
+    #[cfg(test)]
+    test_support: Option<GatewayManagerTestSupport>,
 }
 
 impl GatewayHandler {
@@ -89,7 +116,104 @@ impl GatewayHandler {
             events_tx,
             peer_stats_tx,
             certs_rx,
+            #[cfg(test)]
+            test_transport: GatewayTestTransport::default(),
+            #[cfg(test)]
+            test_support: None,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_with_test_socket(
+        gateway: Gateway<Id>,
+        pool: PgPool,
+        events_tx: Sender<GatewayEvent>,
+        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+        socket_path: PathBuf,
+    ) -> Result<Self, GatewayError> {
+        let mut handler = Self::new(gateway, pool, events_tx, peer_stats_tx, certs_rx)?;
+        handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
+        Ok(handler)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn attach_test_support(&mut self, test_support: GatewayManagerTestSupport) {
+        self.test_support = Some(test_support);
+    }
+
+    #[cfg(test)]
+    fn note_handler_connection_attempt_for_tests(&self) {
+        if let Some(test_support) = &self.test_support {
+            test_support.note_handler_connection_attempt(self.gateway.id);
+        }
+    }
+
+    #[cfg(not(test))]
+    fn note_handler_connection_attempt_for_tests(&self) {}
+
+    #[cfg(test)]
+    fn handler_retry_delay(&self) -> std::time::Duration {
+        self.test_support
+            .as_ref()
+            .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
+    }
+
+    #[cfg(not(test))]
+    fn handler_retry_delay(&self) -> std::time::Duration {
+        TEN_SECS
+    }
+
+    #[cfg(test)]
+    fn connect_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        if let Some(socket_path) = self.test_transport.socket_path().cloned() {
+            return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
+                move |_: tonic::transport::Uri| {
+                    let socket_path = socket_path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                            tokio::net::UnixStream::connect(socket_path).await?,
+                        ))
+                    }
+                },
+            )));
+        }
+
+        self.connect_tls_channel(endpoint)
+    }
+
+    #[cfg(not(test))]
+    fn connect_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        self.connect_tls_channel(endpoint)
+    }
+
+    fn connect_tls_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        let settings = Settings::get_current_settings();
+        let Some(ca_cert_der) = settings.ca_cert_der else {
+            return Err(GatewayError::EndpointError(
+                "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+            ));
+        };
+        let tls_config =
+            tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
+                .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
+        let connector = HttpsConnectorBuilder::new()
+            .with_tls_config(tls_config)
+            .https_only()
+            .enable_http2()
+            .build();
+        let connector = HttpsSchemeConnector::new(connector);
+
+        Ok(endpoint.connect_with_connector_lazy(connector))
     }
 
     fn endpoint(&self) -> Result<Endpoint, GatewayError> {
@@ -247,178 +371,220 @@ impl GatewayHandler {
         });
     }
 
+    async fn mark_disconnected(&mut self) {
+        if let Err(err) = self.gateway.touch_disconnected(&self.pool).await {
+            error!(
+                "Failed to update disconnection time for {} in the database: {err}",
+                self.gateway
+            );
+        }
+    }
+
+    async fn handle_disconnection_error(&mut self) {
+        if self.gateway.is_connected() {
+            self.send_disconnect_notification().await;
+        }
+
+        self.mark_disconnected().await;
+    }
+
+    async fn mark_connected_and_maybe_notify(&mut self, network_name: &str) {
+        if let Err(err) = self.gateway.touch_connected(&self.pool).await {
+            error!(
+                "Failed to update connection time for {} in the database: {err}",
+                self.gateway
+            );
+            return;
+        }
+
+        self.send_reconnect_notification(network_name.to_owned());
+    }
+
+    fn remove_client(&self, clients: &Arc<Mutex<HashMap<Id, Client>>>) {
+        clients
+            .lock()
+            .expect("GatewayHandler failed to lock clients")
+            .remove(&self.gateway.id);
+    }
+
+    async fn handle_stream_disconnection(
+        &mut self,
+        clients: &Arc<Mutex<HashMap<Id, Client>>>,
+        retry_on_connect_failure: bool,
+        retry_delay: std::time::Duration,
+    ) {
+        self.remove_client(clients);
+        self.handle_disconnection_error().await;
+
+        if !retry_on_connect_failure {
+            return;
+        }
+
+        debug!("Waiting {retry_delay:?} to re-establish the connection");
+        sleep(retry_delay).await;
+    }
+
+    async fn handle_connection_iteration(
+        &mut self,
+        clients: Arc<Mutex<HashMap<Id, Client>>>,
+        retry_on_connect_failure: bool,
+    ) -> Result<(), GatewayError> {
+        let endpoint = self.endpoint()?;
+        let uri = endpoint.uri().to_string();
+
+        let channel = self.connect_channel(endpoint)?;
+
+        debug!("Connecting to Gateway {uri}");
+        let interceptor = ClientVersionInterceptor::new(
+            Version::parse(VERSION).expect("failed to parse self version"),
+        );
+        let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
+        self.note_handler_connection_attempt_for_tests();
+        let (tx, rx) = mpsc::unbounded_channel();
+        let retry_delay = self.handler_retry_delay();
+        let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
+            Ok(response) => response,
+            Err(err) => {
+                error!("Failed to connect to Gateway {uri}, retrying: {err}");
+                if retry_on_connect_failure {
+                    sleep(retry_delay).await;
+                    return Ok(());
+                }
+
+                return Err(err.into());
+            }
+        };
+        let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
+        let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
+
+        if let Some(mut gateway) = Gateway::find_by_id(&self.pool, self.gateway.id).await? {
+            gateway.version = Some(version.to_string());
+            gateway.save(&self.pool).await?;
+        }
+
+        clients
+            .lock()
+            .expect("GatewayHandler failed to lock clients")
+            .insert(self.gateway.id, client.clone());
+        info!("Connected to Defguard Gateway {uri}");
+
+        let mut resp_stream = response.into_inner();
+        let mut config_sent = false;
+
+        loop {
+            match resp_stream.message().await {
+                Ok(None) => {
+                    info!("Stream was closed by the sender.");
+                    self.handle_stream_disconnection(
+                        &clients,
+                        retry_on_connect_failure,
+                        retry_delay,
+                    )
+                    .await;
+                    return Ok(());
+                }
+                Ok(Some(received)) => {
+                    info!("Received message from Gateway.");
+                    debug!("Message from Gateway {uri}");
+
+                    match received.payload {
+                        Some(core_request::Payload::ConfigRequest(_config_request)) => {
+                            if config_sent {
+                                warn!(
+                                    "Ignoring repeated configuration request from {}",
+                                    self.gateway
+                                );
+                                continue;
+                            }
+
+                            match self.send_configuration(&tx).await {
+                                Ok(network) => {
+                                    info!("Sent configuration to {}", self.gateway);
+                                    config_sent = true;
+                                    self.mark_connected_and_maybe_notify(&network.name).await;
+                                    let mut updates_handler = GatewayUpdatesHandler::new(
+                                        self.gateway.location_id,
+                                        network,
+                                        self.gateway.name.clone(),
+                                        self.events_tx.subscribe(),
+                                        tx.clone(),
+                                    );
+                                    tokio::spawn(async move {
+                                        updates_handler.run().await;
+                                    });
+                                }
+                                Err(err) => {
+                                    error!(
+                                        "Failed to send configuration to {}: {err}",
+                                        self.gateway
+                                    );
+                                }
+                            }
+                        }
+                        Some(core_request::Payload::PeerStats(peer_stats)) => {
+                            if !config_sent {
+                                warn!(
+                                    "Ignoring peer statistics from {} because it hasn't \
+                                    authorized itself",
+                                    self.gateway
+                                );
+                                continue;
+                            }
+
+                            match try_protos_into_stats_message(
+                                peer_stats.clone(),
+                                self.gateway.location_id,
+                                self.gateway.id,
+                            ) {
+                                None => {
+                                    warn!(
+                                        "Failed to parse peer stats update. Skipping sending \
+                                        message to session manager."
+                                    );
+                                }
+                                Some(message) => {
+                                    if let Err(err) = self.peer_stats_tx.send(message) {
+                                        error!(
+                                            "Failed to send peers stats update to session manager: {err}"
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        None => (),
+                    }
+                }
+                Err(err) => {
+                    error!("Disconnected from Gateway at {uri}, error: {err}");
+                    self.handle_stream_disconnection(
+                        &clients,
+                        retry_on_connect_failure,
+                        retry_delay,
+                    )
+                    .await;
+                    return Ok(());
+                }
+            }
+        }
+    }
+
     /// Connect to Gateway and handle its messages through gRPC.
     pub(super) async fn handle_connection(
         &mut self,
         clients: Arc<Mutex<HashMap<Id, Client>>>,
     ) -> Result<(), GatewayError> {
-        #[cfg(test)]
-        let _ = &self.certs_rx;
-        let endpoint = self.endpoint()?;
-        let uri = endpoint.uri().to_string();
         loop {
-            #[cfg(not(test))]
-            let channel = {
-                let settings = Settings::get_current_settings();
-                let Some(ca_cert_der) = settings.ca_cert_der else {
-                    return Err(GatewayError::EndpointError(
-                        "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
-                    ));
-                };
-                let tls_config =
-                    tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
-                        .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
-                let connector = HttpsConnectorBuilder::new()
-                    .with_tls_config(tls_config)
-                    .https_only()
-                    .enable_http2()
-                    .build();
-                let connector = HttpsSchemeConnector::new(connector);
-                endpoint.connect_with_connector_lazy(connector)
-            };
-            #[cfg(test)]
-            let channel = endpoint.connect_with_connector_lazy(tower::service_fn(
-                |_: tonic::transport::Uri| async {
-                    Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                        tokio::net::UnixStream::connect(super::TONIC_SOCKET).await?,
-                    ))
-                },
-            ));
-
-            debug!("Connecting to Gateway {uri}");
-            let interceptor = ClientVersionInterceptor::new(
-                Version::parse(VERSION).expect("failed to parse self version"),
-            );
-            let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
-            clients
-                .lock()
-                .expect("GatewayHandler failed to lock clients")
-                .insert(self.gateway.id, client.clone());
-            let (tx, rx) = mpsc::unbounded_channel();
-            let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
-                Ok(response) => response,
-                Err(err) => {
-                    error!("Failed to connect to Gateway {uri}, retrying: {err}");
-                    sleep(TEN_SECS).await;
-                    continue;
-                }
-            };
-            info!("Connected to Defguard Gateway {uri}");
-
-            let maybe_info = defguard_version::ComponentInfo::from_metadata(response.metadata());
-            let (version, _info) = defguard_version::get_tracing_variables(&maybe_info);
-
-            if let Some(mut gateway) = Gateway::find_by_id(&self.pool, self.gateway.id).await? {
-                gateway.version = Some(version.to_string());
-                gateway.save(&self.pool).await?;
-            }
-
-            let mut resp_stream = response.into_inner();
-            let mut config_sent = false;
-
-            'message: loop {
-                match resp_stream.message().await {
-                    Ok(None) => {
-                        info!("Stream was closed by the sender.");
-                        break 'message;
-                    }
-                    Ok(Some(received)) => {
-                        info!("Received message from Gateway.");
-                        debug!("Message from Gateway {uri}");
-
-                        match received.payload {
-                            Some(core_request::Payload::ConfigRequest(_config_request)) => {
-                                if config_sent {
-                                    warn!(
-                                        "Ignoring repeated configuration request from {}",
-                                        self.gateway
-                                    );
-                                    continue;
-                                }
-
-                                // Send network configuration to Gateway.
-                                match self.send_configuration(&tx).await {
-                                    Ok(network) => {
-                                        info!("Sent configuration to {}", self.gateway);
-                                        config_sent = true;
-                                        match self.gateway.touch_connected(&self.pool).await {
-                                            Ok(()) => {
-                                                self.send_reconnect_notification(
-                                                    network.name.clone(),
-                                                );
-                                            }
-                                            Err(err) => {
-                                                error!(
-                                                    "Failed to update connection time for {} in the database: {err}",
-                                                    self.gateway
-                                                );
-                                            }
-                                        }
-                                        let mut updates_handler = GatewayUpdatesHandler::new(
-                                            self.gateway.location_id,
-                                            network,
-                                            self.gateway.name.clone(),
-                                            self.events_tx.subscribe(),
-                                            tx.clone(),
-                                        );
-                                        tokio::spawn(async move {
-                                            updates_handler.run().await;
-                                        });
-                                    }
-                                    Err(err) => {
-                                        error!(
-                                            "Failed to send configuration to {}: {err}",
-                                            self.gateway
-                                        );
-                                    }
-                                }
-                            }
-                            Some(core_request::Payload::PeerStats(peer_stats)) => {
-                                if !config_sent {
-                                    warn!(
-                                        "Ignoring peer statistics from {} because it hasn't \
-                                        authorized itself",
-                                        self.gateway
-                                    );
-                                    continue;
-                                }
-
-                                // convert stats to DB storage format
-                                match try_protos_into_stats_message(
-                                    peer_stats.clone(),
-                                    self.gateway.location_id,
-                                    self.gateway.id,
-                                ) {
-                                    None => {
-                                        warn!(
-                                            "Failed to parse peer stats update. Skipping sending \
-                                            message to session manager."
-                                        );
-                                    }
-                                    Some(message) => {
-                                        if let Err(err) = self.peer_stats_tx.send(message) {
-                                            error!(
-                                                "Failed to send peers stats update to session manager: {err}"
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                            None => (),
-                        }
-                    }
-                    Err(err) => {
-                        error!("Disconnected from Gateway at {uri}, error: {err}");
-                        // Important: call this funtion before setting disconnection time.
-                        self.send_disconnect_notification().await;
-                        let _ = self.gateway.touch_disconnected(&self.pool).await;
-                        debug!("Waiting 10s to re-establish the connection");
-                        sleep(TEN_SECS).await;
-                        break 'message;
-                    }
-                }
-            }
+            self.handle_connection_iteration(Arc::clone(&clients), true)
+                .await?;
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
+        let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
+        self.handle_connection_iteration(clients, false)
+            .await
+            .map_err(anyhow::Error::from)
     }
 }
 
@@ -847,8 +1013,8 @@ fn try_protos_into_stats_message(
     ))
 }
 
-fn gen_config(
-    network: &WireguardNetwork<Id>,
+fn gen_config<I>(
+    network: &WireguardNetwork<I>,
     peers: Vec<Peer>,
     maybe_firewall_config: Option<FirewallConfig>,
 ) -> Configuration {
@@ -868,7 +1034,7 @@ fn gen_config(
 mod tests {
     use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
 
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
     use defguard_common::db::{
         Id,
         models::{
@@ -881,11 +1047,14 @@ mod tests {
         setup_pool,
     };
     use defguard_core::grpc::GatewayEvent;
-    use defguard_proto::gateway::core_response;
+    use defguard_proto::gateway::{Peer, PeerStats, core_response};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
-    use super::{GatewayHandler, GatewayUpdatesHandler};
+    use super::{
+        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, gen_config,
+        try_protos_into_stats_message,
+    };
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
         WireguardNetwork::new(
@@ -901,6 +1070,139 @@ mod tests {
             ServiceLocationMode::Disabled,
         )
         .with_id(1)
+    }
+
+    fn build_peer_stats(endpoint: &str) -> PeerStats {
+        PeerStats {
+            public_key: "peer-public-key".to_string(),
+            endpoint: endpoint.to_string(),
+            upload: 123,
+            download: 456,
+            keepalive_interval: 25,
+            latest_handshake: 1_700_000_000,
+            allowed_ips: "10.10.0.2/32".to_string(),
+        }
+    }
+
+    fn build_network() -> WireguardNetwork<Id> {
+        let mut network = WireguardNetwork::new(
+            "test-network".to_string(),
+            51820,
+            "198.51.100.10".to_string(),
+            Some("1.1.1.1".to_string()),
+            ["0.0.0.0/0".parse().expect("valid allowed IP network")],
+            false,
+            false,
+            false,
+            LocationMfaMode::default(),
+            ServiceLocationMode::default(),
+        )
+        .set_address([
+            "10.10.0.1/24".parse().expect("valid IPv4 network"),
+            "fd00::1/64".parse().expect("valid IPv6 network"),
+        ])
+        .expect("valid network addresses")
+        .with_id(1);
+        network.pubkey = "network-public-key".to_string();
+        network.prvkey = "network-private-key".to_string();
+        network.mtu = 1420;
+        network.fwmark = 4321;
+        network.keepalive_interval = 25;
+        network.peer_disconnect_threshold = 180;
+        network
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_maps_valid_peer_stats() {
+        let stats = try_protos_into_stats_message(build_peer_stats("203.0.113.10:51820"), 11, 22)
+            .expect("valid peer stats should be converted");
+
+        assert_eq!(stats.location_id, 11);
+        assert_eq!(stats.gateway_id, 22);
+        assert_eq!(stats.device_pubkey, "peer-public-key");
+        assert_eq!(stats.endpoint.to_string(), "203.0.113.10:51820");
+        assert_eq!(stats.upload, 123);
+        assert_eq!(stats.download, 456);
+        assert_eq!(
+            stats.latest_handshake,
+            DateTime::from_timestamp(1_700_000_000, 0)
+                .expect("valid handshake timestamp")
+                .naive_utc()
+        );
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_rejects_invalid_endpoint() {
+        let stats = try_protos_into_stats_message(build_peer_stats("not-a-socket-address"), 11, 22);
+
+        assert!(stats.is_none());
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_falls_back_to_default_timestamp() {
+        let stats = try_protos_into_stats_message(
+            PeerStats {
+                latest_handshake: i64::MAX as u64,
+                ..build_peer_stats("203.0.113.10:51820")
+            },
+            11,
+            22,
+        )
+        .expect("valid endpoint should still produce stats");
+
+        assert_eq!(
+            stats.latest_handshake,
+            DateTime::<Utc>::default().naive_utc()
+        );
+    }
+
+    #[test]
+    fn gen_config_maps_network_fields() {
+        let config = gen_config(
+            &build_network(),
+            vec![Peer {
+                pubkey: "peer-public-key".to_string(),
+                allowed_ips: vec!["10.10.0.2/32".to_string()],
+                preshared_key: Some("peer-preshared-key".to_string()),
+                keepalive_interval: Some(25),
+            }],
+            Some(FirewallConfig {
+                default_policy: 0,
+                rules: Vec::new(),
+                snat_bindings: Vec::new(),
+            }),
+        );
+
+        assert_eq!(config.name, "test-network");
+        assert_eq!(config.port, 51820);
+        assert_eq!(config.prvkey, "network-private-key");
+        assert_eq!(config.addresses, vec!["10.10.0.1/24", "fd00::1/64"]);
+        assert_eq!(config.mtu, 1420);
+        assert_eq!(config.fwmark, 4321);
+
+        let peer = config
+            .peers
+            .first()
+            .expect("generated config should include peer");
+        assert_eq!(peer.pubkey, "peer-public-key");
+        assert_eq!(peer.allowed_ips, vec!["10.10.0.2/32"]);
+        assert_eq!(peer.preshared_key.as_deref(), Some("peer-preshared-key"));
+        assert_eq!(peer.keepalive_interval, Some(25));
+
+        let firewall_config = config
+            .firewall_config
+            .expect("generated config should include firewall config");
+        assert_eq!(firewall_config.default_policy, 0);
+        assert!(firewall_config.rules.is_empty());
+        assert!(firewall_config.snat_bindings.is_empty());
+    }
+
+    #[test]
+    fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
+        let config = gen_config(&build_network(), Vec::new(), None);
+
+        assert!(config.peers.is_empty());
+        assert!(config.firewall_config.is_none());
     }
 
     fn test_handler(location_mfa_mode: LocationMfaMode) -> GatewayUpdatesHandler {

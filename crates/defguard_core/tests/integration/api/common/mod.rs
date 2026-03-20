@@ -2,7 +2,7 @@ pub(crate) mod client;
 
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 
 use axum_extra::extract::cookie::Key;
@@ -31,6 +31,7 @@ use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
+        Mutex as AsyncMutex, OwnedMutexGuard,
         broadcast::{self, Receiver},
         mpsc::{channel, unbounded_channel},
     },
@@ -57,6 +58,16 @@ pub(crate) struct ClientState {
     pub config: DefGuardConfig,
 }
 
+static API_TEST_LOCK: OnceLock<Arc<AsyncMutex<()>>> = OnceLock::new();
+
+pub(crate) async fn acquire_api_test_guard() -> OwnedMutexGuard<()> {
+    API_TEST_LOCK
+        .get_or_init(|| Arc::new(AsyncMutex::new(())))
+        .clone()
+        .lock_owned()
+        .await
+}
+
 impl ClientState {
     pub fn new(
         pool: PgPool,
@@ -79,6 +90,7 @@ pub(crate) async fn make_base_client(
     pool: PgPool,
     config: DefGuardConfig,
     listener: TcpListener,
+    test_guard: OwnedMutexGuard<()>,
 ) -> (TestClient, ClientState) {
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (tx, rx) = unbounded_channel::<AppEvent>();
@@ -146,12 +158,13 @@ pub(crate) async fn make_base_client(
     );
 
     (
-        TestClient::new(webapp, listener, api_event_rx),
+        TestClient::new(webapp, listener, api_event_rx, test_guard),
         client_state,
     )
 }
 
 pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) {
+    let test_guard = acquire_api_test_guard().await;
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
     let listener = TcpListener::bind(addr)
         .await
@@ -162,7 +175,7 @@ pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) 
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");
-    make_base_client(pool, config, listener).await
+    make_base_client(pool, config, listener, test_guard).await
 }
 
 pub(crate) async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {

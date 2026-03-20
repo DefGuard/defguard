@@ -10,8 +10,14 @@ pub mod limits;
 pub mod snat;
 mod utils;
 
+#[cfg(test)]
+use std::sync::{Arc, OnceLock};
+
 use license::{get_cached_license, validate_license};
 use limits::get_counts;
+
+#[cfg(test)]
+use tokio::sync::Mutex;
 
 use crate::enterprise::license::LicenseTier;
 
@@ -38,6 +44,15 @@ fn is_license_tier_active(tier: LicenseTier) -> bool {
     let validation_result = validate_license(license.as_ref(), &counts, tier);
     debug!("License validation result: {validation_result:?}");
     validation_result.is_ok()
+}
+
+#[cfg(test)]
+pub(crate) fn test_state_lock() -> Arc<Mutex<()>> {
+    static TEST_STATE_LOCK: OnceLock<Arc<Mutex<()>>> = OnceLock::new();
+
+    TEST_STATE_LOCK
+        .get_or_init(|| Arc::new(Mutex::new(())))
+        .clone()
 }
 
 #[cfg(test)]

@@ -16,6 +16,7 @@ use common::{init_settings_with_secret_key, make_migration_test_client, make_set
 
 #[sqlx::test]
 async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOptions) {
+    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -24,7 +25,7 @@ async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOpti
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
 
     let resp = client
         .get("/api/v1/session-info")
@@ -80,6 +81,7 @@ async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOpti
 
 #[sqlx::test]
 async fn test_session_info_auto_adoption_wizard(_: PgPoolOptions, options: PgConnectOptions) {
+    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -89,7 +91,7 @@ async fn test_session_info_auto_adoption_wizard(_: PgPoolOptions, options: PgCon
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
 
     let resp = client
         .get("/api/v1/session-info")
@@ -107,6 +109,7 @@ async fn test_session_info_auto_adoption_wizard(_: PgPoolOptions, options: PgCon
 
 #[sqlx::test]
 async fn test_session_info_migration_server(_: PgPoolOptions, options: PgConnectOptions) {
+    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     init_settings_with_secret_key(&pool).await;
 
@@ -137,7 +140,8 @@ async fn test_session_info_migration_server(_: PgPoolOptions, options: PgConnect
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx, _webapp) = make_migration_test_client(pool.clone()).await;
+    let (client, _shutdown_rx, _webapp) =
+        make_migration_test_client(pool.clone(), test_guard).await;
 
     let resp = client
         .get("/api/v1/session-info")
