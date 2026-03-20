@@ -23,6 +23,8 @@ export const getLicenseState = (
     return null;
   }
 
+  return 'gracePeriod';
+
   if (licenseInfo === null) {
     return 'noLicense';
   }

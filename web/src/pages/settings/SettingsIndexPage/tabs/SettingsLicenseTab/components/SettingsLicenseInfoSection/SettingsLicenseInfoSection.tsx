@@ -29,9 +29,9 @@ export const SettingsLicenseInfoSection = ({
   licenseState,
 }: Props) => {
   const licenseTier = license.tier;
-  // In the settings UI, grace period should use the expired badge.
-  const isExpired = licenseState === 'gracePeriod' || licenseState === 'expiredLicense';
-
+  const isGracePeriod = licenseState === 'gracePeriod';
+  const isExpired = licenseState === 'expiredLicense';
+  const isValid = licenseState === 'validBusiness' || licenseState === 'validEnterprise';
   return (
     <div className="license-general-info">
       <div className="top">
@@ -39,8 +39,9 @@ export const SettingsLicenseInfoSection = ({
           {isPresent(licenseTier) && (
             <>
               <p>{licenseTier}</p>
-              {isExpired && <Badge variant="critical" text={m.misc_disabled()} />}
-              {!isExpired && <Badge variant="success" text={m.misc_active()} />}
+              {isExpired && <Badge variant="critical" text={m.misc_expired()} />}
+              {isGracePeriod && <Badge variant="warning" text={m.misc_expired()} />}
+              {isValid && <Badge variant="success" text={m.misc_active()} />}
             </>
           )}
           {!isPresent(licenseTier) && (
@@ -70,7 +71,7 @@ export const SettingsLicenseInfoSection = ({
           <SizedBox height={ThemeSpacing.Xl} />
           <InfoBanner
             icon="warning-filled"
-            text={m.settings_license_grace_period_banner({ tier: license.tier })}
+            text={m.settings_license_expired_banner({ tier: license.tier })}
             variant="warning"
           />
         </>
