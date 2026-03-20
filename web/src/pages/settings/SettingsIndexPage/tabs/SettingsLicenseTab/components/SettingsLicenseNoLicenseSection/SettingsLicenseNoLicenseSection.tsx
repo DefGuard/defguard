@@ -21,7 +21,7 @@ export const SettingsLicenseNoLicenseSection = () => {
           rel="noreferrer noopener"
           target="_blank"
         >
-          {m.settings_license_select_plan()}
+          {m.settings_license_compare_our_plans()}
         </ExternalLink>
       </header>
       <SizedBox height={ThemeSpacing.Xl3} />
@@ -81,10 +81,7 @@ export const SettingsLicenseNoLicenseSection = () => {
                 rel="noreferrer noopener"
                 target="_blank"
               >
-                <Button
-                  variant="outlined"
-                  text={m.contact_sales()}
-                />
+                <Button variant="outlined" text={m.contact_sales()} />
               </a>
             </div>
           </div>

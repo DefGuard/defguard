@@ -59,7 +59,7 @@
   "settings_license_enter_button": "Enter license",
   "settings_license_choose_plan_title": "Choose plan that matches your needs",
   "settings_license_expand_plan_title": "Expand your possibilities with advanced plans",
-  "settings_license_select_plan": "Select your plan",
+  "settings_license_compare_our_plans": "Compare our plans",
   "settings_license_plan_business_title": "Business",
   "settings_license_plan_business_badge": "Most popular",
   "settings_license_plan_business_description": "External SSO & SIEM integration, LDAP/Active Directory, Firewall Management,  REST API, Real-time clients configuration updates and more!",
