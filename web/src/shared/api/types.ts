@@ -1190,7 +1190,7 @@ export interface ActivityLogEvent {
   user_id: number;
   username: string;
   location?: string;
-  ip: string;
+  ip: string | null;
   event: ActivityLogEventTypeValue;
   module: ActivityLogModuleValue;
   device: string;

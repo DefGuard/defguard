@@ -17,7 +17,7 @@ use defguard_common::{
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
 use serde_json::json;
-use sqlx::{Error as SqlxError, PgPool};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use super::{
@@ -134,7 +134,7 @@ pub struct UserDetails {
 }
 
 impl UserDetails {
-    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Self> {
         let devices = user.user_devices(pool).await?;
         let security_keys = user.security_keys(pool).await?;
         let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)

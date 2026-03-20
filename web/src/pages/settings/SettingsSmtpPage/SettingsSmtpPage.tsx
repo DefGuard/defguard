@@ -20,6 +20,7 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { EvenSplit } from '../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import type { SelectOption } from '../../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
@@ -29,7 +30,7 @@ import { ModalName } from '../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
 import { getSettingsQueryOptions } from '../../../shared/query';
-import { validateIpOrDomain } from '../../../shared/validators';
+import { Validate } from '../../../shared/validate';
 import { configuredBadge, notConfiguredBadge } from '../SettingsIndexPage/types';
 import { SendTestEmailModal } from './SendTestEmailModal';
 
@@ -108,7 +109,15 @@ const Content = ({ settings }: { settings: Settings }) => {
           .string()
           .trim()
           .min(1, m.form_error_required())
-          .refine((val) => (!val ? true : validateIpOrDomain(val, false, true))),
+          .refine((val) =>
+            !val
+              ? true
+              : Validate.any(
+                  val,
+                  [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+                  false,
+                ),
+          ),
         smtp_port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
         smtp_password: z.string().trim(),
         smtp_user: z.string().trim(),
@@ -152,16 +161,6 @@ const Content = ({ settings }: { settings: Settings }) => {
     mutationFn: api.settings.patchSettings,
     meta: {
       invalidate: [['settings'], ['info']],
-    },
-  });
-
-  const { mutateAsync: deleteSmtp, isPending: deletePending } = useMutation({
-    mutationFn: () => api.settings.patchSettings(emptyValues),
-    meta: {
-      invalidate: [['settings'], ['info']],
-    },
-    onSuccess: () => {
-      form.reset(emptyValues);
     },
   });
 
@@ -230,9 +229,19 @@ const Content = ({ settings }: { settings: Settings }) => {
                 <Button
                   variant="critical"
                   text="Reset settings"
-                  loading={deletePending}
                   onClick={() => {
-                    deleteSmtp();
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.settings_smtp_reset_confirm_title(),
+                      contentMd: m.settings_smtp_reset_confirm_body(),
+                      actionPromise: () => api.settings.patchSettings(emptyValues),
+                      invalidateKeys: [['settings'], ['info']],
+                      submitProps: { text: m.controls_reset(), variant: 'critical' },
+                      onSuccess: () => {
+                        form.reset(emptyValues);
+                        Snackbar.default(m.settings_smtp_reset_success());
+                      },
+                      onError: () => Snackbar.error(m.settings_smtp_reset_failed()),
+                    });
                   }}
                 />
               )}

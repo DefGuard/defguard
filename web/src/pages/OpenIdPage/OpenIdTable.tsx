@@ -20,6 +20,7 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { useClipboard } from '../../shared/defguard-ui/hooks/useClipboard';
+import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getOpenIdClientQueryOptions } from '../../shared/query';
@@ -143,9 +144,15 @@ export const OpenIdClientTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
-                    openModal(ModalName.DeleteOpenIdClient, {
-                      client_id: row.client_id,
-                      name: row.name,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_openid_client_title(),
+                      contentMd: m.modal_delete_openid_client_body(),
+                      actionPromise: () =>
+                        api.openIdClient.deleteOpenIdClient(row.client_id),
+                      invalidateKeys: [['oauth']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.openid_delete_success()),
+                      onError: () => Snackbar.error(m.openid_delete_failed()),
                     });
                   },
                 },

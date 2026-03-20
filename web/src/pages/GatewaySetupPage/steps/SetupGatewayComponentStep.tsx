@@ -12,7 +12,7 @@ import { formChangeLogic } from '../../../shared/formLogic';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
 import './style.scss';
-import { validateIpOrDomain } from '../../../shared/validators';
+import { Validate } from '../../../shared/validate';
 
 type FormFields = StoreValues;
 
@@ -54,7 +54,13 @@ export const SetupGatewayComponentStep = () => {
         ip_or_domain: z
           .string()
           .min(1, m.edge_setup_component_error_ip_or_domain_required())
-          .refine((val) => validateIpOrDomain(val, false, true)),
+          .refine((val) =>
+            Validate.any(
+              val,
+              [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+              false,
+            ),
+          ),
         grpc_port: z
           .number()
           .min(1, m.edge_setup_component_error_grpc_port_required())
@@ -113,6 +119,7 @@ export const SetupGatewayComponentStep = () => {
               <field.FormInput
                 required
                 label={m.gateway_setup_component_label_grpc_port()}
+                helper={m.gateway_setup_component_label_grpc_port_help()}
                 type="number"
               />
             )}

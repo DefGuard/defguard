@@ -10,7 +10,7 @@ use defguard_common::db::{
 };
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
-use sqlx::{PgConnection, PgPool, error::Error as SqlxError};
+use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
@@ -42,7 +42,7 @@ const REQUEST_PAGINATION_SLOWDOWN: Duration = Duration::from_millis(100);
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {
     #[error("Database error: {0}")]
-    DbError(#[from] SqlxError),
+    DbError(#[from] sqlx::Error),
     #[error(
         "Access token has expired or is not present. An issue may have occured while trying to obtain a new one."
     )]

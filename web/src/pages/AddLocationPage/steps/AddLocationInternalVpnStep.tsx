@@ -22,8 +22,35 @@ const formSchema = z.object({
       (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
       m.form_error_invalid(),
     ),
-  allowed_ips: z.string(m.form_error_required()).trim(),
-  dns: z.string().nullable(),
+  allowed_ips: z
+    .string()
+    .trim()
+    .nullable()
+    .refine((val) => {
+      if (!val) return true;
+      return Validate.any(
+        val,
+        [
+          Validate.IPv4,
+          Validate.IPv6,
+          (v) => Validate.CIDRv4(v, true),
+          (v) => Validate.CIDRv6(v, true),
+        ],
+        true,
+      );
+    }, m.form_error_invalid()),
+  dns: z
+    .string()
+    .trim()
+    .nullable()
+    .refine((val) => {
+      if (!val) return true;
+      return Validate.any(
+        val,
+        [Validate.IPv4, Validate.IPv6, Validate.Domain, Validate.Hostname],
+        true,
+      );
+    }),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -48,6 +75,7 @@ export const AddLocationInternalVpnStep = () => {
     onSubmit: ({ value }) => {
       useAddLocationStore.setState({
         ...value,
+        allowed_ips: value.allowed_ips ?? '',
         activeStep: AddLocationPageStep.NetworkSettings,
       });
     },
@@ -96,6 +124,7 @@ export const AddLocationInternalVpnStep = () => {
                 useAddLocationStore.setState({
                   activeStep: AddLocationPageStep.Start,
                   ...form.state.values,
+                  allowed_ips: form.state.values.allowed_ips ?? '',
                 });
               }}
             />

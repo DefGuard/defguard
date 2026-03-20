@@ -59,7 +59,7 @@ impl VpnSessionStats<Id> {
         executor: E,
         device_id: Id,
         location_id: Id,
-    ) -> Result<Option<Self>, sqlx::Error> {
+    ) -> sqlx::Result<Option<Self>> {
         let maybe_stats = query_as!(
             Self,
             "SELECT st.id, session_id, gateway_id, collected_at, latest_handshake, endpoint, \

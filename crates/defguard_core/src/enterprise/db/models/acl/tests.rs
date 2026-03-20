@@ -1,7 +1,10 @@
 use std::ops::Bound;
 
 use defguard_common::{
-    db::{models::wireguard::DEFAULT_WIREGUARD_MTU, setup_pool},
+    db::{
+        models::wireguard::{LocationMfaMode, ServiceLocationMode},
+        setup_pool,
+    },
     utils::parse_address_list,
 };
 use rand::{Rng, thread_rng};
@@ -150,16 +153,11 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     // create 2 networks
     let network1 = WireguardNetwork::new(
         "network1".to_string(),
-        Vec::new(),
         1000,
         "endpoint1".to_string(),
         None,
-        DEFAULT_WIREGUARD_MTU,
-        0,
         Vec::new(),
         true,
-        100,
-        100,
         false,
         false,
         LocationMfaMode::Disabled,
@@ -170,16 +168,11 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
     let _network2 = WireguardNetwork::new(
         "network2".to_string(),
-        Vec::new(),
         2000,
         "endpoint2".to_string(),
         None,
-        DEFAULT_WIREGUARD_MTU,
-        0,
         Vec::new(),
         true,
-        200,
-        200,
         false,
         false,
         LocationMfaMode::Disabled,

@@ -203,6 +203,7 @@ async fn test_out_of_order_updates_for_existing_db_session_are_discarded(
         device.id,
         Some(first_handshake),
         None,
+        None,
     )
     .await;
     create_session_stats(

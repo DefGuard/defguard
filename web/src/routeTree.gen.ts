@@ -14,7 +14,9 @@ import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthorizedRouteImport } from './routes/_authorized'
 import { Route as R404RouteImport } from './routes/404'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
+import { Route as ErrorMigrationAuthRouteImport } from './routes/error/migration-auth'
 import { Route as AuthMfaRouteImport } from './routes/auth/mfa'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthLoadingRouteImport } from './routes/auth/loading'
@@ -90,10 +92,20 @@ const R404Route = R404RouteImport.update({
   path: '/404',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthRoute,
+} as any)
+const ErrorMigrationAuthRoute = ErrorMigrationAuthRouteImport.update({
+  id: '/error/migration-auth',
+  path: '/error/migration-auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthMfaRoute = AuthMfaRouteImport.update({
   id: '/mfa',
@@ -378,8 +390,8 @@ const AuthorizedDefaultEdgeEdgeIdEditRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
@@ -391,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
+  '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth/': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
@@ -435,8 +448,8 @@ export interface FileRoutesByFullPath {
   '/locations/$locationId/edit': typeof AuthorizedDefaultLocationsLocationIdEditRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/404': typeof R404Route
-  '/': typeof AuthorizedDefaultRouteWithChildren
   '/consent': typeof ConsentRoute
   '/snackbar': typeof SnackbarRoute
   '/playground': typeof AuthorizedPlaygroundRoute
@@ -447,6 +460,7 @@ export interface FileRoutesByTo {
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
+  '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
@@ -492,6 +506,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/404': typeof R404Route
   '/_authorized': typeof AuthorizedRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
@@ -506,6 +521,7 @@ export interface FileRoutesById {
   '/auth/loading': typeof AuthLoadingRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/mfa': typeof AuthMfaRouteWithChildren
+  '/error/migration-auth': typeof ErrorMigrationAuthRoute
   '/auth/': typeof AuthIndexRoute
   '/_authorized/_default/activity': typeof AuthorizedDefaultActivityRoute
   '/_authorized/_default/edges': typeof AuthorizedDefaultEdgesRoute
@@ -552,8 +568,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/404'
     | '/'
+    | '/404'
     | '/auth'
     | '/consent'
     | '/snackbar'
@@ -565,6 +581,7 @@ export interface FileRouteTypes {
     | '/auth/loading'
     | '/auth/login'
     | '/auth/mfa'
+    | '/error/migration-auth'
     | '/auth/'
     | '/activity'
     | '/edges'
@@ -609,8 +626,8 @@ export interface FileRouteTypes {
     | '/locations/$locationId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/404'
     | '/'
+    | '/404'
     | '/consent'
     | '/snackbar'
     | '/playground'
@@ -621,6 +638,7 @@ export interface FileRouteTypes {
     | '/auth/loading'
     | '/auth/login'
     | '/auth/mfa'
+    | '/error/migration-auth'
     | '/auth'
     | '/activity'
     | '/edges'
@@ -665,6 +683,7 @@ export interface FileRouteTypes {
     | '/locations/$locationId/edit'
   id:
     | '__root__'
+    | '/'
     | '/404'
     | '/_authorized'
     | '/auth'
@@ -679,6 +698,7 @@ export interface FileRouteTypes {
     | '/auth/loading'
     | '/auth/login'
     | '/auth/mfa'
+    | '/error/migration-auth'
     | '/auth/'
     | '/_authorized/_default/activity'
     | '/_authorized/_default/edges'
@@ -724,6 +744,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
   AuthorizedRoute: typeof AuthorizedRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
@@ -732,6 +753,7 @@ export interface RootRouteChildren {
   WizardSetupRoute: typeof WizardSetupRoute
   WizardSetupGatewayRoute: typeof WizardSetupGatewayRoute
   WizardSetupLoginRoute: typeof WizardSetupLoginRoute
+  ErrorMigrationAuthRoute: typeof ErrorMigrationAuthRoute
   WizardMigrationLocationsRoute: typeof WizardMigrationLocationsRoute
   WizardMigrationIndexRoute: typeof WizardMigrationIndexRoute
 }
@@ -773,12 +795,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof R404RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/': {
       id: '/auth/'
       path: '/'
       fullPath: '/auth/'
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/error/migration-auth': {
+      id: '/error/migration-auth'
+      path: '/error/migration-auth'
+      fullPath: '/error/migration-auth'
+      preLoaderRoute: typeof ErrorMigrationAuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/mfa': {
       id: '/auth/mfa'
@@ -1273,6 +1309,7 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   R404Route: R404Route,
   AuthorizedRoute: AuthorizedRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
@@ -1281,6 +1318,7 @@ const rootRouteChildren: RootRouteChildren = {
   WizardSetupRoute: WizardSetupRoute,
   WizardSetupGatewayRoute: WizardSetupGatewayRoute,
   WizardSetupLoginRoute: WizardSetupLoginRoute,
+  ErrorMigrationAuthRoute: ErrorMigrationAuthRoute,
   WizardMigrationLocationsRoute: WizardMigrationLocationsRoute,
   WizardMigrationIndexRoute: WizardMigrationIndexRoute,
 }

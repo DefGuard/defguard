@@ -241,9 +241,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
                   text: m.controls_delete(),
                   icon: 'delete',
                   onClick: () => {
-                    openModal(ModalName.DeleteNetworkDevice, {
-                      id: row.id,
-                      name: row.name,
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_network_device_title(),
+                      contentMd: m.modal_delete_network_device_body(),
+                      actionPromise: () => api.network_device.deleteDevice(row.id),
+                      invalidateKeys: [['device', 'network'], ['network']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () =>
+                        Snackbar.default(m.network_device_delete_success()),
+                      onError: () => Snackbar.error(m.network_device_delete_failed()),
                     });
                   },
                 },

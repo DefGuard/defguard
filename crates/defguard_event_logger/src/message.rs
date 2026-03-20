@@ -44,7 +44,7 @@ pub struct EventContext {
     pub user_id: Id,
     pub username: String,
     pub location: Option<String>,
-    pub ip: IpAddr,
+    pub ip: Option<IpAddr>,
     pub device: String,
 }
 
@@ -357,6 +357,14 @@ pub enum VpnEvent {
         device: Device<Id>,
     },
     DisconnectedFromLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+    MfaConnectedToLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+    MfaDisconnectedFromLocation {
         location: WireguardNetwork<Id>,
         device: Device<Id>,
     },

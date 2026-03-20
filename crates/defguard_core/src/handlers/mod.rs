@@ -15,6 +15,7 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use defguard_static_ip::error::StaticIpError;
+use ipnetwork::IpNetworkError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use utoipa::ToSchema;
@@ -283,6 +284,16 @@ impl From<WebError> for ApiResponse {
                         json!({"msg": "Internal server error"}),
                         StatusCode::FORBIDDEN,
                     )
+                }
+            },
+            WebError::IpNetwork(err) => match err {
+                IpNetworkError::InvalidAddr(msg) | IpNetworkError::InvalidCidrFormat(msg) => {
+                    warn!(msg);
+                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+                }
+                IpNetworkError::InvalidPrefix => {
+                    warn!("Invalid prefix");
+                    ApiResponse::new(json!({"msg": "invalid prefix"}), StatusCode::BAD_REQUEST)
                 }
             },
         }

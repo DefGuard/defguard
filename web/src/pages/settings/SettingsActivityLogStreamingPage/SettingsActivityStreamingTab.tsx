@@ -20,7 +20,6 @@ import {
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { ActivityLogStreamTable } from './ActivityLogStreamTable';
 import { AddLogStreamingModal } from './modals/AddDestinationModal/AddLogStreamingModal';
-import { DeleteLogStreamingModal } from './modals/DeleteDestinationModal/DeleteLogStreamingModal';
 import { EditLogStreamingModal } from './modals/EditDestinationModal/EditLogStreamingModal';
 
 export const SettingsActivityLogStreamingPage = () => {
@@ -79,7 +78,6 @@ export const SettingsActivityLogStreamingPage = () => {
       )}
       <AddLogStreamingModal />
       <EditLogStreamingModal />
-      <DeleteLogStreamingModal />
     </SettingsLayout>
   );
 };

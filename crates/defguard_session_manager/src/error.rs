@@ -27,6 +27,8 @@ pub enum SessionManagerError {
     LocationDoesNotExistError(Id),
     #[error("VPN client session with ID {0} does not exist")]
     SessionDoesNotExistError(Id),
+    #[error("VPN client session {0} is missing cached event context for transition")]
+    MissingSessionEventContextError(Id),
     #[error("Received out of order peer stats update")]
     PeerStatsUpdateOutOfOrderError,
     #[error("Peer stats channel closed")]

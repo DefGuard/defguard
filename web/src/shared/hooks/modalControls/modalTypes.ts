@@ -14,10 +14,6 @@ import type {
   OpenConfirmActionModal,
   OpenDeleteAliasDestinationBlockedModal,
   OpenDeleteAliasDestinationConfirmModal,
-  OpenDeleteGatewayModal,
-  OpenDeleteLocationModal,
-  OpenDeleteNetworkDeviceModal,
-  OpenDeleteOpenIdClientModal,
   OpenDisplayListModal,
   OpenEditDeviceModal,
   OpenEditNetworkDeviceModal,
@@ -63,14 +59,9 @@ export const ModalName = {
   EditNetworkDevice: 'editNetworkDevice',
   NetworkDeviceConfig: 'networkDeviceConfig',
   NetworkDeviceToken: 'networkDeviceToken',
-  DeleteNetworkDevice: 'deleteNetworkDevice',
-  DeleteOpenIdClient: 'deleteOpenIdClient',
   AddLocation: 'addLocation',
   AddLogStreaming: 'addLogStreaming',
   EditLogStreaming: 'editLogStreaming',
-  DeleteLogStreaming: 'deleteLogStreaming',
-  DeleteGateway: 'deleteGateway',
-  DeleteLocation: 'deleteLocation',
   SelfEnrollmentToken: 'selfEnrollmentToken',
   AddNewDevice: 'addNewDevice',
   AssignUserIP: 'assignUserIP',
@@ -184,26 +175,6 @@ const modalOpenArgsSchema = z.discriminatedUnion('name', [
   z.object({
     name: z.literal(ModalName.EditLogStreaming),
     data: z.custom<ActivityLogStream>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteLogStreaming),
-    data: z.custom<ActivityLogStream>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteGateway),
-    data: z.custom<OpenDeleteGatewayModal>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteLocation),
-    data: z.custom<OpenDeleteLocationModal>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteNetworkDevice),
-    data: z.custom<OpenDeleteNetworkDeviceModal>(),
-  }),
-  z.object({
-    name: z.literal(ModalName.DeleteOpenIdClient),
-    data: z.custom<OpenDeleteOpenIdClientModal>(),
   }),
   z.object({
     name: z.literal(ModalName.SendTestMail),

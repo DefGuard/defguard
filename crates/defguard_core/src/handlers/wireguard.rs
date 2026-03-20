@@ -9,12 +9,12 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceConfig, DeviceNetworkInfo, DeviceType, WireguardNetwork,
+            Device, DeviceConfig, DeviceType, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
             wireguard::{LocationMfaMode, MappedDevice, ServiceLocationMode},
         },
     },
-    utils::{parse_address_list, parse_network_address_list},
+    utils::parse_network_address_list,
 };
 use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
 use ipnetwork::IpNetwork;
@@ -85,29 +85,6 @@ impl WireguardNetworkData {
         self.allowed_ips
             .as_ref()
             .map_or(Vec::new(), |ips| parse_network_address_list(ips))
-    }
-
-    pub(crate) fn parse_addresses(&self) -> Result<Vec<IpNetwork>, WebError> {
-        // first parse the addresses
-        let subnets = parse_address_list(self.address.as_ref());
-
-        // check if address list is not empty
-        if subnets.is_empty() {
-            return Err(WebError::BadRequest(
-                "Must provide at least one valid network address".to_owned(),
-            ));
-        }
-
-        // check if any subnet has an invalid /0 netmask
-        for subnet in &subnets {
-            if subnet.prefix() == 0 {
-                return Err(WebError::BadRequest(format!(
-                    "{subnet} is not a valid address"
-                )));
-            }
-        }
-
-        Ok(subnets)
     }
 
     pub(crate) fn validate_peer_disconnect_threshold(&self) -> Result<(), WebError> {
@@ -241,23 +218,23 @@ pub(crate) async fn create_network(
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
     let allowed_ips = data.parse_allowed_ips();
-    let network = WireguardNetwork::new(
+    let mut network = WireguardNetwork::new(
         data.name,
-        parse_address_list(&data.address),
         data.port,
         data.endpoint,
         data.dns,
-        data.mtu,
-        data.fwmark,
         allowed_ips,
         data.allow_all_groups,
-        data.keepalive_interval,
-        data.peer_disconnect_threshold,
         data.acl_enabled,
         data.acl_default_allow,
         data.location_mfa_mode,
         data.service_location_mode,
-    );
+    )
+    .try_set_address(&data.address)?;
+    network.mtu = data.mtu;
+    network.fwmark = data.fwmark;
+    network.keepalive_interval = data.keepalive_interval;
+    network.peer_disconnect_threshold = data.peer_disconnect_threshold;
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
@@ -349,12 +326,10 @@ pub(crate) async fn modify_network(
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
 
-    let mut network = find_network(network_id, &appstate.pool).await?;
+    let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
     let before = network.clone();
-    let new_addresses = data.parse_addresses()?;
-
-    network.address = new_addresses;
+    let mut network = network.try_set_address(&data.address)?;
     network.allowed_ips = data.parse_allowed_ips();
     network.name = data.name;
 
@@ -1052,12 +1027,9 @@ pub(crate) async fn modify_device(
         let wireguard_network_device =
             WireguardNetworkDevice::find(&appstate.pool, device.id, network.id).await?;
         if let Some(wireguard_network_device) = wireguard_network_device {
-            let device_network_info = DeviceNetworkInfo {
-                network_id: network.id,
-                device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                preshared_key: wireguard_network_device.preshared_key,
-                is_authorized: wireguard_network_device.is_authorized,
-            };
+            let device_network_info = wireguard_network_device
+                .to_device_network_info_runtime(&appstate.pool, network)
+                .await?;
             network_info.push(device_network_info);
         }
     }

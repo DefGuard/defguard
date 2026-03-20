@@ -1,8 +1,5 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
 use chrono::{DateTime, NaiveDateTime};
 use defguard_common::db::{models::WireguardNetwork, setup_pool};
-use ipnetwork::IpNetwork;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::enterprise::{
@@ -15,10 +12,8 @@ async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions
     set_test_license_business();
     let pool = setup_pool(options).await;
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default();
+    location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
     // create expired ACL rules
@@ -79,11 +74,10 @@ async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions
     set_test_license_business();
     let pool = setup_pool(options).await;
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default()
+        .set_address(["fb00::1/112".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
     // create expired ACL rules
@@ -144,14 +138,13 @@ async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConne
     set_test_license_business();
     let pool = setup_pool(options).await;
     // Create test location
-    let location = WireguardNetwork {
-        acl_enabled: true,
-        address: vec![
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
-            IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
-        ],
-        ..Default::default()
-    };
+    let mut location = WireguardNetwork::default()
+        .set_address([
+            "192.168.0.1/24".parse().unwrap(),
+            "fb00::1/112".parse().unwrap(),
+        ])
+        .unwrap();
+    location.acl_enabled = true;
     let location = location.save(&pool).await.unwrap();
 
     // create expired ACL rules
