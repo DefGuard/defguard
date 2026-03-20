@@ -1,10 +1,10 @@
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use defguard_common::{
     db::{
-        NoId,
+        Id, NoId,
         models::oauth2client::{OAuth2Client, OAuth2ClientSafe},
     },
     random::gen_alphanumeric,
@@ -16,6 +16,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
 };
 
 #[derive(Deserialize, Serialize)]
@@ -42,7 +43,7 @@ impl From<NewOpenIDClient> for OAuth2Client<NoId> {
     }
 }
 
-pub async fn add_openid_client(
+pub(crate) async fn add_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -78,12 +79,30 @@ pub async fn add_openid_client(
     Ok(ApiResponse::json(client, StatusCode::CREATED))
 }
 
-pub async fn list_openid_clients(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
-    let clients = OAuth2Client::all(&appstate.pool).await?;
-    Ok(ApiResponse::json(clients, StatusCode::OK))
+/// GET: /api/v1/oauth
+pub(crate) async fn list_openid_clients(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<OAuth2Client<Id>> {
+    let pagination = pagination.0;
+
+    debug!("Listing OAuth clients");
+
+    let clients = OAuth2Client::all_paginated(
+        &appstate.pool,
+        i64::from(pagination.per_page()),
+        i64::from(pagination.offset()),
+    )
+    .await?;
+
+    debug!("Listed OAuth clients");
+
+    let count = OAuth2Client::count(&appstate.pool).await?;
+    Ok(PaginatedApiResponse::new(clients, pagination, count as u32))
 }
 
-pub async fn get_openid_client(
+pub(crate) async fn get_openid_client(
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
     session: SessionInfo,
@@ -103,7 +122,7 @@ pub async fn get_openid_client(
     }
 }
 
-pub async fn change_openid_client(
+pub(crate) async fn change_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -157,7 +176,7 @@ pub async fn change_openid_client(
     Ok(ApiResponse::with_status(status))
 }
 
-pub async fn change_openid_client_state(
+pub(crate) async fn change_openid_client_state(
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -191,7 +210,7 @@ pub async fn change_openid_client_state(
     Ok(ApiResponse::with_status(status))
 }
 
-pub async fn delete_openid_client(
+pub(crate) async fn delete_openid_client(
     _admin: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,

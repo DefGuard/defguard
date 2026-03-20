@@ -12,6 +12,8 @@ use reqwest::{StatusCode, Url, header::CONTENT_TYPE};
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
+use crate::api::PaginatedApiResponse;
+
 use super::common::{make_client_with_db, setup_pool};
 
 #[sqlx::test]
@@ -184,7 +186,10 @@ async fn test_openid_app_management_access(_: PgPoolOptions, options: PgConnectO
     // list apps
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client<Id>> = response.json().await;
+    let apps = response
+        .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
+        .await
+        .data;
     assert_eq!(apps.len(), 1);
     let test_app = &apps[0];
     assert_eq!(test_app.name, oauth2client.name);
@@ -243,7 +248,10 @@ async fn test_openid_app_management_access(_: PgPoolOptions, options: PgConnectO
     // list apps
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client<Id>> = response.json().await;
+    let apps = response
+        .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
+        .await
+        .data;
     assert_eq!(apps.len(), 0);
 
     // add another app for further testing
@@ -261,10 +269,13 @@ async fn test_openid_app_management_access(_: PgPoolOptions, options: PgConnectO
     assert_eq!(response.status(), StatusCode::CREATED);
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client<Id>> = response.json().await;
+    let apps = response
+        .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
+        .await
+        .data;
     let test_app = &apps[0];
 
-    // // login as standard user
+    // login as standard user
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);

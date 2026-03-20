@@ -166,9 +166,6 @@ export interface GroupInfo {
   is_admin: boolean;
 }
 
-export interface GroupsResponse {
-  groups: string[];
-}
 export interface UsersListItem extends User {
   name: string;
   devices: Device[];
@@ -1275,7 +1272,7 @@ export interface PaginationMeta {
   current_page: number;
   page_size: number;
   total_items: number;
-  total_pagers: number;
+  total_pages: number;
   next_page: number | null;
 }
 

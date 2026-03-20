@@ -1,4 +1,4 @@
-use std::fmt::{self, Display, Formatter};
+use std::fmt;
 
 use axum::extract::State;
 use axum_extra::extract::Query;
@@ -7,10 +7,7 @@ use defguard_common::db::Id;
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 
-use super::{
-    DEFAULT_API_PAGE_SIZE,
-    pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
-};
+use super::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams};
 use crate::{appstate::AppState, auth::SessionInfo, db::models::activity_log::ActivityLogModule};
 
 #[derive(Debug, Deserialize, Default)]
@@ -66,17 +63,17 @@ pub enum SortKey {
     Device,
 }
 
-impl Display for SortKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Timestamp => write!(f, "timestamp"),
-            Self::Username => write!(f, "username"),
-            Self::Location => write!(f, "location"),
-            Self::Ip => write!(f, "ip"),
-            Self::Event => write!(f, "event"),
-            Self::Module => write!(f, "module"),
-            Self::Device => write!(f, "device"),
-        }
+impl fmt::Display for SortKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Timestamp => "timestamp",
+            Self::Username => "username",
+            Self::Location => "location",
+            Self::Ip => "ip",
+            Self::Event => "event",
+            Self::Module => "module",
+            Self::Device => "device",
+        })
     }
 }
 
@@ -88,12 +85,12 @@ pub enum SortOrder {
     Desc,
 }
 
-impl Display for SortOrder {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Asc => write!(f, "ASC"),
-            Self::Desc => write!(f, "DESC"),
-        }
+impl fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Asc => "ASC",
+            Self::Desc => "DESC",
+        })
     }
 }
 
@@ -133,11 +130,13 @@ pub async fn get_activity_log_events(
     filters: Query<FilterParams>,
     sorting: Query<SortParams>,
 ) -> PaginatedApiResult<ApiActivityLogEvent> {
-    debug!("Fetching activity log with filters {filters:?} and pagination {pagination:?}");
+    let pagination = pagination.0;
+    debug!("Fetching activity log with filters {filters:?} and pagination {pagination}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description FROM activity_log_event WHERE 1=1 ",
+        "SELECT id, timestamp, user_id, username, location, ip, event, module, device, description \
+        FROM activity_log_event WHERE 1=1 ",
     );
 
     // filter events for non-admin users to show only their own events
@@ -155,10 +154,12 @@ pub async fn get_activity_log_events(
     apply_sorting(&mut query_builder, &sorting);
 
     // add limit and offset to fetch a specific page
-    let limit = DEFAULT_API_PAGE_SIZE;
-    query_builder.push(" LIMIT ").push_bind(i64::from(limit));
-    let offset = (pagination.page - 1) * DEFAULT_API_PAGE_SIZE;
-    query_builder.push(" OFFSET ").push_bind(i64::from(offset));
+    query_builder
+        .push(" LIMIT ")
+        .push_bind(i64::from(pagination.per_page()));
+    query_builder
+        .push(" OFFSET ")
+        .push_bind(i64::from(pagination.offset()));
 
     // fetch filtered events
     let events = query_builder
@@ -176,13 +177,11 @@ pub async fn get_activity_log_events(
         .fetch_one(&appstate.pool)
         .await?;
 
-    let pagination =
-        PaginationMeta::new(pagination.page, total_items as u32, DEFAULT_API_PAGE_SIZE);
-
-    Ok(PaginatedApiResponse {
-        data: events,
+    Ok(PaginatedApiResponse::new(
+        events,
         pagination,
-    })
+        total_items as u32,
+    ))
 }
 
 /// Adds optional filtering statements to SQL query based on request query params

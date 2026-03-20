@@ -61,10 +61,10 @@ pub enum DeviceType {
 
 impl fmt::Display for DeviceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::User => write!(f, "user"),
-            Self::Network => write!(f, "network"),
-        }
+        f.write_str(match self {
+            Self::User => "user",
+            Self::Network => "network",
+        })
     }
 }
 
@@ -94,7 +94,7 @@ pub struct Device<I = NoId> {
 
 impl fmt::Display for Device<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        f.write_str(&self.name)
     }
 }
 
@@ -348,12 +348,12 @@ impl WireguardNetworkDevice {
         network: &WireguardNetwork<Id>,
         active_session: Option<&VpnClientSession<Id>>,
     ) -> DeviceNetworkInfo {
-        let (preshared_key, is_authorized) = if !network.mfa_enabled() {
-            (None, true)
-        } else {
+        let (preshared_key, is_authorized) = if network.mfa_enabled() {
             let preshared_key = active_session.and_then(|session| session.preshared_key.clone());
             let is_authorized = preshared_key.is_some();
             (preshared_key, is_authorized)
+        } else {
+            (None, true)
         };
 
         DeviceNetworkInfo {
@@ -1036,12 +1036,53 @@ impl Device<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(Self,
-            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+        query_as!(
+            Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device WHERE device_type = $1 ORDER BY name",
             device_type as DeviceType
-        ).fetch_all(executor).await
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn find_by_type_paginated<'e, E>(
+        executor: E,
+        device_type: DeviceType,
+        limit: i64,
+        offset: i64,
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
+            FROM device WHERE device_type = $1 ORDER BY name \
+            LIMIT $2 OFFSET $3",
+            device_type as DeviceType,
+            limit,
+            offset
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn count_by_type<'e, E>(executor: E, device_type: DeviceType) -> sqlx::Result<i64>
+    where
+        E: PgExecutor<'e>,
+    {
+        let count = query_scalar!(
+            "SELECT count(*) FROM device WHERE device_type = $1",
+            device_type as DeviceType
+        )
+        .fetch_one(executor)
+        .await?
+        .unwrap_or_default();
+
+        Ok(count)
     }
 
     pub async fn find_by_type_and_network<'e, E>(
@@ -1052,15 +1093,19 @@ impl Device<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(Self,
-            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+        query_as!(
+            Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device WHERE device_type = $1 \
-            AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \
+            AND id IN \
+            (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \
             ORDER BY name",
             device_type as DeviceType,
             network_id
-        ).fetch_all(executor).await
+        )
+        .fetch_all(executor)
+        .await
     }
 
     pub async fn get_owner<'e, E>(&self, executor: E) -> sqlx::Result<User<Id>>
@@ -1069,13 +1114,15 @@ impl Device<Id> {
     {
         query_as!(
             User,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
+            totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE id = $1",
             self.user_id
-        ).fetch_one(executor).await
+        )
+        .fetch_one(executor)
+        .await
     }
 
     pub async fn last_connected_at<'e, E: PgExecutor<'e>>(
