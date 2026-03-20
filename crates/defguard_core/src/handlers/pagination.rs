@@ -81,7 +81,7 @@ impl PaginationParams {
     pub fn new(page: u32, per_page: u32) -> Self {
         Self {
             page: page.max(MIN_PAGE),
-            per_page: per_page.max(MIN_PER_PAGE).min(MAX_PER_PAGE),
+            per_page: per_page.clamp(MIN_PER_PAGE, MAX_PER_PAGE),
         }
     }
 
