@@ -1566,6 +1566,7 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "axum-extra",
+ "chrono",
  "defguard_certs",
  "defguard_common",
  "defguard_core",

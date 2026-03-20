@@ -20,7 +20,7 @@ use defguard_common::{
     db::{
         init_db,
         models::{
-            Device, DeviceType, Settings, User, WireguardNetwork,
+            Certificates, Device, DeviceType, Settings, User, WireguardNetwork,
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
             wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -138,7 +138,10 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
-        proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
+        proxy::{
+            acme_issue_proxy, delete_proxy, proxy_cert_self_signed, proxy_cert_upload,
+            proxy_details, proxy_list, update_proxy,
+        },
         resource_display::get_locations_display,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
@@ -375,6 +378,9 @@ pub fn build_webapp(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),
             )
+            .route("/proxy/{proxy_id}/acme/issue", post(acme_issue_proxy))
+            .route("/proxy/cert/upload", post(proxy_cert_upload))
+            .route("/proxy/cert/self-signed", post(proxy_cert_self_signed))
             // Gateway routes
             .route("/gateway", get(gateway_list))
             .route(
@@ -708,9 +714,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not initialize current settings in the database");
     let mut settings = Settings::get_current_settings();
-    settings.ca_cert_der = Some(ca.cert_der().to_vec());
-    settings.ca_key_der = Some(ca.key_pair_der().to_vec());
-    settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
     // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
     settings.public_proxy_url = config
         .enrollment_url
@@ -721,6 +724,15 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     update_current_settings(&pool, settings)
         .await
         .expect("Failed to update settings");
+
+    let mut certs = Certificates::default();
+    certs.ca_cert_der = Some(ca.cert_der().to_vec());
+    certs.ca_key_der = Some(ca.key_pair_der().to_vec());
+    certs.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
+    certs
+        .save(&pool)
+        .await
+        .expect("Failed to save certificates");
 
     // Mark wizard as completed for dev environment
     use defguard_common::db::models::{

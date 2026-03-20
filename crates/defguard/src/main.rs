@@ -10,7 +10,7 @@ use defguard_common::{
     db::{
         init_db,
         models::{
-            ActiveWizard, Settings, Wizard, gateway::Gateway, proxy::Proxy,
+            ActiveWizard, Certificates, Settings, Wizard, gateway::Gateway, proxy::Proxy,
             settings::initialize_current_settings,
         },
     },
@@ -192,8 +192,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
-    if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
-        anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
+    let certs = Certificates::get_or_default(&pool).await?;
+    if certs.ca_cert_der.is_none() || certs.ca_key_der.is_none() {
+        anyhow::bail!("CA certificate or key were not found, despite completing setup.")
     }
 
     // read grpc TLS cert and key from legacy config values

@@ -9,6 +9,8 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta};
+#[cfg(not(test))]
+use defguard_common::db::models::Certificates;
 use defguard_common::{
     VERSION,
     db::{
@@ -256,11 +258,26 @@ impl GatewayHandler {
         loop {
             #[cfg(not(test))]
             let channel = {
-                let settings = Settings::get_current_settings();
-                let Some(ca_cert_der) = settings.ca_cert_der else {
-                    return Err(GatewayError::EndpointError(
-                        "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
-                    ));
+                let ca_cert_der = match Certificates::get(&self.pool).await {
+                    Ok(Some(c)) => match c.ca_cert_der {
+                        Some(der) => der,
+                        None => {
+                            return Err(GatewayError::EndpointError(
+                                "Core CA is not setup, can't create a Gateway endpoint."
+                                    .to_string(),
+                            ));
+                        }
+                    },
+                    Ok(None) => {
+                        return Err(GatewayError::EndpointError(
+                            "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+                        ));
+                    }
+                    Err(err) => {
+                        return Err(GatewayError::EndpointError(format!(
+                            "Failed to load certificates from DB: {err}"
+                        )));
+                    }
                 };
                 let tls_config =
                     tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)

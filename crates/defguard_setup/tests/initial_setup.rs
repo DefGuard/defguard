@@ -9,7 +9,7 @@ use defguard_common::{
     VERSION,
     db::{
         models::{
-            Session, Settings, User,
+            Certificates, Session, Settings, User,
             group::Group,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             settings::initialize_current_settings,
@@ -310,13 +310,12 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to create CA");
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let settings = Settings::get(&pool)
+    let certs = Certificates::get_or_default(&pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert!(settings.ca_cert_der.is_some());
-    assert!(settings.ca_key_der.is_some());
-    assert!(settings.ca_expiry.is_some());
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some());
+    assert!(certs.ca_key_der.is_some());
+    assert!(certs.ca_expiry.is_some());
 
     assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 }
@@ -359,13 +358,12 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to upload CA");
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let settings = Settings::get(&pool)
+    let certs = Certificates::get_or_default(&pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert!(settings.ca_cert_der.is_some());
-    assert!(settings.ca_key_der.is_none());
-    assert!(settings.ca_expiry.is_some());
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some());
+    assert!(certs.ca_key_der.is_none());
+    assert!(certs.ca_expiry.is_some());
 
     assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 }
@@ -592,9 +590,13 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(settings.default_admin_group_name, "admins");
     assert_eq!(settings.authentication_period_days, 14);
     assert_eq!(settings.mfa_code_timeout_seconds, 120);
-    assert!(settings.ca_cert_der.is_some());
-    assert!(settings.ca_key_der.is_some());
-    assert!(settings.ca_expiry.is_some());
+
+    let certs = Certificates::get_or_default(&pool)
+        .await
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some());
+    assert!(certs.ca_key_der.is_some());
+    assert!(certs.ca_expiry.is_some());
 
     let wizard = Wizard::get(&pool)
         .await

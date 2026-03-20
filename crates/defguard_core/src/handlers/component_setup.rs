@@ -17,7 +17,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Settings,
+            Certificates,
             gateway::Gateway,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             proxy::Proxy,
@@ -289,8 +289,18 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Connection endpoint configured with keep-alive settings");
 
-        let settings = Settings::get_current_settings();
-        let Some(ca_cert_der) = settings.ca_cert_der else {
+        let certs = match Certificates::get(&pool).await {
+            Ok(Some(c)) => c,
+            Ok(None) => {
+                yield Ok(flow.error("CA certificate not found"));
+                return;
+            }
+            Err(err) => {
+                yield Ok(flow.error(&format!("Failed to load certificates: {err}")));
+                return;
+            }
+        };
+        let Some(ca_cert_der) = certs.ca_cert_der.clone() else {
             yield Ok(flow.error("CA certificate not found in settings"));
             return;
         };
@@ -505,12 +515,11 @@ pub async fn setup_proxy_tls_stream(
         // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
 
-        let settings = Settings::get_current_settings();
-        let Some(ca_cert_der) = settings.ca_cert_der else {
+        let Some(ca_cert_der) = certs.ca_cert_der else {
             yield Ok(flow.error("CA certificate not found in settings"));
             return;
         };
-        let Some(ca_key_pair) = settings.ca_key_der else {
+        let Some(ca_key_pair) = certs.ca_key_der else {
             yield Ok(flow.error("CA key pair not found in settings"));
             return;
         };
@@ -710,8 +719,18 @@ pub async fn setup_gateway_tls_stream(
 
         debug!("Connection endpoint configured with keep-alive settings");
 
-        let settings = Settings::get_current_settings();
-        let Some(ca_cert_der) = settings.ca_cert_der else {
+        let certs = match Certificates::get(&pool).await {
+            Ok(Some(c)) => c,
+            Ok(None) => {
+                yield Ok(flow.error("CA certificate not found"));
+                return;
+            }
+            Err(err) => {
+                yield Ok(flow.error(&format!("Failed to load certificates: {err}")));
+                return;
+            }
+        };
+        let Some(ca_cert_der) = certs.ca_cert_der.clone() else {
             yield Ok(flow.error("CA certificate not found in settings"));
             return;
         };
@@ -947,14 +966,12 @@ pub async fn setup_gateway_tls_stream(
         // Step 5: Sign certificate
         yield Ok(flow.step(SetupStep::SigningCertificate));
 
-        let settings = Settings::get_current_settings();
-
-        let Some(ca_cert_der) = settings.ca_cert_der else {
+        let Some(ca_cert_der) = certs.ca_cert_der else {
             yield Ok(flow.error("CA certificate not found in settings"));
             return;
         };
 
-        let Some(ca_key_pair) = settings.ca_key_der else {
+        let Some(ca_key_pair) = certs.ca_key_der else {
             yield Ok(flow.error("CA key pair not found in settings"));
             return;
         };
