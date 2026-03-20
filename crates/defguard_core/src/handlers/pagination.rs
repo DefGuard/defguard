@@ -5,19 +5,86 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 use crate::error::WebError;
 
+const DEFAULT_PER_PAGE: u32 = 50;
+const MIN_PAGE: u32 = 1;
+const MIN_PER_PAGE: u32 = 1;
+const MAX_PER_PAGE: u32 = 100;
+
 /// Query params for paginated endpoints
-#[derive(Deserialize)]
-#[serde(default)]
 pub(crate) struct PaginationParams {
     page: u32,
     per_page: u32,
 }
 
+/// Implement custom deserializer to control default values and limits.
+impl<'de> Deserialize<'de> for PaginationParams {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "snake_case")]
+        enum Field {
+            Page,
+            PerPage,
+        }
+
+        struct PaginationParamsVisitor;
+
+        impl<'de> de::Visitor<'de> for PaginationParamsVisitor {
+            type Value = PaginationParams;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("struct PaginationParams")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<PaginationParams, V::Error>
+            where
+                V: de::MapAccess<'de>,
+            {
+                let mut page = None;
+                let mut per_page = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Page => {
+                            if page.is_some() {
+                                return Err(de::Error::duplicate_field("page"));
+                            }
+                            page = Some(map.next_value()?);
+                        }
+                        Field::PerPage => {
+                            if per_page.is_some() {
+                                return Err(de::Error::duplicate_field("per_page"));
+                            }
+                            per_page = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let page = page.unwrap_or(MIN_PAGE);
+                let per_page = per_page.unwrap_or(DEFAULT_PER_PAGE);
+                Ok(PaginationParams::new(page, per_page))
+            }
+        }
+
+        const FIELDS: &[&str] = &["page", "per_page"];
+        deserializer.deserialize_struct("PaginationParams", FIELDS, PaginationParamsVisitor)
+    }
+}
+
 impl PaginationParams {
+    /// Constructor.
+    #[must_use]
+    pub fn new(page: u32, per_page: u32) -> Self {
+        Self {
+            page: page.max(MIN_PAGE),
+            per_page: per_page.max(MIN_PER_PAGE).min(MAX_PER_PAGE),
+        }
+    }
+
     /// Page getter.
     #[must_use]
     pub fn page(&self) -> u32 {
@@ -33,19 +100,15 @@ impl PaginationParams {
     /// Calculate offset.
     #[must_use]
     pub fn offset(&self) -> u32 {
-        if self.page == 0 {
-            self.per_page
-        } else {
-            (self.page - 1) * self.per_page
-        }
+        (self.page - 1) * self.per_page
     }
 }
 
 impl Default for PaginationParams {
     fn default() -> Self {
         Self {
-            page: 1,
-            per_page: 50,
+            page: MIN_PAGE,
+            per_page: DEFAULT_PER_PAGE,
         }
     }
 }
@@ -71,12 +134,7 @@ impl PaginationMeta {
     #[must_use]
     fn from_pagination(pagination: PaginationParams, total_items: u32) -> Self {
         let PaginationParams { page, per_page } = pagination;
-        let total_pages = if per_page <= 1 {
-            // For 0 and 1, assume per_page is 1.
-            total_items
-        } else {
-            total_items.div_ceil(per_page)
-        };
+        let total_pages = total_items.div_ceil(per_page);
         let next_page = if page < total_pages {
             Some(page + 1)
         } else {
@@ -124,5 +182,43 @@ where
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PaginationParams;
+
+    #[test]
+    fn deserialize_pagination_params_defaults() {
+        let params = serde_urlencoded::from_str::<PaginationParams>("").unwrap();
+        assert_eq!(params.page(), 1);
+        assert_eq!(params.per_page(), 50);
+        assert_eq!(params.offset(), 0);
+    }
+
+    #[test]
+    fn deserialize_pagination_params_zero_values() {
+        let params = serde_urlencoded::from_str::<PaginationParams>("page=0&per_page=0").unwrap();
+        assert_eq!(params.page(), 1);
+        assert_eq!(params.per_page(), 1);
+        assert_eq!(params.offset(), 0);
+    }
+
+    #[test]
+    fn deserialize_pagination_params_large_values() {
+        let params =
+            serde_urlencoded::from_str::<PaginationParams>("page=1000&per_page=1000").unwrap();
+        assert_eq!(params.page(), 1000);
+        assert_eq!(params.per_page(), 100);
+        assert_eq!(params.offset(), 99900);
+    }
+
+    #[test]
+    fn deserialize_pagination_params_valid_values() {
+        let params = serde_urlencoded::from_str::<PaginationParams>("page=3&per_page=25").unwrap();
+        assert_eq!(params.page(), 3);
+        assert_eq!(params.per_page(), 25);
+        assert_eq!(params.offset(), 50);
     }
 }
