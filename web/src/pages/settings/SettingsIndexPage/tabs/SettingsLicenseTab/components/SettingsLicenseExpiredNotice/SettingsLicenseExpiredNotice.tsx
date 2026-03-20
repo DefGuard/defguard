@@ -49,7 +49,6 @@ export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
             <Button
               variant="outlined"
               text={m.settings_license_expired_notice_button()}
-              iconRight="open-in-new-window"
             />
           </a>
         </div>

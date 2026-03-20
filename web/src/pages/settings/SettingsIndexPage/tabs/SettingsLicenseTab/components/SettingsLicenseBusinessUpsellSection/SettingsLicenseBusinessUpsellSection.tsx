@@ -43,7 +43,6 @@ export const SettingsLicenseBusinessUpsellSection = () => {
                 <Button
                   variant="outlined"
                   text={m.contact_sales()}
-                  iconRight="open-in-new-window"
                 />
               </a>
             </div>

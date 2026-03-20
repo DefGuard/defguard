@@ -55,7 +55,6 @@ export const SettingsLicenseNoLicenseSection = () => {
                 <Button
                   variant="outlined"
                   text={m.settings_license_try_business_button()}
-                  iconRight="open-in-new-window"
                 />
               </a>
             </div>
@@ -85,7 +84,6 @@ export const SettingsLicenseNoLicenseSection = () => {
                 <Button
                   variant="outlined"
                   text={m.contact_sales()}
-                  iconRight="open-in-new-window"
                 />
               </a>
             </div>
