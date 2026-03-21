@@ -1,4 +1,4 @@
-import { chromium, FullConfig, request } from '@playwright/test';
+import { chromium, request } from '@playwright/test';
 
 import { defaultUserAdmin, testsConfig } from '../config';
 import { dockerCheckContainers, dockerCreateSnapshot, dockerUp } from './docker';
