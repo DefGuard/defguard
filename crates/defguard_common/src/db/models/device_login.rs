@@ -24,7 +24,7 @@ pub struct DeviceLoginEvent<I = NoId> {
 
 impl fmt::Display for DeviceLoginEvent<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.family)
+        f.write_str(&self.family)
     }
 }
 

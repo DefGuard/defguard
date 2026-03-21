@@ -3,7 +3,7 @@ pub mod destination;
 
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
@@ -18,7 +18,10 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol, RuleState},
     error::WebError,
-    handlers::{ApiResponse, ApiResult},
+    handlers::{
+        ApiResponse, ApiResult,
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+    },
 };
 
 /// API representation of [`AclRule`] used in API responses.
@@ -223,11 +226,20 @@ pub(crate) async fn list_acl_rules(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-) -> ApiResult {
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<ApiAclRule> {
+    let pagination = pagination.0;
+
     debug!("User {} listing ACL rules", session.user.username);
+
     let mut conn = appstate.pool.acquire().await?;
-    let rules = AclRule::all(&mut *conn).await?;
-    let mut api_rules = Vec::<ApiAclRule>::with_capacity(rules.len());
+    let rules = AclRule::all_paginated(
+        &mut *conn,
+        i64::from(pagination.per_page()),
+        i64::from(pagination.offset()),
+    )
+    .await?;
+    let mut api_rules = Vec::with_capacity(rules.len());
     for rule in &rules {
         // TODO: may require optimisation wrt. sql queries
         let info = rule.to_info(&mut conn).await.map_err(|err| {
@@ -236,8 +248,15 @@ pub(crate) async fn list_acl_rules(
         })?;
         api_rules.push(info.into());
     }
+
     info!("User {} listed ACL rules", session.user.username);
-    Ok(ApiResponse::json(api_rules, StatusCode::OK))
+
+    let count = AclRule::count(&mut *conn).await?;
+    Ok(PaginatedApiResponse::new(
+        api_rules,
+        pagination,
+        count as u32,
+    ))
 }
 
 /// Count ACL rules by state.

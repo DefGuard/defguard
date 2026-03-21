@@ -14,7 +14,7 @@ import { useRuleDeps } from '../useRuleDeps';
 export const RulesPendingTab = () => {
   const { data: rules } = useSuspenseQuery({
     ...getRulesQueryOptions,
-    select: (resp) => resp.data.filter((rule) => rule.state !== AclStatus.Applied),
+    select: (rules) => rules.filter((rule) => rule.state !== AclStatus.Applied),
   });
   const isEmpty = rules.length === 0;
 
