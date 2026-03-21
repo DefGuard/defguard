@@ -10,7 +10,10 @@
     "biome": "biome",
     "lint": "biome check ./src/ && prettier src/**/*.scss --check --log-level error && stylelint \"src/**/*.scss\" -c ./.stylelintrc.json && tsc -b",
     "fix": "biome check ./src/ --write --unsafe && prettier src/**/*.scss -w --log-level silent",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@axa-ch/react-polymorphic-types": "^1.4.1",
@@ -66,6 +69,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/ui": "^4.1.0",
     "autoprefixer": "^10.4.27",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
@@ -76,6 +80,7 @@
     "stylelint-scss": "^7.0.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0",
-    "vite-plugin-image-optimizer": "^2.0.3"
+    "vite-plugin-image-optimizer": "^2.0.3",
+    "vitest": "^4.1.0"
   }
 }
