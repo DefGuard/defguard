@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard:dev
     environment:
       DEFGUARD_DEFAULT_ADMIN_PASSWORD: pass123
       DEFGUARD_COOKIE_INSECURE: true
@@ -38,7 +38,7 @@ services:
       start_period: 5s
 
   proxy:
-    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
+    image: ghcr.io/defguard/defguard-proxy:dev
     ports:
       - "8080:8080"
     environment:
