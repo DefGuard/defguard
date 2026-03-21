@@ -106,6 +106,7 @@ test.describe('Test webhooks', () => {
     await expect(webhookRow).toContainText('Active');
     await webhookRow.locator('.icon-button').click();
     await page.getByTestId('delete').click();
+    await page.locator('button[data-variant="critical"]').click();
 
     await expect(webhookRow).not.toBeVisible();
   });
