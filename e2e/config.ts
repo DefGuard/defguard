@@ -62,7 +62,7 @@ export const routes = {
     smtp: '/settings/smtp',
     openid: '/settings/openid',
     tab: {
-      openid: '/settings?tab=openid',
+      openid: '/settings/openid',
     },
   },
   admin: {

@@ -251,6 +251,7 @@ test.describe('API tokens management', () => {
       .filter({ hasText: token_name });
     await row.locator('.icon-button').click();
     await page.getByTestId('delete').click();
+    await page.locator('button[data-variant="critical"]').click();
     await expect(row).not.toBeVisible();
     expect(api_token).toBeDefined();
   });
@@ -272,6 +273,7 @@ test.describe('API tokens management', () => {
       .filter({ hasText: token_name });
     await row.locator('.icon-button').click();
     await page.getByTestId('delete').click();
+    await page.locator('button[data-variant="critical"]').click();
     await expect(row).not.toBeVisible();
     expect(api_token).toBeDefined();
   });

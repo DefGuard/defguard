@@ -71,27 +71,29 @@ test.describe('External OIDC.', () => {
   //   expect(authorizedApps).toContain(client.name);
   // });
 
-  test('Sign in with external SSO', async ({ page }) => {
-    await waitForBase(page);
-    await page.goto(testsConfig.ENROLLMENT_URL);
-    await waitForPromise(2000);
-    await page.getByTestId('start-enrollment').click();
-    await page.locator('.oidc-button-link').click();
-    await page.getByTestId('field-username').fill(defaultUserAdmin.username);
-    await page.getByTestId('field-password').fill(defaultUserAdmin.password);
-    await page.getByTestId('sign-in').click();
-    await page.getByTestId('accept-openid').click();
-    await page.getByTestId('page-nav-next').click();
-    await page.getByTestId('modal-confirm-download-submit').click();
 
-    const setup_desktop = await page.locator('#setup-desktop');
-    await setup_desktop.locator('.fold-button').click();
+  // TODO: enable when https://github.com/DefGuard/defguard/issues/2426 is fixed
+  // test('Sign in with external SSO', async ({ page }) => {
+  //   await waitForBase(page);
+  //   await page.goto(testsConfig.ENROLLMENT_URL);
+  //   await waitForPromise(2000);
+  //   await page.getByTestId('start-enrollment').click();
+  //   await page.locator('.oidc-button-link').click();
+  //   await page.getByTestId('field-username').fill(defaultUserAdmin.username);
+  //   await page.getByTestId('field-password').fill(defaultUserAdmin.password);
+  //   await page.getByTestId('sign-in').click();
+  //   await page.getByTestId('accept-openid').click();
+  //   await page.getByTestId('page-nav-next').click();
+  //   await page.getByTestId('modal-confirm-download-submit').click();
 
-    const token = await page
-      .locator('.copy-field')
-      .filter({ hasText: 'Token' })
-      .locator('.track p')
-      .textContent();
-    expect(token).toBeDefined();
-  });
+  //   const setup_desktop = await page.locator('#setup-desktop');
+  //   await setup_desktop.locator('.fold-button').click();
+
+  //   const token = await page
+  //     .locator('.copy-field')
+  //     .filter({ hasText: 'Token' })
+  //     .locator('.track p')
+  //     .textContent();
+  //   expect(token).toBeDefined();
+  // });
 });
