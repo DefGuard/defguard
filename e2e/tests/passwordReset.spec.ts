@@ -50,7 +50,7 @@ test.describe('Reset password', () => {
 
 
 // TODO: Enable when https://github.com/DefGuard/defguard/issues/2425 is fixed
-  test.fixme('Reset disabled user password', async ({ page, browser }) => {
+  test.skip('Reset disabled user password', async ({ page, browser }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);

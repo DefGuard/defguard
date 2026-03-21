@@ -3,6 +3,7 @@ import { chromium, FullConfig, request } from '@playwright/test';
 import { defaultUserAdmin, testsConfig } from '../config';
 import { dockerCheckContainers, dockerCreateSnapshot, dockerUp } from './docker';
 import { loadEnv } from './loadEnv';
+import { waitForPromise } from './waitForPromise';
 
 const setLicense = async () => {
   const license = process.env.DEFGUARD_LICENSE_KEY;
@@ -138,6 +139,7 @@ export default async function globalSetup(_config: FullConfig) {
 
   await runWizard();
 
+  await waitForPromise(3000);
   await setLicense();
 
   // Overwrite the snapshot with post-wizard state.

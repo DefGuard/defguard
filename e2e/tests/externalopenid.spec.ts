@@ -52,7 +52,7 @@ test.describe('External OIDC.', () => {
   });
 
   // TODO: Finish when https://github.com/DefGuard/defguard/issues/1817 is resolved
-  test.fixme('Login through external oidc.', async ({ page }) => {
+  test.skip('Login through external oidc.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     expect(client.clientSecret).toBeDefined();
     await waitForBase(page);
@@ -75,7 +75,7 @@ test.describe('External OIDC.', () => {
 
 
   // TODO: enable when https://github.com/DefGuard/defguard/issues/2426 is fixed
-  test.fixme('Sign in with external SSO', async ({ page }) => {
+  test.skip('Sign in with external SSO', async ({ page }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);

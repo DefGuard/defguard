@@ -32,7 +32,7 @@ test.describe('Create user and enroll him', () => {
     await createRegularLocation(browser, testNetwork);
   });
 
-  test.fixme('Complete user enrollment via API', async ({ request, page }) => {
+  test.skip('Complete user enrollment via API', async ({ request, page }) => {
     expect(token).toBeDefined();
     await apiEnrollmentStart(request, token);
     await apiEnrollmentActivateUser(request, user.password, '+48123456789');
@@ -43,7 +43,7 @@ test.describe('Create user and enroll him', () => {
     const response = await responsePromise;
     expect(response.ok()).toBeTruthy();
   });
-  test.fixme('Try to complete disabled user enrollment via API', async ({
+  test.skip('Try to complete disabled user enrollment via API', async ({
     page,
     request,
     browser,

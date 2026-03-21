@@ -35,7 +35,7 @@ test.describe('Authorize OpenID client.', () => {
     await createUser(browser, testUser);
   });
 
-  test.fixme('Authorize when session is active.', async ({ page }) => {
+  test.skip('Authorize when session is active.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     await waitForBase(page);
     await loginBasic(page, testUser);
@@ -57,7 +57,7 @@ test.describe('Authorize OpenID client.', () => {
     await logout(page);
   });
 
-  test.fixme('Authorize when session is not active', async ({ page }) => {
+  test.skip('Authorize when session is not active', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     await waitForBase(page);
     await fillAndSubmitOpenIDDebugger(page, client);
@@ -80,7 +80,7 @@ test.describe('Authorize OpenID client.', () => {
     await logout(page);
   });
 
-  test.fixme('Authorize when session is not active and MFA is enabled', async ({
+  test.skip('Authorize when session is not active and MFA is enabled', async ({
     page,
     browser,
   }) => {
