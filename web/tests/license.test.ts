@@ -20,9 +20,6 @@ const makeLicense = (overrides: Partial<LicenseInfo> = {}): LicenseInfo => ({
   ...overrides,
 });
 
-// ─────────────────────────────────────────────
-// getLicenseState
-// ─────────────────────────────────────────────
 
 describe('getLicenseState', () => {
   it('should return null for undefined (not yet loaded)', () => {
@@ -77,9 +74,6 @@ describe('getLicenseState', () => {
   });
 });
 
-// ─────────────────────────────────────────────
-// canUseBusinessFeature
-// ─────────────────────────────────────────────
 
 describe('canUseBusinessFeature', () => {
   it('should allow access with valid Business license', () => {
@@ -108,9 +102,6 @@ describe('canUseBusinessFeature', () => {
   });
 });
 
-// ─────────────────────────────────────────────
-// canUseEnterpriseFeature
-// ─────────────────────────────────────────────
 
 describe('canUseEnterpriseFeature', () => {
   it('should allow access with valid Enterprise license', () => {
