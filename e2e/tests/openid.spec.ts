@@ -18,94 +18,94 @@ import { waitForRoute } from '../utils/waitForRoute';
 
 
 //TODO: Enable this when https://github.com/DefGuard/defguard/issues/2405 is fixes
-// test.describe('Authorize OpenID client.', () => {
-//   const testUser: User = { ...testUserTemplate, username: 'test' };
+test.describe('Authorize OpenID client.', () => {
+  const testUser: User = { ...testUserTemplate, username: 'test' };
 
-//   const client: OpenIdClient = {
-//     name: 'test 01',
-//     redirectURL: ['https://oidcdebugger.com/debug'],
-//     scopes: ['openid'],
-//   };
+  const client: OpenIdClient = {
+    name: 'test 01',
+    redirectURL: ['https://oidcdebugger.com/debug'],
+    scopes: ['openid'],
+  };
 
-//   // Setup client and user for tests
-//   test.beforeEach(async ({ browser }) => {
-//     dockerRestart();
-//     await CreateOpenIdClient(browser, client);
-//     client.clientID = await copyOpenIdClientId(browser, 1);
-//     await createUser(browser, testUser);
-//   });
+  // Setup client and user for tests
+  test.beforeEach(async ({ browser }) => {
+    dockerRestart();
+    await CreateOpenIdClient(browser, client);
+    client.clientID = await copyOpenIdClientId(browser, 1);
+    await createUser(browser, testUser);
+  });
 
-//   test('Authorize when session is active.', async ({ page }) => {
-//     expect(client.clientID).toBeDefined();
-//     await waitForBase(page);
-//     await loginBasic(page, testUser);
-//     await fillAndSubmitOpenIDDebugger(page, client);
-//     await page.waitForURL(routes.base + routes.consent + '**');
-//     await page.getByTestId('accept-openid').click();
-//     await page.waitForURL('https://oidcdebugger.com/**');
-//     await waitForPromise(2000);
-//     const headerMessage = await page
-//       .locator('.debug__callback-header')
-//       .locator('h1')
-//       .textContent();
-//     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-//     await page.goto(routes.base + routes.me, {
-//       waitUntil: 'networkidle',
-//     });
-//     const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
-//     await expect(authorizedApps).toContainText(client.name);
-//     await logout(page);
-//   });
+  test.fixme('Authorize when session is active.', async ({ page }) => {
+    expect(client.clientID).toBeDefined();
+    await waitForBase(page);
+    await loginBasic(page, testUser);
+    await fillAndSubmitOpenIDDebugger(page, client);
+    await page.waitForURL(routes.base + routes.consent + '**');
+    await page.getByTestId('accept-openid').click();
+    await page.waitForURL('https://oidcdebugger.com/**');
+    await waitForPromise(2000);
+    const headerMessage = await page
+      .locator('.debug__callback-header')
+      .locator('h1')
+      .textContent();
+    expect(headerMessage?.replace(' ', '')).toBe('Success!');
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
+  });
 
-//   test('Authorize when session is not active', async ({ page }) => {
-//     expect(client.clientID).toBeDefined();
-//     await waitForBase(page);
-//     await fillAndSubmitOpenIDDebugger(page, client);
-//     await waitForRoute(page, routes.auth.login);
-//     await loginBasic(page, testUser);
-//     await page.waitForURL(routes.base + routes.consent + '**');
-//     await page.getByTestId('accept-openid').click();
-//     await page.waitForURL('https://oidcdebugger.com/**');
-//     await waitForPromise(2000);
-//     const headerMessage = await page
-//       .locator('.debug__callback-header')
-//       .locator('h1')
-//       .textContent();
-//     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-//     await page.goto(routes.base + routes.me, {
-//       waitUntil: 'networkidle',
-//     });
-//     const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
-//     await expect(authorizedApps).toContainText(client.name);
-//     await logout(page);
-//   });
+  test.fixme('Authorize when session is not active', async ({ page }) => {
+    expect(client.clientID).toBeDefined();
+    await waitForBase(page);
+    await fillAndSubmitOpenIDDebugger(page, client);
+    await waitForRoute(page, routes.auth.login);
+    await loginBasic(page, testUser);
+    await page.waitForURL(routes.base + routes.consent + '**');
+    await page.getByTestId('accept-openid').click();
+    await page.waitForURL('https://oidcdebugger.com/**');
+    await waitForPromise(2000);
+    const headerMessage = await page
+      .locator('.debug__callback-header')
+      .locator('h1')
+      .textContent();
+    expect(headerMessage?.replace(' ', '')).toBe('Success!');
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
+  });
 
-//   test('Authorize when session is not active and MFA is enabled', async ({
-//     page,
-//     browser,
-//   }) => {
-//     expect(client.clientID).toBeDefined();
-//     const { secret } = await enableTOTP(browser, testUser);
-//     await waitForBase(page);
-//     await fillAndSubmitOpenIDDebugger(page, client);
-//     await loginTOTP(page, testUser, secret);
-//     await page.waitForURL(routes.base + routes.consent + '**');
-//     await page.getByTestId('accept-openid').click();
-//     await page.waitForURL('https://oidcdebugger.com/**');
-//     await waitForPromise(2000);
-//     const headerMessage = await page
-//       .locator('.debug__callback-header')
-//       .locator('h1')
-//       .textContent();
-//     expect(headerMessage?.replace(' ', '')).toBe('Success!');
-//     await page.goto(routes.base + routes.me, {
-//       waitUntil: 'networkidle',
-//     });
-//     const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
-//     await expect(authorizedApps).toContainText(client.name);
-//     await logout(page);
-//   });
-// });
+  test.fixme('Authorize when session is not active and MFA is enabled', async ({
+    page,
+    browser,
+  }) => {
+    expect(client.clientID).toBeDefined();
+    const { secret } = await enableTOTP(browser, testUser);
+    await waitForBase(page);
+    await fillAndSubmitOpenIDDebugger(page, client);
+    await loginTOTP(page, testUser, secret);
+    await page.waitForURL(routes.base + routes.consent + '**');
+    await page.getByTestId('accept-openid').click();
+    await page.waitForURL('https://oidcdebugger.com/**');
+    await waitForPromise(2000);
+    const headerMessage = await page
+      .locator('.debug__callback-header')
+      .locator('h1')
+      .textContent();
+    expect(headerMessage?.replace(' ', '')).toBe('Success!');
+    await page.goto(routes.base + routes.me, {
+      waitUntil: 'networkidle',
+    });
+    const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
+    await expect(authorizedApps).toContainText(client.name);
+    await logout(page);
+  });
+});
 
 const fillAndSubmitOpenIDDebugger = async (
   page: Page,

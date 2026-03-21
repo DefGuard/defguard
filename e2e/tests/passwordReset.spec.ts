@@ -50,26 +50,26 @@ test.describe('Reset password', () => {
 
 
 // TODO: Enable when https://github.com/DefGuard/defguard/issues/2425 is fixed
-//   test('Reset disabled user password', async ({ page, browser }) => {
-//     await waitForBase(page);
-//     await page.goto(testsConfig.ENROLLMENT_URL);
-//     await waitForPromise(2000);
-//     await selectPasswordReset(page);
-//     await setEmail(user.mail, page);
-//     await waitForPromise(2000);
-//     const token = await getPasswordResetToken(user.mail);
-//     await disableUser(browser, user);
-//     await waitForPromise(5000);
-//     await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
+  test.fixme('Reset disabled user password', async ({ page, browser }) => {
+    await waitForBase(page);
+    await page.goto(testsConfig.ENROLLMENT_URL);
+    await waitForPromise(2000);
+    await selectPasswordReset(page);
+    await setEmail(user.mail, page);
+    await waitForPromise(2000);
+    const token = await getPasswordResetToken(user.mail);
+    await disableUser(browser, user);
+    await waitForPromise(5000);
+    await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
 
-//     // A message should be displayed that the code is invalid
-//     await expect(page.locator('h1', { hasText: 'Link expired or invalid.' })).toBeVisible();
-//     await expect(page.locator('button[data-variant="primary"]')).toBeVisible();
+    // A message should be displayed that the code is invalid
+    await expect(page.locator('h1', { hasText: 'Link expired or invalid.' })).toBeVisible();
+    await expect(page.locator('button[data-variant="primary"]')).toBeVisible();
 
-//     // The password input should not be visible
-//     const passwordInputVisible = await page
-//       .locator('[data-testid="field-password"]')
-//       .isVisible();
-//     expect(passwordInputVisible).toBe(false);
-//   });
+    // The password input should not be visible
+    const passwordInputVisible = await page
+      .locator('[data-testid="field-password"]')
+      .isVisible();
+    expect(passwordInputVisible).toBe(false);
+  });
 });

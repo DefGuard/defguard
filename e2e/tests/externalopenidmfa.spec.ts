@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
+import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, OpenIdClient, User } from '../types';
 import { apiCreateUser } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
@@ -12,6 +12,7 @@ import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
@@ -51,49 +52,49 @@ test.describe('External OIDC.', () => {
   });
 
   // TODO: Finish when https://github.com/DefGuard/defguard/issues/1817 is resolved
-  // test('Login through external oidc.', async ({ page }) => {
-  //   expect(client.clientID).toBeDefined();
-  //   expect(client.clientSecret).toBeDefined();
-  //   await waitForBase(page);
-  //   const oidcLoginButton = await page.locator('.oidc-button');
-  //   expect(oidcLoginButton).not.toBeNull();
-  //   expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
-  //   await oidcLoginButton.click();
-  //   await page.getByTestId('login-form-username').fill(testUser.username);
-  //   await page.getByTestId('login-form-password').fill(testUser.password);
-  //   await page.getByTestId('login-form-submit').click();
-  //   await page.getByTestId('openid-allow').click();
-  //   await waitForRoute(page, routes.me);
-  //   const authorizedApps = await page
-  //     .getByTestId('authorized-apps')
-  //     .locator('div')
-  //     .textContent();
-  //   expect(authorizedApps).toContain(client.name);
-  // });
+  test.fixme('Login through external oidc.', async ({ page }) => {
+    expect(client.clientID).toBeDefined();
+    expect(client.clientSecret).toBeDefined();
+    await waitForBase(page);
+    const oidcLoginButton = await page.locator('.oidc-button');
+    expect(oidcLoginButton).not.toBeNull();
+    expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
+    await oidcLoginButton.click();
+    await page.getByTestId('login-form-username').fill(testUser.username);
+    await page.getByTestId('login-form-password').fill(testUser.password);
+    await page.getByTestId('login-form-submit').click();
+    await page.getByTestId('openid-allow').click();
+    await waitForRoute(page, routes.me);
+    const authorizedApps = await page
+      .getByTestId('authorized-apps')
+      .locator('div')
+      .textContent();
+    expect(authorizedApps).toContain(client.name);
+  });
 
 
   // TODO: enable when https://github.com/DefGuard/defguard/issues/2426 is fixed
-  // test('Sign in with external SSO', async ({ page }) => {
-  //   await waitForBase(page);
-  //   await page.goto(testsConfig.ENROLLMENT_URL);
-  //   await waitForPromise(2000);
-  //   await page.getByTestId('start-enrollment').click();
-  //   await page.locator('.oidc-button-link').click();
-  //   await page.getByTestId('field-username').fill(defaultUserAdmin.username);
-  //   await page.getByTestId('field-password').fill(defaultUserAdmin.password);
-  //   await page.getByTestId('sign-in').click();
-  //   await page.getByTestId('accept-openid').click();
-  //   await page.getByTestId('page-nav-next').click();
-  //   await page.getByTestId('modal-confirm-download-submit').click();
+  test.fixme('Sign in with external SSO', async ({ page }) => {
+    await waitForBase(page);
+    await page.goto(testsConfig.ENROLLMENT_URL);
+    await waitForPromise(2000);
+    await page.getByTestId('start-enrollment').click();
+    await page.locator('.oidc-button-link').click();
+    await page.getByTestId('field-username').fill(defaultUserAdmin.username);
+    await page.getByTestId('field-password').fill(defaultUserAdmin.password);
+    await page.getByTestId('sign-in').click();
+    await page.getByTestId('accept-openid').click();
+    await page.getByTestId('page-nav-next').click();
+    await page.getByTestId('modal-confirm-download-submit').click();
 
-  //   const setup_desktop = await page.locator('#setup-desktop');
-  //   await setup_desktop.locator('.fold-button').click();
+    const setup_desktop = await page.locator('#setup-desktop');
+    await setup_desktop.locator('.fold-button').click();
 
-  //   const token = await page
-  //     .locator('.copy-field')
-  //     .filter({ hasText: 'Token' })
-  //     .locator('.track p')
-  //     .textContent();
-  //   expect(token).toBeDefined();
-  // });
+    const token = await page
+      .locator('.copy-field')
+      .filter({ hasText: 'Token' })
+      .locator('.track p')
+      .textContent();
+    expect(token).toBeDefined();
+  });
 });

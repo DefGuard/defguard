@@ -67,12 +67,12 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.locator('button[data-variant="primary"]').filter({ hasText: 'Create new location' }).click();
 
   await page.getByTestId('field-name').fill(network.name);
-  await page.getByTestId('field-address').fill(network.endpoint);
+  await page.getByTestId('field-endpoint').fill(network.endpoint);
   await page.getByTestId('field-port').fill(network.port);
 
   await page.getByTestId('continue').click();
 
-  await page.getByTestId('field-endpoint').fill(network.address);
+  await page.getByTestId('field-address').fill(network.address);
 
   if (network.allowed_ips) {
     let addresses = '';
@@ -83,9 +83,8 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
     await page.getByTestId('field-allowed_ips').fill(addresses);
     await page.getByTestId('continue').click();
   }
-
   await page.getByTestId('continue').click();
-  await page.getByTestId('finish').click();
+  await page.getByTestId('continue').click();
   await page.getByTestId('acl-continue').click();
   await page.getByTestId('create-location').click();
   await page.locator('.icon-button .icon[data-kind="close"]').click();
