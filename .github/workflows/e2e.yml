@@ -2,6 +2,9 @@ name: E2E tests
 
 on:
   workflow_call:
+  pull_request:
+    branches:
+      - e2e-adjustments
 
 permissions:
   contents: read
