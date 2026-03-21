@@ -6,8 +6,6 @@ import { createAlias } from '../utils/acl';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 
-
-
 test.describe('Test aliases', () => {
   // let testUser: User;
 

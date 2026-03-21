@@ -72,7 +72,6 @@ test.describe('External OIDC.', () => {
     expect(authorizedApps).toContain(client.name);
   });
 
-
   // TODO: enable when https://github.com/DefGuard/defguard/issues/2426 is fixed
   test.skip('Sign in with external SSO', async ({ page }) => {
     await waitForBase(page);

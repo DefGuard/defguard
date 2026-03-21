@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
 import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
-import { createUserEnrollment, password } from '../utils/controllers/enrollment';
+import { createUserEnrollment } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
@@ -17,7 +17,6 @@ const testNetwork: NetworkForm = {
   allowed_ips: ['127.1.5.1'],
   port: '5055',
 };
-
 
 // TODO: Enable when https://github.com/DefGuard/defguard/issues/2424 is fixed.
 

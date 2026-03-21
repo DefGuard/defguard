@@ -46,7 +46,7 @@ export const enableEmailMFA = async (
   await waitForBase(page);
   await waitForPromise(5000);
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.profile+user.username);
+  await page.goto(routes.base + routes.profile + user.username);
   await page.getByTestId('email-codes-row').locator('.icon-button').click();
   await page.getByTestId('enable-email').click();
   await waitForPromise(2000);

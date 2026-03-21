@@ -1,4 +1,4 @@
-import { Browser, expect } from '@playwright/test';
+import { Browser } from '@playwright/test';
 
 import { defaultUserAdmin, routes } from '../../../config';
 import { NetworkForm } from '../../../types';
@@ -13,7 +13,10 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.goto(routes.base + routes.locations);
   await page.getByTestId('add-location').click();
   await page.getByTestId('add-regular-location').click();
-  await page.locator('button[data-variant="primary"]').filter({ hasText: 'Create new location' }).click();
+  await page
+    .locator('button[data-variant="primary"]')
+    .filter({ hasText: 'Create new location' })
+    .click();
 
   await page.getByTestId('field-name').fill(network.name);
   await page.getByTestId('field-endpoint').fill(network.endpoint);
@@ -64,7 +67,10 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.goto(routes.base + routes.locations);
   await page.getByTestId('add-location').click();
   await page.getByTestId('add-service-location').click();
-  await page.locator('button[data-variant="primary"]').filter({ hasText: 'Create new location' }).click();
+  await page
+    .locator('button[data-variant="primary"]')
+    .filter({ hasText: 'Create new location' })
+    .click();
 
   await page.getByTestId('field-name').fill(network.name);
   await page.getByTestId('field-endpoint').fill(network.endpoint);

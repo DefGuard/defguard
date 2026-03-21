@@ -226,7 +226,6 @@ test.describe('Test password change', () => {
   });
 });
 
-
 test.describe('API tokens management', () => {
   let testUser: User;
   const token_name = 'test token name';

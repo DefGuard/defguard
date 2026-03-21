@@ -37,7 +37,9 @@ const setLicense = async () => {
 
 const waitForCore = async () => {
   const { default: http } = await import('http');
-  const coreUrl = new URL(testsConfig.CORE_BASE_URL.replace('/api/v1', '') + '/api/v1/health');
+  const coreUrl = new URL(
+    testsConfig.CORE_BASE_URL.replace('/api/v1', '') + '/api/v1/health',
+  );
   await new Promise<void>((resolve) => {
     const check = () => {
       const req = http.get(coreUrl.toString(), (res) => {
@@ -62,7 +64,9 @@ const runWizard = async () => {
   await page.goto(testsConfig.BASE_URL);
 
   // Step 1: Click "Configure Defguard"
-  await page.getByRole('button', { name: 'Configure Defguard' }).waitFor({ state: 'visible' });
+  await page
+    .getByRole('button', { name: 'Configure Defguard' })
+    .waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'Configure Defguard' }).click();
 
   // Step 2: Fill admin user form
@@ -78,7 +82,9 @@ const runWizard = async () => {
 
   // Step 4: Fill Defguard URL and proxy URL
   await page.getByTestId('field-defguard_url').waitFor({ state: 'visible' });
-  await page.getByTestId('field-defguard_url').fill(testsConfig.CORE_BASE_URL.replace('/api/v1', ''));
+  await page
+    .getByTestId('field-defguard_url')
+    .fill(testsConfig.CORE_BASE_URL.replace('/api/v1', ''));
   await page.getByTestId('field-public_proxy_url').fill(testsConfig.ENROLLMENT_URL);
 
   // Continue to CA step
@@ -118,14 +124,16 @@ const runWizard = async () => {
   await page.getByRole('button', { name: 'Continue' }).click();
 
   // Step 10: "I'll do this later"
-  await page.getByRole('button', { name: "I'll do this later" }).waitFor({ state: 'visible' });
+  await page
+    .getByRole('button', { name: "I'll do this later" })
+    .waitFor({ state: 'visible' });
   await page.getByRole('button', { name: "I'll do this later" }).click();
 
   await context.close();
   await browser.close();
 };
 
-export default async function globalSetup(_config: FullConfig) {
+export default async function globalSetup() {
   loadEnv();
 
   if (!dockerCheckContainers()) {
