@@ -22,19 +22,16 @@ export const createAlias = async (
   await modal.getByTestId('field-name').fill(name);
 
   if (addresses) {
-    await modal.getByTestId('radio-addresses').click();
-    await modal.getByTestId('field-destination').fill(addresses.join(','));
+    await modal.getByTestId('field-addresses').fill(addresses.join(','));
   }
 
   if (ports) {
-    await modal.getByTestId('radio-ports').click();
     await modal.getByTestId('field-ports').fill(ports.join(','));
   }
 
   if (protocols) {
-    await modal.getByTestId('radio-protocols').click();
     for (const protocol of protocols) {
-      await modal.getByTestId('field-protocols').filter({ hasText: protocol }).click();
+      await modal.locator('.values-tack .item').filter({ hasText: protocol }).click();
     }
   }
   await modal.locator('button[data-variant="primary"]').click();

@@ -1,8 +1,38 @@
-import { chromium, FullConfig } from '@playwright/test';
+import { chromium, FullConfig, request } from '@playwright/test';
 
 import { defaultUserAdmin, testsConfig } from '../config';
 import { dockerCheckContainers, dockerCreateSnapshot, dockerUp } from './docker';
 import { loadEnv } from './loadEnv';
+
+const setLicense = async () => {
+  const license = process.env.DEFGUARD_LICENSE_KEY;
+  if (!license) return;
+
+  const ctx = await request.newContext({ baseURL: testsConfig.BASE_URL });
+
+  const authRes = await ctx.post('/api/v1/auth', {
+    data: {
+      username: defaultUserAdmin.username,
+      password: defaultUserAdmin.password,
+    },
+  });
+  if (!authRes.ok()) {
+    await ctx.dispose();
+    throw new Error(`Auth failed with status ${authRes.status()}`);
+  }
+
+  // defguard_session cookie is automatically stored in the context
+  const patchRes = await ctx.patch('/api/v1/settings', {
+    data: { license: license.trim() },
+  });
+  if (!patchRes.ok()) {
+    await ctx.dispose();
+    throw new Error(`Setting license failed with status ${patchRes.status()}`);
+  }
+
+  await ctx.dispose();
+  console.log('License key set.');
+};
 
 const waitForCore = async () => {
   const { default: http } = await import('http');
@@ -107,6 +137,8 @@ export default async function globalSetup(_config: FullConfig) {
   console.log('Core is ready. Running setup wizard...');
 
   await runWizard();
+
+  await setLicense();
 
   // Overwrite the snapshot with post-wizard state.
   dockerCreateSnapshot();
