@@ -1,9 +1,6 @@
 name: E2E tests
 
 on:
-  push:
-    branches:
-      - e2e-adjustments
   workflow_call:
 
 permissions:
