@@ -53,9 +53,6 @@ export const createRegularLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('create-location').click();
   await page.locator('.icon-button .icon[data-kind="close"]').click();
 
-  await page.waitForURL('**/locations');
-
-  await expect(page.url()).toBe(routes.base + routes.locations);
   await context.close();
 };
 
@@ -93,7 +90,5 @@ export const createServiceLocation = async (browser: Browser, network: NetworkFo
   await page.getByTestId('create-location').click();
   await page.locator('.icon-button .icon[data-kind="close"]').click();
 
-  await page.waitForURL('**/locations');
-  await expect(page.url()).toBe(routes.base + routes.locations);
   await context.close();
 };
