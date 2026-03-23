@@ -449,8 +449,8 @@ impl EnrollmentServer {
         let pool = self.pool.clone();
         let user_clone = user.clone();
         tokio::spawn(async move {
-            let mut tx = match pool.begin().await {
-                Ok(tx) => tx,
+            let mut transaction = match pool.begin().await {
+                Ok(transaction) => transaction,
                 Err(err) => {
                     error!("Failed to begin transaction for welcome email: {err}");
                     return;
@@ -458,7 +458,7 @@ impl EnrollmentServer {
             };
             if let Err(err) = enrollment
                 .send_welcome_email(
-                    &mut tx,
+                    &mut transaction,
                     &user_clone,
                     &settings,
                     &ip_address,
@@ -471,7 +471,7 @@ impl EnrollmentServer {
                     user_clone.username
                 );
             }
-            let _ = tx.commit().await;
+            let _ = transaction.commit().await;
             if let Some(admin) = admin {
                 if let Err(err) = Token::send_admin_notification(
                     &admin,
