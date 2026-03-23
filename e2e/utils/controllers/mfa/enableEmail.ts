@@ -46,14 +46,14 @@ export const enableEmailMFA = async (
   await waitForBase(page);
   await waitForPromise(5000);
   await loginBasic(page, user);
-  await page.goto(routes.base + routes.profile);
+  await page.goto(routes.base + routes.profile + user.username);
   await page.getByTestId('email-codes-row').locator('.icon-button').click();
   await page.getByTestId('enable-email').click();
   await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
   const { otp: code } = TOTP.generate(secret, {
     digits: 6,
-    period: 60,
+    period: 300,
   });
   await page.getByTestId('field-code').fill(code);
   await page.getByTestId('submit').click();

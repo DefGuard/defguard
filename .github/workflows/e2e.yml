@@ -84,6 +84,8 @@ jobs:
         id: run-test
         continue-on-error: true
         working-directory: ./e2e
+        env:
+          DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
         run: pnpm test
 
       - name: Stop compose
