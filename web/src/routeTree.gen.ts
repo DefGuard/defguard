@@ -40,6 +40,7 @@ import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized
 import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
 import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
+import { Route as AuthorizedDefaultEnrollmentRouteImport } from './routes/_authorized/_default/enrollment'
 import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized/_default/edges'
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
 import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
@@ -227,6 +228,12 @@ const AuthorizedDefaultGroupsRoute = AuthorizedDefaultGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => AuthorizedDefaultRoute,
 } as any)
+const AuthorizedDefaultEnrollmentRoute =
+  AuthorizedDefaultEnrollmentRouteImport.update({
+    id: '/enrollment',
+    path: '/enrollment',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultEdgesRoute = AuthorizedDefaultEdgesRouteImport.update({
   id: '/edges',
   path: '/edges',
@@ -407,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
+  '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
@@ -464,6 +472,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
+  '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
@@ -525,6 +534,7 @@ export interface FileRoutesById {
   '/auth/': typeof AuthIndexRoute
   '/_authorized/_default/activity': typeof AuthorizedDefaultActivityRoute
   '/_authorized/_default/edges': typeof AuthorizedDefaultEdgesRoute
+  '/_authorized/_default/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
   '/_authorized/_default/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
@@ -585,6 +595,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/activity'
     | '/edges'
+    | '/enrollment'
     | '/groups'
     | '/network-devices'
     | '/openid'
@@ -642,6 +653,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/activity'
     | '/edges'
+    | '/enrollment'
     | '/groups'
     | '/network-devices'
     | '/openid'
@@ -702,6 +714,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/_authorized/_default/activity'
     | '/_authorized/_default/edges'
+    | '/_authorized/_default/enrollment'
     | '/_authorized/_default/groups'
     | '/_authorized/_default/network-devices'
     | '/_authorized/_default/openid'
@@ -977,6 +990,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultGroupsRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/enrollment': {
+      id: '/_authorized/_default/enrollment'
+      path: '/enrollment'
+      fullPath: '/enrollment'
+      preLoaderRoute: typeof AuthorizedDefaultEnrollmentRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/edges': {
       id: '/_authorized/_default/edges'
       path: '/edges'
@@ -1172,6 +1192,7 @@ declare module '@tanstack/react-router' {
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
   AuthorizedDefaultEdgesRoute: typeof AuthorizedDefaultEdgesRoute
+  AuthorizedDefaultEnrollmentRoute: typeof AuthorizedDefaultEnrollmentRoute
   AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
   AuthorizedDefaultNetworkDevicesRoute: typeof AuthorizedDefaultNetworkDevicesRoute
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
@@ -1207,6 +1228,7 @@ interface AuthorizedDefaultRouteChildren {
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultActivityRoute: AuthorizedDefaultActivityRoute,
   AuthorizedDefaultEdgesRoute: AuthorizedDefaultEdgesRoute,
+  AuthorizedDefaultEnrollmentRoute: AuthorizedDefaultEnrollmentRoute,
   AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,
   AuthorizedDefaultNetworkDevicesRoute: AuthorizedDefaultNetworkDevicesRoute,
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
