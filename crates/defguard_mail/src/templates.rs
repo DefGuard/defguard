@@ -26,7 +26,6 @@ static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_GATEWAY_RECONNECTED: &str = include_str!("../templates/mail_gateway_reconnected.tera");
 static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
 static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
 static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
@@ -376,17 +375,25 @@ pub async fn gateway_disconnected_mail(
     Ok(())
 }
 
-pub fn gateway_reconnected_mail(
+/// Notification about reconnected Gateway.
+pub async fn gateway_reconnected_mail(
+    to: &str,
+    conn: &mut PgConnection,
     gateway_name: &str,
-    gateway_ip: &str,
-    network_name: &str,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), None, None, None)?;
+    gateway_ip_address: &str,
+    location_name: &str,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
     context.insert("gateway_name", gateway_name);
-    context.insert("gateway_ip", gateway_ip);
-    context.insert("network_name", network_name);
-    tera.add_raw_template("mail_gateway_reconnected", MAIL_GATEWAY_RECONNECTED)?;
-    Ok(tera.render("mail_gateway_reconnected", &context)?)
+    context.insert("ip_address", gateway_ip_address);
+    context.insert("location_name", location_name);
+
+    let message = MailMessage::GatewayReconnect;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 pub async fn mfa_activation_mail(

@@ -356,7 +356,7 @@ impl MailMessage {
             // Self::NewDeviceLogin => "",
             // Self::NewDeviceOCIDLogin => "",
             Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.mjml"),
-            // Self::GatewayReconnect => "",
+            Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.mjml"),
             Self::MFAActivation => include_str!("../templates/mfa-activation.mjml"),
             // Self::MFAConfigured => "",
             Self::MFACode => include_str!("../templates/mfa-code.mjml"),
