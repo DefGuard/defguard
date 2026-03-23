@@ -7,7 +7,7 @@ use axum::{
 use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
     Id,
-    models::{MFAMethod, User, gateway::Gateway, proxy::Proxy},
+    models::{User, gateway::Gateway, proxy::Proxy},
 };
 use defguard_mail::{
     Attachment, Mail,
@@ -262,23 +262,6 @@ pub fn send_new_device_ocid_login_email(
         user_email,
         format!("New login to {oauth2client_name} application with Defguard"),
         templates::new_device_ocid_login_mail(session, oauth2client_name)?,
-    )
-    .send_and_forget();
-
-    Ok(())
-}
-
-pub fn send_mfa_configured_email(
-    session: Option<&SessionContext>,
-    user: &User<Id>,
-    mfa_method: &MFAMethod,
-) -> Result<(), TemplateError> {
-    debug!("Sending MFA configured mail to {}", user.email);
-
-    Mail::new(
-        &user.email,
-        format!("MFA method {mfa_method} has been activated on your account"),
-        templates::mfa_configured_mail(session, mfa_method)?,
     )
     .send_and_forget();
 

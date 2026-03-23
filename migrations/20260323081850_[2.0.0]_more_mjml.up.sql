@@ -13,4 +13,7 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('gateway-reconnect', 'title', 'en_US', 'Defguard Gateway has just disconnected.'),
     ('gateway-reconnect', 'gateway_label', 'en_US', 'Gateway name:'),
     ('gateway-reconnect', 'ip_address_label', 'en_US', 'Gateway IP address:'),
-    ('gateway-reconnect', 'location_label', 'en_US', 'VPN location:');
+    ('gateway-reconnect', 'location_label', 'en_US', 'VPN location:'),
+    ('mfa-configured', 'title', 'en_US', 'Hello,'),
+    ('mfa-configured', 'subtitle', 'en_US', 'A Multi-Factor Authentication (MFA) has been activated in your account.'),
+    ('mfa-configured', 'mfa_method_label', 'en_US', 'MFA method:');

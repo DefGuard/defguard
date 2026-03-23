@@ -25,12 +25,13 @@ use defguard_core::{
         client_version::ClientFeature,
         utils::{build_device_config_response, parse_client_ip_agent},
     },
-    handlers::{mail::send_mfa_configured_email, user::check_password_strength},
+    handlers::user::check_password_strength,
     headers::get_device_info,
     is_valid_phone_number,
 };
 use defguard_mail::templates::{
-    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, new_device_added_mail,
+    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
+    new_device_added_mail,
 };
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
@@ -1041,8 +1042,12 @@ impl EnrollmentServer {
             .await
             .map_err(|_| Status::internal("Failed to get recovery codes.".to_string()))?
             .ok_or_else(|| Status::internal("Recovery codes not found".to_string()))?;
-        if let Err(e) = send_mfa_configured_email(None, &user, &mfa_method) {
-            error!("Failed to send mfa configured email\nReason: {e}");
+        if let Ok(mut conn) = self.pool.begin().await {
+            if let Err(err) = mfa_configured_mail(&user.email, &mut conn, None, &mfa_method).await {
+                error!("Failed to send MFA configured email\nReason: {err}");
+            }
+        } else {
+            error!("Failed to begin database session");
         }
         info!(
             "Successfully enabled MFA method {} for user {}",

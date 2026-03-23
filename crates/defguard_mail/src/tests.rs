@@ -4,7 +4,7 @@ use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
     db::{
         models::{
-            Settings,
+            MFAMethod, Settings,
             settings::{SmtpEncryption, initialize_current_settings, set_settings},
         },
         setup_pool,
@@ -20,8 +20,8 @@ use tera::Context;
 
 use super::templates::{
     TemplateLocation, desktop_start_mail, enrollment_admin_notification, gateway_disconnected_mail,
-    gateway_reconnected_mail, mfa_activation_mail, mfa_code_mail, new_account_mail,
-    new_device_added_mail,
+    gateway_reconnected_mail, mfa_activation_mail, mfa_code_mail, mfa_configured_mail,
+    new_account_mail, new_device_added_mail,
 };
 
 /// Set SMTP settings from environment variables.
@@ -235,6 +235,26 @@ fn send_gateway_reconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
         gateway_name,
         ip_address,
         location_name,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_mfa_configured_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    mfa_configured_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        None,
+        &MFAMethod::Email,
     )
     .await
     .unwrap();

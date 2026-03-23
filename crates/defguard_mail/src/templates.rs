@@ -26,7 +26,6 @@ static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
 static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
 static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
     include_str!("../templates/mail_new_device_ocid_login.tera");
@@ -311,16 +310,21 @@ pub async fn new_device_added_mail(
     Ok(())
 }
 
-pub fn mfa_configured_mail(
+pub async fn mfa_configured_mail(
+    to: &str,
+    conn: &mut PgConnection,
     session: Option<&SessionContext>,
     method: &MFAMethod,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), session, None, None)?;
-    context.insert("mfa_method", &method);
-    tera.add_raw_template("mail_base", MAIL_BASE)?;
-    tera.add_raw_template("mail_mfa_configured", MAIL_MFA_CONFIGURED)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
-    Ok(tera.render("mail_mfa_configured", &context)?)
+    context.insert("mfa_method", &method);
+
+    let message = MailMessage::MFAConfigured;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 pub fn new_device_login_mail(
@@ -517,12 +521,6 @@ mod test {
             .expect("Could not initialize current settings in the database");
         config.initialize_post_settings();
         let _ = SERVER_CONFIG.set(config.clone());
-    }
-
-    #[test]
-    fn test_mfa_configured_mail() {
-        let mfa_method = MFAMethod::OneTimePassword;
-        assert_ok!(mfa_configured_mail(None, &mfa_method));
     }
 
     #[test]
