@@ -26,8 +26,8 @@ export const SettingsGeneralTab = () => {
       <Link to="/settings/enrollment">
         <SectionSelect
           image="enrollment"
-          title={m.settings_enrollment_title()}
-          content={m.settings_general_section_enrollment_content()}
+          title={m.settings_password_reset_title()}
+          content={m.settings_general_section_password_reset_content()}
         />
       </Link>
       <SizedBox height={ThemeSpacing.Xl} />
