@@ -19,4 +19,10 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('mfa-configured', 'mfa_method_label', 'en_US', 'MFA method:'),
     ('new-device-login', 'title', 'en_US', 'Your account was just logged into from a new device.'),
     ('new-device-login', 'label_device', 'en_US', 'Device name:'),
-    ('new-device-login', 'label_date', 'en_US', 'Date:');
+    ('new-device-login', 'label_date', 'en_US', 'Date:'),
+    ('new-device-ocid-login', 'title', 'en_US', 'Your account was just logged into a system using OpenID Connect authorization'),
+    ('new-device-ocid-login', 'subtitle', 'en_US', 'You can deauthorize all applications that have access to your account from the web vault under (My Profile > Apps).'),
+    ('new-device-ocid-login', 'label_profile', 'en_US', 'Profile URL:'),
+    ('new-device-ocid-login', 'label_oauth2client', 'en_US', 'System name:'),
+    ('password-reset', 'title', 'en_US', 'Password reset'),
+    ('password-reset', 'subtitle', 'en_US', 'If you wish to reset your password, please copy and paste the following URL in your browser:');

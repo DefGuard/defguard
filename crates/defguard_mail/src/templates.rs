@@ -26,10 +26,6 @@ static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
-    include_str!("../templates/mail_new_device_ocid_login.tera");
-static MAIL_PASSWORD_RESET_START: &str =
-    include_str!("../templates/mail_password_reset_start.tera");
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
@@ -344,20 +340,23 @@ pub async fn new_device_login_mail(
     Ok(())
 }
 
-pub fn new_device_ocid_login_mail(
-    session: &SessionContext,
+pub async fn new_device_ocid_login_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    session: Option<&SessionContext>,
     oauth2client_name: &str,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), Some(session), None, None)?;
-    tera.add_raw_template("mail_base", MAIL_BASE)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
     let url = format!("{}me", Settings::url()?);
-
     context.insert("oauth2client_name", &oauth2client_name);
     context.insert("profile_url", &url);
 
-    tera.add_raw_template("mail_new_device_oicd_login", MAIL_NEW_DEVICE_OCID_LOGIN)?;
-    Ok(tera.render("mail_new_device_oicd_login", &context)?)
+    let message = MailMessage::NewDeviceOCIDLogin;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 /// Notification about disconnected Gateway.
@@ -456,13 +455,16 @@ pub async fn mfa_code_mail(
     Ok(())
 }
 
-pub fn email_password_reset_mail(
+pub async fn password_reset_mail(
+    to: &str,
+    conn: &mut PgConnection,
     mut service_url: Url,
     password_reset_token: &str,
     ip_address: Option<&str>,
     device_info: Option<&str>,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) =
+        get_base_tera_mjml(Context::new(), None, ip_address, device_info)?;
 
     context.insert("enrollment_url", &service_url);
     context.insert("defguard_url", &Settings::url()?);
@@ -475,9 +477,11 @@ pub fn email_password_reset_mail(
 
     context.insert("link_url", &service_url);
 
-    tera.add_raw_template("mail_passowrd_reset_start", MAIL_PASSWORD_RESET_START)?;
+    let message = MailMessage::PasswordReset;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
 
-    Ok(tera.render("mail_passowrd_reset_start", &context)?)
+    Ok(())
 }
 
 pub fn email_password_reset_success_mail(

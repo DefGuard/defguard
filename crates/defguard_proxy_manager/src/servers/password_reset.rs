@@ -4,12 +4,10 @@ use defguard_core::{
     enterprise::ldap::utils::ldap_change_password,
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, PasswordResetEvent},
     grpc::utils::parse_client_ip_agent,
-    handlers::{
-        mail::{send_password_reset_email, send_password_reset_success_email},
-        user::check_password_strength,
-    },
+    handlers::{mail::send_password_reset_success_email, user::check_password_strength},
     headers::get_device_info,
 };
+use defguard_mail::templates::password_reset_mail;
 use defguard_proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,
@@ -140,23 +138,28 @@ impl PasswordResetServer {
         );
         enrollment.save(&mut *transaction).await?;
 
+        let proxy_url = settings.proxy_public_url().map_err(|err| {
+            error!("Failed to get public proxy URL: {err}");
+            Status::internal("unexpected error")
+        })?;
+        if let Err(err) = password_reset_mail(
+            &user.email,
+            &mut transaction,
+            proxy_url,
+            &enrollment.id,
+            Some(&ip_address),
+            Some(&device_info),
+        )
+        .await
+        {
+            error!("Failed to send password reset email: {err}");
+            return Err(Status::internal("password reset email"));
+        }
+
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
-
-        let public_proxy_url = settings.proxy_public_url().map_err(|err| {
-            error!("Failed to get public proxy URL: {err}");
-            Status::internal("unexpected error")
-        })?;
-
-        send_password_reset_email(
-            &user,
-            public_proxy_url,
-            &enrollment.id,
-            Some(&ip_address),
-            Some(&device_info),
-        )?;
 
         info!(
             "Finished processing password reset request for user {}.",

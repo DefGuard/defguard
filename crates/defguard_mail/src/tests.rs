@@ -22,7 +22,8 @@ use tera::Context;
 use super::templates::{
     TemplateLocation, desktop_start_mail, enrollment_admin_notification, gateway_disconnected_mail,
     gateway_reconnected_mail, mfa_activation_mail, mfa_code_mail, mfa_configured_mail,
-    new_account_mail, new_device_added_mail, new_device_login_mail,
+    new_account_mail, new_device_added_mail, new_device_login_mail, new_device_ocid_login_mail,
+    password_reset_mail,
 };
 
 /// Set SMTP settings from environment variables.
@@ -275,6 +276,46 @@ fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
     new_device_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, created)
         .await
         .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_new_device_ocid_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let client_name = "RemoteApp";
+    new_device_ocid_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, client_name)
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_password_reset_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let proxy_url = Url::parse("http://localhost:8000").unwrap();
+    let token = "blablabla";
+    password_reset_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        proxy_url,
+        token,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
 
     // Delay, so send_and_forget() can process the message.
     tokio::time::sleep(Duration::from_secs(2)).await;

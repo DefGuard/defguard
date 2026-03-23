@@ -9,11 +9,7 @@ use defguard_common::db::{
     Id,
     models::{User, gateway::Gateway, proxy::Proxy},
 };
-use defguard_mail::{
-    Attachment, Mail,
-    templates::{self, SessionContext, TemplateError, support_data_mail},
-};
-use reqwest::Url;
+use defguard_mail::{Attachment, Mail, templates};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -33,8 +29,6 @@ use crate::{
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
-
-pub(crate) static EMAIL_PASSWORD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
 pub(crate) static EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
 
 #[derive(Clone, Deserialize)]
@@ -143,7 +137,7 @@ pub async fn send_support_data(
     let result = Mail::new(
         SUPPORT_EMAIL_ADDRESS,
         SUPPORT_EMAIL_SUBJECT,
-        support_data_mail()?,
+        templates::support_data_mail()?,
     )
     .set_attachments(vec![components, config, logs])
     .send()
@@ -229,42 +223,6 @@ pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), WebErro
         templates::user_import_blocked_mail(&email, &mut conn, Context::new()).await?;
         debug!("Scheduled blocked user import mail to admin {}", email);
     }
-
-    Ok(())
-}
-
-pub fn send_new_device_ocid_login_email(
-    user_email: &str,
-    oauth2client_name: &str,
-    session: &SessionContext,
-) -> Result<(), TemplateError> {
-    debug!("User {user_email} new device OCID login mail to {SUPPORT_EMAIL_ADDRESS}");
-
-    Mail::new(
-        user_email,
-        format!("New login to {oauth2client_name} application with Defguard"),
-        templates::new_device_ocid_login_mail(session, oauth2client_name)?,
-    )
-    .send_and_forget();
-
-    Ok(())
-}
-
-pub fn send_password_reset_email(
-    user: &User<Id>,
-    service_url: Url,
-    token: &str,
-    ip_address: Option<&str>,
-    device_info: Option<&str>,
-) -> Result<(), TokenError> {
-    debug!("Sending password reset email to {}", user.email);
-
-    Mail::new(
-        &user.email,
-        EMAIL_PASSWORD_RESET_START_SUBJECT,
-        templates::email_password_reset_mail(service_url, token, ip_address, device_info)?,
-    )
-    .send_and_forget();
 
     Ok(())
 }
