@@ -3,13 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use chrono::{Datelike, NaiveDateTime, Utc};
 use defguard_common::{
     VERSION,
-    db::{
-        Id,
-        models::{
-            Session, Settings,
-            user::{MFAMethod, User},
-        },
-    },
+    db::models::{Session, Settings, user::MFAMethod},
     types::UrlParseError,
 };
 use reqwest::Url;
@@ -31,8 +25,6 @@ static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
-static MAIL_ENROLLMENT_ADMIN_NOTIFICATION: &str =
-    include_str!("../templates/mail_enrollment_admin_notification.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
 static MAIL_GATEWAY_DISCONNECTED: &str =
     include_str!("../templates/mail_gateway_disconnected.tera");
@@ -92,20 +84,6 @@ impl From<Session> for SessionContext {
         Self {
             ip_address: value.ip_address,
             device_info: value.device_info,
-        }
-    }
-}
-
-pub struct UserContext {
-    last_name: String,
-    first_name: String,
-}
-
-impl From<&User<Id>> for UserContext {
-    fn from(user: &User<Id>) -> Self {
-        Self {
-            last_name: user.last_name.clone(),
-            first_name: user.first_name.clone(),
         }
     }
 }
@@ -277,27 +255,27 @@ pub fn enrollment_welcome_mail(
     Ok(tera.render("mail_enrollment_welcome", &context)?)
 }
 
-// Notification for admin after user completes an enrollment.
-pub fn enrollment_admin_notification(
-    user: &UserContext,
-    admin: &UserContext,
+/// Notification for admin after user completes an enrollment.
+pub async fn enrollment_admin_notification(
+    to: &str,
+    conn: &mut PgConnection,
+    user_name: &str,
+    admin_name: &str,
     ip_address: &str,
     device_info: Option<&str>,
-) -> Result<String, TemplateError> {
+) -> Result<(), TemplateError> {
     debug!("Render an admin notification mail template.");
     let (mut tera, mut context) =
-        get_base_tera(Context::new(), None, Some(ip_address), device_info)?;
+        get_base_tera_mjml(Context::new(), None, Some(ip_address), device_info)?;
 
-    tera.add_raw_template(
-        "mail_enrollment_admin_notification",
-        MAIL_ENROLLMENT_ADMIN_NOTIFICATION,
-    )?;
-    context.insert("first_name", &user.first_name);
-    context.insert("last_name", &user.last_name);
-    context.insert("admin_first_name", &admin.first_name);
-    context.insert("admin_last_name", &admin.last_name);
+    context.insert("user_name", user_name);
+    context.insert("admin_name", admin_name);
 
-    Ok(tera.render("mail_enrollment_admin_notification", &context)?)
+    let message = MailMessage::EnrollmentNotification;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 // message with support data
@@ -608,23 +586,6 @@ mod test {
             "Gateway A",
             "127.0.0.1",
             "Location1"
-        ));
-    }
-
-    #[sqlx::test]
-    async fn test_enrollment_admin_notification(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        init_config(&pool).await;
-        let test_user = UserContext {
-            last_name: "test_last".into(),
-            first_name: "test_first".into(),
-        };
-
-        assert_ok!(enrollment_admin_notification(
-            &test_user,
-            &test_user,
-            "11.11.11.11",
-            None
         ));
     }
 

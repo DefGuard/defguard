@@ -29,7 +29,9 @@ use defguard_core::{
     headers::get_device_info,
     is_valid_phone_number,
 };
-use defguard_mail::templates::{TemplateLocation, mfa_activation_mail, new_device_added_mail};
+use defguard_mail::templates::{
+    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, new_device_added_mail,
+};
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
@@ -439,9 +441,19 @@ impl EnrollmentServer {
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
         if let Some(admin) = admin {
-            debug!("Send admin notification mail.");
-            Token::send_admin_notification(&admin, &user, &ip_address, device_info.as_deref())
-                .await?;
+            debug!("Sending admin notification mail");
+            if let Err(err) = enrollment_admin_notification(
+                &admin.email,
+                &mut transaction,
+                user.name().as_str(),
+                admin.name().as_str(),
+                &ip_address,
+                device_info.as_deref(),
+            )
+            .await
+            {
+                error!("Failed to send admin notification mail: {err}");
+            }
         }
 
         // Unset the enrollment-pending flag (https://github.com/DefGuard/client/issues/647).

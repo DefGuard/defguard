@@ -287,6 +287,7 @@ pub enum MailMessage {
     GatewayDisconnect,
     /// Gateway has reconnected.
     GatewayReconnect,
+    /// MFA activated.
     MFAActivation,
     MFAConfigured,
     /// MFA code.
@@ -294,6 +295,8 @@ pub enum MailMessage {
     PasswordReset,
     PasswordResetDone,
     UserImportBlocked,
+    /// Enrollment notification for admins.
+    EnrollmentNotification,
 }
 
 impl MailMessage {
@@ -316,6 +319,7 @@ impl MailMessage {
             Self::PasswordReset => "Password reset",
             Self::PasswordResetDone => "Password reset success",
             Self::UserImportBlocked => "User import blocked",
+            Self::EnrollmentNotification => "Defguard: User enrollment completed",
         }
     }
 
@@ -337,6 +341,7 @@ impl MailMessage {
             Self::PasswordReset => "password-reset",
             Self::PasswordResetDone => "password-reset-done",
             Self::UserImportBlocked => "user-import-blocked",
+            Self::EnrollmentNotification => "enrollment-admin-notification",
         }
     }
 
@@ -358,6 +363,9 @@ impl MailMessage {
             // Self::PasswordReset => "",
             // Self::PasswordResetDone => "",
             Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
+            Self::EnrollmentNotification => {
+                include_str!("../templates/enrollment-admin-notification.mjml")
+            }
             _ => "",
         }
     }

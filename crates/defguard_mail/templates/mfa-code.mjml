@@ -22,7 +22,7 @@
   </mj-column>
   <mj-column width="568px">
     <mj-text mj-class="t-body-sm-400" css-class="fg-muted-c">
-      {{ code_is_valid }}
+      {{ code_is_valid }} {{ timeout }}
     </mj-text>
   </mj-column>
 </mj-section>

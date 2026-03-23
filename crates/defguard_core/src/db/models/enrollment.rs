@@ -418,42 +418,6 @@ impl Token {
             }
         }
     }
-
-    // Notify admin that a user has completed enrollment
-    pub async fn send_admin_notification(
-        admin: &User<Id>,
-        user: &User<Id>,
-        ip_address: &str,
-        device_info: Option<&str>,
-    ) -> Result<(), TokenError> {
-        debug!(
-            "Sending enrollment success notification for user {} to {}",
-            user.username, admin.username
-        );
-        let mail = Mail::new(
-            &admin.email,
-            "[defguard] User enrollment completed",
-            templates::enrollment_admin_notification(
-                &user.into(),
-                &admin.into(),
-                ip_address,
-                device_info,
-            )?,
-        );
-        match mail.send().await {
-            Ok(()) => {
-                info!(
-                    "Sent enrollment success notification for user {} to {}",
-                    user.username, admin.username
-                );
-                Ok(())
-            }
-            Err(err) => {
-                error!("Error sending welcome mail: {err}");
-                Err(TokenError::NotificationError(err.to_string()))
-            }
-        }
-    }
 }
 
 fn enrollment_welcome_message(settings: &Settings) -> Result<String, TokenError> {
