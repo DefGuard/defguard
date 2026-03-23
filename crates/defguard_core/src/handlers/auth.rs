@@ -20,7 +20,7 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::templates::mfa_code_mail;
+use defguard_mail::templates::{mfa_activation_mail, mfa_code_mail};
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
 use uaparser::Parser;
@@ -41,9 +41,7 @@ use crate::{
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
-        SIGN_IN_COOKIE_NAME, cookie_domain,
-        mail::{send_email_mfa_activation_email, send_mfa_configured_email},
-        user_for_admin_or_self,
+        SIGN_IN_COOKIE_NAME, cookie_domain, mail::send_mfa_configured_email, user_for_admin_or_self,
     },
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
     server_config,
@@ -790,8 +788,19 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     user.new_email_secret(&appstate.pool).await?;
     info!("Generated new email MFA secret for user {}", user.username);
 
+    // generate a verification code
+    let mut transaction = appstate.pool.begin().await?;
+    let code = user.generate_email_mfa_code()?;
+
     // send email with code
-    send_email_mfa_activation_email(&user, Some(&session.session.into()))?;
+    mfa_activation_mail(
+        &user.email,
+        &mut transaction,
+        &user.first_name,
+        &code,
+        Some(&session.session.into()),
+    )
+    .await?;
 
     Ok(ApiResponse::default())
 }

@@ -25,14 +25,11 @@ use defguard_core::{
         client_version::ClientFeature,
         utils::{build_device_config_response, parse_client_ip_agent},
     },
-    handlers::{
-        mail::{send_email_mfa_activation_email, send_mfa_configured_email},
-        user::check_password_strength,
-    },
+    handlers::{mail::send_mfa_configured_email, user::check_password_strength},
     headers::get_device_info,
     is_valid_phone_number,
 };
-use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
+use defguard_mail::templates::{TemplateLocation, mfa_activation_mail, new_device_added_mail};
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
@@ -914,7 +911,7 @@ impl EnrollmentServer {
         &self,
         request: CodeMfaSetupStartRequest,
     ) -> Result<CodeMfaSetupStartResponse, Status> {
-        debug!("Begin enrollment code mfa setup start");
+        debug!("Begin enrollment code MFA setup start");
         let method = request.method();
         if method != MfaMethod::Email && method != MfaMethod::Totp {
             return Err(Status::invalid_argument("Method not supported".to_string()));
@@ -929,7 +926,7 @@ impl EnrollmentServer {
             MfaMethod::Email => {
                 let settings = Settings::get_current_settings();
                 if !settings.smtp_configured() {
-                    error!("Unable to start Email mfa setup. SMTP is not configured");
+                    error!("Unable to start email MFA setup; SMTP is not configured");
                     return Err(Status::internal("SMTP not configured".to_string()));
                 }
                 if user.email_mfa_enabled {
@@ -942,10 +939,20 @@ impl EnrollmentServer {
                     Status::internal("Failed to setup email mfa".to_string())
                 })?;
                 info!("Created email secret for {}", &user.username);
-                send_email_mfa_activation_email(&user, None).map_err(|e| {
-                    error!("Failed to send email mfa activation email.\nReason:{e}");
-                    Status::internal("Failed to send activation email".to_string())
+                let mut transaction = self.pool.begin().await.map_err(|err| {
+                    error!("Failed to begin database transaction\nReason:{err}");
+                    Status::internal("Failed begin database transaction".to_string())
                 })?;
+                let code = user.generate_email_mfa_code().map_err(|err| {
+                    error!("Failed to generate MFA code for {user}\nReason:{err}");
+                    Status::internal("Failed to generate MFA code".to_string())
+                })?;
+                mfa_activation_mail(&user.email, &mut transaction, &user.first_name, &code, None)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to send MFA activation email\nReason:{err}");
+                        Status::internal("Failed to send activation email".to_string())
+                    })?;
                 Ok(CodeMfaSetupStartResponse { totp_secret: None })
             }
             MfaMethod::Totp => {
@@ -955,10 +962,10 @@ impl EnrollmentServer {
                     ));
                 }
                 let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
-                    error!("Failed to make new totp secret");
-                    Status::internal(String::new())
+                    error!("Failed to make new TOTP secret");
+                    Status::internal("Failed to make new TOTP secret".to_string())
                 })?;
-                info!("New totp secret created for {}", &user.username);
+                info!("New TOTP secret created for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
                     totp_secret: Some(secret),
                 })

@@ -352,7 +352,7 @@ impl MailMessage {
             // Self::NewDeviceOCIDLogin => "",
             // Self::GatewayDisconnect => "",
             // Self::GatewayReconnect => "",
-            // Self::MFAActivation => "",
+            Self::MFAActivation => include_str!("../templates/mfa-activation.mjml"),
             // Self::MFAConfigured => "",
             Self::MFACode => include_str!("../templates/mfa-code.mjml"),
             // Self::PasswordReset => "",
@@ -404,7 +404,7 @@ impl MailMessage {
                     }
                 }
             }
-            Self::MFACode => {
+            Self::MFACode | Self::MFAActivation => {
                 mail.add_png_image("date", DATE_ICON);
                 mail.add_png_image("otp", OTP_ICON);
             }

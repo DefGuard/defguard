@@ -37,9 +37,6 @@ static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
 
 static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
-static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str =
-    "Defguard: Multi-Factor Authentication activation";
-
 static GATEWAY_DISCONNECTED_SUBJECT: &str = "Defguard: Gateway disconnected";
 static GATEWAY_RECONNECTED_SUBJECT: &str = "Defguard: Gateway reconnected";
 
@@ -281,28 +278,6 @@ pub fn send_mfa_configured_email(
         &user.email,
         format!("MFA method {mfa_method} has been activated on your account"),
         templates::mfa_configured_mail(session, mfa_method)?,
-    )
-    .send_and_forget();
-
-    Ok(())
-}
-
-pub fn send_email_mfa_activation_email(
-    user: &User<Id>,
-    session: Option<&SessionContext>,
-) -> Result<(), TemplateError> {
-    debug!("Sending email MFA activation mail to {}", user.email);
-
-    // generate a verification code
-    let code = user.generate_email_mfa_code().map_err(|err| {
-        error!("Failed to generate email MFA code: {err}");
-        TemplateError::MfaError
-    })?;
-
-    Mail::new(
-        &user.email,
-        EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT,
-        templates::email_mfa_activation_mail(&user.into(), &code, session)?,
     )
     .send_and_forget();
 

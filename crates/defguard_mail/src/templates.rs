@@ -41,8 +41,6 @@ static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configure
 static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
 static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
     include_str!("../templates/mail_new_device_ocid_login.tera");
-static MAIL_EMAIL_MFA_ACTIVATION: &str =
-    include_str!("../templates/mail_email_mfa_activation.tera");
 static MAIL_PASSWORD_RESET_START: &str =
     include_str!("../templates/mail_password_reset_start.tera");
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
@@ -407,22 +405,31 @@ pub fn gateway_reconnected_mail(
     Ok(tera.render("mail_gateway_reconnected", &context)?)
 }
 
-pub fn email_mfa_activation_mail(
-    user: &UserContext,
+pub async fn mfa_activation_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    first_name: &str,
     code: &str,
     session: Option<&SessionContext>,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), session, None, None)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
     let settings = Settings::get_current_settings();
     let timeout = humantime::format_duration(Duration::from_secs(
         settings.mfa_code_timeout_seconds as u64,
     ));
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
-    context.insert("name", &user.first_name);
-    tera.add_raw_template("mail_email_mfa_activation", MAIL_EMAIL_MFA_ACTIVATION)?;
+    context.insert("username", first_name);
+    context.insert(
+        "datetime",
+        &Utc::now().format(MAIL_DATETIME_FORMAT).to_string(),
+    );
 
-    Ok(tera.render("mail_email_mfa_activation", &context)?)
+    let message = MailMessage::MFAActivation;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 pub async fn mfa_code_mail(
