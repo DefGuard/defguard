@@ -9,10 +9,12 @@ import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import {
+  getLicenseInfoQueryOptions,
   getUserApiTokensQueryOptions,
   getUserAuthKeysQueryOptions,
   userProfileQueryOptions,
 } from '../../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
 import { ProfileApiTokensTab } from './tabs/ProfileApiTokensTab/ProfileApiTokensTab';
 import { ProfileAuthKeysTab } from './tabs/ProfileAuthKeysTab/ProfileAuthKeysTab';
@@ -40,8 +42,16 @@ export const UserProfilePage = () => {
 
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
   const { data: userAuthKeys } = useSuspenseQuery(getUserAuthKeysQueryOptions(username));
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const hasBusinessFeaturesAccess = useMemo((): boolean => {
+    if (!isAdmin || licenseInfo === undefined) {
+      return false;
+    }
+
+    return canUseBusinessFeature(licenseInfo).result;
+  }, [isAdmin, licenseInfo]);
   const { data: userApiTokens } = useQuery(
-    getUserApiTokensQueryOptions(username, isAdmin),
+    getUserApiTokensQueryOptions(username, isAdmin && hasBusinessFeaturesAccess),
   );
 
   const pageTitle = useMemo(() => {
@@ -75,6 +85,16 @@ export const UserProfilePage = () => {
     [navigate],
   );
 
+  const setApiTokensTabIfAllowed = useCallback(() => {
+    if (!isAdmin || licenseInfo === undefined) {
+      return;
+    }
+
+    licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+      setActiveTab(UserProfileTab.ApiTokens);
+    });
+  }, [isAdmin, licenseInfo, setActiveTab]);
+
   const tabsConfiguration = useMemo(() => {
     const res: TabsItem[] = [
       {
@@ -96,11 +116,11 @@ export const UserProfilePage = () => {
         title: m.profile_tabs_api(),
         active: activeTab === UserProfileTab.ApiTokens,
         hidden: !isAdmin,
-        onClick: () => setActiveTab(UserProfileTab.ApiTokens),
+        onClick: setApiTokensTabIfAllowed,
       },
     ];
     return res;
-  }, [activeTab, setActiveTab, isAdmin]);
+  }, [isAdmin, setActiveTab, setApiTokensTabIfAllowed, activeTab]);
 
   const RenderActiveTab = useMemo(() => {
     switch (activeTab) {
