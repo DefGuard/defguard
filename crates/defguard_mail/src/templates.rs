@@ -12,7 +12,7 @@ use serde_json::Value;
 use sqlx::PgConnection;
 use tera::{Context, Function, Tera};
 use thiserror::Error;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::mail::MailMessage;
 
@@ -23,7 +23,6 @@ static MACROS_MJML: &str = include_str!("../templates/macros.mjml");
 
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
-static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
@@ -141,18 +140,22 @@ fn get_base_tera_mjml(
     Ok((tera, context))
 }
 
-// Sends test message when requested during SMTP configuration process.
-pub fn test_mail(session: Option<&SessionContext>) -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera_mjml(Context::new(), session, None, None)?;
-    tera.add_raw_template("mail_test", MAIL_TEST)?;
+/// Sends test message when requested during SMTP configuration process.
+/// Note: this function waits for the result.
+pub async fn test_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    session: Option<&SessionContext>,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
-    let processed = tera.render("mail_test", &context)?;
+    let message = MailMessage::Test;
+    message.fill_context(conn, &mut context).await?;
+    if let Err(err) = message.mail(&mut tera, &context, to)?.send().await {
+        warn!("Failed to send test email: {err}");
+    }
 
-    let parsed = mrml::parse(processed)?;
-    let opts = mrml::prelude::render::RenderOptions::default();
-    let html = parsed.element.render(&opts)?;
-
-    Ok(html)
+    Ok(())
 }
 
 pub async fn user_import_blocked_mail(
@@ -338,6 +341,7 @@ pub async fn new_device_login_mail(
     Ok(())
 }
 
+/// New device login from OpenID Connect.
 pub async fn new_device_ocid_login_mail(
     to: &str,
     conn: &mut PgConnection,
@@ -537,11 +541,6 @@ mod test {
     #[test]
     fn test_base_mail_no_context() {
         assert_ok!(get_base_tera(Context::new(), None, None, None));
-    }
-
-    #[test]
-    fn test_test_mail() {
-        assert_ok!(test_mail(None));
     }
 
     #[sqlx::test]

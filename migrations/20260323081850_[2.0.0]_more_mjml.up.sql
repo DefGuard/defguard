@@ -27,4 +27,6 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('password-reset', 'title', 'en_US', 'Password reset'),
     ('password-reset', 'subtitle', 'en_US', 'If you wish to reset your password, please copy and paste the following URL in your browser:'),
     ('password-reset-done', 'title', 'en_US', 'Password reset'),
-    ('password-reset-done', 'subtitle', 'en_US', 'Your password has been successfully changed.');
+    ('password-reset-done', 'subtitle', 'en_US', 'Your password has been successfully changed.'),
+    ('test', 'title', 'en_US', 'This is test email from Defguard system.'),
+    ('test', 'subtitle', 'en_US', 'If you received it, your SMTP configuration is correct.');

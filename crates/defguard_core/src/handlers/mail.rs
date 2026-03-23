@@ -22,7 +22,6 @@ use crate::{
     support::dump_config,
 };
 
-static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
 
@@ -40,9 +39,10 @@ fn internal_error(to: &str, subject: &str, error: impl Display) -> ApiResponse {
     )
 }
 
-pub async fn test_mail(
+pub(crate) async fn test_mail(
     _admin: AdminRole,
     session: SessionInfo,
+    State(appstate): State<AppState>,
     Json(data): Json<TestMail>,
 ) -> ApiResult {
     debug!(
@@ -50,22 +50,15 @@ pub async fn test_mail(
         session.user.username, data.to
     );
 
-    let result = Mail::new(
-        &data.to,
-        TEST_MAIL_SUBJECT,
-        templates::test_mail(Some(&session.session.into()))?,
-    )
-    .send()
-    .await;
+    let mut conn = appstate.pool.begin().await?;
+    templates::test_mail(&data.to, &mut conn, Some(&session.session.into())).await?;
 
-    let (to, subject) = (&data.to, TEST_MAIL_SUBJECT);
-    match result {
-        Ok(()) => {
-            info!("User {} sent test mail to {to}", session.user.username);
-            Ok(ApiResponse::with_status(StatusCode::OK))
-        }
-        Err(err) => Ok(internal_error(to, subject, &err)),
-    }
+    info!(
+        "User {} sent test mail to {}",
+        session.user.username, data.to
+    );
+
+    Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
 async fn read_logs() -> String {

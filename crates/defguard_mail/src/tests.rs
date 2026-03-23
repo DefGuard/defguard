@@ -335,3 +335,18 @@ fn send_password_reset_success_mail(_: PgPoolOptions, options: PgConnectOptions)
     // Delay, so send_and_forget() can process the message.
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_test_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    templates::test_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None)
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}

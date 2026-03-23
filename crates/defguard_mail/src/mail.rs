@@ -303,9 +303,9 @@ impl MailMessage {
     /// Email subject.
     pub(crate) const fn subject(&self) -> &'static str {
         match self {
-            Self::Test => "Test message",
+            Self::Test => "Defguard: Test message",
             Self::Welcome => "Welcome message after enrollment",
-            Self::Support => "Support data",
+            Self::Support => "Defguard: Support data",
             Self::DesktopStart => "Defguard: Desktop client configuration",
             Self::NewAccount => "Defguard: User enrollment",
             Self::NewDevice => "Defguard: new device added to your account",
@@ -347,7 +347,7 @@ impl MailMessage {
 
     pub(crate) const fn mjml_template(&self) -> &str {
         match self {
-            // Self::Test => "",
+            Self::Test => include_str!("../templates/test.mjml"),
             // Self::Welcome => "",
             // Self::Support => "",
             Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
