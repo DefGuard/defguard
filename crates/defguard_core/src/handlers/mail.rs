@@ -5,10 +5,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
-use defguard_common::db::{
-    Id,
-    models::{User, gateway::Gateway, proxy::Proxy},
-};
+use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
 use defguard_mail::{Attachment, Mail, templates};
 use serde_json::json;
 use sqlx::query_scalar;
@@ -20,7 +17,6 @@ use crate::{
     PgPool,
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::models::enrollment::TokenError,
     error::WebError,
     server_config,
     support::dump_config,
@@ -29,7 +25,6 @@ use crate::{
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
-pub(crate) static EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
 
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
@@ -223,23 +218,6 @@ pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), WebErro
         templates::user_import_blocked_mail(&email, &mut conn, Context::new()).await?;
         debug!("Scheduled blocked user import mail to admin {}", email);
     }
-
-    Ok(())
-}
-
-pub fn send_password_reset_success_email(
-    user: &User<Id>,
-    ip_address: Option<&str>,
-    device_info: Option<&str>,
-) -> Result<(), TokenError> {
-    debug!("Sending password reset success email to {}", user.email);
-
-    Mail::new(
-        &user.email,
-        EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT,
-        templates::email_password_reset_success_mail(ip_address, device_info)?,
-    )
-    .send_and_forget();
 
     Ok(())
 }

@@ -26,8 +26,6 @@ static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_PASSWORD_RESET_SUCCESS: &str =
-    include_str!("../templates/mail_password_reset_success.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Debug, Error)]
@@ -455,6 +453,7 @@ pub async fn mfa_code_mail(
     Ok(())
 }
 
+/// Password reset email.
 pub async fn password_reset_mail(
     to: &str,
     conn: &mut PgConnection,
@@ -484,15 +483,21 @@ pub async fn password_reset_mail(
     Ok(())
 }
 
-pub fn email_password_reset_success_mail(
+/// Successful password reset email.
+pub async fn password_reset_success_mail(
+    to: &str,
+    conn: &mut PgConnection,
     ip_address: Option<&str>,
     device_info: Option<&str>,
-) -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) =
+        get_base_tera_mjml(Context::new(), None, ip_address, device_info)?;
 
-    tera.add_raw_template("mail_passowrd_reset_success", MAIL_PASSWORD_RESET_SUCCESS)?;
+    let message = MailMessage::PasswordResetDone;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
 
-    Ok(tera.render("mail_passowrd_reset_success", &context)?)
+    Ok(())
 }
 
 #[cfg(test)]

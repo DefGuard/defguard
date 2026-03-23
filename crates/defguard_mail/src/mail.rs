@@ -361,7 +361,7 @@ impl MailMessage {
             Self::MFAConfigured => include_str!("../templates/mfa-configured.mjml"),
             Self::MFACode => include_str!("../templates/mfa-code.mjml"),
             Self::PasswordReset => include_str!("../templates/password-reset.mjml"),
-            // Self::PasswordResetDone => "",
+            Self::PasswordResetDone => include_str!("../templates/password-reset-done.mjml"),
             Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.mjml")

@@ -25,4 +25,6 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('new-device-ocid-login', 'label_profile', 'en_US', 'Profile URL:'),
     ('new-device-ocid-login', 'label_oauth2client', 'en_US', 'System name:'),
     ('password-reset', 'title', 'en_US', 'Password reset'),
-    ('password-reset', 'subtitle', 'en_US', 'If you wish to reset your password, please copy and paste the following URL in your browser:');
+    ('password-reset', 'subtitle', 'en_US', 'If you wish to reset your password, please copy and paste the following URL in your browser:'),
+    ('password-reset-done', 'title', 'en_US', 'Password reset'),
+    ('password-reset-done', 'subtitle', 'en_US', 'Your password has been successfully changed.');

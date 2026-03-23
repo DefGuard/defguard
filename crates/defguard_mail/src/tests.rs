@@ -19,12 +19,7 @@ use sqlx::{
 };
 use tera::Context;
 
-use super::templates::{
-    TemplateLocation, desktop_start_mail, enrollment_admin_notification, gateway_disconnected_mail,
-    gateway_reconnected_mail, mfa_activation_mail, mfa_code_mail, mfa_configured_mail,
-    new_account_mail, new_device_added_mail, new_device_login_mail, new_device_ocid_login_mail,
-    password_reset_mail,
-};
+use super::templates;
 
 /// Set SMTP settings from environment variables.
 async fn set_smtp_settings(pool: &PgPool) {
@@ -53,7 +48,7 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     let context = Context::new();
     let url = Url::parse("http://localhost:8000").unwrap();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
-    desktop_start_mail(
+    templates::desktop_start_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         context,
@@ -77,16 +72,16 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     let device_name = "My beloved machine";
     let public_key = "6N8h7HILMcQ6nqEfQMBAYQH26X+y3t/WdWSOW4bNNxw=";
     let locations = &[
-        TemplateLocation {
+        templates::TemplateLocation {
             name: String::from("Location 1"),
             assigned_ips: String::from("192.168.1.42"),
         },
-        TemplateLocation {
+        templates::TemplateLocation {
             name: String::from("Location 2"),
             assigned_ips: String::from("192.168.2.69"),
         },
     ];
-    new_device_added_mail(
+    templates::new_device_added_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         device_name,
@@ -111,7 +106,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut conn = pool.begin().await.unwrap();
     let first_name = "Nebuchadnezzar";
     let code = "123456";
-    mfa_code_mail(
+    templates::mfa_code_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         first_name,
@@ -135,7 +130,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     let url = Url::parse("http://localhost:8001").unwrap();
     let context = Context::new();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
-    new_account_mail(
+    templates::new_account_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         context,
@@ -158,7 +153,7 @@ fn send_mfa_activation(_: PgPoolOptions, options: PgConnectOptions) {
     let mut conn = pool.begin().await.unwrap();
     let first_name = "Nebuchadnezzar";
     let code = "123456";
-    mfa_activation_mail(
+    templates::mfa_activation_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         first_name,
@@ -182,7 +177,7 @@ fn send_enrollment_admin_notification(_: PgPoolOptions, options: PgConnectOption
     let user_name = "Nebuchadnezzar the Great";
     let admin_name = "Nabopolassar the Admin";
     let ip_address = "1.2.3.4";
-    enrollment_admin_notification(
+    templates::enrollment_admin_notification(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         user_name,
@@ -207,7 +202,7 @@ fn send_gateway_disconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let gateway_name = "Portal";
     let ip_address = "1.2.3.4";
     let location_name = "Somewhere";
-    gateway_disconnected_mail(
+    templates::gateway_disconnected_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         gateway_name,
@@ -231,7 +226,7 @@ fn send_gateway_reconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let gateway_name = "Portal";
     let ip_address = "1.2.3.4";
     let location_name = "Somewhere";
-    gateway_reconnected_mail(
+    templates::gateway_reconnected_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         gateway_name,
@@ -252,7 +247,7 @@ fn send_mfa_configured_mail(_: PgPoolOptions, options: PgConnectOptions) {
     set_smtp_settings(&pool).await;
 
     let mut conn = pool.begin().await.unwrap();
-    mfa_configured_mail(
+    templates::mfa_configured_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         None,
@@ -273,7 +268,7 @@ fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut conn = pool.begin().await.unwrap();
     let created = Utc::now().naive_utc();
-    new_device_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, created)
+    templates::new_device_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, created)
         .await
         .unwrap();
 
@@ -289,9 +284,14 @@ fn send_new_device_ocid_login_mail(_: PgPoolOptions, options: PgConnectOptions) 
 
     let mut conn = pool.begin().await.unwrap();
     let client_name = "RemoteApp";
-    new_device_ocid_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, client_name)
-        .await
-        .unwrap();
+    templates::new_device_ocid_login_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        None,
+        client_name,
+    )
+    .await
+    .unwrap();
 
     // Delay, so send_and_forget() can process the message.
     tokio::time::sleep(Duration::from_secs(2)).await;
@@ -306,7 +306,7 @@ fn send_password_reset_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let mut conn = pool.begin().await.unwrap();
     let proxy_url = Url::parse("http://localhost:8000").unwrap();
     let token = "blablabla";
-    password_reset_mail(
+    templates::password_reset_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         proxy_url,
@@ -316,6 +316,21 @@ fn send_password_reset_mail(_: PgPoolOptions, options: PgConnectOptions) {
     )
     .await
     .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_password_reset_success_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    templates::password_reset_success_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, None)
+        .await
+        .unwrap();
 
     // Delay, so send_and_forget() can process the message.
     tokio::time::sleep(Duration::from_secs(2)).await;
