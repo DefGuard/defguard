@@ -423,29 +423,12 @@ impl EnrollmentServer {
         let settings = Settings::get_current_settings();
         debug!("Settings successfully retrieved.");
 
-        // send welcome email
-        debug!("Try to send welcome email...");
-        enrollment
-            .send_welcome_email(
-                &mut transaction,
-                &user,
-                &settings,
-                &ip_address,
-                device_info.as_deref(),
-            )
-            .await?;
-
         // send success notification to admin
         debug!(
             "Trying to fetch admin data from the token to send notification about activating user."
         );
-        let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
-        if let Some(admin) = admin {
-            debug!("Send admin notification mail.");
-            Token::send_admin_notification(&admin, &user, &ip_address, device_info.as_deref())
-                .await?;
-        }
+        let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
         // Unset the enrollment-pending flag (https://github.com/DefGuard/client/issues/647).
         user.enrollment_pending = false;
@@ -461,6 +444,50 @@ impl EnrollmentServer {
             error!("Failed to commit transaction: {err}");
             Status::internal("unexpected error")
         })?;
+
+        // transaction is committed, spawn email sending in background to avoid blocking on SMTP timeouts
+        let pool = self.pool.clone();
+        let user_clone = user.clone();
+        tokio::spawn(async move {
+            let mut tx = match pool.begin().await {
+                Ok(tx) => tx,
+                Err(err) => {
+                    error!("Failed to begin transaction for welcome email: {err}");
+                    return;
+                }
+            };
+            if let Err(err) = enrollment
+                .send_welcome_email(
+                    &mut tx,
+                    &user_clone,
+                    &settings,
+                    &ip_address,
+                    device_info.as_deref(),
+                )
+                .await
+            {
+                error!(
+                    "Failed to send welcome email to user {}: {err}",
+                    user_clone.username
+                );
+            }
+            let _ = tx.commit().await;
+            if let Some(admin) = admin {
+                if let Err(err) = Token::send_admin_notification(
+                    &admin,
+                    &user_clone,
+                    &ip_address,
+                    device_info.as_deref(),
+                )
+                .await
+                {
+                    error!(
+                        "Failed to send admin notification for user {}: {err}",
+                        user_clone.username
+                    );
+                }
+            }
+        });
 
         ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
 
