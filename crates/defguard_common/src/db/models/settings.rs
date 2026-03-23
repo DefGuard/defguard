@@ -125,6 +125,24 @@ impl LdapSyncStatus {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Serialize, PartialEq, Type)]
+#[sqlx(type_name = "enrollment_admin_email_mode", rename_all = "snake_case")]
+pub enum EnrollmentAdminEmailMode {
+    #[default]
+    InitiatingAdmin,
+    Hidden,
+    CustomEmail,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Serialize, PartialEq, Type)]
+#[sqlx(type_name = "enrollment_release_channel", rename_all = "lowercase")]
+pub enum EnrollmentReleaseChannel {
+    #[default]
+    Stable,
+    Beta,
+    Alpha,
+}
+
 #[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
@@ -152,6 +170,14 @@ pub struct Settings {
     pub enrollment_welcome_email: Option<String>,
     pub enrollment_welcome_email_subject: Option<String>,
     pub enrollment_use_welcome_message_as_email: bool,
+    pub enrollment_admin_email_mode: EnrollmentAdminEmailMode,
+    pub enrollment_admin_custom_email: Option<String>,
+    pub enrollment_show_reset_password: bool,
+    pub enrollment_show_welcome_message: bool,
+    pub enrollment_send_welcome_email: bool,
+    pub enrollment_windows_release_channel: EnrollmentReleaseChannel,
+    pub enrollment_linux_release_channel: EnrollmentReleaseChannel,
+    pub enrollment_macos_release_channel: EnrollmentReleaseChannel,
     // Instance UUID needed for desktop client
     #[serde(skip)]
     pub uuid: Uuid,
@@ -245,6 +271,35 @@ impl fmt::Debug for Settings {
             .field(
                 "enrollment_use_welcome_message_as_email",
                 &self.enrollment_use_welcome_message_as_email,
+            )
+            .field("enrollment_admin_email_mode", &self.enrollment_admin_email_mode)
+            .field(
+                "enrollment_admin_custom_email",
+                &self.enrollment_admin_custom_email,
+            )
+            .field(
+                "enrollment_show_reset_password",
+                &self.enrollment_show_reset_password,
+            )
+            .field(
+                "enrollment_show_welcome_message",
+                &self.enrollment_show_welcome_message,
+            )
+            .field(
+                "enrollment_send_welcome_email",
+                &self.enrollment_send_welcome_email,
+            )
+            .field(
+                "enrollment_windows_release_channel",
+                &self.enrollment_windows_release_channel,
+            )
+            .field(
+                "enrollment_linux_release_channel",
+                &self.enrollment_linux_release_channel,
+            )
+            .field(
+                "enrollment_macos_release_channel",
+                &self.enrollment_macos_release_channel,
             )
             .field("uuid", &self.uuid)
             .field("ldap_url", &self.ldap_url)
@@ -393,7 +448,14 @@ impl Settings {
             smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
-            enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, \
+            enrollment_use_welcome_message_as_email, \
+            enrollment_admin_email_mode \"enrollment_admin_email_mode: EnrollmentAdminEmailMode\", \
+            enrollment_admin_custom_email, enrollment_show_reset_password, \
+            enrollment_show_welcome_message, enrollment_send_welcome_email, \
+            enrollment_windows_release_channel \"enrollment_windows_release_channel: EnrollmentReleaseChannel\", \
+            enrollment_linux_release_channel \"enrollment_linux_release_channel: EnrollmentReleaseChannel\", \
+            enrollment_macos_release_channel \"enrollment_macos_release_channel: EnrollmentReleaseChannel\", \
+            uuid, ldap_url, ldap_bind_username, \
             ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
@@ -463,52 +525,60 @@ impl Settings {
             enrollment_welcome_email = $17, \
             enrollment_welcome_email_subject = $18, \
             enrollment_use_welcome_message_as_email = $19, \
-            uuid = $20, \
-            ldap_url = $21, \
-            ldap_bind_username = $22, \
-            ldap_bind_password  = $23, \
-            ldap_group_search_base = $24, \
-            ldap_user_search_base = $25, \
-            ldap_user_obj_class = $26, \
-            ldap_group_obj_class = $27, \
-            ldap_username_attr = $28, \
-            ldap_groupname_attr = $29, \
-            ldap_group_member_attr = $30, \
-            ldap_member_attr = $31, \
-            ldap_use_starttls = $32, \
-            ldap_tls_verify_cert = $33, \
-            openid_create_account = $34, \
-            license = $35, \
-            gateway_disconnect_notifications_enabled = $36, \
-            gateway_disconnect_notifications_inactivity_threshold = $37, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $38, \
-            ldap_sync_status = $39, \
-            ldap_enabled = $40, \
-            ldap_sync_enabled = $41, \
-            ldap_is_authoritative = $42, \
-            ldap_sync_interval = $43, \
-            ldap_user_auxiliary_obj_classes = $44, \
-            ldap_uses_ad = $45, \
-            ldap_user_rdn_attr = $46, \
-            ldap_sync_groups = $47, \
-            openid_username_handling = $48, \
-            ca_key_der = $49, \
-            ca_cert_der = $50, \
-            ca_expiry = $51, \
-            defguard_url = $52, \
-            default_admin_group_name = $53, \
-            authentication_period_days = $54, \
-            mfa_code_timeout_seconds = $55, \
-            public_proxy_url = $56, \
-            default_admin_id = $57, \
-            secret_key = $58, \
-            enable_stats_purge = $59, \
-            stats_purge_frequency_hours = $60, \
-            stats_purge_threshold_days = $61, \
-            enrollment_token_timeout_hours = $62, \
-            password_reset_token_timeout_hours = $63, \
-            enrollment_session_timeout_minutes = $64, \
-            password_reset_session_timeout_minutes = $65 \
+            enrollment_admin_email_mode = $20, \
+            enrollment_admin_custom_email = $21, \
+            enrollment_show_reset_password = $22, \
+            enrollment_show_welcome_message = $23, \
+            enrollment_send_welcome_email = $24, \
+            enrollment_windows_release_channel = $25, \
+            enrollment_linux_release_channel = $26, \
+            enrollment_macos_release_channel = $27, \
+            uuid = $28, \
+            ldap_url = $29, \
+            ldap_bind_username = $30, \
+            ldap_bind_password  = $31, \
+            ldap_group_search_base = $32, \
+            ldap_user_search_base = $33, \
+            ldap_user_obj_class = $34, \
+            ldap_group_obj_class = $35, \
+            ldap_username_attr = $36, \
+            ldap_groupname_attr = $37, \
+            ldap_group_member_attr = $38, \
+            ldap_member_attr = $39, \
+            ldap_use_starttls = $40, \
+            ldap_tls_verify_cert = $41, \
+            openid_create_account = $42, \
+            license = $43, \
+            gateway_disconnect_notifications_enabled = $44, \
+            gateway_disconnect_notifications_inactivity_threshold = $45, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $46, \
+            ldap_sync_status = $47, \
+            ldap_enabled = $48, \
+            ldap_sync_enabled = $49, \
+            ldap_is_authoritative = $50, \
+            ldap_sync_interval = $51, \
+            ldap_user_auxiliary_obj_classes = $52, \
+            ldap_uses_ad = $53, \
+            ldap_user_rdn_attr = $54, \
+            ldap_sync_groups = $55, \
+            openid_username_handling = $56, \
+            ca_key_der = $57, \
+            ca_cert_der = $58, \
+            ca_expiry = $59, \
+            defguard_url = $60, \
+            default_admin_group_name = $61, \
+            authentication_period_days = $62, \
+            mfa_code_timeout_seconds = $63, \
+            public_proxy_url = $64, \
+            default_admin_id = $65, \
+            secret_key = $66, \
+            enable_stats_purge = $67, \
+            stats_purge_frequency_hours = $68, \
+            stats_purge_threshold_days = $69, \
+            enrollment_token_timeout_hours = $70, \
+            password_reset_token_timeout_hours = $71, \
+            enrollment_session_timeout_minutes = $72, \
+            password_reset_session_timeout_minutes = $73 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -529,6 +599,14 @@ impl Settings {
             self.enrollment_welcome_email,
             self.enrollment_welcome_email_subject,
             self.enrollment_use_welcome_message_as_email,
+            &self.enrollment_admin_email_mode as &EnrollmentAdminEmailMode,
+            self.enrollment_admin_custom_email,
+            self.enrollment_show_reset_password,
+            self.enrollment_show_welcome_message,
+            self.enrollment_send_welcome_email,
+            &self.enrollment_windows_release_channel as &EnrollmentReleaseChannel,
+            &self.enrollment_linux_release_channel as &EnrollmentReleaseChannel,
+            &self.enrollment_macos_release_channel as &EnrollmentReleaseChannel,
             self.uuid,
             self.ldap_url,
             self.ldap_bind_username,
