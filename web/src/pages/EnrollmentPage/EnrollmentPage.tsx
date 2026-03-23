@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { type ReactNode, useMemo, useState } from 'react';
 import z from 'zod';
+import './style.scss';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
@@ -90,6 +91,30 @@ const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions({
   60: m.settings_duration_one_hour(),
 });
 
+const messageTemplatesHelpVariables = `{{ first_name }} - newly created user first name
+{{ last_name }} - newly created user last name
+{{ username }} - newly created user username/login
+{{ admin_first_name }} - first name of the administrator who initiated the enrollment process
+{{ admin_last_name }} - last name of the administrator who initiated the enrollment process
+{{ admin_phone }} - phone number of the administrator who initiated the enrollment process
+{{ admin_email }} - email of the administrator who initiated the enrollment process
+{{ defguard_url }} - internal Defguard URL (your Defguard instance address)`;
+
+const messageTemplatesHelpMarkdown = [
+  '#, ##, ### - Create headings.',
+  '*text* - Italic text.',
+  '**text** - Bold text.',
+  '***text*** - Bold and italic.',
+  '> text - Blockquote.',
+  '- item or 1. item - Lists (unordered or ordered).',
+  '`code` - Inline code.',
+  '```code``` - Code block.',
+  '*** - Horizontal line.',
+  '[text](url) - Link.',
+  '| and --- - Create tables.',
+  '\\ - Escape special characters.',
+].join('\n');
+
 export const EnrollmentPage = () => {
   const [activeTab, setActiveTab] = useState<EnrollmentTabValue>(
     EnrollmentPageTab.General,
@@ -145,9 +170,7 @@ export const EnrollmentPage = () => {
               subtitle={m.settings_enrollment_message_templates_subtitle()}
             />
             <SizedBox height={ThemeSpacing.Lg} />
-            <SettingsCard>
-              <div data-testid="enrollment-tab-message-templates" />
-            </SettingsCard>
+            {isPresent(settings) && <MessageTemplatesTabContent settings={settings} />}
           </>
         )}
       </SettingsLayout>
@@ -183,6 +206,17 @@ const generalTabFormSchema = z
   });
 
 type GeneralTabFormFields = z.infer<typeof generalTabFormSchema>;
+
+const messageTemplatesFormSchema = z.object({
+  enrollment_show_welcome_message: z.boolean(),
+  enrollment_welcome_message: z.string(),
+  enrollment_send_welcome_email: z.boolean(),
+  enrollment_welcome_email_subject: z.string().min(1, m.form_error_required()),
+  enrollment_use_welcome_message_as_email: z.boolean(),
+  enrollment_welcome_email: z.string(),
+});
+
+type MessageTemplatesFormFields = z.infer<typeof messageTemplatesFormSchema>;
 
 const GeneralTabContent = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
@@ -408,6 +442,200 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
   );
 };
 
+const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
+  const { mutateAsync } = useMutation({
+    mutationFn: api.settings.patchSettings,
+    meta: {
+      invalidate: ['settings'],
+    },
+    onSuccess: () => {
+      Snackbar.default(m.settings_msg_saved());
+    },
+    onError: () => {
+      Snackbar.error(m.settings_msg_save_failed());
+    },
+  });
+
+  const defaultValues = useMemo(
+    (): MessageTemplatesFormFields => ({
+      enrollment_show_welcome_message: settings.enrollment_show_welcome_message ?? true,
+      enrollment_welcome_message: settings.enrollment_welcome_message ?? '',
+      enrollment_send_welcome_email: settings.enrollment_send_welcome_email ?? true,
+      enrollment_welcome_email_subject: settings.enrollment_welcome_email_subject ?? '',
+      enrollment_use_welcome_message_as_email:
+        settings.enrollment_use_welcome_message_as_email ?? true,
+      enrollment_welcome_email: settings.enrollment_welcome_email ?? '',
+    }),
+    [settings],
+  );
+
+  const form = useAppForm({
+    defaultValues,
+    validationLogic: formChangeLogic,
+    validators: {
+      onSubmit: messageTemplatesFormSchema,
+      onChange: messageTemplatesFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      await mutateAsync(value);
+      form.reset(value);
+    },
+  });
+
+  return (
+    <div
+      className="message-templates-layout"
+      data-testid="enrollment-tab-message-templates"
+    >
+      <SettingsCard>
+        <form
+          onSubmit={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+        >
+          <form.AppForm>
+            <MarkedSection icon="empty-point">
+              <form.AppField name="enrollment_show_welcome_message">
+                {(field) => (
+                  <field.FormInteractiveBlock
+                    variant="toggle"
+                    title={m.settings_enrollment_template_display_message_title()}
+                    content={m.settings_enrollment_template_display_message_description()}
+                  />
+                )}
+              </form.AppField>
+              <form.Subscribe
+                selector={(state) => state.values.enrollment_show_welcome_message}
+              >
+                {(showWelcomeMessage) => (
+                  <Fold open={showWelcomeMessage}>
+                    <SizedBox height={ThemeSpacing.Xl2} />
+                    <form.AppField name="enrollment_welcome_message">
+                      {(field) => (
+                        <field.FormTextarea
+                          required
+                          label={m.settings_enrollment_template_message_label()}
+                          minHeight={383}
+                          maxHeight={383}
+                        />
+                      )}
+                    </form.AppField>
+                  </Fold>
+                )}
+              </form.Subscribe>
+            </MarkedSection>
+            <Divider spacing={ThemeSpacing.Xl2} />
+            <MarkedSection icon="empty-point">
+              <form.AppField name="enrollment_send_welcome_email">
+                {(field) => (
+                  <field.FormInteractiveBlock
+                    variant="toggle"
+                    title={m.settings_enrollment_template_send_email_title()}
+                    content={m.settings_enrollment_template_send_email_description()}
+                  />
+                )}
+              </form.AppField>
+              <form.Subscribe
+                selector={(state) => state.values.enrollment_send_welcome_email}
+              >
+                {(sendWelcomeEmail) => (
+                  <Fold open={sendWelcomeEmail}>
+                    <SizedBox height={ThemeSpacing.Xl2} />
+                    <form.AppField name="enrollment_welcome_email_subject">
+                      {(field) => (
+                        <field.FormInput
+                          required
+                          label={m.settings_enrollment_template_email_subject_label()}
+                        />
+                      )}
+                    </form.AppField>
+                    <SizedBox height={ThemeSpacing.Xl} />
+                    <div className="message-templates-checkbox">
+                      <form.AppField name="enrollment_use_welcome_message_as_email">
+                        {(field) => (
+                          <field.FormCheckbox
+                            text={m.settings_enrollment_template_same_as_message()}
+                          />
+                        )}
+                      </form.AppField>
+                    </div>
+                    <SizedBox height={ThemeSpacing.Xl} />
+                    <form.Subscribe
+                      selector={(state) =>
+                        state.values.enrollment_use_welcome_message_as_email
+                      }
+                    >
+                      {(sameAsWelcomeMessage) => (
+                        <>
+                          <Fold open={sameAsWelcomeMessage}>
+                            <div className="message-templates-success-banner">
+                              <Icon
+                                icon="check-circle"
+                                staticColor={ThemeVariable.FgSuccess}
+                                size={20}
+                              />
+                              <p className="copy">
+                                {m.settings_enrollment_template_same_as_message_banner()}
+                              </p>
+                            </div>
+                          </Fold>
+                          <Fold open={!sameAsWelcomeMessage}>
+                            <SizedBox height={ThemeSpacing.Xl} />
+                            <form.AppField name="enrollment_welcome_email">
+                              {(field) => (
+                                <field.FormTextarea
+                                  required
+                                  label={m.settings_enrollment_template_email_label()}
+                                  minHeight={383}
+                                  maxHeight={383}
+                                />
+                              )}
+                            </form.AppField>
+                          </Fold>
+                        </>
+                      )}
+                    </form.Subscribe>
+                  </Fold>
+                )}
+              </form.Subscribe>
+            </MarkedSection>
+          </form.AppForm>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <Divider />
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.Subscribe
+            selector={(state) => ({
+              isDefault: state.isDefaultValue || state.isPristine,
+              isSubmitting: state.isSubmitting,
+              canSubmit: state.canSubmit,
+            })}
+          >
+            {({ isDefault, isSubmitting, canSubmit }) => (
+              <Controls>
+                <div className="right">
+                  <Button
+                    variant="primary"
+                    text={m.controls_save_changes()}
+                    disabled={isDefault || !canSubmit}
+                    loading={isSubmitting}
+                    type="submit"
+                    onClick={() => {
+                      form.handleSubmit();
+                    }}
+                  />
+                </div>
+              </Controls>
+            )}
+          </form.Subscribe>
+        </form>
+      </SettingsCard>
+      <MessageTemplatesHelpPanel />
+    </div>
+  );
+};
+
 const SectionTitle = ({ title }: { title: string }) => {
   return (
     <>
@@ -450,6 +678,36 @@ const EnrollmentVersionControlRow = ({
         </AppText>
       </div>
       {children}
+    </div>
+  );
+};
+
+const MessageTemplatesHelpPanel = () => {
+  return (
+    <div className="message-templates-sidebar">
+      <div className="sidebar-header">
+        <Icon icon="info-outlined" staticColor={ThemeVariable.FgMuted} size={20} />
+        <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+          {m.settings_enrollment_template_help_title()}
+        </AppText>
+      </div>
+      <div className="sidebar-panel">
+        <AppText
+          className="sidebar-copy"
+          font={TextStyle.TBodySm400}
+          color={ThemeVariable.FgDefault}
+        >
+          {messageTemplatesHelpVariables}
+        </AppText>
+        <Divider />
+        <AppText
+          className="sidebar-copy"
+          font={TextStyle.TBodySm400}
+          color={ThemeVariable.FgDefault}
+        >
+          {messageTemplatesHelpMarkdown}
+        </AppText>
+      </div>
     </div>
   );
 };
