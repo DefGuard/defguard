@@ -34,6 +34,7 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
+  CoreSelfSignedCertRequest,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -57,6 +58,8 @@ import type {
   Gateway,
   GatewayInfo,
   GetCAResponse,
+  GetExternalSslInfoResponse,
+  GetInternalSslInfoResponse,
   GroupInfo,
   GroupsResponse,
   IpValidation,
@@ -86,6 +89,10 @@ import type {
   RenameAuthKeyRequest,
   ResourceDisplay,
   SessionInfo,
+  SetAutoAdoptionExternalUrlSettingsRequest,
+  SetAutoAdoptionExternalUrlSettingsResponse,
+  SetAutoAdoptionInternalUrlSettingsRequest,
+  SetAutoAdoptionInternalUrlSettingsResponse,
   SetAutoAdoptionMfaSettingsRequest,
   SetAutoAdoptionUrlSettingsRequest,
   SetAutoAdoptionVpnSettingsRequest,
@@ -142,6 +149,28 @@ const api = {
       client.post('/initial_setup/general_config', data),
     setAutoAdoptionUrlSettings: (data: SetAutoAdoptionUrlSettingsRequest) =>
       client.post('/initial_setup/auto_wizard/url_settings', data),
+    setAutoAdoptionInternalUrlSettings: (
+      data: SetAutoAdoptionInternalUrlSettingsRequest,
+    ) =>
+      client.post<SetAutoAdoptionInternalUrlSettingsResponse>(
+        '/initial_setup/auto_wizard/internal_url_settings',
+        data,
+      ),
+    getInternalSslInfo: () =>
+      client.get<GetInternalSslInfoResponse>(
+        '/initial_setup/auto_wizard/internal_url_settings',
+      ),
+    setAutoAdoptionExternalUrlSettings: (
+      data: SetAutoAdoptionExternalUrlSettingsRequest,
+    ) =>
+      client.post<SetAutoAdoptionExternalUrlSettingsResponse>(
+        '/initial_setup/auto_wizard/external_url_settings',
+        data,
+      ),
+    getExternalSslInfo: () =>
+      client.get<GetExternalSslInfoResponse>(
+        '/initial_setup/auto_wizard/external_url_settings',
+      ),
     setAutoAdoptionVpnSettings: (data: SetAutoAdoptionVpnSettingsRequest) =>
       client.post('/initial_setup/auto_wizard/vpn_settings', data),
     setAutoAdoptionMfaSettings: (data: SetAutoAdoptionMfaSettingsRequest) =>
@@ -469,8 +498,17 @@ const api = {
     getGateway: (gatewayId: number | string) =>
       client.get<Gateway>(`/gateway/${gatewayId}`),
     editGateway: (data: { id: number | string; name: string; enabled: boolean }) =>
-      client.put(`/gateway/${data.id}`, { name: data.name, enabled: data.enabled }),
+      client.put(`/gateway/${data.id}`, {
+        name: data.name,
+        enabled: data.enabled,
+      }),
     deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
+  },
+  core: {
+    certSelfSigned: (data: CoreSelfSignedCertRequest) =>
+      client.post('/core/cert/self-signed', data),
+    certUpload: (data: { cert_pem: string; key_pem: string }) =>
+      client.post('/core/cert/upload', data),
   },
   acl: {
     destination: {

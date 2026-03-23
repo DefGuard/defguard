@@ -111,7 +111,6 @@ export const AutoAdoptionSummaryStep = () => {
       submitButtonText={m.initial_setup_auto_adoption_summary_submit()}
       onSubmit={handleGoToDefguard}
       submitLoading={isSubmitting}
-      className="auto-adoption-summary-step"
     />
   );
 };

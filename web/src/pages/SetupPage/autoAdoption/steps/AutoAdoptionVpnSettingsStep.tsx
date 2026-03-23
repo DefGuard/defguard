@@ -139,25 +139,27 @@ export const AutoAdoptionVpnSettingsStep = () => {
               />
             )}
           </form.AppField>
-          <Controls>
-            <Button
-              variant="outlined"
-              text={m.initial_setup_controls_back()}
-              onClick={() => {
-                useAutoAdoptionSetupWizardStore.setState(form.state.values);
-                setActiveStep(AutoAdoptionSetupStep.UrlSettings);
-              }}
-            />
-            <div className="right">
-              <Button
-                text={m.initial_setup_controls_continue()}
-                onClick={form.handleSubmit}
-                loading={isPending}
-              />
-            </div>
-          </Controls>
         </form.AppForm>
       </form>
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <Divider />
+      <Controls>
+        <Button
+          variant="outlined"
+          text={m.initial_setup_controls_back()}
+          onClick={() => {
+            useAutoAdoptionSetupWizardStore.setState(form.state.values);
+            setActiveStep(AutoAdoptionSetupStep.ExternalUrlSslConfig);
+          }}
+        />
+        <div className="right">
+          <Button
+            text={m.initial_setup_controls_continue()}
+            onClick={form.handleSubmit}
+            loading={isPending}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

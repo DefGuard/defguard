@@ -125,7 +125,7 @@ export const AutoAdoptionAdminUserStep = () => {
       invalidate: ['setupStatus'],
     },
     onSuccess: () => {
-      setActiveStep(AutoAdoptionSetupStep.UrlSettings);
+      setActiveStep(AutoAdoptionSetupStep.InternalUrlSettings);
     },
     onError: (error) => {
       Snackbar.error(m.initial_setup_admin_user_error_create_failed());

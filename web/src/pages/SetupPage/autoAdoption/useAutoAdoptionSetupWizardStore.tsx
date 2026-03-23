@@ -2,7 +2,13 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { LocationMfaMode, type LocationMfaModeValue } from '../../../shared/api/types';
-import { AutoAdoptionSetupStep, type AutoAdoptionSetupStepValue } from './types';
+import {
+  AutoAdoptionSetupStep,
+  type AutoAdoptionSetupStepValue,
+  type CertInfo,
+  type ExternalSslType,
+  type InternalSslType,
+} from './types';
 
 type StoreValues = {
   activeStep: AutoAdoptionSetupStepValue;
@@ -23,6 +29,12 @@ type StoreValues = {
   vpn_allowed_ips: string;
   vpn_dns_server_ip: string;
   vpn_mfa_mode: LocationMfaModeValue;
+  // Internal URL SSL configuration
+  internal_ssl_type: InternalSslType;
+  internal_ssl_cert_info: CertInfo | null;
+  // External URL SSL configuration
+  external_ssl_type: ExternalSslType;
+  external_ssl_cert_info: CertInfo | null;
 };
 
 type StoreMethods = {
@@ -50,6 +62,10 @@ const defaults: StoreValues = {
   vpn_allowed_ips: '',
   vpn_dns_server_ip: '',
   vpn_mfa_mode: LocationMfaMode.Disabled,
+  internal_ssl_type: 'none',
+  internal_ssl_cert_info: null,
+  external_ssl_type: 'none',
+  external_ssl_cert_info: null,
 };
 
 export const useAutoAdoptionSetupWizardStore = create<StoreMethods & StoreValues>()(

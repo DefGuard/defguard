@@ -48,7 +48,10 @@ const autoAdoptionStepMap: Record<
 > = {
   welcome: AutoAdoptionSetupStep.AdminUser,
   admin_user: AutoAdoptionSetupStep.AdminUser,
-  url_settings: AutoAdoptionSetupStep.UrlSettings,
+  url_settings: AutoAdoptionSetupStep.InternalUrlSettings,
+  internal_url_ssl_config: AutoAdoptionSetupStep.InternalUrlSslConfig,
+  external_url_settings: AutoAdoptionSetupStep.ExternalUrlSettings,
+  external_url_ssl_config: AutoAdoptionSetupStep.ExternalUrlSslConfig,
   vpn_settings: AutoAdoptionSetupStep.VpnSettings,
   mfa_settings: AutoAdoptionSetupStep.MfaSetup,
   summary: AutoAdoptionSetupStep.Summary,

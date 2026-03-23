@@ -1,6 +1,9 @@
 export const AutoAdoptionSetupStep = {
   AdminUser: 'adminUser',
-  UrlSettings: 'urlSettings',
+  InternalUrlSettings: 'internalUrlSettings',
+  InternalUrlSslConfig: 'internalUrlSslConfig',
+  ExternalUrlSettings: 'externalUrlSettings',
+  ExternalUrlSslConfig: 'externalUrlSslConfig',
   VpnSettings: 'vpnSettings',
   MfaSetup: 'mfaSetup',
   Summary: 'summary',
@@ -11,8 +14,22 @@ export type AutoAdoptionSetupStepValue =
 
 export const AutoAdoptionSetupSteps = [
   AutoAdoptionSetupStep.AdminUser,
-  AutoAdoptionSetupStep.UrlSettings,
+  AutoAdoptionSetupStep.InternalUrlSettings,
+  AutoAdoptionSetupStep.InternalUrlSslConfig,
+  AutoAdoptionSetupStep.ExternalUrlSettings,
+  AutoAdoptionSetupStep.ExternalUrlSslConfig,
   AutoAdoptionSetupStep.VpnSettings,
   AutoAdoptionSetupStep.MfaSetup,
   AutoAdoptionSetupStep.Summary,
 ] as const;
+
+export type InternalSslType = 'none' | 'defguard_ca' | 'own_cert';
+
+export type ExternalSslType = 'none' | 'lets_encrypt' | 'defguard_ca' | 'own_cert';
+
+export interface CertInfo {
+  common_name: string;
+  valid_for_days: number;
+  not_before: string;
+  not_after: string;
+}
