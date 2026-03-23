@@ -1,4 +1,4 @@
-import { createFormHook, createFormHookContexts } from '@tanstack/react-form';
+import { createFormHook } from '@tanstack/react-form';
 import { FormSelectMultiple } from './components/FormSelectMultiple/FormSelectMultiple';
 import { FormUploadField } from './components/FormUploadField/FormUploadField';
 import { FormCheckbox } from './defguard-ui/components/form/FormCheckbox/FormCheckbox';
@@ -11,9 +11,9 @@ import { FormSubmitButton } from './defguard-ui/components/form/FormSubmitButton
 import { FormSuggestedIPInput } from './defguard-ui/components/form/FormSuggestedIPInput/FormSuggestedIPInput';
 import { FormTextarea } from './defguard-ui/components/form/FormTextarea/FormTextarea';
 import { FormToggle } from './defguard-ui/components/form/FormToggle/FormToggle';
+import { fieldContext, formContext } from './form-context';
 
-export const { fieldContext, formContext, useFieldContext, useFormContext } =
-  createFormHookContexts();
+export { useFieldContext, useFormContext } from './form-context';
 
 export const { useAppForm, withFieldGroup, withForm } = createFormHook({
   fieldContext,

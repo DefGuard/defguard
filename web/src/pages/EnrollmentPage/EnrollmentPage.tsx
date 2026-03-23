@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -18,6 +18,8 @@ import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
+import type { IconKindValue } from '../../shared/defguard-ui/components/Icon';
+import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import type { SelectOption } from '../../shared/defguard-ui/components/Select/types';
@@ -309,39 +311,37 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="activity-notes">
+          <SectionTitle title={m.settings_enrollment_section_versions_title()} />
           <MarkedSectionHeader
-            title={m.settings_enrollment_section_versions_title()}
+            title={m.settings_enrollment_section_versions_subtitle()}
             description={m.settings_enrollment_section_versions_description()}
           />
-          <form.AppField name="enrollment_windows_release_channel">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_enrollment_windows_channel_label()}
-                options={releaseChannelOptions}
-              />
-            )}
-          </form.AppField>
+          <EnrollmentVersionControlRow
+            icon="windows"
+            label={m.settings_enrollment_windows_channel_label()}
+          >
+            <form.AppField name="enrollment_windows_release_channel">
+              {(field) => <field.FormSelect required options={releaseChannelOptions} />}
+            </form.AppField>
+          </EnrollmentVersionControlRow>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="enrollment_linux_release_channel">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_enrollment_linux_channel_label()}
-                options={releaseChannelOptions}
-              />
-            )}
-          </form.AppField>
+          <EnrollmentVersionControlRow
+            icon="linux"
+            label={m.settings_enrollment_linux_channel_label()}
+          >
+            <form.AppField name="enrollment_linux_release_channel">
+              {(field) => <field.FormSelect required options={releaseChannelOptions} />}
+            </form.AppField>
+          </EnrollmentVersionControlRow>
           <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="enrollment_macos_release_channel">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_enrollment_macos_channel_label()}
-                options={releaseChannelOptions}
-              />
-            )}
-          </form.AppField>
+          <EnrollmentVersionControlRow
+            icon="apple"
+            label={m.settings_enrollment_macos_channel_label()}
+          >
+            <form.AppField name="enrollment_macos_release_channel">
+              {(field) => <field.FormSelect required options={releaseChannelOptions} />}
+            </form.AppField>
+          </EnrollmentVersionControlRow>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="lock-closed">
@@ -416,5 +416,40 @@ const SectionTitle = ({ title }: { title: string }) => {
       </AppText>
       <SizedBox height={ThemeSpacing.Xl} />
     </>
+  );
+};
+
+const EnrollmentVersionControlRow = ({
+  icon,
+  label,
+  children,
+}: {
+  icon: IconKindValue;
+  label: string;
+  children: ReactNode;
+}) => {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '80px minmax(0, 1fr)',
+        gap: ThemeSpacing.Xl2,
+        alignItems: 'center',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: ThemeSpacing.Sm,
+        }}
+      >
+        <Icon icon={icon} staticColor={ThemeVariable.FgMuted} size={20} />
+        <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgDefault}>
+          {label}
+        </AppText>
+      </div>
+      {children}
+    </div>
   );
 };
