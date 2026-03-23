@@ -1,11 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use defguard_common::{
-    auth::claims::{Claims, ClaimsType},
+    auth::claims::{Claims, ClaimsError, ClaimsType},
     db::models::{Settings, User},
 };
 use defguard_proto::auth::{AuthenticateRequest, AuthenticateResponse, auth_service_server};
-use jsonwebtoken::errors::Error as JWTError;
 use sqlx::PgPool;
 use tonic::{Request, Response, Status};
 
@@ -26,7 +25,7 @@ impl AuthServer {
     }
 
     /// Creates JWT token for specified user
-    fn create_jwt(uid: &str) -> Result<String, JWTError> {
+    fn create_jwt(uid: &str) -> Result<String, ClaimsError> {
         let settings = Settings::get_current_settings();
         let timeout = settings.authentication_timeout();
         Claims::new(
@@ -36,6 +35,27 @@ impl AuthServer {
             timeout.as_secs(),
         )
         .to_jwt()
+    }
+
+    fn create_auth_token(uid: &str) -> Result<String, Status> {
+        Self::create_jwt(uid).map_err(|err| match err {
+            ClaimsError::Settings(err) => {
+                error!(
+                    "Failed to create gRPC auth token for user {uid}: JWT signing is misconfigured: {err}"
+                );
+                Status::failed_precondition("JWT signing is not configured")
+            }
+            ClaimsError::Jwt(err) => {
+                error!("Failed to create gRPC auth token for user {uid}: {err}");
+                Status::internal("failed to create JWT token")
+            }
+            ClaimsError::UnexpectedClaimsType { expected, actual } => {
+                error!(
+                    "Failed to create gRPC auth token for user {uid}: unexpected claims type mismatch while minting token (expected {expected:?}, got {actual:?})"
+                );
+                Status::internal("failed to create JWT token")
+            }
+        })
     }
 }
 
@@ -55,13 +75,9 @@ impl auth_service_server::AuthService for AuthServer {
 
         if let Ok(Some(user)) = User::find_by_username(&self.pool, &request.username).await {
             if user.verify_password(&request.password).is_ok() {
+                let token = Self::create_auth_token(&request.username)?;
                 info!("Authentication successful for user {}", request.username);
-                Ok(Response::new(AuthenticateResponse {
-                    token: Self::create_jwt(&request.username).map_err(|_| {
-                        log_failed_login_attempt(&self.failed_logins, &request.username);
-                        Status::unauthenticated("error creating JWT token")
-                    })?,
-                }))
+                Ok(Response::new(AuthenticateResponse { token }))
             } else {
                 warn!("Invalid login credentials for user {}", request.username);
                 log_failed_login_attempt(&self.failed_logins, &request.username);
