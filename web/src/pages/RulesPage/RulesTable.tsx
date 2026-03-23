@@ -352,7 +352,9 @@ export const RulesTable = ({
                   icon: 'disabled',
                   text: m.controls_disable(),
                   onClick: () => {
-                    toggleRule(row.id);
+                    licenseActionCheck(canUseBusinessFeature(license), () => {
+                      toggleRule(row.id);
+                    });
                   },
                 });
               } else {
@@ -360,7 +362,9 @@ export const RulesTable = ({
                   icon: 'check',
                   text: m.controls_enable(),
                   onClick: () => {
-                    toggleRule(row.id);
+                    licenseActionCheck(canUseBusinessFeature(license), () => {
+                      toggleRule(row.id);
+                    });
                   },
                 });
               }
@@ -369,8 +373,11 @@ export const RulesTable = ({
               topItems.push({
                 icon: 'deploy',
                 text: m.controls_deploy(),
+
                 onClick: () => {
-                  deployRule([row.id]);
+                  licenseActionCheck(canUseBusinessFeature(license), () => {
+                    deployRule([row.id]);
+                  });
                 },
               });
               break;
