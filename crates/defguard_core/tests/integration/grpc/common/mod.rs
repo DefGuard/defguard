@@ -2,7 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
-    db::{models::settings::initialize_current_settings, setup_pool},
+    db::{
+        models::{
+            Settings,
+            settings::{initialize_current_settings, update_current_settings},
+        },
+        setup_pool,
+    },
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
@@ -26,6 +32,9 @@ use tonic::{
 use tower::service_fn;
 
 use crate::common::initialize_users;
+
+pub const TEST_SECRET_KEY: &str =
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 pub struct TestGrpcServer {
     grpc_server_task_handle: JoinHandle<()>,
@@ -96,6 +105,13 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
     initialize_current_settings(pool)
         .await
         .expect("failed to initialize current settings for gRPC tests");
+
+    // set test secret for generating JWT tokens
+    let mut settings = Settings::get_current_settings();
+    settings.secret_key = Some(TEST_SECRET_KEY.to_string());
+    update_current_settings(pool, settings)
+        .await
+        .expect("Failed to update settings");
 
     let (client_stream, server_stream) = tokio::io::duplex(1024);
     let client_channel = create_client_channel(client_stream).await;
