@@ -9,7 +9,7 @@ use std::{
 };
 
 #[cfg(test)]
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use chrono::{DateTime, TimeDelta};
 use defguard_common::{
@@ -551,7 +551,7 @@ impl GatewayHandler {
         }
     }
 
-    fn handler_retry_delay(&self) -> std::time::Duration {
+    fn handler_retry_delay(&self) -> Duration {
         self.test_support
             .as_ref()
             .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
