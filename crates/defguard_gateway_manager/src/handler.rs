@@ -123,66 +123,9 @@ impl GatewayHandler {
         })
     }
 
-    #[cfg(test)]
-    pub(crate) fn new_with_test_socket(
-        gateway: Gateway<Id>,
-        pool: PgPool,
-        events_tx: Sender<GatewayEvent>,
-        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
-        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
-        socket_path: PathBuf,
-    ) -> Result<Self, GatewayError> {
-        let mut handler = Self::new(gateway, pool, events_tx, peer_stats_tx, certs_rx)?;
-        handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
-        Ok(handler)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn attach_test_support(&mut self, test_support: GatewayManagerTestSupport) {
-        self.test_support = Some(test_support);
-    }
-
-    #[cfg(test)]
-    fn note_handler_connection_attempt_for_tests(&self) {
-        if let Some(test_support) = &self.test_support {
-            test_support.note_handler_connection_attempt(self.gateway.id);
-        }
-    }
-
-    #[cfg(not(test))]
-    fn note_handler_connection_attempt_for_tests(&self) {}
-
-    #[cfg(test)]
-    fn handler_retry_delay(&self) -> std::time::Duration {
-        self.test_support
-            .as_ref()
-            .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
-    }
-
     #[cfg(not(test))]
     fn handler_retry_delay(&self) -> std::time::Duration {
         TEN_SECS
-    }
-
-    #[cfg(test)]
-    fn connect_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
-        if let Some(socket_path) = self.test_transport.socket_path().cloned() {
-            return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
-                move |_: tonic::transport::Uri| {
-                    let socket_path = socket_path.clone();
-                    async move {
-                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
-                            tokio::net::UnixStream::connect(socket_path).await?,
-                        ))
-                    }
-                },
-            )));
-        }
-
-        self.connect_tls_channel(endpoint)
     }
 
     #[cfg(not(test))]
@@ -439,7 +382,10 @@ impl GatewayHandler {
             Version::parse(VERSION).expect("failed to parse self version"),
         );
         let mut client = gateway_client::GatewayClient::with_interceptor(channel, interceptor);
+
+        #[cfg(test)]
         self.note_handler_connection_attempt_for_tests();
+
         let (tx, rx) = mpsc::unbounded_channel();
         let retry_delay = self.handler_retry_delay();
         let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
@@ -578,8 +524,59 @@ impl GatewayHandler {
                 .await?;
         }
     }
+}
 
-    #[cfg(test)]
+#[cfg(test)]
+impl GatewayHandler {
+    pub(crate) fn new_with_test_socket(
+        gateway: Gateway<Id>,
+        pool: PgPool,
+        events_tx: Sender<GatewayEvent>,
+        peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+        socket_path: PathBuf,
+    ) -> Result<Self, GatewayError> {
+        let mut handler = Self::new(gateway, pool, events_tx, peer_stats_tx, certs_rx)?;
+        handler.test_transport = GatewayTestTransport::with_socket_path(socket_path);
+        Ok(handler)
+    }
+
+    pub(crate) fn attach_test_support(&mut self, test_support: GatewayManagerTestSupport) {
+        self.test_support = Some(test_support);
+    }
+
+    fn note_handler_connection_attempt_for_tests(&self) {
+        if let Some(test_support) = &self.test_support {
+            test_support.note_handler_connection_attempt(self.gateway.id);
+        }
+    }
+
+    fn handler_retry_delay(&self) -> std::time::Duration {
+        self.test_support
+            .as_ref()
+            .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
+    }
+
+    fn connect_channel(
+        &self,
+        endpoint: Endpoint,
+    ) -> Result<tonic::transport::Channel, GatewayError> {
+        if let Some(socket_path) = self.test_transport.socket_path().cloned() {
+            return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
+                move |_: tonic::transport::Uri| {
+                    let socket_path = socket_path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                            tokio::net::UnixStream::connect(socket_path).await?,
+                        ))
+                    }
+                },
+            )));
+        }
+
+        self.connect_tls_channel(endpoint)
+    }
+
     pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
         let clients = Arc::<Mutex<HashMap<Id, Client>>>::default();
         self.handle_connection_iteration(clients, false)
