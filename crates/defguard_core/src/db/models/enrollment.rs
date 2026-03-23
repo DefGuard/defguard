@@ -84,7 +84,7 @@ impl From<TokenError> for Status {
 pub struct Token {
     pub id: String,
     pub user_id: Id,
-    pub admin_id: Option<i64>,
+    pub admin_id: Option<Id>,
     pub email: Option<String>,
     pub created_at: NaiveDateTime,
     pub expires_at: NaiveDateTime,
@@ -121,7 +121,8 @@ impl Token {
         E: PgExecutor<'e>,
     {
         query!(
-            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id) \
+            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, \
+            token_type, device_id) \
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             self.id,
             self.user_id,

@@ -4,4 +4,9 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('mfa-activation', 'code_is_valid', 'en_US', 'The code is valid for:'),
     ('enrollment-admin-notification', 'title', 'en_US', 'Dear,'),
     ('enrollment-admin-notification', 'message', 'en_US', 'just completed their enrollment process.'),
-    ('enrollment-admin-notification', 'goodday', 'en_US', 'Have a good day!')
+    ('enrollment-admin-notification', 'goodday', 'en_US', 'Have a good day!'),
+    ('gateway-disconnect', 'title', 'en_US', 'Defguard Gateway has just disconnected.'),
+    ('gateway-disconnect', 'subtitle', 'en_US', 'Please login to your gateway server and see the logs.'),
+    ('gateway-disconnect', 'gateway_label', 'en_US', 'Gateway name:'),
+    ('gateway-disconnect', 'ip_address_label', 'en_US', 'Gateway IP address:'),
+    ('gateway-disconnect', 'location_label', 'en_US', 'VPN location:');

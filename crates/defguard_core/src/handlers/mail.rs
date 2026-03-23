@@ -32,12 +32,8 @@ use crate::{
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
-
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
-
 static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
-
-static GATEWAY_DISCONNECTED_SUBJECT: &str = "Defguard: Gateway disconnected";
 static GATEWAY_RECONNECTED_SUBJECT: &str = "Defguard: Gateway reconnected";
 
 pub(crate) static EMAIL_PASSWORD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
@@ -175,14 +171,17 @@ pub async fn send_gateway_disconnected_email(
     pool: &PgPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
-    let admin_users = User::find_admins(pool).await?;
+    let mut conn = pool.begin().await?;
+    let admin_users = User::find_admins(&mut *conn).await?;
     for user in admin_users {
-        Mail::new(
+        templates::gateway_disconnected_mail(
             &user.email,
-            GATEWAY_DISCONNECTED_SUBJECT,
-            templates::gateway_disconnected_mail(&gateway_name, gateway_adress, &network_name)?,
+            &mut conn,
+            &gateway_name,
+            gateway_adress,
+            &network_name,
         )
-        .send_and_forget();
+        .await?;
     }
 
     Ok(())

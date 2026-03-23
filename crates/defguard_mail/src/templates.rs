@@ -26,8 +26,6 @@ static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_GATEWAY_DISCONNECTED: &str =
-    include_str!("../templates/mail_gateway_disconnected.tera");
 static MAIL_GATEWAY_RECONNECTED: &str = include_str!("../templates/mail_gateway_reconnected.tera");
 static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
 static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
@@ -268,8 +266,8 @@ pub async fn enrollment_admin_notification(
     let (mut tera, mut context) =
         get_base_tera_mjml(Context::new(), None, Some(ip_address), device_info)?;
 
+    context.insert("username", admin_name);
     context.insert("user_name", user_name);
-    context.insert("admin_name", admin_name);
 
     let message = MailMessage::EnrollmentNotification;
     message.fill_context(conn, &mut context).await?;
@@ -357,17 +355,25 @@ pub fn new_device_ocid_login_mail(
     Ok(tera.render("mail_new_device_oicd_login", &context)?)
 }
 
-pub fn gateway_disconnected_mail(
+/// Notification about disconnected Gateway.
+pub async fn gateway_disconnected_mail(
+    to: &str,
+    conn: &mut PgConnection,
     gateway_name: &str,
-    gateway_ip: &str,
-    network_name: &str,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), None, None, None)?;
+    gateway_ip_address: &str,
+    location_name: &str,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
     context.insert("gateway_name", gateway_name);
-    context.insert("gateway_ip", gateway_ip);
-    context.insert("network_name", network_name);
-    tera.add_raw_template("mail_gateway_disconnected", MAIL_GATEWAY_DISCONNECTED)?;
-    Ok(tera.render("mail_gateway_disconnected", &context)?)
+    context.insert("ip_address", gateway_ip_address);
+    context.insert("location_name", location_name);
+
+    let message = MailMessage::GatewayDisconnect;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 pub fn gateway_reconnected_mail(
@@ -522,17 +528,6 @@ mod test {
         assert_ok!(test_mail(None));
     }
 
-    // #[sqlx::test]
-    // async fn test_enrollment_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
-    //     let pool = setup_pool(options).await;
-    //     init_config(&pool).await;
-    //     assert_ok!(enrollment_start_mail(
-    //         Context::new(),
-    //         Url::parse("http://localhost:8080").unwrap(),
-    //         "test_token"
-    //     ));
-    // }
-
     #[sqlx::test]
     async fn test_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
@@ -541,51 +536,6 @@ mod test {
             "Hi there! Welcome to Defguard.",
             None,
             None
-        ));
-    }
-
-    // #[sqlx::test]
-    // async fn test_desktop_start_mail(_: PgPoolOptions, options: PgConnectOptions) {
-    //     let pool = setup_pool(options).await;
-    //     init_config(&pool).await;
-    //     let context = get_welcome_context();
-    //     let url = Url::parse("http://127.0.0.1:8080").unwrap();
-    //     let token = "TestToken";
-    //     let mut tranaction = pool.begin().await.unwrap();
-    //     assert_ok!(desktop_start_mail(&mut tranaction, context, &url, token).await);
-    // }
-
-    // #[sqlx::test]
-    // async fn test_new_device_added_mail(_: PgPoolOptions, options: PgConnectOptions) {
-    //     let pool = setup_pool(options).await;
-    //     init_config(&pool).await;
-    //     let template_locations: Vec<TemplateLocation> = vec![
-    //         TemplateLocation {
-    //             name: "Test 01".into(),
-    //             assigned_ips: "10.0.0.10".into(),
-    //         },
-    //         TemplateLocation {
-    //             name: "Test 02".into(),
-    //             assigned_ips: "10.0.0.10".into(),
-    //         },
-    //     ];
-    //     assert_ok!(new_device_added_mail(
-    //         "Test device",
-    //         "TestKey",
-    //         &template_locations,
-    //         Some("1.1.1.1"),
-    //         None,
-    //     ));
-    // }
-
-    #[sqlx::test]
-    async fn test_gateway_disconnected(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        init_config(&pool).await;
-        assert_ok!(gateway_disconnected_mail(
-            "Gateway A",
-            "127.0.0.1",
-            "Location1"
         ));
     }
 

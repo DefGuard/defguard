@@ -200,16 +200,12 @@ impl GatewayHandler {
             return;
         };
 
-        // FIXME: Try to get rid of spawn and use something like block_on
-        // To return result instead of logging
-        tokio::spawn(async move {
-            if let Err(err) = send_gateway_disconnected_email(name, network.name, &url, &pool).await
-            {
-                error!("Failed to send Gateway disconnect notification: {err}");
-            } else {
-                info!("Sent email notification about Gateway being disconnected");
-            }
-        });
+        // TODO: return result instead of logging.
+        if let Err(err) = send_gateway_disconnected_email(name, network.name, &url, &pool).await {
+            error!("Failed to send Gateway disconnect notification: {err}");
+        } else {
+            info!("Sent email notification about Gateway being disconnected");
+        }
     }
 
     /// Send Gateway reconnected notification.
