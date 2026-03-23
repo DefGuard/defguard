@@ -17,7 +17,7 @@ use defguard_common::{
 use defguard_mail::{Mail, templates};
 use humantime::parse_duration;
 use serde_json::json;
-use sqlx::{Acquire, PgPool};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use super::{
@@ -743,10 +743,7 @@ pub(crate) async fn modify_user(
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
-    let ldap_sync_allowed = {
-        let transaction_connection = transaction.acquire().await?;
-        ldap_sync_allowed_for_user(&user, transaction_connection).await?
-    };
+    let ldap_sync_allowed = ldap_sync_allowed_for_user(&user, &mut *transaction).await?;
 
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
