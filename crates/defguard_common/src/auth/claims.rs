@@ -13,7 +13,7 @@ pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
 pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Deserialize, Serialize)]
 pub enum ClaimsType {
     #[default]
     Auth,
@@ -37,6 +37,7 @@ pub struct Claims {
     pub exp: u64,
     // not before
     pub nbf: u64,
+    pub claims_type: ClaimsType,
 }
 
 impl Claims {
@@ -60,6 +61,7 @@ impl Claims {
             client_id,
             exp,
             nbf,
+            claims_type,
         }
     }
 
