@@ -7,7 +7,7 @@ use defguard_common::{
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
-    grpc::{AUTHORIZATION_HEADER, WorkerState, test_support::build_grpc_service_router},
+    grpc::{AUTHORIZATION_HEADER, WorkerState, build_grpc_service_router},
 };
 use hyper_util::rt::TokioIo;
 use sqlx::{
