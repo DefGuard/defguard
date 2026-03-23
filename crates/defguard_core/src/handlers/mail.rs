@@ -4,7 +4,7 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 use defguard_common::db::{
     Id,
     models::{User, gateway::Gateway, proxy::Proxy},
@@ -33,7 +33,6 @@ use crate::{
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
 static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
-static NEW_DEVICE_LOGIN_EMAIL_SUBJECT: &str = "Defguard: new device logged in to your account";
 
 pub(crate) static EMAIL_PASSWORD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
 pub(crate) static EMAIL_PASSWORD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
@@ -230,23 +229,6 @@ pub async fn send_user_import_blocked_email(pool: &PgPool) -> Result<(), WebErro
         templates::user_import_blocked_mail(&email, &mut conn, Context::new()).await?;
         debug!("Scheduled blocked user import mail to admin {}", email);
     }
-
-    Ok(())
-}
-
-pub fn send_new_device_login_email(
-    user_email: &str,
-    session: &SessionContext,
-    created: NaiveDateTime,
-) -> Result<(), TemplateError> {
-    debug!("User {user_email} new device login mail to {SUPPORT_EMAIL_ADDRESS}");
-
-    Mail::new(
-        user_email,
-        NEW_DEVICE_LOGIN_EMAIL_SUBJECT,
-        templates::new_device_login_mail(session, created)?,
-    )
-    .send_and_forget();
 
     Ok(())
 }

@@ -26,7 +26,6 @@ static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_TEST: &str = include_str!("../templates/test.mjml");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
-static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
 static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
     include_str!("../templates/mail_new_device_ocid_login.tera");
 static MAIL_PASSWORD_RESET_START: &str =
@@ -327,19 +326,22 @@ pub async fn mfa_configured_mail(
     Ok(())
 }
 
-pub fn new_device_login_mail(
-    session: &SessionContext,
+/// New device login.
+pub async fn new_device_login_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    session: Option<&SessionContext>,
     created: NaiveDateTime,
-) -> Result<String, TemplateError> {
-    let (mut tera, mut context) = get_base_tera(Context::new(), Some(session), None, None)?;
-    tera.add_raw_template("mail_base", MAIL_BASE)?;
-    context.insert(
-        "date_now",
-        &created.format(MAIL_DATETIME_FORMAT).to_string(),
-    );
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
-    tera.add_raw_template("mail_new_device_login", MAIL_NEW_DEVICE_LOGIN)?;
-    Ok(tera.render("mail_new_device_login", &context)?)
+    context.insert("created", &created.format(MAIL_DATETIME_FORMAT).to_string());
+
+    let message = MailMessage::NewDeviceLogin;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 pub fn new_device_ocid_login_mail(

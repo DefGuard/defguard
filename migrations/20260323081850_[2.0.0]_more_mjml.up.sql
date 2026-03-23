@@ -16,4 +16,7 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('gateway-reconnect', 'location_label', 'en_US', 'VPN location:'),
     ('mfa-configured', 'title', 'en_US', 'Hello,'),
     ('mfa-configured', 'subtitle', 'en_US', 'A Multi-Factor Authentication (MFA) has been activated in your account.'),
-    ('mfa-configured', 'mfa_method_label', 'en_US', 'MFA method:');
+    ('mfa-configured', 'mfa_method_label', 'en_US', 'MFA method:'),
+    ('new-device-login', 'title', 'en_US', 'Your account was just logged into from a new device.'),
+    ('new-device-login', 'label_device', 'en_US', 'Device name:'),
+    ('new-device-login', 'label_date', 'en_US', 'Date:');
