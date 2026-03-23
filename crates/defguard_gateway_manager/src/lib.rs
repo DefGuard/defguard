@@ -413,12 +413,11 @@ impl GatewayManager {
                             Some(id)
                         }
                         TriggerOperation::Update => {
-                            let (Some(old), Some(new)) =
+                            let (Some(mut old), Some(new)) =
                                 (gateway_notification.old, gateway_notification.new)
                             else {
                                 continue;
                             };
-                            let mut old = old;
 
                             let id = new.id;
                             if old.address == new.address

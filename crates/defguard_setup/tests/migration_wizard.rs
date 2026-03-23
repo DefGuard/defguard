@@ -32,7 +32,6 @@ async fn assert_migration_step(pool: &sqlx::PgPool, expected_variant: &str) {
 
 #[sqlx::test]
 async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     init_settings_with_secret_key(&pool).await;
 
@@ -45,7 +44,7 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let wizard = Wizard::get(&pool).await.expect("Failed to get wizard");
     assert_eq!(wizard.active_wizard, ActiveWizard::Migration);
 
-    let (client, shutdown_rx, _webapp) = make_migration_test_client(pool.clone(), test_guard).await;
+    let (client, shutdown_rx, _webapp) = make_migration_test_client(pool.clone()).await;
 
     let resp = client
         .get("/api/v1/session-info")
@@ -179,7 +178,6 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     init_settings_with_secret_key(&pool).await;
 
@@ -188,8 +186,7 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
         .await
         .expect("Failed to init wizard");
 
-    let (client, _shutdown_rx, _webapp) =
-        make_migration_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx, _webapp) = make_migration_test_client(pool.clone()).await;
 
     let unauth = {
         let mut headers = HeaderMap::new();

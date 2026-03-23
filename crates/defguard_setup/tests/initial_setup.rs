@@ -47,7 +47,6 @@ async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
 
 #[sqlx::test]
 async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -56,7 +55,7 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let payload = json!({
         "first_name": "Admin",
@@ -105,7 +104,6 @@ async fn test_create_admin_with_automatic_group_assignment(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -114,7 +112,7 @@ async fn test_create_admin_with_automatic_group_assignment(
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
     let default_admin_group_name = Settings::get_current_settings().default_admin_group_name;
 
     let payload = json!({
@@ -153,7 +151,6 @@ async fn test_create_admin_with_automatic_group_assignment(
 
 #[sqlx::test]
 async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -162,7 +159,7 @@ async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnect
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -204,7 +201,6 @@ async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnect
 
 #[sqlx::test]
 async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -213,7 +209,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -276,7 +272,6 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -285,7 +280,7 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -328,7 +323,6 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -337,7 +331,7 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -378,7 +372,6 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -387,7 +380,7 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -433,7 +426,6 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -442,7 +434,7 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to initialize wizard");
 
-    let (client, shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let response = client
         .post("/api/v1/initial_setup/admin")
@@ -486,7 +478,6 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
-    let _test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await

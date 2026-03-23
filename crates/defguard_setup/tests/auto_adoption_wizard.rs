@@ -76,7 +76,6 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
 
 #[sqlx::test]
 async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -89,7 +88,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .await
         .expect("Failed to init wizard");
 
-    let (client, shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::Welcome).await;
 
@@ -209,7 +208,6 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
 
 #[sqlx::test]
 async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnectOptions) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -229,8 +227,7 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
             .expect("Failed to build unauthenticated reqwest client")
     };
 
-    let (client_with_session, _shutdown_rx) =
-        make_setup_test_client(pool.clone(), test_guard).await;
+    let (client_with_session, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
     let base_url = client_with_session.base_url();
 
     let resp = unauthenticated_client
@@ -340,7 +337,6 @@ async fn test_auto_adoption_vpn_settings_missing_network(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let test_guard = common::setup_test_guard().await;
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
@@ -350,7 +346,7 @@ async fn test_auto_adoption_vpn_settings_missing_network(
         .await
         .expect("Failed to init wizard");
 
-    let (client, _shutdown_rx) = make_setup_test_client(pool.clone(), test_guard).await;
+    let (client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     // Create admin (no auth required yet)
     let resp = client
