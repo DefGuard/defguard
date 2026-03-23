@@ -14,6 +14,7 @@ import { Page } from '../../shared/components/Page/Page';
 import { SettingsCard } from '../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../shared/components/SettingsLayout/SettingsLayout';
+import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
@@ -24,7 +25,7 @@ import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox'
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../shared/defguard-ui/types';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
@@ -263,9 +264,10 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
     >
       <form.AppForm>
         <MarkedSection icon="settings">
+          <SectionTitle title={m.settings_enrollment_section_general_title()} />
           <MarkedSectionHeader
-            title={m.settings_enrollment_section_general_title()}
-            description={m.settings_enrollment_section_general_description()}
+            title={m.settings_enrollment_section_admin_email_title()}
+            description={m.settings_enrollment_section_admin_email_description()}
           />
           {adminEmailModeOptions.map((option, index) => (
             <div key={option.value}>
@@ -403,5 +405,16 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
         )}
       </form.Subscribe>
     </form>
+  );
+};
+
+const SectionTitle = ({ title }: { title: string }) => {
+  return (
+    <>
+      <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+        {title}
+      </AppText>
+      <SizedBox height={ThemeSpacing.Xl} />
+    </>
   );
 };
