@@ -113,11 +113,11 @@ impl FromStr for DefguardComponent {
 
 impl fmt::Display for DefguardComponent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Core => write!(f, "core"),
-            Self::Proxy => write!(f, "proxy"),
-            Self::Gateway => write!(f, "gateway"),
-        }
+        f.write_str(match self {
+            Self::Core => "core",
+            Self::Proxy => "proxy",
+            Self::Gateway => "gateway",
+        })
     }
 }
 

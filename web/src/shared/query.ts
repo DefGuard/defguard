@@ -75,7 +75,6 @@ export const getGatewayQueryOptions = (id: number) =>
 export const getNetworkDevicesQueryOptions = queryOptions({
   queryFn: api.network_device.getDevices,
   queryKey: ['device', 'network'],
-  select: (resp) => resp.data,
 });
 
 export const getUserMeQueryOptions = queryOptions({
@@ -142,7 +141,6 @@ export const getUsersQueryOptions = queryOptions({
   queryKey: ['user'],
   refetchOnMount: true,
   refetchOnReconnect: true,
-  select: (resp) => resp.data,
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({
@@ -163,7 +161,6 @@ export const getGroupsInfoQueryOptions = queryOptions({
 export const getOpenIdClientQueryOptions = queryOptions({
   queryFn: api.openIdClient.getOpenIdClients,
   queryKey: ['oauth'],
-  select: (resp) => resp.data,
 });
 
 export const getWebhooksQueryOptions = queryOptions({
@@ -204,7 +201,6 @@ export const getRulesCountQueryOptions = queryOptions({
 export const getRulesQueryOptions = queryOptions({
   queryFn: api.acl.rule.getRules,
   queryKey: ['acl', 'rule'],
-  select: (resp) => resp.data,
 });
 
 export const getAliasesQueryOptions = queryOptions({

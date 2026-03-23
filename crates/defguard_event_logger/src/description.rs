@@ -311,9 +311,9 @@ pub fn get_enrollment_event_description(event: &EnrollmentEvent) -> Option<Strin
         EnrollmentEvent::EnrollmentCompleted => {
             Some("User completed enrollment process".to_string())
         }
-        EnrollmentEvent::PasswordResetRequested => None,
-        EnrollmentEvent::PasswordResetStarted => None,
-        EnrollmentEvent::PasswordResetCompleted => None,
+        EnrollmentEvent::PasswordResetRequested
+        | EnrollmentEvent::PasswordResetStarted
+        | EnrollmentEvent::PasswordResetCompleted => None,
         EnrollmentEvent::TokenAdded { user } => {
             Some(format!("Added enrollment token for user {user}"))
         }

@@ -307,7 +307,7 @@ impl GatewayHandler {
                 info!("{} disconnected; email notification not sent", self.gateway);
                 return;
             }
-        };
+        }
 
         debug!("Sending Gateway disconnect email notification");
         let name = self.gateway.name.clone();

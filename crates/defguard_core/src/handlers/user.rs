@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use defguard_common::{
@@ -48,6 +48,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     is_valid_phone_number,
     user_management::{delete_user_and_cleanup_devices, sync_allowed_user_devices},
 };
@@ -134,7 +135,7 @@ pub struct UserDetails {
 }
 
 impl UserDetails {
-    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Self> {
+    pub(crate) async fn from_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Self> {
         let devices = user.user_devices(pool).await?;
         let security_keys = user.security_keys(pool).await?;
         let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
@@ -195,13 +196,33 @@ impl UserDetails {
         ("api_token" = [])
     )
 )]
-pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
-    let all_users = User::all(&appstate.pool).await?;
-    let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
+pub(crate) async fn list_users(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<UserInfo> {
+    let pagination = pagination.0;
+
+    debug!("Listing users");
+
+    let all_users = User::all_paginated(
+        &appstate.pool,
+        i64::from(pagination.per_page()),
+        i64::from(pagination.offset()),
+    )
+    .await?;
+    // Map [`User`] to [`UserInfo`].
+    // TODO: too many queries – optimise.
+    let mut users = Vec::with_capacity(all_users.len());
     for user in all_users {
         users.push(UserInfo::from_user(&appstate.pool, &user).await?);
     }
-    Ok(ApiResponse::json(users, StatusCode::OK))
+
+    let count = User::count(&appstate.pool).await?;
+
+    info!("Listed users");
+
+    Ok(PaginatedApiResponse::new(users, pagination, count as u32))
 }
 
 /// Get user
@@ -210,7 +231,6 @@ pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> A
 ///
 /// # Returns
 /// - `UserDetails` object
-///
 /// - `WebError` if error occurs
 #[utoipa::path(
     get,
@@ -253,7 +273,7 @@ pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> A
         ("api_token" = [])
     )
 )]
-pub async fn get_user(
+pub(crate) async fn get_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -269,7 +289,6 @@ pub async fn get_user(
 ///
 /// # Returns
 /// - `UserInfo` object
-///
 /// - `WebError` if error occurs
 #[utoipa::path(
     post,
@@ -306,7 +325,7 @@ pub async fn get_user(
         ("api_token" = [])
     )
 )]
-pub async fn add_user(
+pub(crate) async fn add_user(
     _role: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -426,7 +445,7 @@ pub async fn add_user(
         ("api_token" = [])
     )
 )]
-pub async fn start_enrollment(
+pub(crate) async fn start_enrollment(
     _role: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -545,7 +564,7 @@ pub async fn start_enrollment(
         ("api_token" = [])
     )
 )]
-pub async fn start_remote_desktop_configuration(
+pub(crate) async fn start_remote_desktop_configuration(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -644,7 +663,7 @@ pub async fn start_remote_desktop_configuration(
         ("api_token" = [])
     )
 )]
-pub async fn username_available(
+pub(crate) async fn username_available(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
@@ -694,7 +713,7 @@ pub async fn username_available(
         ("api_token" = [])
     )
 )]
-pub async fn modify_user(
+pub(crate) async fn modify_user(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
@@ -875,7 +894,7 @@ pub async fn modify_user(
         ("api_token" = [])
     )
 )]
-pub async fn delete_user(
+pub(crate) async fn delete_user(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -946,7 +965,7 @@ pub async fn delete_user(
         ("api_token" = [])
     )
 )]
-pub async fn change_self_password(
+pub(crate) async fn change_self_password(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
@@ -1007,7 +1026,7 @@ pub async fn change_self_password(
         ("api_token" = [])
     )
 )]
-pub async fn change_password(
+pub(crate) async fn change_password(
     _role: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1082,7 +1101,7 @@ pub async fn change_password(
         ("api_token" = [])
     )
 )]
-pub async fn reset_password(
+pub(crate) async fn reset_password(
     _role: AdminRole,
     session: SessionInfo,
     context: ApiRequestContext,
@@ -1188,7 +1207,7 @@ pub async fn reset_password(
         ("api_token" = [])
     )
 )]
-pub async fn delete_security_key(
+pub(crate) async fn delete_security_key(
     session: SessionInfo,
     context: ApiRequestContext,
     State(appstate): State<AppState>,
@@ -1270,7 +1289,7 @@ pub async fn delete_security_key(
         ("api_token" = [])
     )
 )]
-pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub(crate) async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse::json(user_info, StatusCode::OK))
 }
@@ -1300,7 +1319,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
         ("api_token" = [])
     )
 )]
-pub async fn delete_authorized_app(
+pub(crate) async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, oauth2client_id)): Path<(String, i64)>,

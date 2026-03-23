@@ -27,3 +27,9 @@ mod wireguard_network_import;
 mod worker;
 
 const TEST_SERVER_URL: &str = "http://localhost:3000/";
+
+#[derive(serde::Deserialize)]
+struct PaginatedApiResponse<T> {
+    data: Vec<T>,
+    // pagination: PaginationMeta,
+}

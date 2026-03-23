@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use defguard_common::db::{
@@ -25,28 +25,17 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
+    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     hashset,
     location_management::sync_all_networks,
 };
 
-#[derive(Serialize, ToSchema)]
-pub(crate) struct Groups {
-    groups: Vec<String>,
-}
-
-impl Groups {
-    #[must_use]
-    pub fn new(groups: Vec<String>) -> Self {
-        Self { groups }
-    }
-}
-
-#[derive(Deserialize, Debug, Clone, ToSchema)]
+#[derive(Deserialize, ToSchema)]
 pub(crate) struct BulkAssignToGroupsRequest {
     // groups by name
     groups: Vec<String>,
     // users by id
-    users: Vec<i64>,
+    users: Vec<Id>,
 }
 
 /// Bulk assign users to groups
@@ -77,13 +66,13 @@ pub(crate) async fn bulk_assign_to_groups(
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Assigning groups to users.");
-    let mut users: Vec<User<Id>> = query_as!(
+    let mut users = query_as!(
         User,
-        "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
-            FROM \"user\" WHERE id = ANY($1)",
+        "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
+        totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+        mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+        from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+        FROM \"user\" WHERE id = ANY($1)",
         &data.users
     )
     .fetch_all(&appstate.pool)
@@ -197,9 +186,7 @@ pub(crate) async fn list_groups_info(
     Ok(ApiResponse::json(q_result, StatusCode::OK))
 }
 
-/// Retrieve all groups.
-///
-/// Retrieves group details by `name`.
+/// Retrieve all group names.
 ///
 /// # Returns
 /// - `Groups` object
@@ -209,7 +196,7 @@ pub(crate) async fn list_groups_info(
     get,
     path = "/api/v1/group",
     responses(
-        (status = 200, description = "Retrieve all groups.", body = Groups, example = json!({"groups": ["admin"]})),
+        (status = 200, description = "Retrieve all groups.", body = [String], example = json!({"groups": ["admin"]})),
         (status = 401, description = "Unauthorized to retrieve all groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Cannot retrieve all groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     ),
@@ -222,15 +209,26 @@ pub(crate) async fn list_groups(
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
-    debug!("User {} lists groups", &session.user.username);
-    let groups = Group::all(&appstate.pool)
-        .await?
-        .into_iter()
-        .map(|group| group.name)
-        .collect();
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<String> {
+    let pagination = pagination.0;
+
+    debug!("User {} is listing groups", &session.user.username);
+
+    let groups = Group::all_paginated(
+        &appstate.pool,
+        i64::from(pagination.per_page()),
+        i64::from(pagination.offset()),
+    )
+    .await?
+    .into_iter()
+    .map(|group| group.name)
+    .collect();
+
     info!("User {} listed groups", &session.user.username);
-    Ok(ApiResponse::json(Groups::new(groups), StatusCode::OK))
+
+    let count = Group::count(&appstate.pool).await?;
+    Ok(PaginatedApiResponse::new(groups, pagination, count as u32))
 }
 
 /// Retrieve group with name

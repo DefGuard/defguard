@@ -14,7 +14,7 @@ pub enum Permission {
 impl fmt::Display for Permission {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::IsAdmin => write!(f, "is_admin"),
+            Self::IsAdmin => f.write_str("is_admin"),
         }
     }
 }

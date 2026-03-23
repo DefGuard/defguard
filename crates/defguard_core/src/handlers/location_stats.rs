@@ -19,8 +19,8 @@ use crate::{
     auth::AdminRole,
     error::WebError,
     handlers::{
-        ApiResponse, ApiResult, DEFAULT_API_PAGE_SIZE,
-        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationMeta, PaginationParams},
+        ApiResponse, ApiResult,
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     },
 };
 
@@ -98,7 +98,8 @@ pub(crate) async fn location_stats(
 /// Returns paginated list of connected users for a given location
 ///
 /// # Returns
-/// Returns a paginated list of `LocationConnectedUser` objects for requested location and time period
+/// Returns a paginated list of `LocationConnectedUser` objects for requested location and time
+/// period.
 pub(crate) async fn location_connected_users(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -106,8 +107,10 @@ pub(crate) async fn location_connected_users(
     Query(query_from): Query<QueryFrom>,
     pagination: Query<PaginationParams>,
 ) -> PaginatedApiResult<LocationConnectedUserStats> {
+    let pagination = pagination.0;
     debug!(
-        "Displaying connected users for location {location_id} with time window {query_from:?} and pagination {pagination:?}"
+        "Displaying connected users for location {location_id} with time window {query_from:?} and \
+        pagination {pagination}"
     );
 
     let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? else {
@@ -123,23 +126,23 @@ pub(crate) async fn location_connected_users(
             &appstate.pool,
             &from,
             &aggregation,
-            pagination.page,
-            DEFAULT_API_PAGE_SIZE,
+            pagination.per_page(),
+            pagination.offset(),
         )
         .await?;
 
-    let pagination = PaginationMeta::new(pagination.page, total_items, DEFAULT_API_PAGE_SIZE);
-
-    Ok(PaginatedApiResponse {
-        data: connected_users,
+    Ok(PaginatedApiResponse::new(
+        connected_users,
         pagination,
-    })
+        total_items,
+    ))
 }
 
 /// Returns paginated list of connected network devices for a given location
 ///
 /// # Returns
-/// Returns a paginated list of `LocationConnectedNetworkDevice` objects for requested location and time period
+/// Returns a paginated list of `LocationConnectedNetworkDevice` objects for requested location and
+/// time period.
 pub(crate) async fn location_connected_network_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -147,8 +150,10 @@ pub(crate) async fn location_connected_network_devices(
     Query(query_from): Query<QueryFrom>,
     pagination: Query<PaginationParams>,
 ) -> PaginatedApiResult<LocationConnectedNetworkDevice> {
+    let pagination = pagination.0;
     debug!(
-        "Displaying connected network devices for location {location_id} with time window {query_from:?} and pagination {pagination:?}"
+        "Displaying connected network devices for location {location_id} with time window \
+        {query_from:?} and pagination {pagination}"
     );
 
     let Some(location) = WireguardNetwork::find_by_id(&appstate.pool, location_id).await? else {
@@ -164,29 +169,29 @@ pub(crate) async fn location_connected_network_devices(
             &appstate.pool,
             &from,
             &aggregation,
-            pagination.page,
-            DEFAULT_API_PAGE_SIZE,
+            pagination.page(),
+            pagination.per_page(),
         )
         .await?;
 
-    let pagination = PaginationMeta::new(pagination.page, total_items, DEFAULT_API_PAGE_SIZE);
-
-    Ok(PaginatedApiResponse {
-        data: connected_network_devices,
+    Ok(PaginatedApiResponse::new(
+        connected_network_devices,
         pagination,
-    })
+        total_items,
+    ))
 }
 
 #[derive(Deserialize)]
 pub(crate) struct ConnectedUserDevicesPath {
-    location_id: i64,
-    user_id: i64,
+    location_id: Id,
+    user_id: Id,
 }
 
 /// Returns list of connected devices for a specific user at a given location
 ///
 /// # Returns
-/// Returns a list of `LocationConnectedUserDevice` objects for requested user, location and time period
+/// Returns a list of `LocationConnectedUserDevice` objects for requested user, location and time
+/// period.
 pub(crate) async fn location_connected_user_devices(
     _role: AdminRole,
     State(appstate): State<AppState>,

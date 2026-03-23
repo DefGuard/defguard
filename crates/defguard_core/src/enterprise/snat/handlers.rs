@@ -39,7 +39,7 @@ use crate::{
         ("location_id" = Id, Path, description = "WireGuard location ID")
     ),
     responses(
-        (status = 200, description = "List of SNAT bindings", body = Vec<UserSnatBinding>),
+        (status = 200, description = "List of SNAT bindings", body = [UserSnatBinding]),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Forbidden - Admin role required"),
         (status = 404, description = "Not found - location does not exist"),
