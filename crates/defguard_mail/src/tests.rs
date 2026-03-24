@@ -54,7 +54,7 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut conn = pool.begin().await.unwrap();
     let context = Context::new();
-    let url = Url::parse("http://localhost:8000").unwrap();
+    let url = Url::parse("http://localhost:8001").unwrap();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
     templates::desktop_start_mail(
         &env::var("SMTP_TO").unwrap(),
