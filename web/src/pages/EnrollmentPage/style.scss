@@ -68,8 +68,33 @@
       row-gap: var(--spacing-lg);
     }
 
-    .sidebar-copy {
-      white-space: pre-line;
+    .sidebar-list {
+      list-style: disc;
+      padding-left: 18px;
+      margin: 0;
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-xs);
+      font: var(--t-body-sm-400);
+      color: var(--fg-faded);
+
+      li {
+        line-height: 20px;
+      }
+    }
+
+    .sidebar-token {
+      font: var(--t-body-sm-600);
+      color: var(--fg-faded);
+    }
+
+    .sidebar-token-medium {
+      font: var(--t-body-sm-500);
+      color: var(--fg-faded);
+    }
+
+    .sidebar-separator {
+      color: var(--fg-faded);
     }
   }
 

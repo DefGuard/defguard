@@ -51,29 +51,43 @@ const enrollmentSessionTimeoutBaseOptions = createNumericSelectOptions({
   60: m.settings_duration_one_hour(),
 });
 
-const messageTemplatesHelpVariables = `{{ first_name }} - newly created user first name
-{{ last_name }} - newly created user last name
-{{ username }} - newly created user username/login
-{{ admin_first_name }} - first name of the administrator who initiated the enrollment process
-{{ admin_last_name }} - last name of the administrator who initiated the enrollment process
-{{ admin_phone }} - phone number of the administrator who initiated the enrollment process
-{{ admin_email }} - email of the administrator who initiated the enrollment process
-{{ defguard_url }} - internal Defguard URL (your Defguard instance address)`;
+const messageTemplatesHelpVariables = [
+  ['{{ first_name }}', 'newly created user first name'],
+  ['{{ last_name }}', 'newly created user last name'],
+  ['{{ username }}', 'newly created user username/login'],
+  [
+    '{{ admin_first_name }}',
+    'first name of the administrator who initiated the enrollment process',
+  ],
+  [
+    '{{ admin_last_name }}',
+    'last name of the administrator who initiated the enrollment process',
+  ],
+  [
+    '{{ admin_phone }}',
+    'phone number of the administrator who initiated the enrollment process',
+  ],
+  [
+    '{{ admin_email }}',
+    'email of the administrator who initiated the enrollment process',
+  ],
+  ['{{ defguard_url }}', 'internal Defguard URL (your Defguard instance address)'],
+] as const;
 
 const messageTemplatesHelpMarkdown = [
-  '#, ##, ### - Create headings.',
-  '*text* - Italic text.',
-  '**text** - Bold text.',
-  '***text*** - Bold and italic.',
-  '> text - Blockquote.',
-  '- item or 1. item - Lists (unordered or ordered).',
-  '`code` - Inline code.',
-  '```code``` - Code block.',
-  '*** - Horizontal line.',
-  '[text](url) - Link.',
-  '| and --- - Create tables.',
-  '\\ - Escape special characters.',
-].join('\n');
+  ['#, ##, ###', 'Create headings.', 'medium'],
+  ['*text*', 'Italic text.'],
+  ['**text**', 'Bold text.'],
+  ['***text***', 'Bold and italic.'],
+  ['> text', 'Blockquote.'],
+  ['- item or 1. item', 'Lists (unordered or ordered).'],
+  ['`code`', 'Inline code.'],
+  ['```code```', 'Code block.'],
+  ['***', 'Horizontal line.'],
+  ['[text](url)', 'Link.'],
+  ['| and ---', 'Create tables.'],
+  ['\\', 'Escape special characters.'],
+] as const;
 
 export const EnrollmentPage = () => {
   const [activeTab, setActiveTab] = useState<EnrollmentTabValue>(
@@ -475,21 +489,29 @@ const MessageTemplatesHelpPanel = () => {
         </AppText>
       </div>
       <div className="sidebar-panel">
-        <AppText
-          className="sidebar-copy"
-          font={TextStyle.TBodySm400}
-          color={ThemeVariable.FgDefault}
-        >
-          {messageTemplatesHelpVariables}
-        </AppText>
+        <ul className="sidebar-list">
+          {messageTemplatesHelpVariables.map(([token, description]) => (
+            <li key={token}>
+              <span className="sidebar-token">{token}</span>
+              <span className="sidebar-separator"> - </span>
+              <span>{description}</span>
+            </li>
+          ))}
+        </ul>
         <Divider />
-        <AppText
-          className="sidebar-copy"
-          font={TextStyle.TBodySm400}
-          color={ThemeVariable.FgDefault}
-        >
-          {messageTemplatesHelpMarkdown}
-        </AppText>
+        <ul className="sidebar-list">
+          {messageTemplatesHelpMarkdown.map(([token, description, weight]) => (
+            <li key={token}>
+              <span
+                className={weight === 'medium' ? 'sidebar-token-medium' : 'sidebar-token'}
+              >
+                {token}
+              </span>
+              <span className="sidebar-separator"> - </span>
+              <span>{description}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
