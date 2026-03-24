@@ -19,7 +19,7 @@ use sqlx::{
 };
 use tera::Context;
 
-use super::templates;
+use super::{Attachment, templates};
 
 /// Set SMTP settings from environment variables.
 async fn set_smtp_settings(pool: &PgPool) {
@@ -344,6 +344,25 @@ fn send_test_mail(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut conn = pool.begin().await.unwrap();
     templates::test_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None)
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_support_data_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let config = Attachment::new(
+        "defguard-support-data-test.json".into(),
+        b"{\"key\":\"value\"}".into(),
+    );
+    templates::support_data_mail(&env::var("SMTP_TO").unwrap(), &mut conn, vec![config])
         .await
         .unwrap();
 

@@ -1,0 +1,9 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}

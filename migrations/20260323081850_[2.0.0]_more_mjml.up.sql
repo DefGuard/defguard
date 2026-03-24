@@ -29,4 +29,6 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('password-reset-done', 'title', 'en_US', 'Password reset'),
     ('password-reset-done', 'subtitle', 'en_US', 'Your password has been successfully changed.'),
     ('test', 'title', 'en_US', 'This is test email from Defguard system.'),
-    ('test', 'subtitle', 'en_US', 'If you received it, your SMTP configuration is correct.');
+    ('test', 'subtitle', 'en_US', 'If you received it, your SMTP configuration is correct.'),
+    ('support-data', 'title', 'en_US', 'Support data'),
+    ('support-data', 'subtitle', 'en_US', 'Support data can be found in the attachment.');

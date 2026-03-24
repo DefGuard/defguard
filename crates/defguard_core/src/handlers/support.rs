@@ -15,9 +15,21 @@ pub async fn configuration(
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} dumping app configuration", session.user.username);
-    let config = dump_config(&appstate.pool).await;
-    info!("User {} dumped app configuration", session.user.username);
-    Ok(ApiResponse::new(config, StatusCode::OK))
+
+    let mut conn = appstate.pool.begin().await?;
+    Ok(match dump_config(&mut conn).await {
+        Ok(config) => {
+            info!("User {} dumped app configuration", session.user.username);
+            ApiResponse::new(config, StatusCode::OK)
+        }
+        Err(err) => {
+            warn!("Failed to dump app configuration: {err}");
+            ApiResponse::json(
+                serde_json::json!({"err": err.to_string()}),
+                StatusCode::BAD_REQUEST,
+            )
+        }
+    })
 }
 
 pub async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {

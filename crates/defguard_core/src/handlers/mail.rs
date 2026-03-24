@@ -1,12 +1,13 @@
-use std::fmt::Display;
-
 use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
 use chrono::Utc;
 use defguard_common::db::models::{User, gateway::Gateway, proxy::Proxy};
-use defguard_mail::{Attachment, Mail, templates};
+use defguard_mail::{
+    Attachment,
+    templates::{self, SUPPORT_EMAIL_ADDRESS},
+};
 use serde_json::json;
 use sqlx::query_scalar;
 use tera::Context;
@@ -22,21 +23,9 @@ use crate::{
     support::dump_config,
 };
 
-static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
-static SUPPORT_EMAIL_SUBJECT: &str = "Defguard: Support data";
-
 #[derive(Clone, Deserialize)]
 pub struct TestMail {
     pub to: String,
-}
-
-/// Handles logging the error and returns ApiResponse that contains it
-fn internal_error(to: &str, subject: &str, error: impl Display) -> ApiResponse {
-    error!("Error sending mail to {to}, subject: {subject}, error: {error}");
-    ApiResponse::new(
-        json!({"error": error.to_string()}),
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )
 }
 
 pub(crate) async fn test_mail(
@@ -81,13 +70,11 @@ pub async fn send_support_data(
     session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    debug!(
-        "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
-        session.user.username
-    );
+    debug!("User {} sending support mail", session.user.username);
 
-    let proxies = Proxy::all(&appstate.pool).await?;
-    let gateways = Gateway::all(&appstate.pool).await?;
+    let mut conn = appstate.pool.begin().await?;
+    let proxies = Proxy::all(&mut *conn).await?;
+    let gateways = Gateway::all(&mut *conn).await?;
 
     let components_info = json!({
         "proxies": proxies.iter().map(|p| json!({
@@ -108,40 +95,37 @@ pub async fn send_support_data(
             "connected_at": g.connected_at,
         })).collect::<Vec<_>>(),
     });
-
+    let now = Utc::now();
     let components_json =
         serde_json::to_vec(&components_info).unwrap_or(b"JSON formatting error".into());
-
-    let components = Attachment::new(
-        format!("defguard-components-{}.json", Utc::now()),
-        components_json,
-    );
-
-    let config = dump_config(&appstate.pool).await;
+    let components = Attachment::new(format!("defguard-components-{now}.json"), components_json);
+    let config = dump_config(&mut conn)
+        .await
+        .unwrap_or(json!({"err": "Failed to dump configuration"}));
     let config = serde_json::to_vec_pretty(&config).unwrap_or(b"JSON formatting error".into());
-    let config = Attachment::new(format!("defguard-support-data-{}.json", Utc::now()), config);
+    let config = Attachment::new(format!("defguard-support-data-{now}.json"), config);
     let logs = read_logs().await;
-    let logs = Attachment::new(format!("defguard-logs-{}.txt", Utc::now()), logs.into());
-    let result = Mail::new(
-        SUPPORT_EMAIL_ADDRESS,
-        SUPPORT_EMAIL_SUBJECT,
-        templates::support_data_mail()?,
-    )
-    .set_attachments(vec![components, config, logs])
-    .send()
-    .await;
+    let logs = Attachment::new(format!("defguard-logs-{now}.txt"), logs.into());
 
-    let (to, subject) = (SUPPORT_EMAIL_ADDRESS, SUPPORT_EMAIL_SUBJECT);
-    match result {
+    let result = templates::support_data_mail(
+        SUPPORT_EMAIL_ADDRESS,
+        &mut conn,
+        vec![components, config, logs],
+    )
+    .await;
+    Ok(match result {
         Ok(()) => {
-            info!(
-                "User {} sent support mail to {SUPPORT_EMAIL_ADDRESS}",
-                session.user.username
-            );
-            Ok(ApiResponse::with_status(StatusCode::OK))
+            info!("User {} sent support mail", session.user.username);
+            ApiResponse::with_status(StatusCode::OK)
         }
-        Err(err) => Ok(internal_error(to, subject, &err)),
-    }
+        Err(err) => {
+            error!("Error sending support mail: {err}");
+            ApiResponse::new(
+                json!({"error": err.to_string()}),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        }
+    })
 }
 
 pub async fn send_gateway_disconnected_email(

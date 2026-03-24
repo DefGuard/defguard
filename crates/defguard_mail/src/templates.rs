@@ -14,9 +14,11 @@ use tera::{Context, Function, Tera};
 use thiserror::Error;
 use tracing::{debug, warn};
 
-use crate::mail::MailMessage;
+use crate::{Attachment, mail::MailMessage};
 
 pub(crate) const DEFAULT_LANG: &str = "en_US";
+
+pub static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 
 static BASE_MJML: &str = include_str!("../templates/base.mjml");
 static MACROS_MJML: &str = include_str!("../templates/macros.mjml");
@@ -24,7 +26,6 @@ static MACROS_MJML: &str = include_str!("../templates/macros.mjml");
 static MAIL_BASE: &str = include_str!("../templates/base.tera");
 static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
 static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
-static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Debug, Error)]
@@ -270,11 +271,22 @@ pub async fn enrollment_admin_notification(
     Ok(())
 }
 
-// message with support data
-pub fn support_data_mail() -> Result<String, TemplateError> {
-    let (mut tera, context) = get_base_tera(Context::new(), None, None, None)?;
-    tera.add_raw_template("mail_support_data", MAIL_SUPPORT_DATA)?;
-    Ok(tera.render("mail_support_data", &context)?)
+/// Email with support data
+pub async fn support_data_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    attachments: Vec<Attachment>,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
+    let message = MailMessage::SupportData;
+    message.fill_context(conn, &mut context).await?;
+    message
+        .mail(&mut tera, &context, to)?
+        .set_attachments(attachments)
+        .send_and_forget();
+
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -536,11 +548,6 @@ mod test {
             .expect("Could not initialize current settings in the database");
         config.initialize_post_settings();
         let _ = SERVER_CONFIG.set(config.clone());
-    }
-
-    #[test]
-    fn test_base_mail_no_context() {
-        assert_ok!(get_base_tera(Context::new(), None, None, None));
     }
 
     #[sqlx::test]

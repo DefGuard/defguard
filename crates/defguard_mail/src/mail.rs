@@ -276,7 +276,7 @@ pub enum MailMessage {
     Test,
     Welcome,
     /// Information for Defguard support.
-    Support,
+    SupportData,
     DesktopStart,
     /// Information after starting an enrollment.
     NewAccount,
@@ -305,7 +305,7 @@ impl MailMessage {
         match self {
             Self::Test => "Defguard: Test message",
             Self::Welcome => "Welcome message after enrollment",
-            Self::Support => "Defguard: Support data",
+            Self::SupportData => "Defguard: Support data",
             Self::DesktopStart => "Defguard: Desktop client configuration",
             Self::NewAccount => "Defguard: User enrollment",
             Self::NewDevice => "Defguard: new device added to your account",
@@ -327,7 +327,7 @@ impl MailMessage {
         match self {
             Self::Test => "test",
             Self::Welcome => "welcome",
-            Self::Support => "support",
+            Self::SupportData => "support-data",
             Self::DesktopStart => "desktop-start",
             Self::NewAccount => "new-account",
             Self::NewDevice => "new-device",
@@ -348,8 +348,8 @@ impl MailMessage {
     pub(crate) const fn mjml_template(&self) -> &str {
         match self {
             Self::Test => include_str!("../templates/test.mjml"),
-            // Self::Welcome => "",
-            // Self::Support => "",
+            Self::Welcome => "",
+            Self::SupportData => include_str!("../templates/support-data.mjml"),
             Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
             Self::NewAccount => include_str!("../templates/new-account.mjml"),
             Self::NewDevice => include_str!("../templates/new-device.mjml"),
@@ -366,7 +366,6 @@ impl MailMessage {
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.mjml")
             }
-            _ => "",
         }
     }
 
