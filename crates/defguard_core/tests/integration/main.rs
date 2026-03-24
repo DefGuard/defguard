@@ -1,4 +1,4 @@
 mod api;
 mod common;
-// mod grpc;
+mod grpc;
 mod ldap;

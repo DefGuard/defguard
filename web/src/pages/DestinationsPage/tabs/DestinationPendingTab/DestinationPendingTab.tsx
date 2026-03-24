@@ -8,6 +8,11 @@ import {
   getDestinationsQueryOptions,
   getRulesQueryOptions,
 } from '../../../../shared/query';
+import {
+  canUseBusinessFeature,
+  licenseActionCheck,
+} from '../../../../shared/utils/license';
+import { useRuleDeps } from '../../../RulesPage/useRuleDeps';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
 export const DestinationPendingTab = () => {
@@ -17,6 +22,7 @@ export const DestinationPendingTab = () => {
       resp.data.filter((destination) => destination.state !== AclStatus.Applied),
   });
   const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
+  const { license, loading } = useRuleDeps();
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.acl.destination.applyDestinations,
@@ -30,11 +36,15 @@ export const DestinationPendingTab = () => {
       text: `Deploy all pending (${destinations.length})`,
       iconLeft: 'deploy',
       loading: isPending,
+      disabled: loading,
       onClick: () => {
-        mutate(destinations.map((destination) => destination.id));
+        if (license === undefined) return;
+        licenseActionCheck(canUseBusinessFeature(license), () => {
+          mutate(destinations.map((destination) => destination.id));
+        });
       },
     }),
-    [isPending, mutate, destinations],
+    [isPending, mutate, destinations, license, loading],
   );
 
   return (

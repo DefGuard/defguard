@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { AclStatus } from '../../../shared/api/types';
@@ -6,7 +6,7 @@ import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { getLicenseInfoQueryOptions, getRulesQueryOptions } from '../../../shared/query';
+import { getRulesQueryOptions } from '../../../shared/query';
 import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
 import { RulesTable } from '../RulesTable';
 import { useRuleDeps } from '../useRuleDeps';
@@ -21,29 +21,25 @@ export const RulesDeployedTab = () => {
 
   const navigate = useNavigate();
 
-  const { data: licenseInfo, isFetching: licenseFetching } = useQuery(
-    getLicenseInfoQueryOptions,
-  );
+  const { aliases, destinations, groups, locations, users, devices, license, loading } =
+    useRuleDeps();
 
   const buttonProps = useMemo(
     (): ButtonProps => ({
       variant: 'primary',
       text: 'Create new rule',
       iconLeft: 'add-rule',
-      disabled: licenseFetching,
+      disabled: loading,
       onClick: () => {
-        if (licenseInfo === undefined) return;
+        if (license === undefined) return;
 
-        licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+        licenseActionCheck(canUseBusinessFeature(license), () => {
           navigate({ to: '/acl/add-rule' });
         });
       },
     }),
-    [navigate, licenseFetching, licenseInfo],
+    [navigate, loading, license],
   );
-
-  const { aliases, destinations, groups, locations, users, devices, license, loading } =
-    useRuleDeps();
 
   return (
     <>

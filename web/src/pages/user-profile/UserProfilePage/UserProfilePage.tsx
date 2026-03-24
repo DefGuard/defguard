@@ -9,16 +9,23 @@ import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
 import { useAuth } from '../../../shared/hooks/useAuth';
 import {
+  getLicenseInfoQueryOptions,
   getUserApiTokensQueryOptions,
   getUserAuthKeysQueryOptions,
   userProfileQueryOptions,
 } from '../../../shared/query';
+import { canUseBusinessFeature } from '../../../shared/utils/license';
 import { createUserProfileStore, UserProfileContext } from './hooks/useUserProfilePage';
 import { ProfileApiTokensTab } from './tabs/ProfileApiTokensTab/ProfileApiTokensTab';
 import { ProfileAuthKeysTab } from './tabs/ProfileAuthKeysTab/ProfileAuthKeysTab';
 import { ProfileDetailsTab } from './tabs/ProfileDetailsTab/ProfileDetailsTab';
 import { ProfileDevicesTab } from './tabs/ProfileDevicesTab/ProfileDevicesTab';
-import { UserProfileTab, type UserProfileTabValue } from './tabs/types';
+import {
+  ApiTokensTabAvailability,
+  type ApiTokensTabAvailabilityValue,
+  UserProfileTab,
+  type UserProfileTabValue,
+} from './tabs/types';
 
 const defaultTab = UserProfileTab.Details;
 
@@ -40,8 +47,25 @@ export const UserProfilePage = () => {
 
   const { data: userProfile } = useSuspenseQuery(userProfileQueryOptions(username));
   const { data: userAuthKeys } = useSuspenseQuery(getUserAuthKeysQueryOptions(username));
-  const { data: userApiTokens } = useQuery(
-    getUserApiTokensQueryOptions(username, isAdmin),
+  const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
+  const apiTokensTabAvailability = useMemo((): ApiTokensTabAvailabilityValue => {
+    if (!isAdmin) {
+      return ApiTokensTabAvailability.Hidden;
+    }
+
+    if (licenseInfo === undefined) {
+      return ApiTokensTabAvailability.Loading;
+    }
+
+    return canUseBusinessFeature(licenseInfo).result
+      ? ApiTokensTabAvailability.Available
+      : ApiTokensTabAvailability.Unavailable;
+  }, [isAdmin, licenseInfo]);
+  const { data: userApiTokens, isPending: userApiTokensPending } = useQuery(
+    getUserApiTokensQueryOptions(
+      username,
+      apiTokensTabAvailability === ApiTokensTabAvailability.Available,
+    ),
   );
 
   const pageTitle = useMemo(() => {
@@ -75,6 +99,14 @@ export const UserProfilePage = () => {
     [navigate],
   );
 
+  const setApiTokensTabIfAllowed = useCallback(() => {
+    if (apiTokensTabAvailability === ApiTokensTabAvailability.Hidden) {
+      return;
+    }
+
+    setActiveTab(UserProfileTab.ApiTokens);
+  }, [apiTokensTabAvailability, setActiveTab]);
+
   const tabsConfiguration = useMemo(() => {
     const res: TabsItem[] = [
       {
@@ -95,36 +127,51 @@ export const UserProfilePage = () => {
       {
         title: m.profile_tabs_api(),
         active: activeTab === UserProfileTab.ApiTokens,
-        hidden: !isAdmin,
-        onClick: () => setActiveTab(UserProfileTab.ApiTokens),
+        hidden: apiTokensTabAvailability === ApiTokensTabAvailability.Hidden,
+        onClick: setApiTokensTabIfAllowed,
       },
     ];
     return res;
-  }, [activeTab, setActiveTab, isAdmin]);
+  }, [apiTokensTabAvailability, setActiveTab, setApiTokensTabIfAllowed, activeTab]);
 
-  const RenderActiveTab = useMemo(() => {
+  const activeTabContent = useMemo(() => {
     switch (activeTab) {
       case UserProfileTab.Details:
-        return ProfileDetailsTab;
+        return <ProfileDetailsTab />;
       case UserProfileTab.Devices:
-        return ProfileDevicesTab;
+        return <ProfileDevicesTab />;
       case UserProfileTab.AuthKeys:
-        return ProfileAuthKeysTab;
+        return <ProfileAuthKeysTab />;
       case UserProfileTab.ApiTokens:
-        return ProfileApiTokensTab;
+        return (
+          <ProfileApiTokensTab
+            availability={apiTokensTabAvailability}
+            isLoading={
+              apiTokensTabAvailability === ApiTokensTabAvailability.Available &&
+              userApiTokensPending
+            }
+          />
+        );
+      default:
+        return <ProfileDetailsTab />;
     }
-  }, [activeTab]);
+  }, [activeTab, apiTokensTabAvailability, userApiTokensPending]);
 
   useEffect(() => {
-    if (activeTab === 'api-tokens' && !isAdmin) {
-      navigate({
-        from: '/user/$username',
-        search: {
-          tab: 'details',
-        },
-      });
+    if (
+      activeTab !== UserProfileTab.ApiTokens ||
+      apiTokensTabAvailability !== ApiTokensTabAvailability.Hidden
+    ) {
+      return;
     }
-  }, [activeTab, isAdmin, navigate]);
+
+    navigate({
+      from: '/user/$username',
+      search: {
+        tab: UserProfileTab.Details,
+      },
+    });
+  }, [activeTab, apiTokensTabAvailability, navigate]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: side effect
   useEffect(() => {
@@ -157,7 +204,7 @@ export const UserProfilePage = () => {
     <UserProfileContext value={store}>
       <Page id="user-profile-page" title={pageTitle}>
         <Tabs items={tabsConfiguration} />
-        <RenderActiveTab />
+        {activeTabContent}
       </Page>
     </UserProfileContext>
   );
