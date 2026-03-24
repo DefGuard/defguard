@@ -36,7 +36,6 @@ use crate::{
     grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
 };
 
-mod auth;
 pub mod client_version;
 pub mod interceptor;
 pub mod proxy;
