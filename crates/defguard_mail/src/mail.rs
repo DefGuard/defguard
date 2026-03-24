@@ -1,6 +1,9 @@
 use std::{str::FromStr, time::Duration};
 
-use defguard_common::db::models::{Settings, settings::SmtpEncryption};
+use defguard_common::db::models::{
+    Settings,
+    settings::{SmtpEncryption, defaults::WELCOME_EMAIL_SUBJECT},
+};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Body, Mailbox, MultiPart, SinglePart, header::ContentType},
@@ -89,10 +92,9 @@ pub struct Mail {
 impl Mail {
     /// Create new [`Mail`].
     #[must_use]
-    pub fn new<T, S>(to: T, subject: S, content: String) -> Mail
+    pub fn new<T>(to: T, subject: String, content: String) -> Mail
     where
         T: Into<String>,
-        S: Into<String>,
     {
         // Append images used in all templates.
         let images = vec![
@@ -104,7 +106,7 @@ impl Mail {
 
         Self {
             to: to.into(),
-            subject: subject.into(),
+            subject,
             content,
             context: Context::new(),
             attachments: Vec::new(),
@@ -246,7 +248,7 @@ impl Mail {
         tokio::spawn(self.send());
     }
 
-    /// Builds mailer object with specified configuration
+    /// Builds mailer object with specified configuration.
     fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         type Builder = AsyncSmtpTransport<Tokio1Executor>;
 
@@ -301,10 +303,17 @@ pub enum MailMessage {
 
 impl MailMessage {
     /// Email subject.
-    pub(crate) const fn subject(&self) -> &'static str {
+    pub(crate) fn subject(&self) -> String {
+        // Welcome message's subject should be taken from settings.
+        if let Self::Welcome = self {
+            let settings = Settings::get_current_settings();
+            if let Some(subject) = settings.enrollment_welcome_email_subject {
+                return subject;
+            }
+        }
         match self {
             Self::Test => "Defguard: Test message",
-            Self::Welcome => "Welcome message after enrollment",
+            Self::Welcome => WELCOME_EMAIL_SUBJECT,
             Self::SupportData => "Defguard: Support data",
             Self::DesktopStart => "Defguard: Desktop client configuration",
             Self::NewAccount => "Defguard: User enrollment",
@@ -321,6 +330,7 @@ impl MailMessage {
             Self::UserImportBlocked => "User import blocked",
             Self::EnrollmentNotification => "Defguard: User enrollment completed",
         }
+        .to_string()
     }
 
     pub(crate) const fn template_name(&self) -> &str {
@@ -348,7 +358,7 @@ impl MailMessage {
     pub(crate) const fn mjml_template(&self) -> &str {
         match self {
             Self::Test => include_str!("../templates/test.mjml"),
-            Self::Welcome => "",
+            Self::Welcome => include_str!("../templates/enrollment-welcome.mjml"),
             Self::SupportData => include_str!("../templates/support-data.mjml"),
             Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
             Self::NewAccount => include_str!("../templates/new-account.mjml"),

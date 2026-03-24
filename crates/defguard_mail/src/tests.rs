@@ -21,6 +21,14 @@ use tera::Context;
 
 use super::{Attachment, templates};
 
+#[test]
+fn dg25_8_server_side_template_injection() {
+    let mut tera = templates::safe_tera();
+    tera.add_raw_template("text", "PATH={{ get_env(name=\"PATH\") }}")
+        .unwrap();
+    assert!(tera.render("text", &Context::new()).is_err());
+}
+
 /// Set SMTP settings from environment variables.
 async fn set_smtp_settings(pool: &PgPool) {
     let config = DefGuardConfig::new_test_config();
@@ -364,6 +372,20 @@ fn send_support_data_mail(_: PgPoolOptions, options: PgConnectOptions) {
     );
     templates::support_data_mail(&env::var("SMTP_TO").unwrap(), &mut conn, vec![config])
         .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let markdown = "Paragraph **bold** _italic_.";
+    templates::enrollment_welcome_mail(&env::var("SMTP_TO").unwrap(), markdown, None, None)
         .unwrap();
 
     // Delay, so send_and_forget() can process the message.

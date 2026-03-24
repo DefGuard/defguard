@@ -417,22 +417,12 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
         debug!("Updating user details ended with success.");
-        let _ = update_counts(&self.pool).await;
-
-        debug!("Retriving settings to send welcome email...");
-        let settings = Settings::get_current_settings();
-        debug!("Settings successfully retrieved.");
+        let _ = update_counts(&mut *transaction).await;
 
         // send welcome email
         debug!("Try to send welcome email...");
         enrollment
-            .send_welcome_email(
-                &mut transaction,
-                &user,
-                &settings,
-                &ip_address,
-                device_info.as_deref(),
-            )
+            .send_welcome_email(&mut transaction, &user, &ip_address, device_info.as_deref())
             .await?;
 
         // send success notification to admin
@@ -1116,95 +1106,4 @@ pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<Str
     );
 
     Ok(new_token.token)
-}
-
-#[cfg(test)]
-mod test {
-    use defguard_common::{
-        config::{DefGuardConfig, SERVER_CONFIG},
-        db::{
-            models::{Settings, User, settings::initialize_current_settings},
-            setup_pool,
-        },
-    };
-    use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
-    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-    #[ignore]
-    #[sqlx::test]
-    async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-
-        // initialize server config
-        SERVER_CONFIG
-            .set(DefGuardConfig::new_test_config())
-            .unwrap();
-
-        // setup users
-        let admin = User::new(
-            "test_admin",
-            Some("pass123"),
-            "Test",
-            "Admin",
-            "admin@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-        let user = User::new(
-            "test_user",
-            Some("pass123"),
-            "Test",
-            "User",
-            "user@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
-
-        // generate enrollment token
-        let token = Token::new(
-            user.id,
-            Some(admin.id),
-            Some(user.email.clone()),
-            10,
-            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
-        );
-
-        // initialize settings
-        Settings::initialize_runtime_defaults(&pool).await.unwrap();
-        initialize_current_settings(&pool).await.unwrap();
-
-        let mut settings = Settings::get(&pool).await.unwrap().unwrap();
-
-        // send welcome email
-        let mut transaction = pool.begin().await.unwrap();
-        token
-            .send_welcome_email(&mut transaction, &user, &settings, "127.0.0.1", None)
-            .await
-            .unwrap();
-
-        // check email content
-        // assert_eq!(mail.to(), user.email);
-        // assert_eq!(
-        //     mail.subject(),
-        //     settings.enrollment_welcome_email_subject.unwrap()
-        // );
-
-        // set subject to None
-        settings.enrollment_welcome_email_subject = None;
-
-        // send another welcome email
-        let mut transaction = pool.begin().await.unwrap();
-        token
-            .send_welcome_email(&mut transaction, &user, &settings, "127.0.0.1", None)
-            .await
-            .unwrap();
-
-        // check email content
-        // assert_eq!(mail.to(), user.email);
-        // assert_eq!(mail.subject(), WELCOME_EMAIL_SUBJECT);
-    }
 }

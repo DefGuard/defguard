@@ -22,10 +22,6 @@ pub static SUPPORT_EMAIL_ADDRESS: &str = "support@defguard.net";
 
 static BASE_MJML: &str = include_str!("../templates/base.mjml");
 static MACROS_MJML: &str = include_str!("../templates/macros.mjml");
-
-static MAIL_BASE: &str = include_str!("../templates/base.tera");
-static MAIL_MACROS: &str = include_str!("../templates/macros.tera");
-static MAIL_ENROLLMENT_WELCOME: &str = include_str!("../templates/mail_enrollment_welcome.tera");
 static MAIL_DATETIME_FORMAT: &str = "%A, %B %d, %Y at %r";
 
 #[derive(Debug, Error)]
@@ -75,38 +71,6 @@ impl From<Session> for SessionContext {
             device_info: value.device_info,
         }
     }
-}
-
-fn get_base_tera(
-    mut context: Context,
-    session: Option<&SessionContext>,
-    ip_address: Option<&str>,
-    device_info: Option<&str>,
-) -> Result<(Tera, Context), TemplateError> {
-    let mut tera = safe_tera();
-    tera.add_raw_template("base", MAIL_BASE)?;
-    tera.add_raw_template("macros", MAIL_MACROS)?;
-    // Supply context for the base template.
-    context.insert("application_version", &VERSION);
-    let now = Utc::now();
-    context.insert("current_year", &now.year().to_string());
-    context.insert("date_now", &now.format(MAIL_DATETIME_FORMAT).to_string());
-
-    if let Some(current_session) = session {
-        let device_info = &current_session.device_info;
-        context.insert("device_type", &device_info);
-        context.insert("ip_address", &current_session.ip_address);
-    }
-
-    if let Some(ip) = ip_address {
-        context.insert("ip_address", ip);
-    }
-
-    if let Some(device_info) = device_info {
-        context.insert("device_type", device_info);
-    }
-
-    Ok((tera, context))
 }
 
 fn get_base_tera_mjml(
@@ -227,25 +191,29 @@ pub async fn desktop_start_mail(
     Ok(())
 }
 
-// Welcome message sent when activating an account through enrollment
-// content is stored in markdown, so it's parsed into HTML.
+/// Welcome message sent when activating an account through enrollment.
+/// Its content is stored in markdown, so it's parsed into HTML and plain text.
 pub fn enrollment_welcome_mail(
+    to: &str,
     content: &str,
     ip_address: Option<&str>,
     device_info: Option<&str>,
-) -> Result<String, TemplateError> {
-    debug!("Render a welcome mail template for user enrollment.");
-    let (mut tera, mut context) = get_base_tera(Context::new(), None, ip_address, device_info)?;
-    tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) =
+        get_base_tera_mjml(Context::new(), None, ip_address, device_info)?;
 
-    // convert content to HTML
+    debug!("Render welcome mail template for user enrollment");
+    // Convert content to HTML.
     let parser = pulldown_cmark::Parser::new(content);
     let mut html_output = String::new();
     pulldown_cmark::html::push_html(&mut html_output, parser);
 
     context.insert("welcome_message_content", &html_output);
 
-    Ok(tera.render("mail_enrollment_welcome", &context)?)
+    let message = MailMessage::Welcome;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
 }
 
 /// Notification for admin after user completes an enrollment.
@@ -514,58 +482,4 @@ pub async fn password_reset_success_mail(
     message.mail(&mut tera, &context, to)?.send_and_forget();
 
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use claims::assert_ok;
-    use defguard_common::{
-        config::{DefGuardConfig, SERVER_CONFIG},
-        db::{models::settings::initialize_current_settings, setup_pool},
-    };
-    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-    use super::*;
-
-    // fn get_welcome_context() -> Context {
-    //     let mut context = Context::new();
-    //     context.insert("first_name", "test_first");
-    //     context.insert("last_name", "test_last");
-    //     context.insert("username", "username");
-    //     context.insert("defguard_url", "test_url");
-    //     context.insert("defguard_version", &VERSION);
-    //     context.insert("admin_first_name", "test_first_name");
-    //     context.insert("admin_last_name", "test_last_name");
-    //     context.insert("admin_email", "test_email");
-    //     context.insert("admin_phone", "test_phone");
-    //     context
-    // }
-
-    async fn init_config(pool: &sqlx::PgPool) {
-        let mut config = DefGuardConfig::new_test_config();
-        initialize_current_settings(pool)
-            .await
-            .expect("Could not initialize current settings in the database");
-        config.initialize_post_settings();
-        let _ = SERVER_CONFIG.set(config.clone());
-    }
-
-    #[sqlx::test]
-    async fn test_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
-        let pool = setup_pool(options).await;
-        init_config(&pool).await;
-        assert_ok!(enrollment_welcome_mail(
-            "Hi there! Welcome to Defguard.",
-            None,
-            None
-        ));
-    }
-
-    #[test]
-    fn dg25_8_server_side_template_injection() {
-        let mut tera = safe_tera();
-        tera.add_raw_template("text", "PATH={{ get_env(name=\"PATH\") }}")
-            .unwrap();
-        assert!(tera.render("text", &Context::new()).is_err());
-    }
 }

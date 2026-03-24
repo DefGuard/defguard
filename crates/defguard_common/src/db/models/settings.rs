@@ -867,7 +867,7 @@ Sent by Defguard {{ defguard_version }}
 Star us on GitHub! https://github.com/defguard/defguard\
 ";
 
-    pub static WELCOME_EMAIL_SUBJECT: &str = "[defguard] Welcome message after enrollment";
+    pub static WELCOME_EMAIL_SUBJECT: &str = "Defguard: Welcome message after enrollment";
 }
 
 #[cfg(test)]

@@ -3,16 +3,13 @@ use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, settings::defaults::WELCOME_EMAIL_SUBJECT, user::User},
+        models::{Settings, user::User},
     },
     random::gen_alphanumeric,
     types::UrlParseError,
 };
-use defguard_mail::{
-    Mail,
-    templates::{self, TemplateError, safe_tera},
-};
-use sqlx::{PgConnection, PgExecutor, PgPool, Transaction, query, query_as};
+use defguard_mail::templates;
+use sqlx::{PgConnection, PgExecutor, PgPool, query, query_as};
 use tera::Context;
 use thiserror::Error;
 use tonic::{Code, Status};
@@ -49,7 +46,7 @@ pub enum TokenError {
     #[error(transparent)]
     TemplateErrorInternal(#[from] tera::Error),
     #[error(transparent)]
-    TemplateError(#[from] TemplateError),
+    TemplateError(#[from] templates::TemplateError),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
 }
@@ -322,15 +319,15 @@ impl Token {
     /// - admin_phone
     pub(crate) async fn get_welcome_message_context(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
     ) -> Result<Context, TokenError> {
         debug!(
             "Preparing welcome message context for enrollment token {}",
             self.id
         );
 
-        let user = self.fetch_user(&mut *transaction).await?;
-        let admin = self.fetch_admin(&mut *transaction).await?;
+        let user = self.fetch_user(&mut *conn).await?;
+        let admin = self.fetch_admin(&mut *conn).await?;
         let url = Settings::url()?;
         let mut context = Context::new();
         context.insert("first_name", &user.first_name);
@@ -353,71 +350,40 @@ impl Token {
     // to be displayed on final enrollment page
     pub async fn get_welcome_page_content(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
     ) -> Result<String, TokenError> {
         let settings = Settings::get_current_settings();
 
         // load configured content as template
-        let mut tera = safe_tera();
+        let mut tera = templates::safe_tera();
         tera.add_raw_template("welcome_page", &enrollment_welcome_message(&settings)?)?;
 
-        let context = self.get_welcome_message_context(&mut *transaction).await?;
+        let context = self.get_welcome_message_context(&mut *conn).await?;
 
         Ok(tera.render("welcome_page", &context)?)
     }
 
-    // Render welcome email content
-    pub(crate) async fn get_welcome_email_content(
-        &self,
-        transaction: &mut PgConnection,
-        ip_address: &str,
-        device_info: Option<&str>,
-    ) -> Result<String, TokenError> {
-        let settings = Settings::get_current_settings();
-
-        // load configured content as template
-        let mut tera = safe_tera();
-        tera.add_raw_template("welcome_email", &enrollment_welcome_email(&settings)?)?;
-
-        let context = self.get_welcome_message_context(&mut *transaction).await?;
-        let content = tera.render("welcome_email", &context)?;
-
-        Ok(templates::enrollment_welcome_mail(
-            &content,
-            Some(ip_address),
-            device_info,
-        )?)
-    }
-
-    // Send configured welcome email to user after finishing enrollment
+    /// Send configured welcome email to a user after finishing enrollment.
     pub async fn send_welcome_email(
         &self,
-        transaction: &mut Transaction<'_, sqlx::Postgres>,
+        conn: &mut PgConnection,
         user: &User<Id>,
-        settings: &Settings,
         ip_address: &str,
         device_info: Option<&str>,
     ) -> Result<(), TokenError> {
         debug!("Sending welcome mail to {}", user.username);
-        let mail = Mail::new(
-            &user.email,
-            settings
-                .enrollment_welcome_email_subject
-                .as_deref()
-                .unwrap_or(WELCOME_EMAIL_SUBJECT),
-            self.get_welcome_email_content(&mut *transaction, ip_address, device_info)
-                .await?,
-        );
-        match mail.send().await {
-            Ok(()) => {
-                info!("Sent enrollment welcome mail to {}", user.username);
-                Ok(())
-            }
-            Err(err) => {
-                error!("Error sending welcome mail: {err}");
-                Err(TokenError::NotificationError(err.to_string()))
-            }
-        }
+        let settings = Settings::get_current_settings();
+
+        // load configured content as template
+        let mut tera = templates::safe_tera();
+        tera.add_raw_template("welcome_email", &enrollment_welcome_email(&settings)?)?;
+
+        let context = self.get_welcome_message_context(conn).await?;
+        let content = tera.render("welcome_email", &context)?;
+
+        templates::enrollment_welcome_mail(&user.email, &content, Some(ip_address), device_info)?;
+
+        Ok(())
     }
 }
 

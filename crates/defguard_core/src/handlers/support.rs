@@ -9,7 +9,7 @@ use crate::{
     support::dump_config,
 };
 
-pub async fn configuration(
+pub(crate) async fn configuration(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -32,7 +32,7 @@ pub async fn configuration(
     })
 }
 
-pub async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
+pub(crate) async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = server_config().log_file {
         match tokio::fs::read_to_string(log_file).await {
