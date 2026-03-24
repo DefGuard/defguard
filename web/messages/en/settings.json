@@ -34,6 +34,8 @@
   "settings_enrollment_general_title": "Enrollment settings",
   "settings_enrollment_message_templates_title": "Welcome message",
   "settings_enrollment_message_templates_subtitle": "This message will be shown at the end of enrollment process. Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.",
+  "settings_enrollment_template_display_message_title": "Welcome message",
+  "settings_enrollment_template_display_message_description": "This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly.",
   "settings_enrollment_template_message_label": "Welcome message",
   "settings_enrollment_template_send_email_title": "Send welcome email",
   "settings_enrollment_template_send_email_description": "This information will be sent to user email once enrollment is completed. We advise to insert links and explain next steps briefly.",

@@ -114,9 +114,7 @@ export const EnrollmentPage = () => {
               subtitle={m.settings_enrollment_page_subtitle()}
             />
             <SizedBox height={ThemeSpacing.Lg} />
-            {isPresent(settings) && (
-              <GeneralTabContent settings={settings} />
-            )}
+            {isPresent(settings) && <GeneralTabContent settings={settings} />}
           </>
         )}
         {activeTab === EnrollmentPageTab.MessageTemplates && (
@@ -326,93 +324,112 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
           }}
         >
           <form.AppForm>
-            <MarkedSection icon="empty-point">
-              <form.AppField name="enrollment_welcome_message">
-                {(field) => (
-                  <field.FormTextarea
-                    required
-                    label={m.settings_enrollment_template_message_label()}
-                    minHeight={383}
-                    maxHeight={383}
-                  />
-                )}
-              </form.AppField>
-            </MarkedSection>
-            <Divider spacing={ThemeSpacing.Xl2} />
-            <MarkedSection icon="empty-point">
+            <div className="message-template-section message-template-section-offset">
+              <div className="message-template-offset-spacer" />
+              <div className="message-template-offset-content">
+                <div className="message-template-static-header">
+                  <AppText
+                    font={TextStyle.TBodyPrimary500}
+                    color={ThemeVariable.FgDefault}
+                  >
+                    {m.settings_enrollment_template_display_message_title()}
+                  </AppText>
+                  <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
+                    {m.settings_enrollment_template_display_message_description()}
+                  </AppText>
+                </div>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="enrollment_welcome_message">
+                  {(field) => (
+                    <field.FormTextarea
+                      required
+                      label={m.settings_enrollment_template_message_label()}
+                      minHeight={383}
+                      maxHeight={383}
+                    />
+                  )}
+                </form.AppField>
+              </div>
+            </div>
+            <div className="message-template-offset-divider">
+              <Divider spacing={ThemeSpacing.Xl2} />
+            </div>
+            <div className="message-template-section">
               <form.AppField name="enrollment_send_welcome_email">
                 {(field) => (
                   <field.FormInteractiveBlock
+                    className="message-template-toggle"
                     variant="toggle"
                     title={m.settings_enrollment_template_send_email_title()}
                     content={m.settings_enrollment_template_send_email_description()}
-                  />
-                )}
-              </form.AppField>
-              <form.Subscribe
-                selector={(state) => state.values.enrollment_send_welcome_email}
-              >
-                {(sendWelcomeEmail) => (
-                  <Fold open={sendWelcomeEmail}>
-                    <SizedBox height={ThemeSpacing.Xl2} />
-                    <form.AppField name="enrollment_welcome_email_subject">
-                      {(field) => (
-                        <field.FormInput
-                          required
-                          label={m.settings_enrollment_template_email_subject_label()}
-                        />
-                      )}
-                    </form.AppField>
-                    <SizedBox height={ThemeSpacing.Xl} />
-                    <div className="message-templates-checkbox">
-                      <form.AppField name="enrollment_use_welcome_message_as_email">
-                        {(field) => (
-                          <field.FormCheckbox
-                            text={m.settings_enrollment_template_same_as_message()}
-                          />
-                        )}
-                      </form.AppField>
-                    </div>
-                    <SizedBox height={ThemeSpacing.Xl} />
+                  >
                     <form.Subscribe
-                      selector={(state) =>
-                        state.values.enrollment_use_welcome_message_as_email
-                      }
+                      selector={(state) => state.values.enrollment_send_welcome_email}
                     >
-                      {(sameAsWelcomeMessage) => (
-                        <>
-                          <Fold open={sameAsWelcomeMessage}>
-                            <div className="message-templates-success-banner">
-                              <Icon
-                                icon="check-circle"
-                                staticColor={ThemeVariable.FgSuccess}
-                                size={20}
+                      {(sendWelcomeEmail) => (
+                        <Fold open={sendWelcomeEmail}>
+                          <SizedBox height={ThemeSpacing.Xl2} />
+                          <form.AppField name="enrollment_welcome_email_subject">
+                            {(field) => (
+                              <field.FormInput
+                                required
+                                label={m.settings_enrollment_template_email_subject_label()}
                               />
-                              <p className="copy">
-                                {m.settings_enrollment_template_same_as_message_banner()}
-                              </p>
-                            </div>
-                          </Fold>
-                          <Fold open={!sameAsWelcomeMessage}>
-                            <SizedBox height={ThemeSpacing.Xl} />
-                            <form.AppField name="enrollment_welcome_email">
+                            )}
+                          </form.AppField>
+                          <SizedBox height={ThemeSpacing.Xl} />
+                          <div className="message-templates-checkbox">
+                            <form.AppField name="enrollment_use_welcome_message_as_email">
                               {(field) => (
-                                <field.FormTextarea
-                                  required
-                                  label={m.settings_enrollment_template_email_label()}
-                                  minHeight={383}
-                                  maxHeight={383}
+                                <field.FormCheckbox
+                                  text={m.settings_enrollment_template_same_as_message()}
                                 />
                               )}
                             </form.AppField>
-                          </Fold>
-                        </>
+                          </div>
+                          <SizedBox height={ThemeSpacing.Xl} />
+                          <form.Subscribe
+                            selector={(state) =>
+                              state.values.enrollment_use_welcome_message_as_email
+                            }
+                          >
+                            {(sameAsWelcomeMessage) => (
+                              <>
+                                <Fold open={sameAsWelcomeMessage}>
+                                  <div className="message-templates-success-banner">
+                                    <Icon
+                                      icon="check-circle"
+                                      staticColor={ThemeVariable.FgSuccess}
+                                      size={20}
+                                    />
+                                    <p className="copy">
+                                      {m.settings_enrollment_template_same_as_message_banner()}
+                                    </p>
+                                  </div>
+                                </Fold>
+                                <Fold open={!sameAsWelcomeMessage}>
+                                  <SizedBox height={ThemeSpacing.Xl} />
+                                  <form.AppField name="enrollment_welcome_email">
+                                    {(field) => (
+                                      <field.FormTextarea
+                                        required
+                                        label={m.settings_enrollment_template_email_label()}
+                                        minHeight={383}
+                                        maxHeight={383}
+                                      />
+                                    )}
+                                  </form.AppField>
+                                </Fold>
+                              </>
+                            )}
+                          </form.Subscribe>
+                        </Fold>
                       )}
                     </form.Subscribe>
-                  </Fold>
+                  </field.FormInteractiveBlock>
                 )}
-              </form.Subscribe>
-            </MarkedSection>
+              </form.AppField>
+            </div>
           </form.AppForm>
           <SizedBox height={ThemeSpacing.Xl2} />
           <Divider />
