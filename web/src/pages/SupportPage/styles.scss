@@ -6,7 +6,7 @@
     grid-template-columns: 32px 1fr;
     column-gap: var(--spacing-xl);
     align-items: start;
-    padding: var(--spacing-xl) 0;
+    padding: var(--spacing-2xl) 0;
 
     &:first-child {
       padding-top: 0;
@@ -58,13 +58,13 @@
       margin: 0;
     }
 
-    > .section-header > p:not(.section-title) {
+    .section-subtitle {
       font: var(--t-body-sm-400);
-      color: var(--fg-muted) !important;
+      color: var(--fg-muted);
       margin: 0;
 
       &.subtitle-dark {
-        color: var(--fg-default) !important;
+        color: var(--fg-default);
       }
 
       a {
@@ -87,7 +87,6 @@
     border-radius: var(--radius-md);
     padding: var(--spacing-xl);
     display: flex;
-    flex-direction: row;
     align-items: center;
     gap: var(--spacing-2xl);
 
@@ -107,7 +106,7 @@
       p {
         margin: 0;
         font: var(--t-body-sm-400);
-        color: var(--fg-default) !important;
+        color: var(--fg-default);
       }
     }
   }
@@ -115,8 +114,6 @@
   .support-controls {
     display: flex;
     flex-wrap: wrap;
-    flex-direction: row;
-    align-items: stretch;
     gap: var(--spacing-md);
   }
 }

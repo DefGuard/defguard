@@ -6,13 +6,13 @@ import { Page } from '../../shared/components/Page/Page';
 import { SettingsCard } from '../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../shared/components/SettingsLayout/SettingsLayout';
+import { externalLink } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import type { IconKindValue } from '../../shared/defguard-ui/components/Icon/icon-types';
 import docIllustration from '../../shared/defguard-ui/components/SectionSelect/assets/manual-user.png';
-import { externalLink } from '../../shared/constants';
 import { downloadFile, downloadText } from '../../shared/utils/download';
 
 export const SupportPage = () => {
@@ -34,7 +34,13 @@ export const SupportPage = () => {
                   variant="primary"
                   text={m.support_page_docs_btn()}
                   iconRight="open-in-new-window"
-                  onClick={() => window.open(externalLink.defguard.docs, '_blank', 'noopener,noreferrer')}
+                  onClick={() =>
+                    window.open(
+                      externalLink.defguard.docs,
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
                 />
               </div>
             </div>
@@ -51,7 +57,11 @@ export const SupportPage = () => {
                 text={m.support_page_bug_btn_report()}
                 iconLeft="github"
                 onClick={() =>
-                  window.open(externalLink.github.bugReport, '_blank', 'noopener,noreferrer')
+                  window.open(
+                    externalLink.github.bugReport,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
                 }
               />
               <ButtonMenu
@@ -99,7 +109,11 @@ export const SupportPage = () => {
                 text={m.support_page_feature_btn()}
                 iconLeft="github"
                 onClick={() =>
-                  window.open(externalLink.github.featureRequest, '_blank', 'noopener,noreferrer')
+                  window.open(
+                    externalLink.github.featureRequest,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
                 }
               />
             </div>
@@ -128,7 +142,11 @@ export const SupportPage = () => {
                 text={m.support_page_assistance_btn_ticket()}
                 iconRight="open-in-new-window"
                 onClick={() =>
-                  window.open(externalLink.defguard.support, '_blank', 'noopener,noreferrer')
+                  window.open(
+                    externalLink.defguard.support,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
                 }
               />
               <Button
@@ -136,7 +154,11 @@ export const SupportPage = () => {
                 text={m.support_page_assistance_btn_call()}
                 iconRight="calendar"
                 onClick={() =>
-                  window.open(externalLink.defguard.scheduleCall, '_blank', 'noopener,noreferrer')
+                  window.open(
+                    externalLink.defguard.scheduleCall,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
                 }
               />
             </div>
@@ -192,7 +214,13 @@ const SupportSection = ({
         <div className="section-header">
           <p className="section-title">{title}</p>
           {subtitle && (
-            <p className={subtitleDark ? 'subtitle-dark' : undefined}>{subtitle}</p>
+            <p
+              className={
+                subtitleDark ? 'section-subtitle subtitle-dark' : 'section-subtitle'
+              }
+            >
+              {subtitle}
+            </p>
           )}
         </div>
         {children}
