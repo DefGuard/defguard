@@ -105,7 +105,6 @@ export const EnrollmentPage = () => {
     <Page id="enrollment-page" title={m.settings_enrollment_page_title()}>
       <SizedBox height={ThemeSpacing.Md} />
       <Tabs items={tabs} />
-      <SizedBox height={ThemeSpacing.Xl2} />
       <SettingsLayout>
         {activeTab === EnrollmentPageTab.General && (
           <>
@@ -116,9 +115,7 @@ export const EnrollmentPage = () => {
             />
             <SizedBox height={ThemeSpacing.Lg} />
             {isPresent(settings) && (
-              <SettingsCard>
-                <GeneralTabContent settings={settings} />
-              </SettingsCard>
+              <GeneralTabContent settings={settings} />
             )}
           </>
         )}
@@ -212,65 +209,67 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
   });
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      <form.AppForm>
-        <MarkedSection icon="settings">
-          <MarkedSectionHeader
-            title={m.settings_enrollment_section_duration_title()}
-            description={m.settings_enrollment_section_duration_description()}
-          />
-          <form.AppField name="enrollment_token_timeout_hours">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_enrollment_label_token_validity()}
-                options={enrollmentTokenTimeoutOptions}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="enrollment_session_timeout_minutes">
-            {(field) => (
-              <field.FormSelect
-                required
-                label={m.settings_enrollment_label_session_expires_in()}
-                options={enrollmentSessionTimeoutOptions}
-              />
-            )}
-          </form.AppField>
-        </MarkedSection>
-      </form.AppForm>
-      <form.Subscribe
-        selector={(state) => ({
-          isDefault: state.isDefaultValue || state.isPristine,
-          isSubmitting: state.isSubmitting,
-          canSubmit: state.canSubmit,
-        })}
+    <SettingsCard>
+      <form
+        onSubmit={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          form.handleSubmit();
+        }}
       >
-        {({ isDefault, isSubmitting, canSubmit }) => (
-          <Controls>
-            <div className="right">
-              <Button
-                variant="primary"
-                text={m.controls_save_changes()}
-                disabled={isDefault || !canSubmit}
-                loading={isSubmitting}
-                type="submit"
-                onClick={() => {
-                  form.handleSubmit();
-                }}
-              />
-            </div>
-          </Controls>
-        )}
-      </form.Subscribe>
-    </form>
+        <form.AppForm>
+          <MarkedSection icon="settings">
+            <MarkedSectionHeader
+              title={m.settings_enrollment_section_duration_title()}
+              description={m.settings_enrollment_section_duration_description()}
+            />
+            <form.AppField name="enrollment_token_timeout_hours">
+              {(field) => (
+                <field.FormSelect
+                  required
+                  label={m.settings_enrollment_label_token_validity()}
+                  options={enrollmentTokenTimeoutOptions}
+                />
+              )}
+            </form.AppField>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <form.AppField name="enrollment_session_timeout_minutes">
+              {(field) => (
+                <field.FormSelect
+                  required
+                  label={m.settings_enrollment_label_session_expires_in()}
+                  options={enrollmentSessionTimeoutOptions}
+                />
+              )}
+            </form.AppField>
+          </MarkedSection>
+        </form.AppForm>
+        <form.Subscribe
+          selector={(state) => ({
+            isDefault: state.isDefaultValue || state.isPristine,
+            isSubmitting: state.isSubmitting,
+            canSubmit: state.canSubmit,
+          })}
+        >
+          {({ isDefault, isSubmitting, canSubmit }) => (
+            <Controls>
+              <div className="right">
+                <Button
+                  variant="primary"
+                  text={m.controls_save_changes()}
+                  disabled={isDefault || !canSubmit}
+                  loading={isSubmitting}
+                  type="submit"
+                  onClick={() => {
+                    form.handleSubmit();
+                  }}
+                />
+              </div>
+            </Controls>
+          )}
+        </form.Subscribe>
+      </form>
+    </SettingsCard>
   );
 };
 
