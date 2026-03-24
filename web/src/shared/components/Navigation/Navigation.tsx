@@ -83,7 +83,7 @@ const navigationConfig: NavGroupProps[] = [
       },
       {
         id: 'enrollment',
-        icon: 'enrollment',
+        icon: 'key',
         label: m.cmp_nav_item_enrollment(),
         link: '/enrollment',
       },
