@@ -106,14 +106,8 @@
       p {
         margin: 0;
         font: var(--t-body-sm-400);
-        color: var(--fg-muted) !important;
+        color: var(--fg-muted);
       }
     }
-  }
-
-  .support-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
   }
 }

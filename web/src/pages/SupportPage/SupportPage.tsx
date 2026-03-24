@@ -1,4 +1,5 @@
 import './styles.scss';
+import clsx from 'clsx';
 import type { ReactNode } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
@@ -9,6 +10,7 @@ import { SettingsLayout } from '../../shared/components/SettingsLayout/SettingsL
 import { externalLink } from '../../shared/constants';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
+import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import type { IconKindValue } from '../../shared/defguard-ui/components/Icon/icon-types';
@@ -51,7 +53,7 @@ export const SupportPage = () => {
             title={m.support_page_bug_title()}
             subtitle={<BugDescription />}
           >
-            <div className="support-controls">
+            <ButtonsGroup>
               <Button
                 variant="secondary"
                 text={m.support_page_bug_btn_report()}
@@ -95,7 +97,7 @@ export const SupportPage = () => {
                   },
                 ]}
               />
-            </div>
+            </ButtonsGroup>
           </SupportSection>
           <Divider />
           <SupportSection
@@ -103,7 +105,7 @@ export const SupportPage = () => {
             title={m.support_page_feature_title()}
             subtitle={m.support_page_feature_desc()}
           >
-            <div className="support-controls">
+            <ButtonsGroup>
               <Button
                 variant="secondary"
                 text={m.support_page_feature_btn()}
@@ -116,7 +118,7 @@ export const SupportPage = () => {
                   )
                 }
               />
-            </div>
+            </ButtonsGroup>
           </SupportSection>
           <Divider />
           <SupportSection
@@ -136,7 +138,7 @@ export const SupportPage = () => {
             title={m.support_page_assistance_title()}
             subtitle={m.support_page_assistance_desc()}
           >
-            <div className="support-controls">
+            <ButtonsGroup>
               <Button
                 variant="outlined"
                 text={m.support_page_assistance_btn_ticket()}
@@ -161,7 +163,7 @@ export const SupportPage = () => {
                   )
                 }
               />
-            </div>
+            </ButtonsGroup>
           </SupportSection>
         </SettingsCard>
       </SettingsLayout>
@@ -210,11 +212,7 @@ const SupportSection = ({
         <div className="section-header">
           <p className="section-title">{title}</p>
           {subtitle && (
-            <p
-              className={
-                subtitleDark ? 'section-subtitle subtitle-dark' : 'section-subtitle'
-              }
-            >
+            <p className={clsx('section-subtitle', { 'subtitle-dark': subtitleDark })}>
               {subtitle}
             </p>
           )}
