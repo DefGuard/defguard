@@ -11,7 +11,6 @@ use defguard_common::{
     },
 };
 use defguard_core::{
-    auth::failed_login::FailedLoginMap,
     db::AppEvent,
     grpc::{AUTHORIZATION_HEADER, WorkerState, build_grpc_service_router},
 };
@@ -118,15 +117,10 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 
     let (app_event_tx, app_event_rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(app_event_tx)));
-    let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
-    let grpc_router = build_grpc_service_router(
-        Server::builder(),
-        pool.clone(),
-        worker_state.clone(),
-        failed_logins,
-    )
-    .await
-    .expect("failed to build gRPC router");
+    let grpc_router =
+        build_grpc_service_router(Server::builder(), pool.clone(), worker_state.clone())
+            .await
+            .expect("failed to build gRPC router");
 
     TestGrpcServer::new(
         server_stream,

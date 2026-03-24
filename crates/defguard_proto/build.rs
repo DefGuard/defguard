@@ -4,8 +4,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .skip_debug([
             "ActivateUserRequest",
             "AuthInfoResponse",
-            "AuthenticateRequest",
-            "AuthenticateResponse",
             "ClientMfaFinishResponse",
             "CodeMfaSetupStartResponse",
             "CodeMfaSetupFinishResponse",
@@ -19,7 +17,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .protoc_arg("--experimental_allow_proto3_optional")
         .compile_protos(
             &[
-                "../../proto/core/auth.proto",
                 "../../proto/core/proxy.proto",
                 "../../proto/worker/worker.proto",
                 "../../proto/wireguard/gateway.proto",
