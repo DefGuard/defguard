@@ -79,11 +79,15 @@ pub enum MailError {
     InvalidPort(i32),
 }
 
+/// Mail message
 #[derive(Debug)]
 pub struct Mail {
     pub(crate) to: String,
     pub(crate) subject: String,
-    content: String,
+    // HTML version of the message.
+    html: String,
+    // Plain text version of the message.
+    text: String,
     context: Context,
     attachments: Vec<Attachment>,   // text/plain
     images: Vec<(String, Vec<u8>)>, // image/png
@@ -92,7 +96,7 @@ pub struct Mail {
 impl Mail {
     /// Create new [`Mail`].
     #[must_use]
-    pub fn new<T>(to: T, subject: String, content: String) -> Mail
+    pub fn new<T>(to: T, subject: String, html: String, text: String) -> Mail
     where
         T: Into<String>,
     {
@@ -107,7 +111,8 @@ impl Mail {
         Self {
             to: to.into(),
             subject,
-            content,
+            html,
+            text,
             context: Context::new(),
             attachments: Vec::new(),
             images,
@@ -127,10 +132,10 @@ impl Mail {
     }
 
     /// Getter for `content`.
-    #[must_use]
-    pub fn content(&self) -> &str {
-        &self.content
-    }
+    // #[must_use]
+    // pub fn content(&self) -> &str {
+    //     &self.html
+    // }
 
     /// Add to context.
     pub fn add_to_context<K, V>(&mut self, key: K, value: &V)
@@ -171,8 +176,8 @@ impl Mail {
             .to(Mailbox::from_str(&self.to)?)
             .subject(self.subject);
 
-        let plain = SinglePart::plain("PLAIN IS NOT AVAILABLE AT THE MOMENT.".to_string());
-        let html = SinglePart::html(self.content);
+        let plain = SinglePart::plain(self.text);
+        let html = SinglePart::html(self.html);
         let image_png = "image/png".parse::<ContentType>().unwrap();
         let mut related = MultiPart::related().singlepart(html);
         for (name, bytes) in self.images {
@@ -379,6 +384,14 @@ impl MailMessage {
         }
     }
 
+    pub(crate) const fn text_template(&self) -> &str {
+        match self {
+            Self::DesktopStart => include_str!("../templates/desktop-start.text"),
+            Self::NewDevice => include_str!("../templates/new-device.text"),
+            _ => "",
+        }
+    }
+
     /// Fill `Context` from database.
     pub(crate) async fn fill_context(
         &self,
@@ -401,13 +414,18 @@ impl MailMessage {
         context: &Context,
         to: &str,
     ) -> Result<Mail, TemplateError> {
+        // Build HTML message.
         tera.add_raw_template(self.template_name(), self.mjml_template())?;
         let processed = tera.render(self.template_name(), context)?;
         let parsed = mrml::parse(processed)?;
         let opts = mrml::prelude::render::RenderOptions::default();
         let html = parsed.element.render(&opts)?;
 
-        let mut mail = Mail::new(to, self.subject(), html);
+        // Build plain text message.
+        tera.add_raw_template(self.template_name(), self.text_template())?;
+        let text = tera.render(self.template_name(), context)?;
+
+        let mut mail = Mail::new(to, self.subject(), html, text);
         // Add PNG images.
         match self {
             Self::NewAccount => {
