@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { AclStatus } from '../../../../shared/api/types';
@@ -6,7 +6,6 @@ import type { ButtonProps } from '../../../../shared/defguard-ui/components/Butt
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import {
   getDestinationsQueryOptions,
-  getLicenseInfoQueryOptions,
   getRulesQueryOptions,
 } from '../../../../shared/query';
 import {
@@ -14,6 +13,7 @@ import {
   licenseActionCheck,
 } from '../../../../shared/utils/license';
 import { DeletionBlockedModal } from '../../../Acl/components/DeletionBlockedModal/DeletionBlockedModal';
+import { useRuleDeps } from '../../../RulesPage/useRuleDeps';
 import { DestinationsTable } from '../../components/DestinationsTable';
 
 export const DestinationDeployedTab = () => {
@@ -24,25 +24,25 @@ export const DestinationDeployedTab = () => {
   });
   const navigate = useNavigate();
 
-  const { data: licenseInfo, isFetching } = useQuery(getLicenseInfoQueryOptions);
   const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
+  const { license, loading } = useRuleDeps();
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
       text: 'Add new destination',
       variant: 'primary',
       iconLeft: 'add-location',
-      disabled: isFetching,
+      disabled: loading,
       onClick: () => {
-        if (licenseInfo === undefined) return;
-        licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+        if (license === undefined) return;
+        licenseActionCheck(canUseBusinessFeature(license), () => {
           navigate({
             to: '/acl/add-destination',
           });
         });
       },
     }),
-    [navigate, isFetching, licenseInfo],
+    [navigate, loading, license],
   );
 
   return (

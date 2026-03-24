@@ -93,7 +93,7 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-pub(crate) async fn build_grpc_service_router(
+pub async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
@@ -104,6 +104,9 @@ pub(crate) async fn build_grpc_service_router(
     );
 
     let (health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<WorkerServiceServer<WorkerServer>>()
+        .await;
     health_reporter
         .set_serving::<WorkerServiceServer<WorkerServer>>()
         .await;
