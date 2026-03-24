@@ -169,10 +169,6 @@ export const SupportPage = () => {
   );
 };
 
-/**
- * Renders the bug section description with the "you can optionally download"
- * portion in bold, matching the Figma design.
- */
 const BugDescription = () => {
   const full = m.support_page_bug_desc();
   const boldPhrase = 'you can optionally download';
