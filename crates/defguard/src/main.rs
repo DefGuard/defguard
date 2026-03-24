@@ -258,7 +258,6 @@ async fn main() -> Result<(), anyhow::Error> {
             pool.clone(),
             grpc_cert,
             grpc_key,
-            failed_logins.clone(),
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,
