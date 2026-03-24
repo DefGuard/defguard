@@ -5,7 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { cloneDeep, flat } from 'radashi';
+import { cloneDeep } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
@@ -16,12 +16,9 @@ import {
   type AclRule,
   AclStatus,
   type AclStatusValue,
-  type GroupInfo,
   type LicenseInfo,
-  type NetworkDevice,
   type NetworkLocation,
   type ResourceById,
-  type User,
 } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
@@ -40,17 +37,7 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
-
-const displayUser = (user?: User): string => {
-  if (!isPresent(user)) return '';
-
-  if (user.first_name || user.last_name) {
-    return `${user.first_name} ${user.last_name}`.trim();
-  }
-  return user.username;
-};
 
 type RowData = AclRule;
 
@@ -60,9 +47,6 @@ type Props = {
   license: LicenseInfo | null;
   aliases: ResourceById<AclAlias>;
   destinations: ResourceById<AclDestination>;
-  groups: ResourceById<GroupInfo>;
-  users: ResourceById<User>;
-  devices: ResourceById<NetworkDevice>;
   locations: ResourceById<NetworkLocation>;
   data: AclRule[];
   title: string;
@@ -83,9 +67,6 @@ export const RulesTable = ({
   enableSearch,
   aliases,
   destinations,
-  devices,
-  groups,
-  users,
   locations,
   data,
   license,
@@ -118,53 +99,6 @@ export const RulesTable = ({
   });
 
   const [search, setSearch] = useState('');
-
-  const renderPermissionCell = useCallback(
-    (
-      permission: 'deny' | 'allow',
-      permissionUsers: boolean,
-      permissionGroup: boolean,
-      permissionDevice: boolean,
-      includedUsers: number[],
-      includedGroups: number[],
-      includedDevices: number[],
-    ) => {
-      if (permissionDevice && permissionGroup && permissionUsers) {
-        return (
-          <TableCell>
-            {permission === 'allow' && (
-              <Badge
-                variant={BadgeVariant.Success}
-                icon="check-filled"
-                text="All allowed"
-              />
-            )}
-            {permission === 'deny' && (
-              <Badge
-                variant={BadgeVariant.Warning}
-                icon="status-important"
-                text="All denied"
-              />
-            )}
-          </TableCell>
-        );
-      }
-      const display = flat([
-        permissionUsers
-          ? ['All users']
-          : includedUsers.map((userId) => displayUser(users[userId])),
-        permissionGroup
-          ? ['All groups']
-          : includedGroups.map((groupId) => groups[groupId]?.name ?? ''),
-        permissionDevice
-          ? ['All network devices']
-          : includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
-      ]).filter((value) => value.length > 0);
-
-      return <TableValuesListCell values={display} />;
-    },
-    [users, devices, groups],
-  );
 
   const renderStatusCell = useCallback(
     (ruleState: AclStatusValue, isEnabled: boolean) => {
@@ -251,40 +185,6 @@ export const RulesTable = ({
                 );
               })}
             </TableCell>
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'permissions',
-        header: 'Permissions',
-        minSize: 220,
-        cell: (info) => {
-          const row = info.row.original;
-          return renderPermissionCell(
-            'allow',
-            row.allow_all_users,
-            row.allow_all_groups,
-            row.allow_all_network_devices,
-            row.allowed_users,
-            row.allowed_groups,
-            row.allowed_network_devices,
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'restrictions',
-        header: 'Restrictions',
-        minSize: 220,
-        cell: (info) => {
-          const row = info.row.original;
-          return renderPermissionCell(
-            'deny',
-            row.deny_all_users,
-            row.deny_all_groups,
-            row.deny_all_network_devices,
-            row.denied_users,
-            row.denied_groups,
-            row.denied_network_devices,
           );
         },
       }),
@@ -408,7 +308,6 @@ export const RulesTable = ({
     [
       aliases,
       destinations,
-      renderPermissionCell,
       deleteRule,
       locations,
       navigate,

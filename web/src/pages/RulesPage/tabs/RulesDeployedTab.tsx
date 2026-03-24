@@ -21,8 +21,7 @@ export const RulesDeployedTab = () => {
 
   const navigate = useNavigate();
 
-  const { aliases, destinations, groups, locations, users, devices, license, loading } =
-    useRuleDeps();
+  const { aliases, destinations, locations, license, loading } = useRuleDeps();
 
   const buttonProps = useMemo(
     (): ButtonProps => ({
@@ -55,10 +54,7 @@ export const RulesDeployedTab = () => {
       {!isEmpty &&
         isPresent(aliases) &&
         isPresent(destinations) &&
-        isPresent(groups) &&
         isPresent(locations) &&
-        isPresent(users) &&
-        isPresent(devices) &&
         license !== undefined && (
           <RulesTable
             variant="deployed"
@@ -67,9 +63,6 @@ export const RulesDeployedTab = () => {
             data={rules}
             aliases={aliases}
             destinations={destinations}
-            groups={groups}
-            devices={devices}
-            users={users}
             locations={locations}
             license={license}
             enableSearch
