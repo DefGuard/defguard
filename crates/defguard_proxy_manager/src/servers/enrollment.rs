@@ -372,6 +372,7 @@ impl EnrollmentServer {
         enrollment
             .send_welcome_email(transaction, user, settings, ip_address, device_info)
             .await?;
+        info!("Welcome email sent to {} at {}", user.username, user.email);
 
         Ok(())
     }
