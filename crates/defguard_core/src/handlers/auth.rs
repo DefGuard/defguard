@@ -494,6 +494,7 @@ pub async fn webauthn_finish(
         )
         .await?;
         user.set_mfa_method(&mut *conn, MFAMethod::Webauthn).await?;
+        conn.commit().await?;
     }
 
     info!("Finished Webauthn registration for user {}", user.username);
@@ -656,6 +657,7 @@ pub async fn totp_enable(
             .await?;
             user.set_mfa_method(&mut *conn, MFAMethod::OneTimePassword)
                 .await?;
+            conn.commit().await?;
         }
 
         info!("Enabled TOTP for user {}", user.username);
@@ -834,6 +836,7 @@ pub async fn email_mfa_enable(
             )
             .await?;
             user.set_mfa_method(&mut *conn, MFAMethod::Email).await?;
+            conn.commit().await?;
         }
 
         info!("Enabled email MFA for user {}", user.username);
