@@ -1,15 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { type ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import z from 'zod';
 import './style.scss';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import {
-  EnrollmentAdminEmailMode,
-  EnrollmentReleaseChannel,
-  type EnrollmentReleaseChannelValue,
-  type Settings,
-} from '../../shared/api/types';
+import type { Settings } from '../../shared/api/types';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { Page } from '../../shared/components/Page/Page';
 import { SettingsCard } from '../../shared/components/SettingsCard/SettingsCard';
@@ -19,11 +14,9 @@ import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../shared/defguard-ui/components/Fold/Fold';
-import type { IconKindValue } from '../../shared/defguard-ui/components/Icon';
 import { Icon } from '../../shared/defguard-ui/components/Icon';
 import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
-import type { SelectOption } from '../../shared/defguard-ui/components/Select/types';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../shared/defguard-ui/components/Tabs/types';
@@ -44,39 +37,6 @@ const EnrollmentPageTab = {
 } as const;
 
 type EnrollmentTabValue = (typeof EnrollmentPageTab)[keyof typeof EnrollmentPageTab];
-
-const adminEmailModeOptions = [
-  {
-    value: EnrollmentAdminEmailMode.InitiatingAdmin,
-    title: m.settings_enrollment_admin_email_mode_initiating_admin(),
-  },
-  {
-    value: EnrollmentAdminEmailMode.Hidden,
-    title: m.settings_enrollment_admin_email_mode_hidden(),
-  },
-  {
-    value: EnrollmentAdminEmailMode.CustomEmail,
-    title: m.settings_enrollment_admin_email_mode_custom(),
-  },
-] as const;
-
-const releaseChannelOptions: SelectOption<EnrollmentReleaseChannelValue>[] = [
-  {
-    key: EnrollmentReleaseChannel.Stable,
-    value: EnrollmentReleaseChannel.Stable,
-    label: m.settings_enrollment_release_channel_stable(),
-  },
-  {
-    key: EnrollmentReleaseChannel.Beta,
-    value: EnrollmentReleaseChannel.Beta,
-    label: m.settings_enrollment_release_channel_beta(),
-  },
-  {
-    key: EnrollmentReleaseChannel.Alpha,
-    value: EnrollmentReleaseChannel.Alpha,
-    label: m.settings_enrollment_release_channel_alpha(),
-  },
-];
 
 const enrollmentTokenTimeoutBaseOptions = createNumericSelectOptions({
   1: m.settings_duration_one_hour(),
@@ -178,37 +138,14 @@ export const EnrollmentPage = () => {
   );
 };
 
-const generalTabFormSchema = z
-  .object({
-    enrollment_admin_email_mode: z.enum(EnrollmentAdminEmailMode),
-    enrollment_admin_custom_email: z.string(),
-    enrollment_windows_release_channel: z.enum(EnrollmentReleaseChannel),
-    enrollment_linux_release_channel: z.enum(EnrollmentReleaseChannel),
-    enrollment_macos_release_channel: z.enum(EnrollmentReleaseChannel),
-    enrollment_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
-    enrollment_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
-    enrollment_show_reset_password: z.boolean(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.enrollment_admin_email_mode === EnrollmentAdminEmailMode.CustomEmail) {
-      const result = z
-        .email(m.form_error_email())
-        .min(1, m.form_error_required())
-        .safeParse(values.enrollment_admin_custom_email);
-      if (!result.success) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['enrollment_admin_custom_email'],
-          message: result.error.message,
-        });
-      }
-    }
-  });
+const generalTabFormSchema = z.object({
+  enrollment_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  enrollment_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
+});
 
 type GeneralTabFormFields = z.infer<typeof generalTabFormSchema>;
 
 const messageTemplatesFormSchema = z.object({
-  enrollment_show_welcome_message: z.boolean(),
   enrollment_welcome_message: z.string(),
   enrollment_send_welcome_email: z.boolean(),
   enrollment_welcome_email_subject: z.string().min(1, m.form_error_required()),
@@ -234,19 +171,9 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): GeneralTabFormFields => ({
-      enrollment_admin_email_mode:
-        settings.enrollment_admin_email_mode ?? EnrollmentAdminEmailMode.InitiatingAdmin,
-      enrollment_admin_custom_email: settings.enrollment_admin_custom_email ?? '',
-      enrollment_windows_release_channel:
-        settings.enrollment_windows_release_channel ?? EnrollmentReleaseChannel.Stable,
-      enrollment_linux_release_channel:
-        settings.enrollment_linux_release_channel ?? EnrollmentReleaseChannel.Stable,
-      enrollment_macos_release_channel:
-        settings.enrollment_macos_release_channel ?? EnrollmentReleaseChannel.Stable,
       enrollment_token_timeout_hours: settings.enrollment_token_timeout_hours ?? 24,
       enrollment_session_timeout_minutes:
         settings.enrollment_session_timeout_minutes ?? 10,
-      enrollment_show_reset_password: settings.enrollment_show_reset_password ?? true,
     }),
     [settings],
   );
@@ -279,13 +206,7 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
       onChange: generalTabFormSchema,
     },
     onSubmit: async ({ value }) => {
-      await mutateAsync({
-        ...value,
-        enrollment_admin_custom_email:
-          value.enrollment_admin_email_mode === EnrollmentAdminEmailMode.CustomEmail
-            ? value.enrollment_admin_custom_email
-            : null,
-      });
+      await mutateAsync(value);
       form.reset(value);
     },
   });
@@ -300,85 +221,6 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
     >
       <form.AppForm>
         <MarkedSection icon="settings">
-          <SectionTitle title={m.settings_enrollment_section_general_title()} />
-          <MarkedSectionHeader
-            title={m.settings_enrollment_section_admin_email_title()}
-            description={m.settings_enrollment_section_admin_email_description()}
-          />
-          {adminEmailModeOptions.map((option, index) => (
-            <div key={option.value}>
-              {index > 0 && <SizedBox height={ThemeSpacing.Lg} />}
-              <form.AppField name="enrollment_admin_email_mode">
-                {(field) => (
-                  <field.FormInteractiveBlock
-                    variant="radio"
-                    value={option.value}
-                    title={option.title}
-                  >
-                    {option.value === EnrollmentAdminEmailMode.CustomEmail && (
-                      <form.Subscribe
-                        selector={(state) =>
-                          state.values.enrollment_admin_email_mode ===
-                          EnrollmentAdminEmailMode.CustomEmail
-                        }
-                      >
-                        {(isCustomEmailMode) => (
-                          <Fold open={isCustomEmailMode}>
-                            <SizedBox height={ThemeSpacing.Lg} />
-                            <form.AppField name="enrollment_admin_custom_email">
-                              {(field) => (
-                                <field.FormInput
-                                  required
-                                  label={m.settings_enrollment_admin_email_custom_label()}
-                                />
-                              )}
-                            </form.AppField>
-                          </Fold>
-                        )}
-                      </form.Subscribe>
-                    )}
-                  </field.FormInteractiveBlock>
-                )}
-              </form.AppField>
-            </div>
-          ))}
-        </MarkedSection>
-        <Divider spacing={ThemeSpacing.Xl2} />
-        <MarkedSection icon="activity-notes">
-          <SectionTitle title={m.settings_enrollment_section_versions_title()} />
-          <MarkedSectionHeader
-            title={m.settings_enrollment_section_versions_subtitle()}
-            description={m.settings_enrollment_section_versions_description()}
-          />
-          <EnrollmentVersionControlRow
-            icon="windows"
-            label={m.settings_enrollment_windows_channel_label()}
-          >
-            <form.AppField name="enrollment_windows_release_channel">
-              {(field) => <field.FormSelect required options={releaseChannelOptions} />}
-            </form.AppField>
-          </EnrollmentVersionControlRow>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <EnrollmentVersionControlRow
-            icon="linux"
-            label={m.settings_enrollment_linux_channel_label()}
-          >
-            <form.AppField name="enrollment_linux_release_channel">
-              {(field) => <field.FormSelect required options={releaseChannelOptions} />}
-            </form.AppField>
-          </EnrollmentVersionControlRow>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <EnrollmentVersionControlRow
-            icon="apple"
-            label={m.settings_enrollment_macos_channel_label()}
-          >
-            <form.AppField name="enrollment_macos_release_channel">
-              {(field) => <field.FormSelect required options={releaseChannelOptions} />}
-            </form.AppField>
-          </EnrollmentVersionControlRow>
-        </MarkedSection>
-        <Divider spacing={ThemeSpacing.Xl2} />
-        <MarkedSection icon="lock-closed">
           <MarkedSectionHeader
             title={m.settings_enrollment_section_duration_title()}
             description={m.settings_enrollment_section_duration_description()}
@@ -399,16 +241,6 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
                 required
                 label={m.settings_enrollment_label_session_expires_in()}
                 options={enrollmentSessionTimeoutOptions}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="enrollment_show_reset_password">
-            {(field) => (
-              <field.FormInteractiveBlock
-                variant="toggle"
-                title={m.settings_enrollment_toggle_reset_password_title()}
-                content={m.settings_enrollment_toggle_reset_password_description()}
               />
             )}
           </form.AppField>
@@ -458,7 +290,6 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): MessageTemplatesFormFields => ({
-      enrollment_show_welcome_message: settings.enrollment_show_welcome_message ?? true,
       enrollment_welcome_message: settings.enrollment_welcome_message ?? '',
       enrollment_send_welcome_email: settings.enrollment_send_welcome_email ?? true,
       enrollment_welcome_email_subject: settings.enrollment_welcome_email_subject ?? '',
@@ -497,34 +328,16 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
         >
           <form.AppForm>
             <MarkedSection icon="empty-point">
-              <form.AppField name="enrollment_show_welcome_message">
+              <form.AppField name="enrollment_welcome_message">
                 {(field) => (
-                  <field.FormInteractiveBlock
-                    variant="toggle"
-                    title={m.settings_enrollment_template_display_message_title()}
-                    content={m.settings_enrollment_template_display_message_description()}
+                  <field.FormTextarea
+                    required
+                    label={m.settings_enrollment_template_message_label()}
+                    minHeight={383}
+                    maxHeight={383}
                   />
                 )}
               </form.AppField>
-              <form.Subscribe
-                selector={(state) => state.values.enrollment_show_welcome_message}
-              >
-                {(showWelcomeMessage) => (
-                  <Fold open={showWelcomeMessage}>
-                    <SizedBox height={ThemeSpacing.Xl2} />
-                    <form.AppField name="enrollment_welcome_message">
-                      {(field) => (
-                        <field.FormTextarea
-                          required
-                          label={m.settings_enrollment_template_message_label()}
-                          minHeight={383}
-                          maxHeight={383}
-                        />
-                      )}
-                    </form.AppField>
-                  </Fold>
-                )}
-              </form.Subscribe>
             </MarkedSection>
             <Divider spacing={ThemeSpacing.Xl2} />
             <MarkedSection icon="empty-point">
@@ -632,52 +445,6 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
         </form>
       </SettingsCard>
       <MessageTemplatesHelpPanel />
-    </div>
-  );
-};
-
-const SectionTitle = ({ title }: { title: string }) => {
-  return (
-    <>
-      <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-        {title}
-      </AppText>
-      <SizedBox height={ThemeSpacing.Xl} />
-    </>
-  );
-};
-
-const EnrollmentVersionControlRow = ({
-  icon,
-  label,
-  children,
-}: {
-  icon: IconKindValue;
-  label: string;
-  children: ReactNode;
-}) => {
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '80px minmax(0, 1fr)',
-        gap: ThemeSpacing.Xl2,
-        alignItems: 'center',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: ThemeSpacing.Sm,
-        }}
-      >
-        <Icon icon={icon} staticColor={ThemeVariable.FgMuted} size={20} />
-        <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgDefault}>
-          {label}
-        </AppText>
-      </div>
-      {children}
     </div>
   );
 };

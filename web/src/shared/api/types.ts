@@ -869,24 +869,6 @@ export const SmtpEncryption = {
 
 export type SmtpEncryptionValue = (typeof SmtpEncryption)[keyof typeof SmtpEncryption];
 
-export const EnrollmentAdminEmailMode = {
-  InitiatingAdmin: 'InitiatingAdmin',
-  Hidden: 'Hidden',
-  CustomEmail: 'CustomEmail',
-} as const;
-
-export type EnrollmentAdminEmailModeValue =
-  (typeof EnrollmentAdminEmailMode)[keyof typeof EnrollmentAdminEmailMode];
-
-export const EnrollmentReleaseChannel = {
-  Stable: 'Stable',
-  Beta: 'Beta',
-  Alpha: 'Alpha',
-} as const;
-
-export type EnrollmentReleaseChannelValue =
-  (typeof EnrollmentReleaseChannel)[keyof typeof EnrollmentReleaseChannel];
-
 export interface SettingsSMTP {
   smtp_encryption: SmtpEncryptionValue;
   smtp_server: string | null;
@@ -902,14 +884,7 @@ export interface SettingsEnrollment {
   enrollment_welcome_email: string;
   enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
-  enrollment_admin_email_mode: EnrollmentAdminEmailModeValue;
-  enrollment_admin_custom_email: string | null;
-  enrollment_show_reset_password: boolean;
-  enrollment_show_welcome_message: boolean;
   enrollment_send_welcome_email: boolean;
-  enrollment_windows_release_channel: EnrollmentReleaseChannelValue;
-  enrollment_linux_release_channel: EnrollmentReleaseChannelValue;
-  enrollment_macos_release_channel: EnrollmentReleaseChannelValue;
 }
 
 export interface SettingsModules {
