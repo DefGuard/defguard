@@ -26,41 +26,29 @@ import { formChangeLogic } from '../../../shared/formLogic';
 import { getSettingsQueryOptions } from '../../../shared/query';
 
 const messageTemplatesHelpVariables = [
-  ['{{ first_name }}', 'newly created user first name'],
-  ['{{ last_name }}', 'newly created user last name'],
-  ['{{ username }}', 'newly created user username/login'],
-  [
-    '{{ admin_first_name }}',
-    'first name of the administrator who initiated the enrollment process',
-  ],
-  [
-    '{{ admin_last_name }}',
-    'last name of the administrator who initiated the enrollment process',
-  ],
-  [
-    '{{ admin_phone }}',
-    'phone number of the administrator who initiated the enrollment process',
-  ],
-  [
-    '{{ admin_email }}',
-    'email of the administrator who initiated the enrollment process',
-  ],
-  ['{{ defguard_url }}', 'internal Defguard URL (your Defguard instance address)'],
+  ['{{ first_name }}', m.settings_enrollment_template_help_first_name()],
+  ['{{ last_name }}', m.settings_enrollment_template_help_last_name()],
+  ['{{ username }}', m.settings_enrollment_template_help_username()],
+  ['{{ admin_first_name }}', m.settings_enrollment_template_help_admin_first_name()],
+  ['{{ admin_last_name }}', m.settings_enrollment_template_help_admin_last_name()],
+  ['{{ admin_phone }}', m.settings_enrollment_template_help_admin_phone()],
+  ['{{ admin_email }}', m.settings_enrollment_template_help_admin_email()],
+  ['{{ defguard_url }}', m.settings_enrollment_template_help_defguard_url()],
 ] as const;
 
 const messageTemplatesHelpMarkdown = [
-  ['#, ##, ###', 'Create headings.', 'medium'],
-  ['*text*', 'Italic text.'],
-  ['**text**', 'Bold text.'],
-  ['***text***', 'Bold and italic.'],
-  ['> text', 'Blockquote.'],
-  ['- item or 1. item', 'Lists (unordered or ordered).'],
-  ['`code`', 'Inline code.'],
-  ['```code```', 'Code block.'],
-  ['***', 'Horizontal line.'],
-  ['[text](url)', 'Link.'],
-  ['| and ---', 'Create tables.'],
-  ['\\', 'Escape special characters.'],
+  ['#, ##, ###', m.settings_enrollment_template_help_markdown_headings(), 'medium'],
+  ['*text*', m.settings_enrollment_template_help_markdown_italic()],
+  ['**text**', m.settings_enrollment_template_help_markdown_bold()],
+  ['***text***', m.settings_enrollment_template_help_markdown_bold_italic()],
+  ['> text', m.settings_enrollment_template_help_markdown_blockquote()],
+  ['- item or 1. item', m.settings_enrollment_template_help_markdown_lists()],
+  ['`code`', m.settings_enrollment_template_help_markdown_inline_code()],
+  ['```code```', m.settings_enrollment_template_help_markdown_code_block()],
+  ['***', m.settings_enrollment_template_help_markdown_horizontal_line()],
+  ['[text](url)', m.settings_enrollment_template_help_markdown_link()],
+  ['| and ---', m.settings_enrollment_template_help_markdown_tables()],
+  ['\\', m.settings_enrollment_template_help_markdown_escape()],
 ] as const;
 
 const messageTemplatesFormSchema = z.object({
