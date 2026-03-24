@@ -74,6 +74,19 @@ export const RulesTable = ({
 }: Props) => {
   const navigate = useNavigate();
 
+  const renderResourceBadge = useCallback(
+    (marker: 'A' | 'D', key: string, text: string) => (
+      <Badge
+        className="rules-table-destination-badge"
+        data-marker={marker}
+        variant={BadgeVariant.Neutral}
+        text={text}
+        key={key}
+      />
+    ),
+    [],
+  );
+
   const { mutate: deleteRule } = useMutation({
     mutationFn: api.acl.rule.deleteRule,
     meta: {
@@ -146,43 +159,47 @@ export const RulesTable = ({
         ),
       }),
       columnHelper.display({
-        id: 'destination',
-        header: 'Destination',
-        minSize: 350,
+        id: 'predefined-destinations',
+        header: 'Predefined destinations',
+        minSize: 300,
         cell: (info) => {
           const row = info.row.original;
+          return (
+            <TableCell className="rules-table-destination-cell">
+              {row.destinations.map((destinationId) => {
+                const destination = destinations[destinationId];
+                if (!destination) return null;
+                return renderResourceBadge(
+                  'D',
+                  `destination-${destinationId}`,
+                  destination.name,
+                );
+              })}
+            </TableCell>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'manual-destinations',
+        header: 'Manually configured destination',
+        minSize: 300,
+        cell: (info) => {
+          const row = info.row.original;
+
+          if (!row.use_manual_destination_settings) {
+            return <TableCell className="rules-table-destination-cell" />;
+          }
+
           const manualAddresses = row.addresses.trim();
           const hasManualAddresses = manualAddresses.length > 0;
 
           return (
             <TableCell>
-              {row.destinations.map((destinationId) => {
-                const destination = destinations[destinationId];
-                if (!destination) return null;
-                return (
-                  <Badge
-                    className="rules-table-destination-badge"
-                    data-marker="D"
-                    variant={BadgeVariant.Neutral}
-                    text={destination.name}
-                    key={destinationId}
-                  />
-                );
-              })}
               {hasManualAddresses && <span>{manualAddresses}</span>}
               {row.aliases.map((aliasId) => {
                 const alias = aliases[aliasId];
                 if (!alias) return null;
-
-                return (
-                  <Badge
-                    className="rules-table-destination-badge"
-                    data-marker="A"
-                    variant={BadgeVariant.Neutral}
-                    text={alias.name}
-                    key={aliasId}
-                  />
-                );
+                return renderResourceBadge('A', `alias-${aliasId}`, alias.name);
               })}
             </TableCell>
           );
@@ -312,6 +329,7 @@ export const RulesTable = ({
       locations,
       navigate,
       renderStatusCell,
+      renderResourceBadge,
       license,
       variant,
       toggleRule,
