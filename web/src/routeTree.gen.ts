@@ -53,7 +53,6 @@ import { Route as AuthorizedDefaultSettingsOpenidRouteImport } from './routes/_a
 import { Route as AuthorizedDefaultSettingsLdapRouteImport } from './routes/_authorized/_default/settings/ldap'
 import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/_authorized/_default/settings/instance'
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
-import { Route as AuthorizedDefaultSettingsEnrollmentRouteImport } from './routes/_authorized/_default/settings/enrollment'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
@@ -305,12 +304,6 @@ const AuthorizedDefaultSettingsGatewayNotificationsRoute =
     path: '/settings/gateway-notifications',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
-const AuthorizedDefaultSettingsEnrollmentRoute =
-  AuthorizedDefaultSettingsEnrollmentRouteImport.update({
-    id: '/settings/enrollment',
-    path: '/settings/enrollment',
-    getParentRoute: () => AuthorizedDefaultRoute,
-  } as any)
 const AuthorizedDefaultSettingsEditOpenidRoute =
   AuthorizedDefaultSettingsEditOpenidRouteImport.update({
     id: '/settings/edit-openid',
@@ -440,7 +433,6 @@ export interface FileRoutesByFullPath {
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
-  '/settings/enrollment': typeof AuthorizedDefaultSettingsEnrollmentRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
   '/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
@@ -498,7 +490,6 @@ export interface FileRoutesByTo {
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
-  '/settings/enrollment': typeof AuthorizedDefaultSettingsEnrollmentRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
   '/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
@@ -560,7 +551,6 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
-  '/_authorized/_default/settings/enrollment': typeof AuthorizedDefaultSettingsEnrollmentRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/_authorized/_default/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
   '/_authorized/_default/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
@@ -621,7 +611,6 @@ export interface FileRouteTypes {
     | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
-    | '/settings/enrollment'
     | '/settings/gateway-notifications'
     | '/settings/instance'
     | '/settings/ldap'
@@ -679,7 +668,6 @@ export interface FileRouteTypes {
     | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
-    | '/settings/enrollment'
     | '/settings/gateway-notifications'
     | '/settings/instance'
     | '/settings/ldap'
@@ -740,7 +728,6 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/rules'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
-    | '/_authorized/_default/settings/enrollment'
     | '/_authorized/_default/settings/gateway-notifications'
     | '/_authorized/_default/settings/instance'
     | '/_authorized/_default/settings/ldap'
@@ -1081,13 +1068,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
-    '/_authorized/_default/settings/enrollment': {
-      id: '/_authorized/_default/settings/enrollment'
-      path: '/settings/enrollment'
-      fullPath: '/settings/enrollment'
-      preLoaderRoute: typeof AuthorizedDefaultSettingsEnrollmentRouteImport
-      parentRoute: typeof AuthorizedDefaultRoute
-    }
     '/_authorized/_default/settings/edit-openid': {
       id: '/_authorized/_default/settings/edit-openid'
       path: '/settings/edit-openid'
@@ -1209,7 +1189,6 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
-  AuthorizedDefaultSettingsEnrollmentRoute: typeof AuthorizedDefaultSettingsEnrollmentRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   AuthorizedDefaultSettingsInstanceRoute: typeof AuthorizedDefaultSettingsInstanceRoute
   AuthorizedDefaultSettingsLdapRoute: typeof AuthorizedDefaultSettingsLdapRoute
@@ -1248,8 +1227,6 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,
-  AuthorizedDefaultSettingsEnrollmentRoute:
-    AuthorizedDefaultSettingsEnrollmentRoute,
   AuthorizedDefaultSettingsGatewayNotificationsRoute:
     AuthorizedDefaultSettingsGatewayNotificationsRoute,
   AuthorizedDefaultSettingsInstanceRoute:
