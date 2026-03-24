@@ -1,9 +1,10 @@
 #enrollment-page {
   .message-templates-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 373px;
+    grid-template-columns: minmax(720px, 1fr) 373px;
     gap: var(--spacing-4xl);
     align-items: start;
+    min-width: calc(720px + 373px + var(--spacing-4xl));
   }
 
   .message-template-section {
