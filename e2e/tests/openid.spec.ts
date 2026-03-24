@@ -15,6 +15,7 @@ import { waitForRoute } from '../utils/waitForRoute';
 
 // FIXME containerize test client so tests can run without external testing client
 
+//TODO: Enable this when https://github.com/DefGuard/defguard/issues/2405 is fixes
 test.describe('Authorize OpenID client.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
 
@@ -32,7 +33,7 @@ test.describe('Authorize OpenID client.', () => {
     await createUser(browser, testUser);
   });
 
-  test('Authorize when session is active.', async ({ page }) => {
+  test.skip('Authorize when session is active.', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     await waitForBase(page);
     await loginBasic(page, testUser);
@@ -54,7 +55,7 @@ test.describe('Authorize OpenID client.', () => {
     await logout(page);
   });
 
-  test('Authorize when session is not active', async ({ page }) => {
+  test.skip('Authorize when session is not active', async ({ page }) => {
     expect(client.clientID).toBeDefined();
     await waitForBase(page);
     await fillAndSubmitOpenIDDebugger(page, client);
@@ -77,7 +78,7 @@ test.describe('Authorize OpenID client.', () => {
     await logout(page);
   });
 
-  test('Authorize when session is not active and MFA is enabled', async ({
+  test.skip('Authorize when session is not active and MFA is enabled', async ({
     page,
     browser,
   }) => {

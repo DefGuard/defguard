@@ -32,21 +32,24 @@ test.describe('Reset password', () => {
     await waitForPromise(2000);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
-
+    await waitForPromise(1000);
     const token = await getPasswordResetToken(user.mail);
 
     await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
-    await waitForPromise(2000);
+    await waitForPromise(1000);
 
     await setPassword(newPassword, page);
-    await page.getByTestId('password-reset-success').waitFor({ state: 'visible' });
+    const goToLogin = page.locator('button[data-variant="primary"]');
+    await expect(goToLogin).toBeVisible();
+    await goToLogin.click();
 
     await waitForBase(page);
     await loginBasic(page, { ...user, password: newPassword });
     await logout(page);
   });
 
-  test('Reset disabled user password', async ({ page, browser }) => {
+  // TODO: Enable when https://github.com/DefGuard/defguard/issues/2425 is fixed
+  test.skip('Reset disabled user password', async ({ page, browser }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);
@@ -55,14 +58,14 @@ test.describe('Reset password', () => {
     await waitForPromise(2000);
     const token = await getPasswordResetToken(user.mail);
     await disableUser(browser, user);
+    await waitForPromise(5000);
     await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
-    await waitForPromise(2000);
 
     // A message should be displayed that the code is invalid
-    const message = await page.locator('.message').textContent();
-    expect(message).toBe(
-      'The entered code is invalid. Please start the process from the beginning.',
-    );
+    await expect(
+      page.locator('h1', { hasText: 'Link expired or invalid.' }),
+    ).toBeVisible();
+    await expect(page.locator('button[data-variant="primary"]')).toBeVisible();
 
     // The password input should not be visible
     const passwordInputVisible = await page

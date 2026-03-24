@@ -59,7 +59,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let mut config = DefGuardConfig::new();
     let log_filter = format!(
-        "{},defguard_core::handlers::component_setup=debug",
+        "{},defguard_core::handlers::component_setup=debug,defguard_setup::auto_adoption=debug",
         config.log_level
     );
 

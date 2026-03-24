@@ -68,7 +68,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
       await options.click();
     }
     await page.getByTestId('field-name').fill(key_name);
-    await page.getByTestId('field-key').fill(testSshKey);
+    await page.locator('#add-auth-key-modal .field-box textarea').fill(testSshKey);
     await page.getByTestId('add-key').click();
     const responsePromise = page.waitForResponse('**/auth_key');
     const response = await responsePromise;
@@ -81,6 +81,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await row.locator('.icon-button').click();
     await page.getByTestId('delete-key').click();
     const deletePromise = page.waitForResponse('**/auth_key');
+    await page.locator('button[data-variant="critical"]').click();
     const deleteResponse = await deletePromise;
     expect(deleteResponse.status()).toBe(200);
     const afterDeleteKeys = await apiGetUserAuthKeys(page, testUser.username);
@@ -100,7 +101,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
       await options.click();
     }
     await page.getByTestId('field-name').fill(key_name);
-    await page.getByTestId('field-key').fill(testGPGKey);
+    await page.locator('#add-auth-key-modal .field-box textarea').fill(testGPGKey);
     await page.getByTestId('add-key').click();
     const responsePromise = page.waitForResponse('**/auth_key');
     const response = await responsePromise;
@@ -113,6 +114,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     await row.locator('.icon-button').click();
     await page.getByTestId('delete-key').click();
     const deletePromise = page.waitForResponse('**/auth_key');
+    await page.locator('button[data-variant="critical"]').click();
     const deleteResponse = await deletePromise;
     expect(deleteResponse.status()).toBe(200);
     const afterDeleteKeys = await apiGetUserAuthKeys(page, testUser.username);
