@@ -1,10 +1,22 @@
 #enrollment-page {
+  .message-templates-content {
+    grid-column: 1 / 12;
+  }
+
   .message-templates-layout {
     display: grid;
     grid-template-columns: minmax(720px, 1fr) 373px;
     gap: var(--spacing-4xl);
     align-items: start;
+    width: 100%;
+    max-width: calc(1000px + 373px + var(--spacing-4xl));
     min-width: calc(720px + 373px + var(--spacing-4xl));
+  }
+
+  .message-templates-left {
+    display: flex;
+    flex-flow: column;
+    min-width: 0;
   }
 
   .message-template-section {

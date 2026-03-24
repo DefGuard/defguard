@@ -7,6 +7,7 @@ import type { Settings } from '../../../shared/api/types';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
+import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
@@ -122,164 +123,169 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
   });
 
   return (
-    <div
-      className="message-templates-layout"
-      data-testid="enrollment-tab-message-templates"
-    >
-      <div className="message-templates-left">
-        <SettingsHeader
-          icon="activity-notes"
-          title={m.settings_enrollment_message_templates_title()}
-          subtitle={m.settings_enrollment_message_templates_subtitle()}
-        />
-        <SettingsCard>
-          <form
-            onSubmit={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              form.handleSubmit();
-            }}
-          >
-            <form.AppForm>
-              <div className="message-template-section message-template-section-offset">
-                <div className="message-template-offset-spacer" />
-                <div className="message-template-offset-content">
-                  <div className="message-template-static-header">
-                    <AppText
-                      font={TextStyle.TBodyPrimary500}
-                      color={ThemeVariable.FgDefault}
-                    >
-                      {m.settings_enrollment_template_display_message_title()}
-                    </AppText>
-                    <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
-                      {m.settings_enrollment_template_display_message_description()}
-                    </AppText>
-                  </div>
-                  <SizedBox height={ThemeSpacing.Xl2} />
-                  <form.AppField name="enrollment_welcome_message">
-                    {(field) => (
-                      <field.FormTextarea
-                        required
-                        label={m.settings_enrollment_template_message_label()}
-                        minHeight={383}
-                        maxHeight={383}
-                      />
-                    )}
-                  </form.AppField>
-                </div>
-              </div>
-              <div className="message-template-offset-divider">
-                <Divider spacing={ThemeSpacing.Xl2} />
-              </div>
-              <div className="message-template-section">
-                <form.AppField name="enrollment_send_welcome_email">
-                  {(field) => (
-                    <field.FormInteractiveBlock
-                      className="message-template-toggle"
-                      variant="toggle"
-                      title={m.settings_enrollment_template_send_email_title()}
-                      content={m.settings_enrollment_template_send_email_description()}
-                    >
-                      <form.Subscribe
-                        selector={(state) => state.values.enrollment_send_welcome_email}
+    <SettingsLayout className="message-templates-content">
+      <div
+        className="message-templates-layout"
+        data-testid="enrollment-tab-message-templates"
+      >
+        <div className="message-templates-left">
+          <SettingsHeader
+            icon="activity-notes"
+            title={m.settings_enrollment_message_templates_title()}
+            subtitle={m.settings_enrollment_message_templates_subtitle()}
+          />
+          <SettingsCard>
+            <form
+              onSubmit={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                form.handleSubmit();
+              }}
+            >
+              <form.AppForm>
+                <div className="message-template-section message-template-section-offset">
+                  <div className="message-template-offset-spacer" />
+                  <div className="message-template-offset-content">
+                    <div className="message-template-static-header">
+                      <AppText
+                        font={TextStyle.TBodyPrimary500}
+                        color={ThemeVariable.FgDefault}
                       >
-                        {(sendWelcomeEmail) => (
-                          <Fold open={sendWelcomeEmail}>
-                            <SizedBox height={ThemeSpacing.Xl2} />
-                            <form.AppField name="enrollment_welcome_email_subject">
-                              {(field) => (
-                                <field.FormInput
-                                  required
-                                  label={m.settings_enrollment_template_email_subject_label()}
-                                />
-                              )}
-                            </form.AppField>
-                            <SizedBox height={ThemeSpacing.Xl} />
-                            <div className="message-templates-checkbox">
-                              <form.AppField name="enrollment_use_welcome_message_as_email">
+                        {m.settings_enrollment_template_display_message_title()}
+                      </AppText>
+                      <AppText
+                        font={TextStyle.TBodySm400}
+                        color={ThemeVariable.FgNeutral}
+                      >
+                        {m.settings_enrollment_template_display_message_description()}
+                      </AppText>
+                    </div>
+                    <SizedBox height={ThemeSpacing.Xl2} />
+                    <form.AppField name="enrollment_welcome_message">
+                      {(field) => (
+                        <field.FormTextarea
+                          required
+                          label={m.settings_enrollment_template_message_label()}
+                          minHeight={383}
+                          maxHeight={383}
+                        />
+                      )}
+                    </form.AppField>
+                  </div>
+                </div>
+                <div className="message-template-offset-divider">
+                  <Divider spacing={ThemeSpacing.Xl2} />
+                </div>
+                <div className="message-template-section">
+                  <form.AppField name="enrollment_send_welcome_email">
+                    {(field) => (
+                      <field.FormInteractiveBlock
+                        className="message-template-toggle"
+                        variant="toggle"
+                        title={m.settings_enrollment_template_send_email_title()}
+                        content={m.settings_enrollment_template_send_email_description()}
+                      >
+                        <form.Subscribe
+                          selector={(state) => state.values.enrollment_send_welcome_email}
+                        >
+                          {(sendWelcomeEmail) => (
+                            <Fold open={sendWelcomeEmail}>
+                              <SizedBox height={ThemeSpacing.Xl2} />
+                              <form.AppField name="enrollment_welcome_email_subject">
                                 {(field) => (
-                                  <field.FormCheckbox
-                                    text={m.settings_enrollment_template_same_as_message()}
+                                  <field.FormInput
+                                    required
+                                    label={m.settings_enrollment_template_email_subject_label()}
                                   />
                                 )}
                               </form.AppField>
-                            </div>
-                            <SizedBox height={ThemeSpacing.Xl} />
-                            <form.Subscribe
-                              selector={(state) =>
-                                state.values.enrollment_use_welcome_message_as_email
-                              }
-                            >
-                              {(sameAsWelcomeMessage) => (
-                                <>
-                                  <Fold open={sameAsWelcomeMessage}>
-                                    <div className="message-templates-success-banner">
-                                      <Icon
-                                        icon="check-circle"
-                                        staticColor={ThemeVariable.FgSuccess}
-                                        size={20}
-                                      />
-                                      <p className="copy">
-                                        {m.settings_enrollment_template_same_as_message_banner()}
-                                      </p>
-                                    </div>
-                                  </Fold>
-                                  <Fold open={!sameAsWelcomeMessage}>
-                                    <SizedBox height={ThemeSpacing.Xl} />
-                                    <form.AppField name="enrollment_welcome_email">
-                                      {(field) => (
-                                        <field.FormTextarea
-                                          required
-                                          label={m.settings_enrollment_template_email_label()}
-                                          minHeight={383}
-                                          maxHeight={383}
+                              <SizedBox height={ThemeSpacing.Xl} />
+                              <div className="message-templates-checkbox">
+                                <form.AppField name="enrollment_use_welcome_message_as_email">
+                                  {(field) => (
+                                    <field.FormCheckbox
+                                      text={m.settings_enrollment_template_same_as_message()}
+                                    />
+                                  )}
+                                </form.AppField>
+                              </div>
+                              <SizedBox height={ThemeSpacing.Xl} />
+                              <form.Subscribe
+                                selector={(state) =>
+                                  state.values.enrollment_use_welcome_message_as_email
+                                }
+                              >
+                                {(sameAsWelcomeMessage) => (
+                                  <>
+                                    <Fold open={sameAsWelcomeMessage}>
+                                      <div className="message-templates-success-banner">
+                                        <Icon
+                                          icon="check-circle"
+                                          staticColor={ThemeVariable.FgSuccess}
+                                          size={20}
                                         />
-                                      )}
-                                    </form.AppField>
-                                  </Fold>
-                                </>
-                              )}
-                            </form.Subscribe>
-                          </Fold>
-                        )}
-                      </form.Subscribe>
-                    </field.FormInteractiveBlock>
-                  )}
-                </form.AppField>
-              </div>
-            </form.AppForm>
-            <SizedBox height={ThemeSpacing.Xl2} />
-            <Divider />
-            <SizedBox height={ThemeSpacing.Xl} />
-            <form.Subscribe
-              selector={(state) => ({
-                isDefault: state.isDefaultValue || state.isPristine,
-                isSubmitting: state.isSubmitting,
-                canSubmit: state.canSubmit,
-              })}
-            >
-              {({ isDefault, isSubmitting, canSubmit }) => (
-                <Controls>
-                  <div className="right">
-                    <Button
-                      variant="primary"
-                      text={m.controls_save_changes()}
-                      disabled={isDefault || !canSubmit}
-                      loading={isSubmitting}
-                      type="submit"
-                      onClick={() => {
-                        form.handleSubmit();
-                      }}
-                    />
-                  </div>
-                </Controls>
-              )}
-            </form.Subscribe>
-          </form>
-        </SettingsCard>
+                                        <p className="copy">
+                                          {m.settings_enrollment_template_same_as_message_banner()}
+                                        </p>
+                                      </div>
+                                    </Fold>
+                                    <Fold open={!sameAsWelcomeMessage}>
+                                      <SizedBox height={ThemeSpacing.Xl} />
+                                      <form.AppField name="enrollment_welcome_email">
+                                        {(field) => (
+                                          <field.FormTextarea
+                                            required
+                                            label={m.settings_enrollment_template_email_label()}
+                                            minHeight={383}
+                                            maxHeight={383}
+                                          />
+                                        )}
+                                      </form.AppField>
+                                    </Fold>
+                                  </>
+                                )}
+                              </form.Subscribe>
+                            </Fold>
+                          )}
+                        </form.Subscribe>
+                      </field.FormInteractiveBlock>
+                    )}
+                  </form.AppField>
+                </div>
+              </form.AppForm>
+              <SizedBox height={ThemeSpacing.Xl2} />
+              <Divider />
+              <SizedBox height={ThemeSpacing.Xl} />
+              <form.Subscribe
+                selector={(state) => ({
+                  isDefault: state.isDefaultValue || state.isPristine,
+                  isSubmitting: state.isSubmitting,
+                  canSubmit: state.canSubmit,
+                })}
+              >
+                {({ isDefault, isSubmitting, canSubmit }) => (
+                  <Controls>
+                    <div className="right">
+                      <Button
+                        variant="primary"
+                        text={m.controls_save_changes()}
+                        disabled={isDefault || !canSubmit}
+                        loading={isSubmitting}
+                        type="submit"
+                        onClick={() => {
+                          form.handleSubmit();
+                        }}
+                      />
+                    </div>
+                  </Controls>
+                )}
+              </form.Subscribe>
+            </form>
+          </SettingsCard>
+        </div>
+        <MessageTemplatesHelpPanel />
       </div>
-      <MessageTemplatesHelpPanel />
-    </div>
+    </SettingsLayout>
   );
 };
 
