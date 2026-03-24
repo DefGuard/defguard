@@ -1,0 +1,15 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+<mj-section>
+  <mj-column mj-class="s-3xl">
+    <mj-text>
+      <p>
+        {{ welcome_message_content }}
+      </p>
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+{% endblock content %}

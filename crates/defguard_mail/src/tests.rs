@@ -1,10 +1,11 @@
 use std::{env, str::FromStr, time::Duration};
 
+use chrono::Utc;
 use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
     db::{
         models::{
-            Settings,
+            MFAMethod, Settings,
             settings::{SmtpEncryption, initialize_current_settings, set_settings},
         },
         setup_pool,
@@ -18,9 +19,15 @@ use sqlx::{
 };
 use tera::Context;
 
-use super::templates::{
-    TemplateLocation, desktop_start_mail, mfa_code_mail, new_account_mail, new_device_added_mail,
-};
+use super::{Attachment, templates};
+
+#[test]
+fn dg25_8_server_side_template_injection() {
+    let mut tera = templates::safe_tera();
+    tera.add_raw_template("text", "PATH={{ get_env(name=\"PATH\") }}")
+        .unwrap();
+    assert!(tera.render("text", &Context::new()).is_err());
+}
 
 /// Set SMTP settings from environment variables.
 async fn set_smtp_settings(pool: &PgPool) {
@@ -39,7 +46,7 @@ async fn set_smtp_settings(pool: &PgPool) {
     set_settings(Some(settings));
 }
 
-#[ignore = "Requires SMTP server"]
+#[ignore = "requires SMTP server"]
 #[sqlx::test]
 fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -47,9 +54,9 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut conn = pool.begin().await.unwrap();
     let context = Context::new();
-    let url = Url::parse("http://localhost:8000").unwrap();
+    let url = Url::parse("http://localhost:8001").unwrap();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
-    desktop_start_mail(
+    templates::desktop_start_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         context,
@@ -63,7 +70,7 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
-#[ignore = "Requires SMTP server"]
+#[ignore = "requires SMTP server"]
 #[sqlx::test]
 fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -73,16 +80,16 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     let device_name = "My beloved machine";
     let public_key = "6N8h7HILMcQ6nqEfQMBAYQH26X+y3t/WdWSOW4bNNxw=";
     let locations = &[
-        TemplateLocation {
+        templates::TemplateLocation {
             name: String::from("Location 1"),
             assigned_ips: String::from("192.168.1.42"),
         },
-        TemplateLocation {
+        templates::TemplateLocation {
             name: String::from("Location 2"),
             assigned_ips: String::from("192.168.2.69"),
         },
     ];
-    new_device_added_mail(
+    templates::new_device_added_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         device_name,
@@ -98,7 +105,7 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
-#[ignore = "Requires SMTP server"]
+#[ignore = "requires SMTP server"]
 #[sqlx::test]
 fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -107,7 +114,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut conn = pool.begin().await.unwrap();
     let first_name = "Nebuchadnezzar";
     let code = "123456";
-    mfa_code_mail(
+    templates::mfa_code_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         first_name,
@@ -121,7 +128,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
-#[ignore = "Requires SMTP server"]
+#[ignore = "requires SMTP server"]
 #[sqlx::test]
 fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -131,7 +138,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     let url = Url::parse("http://localhost:8001").unwrap();
     let context = Context::new();
     let token = "zXc6N1ndXpWFeyBuogiFp1bD1UomAbZc";
-    new_account_mail(
+    templates::new_account_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         context,
@@ -140,6 +147,246 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     )
     .await
     .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_mfa_activation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let first_name = "Nebuchadnezzar";
+    let code = "123456";
+    templates::mfa_activation_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        first_name,
+        code,
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_enrollment_admin_notification(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let user_name = "Nebuchadnezzar the Great";
+    let admin_name = "Nabopolassar the Admin";
+    let ip_address = "1.2.3.4";
+    templates::enrollment_admin_notification(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        user_name,
+        admin_name,
+        ip_address,
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_gateway_disconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let gateway_name = "Portal";
+    let ip_address = "1.2.3.4";
+    let location_name = "Somewhere";
+    templates::gateway_disconnected_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        gateway_name,
+        ip_address,
+        location_name,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_gateway_reconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let gateway_name = "Portal";
+    let ip_address = "1.2.3.4";
+    let location_name = "Somewhere";
+    templates::gateway_reconnected_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        gateway_name,
+        ip_address,
+        location_name,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_mfa_configured_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    templates::mfa_configured_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        None,
+        &MFAMethod::Email,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let created = Utc::now().naive_utc();
+    templates::new_device_login_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, created)
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_new_device_ocid_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let client_name = "RemoteApp";
+    templates::new_device_ocid_login_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        None,
+        client_name,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_password_reset_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let proxy_url = Url::parse("http://localhost:8000").unwrap();
+    let token = "blablabla";
+    templates::password_reset_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        proxy_url,
+        token,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_password_reset_success_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    templates::password_reset_success_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None, None)
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_test_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    templates::test_mail(&env::var("SMTP_TO").unwrap(), &mut conn, None)
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_support_data_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let mut conn = pool.begin().await.unwrap();
+    let config = Attachment::new(
+        "defguard-support-data-test.json".into(),
+        b"{\"key\":\"value\"}".into(),
+    );
+    templates::support_data_mail(&env::var("SMTP_TO").unwrap(), &mut conn, vec![config])
+        .await
+        .unwrap();
+
+    // Delay, so send_and_forget() can process the message.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let markdown = "Paragraph **bold** _italic_.";
+    templates::enrollment_welcome_mail(&env::var("SMTP_TO").unwrap(), markdown, None, None)
+        .unwrap();
 
     // Delay, so send_and_forget() can process the message.
     tokio::time::sleep(Duration::from_secs(2)).await;

@@ -1,5 +1,7 @@
-{{ header }}
+{{ title }}
 {{ subtitle }}
 
 {{ label_url }}: {{ url }}
 {{ label_token }}: {{ token }}
+
+{{ configure }}: {{ url }}/open-desktop?token={{ token }}
