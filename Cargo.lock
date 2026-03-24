@@ -1382,6 +1382,7 @@ dependencies = [
  "sqlx",
  "struct-patch",
  "thiserror 2.0.18",
+ "tokio",
  "tonic",
  "totp-lite",
  "tracing",
@@ -1637,6 +1638,7 @@ name = "defguard_setup"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "async-stream",
  "axum",
  "axum-client-ip",
  "axum-extra",
@@ -1647,7 +1649,9 @@ dependencies = [
  "defguard_proto",
  "defguard_version",
  "defguard_web_ui",
+ "futures",
  "ipnetwork",
+ "rcgen",
  "reqwest",
  "semver",
  "serde",

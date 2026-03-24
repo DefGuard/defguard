@@ -9,12 +9,6 @@ pub enum ProxyControlMessage {
     StartConnection(Id),
     ShutdownConnection(Id),
     Purge(Id),
-    /// Trigger ACME HTTP-01 certificate issuance on the specified proxy.
-    TriggerAcme {
-        proxy_id: Id,
-        domain: String,
-        use_staging: bool,
-    },
     /// Broadcast an already-provisioned certificate to all connected proxies.
     BroadcastHttpsCerts {
         cert_pem: String,

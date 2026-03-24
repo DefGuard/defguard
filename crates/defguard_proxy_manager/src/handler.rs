@@ -78,8 +78,6 @@ type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
 /// A `ProxyHandler` is responsible for establishing and maintaining a gRPC
 /// bidirectional stream to one proxy instance, handling incoming requests
 /// from that proxy, and forwarding responses back through the same stream.
-/// Each `ProxyHandler` runs independently and is supervised by the
-/// `ProxyManager`.
 pub(super) struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
@@ -91,7 +89,7 @@ pub(super) struct ProxyHandler {
     proxy_cookie_key: Key,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
     /// Shared map used to register this handler's active stream sender so the manager
-    /// can push messages (e.g. `AcmeChallenge`) to a specific proxy.
+    /// can push messages to a specific proxy.
     handler_tx_map: HandlerTxMap,
 }
 

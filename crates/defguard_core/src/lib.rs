@@ -137,7 +137,7 @@ use crate::{
             userinfo,
         },
         proxy::{
-            acme_issue_proxy, delete_proxy, proxy_cert_self_signed, proxy_cert_upload,
+            delete_proxy, proxy_cert_self_signed, proxy_cert_upload,
             proxy_details, proxy_list, update_proxy,
         },
         resource_display::get_locations_display,
@@ -376,7 +376,6 @@ pub fn build_webapp(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),
             )
-            .route("/proxy/{proxy_id}/acme/issue", post(acme_issue_proxy))
             .route("/proxy/cert/upload", post(proxy_cert_upload))
             .route("/proxy/cert/self-signed", post(proxy_cert_self_signed))
             // Core HTTPS cert routes

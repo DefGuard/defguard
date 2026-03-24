@@ -6,11 +6,11 @@ use std::{
 
 use axum_extra::extract::cookie::Key;
 use defguard_common::{
-    db::models::{Certificates, proxy::Proxy},
+    db::models::proxy::Proxy,
     types::proxy::ProxyControlMessage,
 };
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
-use defguard_proto::proxy::{AcmeChallenge, CoreResponse, core_response};
+use defguard_proto::proxy::{CoreResponse, core_response};
 use sqlx::PgPool;
 use tokio::{
     select,
@@ -38,7 +38,7 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 /// Map from proxy ID to the `CoreResponse` sender for that handler's active stream.
 ///
 /// Populated by each `ProxyHandler` when it establishes a stream; used by the manager
-/// to push messages (e.g. `AcmeChallenge`) to a specific proxy.
+/// to push messages to a specific proxy.
 pub(crate) type HandlerTxMap = Arc<RwLock<HashMap<i64, UnboundedSender<CoreResponse>>>>;
 
 /// Coordinates communication between the Core and multiple proxy instances.
@@ -184,36 +184,6 @@ impl ProxyManager {
                                 let _ = shutdown_tx.send(true);
                             } else {
                                 warn!("No shutdown channel found for proxy ID: {id}");
-                            }
-                        }
-                        Some(ProxyControlMessage::TriggerAcme { proxy_id, domain, use_staging }) => {
-                            debug!("Triggering ACME issuance on proxy ID: {proxy_id}");
-                            let certs = Certificates::get_or_default(&self.pool).await.unwrap_or_default();
-                            let account_credentials_json = certs
-                                .acme_account_credentials
-                                .unwrap_or_default();
-                            let challenge = AcmeChallenge {
-                                domain,
-                                use_staging,
-                                account_credentials_json,
-                            };
-                            let msg = CoreResponse {
-                                id: 0,
-                                payload: Some(core_response::Payload::AcmeChallenge(challenge)),
-                            };
-                            let sent = handler_tx_map
-                                .read()
-                                .map(|map| {
-                                    if let Some(tx) = map.get(&proxy_id) {
-                                        let _ = tx.send(msg);
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .unwrap_or(false);
-                            if !sent {
-                                warn!("No connected handler found for proxy ID {proxy_id} to send AcmeChallenge");
                             }
                         }
                         Some(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem }) => {

@@ -24,12 +24,6 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct AcmeIssueRequest {
-    pub domain: String,
-    pub use_staging: bool,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
 pub struct ProxyUpdateData {
     pub name: String,
     pub enabled: bool,
@@ -228,63 +222,6 @@ pub(crate) async fn delete_proxy(
     })?;
 
     Ok(ApiResponse::default())
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/proxy/{proxy_id}/acme/issue",
-    request_body = AcmeIssueRequest,
-    responses(
-        (status = 202, description = "ACME certificate issuance triggered.", body = ApiResponse),
-        (status = 401, description = "Unauthorized.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "Forbidden.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Proxy not found.", body = ApiResponse, example = json!({"msg": "proxy not found"})),
-        (status = 500, description = "Internal server error.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
-    ),
-    security(
-        ("cookie" = []),
-        ("api_token" = [])
-    )
-)]
-pub(crate) async fn acme_issue_proxy(
-    _role: AdminRole,
-    Path(proxy_id): Path<Id>,
-    State(appstate): State<AppState>,
-    session: SessionInfo,
-    Json(data): Json<AcmeIssueRequest>,
-) -> ApiResult {
-    debug!(
-        "User {} triggering ACME issuance for proxy {proxy_id}",
-        session.user.username
-    );
-
-    let proxy = Proxy::find_by_id(&appstate.pool, proxy_id).await?;
-    if proxy.is_none() {
-        warn!("Proxy {proxy_id} not found");
-        return Ok(ApiResponse::json(Value::Null, StatusCode::NOT_FOUND));
-    }
-
-    if let Err(err) = appstate
-        .proxy_control_tx
-        .send(ProxyControlMessage::TriggerAcme {
-            proxy_id,
-            domain: data.domain.clone(),
-            use_staging: data.use_staging,
-        })
-        .await
-    {
-        error!("Failed to send TriggerAcme to proxy {proxy_id}: {err:?}");
-    }
-
-    info!(
-        "User {} triggered ACME issuance for proxy {proxy_id} (domain: {})",
-        session.user.username, data.domain
-    );
-
-    Ok(ApiResponse::json(
-        serde_json::json!({"msg": "ACME certificate issuance triggered"}),
-        StatusCode::ACCEPTED,
-    ))
 }
 
 /// Upload a custom PEM certificate + private key for proxy HTTPS.

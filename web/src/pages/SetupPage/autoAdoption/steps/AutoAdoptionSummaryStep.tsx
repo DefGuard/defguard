@@ -18,6 +18,7 @@ export const AutoAdoptionSummaryStep = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const wireguardPort = useAutoAdoptionSetupWizardStore((s) => s.vpn_wireguard_port);
+  const defguardUrl = useAutoAdoptionSetupWizardStore((s) => s.defguard_url);
 
   const waitForSettingsEssentials = async ({
     timeoutMs = 60_000,
@@ -58,14 +59,18 @@ export const AutoAdoptionSummaryStep = () => {
       setIsSubmitting(true);
       await finishSetup();
       await waitForSettingsEssentials({});
-      await navigate({ to: '/vpn-overview', replace: true });
-      setTimeout(() => {
-        useAutoAdoptionSetupWizardStore.getState().reset();
-      }, 100);
+      useAutoAdoptionSetupWizardStore.getState().reset();
+      // Redirect to the configured core URL so the browser upgrades to HTTPS
+      // (or uses whatever scheme/host was set during the wizard). Fall back to
+      // an in-app navigate if no URL was stored.
+      if (defguardUrl) {
+        window.location.replace(`${defguardUrl.replace(/\/$/, '')}/vpn-overview`);
+      } else {
+        await navigate({ to: '/vpn-overview', replace: true });
+      }
     } catch (error) {
       console.error(m.initial_setup_auto_adoption_summary_error_finish_console(), error);
       Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
-    } finally {
       setIsSubmitting(false);
     }
   };

@@ -119,7 +119,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
-    let mut ini_server_config = true;
 
     if !wizard.completed {
         match wizard.active_wizard {
@@ -130,9 +129,19 @@ async fn main() -> Result<(), anyhow::Error> {
                         warn!("Failed to store startup auto-adoption states: {err}");
                     }
                 }
-                if let Err(err) =
-                    run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
-                        .await
+
+                Settings::initialize_runtime_defaults(&pool).await?;
+                config.initialize_post_settings();
+                SERVER_CONFIG
+                    .set(config.clone())
+                    .expect("Failed to initialize server config.");
+
+                if let Err(err) = run_setup_web_server(
+                    pool.clone(),
+                    config.http_bind_address,
+                    config.http_port,
+                )
+                .await
                 {
                     anyhow::bail!("Setup web server exited with error: {err}");
                 }
@@ -147,8 +156,6 @@ async fn main() -> Result<(), anyhow::Error> {
                 SERVER_CONFIG
                     .set(config.clone())
                     .expect("Failed to initialize server config.");
-
-                ini_server_config = false;
 
                 if let Err(err) = run_migration_web_server(
                     pool.clone(),
@@ -165,13 +172,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     Settings::initialize_runtime_defaults(&pool).await?;
 
-    if ini_server_config {
-        config.initialize_post_settings();
-
-        SERVER_CONFIG
-            .set(config.clone())
-            .expect("Failed to initialize server config.");
-    }
+    // Only set SERVER_CONFIG if it has not already been set (e.g. by the setup
+    // path above).
+    config.initialize_post_settings();
+    SERVER_CONFIG.set(config.clone()).ok();
 
     let settings = Settings::get_current_settings();
 
