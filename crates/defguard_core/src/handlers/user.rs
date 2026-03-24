@@ -14,7 +14,7 @@ use defguard_common::{
     },
     types::{group_diff::GroupDiff, user_info::UserInfo},
 };
-use defguard_mail::{Mail, templates};
+use defguard_mail::templates;
 use humantime::parse_duration;
 use serde_json::json;
 use sqlx::PgPool;
@@ -22,8 +22,7 @@ use utoipa::ToSchema;
 
 use super::{
     AddUserData, ApiResponse, ApiResult, PasswordChange, PasswordChangeSelf,
-    StartEnrollmentRequest, Username, mail::EMAIL_PASSWORD_RESET_START_SUBJECT,
-    user_for_admin_or_self,
+    StartEnrollmentRequest, Username, user_for_admin_or_self,
 };
 use crate::{
     appstate::AppState,
@@ -1133,34 +1132,15 @@ pub(crate) async fn reset_password(
         enrollment.save(&mut *transaction).await?;
         let public_proxy_url = settings.proxy_public_url()?;
 
-        let result = Mail::new(
-            user.email.clone(),
-            EMAIL_PASSWORD_RESET_START_SUBJECT,
-            templates::email_password_reset_mail(
-                public_proxy_url,
-                enrollment.id.clone().as_str(),
-                None,
-                None,
-            )?,
+        templates::password_reset_mail(
+            &user.email,
+            &mut transaction,
+            public_proxy_url,
+            enrollment.id.clone().as_str(),
+            None,
+            None,
         )
-        .send()
-        .await;
-
-        let to = &user.email;
-        match result {
-            Ok(()) => {
-                info!("Password reset email for {username} sent to {to}");
-                Ok(())
-            }
-            Err(err) => {
-                error!(
-                    "Failed to send password reset email for {username} to {to} with error: {err}"
-                );
-                Err(WebError::Serialization(format!(
-                    "Could not send password reset email to user {username}"
-                )))
-            }
-        }?;
+        .await?;
 
         transaction.commit().await?;
 

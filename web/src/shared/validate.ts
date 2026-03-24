@@ -53,6 +53,10 @@ export const Validate = {
     if (!ipv4WithCIDRPattern.test(ip)) {
       return false;
     }
+    const ipPart = ip.split('/')[0];
+    if (ipPart.split('.').some((octet) => octet.length > 1 && octet.startsWith('0'))) {
+      return false;
+    }
     if (ip.endsWith('/0') && !allow_zero) {
       return false;
     }

@@ -5,11 +5,9 @@ use defguard_common::db::{
     Id,
     models::{DeviceLoginEvent, User},
 };
-use defguard_mail::templates::{SessionContext, TemplateError};
+use defguard_mail::templates::{SessionContext, TemplateError, new_device_login_mail};
 use sqlx::PgPool;
 use uaparser::{Client, Parser, UserAgentParser};
-
-use crate::handlers::mail::send_new_device_login_email;
 
 pub(crate) const CONTENT_SECURITY_POLICY_HEADER_NAME: HeaderName =
     HeaderName::from_static("content-security-policy");
@@ -102,7 +100,14 @@ pub(crate) async fn check_new_device_login(
         .check_if_device_already_logged_in(pool)
         .await
     {
-        send_new_device_login_email(&user.email, session, created_device_login_event.created)?;
+        let mut conn = pool.begin().await?;
+        new_device_login_mail(
+            &user.email,
+            &mut conn,
+            Some(session),
+            created_device_login_event.created,
+        )
+        .await?;
     }
 
     Ok(())

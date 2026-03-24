@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { defaultUserAdmin, testsConfig, testUserTemplate } from '../config';
+import { defaultUserAdmin, routes, testsConfig, testUserTemplate } from '../config';
 import { NetworkForm, OpenIdClient, User } from '../types';
 import { apiCreateUser } from '../utils/api/users';
 import { loginBasic } from '../utils/controllers/login';
@@ -12,6 +12,7 @@ import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
 import { waitForPromise } from '../utils/waitForPromise';
+import { waitForRoute } from '../utils/waitForRoute';
 
 test.describe('External OIDC.', () => {
   const testUser: User = { ...testUserTemplate, username: 'test' };
@@ -51,27 +52,28 @@ test.describe('External OIDC.', () => {
   });
 
   // TODO: Finish when https://github.com/DefGuard/defguard/issues/1817 is resolved
-  // test('Login through external oidc.', async ({ page }) => {
-  //   expect(client.clientID).toBeDefined();
-  //   expect(client.clientSecret).toBeDefined();
-  //   await waitForBase(page);
-  //   const oidcLoginButton = await page.locator('.oidc-button');
-  //   expect(oidcLoginButton).not.toBeNull();
-  //   expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
-  //   await oidcLoginButton.click();
-  //   await page.getByTestId('login-form-username').fill(testUser.username);
-  //   await page.getByTestId('login-form-password').fill(testUser.password);
-  //   await page.getByTestId('login-form-submit').click();
-  //   await page.getByTestId('openid-allow').click();
-  //   await waitForRoute(page, routes.me);
-  //   const authorizedApps = await page
-  //     .getByTestId('authorized-apps')
-  //     .locator('div')
-  //     .textContent();
-  //   expect(authorizedApps).toContain(client.name);
-  // });
+  test.skip('Login through external oidc.', async ({ page }) => {
+    expect(client.clientID).toBeDefined();
+    expect(client.clientSecret).toBeDefined();
+    await waitForBase(page);
+    const oidcLoginButton = await page.locator('.oidc-button');
+    expect(oidcLoginButton).not.toBeNull();
+    expect(await oidcLoginButton.textContent()).toBe(`Sign in with ${client.name}`);
+    await oidcLoginButton.click();
+    await page.getByTestId('login-form-username').fill(testUser.username);
+    await page.getByTestId('login-form-password').fill(testUser.password);
+    await page.getByTestId('login-form-submit').click();
+    await page.getByTestId('openid-allow').click();
+    await waitForRoute(page, routes.me);
+    const authorizedApps = await page
+      .getByTestId('authorized-apps')
+      .locator('div')
+      .textContent();
+    expect(authorizedApps).toContain(client.name);
+  });
 
-  test('Sign in with external SSO', async ({ page }) => {
+  // TODO: enable when https://github.com/DefGuard/defguard/issues/2426 is fixed
+  test.skip('Sign in with external SSO', async ({ page }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
     await waitForPromise(2000);

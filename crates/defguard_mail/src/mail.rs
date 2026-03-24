@@ -1,6 +1,9 @@
 use std::{str::FromStr, time::Duration};
 
-use defguard_common::db::models::{Settings, settings::SmtpEncryption};
+use defguard_common::db::models::{
+    Settings,
+    settings::{SmtpEncryption, defaults::WELCOME_EMAIL_SUBJECT},
+};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Body, Mailbox, MultiPart, SinglePart, header::ContentType},
@@ -89,10 +92,9 @@ pub struct Mail {
 impl Mail {
     /// Create new [`Mail`].
     #[must_use]
-    pub fn new<T, S>(to: T, subject: S, content: String) -> Mail
+    pub fn new<T>(to: T, subject: String, content: String) -> Mail
     where
         T: Into<String>,
-        S: Into<String>,
     {
         // Append images used in all templates.
         let images = vec![
@@ -104,7 +106,7 @@ impl Mail {
 
         Self {
             to: to.into(),
-            subject: subject.into(),
+            subject,
             content,
             context: Context::new(),
             attachments: Vec::new(),
@@ -246,7 +248,7 @@ impl Mail {
         tokio::spawn(self.send());
     }
 
-    /// Builds mailer object with specified configuration
+    /// Builds mailer object with specified configuration.
     fn mailer(settings: SmtpSettings) -> Result<AsyncSmtpTransport<Tokio1Executor>, MailError> {
         type Builder = AsyncSmtpTransport<Tokio1Executor>;
 
@@ -276,7 +278,7 @@ pub enum MailMessage {
     Test,
     Welcome,
     /// Information for Defguard support.
-    Support,
+    SupportData,
     DesktopStart,
     /// Information after starting an enrollment.
     NewAccount,
@@ -287,6 +289,7 @@ pub enum MailMessage {
     GatewayDisconnect,
     /// Gateway has reconnected.
     GatewayReconnect,
+    /// MFA activated.
     MFAActivation,
     MFAConfigured,
     /// MFA code.
@@ -294,71 +297,85 @@ pub enum MailMessage {
     PasswordReset,
     PasswordResetDone,
     UserImportBlocked,
+    /// Enrollment notification for admins.
+    EnrollmentNotification,
 }
 
 impl MailMessage {
     /// Email subject.
-    pub(crate) const fn subject(&self) -> &'static str {
+    pub(crate) fn subject(&self) -> String {
+        // Welcome message's subject should be taken from settings.
+        if let Self::Welcome = self {
+            let settings = Settings::get_current_settings();
+            if let Some(subject) = settings.enrollment_welcome_email_subject {
+                return subject;
+            }
+        }
         match self {
-            Self::Test => "Test message",
-            Self::Welcome => "Welcome message after enrollment",
-            Self::Support => "Support data",
+            Self::Test => "Defguard: Test message",
+            Self::Welcome => WELCOME_EMAIL_SUBJECT,
+            Self::SupportData => "Defguard: Support data",
             Self::DesktopStart => "Defguard: Desktop client configuration",
             Self::NewAccount => "Defguard: User enrollment",
             Self::NewDevice => "Defguard: new device added to your account",
-            Self::NewDeviceLogin => "New device logged in to your account",
+            Self::NewDeviceLogin => "Defguard: New device logged in to your account",
             Self::NewDeviceOCIDLogin => "New login to OCID application",
-            Self::GatewayDisconnect => "Gateway disconnected",
-            Self::GatewayReconnect => "Gateway reconnected",
+            Self::GatewayDisconnect => "Defguard: Gateway disconnected",
+            Self::GatewayReconnect => "Defguard: Gateway reconnected",
             Self::MFAActivation => "Multi-Factor Authentication activation",
             Self::MFAConfigured => "Multi-Factor Authentication {method} has been activated",
             Self::MFACode => "Defguard: Multi-Factor Authentication code for login",
-            Self::PasswordReset => "Password reset",
-            Self::PasswordResetDone => "Password reset success",
+            Self::PasswordReset => "Defguard: Password reset",
+            Self::PasswordResetDone => "Defguard: Password reset success",
             Self::UserImportBlocked => "User import blocked",
+            Self::EnrollmentNotification => "Defguard: User enrollment completed",
         }
+        .to_string()
     }
 
     pub(crate) const fn template_name(&self) -> &str {
         match self {
             Self::Test => "test",
             Self::Welcome => "welcome",
-            Self::Support => "support",
+            Self::SupportData => "support-data",
             Self::DesktopStart => "desktop-start",
             Self::NewAccount => "new-account",
             Self::NewDevice => "new-device",
-            Self::NewDeviceLogin => "new-device-loin",
-            Self::NewDeviceOCIDLogin => "new-device-login-ocid",
+            Self::NewDeviceLogin => "new-device-login",
+            Self::NewDeviceOCIDLogin => "new-device-ocid-login",
             Self::GatewayDisconnect => "gateway-disconnect",
             Self::GatewayReconnect => "gateway-reconnect",
             Self::MFAActivation => "mfa-activation",
-            Self::MFAConfigured => "mfa-configure",
+            Self::MFAConfigured => "mfa-configured",
             Self::MFACode => "mfa-code",
             Self::PasswordReset => "password-reset",
             Self::PasswordResetDone => "password-reset-done",
             Self::UserImportBlocked => "user-import-blocked",
+            Self::EnrollmentNotification => "enrollment-admin-notification",
         }
     }
 
     pub(crate) const fn mjml_template(&self) -> &str {
         match self {
-            // Self::Test => "",
-            // Self::Welcome => "",
-            // Self::Support => "",
+            Self::Test => include_str!("../templates/test.mjml"),
+            Self::Welcome => include_str!("../templates/enrollment-welcome.mjml"),
+            Self::SupportData => include_str!("../templates/support-data.mjml"),
             Self::DesktopStart => include_str!("../templates/desktop-start.mjml"),
             Self::NewAccount => include_str!("../templates/new-account.mjml"),
             Self::NewDevice => include_str!("../templates/new-device.mjml"),
-            // Self::NewDeviceLogin => "",
-            // Self::NewDeviceOCIDLogin => "",
-            // Self::GatewayDisconnect => "",
-            // Self::GatewayReconnect => "",
-            // Self::MFAActivation => "",
-            // Self::MFAConfigured => "",
+            Self::NewDeviceLogin => include_str!("../templates/new-device-login.mjml"),
+            Self::NewDeviceOCIDLogin => include_str!("../templates/new-device-ocid-login.mjml"),
+            Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.mjml"),
+            Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.mjml"),
+            Self::MFAActivation => include_str!("../templates/mfa-activation.mjml"),
+            Self::MFAConfigured => include_str!("../templates/mfa-configured.mjml"),
             Self::MFACode => include_str!("../templates/mfa-code.mjml"),
-            // Self::PasswordReset => "",
-            // Self::PasswordResetDone => "",
+            Self::PasswordReset => include_str!("../templates/password-reset.mjml"),
+            Self::PasswordResetDone => include_str!("../templates/password-reset-done.mjml"),
             Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
-            _ => "",
+            Self::EnrollmentNotification => {
+                include_str!("../templates/enrollment-admin-notification.mjml")
+            }
         }
     }
 
@@ -404,7 +421,7 @@ impl MailMessage {
                     }
                 }
             }
-            Self::MFACode => {
+            Self::MFACode | Self::MFAActivation => {
                 mail.add_png_image("date", DATE_ICON);
                 mail.add_png_image("otp", OTP_ICON);
             }

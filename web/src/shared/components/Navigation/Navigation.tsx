@@ -283,7 +283,7 @@ const NavItem = ({
     return false;
   }, [license, licenseTier]);
 
-  const showPending = isPresent(pendingCount) && pendingCount > 0;
+  const showPending = !showLock && isPresent(pendingCount) && pendingCount > 0;
   const showRight = showPending || (showLock && isPresent(licenseTier));
 
   return (

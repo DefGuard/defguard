@@ -20,7 +20,7 @@ use defguard_common::{
     },
     types::user_info::UserInfo,
 };
-use defguard_mail::templates::mfa_code_mail;
+use defguard_mail::templates::{mfa_activation_mail, mfa_code_mail, mfa_configured_mail};
 use sqlx::{PgPool, types::Uuid};
 use time::Duration;
 use uaparser::Parser;
@@ -40,11 +40,7 @@ use crate::{
     enterprise::ldap::{error::LdapError, utils::login_through_ldap},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{
-        SIGN_IN_COOKIE_NAME, cookie_domain,
-        mail::{send_email_mfa_activation_email, send_mfa_configured_email},
-        user_for_admin_or_self,
-    },
+    handlers::{SIGN_IN_COOKIE_NAME, cookie_domain, user_for_admin_or_self},
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
     server_config,
 };
@@ -489,9 +485,16 @@ pub async fn webauthn_finish(
         .save(&appstate.pool)
         .await?;
     if user.mfa_method == MFAMethod::None {
-        send_mfa_configured_email(Some(&session.session.into()), &user, &MFAMethod::Webauthn)?;
-        user.set_mfa_method(&appstate.pool, MFAMethod::Webauthn)
-            .await?;
+        let mut conn = appstate.pool.begin().await?;
+        mfa_configured_mail(
+            &user.email,
+            &mut conn,
+            Some(&session.session.into()),
+            &MFAMethod::Webauthn,
+        )
+        .await?;
+        user.set_mfa_method(&mut *conn, MFAMethod::Webauthn).await?;
+        conn.commit().await?;
     }
 
     info!("Finished Webauthn registration for user {}", user.username);
@@ -641,16 +644,20 @@ pub async fn totp_enable(
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
     if user.verify_totp_code(&data.code) {
-        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-        user.enable_totp(&appstate.pool).await?;
+        let mut conn = appstate.pool.begin().await?;
+        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&mut *conn).await?);
+        user.enable_totp(&mut *conn).await?;
         if user.mfa_method == MFAMethod::None {
-            send_mfa_configured_email(
+            mfa_configured_mail(
+                &user.email,
+                &mut conn,
                 Some(&session.session.into()),
-                &user,
                 &MFAMethod::OneTimePassword,
-            )?;
-            user.set_mfa_method(&appstate.pool, MFAMethod::OneTimePassword)
+            )
+            .await?;
+            user.set_mfa_method(&mut *conn, MFAMethod::OneTimePassword)
                 .await?;
+            conn.commit().await?;
         }
 
         info!("Enabled TOTP for user {}", user.username);
@@ -790,8 +797,19 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
     user.new_email_secret(&appstate.pool).await?;
     info!("Generated new email MFA secret for user {}", user.username);
 
+    // generate a verification code
+    let mut transaction = appstate.pool.begin().await?;
+    let code = user.generate_email_mfa_code()?;
+
     // send email with code
-    send_email_mfa_activation_email(&user, Some(&session.session.into()))?;
+    mfa_activation_mail(
+        &user.email,
+        &mut transaction,
+        &user.first_name,
+        &code,
+        Some(&session.session.into()),
+    )
+    .await?;
 
     Ok(ApiResponse::default())
 }
@@ -806,12 +824,19 @@ pub async fn email_mfa_enable(
     let mut user = session.user;
     debug!("Enabling email MFA for user {}", user.username);
     if user.verify_email_mfa_code(&data.code) {
-        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-        user.enable_email_mfa(&appstate.pool).await?;
+        let mut conn = appstate.pool.begin().await?;
+        let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&mut *conn).await?);
+        user.enable_email_mfa(&mut *conn).await?;
         if user.mfa_method == MFAMethod::None {
-            send_mfa_configured_email(Some(&session.session.into()), &user, &MFAMethod::Email)?;
-            user.set_mfa_method(&appstate.pool, MFAMethod::Email)
-                .await?;
+            mfa_configured_mail(
+                &user.email,
+                &mut conn,
+                Some(&session.session.into()),
+                &MFAMethod::Email,
+            )
+            .await?;
+            user.set_mfa_method(&mut *conn, MFAMethod::Email).await?;
+            conn.commit().await?;
         }
 
         info!("Enabled email MFA for user {}", user.username);

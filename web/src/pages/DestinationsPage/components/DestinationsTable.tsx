@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import {
   type AclDestination,
   AclProtocolName,
@@ -71,6 +72,12 @@ export const DestinationsTable = ({
     getLicenseInfoQueryOptions,
   );
 
+  const { mutate: applyDestinations } = useMutation({
+    mutationFn: api.acl.destination.applyDestinations,
+    meta: {
+      invalidate: ['acl'],
+    },
+  });
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -207,6 +214,18 @@ export const DestinationsTable = ({
               ],
             },
           ];
+          if (row.state === 'Modified') {
+            menuItems[0].items.splice(1, 0, {
+              text: 'Deploy',
+              icon: 'deploy',
+              onClick: () => {
+                if (licenseInfo === undefined) return;
+                licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
+                  applyDestinations([row.id]);
+                });
+              },
+            });
+          }
           return <TableEditCell menuItems={menuItems} disabled={licenseFetching} />;
         },
       }),
@@ -218,6 +237,7 @@ export const DestinationsTable = ({
       licenseFetching,
       licenseInfo,
       disableBlockedModal,
+      applyDestinations,
     ],
   );
 

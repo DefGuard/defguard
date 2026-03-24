@@ -1,19 +1,16 @@
-use std::{
-    env,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 use jsonwebtoken::{
     DecodingKey, EncodingKey, Header, Validation, decode, encode, errors::Error as JWTError,
 };
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+use crate::db::models::{Settings, settings::SettingsInitializationError};
 
 pub static JWT_ISSUER: &str = "DefGuard";
-pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
-pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
-pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ClaimsType {
     #[default]
     Auth,
@@ -22,11 +19,22 @@ pub enum ClaimsType {
     DesktopClient,
 }
 
+#[derive(Debug, Error)]
+pub enum ClaimsError {
+    #[error("Failed to read JWT signing key from settings: {0}")]
+    Settings(#[from] SettingsInitializationError),
+    #[error("JWT processing failed: {0}")]
+    Jwt(#[from] JWTError),
+    #[error("JWT claims type mismatch: expected {expected:?}, got {actual:?}")]
+    UnexpectedClaimsType {
+        expected: ClaimsType,
+        actual: ClaimsType,
+    },
+}
+
 /// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
 #[derive(Deserialize, Serialize)]
 pub struct Claims {
-    #[serde(skip_serializing, skip_deserializing)]
-    secret: String,
     // issuer
     pub iss: String,
     // subject
@@ -37,6 +45,7 @@ pub struct Claims {
     pub exp: u64,
     // not before
     pub nbf: u64,
+    pub claims_type: ClaimsType,
 }
 
 impl Claims {
@@ -54,45 +63,52 @@ impl Claims {
             .expect("valid timestamp")
             .as_secs();
         Self {
-            secret: Self::get_secret(claims_type),
             iss: JWT_ISSUER.to_string(),
             sub,
             client_id,
             exp,
             nbf,
+            claims_type,
         }
     }
 
-    fn get_secret(claims_type: ClaimsType) -> String {
-        let env_var = match claims_type {
-            ClaimsType::Auth | ClaimsType::DesktopClient => AUTH_SECRET_ENV,
-            ClaimsType::Gateway => GATEWAY_SECRET_ENV,
-            ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
-        };
-        env::var(env_var).unwrap_or_default()
+    fn encoding_key() -> Result<EncodingKey, ClaimsError> {
+        let settings = Settings::get_current_settings();
+        Ok(EncodingKey::from_secret(
+            settings.secret_key_required()?.as_bytes(),
+        ))
+    }
+
+    fn decoding_key() -> Result<DecodingKey, ClaimsError> {
+        let settings = Settings::get_current_settings();
+        Ok(DecodingKey::from_secret(
+            settings.secret_key_required()?.as_bytes(),
+        ))
     }
 
     /// Convert claims to JWT.
-    pub fn to_jwt(&self) -> Result<String, JWTError> {
-        encode(
-            &Header::default(),
-            self,
-            &EncodingKey::from_secret(self.secret.as_bytes()),
-        )
+    pub fn to_jwt(&self) -> Result<String, ClaimsError> {
+        let encoding_key = Self::encoding_key()?;
+
+        encode(&Header::default(), self, &encoding_key).map_err(ClaimsError::from)
     }
 
     /// Verify JWT and, if successful, convert it to claims.
-    pub fn from_jwt(claims_type: ClaimsType, token: &str) -> Result<Self, JWTError> {
-        let secret = Self::get_secret(claims_type);
+    pub fn from_jwt(expected_claims_type: ClaimsType, token: &str) -> Result<Self, ClaimsError> {
+        let decoding_key = Self::decoding_key()?;
         let mut validation = Validation::default();
         validation.validate_nbf = true;
         validation.set_issuer(&[JWT_ISSUER]);
         validation.set_required_spec_claims(&["iss", "sub", "exp", "nbf"]);
-        decode::<Self>(
-            token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &validation,
-        )
-        .map(|data| data.claims)
+        let claims = decode::<Self>(token, &decoding_key, &validation).map(|data| data.claims)?;
+
+        if claims.claims_type != expected_claims_type {
+            return Err(ClaimsError::UnexpectedClaimsType {
+                expected: expected_claims_type,
+                actual: claims.claims_type,
+            });
+        }
+
+        Ok(claims)
     }
 }

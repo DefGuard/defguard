@@ -5,6 +5,8 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { EmptyStateFlexible } from '../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { TableTop } from '../../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { getAliasesQueryOptions, getRulesQueryOptions } from '../../../shared/query';
+import { canUseBusinessFeature, licenseActionCheck } from '../../../shared/utils/license';
+import { useRuleDeps } from '../../RulesPage/useRuleDeps';
 import { AliasTable } from '../AliasTable';
 
 export const AliasesPendingTab = () => {
@@ -12,6 +14,7 @@ export const AliasesPendingTab = () => {
     ...getAliasesQueryOptions,
     select: (resp) => resp.data.filter((alias) => alias.state !== AclStatus.Applied),
   });
+  const { license, loading } = useRuleDeps();
   const { data: rules } = useSuspenseQuery(getRulesQueryOptions);
   const isEmpty = aliases.length === 0;
   const { mutate: applyAliases, isPending } = useMutation({
@@ -39,8 +42,12 @@ export const AliasesPendingTab = () => {
                 iconLeft="deploy"
                 text={`Deploy all pending (${aliases.length})`}
                 loading={isPending}
+                disabled={loading}
                 onClick={() => {
-                  applyAliases(aliases.map((alias) => alias.id));
+                  if (license === undefined) return;
+                  licenseActionCheck(canUseBusinessFeature(license), () => {
+                    applyAliases(aliases.map((alias) => alias.id));
+                  });
                 }}
               />
             )}

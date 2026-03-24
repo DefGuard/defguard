@@ -59,7 +59,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let mut config = DefGuardConfig::new();
     let log_filter = format!(
-        "{},defguard_core::handlers::component_setup=debug",
+        "{},defguard_core::handlers::component_setup=debug,defguard_setup::auto_adoption=debug",
         config.log_level
     );
 
@@ -258,7 +258,6 @@ async fn main() -> Result<(), anyhow::Error> {
             pool.clone(),
             grpc_cert,
             grpc_key,
-            failed_logins.clone(),
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,

@@ -1,0 +1,25 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section>
+  <mj-column mj-class="s-3xl">
+    <mj-text>
+      <p>
+        {{ gateway_label }} {{ gateway_name }}
+      </p>
+      <p>
+        {{ ip_address_label }} {{ ip_address }}
+      </p>
+      <p>
+        {{ location_label }} {{ location_name }}
+      </p>
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}

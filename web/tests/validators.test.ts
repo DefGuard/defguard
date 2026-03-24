@@ -1,0 +1,719 @@
+import { describe, expect, it } from 'vitest';
+import { Validate } from '../src/shared/validate';
+import { aclDestinationValidator, aclPortsValidator } from '../src/shared/validators';
+
+describe('Validate.IPv4', () => {
+  it('should accept valid IPv4 addresses', () => {
+    expect(Validate.IPv4('192.168.1.1')).toBe(true);
+    expect(Validate.IPv4('10.0.0.1')).toBe(true);
+    expect(Validate.IPv4('172.16.0.1')).toBe(true);
+    expect(Validate.IPv4('255.255.255.255')).toBe(true);
+    expect(Validate.IPv4('0.0.0.0')).toBe(true);
+  });
+
+  it('should reject invalid IPv4 addresses', () => {
+    expect(Validate.IPv4('1')).toBe(false);
+    expect(Validate.IPv4('256.1.1.1')).toBe(false);
+    expect(Validate.IPv4('192.168.1')).toBe(false);
+    expect(Validate.IPv4('192.168.1.1.1')).toBe(false);
+    expect(Validate.IPv4('abc.def.ghi.jkl')).toBe(false);
+    expect(Validate.IPv4('192.168.1.1/24')).toBe(false);
+  });
+
+  it('should reject empty strings', () => {
+    expect(Validate.IPv4('')).toBe(false);
+  });
+});
+
+describe('Validate.IPv4withPort', () => {
+  it('should accept valid IPv4 with port', () => {
+    expect(Validate.IPv4withPort('192.168.1.1:8080')).toBe(true);
+    expect(Validate.IPv4withPort('10.0.0.1:80')).toBe(true);
+    expect(Validate.IPv4withPort('127.0.0.1:5051')).toBe(true);
+    expect(Validate.IPv4withPort('192.168.1.1:65535')).toBe(true);
+  });
+
+  it('should reject IPv4 without port', () => {
+    expect(Validate.IPv4withPort('192.168.1.1')).toBe(false);
+  });
+
+  it('should reject missing port value', () => {
+    expect(Validate.IPv4withPort('192.168.1.1:')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.IPv4withPort('')).toBe(false);
+  });
+
+  it('should reject invalid port numbers', () => {
+    expect(Validate.IPv4withPort('192.168.1.1:0')).toBe(false);
+    expect(Validate.IPv4withPort('192.168.1.1:65536')).toBe(false);
+    expect(Validate.IPv4withPort('192.168.1.1:99999')).toBe(false);
+  });
+
+  it('should reject invalid IPv4 format', () => {
+    expect(Validate.IPv4withPort('256.1.1.1:8080')).toBe(false);
+    expect(Validate.IPv4withPort('192.168.1:8080')).toBe(false);
+  });
+});
+
+describe('Validate.IPv6', () => {
+  it('should accept valid IPv6 addresses', () => {
+    expect(Validate.IPv6('2001:db8::1')).toBe(true);
+    expect(Validate.IPv6('::1')).toBe(true);
+    expect(Validate.IPv6('::')).toBe(true);
+    expect(Validate.IPv6('2001:0db8:0000:0000:0000:0000:0000:0001')).toBe(true);
+    expect(Validate.IPv6('fe80::1')).toBe(true);
+  });
+
+  it('should reject invalid IPv6 addresses', () => {
+    expect(Validate.IPv6('192.168.1.1')).toBe(false);
+    expect(Validate.IPv6('gggg::1')).toBe(false);
+    expect(Validate.IPv6('invalid')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.IPv6('')).toBe(false);
+  });
+});
+
+describe('Validate.IPv6withPort', () => {
+  it('should accept valid IPv6 with port in brackets', () => {
+    expect(Validate.IPv6withPort('[::1]:8080')).toBe(true);
+    expect(Validate.IPv6withPort('[2001:db8::1]:80')).toBe(true);
+    expect(Validate.IPv6withPort('[fe80::1]:65535')).toBe(true);
+  });
+
+  it('should reject IPv6 without brackets', () => {
+    expect(Validate.IPv6withPort('::1:8080')).toBe(false);
+    expect(Validate.IPv6withPort('2001:db8::1:8080')).toBe(false);
+  });
+
+  it('should reject IPv6 without port', () => {
+    expect(Validate.IPv6withPort('[::1]')).toBe(false);
+  });
+
+  it('should reject invalid port numbers', () => {
+    expect(Validate.IPv6withPort('[::1]:0')).toBe(false);
+    expect(Validate.IPv6withPort('[::1]:65536')).toBe(false);
+  });
+
+  it('should reject empty brackets', () => {
+    expect(Validate.IPv6withPort('[]:8080')).toBe(false);
+  });
+
+  it('should reject missing closing bracket', () => {
+    expect(Validate.IPv6withPort('[::1:8080')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.IPv6withPort('')).toBe(false);
+  });
+});
+
+describe('Validate.CIDRv4', () => {
+  it('should accept valid IPv4 CIDR notation', () => {
+    expect(Validate.CIDRv4('192.168.1.0/24')).toBe(true);
+    expect(Validate.CIDRv4('10.0.0.0/8')).toBe(true);
+    expect(Validate.CIDRv4('172.16.0.0/12')).toBe(true);
+    expect(Validate.CIDRv4('192.168.1.1/32')).toBe(true);
+    expect(Validate.CIDRv4('192.168.1.0/1')).toBe(true);
+  });
+
+  it('should reject CIDR with /0 mask', () => {
+    expect(Validate.CIDRv4('192.168.1.0/0')).toBe(false);
+  });
+
+  it('should accept CIDR with /0 mask when allow_zero is true', () => {
+    expect(Validate.CIDRv4('0.0.0.0/0', true)).toBe(true);
+    expect(Validate.CIDRv4('192.168.1.0/0', true)).toBe(true);
+  });
+
+  it('should reject invalid CIDR masks', () => {
+    expect(Validate.CIDRv4('192.168.1.0/33')).toBe(false);
+    expect(Validate.CIDRv4('192.168.1.0/99')).toBe(false);
+  });
+
+  it('should reject IPv4 without CIDR mask', () => {
+    expect(Validate.CIDRv4('192.168.1.1')).toBe(false);
+  });
+
+  it('should reject invalid IPv4 in CIDR', () => {
+    expect(Validate.CIDRv4('256.1.1.1/24')).toBe(false);
+    expect(Validate.CIDRv4('192.168.1/24')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.CIDRv4('')).toBe(false);
+  });
+
+  it('should reject leading zeros in IP', () => {
+    expect(Validate.CIDRv4('01.168.1.0/24')).toBe(false);
+    expect(Validate.CIDRv4('001.002.003.004/24')).toBe(false);
+  });
+});
+
+describe('Validate.CIDRv6', () => {
+  it('should accept valid IPv6 CIDR notation', () => {
+    expect(Validate.CIDRv6('2001:db8::/32')).toBe(true);
+    expect(Validate.CIDRv6('fe80::/10')).toBe(true);
+    expect(Validate.CIDRv6('::1/128')).toBe(true);
+  });
+
+  it('should reject CIDR with /0 mask', () => {
+    expect(Validate.CIDRv6('2001:db8::/0')).toBe(false);
+  });
+
+  it('should accept CIDR with /0 mask when allow_zero is true', () => {
+    expect(Validate.CIDRv6('::/0', true)).toBe(true);
+    expect(Validate.CIDRv6('2001:db8::/0', true)).toBe(true);
+  });
+
+  it('should reject invalid CIDR masks', () => {
+    expect(Validate.CIDRv6('2001:db8::/129')).toBe(false);
+  });
+
+  it('should reject IPv6 without CIDR mask', () => {
+    expect(Validate.CIDRv6('2001:db8::1')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.CIDRv6('')).toBe(false);
+  });
+});
+
+describe('Validate.Domain', () => {
+  it('should accept valid domain names', () => {
+    expect(Validate.Domain('example.com')).toBe(true);
+    expect(Validate.Domain('sub.example.com')).toBe(true);
+    expect(Validate.Domain('my-domain.co.uk')).toBe(true);
+    expect(Validate.Domain('test123.example.org')).toBe(true);
+  });
+
+  it('should reject domains with port', () => {
+    expect(Validate.Domain('example.com:8080')).toBe(false);
+  });
+
+  it('should reject invalid domain formats', () => {
+    expect(Validate.Domain('invalid domain')).toBe(false);
+    expect(Validate.Domain('example..com')).toBe(false);
+    expect(Validate.Domain('domain.secret.com')).toBe(true);
+  });
+
+  it('should reject single-label names (no TLD)', () => {
+    expect(Validate.Domain('localhost')).toBe(false);
+    expect(Validate.Domain('myserver')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.Domain('')).toBe(false);
+  });
+
+  it('should accept domain with protocol prefix', () => {
+    expect(Validate.Domain('https://example.com')).toBe(true);
+  });
+});
+
+describe('Validate.DomainWithPort', () => {
+  it('should accept valid domains with port', () => {
+    expect(Validate.DomainWithPort('example.com:8080')).toBe(true);
+    expect(Validate.DomainWithPort('sub.example.com:443')).toBe(true);
+    expect(Validate.DomainWithPort('test.org:3000')).toBe(true);
+  });
+
+  it('should reject domains without port', () => {
+    expect(Validate.DomainWithPort('example.com')).toBe(false);
+  });
+
+  it('should reject invalid port numbers', () => {
+    expect(Validate.DomainWithPort('example.com:0')).toBe(false);
+    expect(Validate.DomainWithPort('example.com:65536')).toBe(false);
+    expect(Validate.DomainWithPort('example.com:99999')).toBe(false);
+  });
+});
+
+describe('Validate.Port', () => {
+  it('should accept valid port numbers', () => {
+    expect(Validate.Port('1')).toBe(true);
+    expect(Validate.Port('80')).toBe(true);
+    expect(Validate.Port('443')).toBe(true);
+    expect(Validate.Port('8080')).toBe(true);
+    expect(Validate.Port('65535')).toBe(true);
+  });
+
+  it('should reject port 0', () => {
+    expect(Validate.Port('0')).toBe(false);
+  });
+
+  it('should reject ports above 65535', () => {
+    expect(Validate.Port('65536')).toBe(false);
+    expect(Validate.Port('99999')).toBe(false);
+  });
+
+  it('should reject non-numeric values', () => {
+    expect(Validate.Port('abc')).toBe(false);
+    expect(Validate.Port('12.34')).toBe(false);
+    expect(Validate.Port('')).toBe(false);
+  });
+
+  it('should reject negative numbers', () => {
+    expect(Validate.Port('-1')).toBe(false);
+  });
+});
+
+describe('Validate.any', () => {
+  it('should accept single valid value matching any validator', () => {
+    expect(Validate.any('192.168.1.1', [Validate.IPv4, Validate.IPv6])).toBe(true);
+    expect(Validate.any('2001:db8::1', [Validate.IPv4, Validate.IPv6])).toBe(true);
+    expect(Validate.any('example.com', [Validate.Domain, Validate.IPv4])).toBe(true);
+  });
+
+  it('should reject single value not matching any validator', () => {
+    expect(Validate.any('invalid', [Validate.IPv4, Validate.IPv6])).toBe(false);
+    expect(Validate.any('256.1.1.1', [Validate.IPv4, Validate.IPv6])).toBe(false);
+  });
+
+  it('should reject multiple values when allowList is false (default)', () => {
+    expect(Validate.any('192.168.1.1,10.0.0.1', [Validate.IPv4])).toBe(false);
+    expect(Validate.any('example.com,test.com', [Validate.Domain])).toBe(false);
+  });
+
+  it('should accept multiple valid values when allowList is true', () => {
+    expect(Validate.any('192.168.1.1,10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(
+      Validate.any('192.168.1.1,2001:db8::1', [Validate.IPv4, Validate.IPv6], true),
+    ).toBe(true);
+    expect(Validate.any('example.com,test.org', [Validate.Domain], true)).toBe(true);
+  });
+
+  it('should reject list with any invalid value when allowList is true', () => {
+    expect(Validate.any('192.168.1.1,invalid', [Validate.IPv4], true)).toBe(false);
+    expect(Validate.any('192.168.1.1,256.1.1.1', [Validate.IPv4], true)).toBe(false);
+  });
+
+  it('should handle mixed valid values with allowList', () => {
+    expect(
+      Validate.any(
+        '192.168.1.1,2001:db8::1,10.0.0.1',
+        [Validate.IPv4, Validate.IPv6],
+        true,
+      ),
+    ).toBe(true);
+    expect(
+      Validate.any('example.com,192.168.1.1', [Validate.Domain, Validate.IPv4], true),
+    ).toBe(true);
+  });
+
+  it('should handle custom split character', () => {
+    expect(Validate.any('192.168.1.1;10.0.0.1', [Validate.IPv4], true, ';')).toBe(true);
+    expect(Validate.any('192.168.1.1|10.0.0.1', [Validate.IPv4], true, '|')).toBe(true);
+  });
+
+  it('should handle whitespace in list', () => {
+    expect(Validate.any('192.168.1.1, 10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(Validate.any('192.168.1.1 , 10.0.0.1', [Validate.IPv4], true)).toBe(true);
+  });
+
+  it('should accept empty string with Empty validator in list', () => {
+    expect(Validate.any('', [Validate.IPv4, Validate.Empty], true)).toBe(true);
+  });
+});
+
+describe('Validate.all', () => {
+  it('should accept single value matching all validators', () => {
+    expect(Validate.all('192.168.1.1', [Validate.IPv4])).toBe(true);
+  });
+
+  it('should reject single value not matching all validators', () => {
+    expect(Validate.all('192.168.1.1', [Validate.IPv4, Validate.IPv6])).toBe(false);
+    expect(Validate.all('invalid', [Validate.IPv4])).toBe(false);
+  });
+
+  it('should accept empty string or undefined', () => {
+    expect(Validate.all('', [Validate.IPv4])).toBe(true);
+    expect(Validate.all(undefined, [Validate.IPv4])).toBe(true);
+  });
+
+  it('should reject multiple values when allowList is false (default)', () => {
+    expect(Validate.all('192.168.1.1,10.0.0.1', [Validate.IPv4])).toBe(false);
+  });
+
+  it('should accept multiple valid values when allowList is true', () => {
+    expect(Validate.all('192.168.1.1,10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(Validate.all('example.com,test.org', [Validate.Domain], true)).toBe(true);
+  });
+
+  it('should reject if any value does not match all validators when allowList is true', () => {
+    expect(Validate.all('192.168.1.1,invalid', [Validate.IPv4], true)).toBe(false);
+    expect(Validate.all('192.168.1.1,256.1.1.1', [Validate.IPv4], true)).toBe(false);
+  });
+
+  it('should handle custom split character', () => {
+    expect(Validate.all('192.168.1.1;10.0.0.1', [Validate.IPv4], true, ';')).toBe(true);
+    expect(Validate.all('192.168.1.1|10.0.0.1', [Validate.IPv4], true, '|')).toBe(true);
+  });
+
+  it('should handle whitespace in list', () => {
+    expect(Validate.all('192.168.1.1, 10.0.0.1', [Validate.IPv4], true)).toBe(true);
+    expect(
+      Validate.all('192.168.1.1 , 10.0.0.1 , 172.16.0.1', [Validate.IPv4], true),
+    ).toBe(true);
+  });
+});
+
+describe('Validate.Empty', () => {
+  it('should accept empty string', () => {
+    expect(Validate.Empty('')).toBe(true);
+  });
+
+  it('should reject non-empty string', () => {
+    expect(Validate.Empty('hello')).toBe(false);
+    expect(Validate.Empty(' ')).toBe(false);
+    expect(Validate.Empty('0')).toBe(false);
+  });
+});
+
+describe('Validate.Hostname', () => {
+  it('should accept valid single-label hostnames', () => {
+    expect(Validate.Hostname('localhost')).toBe(true);
+    expect(Validate.Hostname('myserver')).toBe(true);
+    expect(Validate.Hostname('web01')).toBe(true);
+    expect(Validate.Hostname('a')).toBe(true);
+  });
+
+  it('should accept hostnames with hyphens', () => {
+    expect(Validate.Hostname('my-server')).toBe(true);
+    expect(Validate.Hostname('host-01-prod')).toBe(true);
+  });
+
+  it('should reject hostnames starting with hyphen', () => {
+    expect(Validate.Hostname('-invalid')).toBe(false);
+  });
+
+  it('should reject hostnames ending with hyphen', () => {
+    expect(Validate.Hostname('invalid-')).toBe(false);
+  });
+
+  it('should reject FQDNs (multi-label with dots)', () => {
+    expect(Validate.Hostname('example.com')).toBe(false);
+    expect(Validate.Hostname('sub.domain.com')).toBe(false);
+  });
+
+  it('should reject empty string', () => {
+    expect(Validate.Hostname('')).toBe(false);
+  });
+
+  it('should reject hostnames with special characters', () => {
+    expect(Validate.Hostname('my_server')).toBe(false);
+    expect(Validate.Hostname('host name')).toBe(false);
+    expect(Validate.Hostname('host@name')).toBe(false);
+  });
+});
+
+describe('aclPortsValidator', () => {
+  const schema = aclPortsValidator;
+
+  const isValid = (value: string): boolean => {
+    try {
+      schema.parse(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  describe('Single ports', () => {
+    it('should accept valid port numbers', () => {
+      expect(isValid('80')).toBe(true);
+      expect(isValid('443')).toBe(true);
+      expect(isValid('8080')).toBe(true);
+      expect(isValid('0')).toBe(true);
+      expect(isValid('65535')).toBe(true);
+    });
+
+    it('should reject port above 65535', () => {
+      expect(isValid('65536')).toBe(false);
+      expect(isValid('99999')).toBe(false);
+    });
+
+    it('should reject non-numeric values', () => {
+      expect(isValid('abc')).toBe(false);
+      expect(isValid('80a')).toBe(false);
+      expect(isValid('twelve')).toBe(false);
+    });
+
+    it('should reject negative port numbers', () => {
+      expect(isValid('-1')).toBe(false);
+      expect(isValid('-80')).toBe(false);
+    });
+  });
+
+  describe('Port ranges', () => {
+    it('should accept valid port ranges', () => {
+      expect(isValid('80-443')).toBe(true);
+      expect(isValid('1024-65535')).toBe(true);
+      expect(isValid('0-1')).toBe(true);
+    });
+
+    it('should reject range where start equals end', () => {
+      expect(isValid('80-80')).toBe(false);
+    });
+
+    it('should reject range where start > end', () => {
+      expect(isValid('443-80')).toBe(false);
+      expect(isValid('65535-0')).toBe(false);
+    });
+
+    it('should reject range with trailing dash', () => {
+      expect(isValid('80-')).toBe(false);
+    });
+
+    it('should reject range with multiple dashes', () => {
+      expect(isValid('80-443-8080')).toBe(false);
+    });
+
+    it('should reject range with non-numeric values', () => {
+      expect(isValid('abc-def')).toBe(false);
+      expect(isValid('80-abc')).toBe(false);
+    });
+  });
+
+  describe('Comma-separated lists', () => {
+    it('should accept multiple ports', () => {
+      expect(isValid('80,443')).toBe(true);
+      expect(isValid('80,443,8080')).toBe(true);
+      expect(isValid('22,80,443,3000,8080')).toBe(true);
+    });
+
+    it('should accept mix of ports and ranges', () => {
+      expect(isValid('80,443-8080,9090')).toBe(true);
+      expect(isValid('22,80-443,8080-9090')).toBe(true);
+    });
+
+    it('should reject trailing comma', () => {
+      expect(isValid('80,')).toBe(false);
+      expect(isValid('80,443,')).toBe(false);
+    });
+
+    it('should reject leading comma', () => {
+      expect(isValid(',80')).toBe(false);
+    });
+
+    it('should reject empty tokens between commas', () => {
+      expect(isValid('80,,443')).toBe(false);
+    });
+
+    it('should reject if any entry is invalid', () => {
+      expect(isValid('80,abc,443')).toBe(false);
+      expect(isValid('80,65536')).toBe(false);
+      expect(isValid('80,443-80')).toBe(false);
+    });
+  });
+
+  describe('Whitespace handling', () => {
+    it('should accept entries with whitespace', () => {
+      expect(isValid(' 80 , 443 ')).toBe(true);
+      expect(isValid('80 , 443')).toBe(true);
+      expect(isValid('80 - 443')).toBe(true);
+    });
+  });
+
+  describe('Empty input', () => {
+    it('should accept empty string', () => {
+      expect(isValid('')).toBe(true);
+    });
+
+    it('should accept whitespace-only string', () => {
+      expect(isValid('  ')).toBe(true);
+    });
+  });
+});
+
+describe('aclDestinationValidator', () => {
+  const schema = aclDestinationValidator;
+
+  // Helper function to test validator
+  const isValid = (value: string): boolean => {
+    try {
+      schema.parse(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  describe('Single IP addresses', () => {
+    it('should accept valid IPv4 address', () => {
+      expect(isValid('192.168.1.1')).toBe(true);
+      expect(isValid('10.0.0.1')).toBe(true);
+      expect(isValid('172.16.0.1')).toBe(true);
+    });
+
+    it('should accept valid IPv6 address', () => {
+      expect(isValid('2001:db8::1')).toBe(true);
+      expect(isValid('::1')).toBe(true);
+      expect(isValid('fe80::1')).toBe(true);
+    });
+
+    it('should accept empty string', () => {
+      expect(isValid('')).toBe(true);
+    });
+
+    it('should reject invalid IP address', () => {
+      expect(isValid('256.1.1.1')).toBe(false);
+      expect(isValid('invalid')).toBe(false);
+      expect(isValid('192.168.1')).toBe(false);
+    });
+  });
+
+  describe('CIDR notation', () => {
+    it('should accept valid IPv4 CIDR', () => {
+      expect(isValid('192.168.1.0/24')).toBe(true);
+      expect(isValid('10.0.0.0/8')).toBe(true);
+      expect(isValid('172.16.0.0/16')).toBe(true);
+    });
+
+    it('should accept valid IPv6 CIDR', () => {
+      expect(isValid('2001:db8::/32')).toBe(true);
+      expect(isValid('fe80::/10')).toBe(true);
+    });
+
+    it('should reject invalid CIDR', () => {
+      expect(isValid('192.168.1.0/33')).toBe(false);
+      expect(isValid('256.1.1.1/24')).toBe(false);
+    });
+  });
+
+  describe('IP ranges', () => {
+    it('should accept valid IPv4 range', () => {
+      expect(isValid('192.168.1.1-192.168.1.10')).toBe(true);
+      expect(isValid('10.0.0.1-10.0.0.100')).toBe(true);
+    });
+
+    it('should accept IPv4 range where end is larger than start', () => {
+      expect(isValid('10.1.80.2-10.1.80.10')).toBe(true);
+      expect(isValid('192.168.1.9-192.168.1.100')).toBe(true);
+      expect(isValid('10.0.0.99-10.0.0.100')).toBe(true);
+    });
+
+    it('should accept valid IPv6 range', () => {
+      expect(isValid('2001:db8::1-2001:db8::10')).toBe(true);
+      expect(isValid('::1-::ffff')).toBe(true);
+    });
+
+    it('should accept range with whitespace', () => {
+      expect(isValid('192.168.1.1 - 192.168.1.10')).toBe(true);
+    });
+
+    it('should reject range where start equals end', () => {
+      expect(isValid('192.168.1.1-192.168.1.1')).toBe(false);
+      expect(isValid('2001:db8::1-2001:db8::1')).toBe(false);
+    });
+
+    it('should reject range where start > end', () => {
+      expect(isValid('192.168.1.10-192.168.1.1')).toBe(false);
+      expect(isValid('10.1.80.10-10.1.80.2')).toBe(false);
+      expect(isValid('2001:db8::10-2001:db8::1')).toBe(false);
+    });
+
+    it('should reject range with CIDR notation', () => {
+      expect(isValid('192.168.1.0/24-192.168.1.10')).toBe(false);
+      expect(isValid('192.168.1.1-192.168.1.0/24')).toBe(false);
+    });
+
+    it('should reject range with mixed IP versions', () => {
+      expect(isValid('192.168.1.1-2001:db8::1')).toBe(false);
+    });
+
+    it('should reject range with invalid IP addresses', () => {
+      expect(isValid('256.1.1.1-192.168.1.10')).toBe(false);
+      expect(isValid('192.168.1.1-256.1.1.1')).toBe(false);
+      expect(isValid('invalid-192.168.1.10')).toBe(false);
+    });
+  });
+
+  describe('Multiple entries (comma-separated)', () => {
+    it('should accept multiple valid IPv4 addresses', () => {
+      expect(isValid('192.168.1.1,10.0.0.1')).toBe(true);
+      expect(isValid('192.168.1.1,10.0.0.1,172.16.0.1')).toBe(true);
+    });
+
+    it('should accept multiple valid IPv6 addresses', () => {
+      expect(isValid('2001:db8::1,fe80::1')).toBe(true);
+    });
+
+    it('should accept mix of IPs, CIDR and ranges', () => {
+      expect(isValid('192.168.1.1,10.0.0.0/8,172.16.1.1-172.16.1.10')).toBe(true);
+      expect(isValid('192.168.1.1,192.168.1.0/24,192.168.2.1-192.168.2.10')).toBe(true);
+    });
+
+    it('should accept entries with whitespace', () => {
+      expect(isValid('192.168.1.1, 10.0.0.1, 172.16.0.1')).toBe(true);
+      expect(isValid('192.168.1.1 , 10.0.0.1')).toBe(true);
+    });
+
+    it('should reject if any entry is invalid', () => {
+      expect(isValid('192.168.1.1,invalid')).toBe(false);
+      expect(isValid('192.168.1.1,256.1.1.1')).toBe(false);
+      expect(isValid('192.168.1.1,10.0.0.1-10.0.0.0')).toBe(false);
+    });
+  });
+
+  it('should handle IPv4 boundary values in ranges', () => {
+    expect(isValid('0.0.0.1-0.0.0.255')).toBe(true);
+    expect(isValid('255.255.255.0-255.255.255.255')).toBe(true);
+  });
+
+  it('should correctly compare multi-digit octets', () => {
+    expect(isValid('10.1.80.2-10.1.80.8')).toBe(true);
+    expect(isValid('10.1.80.2-10.1.80.10')).toBe(true);
+    expect(isValid('192.168.1.9-192.168.1.10')).toBe(true);
+    expect(isValid('192.168.1.99-192.168.1.100')).toBe(true);
+    expect(isValid('10.10.10.10-10.10.10.100')).toBe(true);
+  });
+
+  describe('Dotted mask notation', () => {
+    it('should accept valid dotted subnet masks', () => {
+      expect(isValid('192.168.1.0/255.255.255.0')).toBe(true);
+      expect(isValid('10.0.0.0/255.0.0.0')).toBe(true);
+      expect(isValid('172.16.0.0/255.255.0.0')).toBe(true);
+      expect(isValid('192.168.1.0/255.255.255.128')).toBe(true);
+    });
+
+    it('should reject invalid dotted subnet masks', () => {
+      expect(isValid('192.168.1.0/255.255.255.1')).toBe(false);
+      expect(isValid('192.168.1.0/255.0.255.0')).toBe(false);
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should reject trailing comma', () => {
+      expect(isValid('192.168.1.1,')).toBe(false);
+    });
+
+    it('should reject leading comma', () => {
+      expect(isValid(',192.168.1.1')).toBe(false);
+    });
+
+    it('should reject empty tokens between commas', () => {
+      expect(isValid('192.168.1.1,,10.0.0.1')).toBe(false);
+    });
+
+    it('should reject double slash in CIDR', () => {
+      expect(isValid('192.168.1.0//24')).toBe(false);
+    });
+
+    it('should reject just a slash', () => {
+      expect(isValid('/')).toBe(false);
+    });
+
+    it('should reject domain names', () => {
+      expect(isValid('example.com')).toBe(false);
+      expect(isValid('localhost')).toBe(false);
+    });
+
+    it('should reject IP with port', () => {
+      expect(isValid('192.168.1.1:80')).toBe(false);
+    });
+  });
+});

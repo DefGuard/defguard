@@ -17,6 +17,11 @@ export const dockerUp = () => {
   execSync(create_snapshot);
 };
 
+export const dockerCreateSnapshot = () => {
+  const create_snapshot = `${dockerCompose} exec db pg_dump -U defguard -Fc -f /tmp/defguard_backup.dump defguard`;
+  execSync(create_snapshot);
+};
+
 export const dockerCheckContainers = (): boolean => {
   const command = `${dockerCompose} ps -q`;
   const containers = execSync(command).toString().trim();
@@ -27,11 +32,18 @@ export const dockerRestart = () => {
   if (!dockerCheckContainers()) {
     dockerUp();
   } else {
+    // Stop core first to avoid crashing due to terminated DB connections during restore.
+    const stop_core = `${dockerCompose} stop core`;
+    execSync(stop_core);
     const restore = `${dockerCompose} exec db pg_restore --clean -U defguard -d defguard /tmp/defguard_backup.dump`;
     execSync(restore);
     const restart = `${dockerCompose} restart db`;
     execSync(restart);
     const wait_for_db = `${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done'`;
     execSync(wait_for_db);
+    const start_core = `${dockerCompose} start core`;
+    execSync(start_core);
+    const wait_for_core = `until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`;
+    execSync(wait_for_core);
   }
 };

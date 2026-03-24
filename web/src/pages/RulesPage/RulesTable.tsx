@@ -5,7 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { cloneDeep, flat } from 'radashi';
+import { cloneDeep } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
@@ -16,12 +16,9 @@ import {
   type AclRule,
   AclStatus,
   type AclStatusValue,
-  type GroupInfo,
   type LicenseInfo,
-  type NetworkDevice,
   type NetworkLocation,
   type ResourceById,
-  type User,
 } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
 import { Badge } from '../../shared/defguard-ui/components/Badge/Badge';
@@ -40,17 +37,7 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
-
-const displayUser = (user?: User): string => {
-  if (!isPresent(user)) return '';
-
-  if (user.first_name || user.last_name) {
-    return `${user.first_name} ${user.last_name}`.trim();
-  }
-  return user.username;
-};
 
 type RowData = AclRule;
 
@@ -60,9 +47,6 @@ type Props = {
   license: LicenseInfo | null;
   aliases: ResourceById<AclAlias>;
   destinations: ResourceById<AclDestination>;
-  groups: ResourceById<GroupInfo>;
-  users: ResourceById<User>;
-  devices: ResourceById<NetworkDevice>;
   locations: ResourceById<NetworkLocation>;
   data: AclRule[];
   title: string;
@@ -83,15 +67,25 @@ export const RulesTable = ({
   enableSearch,
   aliases,
   destinations,
-  devices,
-  groups,
-  users,
   locations,
   data,
   license,
   variant,
 }: Props) => {
   const navigate = useNavigate();
+
+  const renderResourceBadge = useCallback(
+    (marker: 'A' | 'D', key: string, text: string) => (
+      <Badge
+        className="rules-table-destination-badge"
+        data-marker={marker}
+        variant={BadgeVariant.Neutral}
+        text={text}
+        key={key}
+      />
+    ),
+    [],
+  );
 
   const { mutate: deleteRule } = useMutation({
     mutationFn: api.acl.rule.deleteRule,
@@ -118,53 +112,6 @@ export const RulesTable = ({
   });
 
   const [search, setSearch] = useState('');
-
-  const renderPermissionCell = useCallback(
-    (
-      permission: 'deny' | 'allow',
-      permissionUsers: boolean,
-      permissionGroup: boolean,
-      permissionDevice: boolean,
-      includedUsers: number[],
-      includedGroups: number[],
-      includedDevices: number[],
-    ) => {
-      if (permissionDevice && permissionGroup && permissionUsers) {
-        return (
-          <TableCell>
-            {permission === 'allow' && (
-              <Badge
-                variant={BadgeVariant.Success}
-                icon="check-filled"
-                text="All allowed"
-              />
-            )}
-            {permission === 'deny' && (
-              <Badge
-                variant={BadgeVariant.Warning}
-                icon="status-important"
-                text="All denied"
-              />
-            )}
-          </TableCell>
-        );
-      }
-      const display = flat([
-        permissionUsers
-          ? ['All users']
-          : includedUsers.map((userId) => displayUser(users[userId])),
-        permissionGroup
-          ? ['All groups']
-          : includedGroups.map((groupId) => groups[groupId]?.name ?? ''),
-        permissionDevice
-          ? ['All network devices']
-          : includedDevices.map((deviceId) => devices[deviceId]?.name ?? ''),
-      ]).filter((value) => value.length > 0);
-
-      return <TableValuesListCell values={display} />;
-    },
-    [users, devices, groups],
-  );
 
   const renderStatusCell = useCallback(
     (ruleState: AclStatusValue, isEnabled: boolean) => {
@@ -212,42 +159,20 @@ export const RulesTable = ({
         ),
       }),
       columnHelper.display({
-        id: 'destination',
-        header: 'Destination',
-        minSize: 350,
+        id: 'predefined-destinations',
+        header: 'Predefined destinations',
+        minSize: 300,
         cell: (info) => {
           const row = info.row.original;
-          const manualAddresses = row.addresses.trim();
-          const hasManualAddresses = manualAddresses.length > 0;
-
           return (
-            <TableCell>
+            <TableCell className="rules-table-destination-cell">
               {row.destinations.map((destinationId) => {
                 const destination = destinations[destinationId];
                 if (!destination) return null;
-                return (
-                  <Badge
-                    className="rules-table-destination-badge"
-                    data-marker="D"
-                    variant={BadgeVariant.Neutral}
-                    text={destination.name}
-                    key={destinationId}
-                  />
-                );
-              })}
-              {hasManualAddresses && <span>{manualAddresses}</span>}
-              {row.aliases.map((aliasId) => {
-                const alias = aliases[aliasId];
-                if (!alias) return null;
-
-                return (
-                  <Badge
-                    className="rules-table-destination-badge"
-                    data-marker="A"
-                    variant={BadgeVariant.Neutral}
-                    text={alias.name}
-                    key={aliasId}
-                  />
+                return renderResourceBadge(
+                  'D',
+                  `destination-${destinationId}`,
+                  destination.name,
                 );
               })}
             </TableCell>
@@ -255,36 +180,28 @@ export const RulesTable = ({
         },
       }),
       columnHelper.display({
-        id: 'permissions',
-        header: 'Permissions',
-        minSize: 220,
+        id: 'manual-destinations',
+        header: 'Manually configured destination',
+        minSize: 300,
         cell: (info) => {
           const row = info.row.original;
-          return renderPermissionCell(
-            'allow',
-            row.allow_all_users,
-            row.allow_all_groups,
-            row.allow_all_network_devices,
-            row.allowed_users,
-            row.allowed_groups,
-            row.allowed_network_devices,
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'restrictions',
-        header: 'Restrictions',
-        minSize: 220,
-        cell: (info) => {
-          const row = info.row.original;
-          return renderPermissionCell(
-            'deny',
-            row.deny_all_users,
-            row.deny_all_groups,
-            row.deny_all_network_devices,
-            row.denied_users,
-            row.denied_groups,
-            row.denied_network_devices,
+
+          if (!row.use_manual_destination_settings) {
+            return <TableCell className="rules-table-destination-cell" />;
+          }
+
+          const manualAddresses = row.addresses.trim();
+          const hasManualAddresses = manualAddresses.length > 0;
+
+          return (
+            <TableCell>
+              {hasManualAddresses && <span>{manualAddresses}</span>}
+              {row.aliases.map((aliasId) => {
+                const alias = aliases[aliasId];
+                if (!alias) return null;
+                return renderResourceBadge('A', `alias-${aliasId}`, alias.name);
+              })}
+            </TableCell>
           );
         },
       }),
@@ -352,7 +269,9 @@ export const RulesTable = ({
                   icon: 'disabled',
                   text: m.controls_disable(),
                   onClick: () => {
-                    toggleRule(row.id);
+                    licenseActionCheck(canUseBusinessFeature(license), () => {
+                      toggleRule(row.id);
+                    });
                   },
                 });
               } else {
@@ -360,7 +279,9 @@ export const RulesTable = ({
                   icon: 'check',
                   text: m.controls_enable(),
                   onClick: () => {
-                    toggleRule(row.id);
+                    licenseActionCheck(canUseBusinessFeature(license), () => {
+                      toggleRule(row.id);
+                    });
                   },
                 });
               }
@@ -369,8 +290,11 @@ export const RulesTable = ({
               topItems.push({
                 icon: 'deploy',
                 text: m.controls_deploy(),
+
                 onClick: () => {
-                  deployRule([row.id]);
+                  licenseActionCheck(canUseBusinessFeature(license), () => {
+                    deployRule([row.id]);
+                  });
                 },
               });
               break;
@@ -401,11 +325,11 @@ export const RulesTable = ({
     [
       aliases,
       destinations,
-      renderPermissionCell,
       deleteRule,
       locations,
       navigate,
       renderStatusCell,
+      renderResourceBadge,
       license,
       variant,
       toggleRule,
