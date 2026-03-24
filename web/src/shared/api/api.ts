@@ -530,6 +530,10 @@ const api = {
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
   info: () => client.get<ApplicationInfo>('/info'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
+  support: {
+    getSupportData: () => client.get<object>('/support/configuration'),
+    getLogs: () => client.get<string>('/support/logs'),
+  },
 } as const;
 
 export default api;

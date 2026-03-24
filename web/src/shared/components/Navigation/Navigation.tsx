@@ -151,6 +151,12 @@ const navigationConfig: NavGroupProps[] = [
         link: '/settings',
       },
       {
+        id: 'support',
+        icon: 'support',
+        label: m.cmp_nav_item_support(),
+        link: '/support',
+      },
+      {
         id: 'edges',
         icon: 'globe',
         label: m.cmp_nav_item_edges(),

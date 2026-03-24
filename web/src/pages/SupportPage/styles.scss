@@ -1,0 +1,122 @@
+#support-page-content {
+  width: 784px;
+
+  .support-section {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    column-gap: var(--spacing-xl);
+    align-items: start;
+    padding: var(--spacing-xl) 0;
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+  }
+
+  .support-section-icon {
+    position: relative;
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+
+    & > * {
+      grid-row: 1;
+      grid-column: 1;
+    }
+
+    .bg {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-action-muted);
+      border-radius: var(--radius-full);
+    }
+
+    .icon path {
+      fill: var(--fg-action);
+    }
+  }
+
+  .support-section-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+
+    .section-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .section-title {
+      font: var(--t-body-primary-500);
+      color: var(--fg-default);
+      margin: 0;
+    }
+
+    > .section-header > p:not(.section-title) {
+      font: var(--t-body-sm-400);
+      color: var(--fg-muted) !important;
+      margin: 0;
+
+      &.subtitle-dark {
+        color: var(--fg-default) !important;
+      }
+
+      a {
+        color: var(--fg-action);
+        text-decoration: underline;
+
+        &:hover {
+          text-decoration: none;
+        }
+      }
+
+      strong {
+        font-weight: 500;
+      }
+    }
+  }
+
+  .doc-highlight {
+    background: var(--bg-action-muted);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-2xl);
+
+    .doc-highlight-illustration {
+      width: 80px;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .doc-highlight-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-lg);
+      flex: 1;
+
+      p {
+        margin: 0;
+        font: var(--t-body-sm-400);
+        color: var(--fg-default) !important;
+      }
+    }
+  }
+
+  .support-controls {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+}

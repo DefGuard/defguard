@@ -1,0 +1,23 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "support_page_title": "Support",
+  "support_page_subtitle": "When you need support or must supply diagnostic information to our team, please use one of the options below.",
+  "support_page_docs_title": "Have questions? Check our documentation first.",
+  "support_page_docs_desc": "Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available.",
+  "support_page_docs_btn": "Go to documentation",
+  "support_page_bug_title": "Report a bug",
+  "support_page_bug_desc": "We aim to respond to all bug reports as quickly as possible and prioritize them based on severity before adding them to our development backlog. To give us more context, you can optionally download the support data and/or log file and attach it to your bug report.",
+  "support_page_bug_btn_report": "Report on Github",
+  "support_page_bug_btn_download": "Download",
+  "support_page_bug_btn_download_support_data": "Download support data",
+  "support_page_bug_btn_download_logs": "Download logs",
+  "support_page_feature_title": "Request feature",
+  "support_page_feature_desc": "We grow with the help of our community. If you have an idea or a missing feature to suggest, please share it \u2014 we'll review it.",
+  "support_page_feature_btn": "Submit on Github",
+  "support_page_email_title": "Contact us by email",
+  "support_page_email_desc": "For any additional requests, reach out to us at",
+  "support_page_assistance_title": "Need Assistance?",
+  "support_page_assistance_desc": "Let us know your issue or arrange a meeting with our support team.",
+  "support_page_assistance_btn_ticket": "Open a support ticket",
+  "support_page_assistance_btn_call": "Schedule a call with our support team"
+}

@@ -37,6 +37,7 @@ import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_autho
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
 import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized/_default/users'
+import { Route as AuthorizedDefaultSupportRouteImport } from './routes/_authorized/_default/support'
 import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
 import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
@@ -211,6 +212,12 @@ const AuthorizedDefaultUsersRoute = AuthorizedDefaultUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthorizedDefaultRoute,
 } as any)
+const AuthorizedDefaultSupportRoute =
+  AuthorizedDefaultSupportRouteImport.update({
+    id: '/support',
+    path: '/support',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultOpenidRoute = AuthorizedDefaultOpenidRouteImport.update({
   id: '/openid',
   path: '/openid',
@@ -410,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
+  '/support': typeof AuthorizedDefaultSupportRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -467,6 +475,7 @@ export interface FileRoutesByTo {
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
+  '/support': typeof AuthorizedDefaultSupportRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -528,6 +537,7 @@ export interface FileRoutesById {
   '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
   '/_authorized/_default/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
+  '/_authorized/_default/support': typeof AuthorizedDefaultSupportRoute
   '/_authorized/_default/users': typeof AuthorizedDefaultUsersRoute
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -588,6 +598,7 @@ export interface FileRouteTypes {
     | '/groups'
     | '/network-devices'
     | '/openid'
+    | '/support'
     | '/users'
     | '/webhooks'
     | '/add-external-openid'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/groups'
     | '/network-devices'
     | '/openid'
+    | '/support'
     | '/users'
     | '/webhooks'
     | '/add-external-openid'
@@ -705,6 +717,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/groups'
     | '/_authorized/_default/network-devices'
     | '/_authorized/_default/openid'
+    | '/_authorized/_default/support'
     | '/_authorized/_default/users'
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
@@ -956,6 +969,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultUsersRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/support': {
+      id: '/_authorized/_default/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthorizedDefaultSupportRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/openid': {
       id: '/_authorized/_default/openid'
       path: '/openid'
@@ -1175,6 +1195,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
   AuthorizedDefaultNetworkDevicesRoute: typeof AuthorizedDefaultNetworkDevicesRoute
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
+  AuthorizedDefaultSupportRoute: typeof AuthorizedDefaultSupportRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
@@ -1210,6 +1231,7 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,
   AuthorizedDefaultNetworkDevicesRoute: AuthorizedDefaultNetworkDevicesRoute,
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
+  AuthorizedDefaultSupportRoute: AuthorizedDefaultSupportRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
