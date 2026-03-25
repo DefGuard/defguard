@@ -5,7 +5,7 @@ use sqlx::{PgPool, query};
 pub async fn generate_acl_rules(pool: PgPool, num_rules: u32) -> Result<()> {
     truncate_with_restart(&pool).await?;
 
-    for index in 1..num_rules {
+    for index in 0..num_rules {
         let mut acl_rule = AclRule::default();
         acl_rule.name = format!("Generated {index}");
         acl_rule.state = RuleState::Applied;
