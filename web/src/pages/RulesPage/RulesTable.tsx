@@ -9,6 +9,7 @@ import { cloneDeep } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
+import { AclListTab, type AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import {
   type AclAlias,
@@ -51,7 +52,7 @@ type Props = {
   data: AclRule[];
   title: string;
   buttonProps: ButtonProps;
-  variant: 'deployed' | 'pending';
+  variant: AclListTabValue;
   enableSearch?: boolean;
 };
 
@@ -256,6 +257,7 @@ export const RulesTable = ({
                     to: '/acl/edit-rule',
                     search: {
                       rule: row.id,
+                      tab: variant,
                     },
                   });
                 });
@@ -263,7 +265,7 @@ export const RulesTable = ({
             },
           ];
           switch (variant) {
-            case 'deployed':
+            case AclListTab.Deployed:
               if (row.enabled) {
                 topItems.push({
                   icon: 'disabled',
@@ -286,7 +288,7 @@ export const RulesTable = ({
                 });
               }
               break;
-            case 'pending':
+            case AclListTab.Pending:
               topItems.push({
                 icon: 'deploy',
                 text: m.controls_deploy(),

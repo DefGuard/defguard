@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
-import { Link, useRouter } from '@tanstack/react-router';
+import { Link, useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router';
 import { cloneDeep } from 'lodash-es';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import type { AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import {
   type AclAlias,
@@ -34,40 +35,79 @@ const getProtocolLabel = (protocol: AclProtocolValue) => AclProtocolName[protoco
 
 interface Props {
   alias?: AclAlias;
+  tab?: AclListTabValue;
 }
 
-export const CEAliasPage = ({ alias }: Props) => {
+export const CEAliasPage = ({ alias, tab }: Props) => {
   const isEdit = useMemo(() => isPresent(alias), [alias]);
+  const canGoBack = useCanGoBack();
+  const navigate = useNavigate();
+  const router = useRouter();
+
+  const returnToAliases = useCallback(async () => {
+    if (canGoBack) {
+      router.history.back();
+      return;
+    }
+
+    if (tab === undefined) {
+      router.history.back();
+      return;
+    }
+
+    await navigate({
+      to: '/acl/aliases',
+      search: {
+        tab,
+      },
+      replace: true,
+    });
+  }, [canGoBack, navigate, router, tab]);
 
   const breadcrumbs = useMemo(() => {
-    const res = [<Link to="/acl/aliases" key={0}>{`Aliases`}</Link>];
+    const res = [
+      <Link
+        to="/acl/aliases"
+        search={tab ? { tab } : undefined}
+        key={0}
+      >{`Aliases`}</Link>,
+    ];
+
     if (isEdit) {
       res.push(
         <Link
           to="/acl/edit-alias"
-          search={{
-            alias: alias?.id as number,
-          }}
+          search={
+            tab ? { alias: alias?.id as number, tab } : { alias: alias?.id as number }
+          }
           key={1}
         >{`Edit alias`}</Link>,
       );
     } else {
-      res.push(<Link to="/acl/add-alias" key={1}>{`Add new alias`}</Link>);
+      res.push(
+        <Link
+          to="/acl/add-alias"
+          search={tab ? { tab } : undefined}
+          key={1}
+        >{`Add new alias`}</Link>,
+      );
     }
+
     return res;
-  }, [alias?.id, isEdit]);
+  }, [alias?.id, isEdit, tab]);
 
   return (
     <EditPage
       pageTitle="Aliases"
       links={breadcrumbs}
+      onBack={tab === undefined ? undefined : returnToAliases}
       headerProps={{
         icon: 'add-alias',
         title: isEdit ? `Edit alias` : `Add new alias`,
         subtitle: `ACL alias functionality allows administrators to create reusable elements which can then be used when defining a destination in multiple ACL rules. You must define at least one element in the alias settings.`,
       }}
     >
-      <FormContent alias={alias} />
+      <FormContent alias={alias} onReturnToAliases={returnToAliases} />
     </EditPage>
   );
 };
@@ -92,7 +132,13 @@ const anyComponentDefined = (fields: FormFields): boolean => {
   );
 };
 
-const FormContent = ({ alias }: { alias?: AclAlias }) => {
+const FormContent = ({
+  alias,
+  onReturnToAliases,
+}: {
+  alias?: AclAlias;
+  onReturnToAliases: () => Promise<void>;
+}) => {
   const isEdit = isPresent(alias);
 
   const defaultValues = useMemo((): FormFields => {
@@ -111,8 +157,6 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       protocols: new Set(),
     };
   }, [alias]);
-
-  const router = useRouter();
 
   const { mutateAsync: addAlias } = useMutation({
     mutationFn: api.acl.alias.addAlias,
@@ -149,7 +193,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
         Snackbar.default(aliasCreatedMessage);
       }
 
-      router.history.back();
+      await onReturnToAliases();
     },
   });
 
@@ -223,7 +267,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
                   variant="secondary"
                   text={m.controls_cancel()}
                   onClick={() => {
-                    router.history.back();
+                    void onReturnToAliases();
                   }}
                 />
                 <TooltipProvider disabled={!isEmpty}>

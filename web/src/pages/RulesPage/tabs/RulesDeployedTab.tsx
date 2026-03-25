@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
+import { AclListTab } from '../../../shared/aclTabs';
 import { AclStatus } from '../../../shared/api/types';
 import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -33,7 +34,12 @@ export const RulesDeployedTab = () => {
         if (license === undefined) return;
 
         licenseActionCheck(canUseBusinessFeature(license), () => {
-          navigate({ to: '/acl/add-rule' });
+          navigate({
+            to: '/acl/add-rule',
+            search: {
+              tab: AclListTab.Deployed,
+            },
+          });
         });
       },
     }),
@@ -57,7 +63,7 @@ export const RulesDeployedTab = () => {
         isPresent(locations) &&
         license !== undefined && (
           <RulesTable
-            variant="deployed"
+            variant={AclListTab.Deployed}
             title="Deployed rules"
             buttonProps={buttonProps}
             data={rules}
