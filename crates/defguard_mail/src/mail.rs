@@ -386,9 +386,19 @@ impl MailMessage {
 
     pub(crate) const fn text_template(&self) -> &str {
         match self {
+            Self::Welcome => include_str!("../templates/enrollment-welcome.text"),
             Self::DesktopStart => include_str!("../templates/desktop-start.text"),
             Self::NewDevice => include_str!("../templates/new-device.text"),
-            _ => "",
+            Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.text"),
+            Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.text"),
+            Self::MFAActivation => include_str!("../templates/mfa-activation.text"),
+            Self::EnrollmentNotification => {
+                include_str!("../templates/enrollment-admin-notification.text")
+            }
+            _ => {
+                "{{ title }}\
+                {{ subtitle }}"
+            }
         }
     }
 

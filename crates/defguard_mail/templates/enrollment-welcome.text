@@ -1,0 +1,4 @@
+{{ title }}
+{{ subtitle }}
+
+{{ welcome_message_content }}

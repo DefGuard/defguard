@@ -1,0 +1,6 @@
+{{ title }}
+{{ subtitle }}
+
+{{ gateway_label }}: {{ gateway_name }}
+{{ ip_address_label }}: {{ ip_address }}
+{{ location_label }}: {{ location_name }}

@@ -1,0 +1,7 @@
+{{ title }}
+{{ subtitle }}
+
+{{ code }}
+
+{{ code_is_valid }} {{ timeout }}
+{{ datetime }}
