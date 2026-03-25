@@ -117,7 +117,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 
-	Settings::initialize_runtime_defaults(&pool).await?;
+    Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}

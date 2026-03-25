@@ -10,13 +10,15 @@ use defguard_common::db::{
     },
 };
 use defguard_core::grpc::GatewayEvent;
-use defguard_proto::enterprise::firewall::{
-    FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol,
-    SnatBinding, ip_address::Address, port::Port as PortInner,
-};
-use defguard_proto::gateway::{
-    CoreResponse, Update, UpdateType, core_response,
-    update::{self},
+use defguard_proto::{
+    enterprise::firewall::{
+        FirewallConfig, FirewallPolicy, FirewallRule, IpAddress, IpVersion, Port, Protocol,
+        SnatBinding, ip_address::Address, port::Port as PortInner,
+    },
+    gateway::{
+        CoreResponse, Update, UpdateType, core_response,
+        update::{self},
+    },
 };
 use sqlx::postgres::PgConnectOptions;
 
