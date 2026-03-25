@@ -33,8 +33,10 @@ export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
           <img src={expiredImage} alt="" />
         </div>
         <div className="content-track">
-          <p className="title">{m.settings_license_expired_notice_title()}</p>
-          <p className="description">{description}</p>
+          <div className="text-track">
+            <p className="title">{m.settings_license_expired_notice_title()}</p>
+            <p className="description">{description}</p>
+          </div>
           <a
             href={externalLink.defguard.pricing}
             rel="noreferrer noopener"

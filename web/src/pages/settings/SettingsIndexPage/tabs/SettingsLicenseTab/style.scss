@@ -69,6 +69,8 @@
 }
 
 #license-expired-notice {
+  padding: var(--spacing-lg) var(--spacing-xl);
+
   .notice-track {
     display: grid;
     grid-template-columns: 68px 1fr;
@@ -86,6 +88,13 @@
       flex-flow: column;
       align-items: flex-start;
       gap: var(--spacing-md);
+
+      .text-track {
+        display: flex;
+        flex-flow: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+      }
 
       .title {
         color: var(--fg-critical);
