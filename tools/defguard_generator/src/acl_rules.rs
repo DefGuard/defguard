@@ -13,8 +13,6 @@ pub async fn generate_acl_rules(pool: PgPool, num_rules: u32) -> Result<()> {
         acl_rule.allow_all_users = true;
         acl_rule.allow_all_groups = true;
         acl_rule.allow_all_network_devices = true;
-        // acl_rule.any_port = false;
-        // acl_rule.ports = vec![(index as i32..=index as i32).into()];
         acl_rule.save(&pool).await?;
     }
 
