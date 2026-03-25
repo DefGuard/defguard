@@ -27,12 +27,6 @@ const DISMISSED_UPDATE_KEY = 'dismissed-update-version';
 
 type ModalData = OpenAppUpdateModal;
 
-const transformGithubNotes = (notes: string): string =>
-  notes.replace(
-    /^(\* |- )(.*?) by (@\S+) in (https?:\/\/\S+)$/gm,
-    (_, bullet, title, user, url) => `${bullet}[${title}](${url}) by ${user}`,
-  );
-
 export const AppUpdateModal = () => {
   const [isOpen, setOpen] = useState(false);
   const [modalData, setModalData] = useState<ModalData | null>(null);
@@ -79,21 +73,9 @@ const ModalContent = ({ data }: { data: ModalData }) => {
   const { subtitle, body } = useMemo(() => {
     const trimmed = data.notes.trim();
     const firstBlank = trimmed.search(/\n\s*\n/);
-    const rawSubtitle = firstBlank === -1 ? trimmed : trimmed.slice(0, firstBlank).trim();
-    const cleanSubtitle = rawSubtitle.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     return {
-      subtitle: cleanSubtitle,
-      body: transformGithubNotes(
-        (firstBlank === -1 ? '' : trimmed.slice(firstBlank).trim())
-          .replace(/^\*\*Full Changelog\*\*:.*$/gm, '')
-          .replace(/^(#{1,6}) (.+)$/gm, (_, hashes, title) => {
-            const normalized =
-              title.charAt(0).toUpperCase() + title.slice(1).toLowerCase();
-            const withColon = normalized.endsWith(':') ? normalized : `${normalized}:`;
-            return `${hashes} ${withColon}`;
-          })
-          .trimEnd(),
-      ),
+      subtitle: firstBlank === -1 ? trimmed : trimmed.slice(0, firstBlank).trim(),
+      body: firstBlank === -1 ? '' : trimmed.slice(firstBlank).trim(),
     };
   }, [data.notes]);
 
@@ -111,9 +93,7 @@ const ModalContent = ({ data }: { data: ModalData }) => {
         <AppText font={TextStyle.TTitleH1} color={ThemeVariable.FgDefault}>
           {m.modal_app_update_title()}
         </AppText>
-        <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-          {subtitle}
-        </AppText>
+        <RenderMarkdown content={subtitle} />
       </div>
       <Divider spacing={ThemeSpacing.Lg} />
       <RenderMarkdown content={body} />

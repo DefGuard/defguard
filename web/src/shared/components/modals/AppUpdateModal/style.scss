@@ -1,6 +1,6 @@
 #modals-root .app-update-modal {
   background-color: var(--bg-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xxl);
   width: 100%;
   max-width: 1110px;
   overflow: hidden;
@@ -8,8 +8,7 @@
   & > .tracks {
     display: grid;
     grid-template-columns: 667fr 443fr;
-    min-height: 500px;
-    height: 657px;
+    min-height: 657px;
 
     & > .content-track {
       box-sizing: border-box;
@@ -22,6 +21,10 @@
         display: flex;
         flex-flow: column;
         row-gap: var(--spacing-sm);
+
+        .markdown-render p {
+          font: var(--t-body-primary-600);
+        }
       }
 
       .changelog-link {
