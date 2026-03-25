@@ -203,5 +203,10 @@
   "modal_delete_api_token_success": "API token deleted",
   "modal_delete_api_token_error": "Failed to delete API token",
   "modal_delete_authorized_app_success": "Application removed",
-  "modal_delete_authorized_app_error": "Failed to remove application"
+  "modal_delete_authorized_app_error": "Failed to remove application",
+  "modal_app_update_title": "New update available",
+  "modal_app_update_critical_badge": "Critical",
+  "modal_app_update_full_changelog": "Full Changelog",
+  "modal_app_update_go_to_release": "Go to release page",
+  "modal_app_update_dismiss": "Dismiss"
 }

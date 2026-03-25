@@ -394,6 +394,15 @@ export interface ApplicationInfo {
   ldap_info: LdapInfo;
 }
 
+export interface UpdateInfo {
+  version: string;
+  release_date: string;
+  release_notes_url: string;
+  update_url: string;
+  critical: boolean;
+  notes: string;
+}
+
 export interface WebauthnRegisterStartResponse {
   publicKey: PublicKeyCredentialCreationOptionsJSON;
 }

@@ -1,0 +1,110 @@
+#modals-root .app-update-modal {
+  background-color: var(--bg-default);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 1110px;
+  overflow: hidden;
+
+  & > .tracks {
+    display: grid;
+    grid-template-columns: 667fr 443fr;
+    min-height: 500px;
+    height: 657px;
+
+    & > .content-track {
+      box-sizing: border-box;
+      padding: var(--spacing-4xl);
+      display: flex;
+      flex-flow: column;
+      background-color: var(--bg-default);
+
+      .header-section {
+        display: flex;
+        flex-flow: column;
+        row-gap: var(--spacing-sm);
+      }
+
+      .changelog-link {
+        text-decoration: none;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        column-gap: var(--spacing-sm);
+        width: fit-content;
+
+        .icon {
+          color: var(--fg-action);
+        }
+
+        p {
+          text-decoration: underline;
+        }
+      }
+
+      .controls {
+        margin-top: auto;
+        padding-top: var(--spacing-2xl);
+      }
+
+      .markdown-render {
+        display: flex;
+        flex-flow: column;
+        row-gap: var(--spacing-sm);
+
+        p {
+          font: var(--t-body-sm-500);
+          color: var(--fg-default);
+        }
+
+        span,
+        li {
+          font: var(--t-body-sm-400);
+          color: var(--fg-faded);
+        }
+
+        a {
+          color: var(--fg-action);
+          text-decoration: underline;
+        }
+
+        ul {
+          display: flex;
+          flex-flow: column;
+          row-gap: var(--spacing-xs);
+          padding-left: var(--spacing-lg);
+
+          li a {
+            color: var(--fg-action);
+            text-decoration: underline;
+          }
+        }
+
+        h1,
+        h2,
+        h3 {
+          font: var(--t-body-sm-500);
+          color: var(--fg-default);
+        }
+
+        h2 {
+          padding-top: var(--spacing-lg);
+          margin-top: var(--spacing-lg);
+          border-top: 1px solid var(--bg-active);
+        }
+      }
+    }
+
+    & > .media-track {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(157deg, #e6e6ff -2.15%, #8cadff 102.56%);
+
+      img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+  }
+}

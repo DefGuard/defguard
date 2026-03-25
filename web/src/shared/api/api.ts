@@ -97,6 +97,7 @@ import type {
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  UpdateInfo,
   UploadCARequest,
   User,
   UserChangePasswordRequest,
@@ -175,6 +176,7 @@ const api = {
   },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),
+    updates: () => client.get<UpdateInfo | null>('/updates'),
   },
   user: {
     addUser: (data: AddUserRequest) => client.post<User>('/user', data),
