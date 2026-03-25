@@ -61,7 +61,15 @@ export const SupportPage = () => {
             </AppText>
             <SizedBox height={ThemeSpacing.Xl} />
             <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-              <BugDescription />
+              {m.support_page_bug_desc_before()}
+              <AppText
+                as="span"
+                font={TextStyle.TBodySm500}
+                color={ThemeVariable.FgMuted}
+              >
+                {m.support_page_bug_desc_bold()}
+              </AppText>
+              {m.support_page_bug_desc_after()}
             </AppText>
             <SizedBox height={ThemeSpacing.Xl} />
             <ButtonsGroup>
@@ -178,21 +186,5 @@ export const SupportPage = () => {
         </SettingsCard>
       </SettingsLayout>
     </Page>
-  );
-};
-
-const BugDescription = () => {
-  const full = m.support_page_bug_desc();
-  const boldPhrase = 'you can optionally download';
-  const idx = full.indexOf(boldPhrase);
-  if (idx === -1) return <>{full}</>;
-  const before = full.slice(0, idx);
-  const after = full.slice(idx + boldPhrase.length);
-  return (
-    <>
-      {before}
-      <strong>{boldPhrase}</strong>
-      {after}
-    </>
   );
 };
