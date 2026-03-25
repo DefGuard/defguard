@@ -99,6 +99,7 @@ export const SetupGatewayComponentStep = () => {
               <field.FormInput
                 required
                 label={m.gateway_setup_component_label_common_name()}
+                helper={m.gateway_setup_component_label_common_name_help()}
                 type="text"
               />
             )}
@@ -109,6 +110,7 @@ export const SetupGatewayComponentStep = () => {
               <field.FormInput
                 required
                 label={m.gateway_setup_component_label_ip_or_domain()}
+                helper={m.gateway_setup_component_label_ip_or_domain_help()}
                 type="text"
               />
             )}
