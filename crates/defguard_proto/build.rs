@@ -19,8 +19,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .protoc_arg("--experimental_allow_proto3_optional")
         .compile_protos(
             &[
+                "../../proto/v1/worker/worker.proto",
                 "../../proto/v2/core/proxy.proto",
-                "../../proto/v2/worker/worker.proto",
                 "../../proto/v2/wireguard/gateway.proto",
                 "../../proto/enterprise/v2/firewall/firewall.proto",
             ],

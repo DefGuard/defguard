@@ -15,8 +15,8 @@ mod generated {
         }
 
         pub mod worker {
-            pub mod v2 {
-                tonic::include_proto!("defguard.worker.v2");
+            pub mod v1 {
+                tonic::include_proto!("defguard.worker.v1");
             }
         }
 
@@ -39,7 +39,7 @@ pub mod gateway {
 }
 
 pub mod worker {
-    pub use crate::generated::defguard::worker::v2::*;
+    pub use crate::generated::defguard::worker::v1::*;
 }
 
 pub mod enterprise {
