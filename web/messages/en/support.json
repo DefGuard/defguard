@@ -3,7 +3,7 @@
   "support_page_title": "Support",
   "support_page_subtitle": "When you need support or must supply diagnostic information to our team, please use one of the options below.",
   "support_page_docs_title": "Have questions? Check our documentation first.",
-  "support_page_docs_desc": "Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available.",
+  "support_page_docs_desc": "Before contacting or submitting any issues to GitHub, please get familiar with Defguard documentation.",
   "support_page_docs_btn": "Go to documentation",
   "support_page_bug_title": "Report a bug",
   "support_page_bug_desc_before": "We aim to respond to all bug reports as quickly as possible and prioritize them based on severity before adding them to our development backlog. To give us more context, ",
