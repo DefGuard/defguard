@@ -208,5 +208,7 @@
   "modal_app_update_critical_badge": "Critical",
   "modal_app_update_full_changelog": "Full Changelog",
   "modal_app_update_go_to_release": "Go to release page",
-  "modal_app_update_dismiss": "Dismiss"
+  "modal_app_update_dismiss": "Dismiss",
+  "modal_app_update_snackbar_message": "New version {version} is available",
+  "modal_app_update_snackbar_action": "What's new"
 }

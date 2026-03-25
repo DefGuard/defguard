@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { type PropsWithChildren, useEffect, useRef } from 'react';
+import { m } from '../../paraglide/messages';
 import api from '../api/api';
+import { Snackbar } from '../defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../defguard-ui/utils/isPresent';
 import { openModal } from '../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../hooks/modalControls/modalTypes';
@@ -46,7 +48,20 @@ export const AppInfoProvider = ({ children }: PropsWithChildren) => {
     if (dismissedVersion === update.version) return;
 
     updateModalOpenedRef.current = true;
-    openModal(ModalName.AppUpdate, update);
+    const anchor = Snackbar.custom({
+      id: 'app-update-available',
+      icon: 'download',
+      variant: 'success',
+      text: m.modal_app_update_snackbar_message({ version: update.version }),
+      action: {
+        text: m.modal_app_update_snackbar_action(),
+        onClick: () => {
+          anchor.dismiss();
+          openModal(ModalName.AppUpdate, update);
+        },
+      },
+      dismissible: true,
+    });
   }, [update]);
 
   return <>{children}</>;

@@ -104,7 +104,7 @@ const ModalContent = ({ data }: { data: ModalData }) => {
         target="_blank"
         rel="noopener noreferrer"
       >
-        <Icon icon="arrow-big" size={20} />
+        <Icon icon="arrow-big" size={20} staticColor={ThemeVariable.FgAction} />
         <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgAction}>
           {m.modal_app_update_full_changelog()}
         </AppText>
