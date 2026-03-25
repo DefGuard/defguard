@@ -89,5 +89,7 @@
   "settings_smtp_reset_confirm_title": "Reset SMTP Settings",
   "settings_smtp_reset_confirm_body": "Are you sure you want to reset SMTP settings? This action cannot be undone.",
   "settings_smtp_reset_success": "SMTP settings reset",
-  "settings_smtp_reset_failed": "Failed to reset SMTP settings"
+  "settings_smtp_reset_failed": "Failed to reset SMTP settings",
+  "settings_smtp_test_success": "Test email sent",
+  "settings_smtp_test_failed": "Failed to send test email"
 }
