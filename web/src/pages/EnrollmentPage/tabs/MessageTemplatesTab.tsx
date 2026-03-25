@@ -52,6 +52,7 @@ const messageTemplatesHelpMarkdown = [
 ] as const;
 
 const messageTemplatesFormSchema = z.object({
+  enrollment_display_welcome_message: z.boolean(),
   enrollment_welcome_message: z.string(),
   enrollment_send_welcome_email: z.boolean(),
   enrollment_welcome_email_subject: z.string().min(1, m.form_error_required()),
@@ -87,6 +88,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
 
   const defaultValues = useMemo(
     (): MessageTemplatesFormFields => ({
+      enrollment_display_welcome_message: true,
       enrollment_welcome_message: settings.enrollment_welcome_message ?? '',
       enrollment_send_welcome_email: settings.enrollment_send_welcome_email ?? true,
       enrollment_welcome_email_subject: settings.enrollment_welcome_email_subject ?? '',
@@ -105,7 +107,9 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
       onChange: messageTemplatesFormSchema,
     },
     onSubmit: async ({ value }) => {
-      await mutateAsync(value);
+      const { enrollment_display_welcome_message: _displayWelcomeMessage, ...payload } =
+        value;
+      await mutateAsync(payload);
       form.reset(value);
     },
   });
@@ -131,35 +135,39 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
               }}
             >
               <form.AppForm>
-                <div className="message-template-section message-template-section-offset">
-                  <div className="message-template-offset-spacer" />
-                  <div className="message-template-offset-content">
-                    <div className="message-template-static-header">
-                      <AppText
-                        font={TextStyle.TBodyPrimary500}
-                        color={ThemeVariable.FgDefault}
+                <div className="message-template-section">
+                  <form.AppField name="enrollment_display_welcome_message">
+                    {(field) => (
+                      <field.FormInteractiveBlock
+                        className="message-template-toggle"
+                        variant="toggle"
+                        title={m.settings_enrollment_template_display_message_title()}
+                        content={m.settings_enrollment_template_display_message_description()}
                       >
-                        {m.settings_enrollment_template_display_message_title()}
-                      </AppText>
-                      <AppText
-                        font={TextStyle.TBodySm400}
-                        color={ThemeVariable.FgNeutral}
-                      >
-                        {m.settings_enrollment_template_display_message_description()}
-                      </AppText>
-                    </div>
-                    <SizedBox height={ThemeSpacing.Xl2} />
-                    <form.AppField name="enrollment_welcome_message">
-                      {(field) => (
-                        <field.FormTextarea
-                          required
-                          label={m.settings_enrollment_template_message_label()}
-                          minHeight={383}
-                          maxHeight={383}
-                        />
-                      )}
-                    </form.AppField>
-                  </div>
+                        <form.Subscribe
+                          selector={(state) =>
+                            state.values.enrollment_display_welcome_message
+                          }
+                        >
+                          {() => (
+                            <>
+                              <SizedBox height={ThemeSpacing.Xl2} />
+                              <form.AppField name="enrollment_welcome_message">
+                                {(field) => (
+                                  <field.FormTextarea
+                                    required
+                                    label={m.settings_enrollment_template_message_label()}
+                                    minHeight={383}
+                                    maxHeight={383}
+                                  />
+                                )}
+                              </form.AppField>
+                            </>
+                          )}
+                        </form.Subscribe>
+                      </field.FormInteractiveBlock>
+                    )}
+                  </form.AppField>
                 </div>
                 <div className="message-template-offset-divider">
                   <Divider spacing={ThemeSpacing.Xl2} />
