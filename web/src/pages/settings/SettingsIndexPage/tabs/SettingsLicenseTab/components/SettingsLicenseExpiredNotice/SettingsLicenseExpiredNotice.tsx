@@ -7,6 +7,8 @@ import {
   licenseGracePeriodDays,
 } from '../../../../../../../shared/constants';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
+import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import expiredImage from '../../assets/expired.png';
 
 type Props = {
@@ -34,7 +36,9 @@ export const SettingsLicenseExpiredNotice = ({ licenseInfo, state }: Props) => {
         </div>
         <div className="content-track">
           <p className="title">{m.settings_license_expired_notice_title()}</p>
+          <SizedBox height={ThemeSpacing.Xs} />
           <p className="description">{description}</p>
+          <SizedBox height={ThemeSpacing.Md} />
           <a
             href={externalLink.defguard.pricing}
             rel="noreferrer noopener"

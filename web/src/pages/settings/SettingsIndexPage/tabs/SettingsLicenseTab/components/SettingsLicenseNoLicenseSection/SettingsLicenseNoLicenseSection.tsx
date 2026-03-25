@@ -38,10 +38,13 @@ export const SettingsLicenseNoLicenseSection = () => {
                 variant={BadgeVariant.Plan}
               />
             </div>
+            <SizedBox height={ThemeSpacing.Xs} />
             <p className="description">
               {m.settings_license_plan_business_description()}
             </p>
-            <Divider spacing={ThemeSpacing.Md} />
+            <SizedBox height={ThemeSpacing.Md} />
+            <Divider />
+            <SizedBox height={ThemeSpacing.Md} />
             <p className="promotional-copy">
               {m.settings_license_plan_business_promotional_copy()}
             </p>
@@ -71,6 +74,7 @@ export const SettingsLicenseNoLicenseSection = () => {
             <div className="top">
               <p className="title">{m.settings_license_plan_enterprise_title()}</p>
             </div>
+            <SizedBox height={ThemeSpacing.Xs} />
             <p className="description">
               {m.settings_license_plan_enterprise_description()}
             </p>
