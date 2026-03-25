@@ -386,19 +386,23 @@ impl MailMessage {
 
     pub(crate) const fn text_template(&self) -> &str {
         match self {
+            Self::Test => include_str!("../templates/test.text"),
             Self::Welcome => include_str!("../templates/enrollment-welcome.text"),
+            Self::SupportData => include_str!("../templates/support-data.text"),
             Self::DesktopStart => include_str!("../templates/desktop-start.text"),
+            Self::NewAccount => include_str!("../templates/new-account.text"),
             Self::NewDevice => include_str!("../templates/new-device.text"),
+            Self::NewDeviceLogin => include_str!("../templates/new-device-login.text"),
+            Self::NewDeviceOCIDLogin => include_str!("../templates/new-device-ocid-login.text"),
             Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.text"),
             Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.text"),
             Self::MFAActivation => include_str!("../templates/mfa-activation.text"),
-            Self::EnrollmentNotification => {
-                include_str!("../templates/enrollment-admin-notification.text")
-            }
-            _ => {
-                "{{ title }}\
-                {{ subtitle }}"
-            }
+            Self::MFAConfigured => include_str!("../templates/mfa-configured.text"),
+            Self::MFACode => include_str!("../templates/mfa-code.text"),
+            Self::PasswordReset => include_str!("../templates/password-reset.text"),
+            Self::PasswordResetDone => include_str!("../templates/password-reset-done.text"),
+            Self::UserImportBlocked => include_str!("../templates/plain-notification.text"),
+            Self::EnrollmentNotification => include_str!("../templates/enrollment-admin-notification.text"),
         }
     }
 

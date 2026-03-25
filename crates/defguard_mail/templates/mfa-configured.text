@@ -1,0 +1,4 @@
+{{ title }}
+{{ subtitle }}
+
+{{ mfa_method_label }} {{ mfa_method }}

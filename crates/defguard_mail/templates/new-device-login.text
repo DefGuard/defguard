@@ -1,0 +1,7 @@
+{{ title }}
+{{ subtitle }}
+
+{% if ip_address %}
+{{ label_device }}: {{ ip_address }}
+{% endif %}
+{{ label_date }}: {{ created }}

@@ -1,0 +1,21 @@
+{{ title }}
+{{ subtitle }}
+
+Desktop client
+{{ download }}
+https://defguard.net/download/
+
+{{ after_install }}
+{{ label_url }}: {{ url }}
+{{ label_token }}: {{ token }}
+
+{{ token_info }}
+
+{{ label_enroll }}: {{ link_url }}
+
+{{ label_mobile }}
+{{ scan_qr }}
+
+{{ mobile_install }}
+{{ download_google }}: https://play.google.com/store/apps/details?id=net.defguard.mobile
+{{ download_apple }}: https://apps.apple.com/us/app/defguard-vpn-client/id6748068630

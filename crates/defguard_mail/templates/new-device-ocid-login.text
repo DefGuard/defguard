@@ -1,0 +1,5 @@
+{{ title }}
+{{ subtitle }}
+
+{{ label_profile }}: {{ profile_url }}
+{{ label_oauth2client }}: {{ oauth2client_name }}
