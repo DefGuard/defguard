@@ -118,7 +118,7 @@ export const Validate = {
     if (!value) {
       return true;
     }
-    const items = value.replaceAll(' ', '').split(splitWith);
+    const items = value.split(splitWith).map((item) => item.trim());
 
     if (items.length > 1 && !allowList) {
       return false;
@@ -148,7 +148,7 @@ export const Validate = {
     if (!value) {
       return true;
     }
-    const items = value.replaceAll(' ', '').split(splitWith);
+    const items = value.split(splitWith).map((item) => item.trim());
 
     if (items.length > 1 && !allowList) {
       return false;
