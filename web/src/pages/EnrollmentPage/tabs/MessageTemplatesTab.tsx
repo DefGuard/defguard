@@ -115,12 +115,9 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
   });
 
   return (
-    <SettingsLayout className="message-templates-content">
-      <div
-        className="message-templates-layout"
-        data-testid="enrollment-tab-message-templates"
-      >
-        <div className="message-templates-left">
+    <SettingsLayout>
+      <div data-testid="enrollment-tab-message-templates">
+        <div>
           <SettingsHeader
             icon="activity-notes"
             title={m.settings_enrollment_message_templates_title()}
@@ -135,11 +132,10 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
               }}
             >
               <form.AppForm>
-                <div className="message-template-section">
+                <div>
                   <form.AppField name="enrollment_display_welcome_message">
                     {(field) => (
                       <field.FormInteractiveBlock
-                        className="message-template-toggle"
                         variant="toggle"
                         title={m.settings_enrollment_template_display_message_title()}
                         content={m.settings_enrollment_template_display_message_description()}
@@ -169,14 +165,11 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                     )}
                   </form.AppField>
                 </div>
-                <div className="message-template-offset-divider">
-                  <Divider spacing={ThemeSpacing.Xl2} />
-                </div>
-                <div className="message-template-section">
+                <Divider spacing={ThemeSpacing.Xl2} />
+                <div>
                   <form.AppField name="enrollment_send_welcome_email">
                     {(field) => (
                       <field.FormInteractiveBlock
-                        className="message-template-toggle"
                         variant="toggle"
                         title={m.settings_enrollment_template_send_email_title()}
                         content={m.settings_enrollment_template_send_email_description()}
@@ -196,7 +189,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                 )}
                               </form.AppField>
                               <SizedBox height={ThemeSpacing.Xl} />
-                              <div className="message-templates-checkbox">
+                              <div>
                                 <form.AppField name="enrollment_use_welcome_message_as_email">
                                   {(field) => (
                                     <field.FormCheckbox
