@@ -119,7 +119,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
       <div data-testid="enrollment-tab-message-templates">
         <div>
           <SettingsHeader
-            icon="activity-notes"
+            icon="file-add"
             title={m.settings_enrollment_message_templates_title()}
             subtitle={m.settings_enrollment_message_templates_subtitle()}
           />
