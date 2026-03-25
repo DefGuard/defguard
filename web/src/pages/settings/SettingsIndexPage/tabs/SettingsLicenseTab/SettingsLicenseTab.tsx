@@ -45,7 +45,7 @@ export const SettingsLicenseTab = () => {
         subtitle={m.settings_license_subtitle()}
       />
       {isPresent(settings) && (
-        <SettingsCard className="license-main-card">
+        <SettingsCard id="license-main-card">
           {isPresent(licenseInfo) &&
             isPresent(licenseState) &&
             licenseState !== 'noLicense' && (
