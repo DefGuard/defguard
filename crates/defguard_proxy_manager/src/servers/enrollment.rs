@@ -39,7 +39,7 @@ use defguard_proto::proxy::{
     EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
     NewDevice, RegisterMobileAuthRequest,
 };
-use sqlx::{PgPool, query_scalar};
+use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
@@ -354,7 +354,7 @@ impl EnrollmentServer {
     async fn send_welcome_email_if_enabled(
         &self,
         enrollment: &Token,
-        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        conn: &mut PgConnection,
         user: &User<Id>,
         ip_address: &str,
         device_info: Option<&str>,
@@ -370,7 +370,7 @@ impl EnrollmentServer {
 
         debug!("Try to send welcome email...");
         enrollment
-            .send_welcome_email(transaction, user, ip_address, device_info)
+            .send_welcome_email(conn, user, ip_address, device_info)
             .await?;
         info!("Welcome email sent to {} at {}", user.username, user.email);
 
