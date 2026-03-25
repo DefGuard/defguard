@@ -1,5 +1,5 @@
 {{ title }}
-{{ subtitle }}
+{% if subtitle %}{{ subtitle }}{% endif %}
 
 {{ label_url }}: {{ url }}
 {{ label_token }}: {{ token }}

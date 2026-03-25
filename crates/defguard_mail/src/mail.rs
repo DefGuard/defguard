@@ -79,11 +79,15 @@ pub enum MailError {
     InvalidPort(i32),
 }
 
+/// Mail message
 #[derive(Debug)]
 pub struct Mail {
     pub(crate) to: String,
     pub(crate) subject: String,
-    content: String,
+    // HTML version of the message.
+    html: String,
+    // Plain text version of the message.
+    text: String,
     context: Context,
     attachments: Vec<Attachment>,   // text/plain
     images: Vec<(String, Vec<u8>)>, // image/png
@@ -92,7 +96,7 @@ pub struct Mail {
 impl Mail {
     /// Create new [`Mail`].
     #[must_use]
-    pub fn new<T>(to: T, subject: String, content: String) -> Mail
+    pub fn new<T>(to: T, subject: String, html: String, text: String) -> Mail
     where
         T: Into<String>,
     {
@@ -107,7 +111,8 @@ impl Mail {
         Self {
             to: to.into(),
             subject,
-            content,
+            html,
+            text,
             context: Context::new(),
             attachments: Vec::new(),
             images,
@@ -124,12 +129,6 @@ impl Mail {
     #[must_use]
     pub fn subject(&self) -> &str {
         &self.subject
-    }
-
-    /// Getter for `content`.
-    #[must_use]
-    pub fn content(&self) -> &str {
-        &self.content
     }
 
     /// Add to context.
@@ -171,8 +170,8 @@ impl Mail {
             .to(Mailbox::from_str(&self.to)?)
             .subject(self.subject);
 
-        let plain = SinglePart::plain("PLAIN IS NOT AVAILABLE AT THE MOMENT.".to_string());
-        let html = SinglePart::html(self.content);
+        let plain = SinglePart::plain(self.text);
+        let html = SinglePart::html(self.html);
         let image_png = "image/png".parse::<ContentType>().unwrap();
         let mut related = MultiPart::related().singlepart(html);
         for (name, bytes) in self.images {
@@ -284,7 +283,7 @@ pub enum MailMessage {
     NewAccount,
     NewDevice,
     NewDeviceLogin,
-    NewDeviceOCIDLogin,
+    NewDeviceOIDCLogin,
     /// Gateway has disconnected.
     GatewayDisconnect,
     /// Gateway has reconnected.
@@ -319,7 +318,7 @@ impl MailMessage {
             Self::NewAccount => "Defguard: User enrollment",
             Self::NewDevice => "Defguard: new device added to your account",
             Self::NewDeviceLogin => "Defguard: New device logged in to your account",
-            Self::NewDeviceOCIDLogin => "New login to OCID application",
+            Self::NewDeviceOIDCLogin => "New login to OIDC application",
             Self::GatewayDisconnect => "Defguard: Gateway disconnected",
             Self::GatewayReconnect => "Defguard: Gateway reconnected",
             Self::MFAActivation => "Multi-Factor Authentication activation",
@@ -342,7 +341,7 @@ impl MailMessage {
             Self::NewAccount => "new-account",
             Self::NewDevice => "new-device",
             Self::NewDeviceLogin => "new-device-login",
-            Self::NewDeviceOCIDLogin => "new-device-ocid-login",
+            Self::NewDeviceOIDCLogin => "new-device-oidc-login",
             Self::GatewayDisconnect => "gateway-disconnect",
             Self::GatewayReconnect => "gateway-reconnect",
             Self::MFAActivation => "mfa-activation",
@@ -364,7 +363,7 @@ impl MailMessage {
             Self::NewAccount => include_str!("../templates/new-account.mjml"),
             Self::NewDevice => include_str!("../templates/new-device.mjml"),
             Self::NewDeviceLogin => include_str!("../templates/new-device-login.mjml"),
-            Self::NewDeviceOCIDLogin => include_str!("../templates/new-device-ocid-login.mjml"),
+            Self::NewDeviceOIDCLogin => include_str!("../templates/new-device-oidc-login.mjml"),
             Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.mjml"),
             Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.mjml"),
             Self::MFAActivation => include_str!("../templates/mfa-activation.mjml"),
@@ -375,6 +374,30 @@ impl MailMessage {
             Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.mjml")
+            }
+        }
+    }
+
+    pub(crate) const fn text_template(&self) -> &str {
+        match self {
+            Self::Test => include_str!("../templates/test.text"),
+            Self::Welcome => include_str!("../templates/enrollment-welcome.text"),
+            Self::SupportData => include_str!("../templates/support-data.text"),
+            Self::DesktopStart => include_str!("../templates/desktop-start.text"),
+            Self::NewAccount => include_str!("../templates/new-account.text"),
+            Self::NewDevice => include_str!("../templates/new-device.text"),
+            Self::NewDeviceLogin => include_str!("../templates/new-device-login.text"),
+            Self::NewDeviceOIDCLogin => include_str!("../templates/new-device-oidc-login.text"),
+            Self::GatewayDisconnect => include_str!("../templates/gateway-disconnected.text"),
+            Self::GatewayReconnect => include_str!("../templates/gateway-reconnected.text"),
+            Self::MFAActivation => include_str!("../templates/mfa-activation.text"),
+            Self::MFAConfigured => include_str!("../templates/mfa-configured.text"),
+            Self::MFACode => include_str!("../templates/mfa-code.text"),
+            Self::PasswordReset => include_str!("../templates/password-reset.text"),
+            Self::PasswordResetDone => include_str!("../templates/password-reset-done.text"),
+            Self::UserImportBlocked => include_str!("../templates/plain-notification.text"),
+            Self::EnrollmentNotification => {
+                include_str!("../templates/enrollment-admin-notification.text")
             }
         }
     }
@@ -401,13 +424,18 @@ impl MailMessage {
         context: &Context,
         to: &str,
     ) -> Result<Mail, TemplateError> {
+        // Build HTML message.
         tera.add_raw_template(self.template_name(), self.mjml_template())?;
         let processed = tera.render(self.template_name(), context)?;
         let parsed = mrml::parse(processed)?;
         let opts = mrml::prelude::render::RenderOptions::default();
         let html = parsed.element.render(&opts)?;
 
-        let mut mail = Mail::new(to, self.subject(), html);
+        // Build plain text message.
+        tera.add_raw_template(self.template_name(), self.text_template())?;
+        let text = tera.render(self.template_name(), context)?;
+
+        let mut mail = Mail::new(to, self.subject(), html, text);
         // Add PNG images.
         match self {
             Self::NewAccount => {

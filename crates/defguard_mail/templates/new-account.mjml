@@ -109,7 +109,8 @@
   </mj-section>
 </mj-wrapper>
 <mj-section mj-class="s-3xl">
-
 </mj-section>
+
+{{ macros::footer_divider() }}
 
 {% endblock content %}

@@ -286,13 +286,13 @@ fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[ignore = "requires SMTP server"]
 #[sqlx::test]
-fn send_new_device_ocid_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
+fn send_new_device_oidc_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     set_smtp_settings(&pool).await;
 
     let mut conn = pool.begin().await.unwrap();
     let client_name = "RemoteApp";
-    templates::new_device_ocid_login_mail(
+    templates::new_device_oidc_login_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         None,

@@ -444,7 +444,7 @@ const api = {
       client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
   },
   mail: {
-    sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+    sendTestEmail: (data: { to: string }) => client.post('/mail/test', data),
   },
   edge: {
     getEdges: () => client.get<EdgeInfo[]>('/proxy'),

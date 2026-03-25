@@ -1,0 +1,5 @@
+{{ title }}
+{% if subtitle %}{{ subtitle }}{% endif %}
+
+{{ user_name }} {{ message }}
+{{ goodday }}
