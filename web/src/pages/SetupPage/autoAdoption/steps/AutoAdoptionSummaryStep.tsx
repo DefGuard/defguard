@@ -1,5 +1,4 @@
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
@@ -8,68 +7,34 @@ import {
   type WizardStepSummaryRecommendation,
 } from '../../../../shared/components/wizard-steps/WizardStepSummary/WizardStepSummary';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import CommunityIcon from '../../assets/community.png';
 import FileIcon from '../../assets/file-icon.png';
 import ShieldIcon from '../../assets/shield.png';
 import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 
 export const AutoAdoptionSummaryStep = () => {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const wireguardPort = useAutoAdoptionSetupWizardStore((s) => s.vpn_wireguard_port);
   const defguardUrl = useAutoAdoptionSetupWizardStore((s) => s.defguard_url);
 
-  const waitForSettingsEssentials = async ({
-    timeoutMs = 60_000,
-    intervalMs = 500,
-  }: {
-    timeoutMs?: number;
-    intervalMs?: number;
-  }) => {
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < timeoutMs) {
-      try {
-        const response = await api.getSessionInfo();
-
-        if (isPresent(response.data) && response.data.active_wizard === null) {
-          return;
-        }
-      } catch (_error) {
-        // Ignore errors while API restarts.
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-    }
-
-    throw new Error(m.initial_setup_auto_adoption_summary_error_settings_timeout());
-  };
-
   const { mutateAsync: finishSetup } = useMutation({
     mutationKey: ['finish-setup'],
     mutationFn: api.initial_setup.finishSetup,
-    meta: {
-      invalidate: [['settings_essentials'], ['session-info']],
-    },
   });
 
   const handleGoToDefguard = async () => {
     try {
       setIsSubmitting(true);
+      useAutoAdoptionSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
-      await waitForSettingsEssentials({});
+      const base = defguardUrl ? defguardUrl.replace(/\/$/, '') : window.location.origin;
+      window.onbeforeunload = null;
+      await new Promise((r) => setTimeout(r, 5000));
       useAutoAdoptionSetupWizardStore.getState().reset();
-      // Redirect to the configured core URL so the browser upgrades to HTTPS
-      // (or uses whatever scheme/host was set during the wizard). Fall back to
-      // an in-app navigate if no URL was stored.
-      if (defguardUrl) {
-        window.location.replace(`${defguardUrl.replace(/\/$/, '')}/vpn-overview`);
-      } else {
-        await navigate({ to: '/vpn-overview', replace: true });
-      }
+      window.location.replace(`${base}/vpn-overview`);
     } catch (error) {
       console.error(m.initial_setup_auto_adoption_summary_error_finish_console(), error);
+      useAutoAdoptionSetupWizardStore.setState({ isFinishing: false });
       Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
       setIsSubmitting(false);
     }

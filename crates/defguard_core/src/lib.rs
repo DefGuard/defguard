@@ -34,7 +34,7 @@ use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
     auth::disable_user_mfa,
-    component_setup::setup_proxy_tls_stream,
+    component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -137,8 +137,8 @@ use crate::{
             userinfo,
         },
         proxy::{
-            delete_proxy, proxy_cert_self_signed, proxy_cert_upload,
-            proxy_details, proxy_list, update_proxy,
+            delete_proxy, proxy_cert_self_signed, proxy_cert_upload, proxy_details, proxy_list,
+            update_proxy,
         },
         resource_display::get_locations_display,
         settings::{
@@ -390,7 +390,8 @@ pub fn build_webapp(
                     .delete(delete_gateway),
             )
             // Proxy setup with SSE
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+            .route("/proxy/acme/stream", get(stream_proxy_acme)),
     );
 
     // Enterprise features

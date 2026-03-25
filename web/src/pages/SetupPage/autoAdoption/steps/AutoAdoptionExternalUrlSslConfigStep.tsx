@@ -67,7 +67,7 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
   }, []);
 
   const sse = useSSEController<AcmeEvent>(
-    '/api/v1/initial_setup/auto_wizard/external_url_settings/stream',
+    '/api/v1/proxy/acme/stream',
     {},
     { onMessage: handleAcmeEvent },
   );

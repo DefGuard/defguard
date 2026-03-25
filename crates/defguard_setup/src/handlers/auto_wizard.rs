@@ -1,9 +1,4 @@
-use std::convert::Infallible;
-
-use axum::{
-    Extension, Json,
-    response::sse::{Event, KeepAlive, Sse},
-};
+use axum::{Extension, Json};
 use defguard_certs::{
     CertificateAuthority, CertificateInfo, Csr, PemLabel, der_to_pem, generate_key_pair,
     parse_pem_certificate,
@@ -12,7 +7,6 @@ use defguard_common::{
     db::models::{
         Certificates, WireguardNetwork,
         certificates::{CoreCertSource, ProxyCertSource},
-        proxy::Proxy,
         settings::update_current_settings,
         setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
         wireguard::LocationMfaMode,
@@ -25,17 +19,12 @@ use defguard_core::{
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
-use defguard_proto::proxy::AcmeStep;
-use futures::Stream;
 use rcgen::DnType;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{PgPool, query_scalar};
-use tokio::sync::mpsc;
-use tracing::{debug, error, info};
-
-use crate::auto_adoption::{call_proxy_finish_setup, call_proxy_issue_acme};
+use tracing::{debug, info};
 
 pub(crate) async fn is_auto_wizard_active(pool: &PgPool) -> Result<bool, WebError> {
     let wizard = Wizard::get(pool).await?;
@@ -275,15 +264,6 @@ pub async fn set_external_url_settings(
         .await
         .map_err(WebError::from)?;
 
-    // Look up the adopted proxy once so we can call FinishSetup on non-ACME paths.
-    let adopted_proxy = Proxy::list(&pool).await.ok().and_then(|mut v| {
-        if v.is_empty() {
-            None
-        } else {
-            Some(v.remove(0))
-        }
-    });
-
     let cert_info = match config.ssl_type {
         ExternalSslType::None => {
             certs.proxy_http_cert_source = ProxyCertSource::None;
@@ -291,14 +271,6 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_key_pem = None;
             certs.proxy_http_cert_expiry = None;
             certs.save(&pool).await.map_err(WebError::from)?;
-
-            if let Some(proxy) = adopted_proxy {
-                if let Err(e) =
-                    call_proxy_finish_setup(&pool, &proxy.address, proxy.port as u16).await
-                {
-                    error!("Failed to signal FinishSetup to proxy (non-ACME): {e}");
-                }
-            }
             None
         }
         ExternalSslType::LetsEncrypt => {
@@ -312,8 +284,6 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_key_pem = None;
             certs.proxy_http_cert_expiry = None;
             certs.save(&pool).await.map_err(WebError::from)?;
-            // FinishSetup is NOT called here - the frontend will follow up with the
-            // stream_external_url_lets_encrypt endpoint which calls call_proxy_issue_acme.
             None
         }
         ExternalSslType::DefguardCa => {
@@ -354,14 +324,6 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_expiry = Some(expiry);
             certs.save(&pool).await.map_err(WebError::from)?;
 
-            if let Some(proxy) = adopted_proxy {
-                if let Err(e) =
-                    call_proxy_finish_setup(&pool, &proxy.address, proxy.port as u16).await
-                {
-                    error!("Failed to signal FinishSetup to proxy (DefguardCa): {e}");
-                }
-            }
-
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
                 valid_for_days,
@@ -387,14 +349,6 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_key_pem = Some(key_pem_str);
             certs.proxy_http_cert_expiry = Some(expiry);
             certs.save(&pool).await.map_err(WebError::from)?;
-
-            if let Some(proxy) = adopted_proxy {
-                if let Err(e) =
-                    call_proxy_finish_setup(&pool, &proxy.address, proxy.port as u16).await
-                {
-                    error!("Failed to signal FinishSetup to proxy (OwnCert): {e}");
-                }
-            }
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name.clone(),
@@ -593,196 +547,4 @@ pub async fn set_mfa_settings(
 pub async fn get_auto_adoption_result(Extension(pool): Extension<PgPool>) -> ApiResult {
     let state = AutoAdoptionWizardState::get(&pool).await?;
     Ok(ApiResponse::new(json!(state), StatusCode::OK))
-}
-
-#[derive(Debug, Serialize)]
-struct AcmeSetupResponse {
-    step: &'static str,
-    error: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    message: Option<String>,
-}
-
-fn acme_event(step: &'static str) -> Event {
-    let body = serde_json::to_string(&AcmeSetupResponse {
-        step,
-        error: false,
-        message: None,
-    })
-    .unwrap_or_else(|_| format!(r#"{{"step":"{step}","error":false}}"#));
-    Event::default().data(body)
-}
-
-fn acme_error_event(step: &'static str, message: String) -> Event {
-    let body = serde_json::to_string(&AcmeSetupResponse {
-        step,
-        error: true,
-        message: Some(message.clone()),
-    })
-    .unwrap_or_else(|_| format!(r#"{{"step":"{step}","error":true,"message":"{message}"}}"#));
-    Event::default().data(body)
-}
-
-/// Maps a proto [`AcmeStep`] to the SSE step string expected by the frontend.
-fn acme_step_name(step: AcmeStep) -> &'static str {
-    match step {
-        AcmeStep::Unspecified => "Connecting",
-        AcmeStep::Connecting => "Connecting",
-        AcmeStep::ValidatingDomain => "ValidatingDomain",
-        AcmeStep::IssuingCertificate => "IssuingCertificate",
-    }
-}
-
-/// Maximum time to wait for the ACME flow to complete end-to-end.
-const ACME_TIMEOUT_SECS: u64 = 300;
-
-/// Streams Let's Encrypt certificate issuance progress as Server-Sent Events.
-///
-/// Delegates the ACME HTTP-01 process directly to the proxy component via
-/// [`call_proxy_issue_acme`], which reconnects to the proxy's `ProxySetup` gRPC
-/// service over TLS.  The proxy must already be adopted (its setup server still
-/// alive waiting for `IssueAcme` or `FinishSetup`) before this endpoint is called.
-///
-/// Core emits `Done` after it successfully saves the certificate to the database.
-// GET: EventSource only supports GET
-pub async fn stream_external_url_lets_encrypt(
-    _: AdminOrSetupRole,
-    Extension(pool): Extension<PgPool>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let stream = async_stream::stream! {
-        let certs = match Certificates::get_or_default(&pool).await {
-            Ok(c) => c,
-            Err(e) => {
-                yield Ok(acme_error_event("Connecting", format!("Failed to load certificates config: {e}")));
-                return;
-            }
-        };
-
-        let domain = match certs.acme_domain.clone() {
-            Some(d) if !d.is_empty() => d,
-            _ => {
-                yield Ok(acme_error_event(
-                    "Connecting",
-                    "No ACME domain configured. Please re-submit the external URL settings with a Let's Encrypt domain.".to_string(),
-                ));
-                return;
-            }
-        };
-
-        let account_credentials_json = certs.acme_account_credentials.clone().unwrap_or_default();
-
-        let proxies = match Proxy::list(&pool).await {
-            Ok(list) => list,
-            Err(e) => {
-                yield Ok(acme_error_event("Connecting", format!("Failed to load proxy list from DB: {e}")));
-                return;
-            }
-        };
-
-        let proxy = match proxies.into_iter().next() {
-            Some(p) => p,
-            None => {
-                yield Ok(acme_error_event(
-                    "Connecting",
-                    "No proxy found in database. Please complete the edge adoption step first.".to_string(),
-                ));
-                return;
-            }
-        };
-
-        let proxy_host = proxy.address.clone();
-        let proxy_port = proxy.port as u16;
-        info!("Triggering ACME HTTP-01 via ProxySetup gRPC for domain: {domain} proxy={proxy_host}:{proxy_port}");
-
-        // Channel for real-time progress steps forwarded from the proxy.
-        let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<AcmeStep>();
-        // Oneshot for the final result (cert or error string).
-        let (result_tx, mut result_rx) = tokio::sync::oneshot::channel::<Result<(String, String, String), String>>();
-
-        let pool_clone = pool.clone();
-        let domain_clone = domain.clone();
-        let account_creds_clone = account_credentials_json.clone();
-        tokio::spawn(async move {
-            let result = call_proxy_issue_acme(
-                &pool_clone,
-                &proxy_host,
-                proxy_port,
-                domain_clone,
-                true,
-                account_creds_clone,
-                progress_tx,
-            ).await;
-            let _ = result_tx.send(result);
-        });
-
-        // Track the most recently seen step name for error reporting.
-        let mut current_step: &'static str = "Connecting";
-
-        // Overall timeout guard.
-        let deadline =
-            tokio::time::Instant::now() + tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS);
-
-        loop {
-            tokio::select! {
-                // Real progress step arrived from the proxy.
-                maybe_step = progress_rx.recv() => {
-                    match maybe_step {
-                        Some(step) => {
-                            current_step = acme_step_name(step);
-                            yield Ok(acme_event(current_step));
-                        }
-                        None => {
-                            // progress_tx was dropped - the ACME task finished.
-                            // The final result will arrive on result_rx; keep looping.
-                        }
-                    }
-                }
-
-                // Final result from the ACME task.
-                res = &mut result_rx => {
-                    match res {
-                        Ok(Ok((cert_pem, key_pem, account_credentials_json))) => {
-                            match Certificates::get_or_default(&pool).await {
-                                Ok(mut updated_certs) => {
-                                    updated_certs.proxy_http_cert_pem = Some(cert_pem);
-                                    updated_certs.proxy_http_cert_key_pem = Some(key_pem);
-                                    updated_certs.acme_account_credentials = Some(account_credentials_json);
-                                    updated_certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
-                                    if let Err(e) = updated_certs.save(&pool).await {
-                                        yield Ok(acme_error_event("Installing", format!("Failed to save certificate: {e}")));
-                                        return;
-                                    }
-                                }
-                                Err(e) => {
-                                    yield Ok(acme_error_event("Installing", format!("Failed to reload certificates for saving: {e}")));
-                                    return;
-                                }
-                            }
-                            info!("ACME certificate issued and saved for domain: {domain}");
-                            yield Ok(acme_event("Done"));
-                            return;
-                        }
-                        Ok(Err(acme_err)) => {
-                            let msg = format!("ACME issuance failed: {acme_err}");
-                            error!("{msg}");
-                            yield Ok(acme_error_event(current_step, msg));
-                            return;
-                        }
-                        Err(_) => {
-                            yield Ok(acme_error_event(current_step, "ACME task terminated unexpectedly.".to_string()));
-                            return;
-                        }
-                    }
-                }
-
-                // Hard deadline - something hung on the proxy side.
-                _ = tokio::time::sleep_until(deadline) => {
-                    yield Ok(acme_error_event(current_step, format!("ACME certificate issuance timed out after {ACME_TIMEOUT_SECS} seconds.")));
-                    return;
-                }
-            }
-        }
-    };
-
-    Sse::new(stream).keep_alive(KeepAlive::default())
 }

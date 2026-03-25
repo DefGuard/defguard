@@ -160,12 +160,13 @@ export const AutoAdoptionSetupPage = () => {
     (s) => s.isAutoAdoptionFlowStarted,
   );
   const startFlow = useAutoAdoptionSetupWizardStore((s) => s.startFlow);
+  const isFinishing = useAutoAdoptionSetupWizardStore((s) => s.isFinishing);
 
   const { data: statusData } = useQuery({
     queryKey: ['initial_setup', 'auto_adoption', 'status'],
     queryFn: api.initial_setup.getAutoAdoptionResult,
     select: (response) => response.data,
-    refetchInterval: 3000,
+    refetchInterval: isFinishing ? false : 3000,
   });
 
   const results = statusData?.adoption_result;
@@ -250,7 +251,7 @@ export const AutoAdoptionSetupPage = () => {
     ? m.initial_setup_auto_adoption_welcome_subtitle_failed()
     : m.initial_setup_auto_adoption_welcome_subtitle_success();
 
-  if (!results) {
+  if (!results && !isFinishing) {
     return null;
   }
 
@@ -265,11 +266,12 @@ export const AutoAdoptionSetupPage = () => {
       welcomePageConfig={{
         title: m.initial_setup_auto_adoption_welcome_title(),
         subtitle,
-        content: hasFailedResult ? (
-          <AutoAdoptionFailedWelcomeContent results={results} />
-        ) : (
-          <AutoAdoptionSuccessWelcomeContent onStartFlow={startFlow} />
-        ),
+        content:
+          hasFailedResult && results ? (
+            <AutoAdoptionFailedWelcomeContent results={results} />
+          ) : (
+            <AutoAdoptionSuccessWelcomeContent onStartFlow={startFlow} />
+          ),
         media: <img src={worldMap} alt="World map" />,
         displayDocs: false,
       }}

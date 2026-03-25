@@ -13,6 +13,7 @@ import {
 type StoreValues = {
   activeStep: AutoAdoptionSetupStepValue;
   isAutoAdoptionFlowStarted: boolean;
+  isFinishing: boolean;
   admin_first_name: string;
   admin_last_name: string;
   admin_username: string;
@@ -46,6 +47,7 @@ type StoreMethods = {
 const defaults: StoreValues = {
   activeStep: AutoAdoptionSetupStep.AdminUser,
   isAutoAdoptionFlowStarted: false,
+  isFinishing: false,
   admin_first_name: '',
   admin_last_name: '',
   admin_username: '',
@@ -83,7 +85,8 @@ export const useAutoAdoptionSetupWizardStore = create<StoreMethods & StoreValues
     {
       name: 'auto-adoption-setup-wizard-store',
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (state) => omit(state, ['reset', 'startFlow', 'setActiveStep']),
+      partialize: (state) =>
+        omit(state, ['reset', 'startFlow', 'setActiveStep', 'isFinishing']),
     },
   ),
 );

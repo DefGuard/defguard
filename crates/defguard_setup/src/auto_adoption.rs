@@ -23,15 +23,15 @@ use defguard_proto::{
         gateway_setup_client::GatewaySetupClient,
     },
     proxy::{
-        AcmeChallenge, AcmeStep, CertificateInfo as ProxyCertificateInfo,
-        DerPayload as ProxyDerPayload, acme_issue_event, proxy_setup_client::ProxySetupClient,
+        CertificateInfo as ProxyCertificateInfo, DerPayload as ProxyDerPayload,
+        proxy_setup_client::ProxySetupClient,
     },
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use ipnetwork::IpNetwork;
 use reqwest::Url;
 use sqlx::PgPool;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tonic::{
     Request, Status,
     service::Interceptor,
@@ -47,11 +47,6 @@ const AUTO_ADOPTION_CA_VALIDITY_DAYS: u32 = 3650;
 const GATEWAY_NAME: &str = "Gateway";
 const PROXY_NAME: &str = "Edge";
 const KEEPALIVE_INTERVAL_SECONDS: Duration = Duration::from_secs(5);
-/// Maximum number of connection attempts when reaching the proxy's Phase-2 TLS setup server.
-/// The proxy needs a brief moment to rebind the port with TLS after the plain-HTTP phase ends.
-const PROXY_TLS_CONNECT_MAX_RETRIES: u32 = 10;
-/// Delay between consecutive retry attempts for the Phase-2 TLS connection.
-const PROXY_TLS_CONNECT_RETRY_DELAY: Duration = Duration::from_millis(500);
 
 async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error> {
     let mut certs = Certificates::get_or_default(pool)
@@ -850,233 +845,6 @@ async fn create_proxy(
         .context("Failed to save auto-adopted Proxy")?;
 
     info!("Auto-adoption: created proxy record name={common_name} address={host}:{port}");
-
-    Ok(())
-}
-
-/// Connects to an already-adopted proxy's `ProxySetup` gRPC service over TLS and calls
-/// `Start` followed by `IssueAcme` to obtain a Let's Encrypt certificate for `domain`.
-///
-/// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or an error string
-/// on failure.  The proxy's setup server stays alive on failure so the caller can retry.
-pub async fn call_proxy_issue_acme(
-    pool: &PgPool,
-    proxy_host: &str,
-    proxy_port: u16,
-    domain: String,
-    use_staging: bool,
-    account_credentials_json: String,
-    progress_tx: UnboundedSender<AcmeStep>,
-) -> Result<(String, String, String), String> {
-    let certs = Certificates::get_or_default(pool)
-        .await
-        .map_err(|e| format!("Failed to load certificates: {e}"))?;
-    let ca_cert_der = certs
-        .ca_cert_der
-        .ok_or_else(|| "CA certificate not found in settings".to_string())?;
-
-    let cert_pem = der_to_pem(&ca_cert_der, PemLabel::Certificate)
-        .map_err(|e| format!("Failed to convert CA certificate to PEM: {e}"))?;
-
-    let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
-    let url = Url::parse(&endpoint_str)
-        .map_err(|e| format!("Invalid proxy endpoint URL: {e}"))?;
-
-    let base_endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| format!("Failed to build proxy endpoint: {e}"))?
-        .http2_keep_alive_interval(KEEPALIVE_INTERVAL_SECONDS)
-        .tcp_keepalive(Some(KEEPALIVE_INTERVAL_SECONDS))
-        .keep_alive_while_idle(true);
-
-    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-    let endpoint = base_endpoint
-        .tls_config(tls)
-        .map_err(|e| format!("Failed to configure TLS for proxy endpoint: {e}"))?;
-
-    let core_version = Version::parse(VERSION)
-        .map_err(|e| format!("Failed to parse core version: {e}"))?;
-
-    let token = Claims::new(
-        ClaimsType::Gateway,
-        url.to_string(),
-        TOKEN_CLIENT_ID.to_string(),
-        u32::MAX.into(),
-    )
-    .to_jwt()
-    .map_err(|e| format!("Failed to generate setup token: {e}"))?;
-
-    let version_interceptor = ClientVersionInterceptor::new(core_version);
-    let auth_interceptor = AuthInterceptor::new(token);
-
-    let mut client =
-        ProxySetupClient::with_interceptor(endpoint.connect_lazy(), move |mut req: Request<()>| {
-            req = version_interceptor.clone().call(req)?;
-            auth_interceptor.clone().call(req)
-        });
-
-    // Start the setup session and keep the log stream alive until after issue_acme completes.
-    // Dropping the stream immediately would close the channel on the proxy side, causing the
-    // proxy's log-streaming task to exit and call clear_setup_session() - invalidating the
-    // token before issue_acme can authenticate with it.
-    // The proxy's Phase-2 TLS server may take a moment to come up after transitioning from the
-    // plain-HTTP phase, so we retry the connection a few times before giving up.
-    let mut last_start_err = String::new();
-    let mut log_stream = None;
-    for attempt in 1..=PROXY_TLS_CONNECT_MAX_RETRIES {
-        match client.start(()).await {
-            Ok(resp) => {
-                log_stream = Some(resp.into_inner());
-                break;
-            }
-            Err(err) => {
-                last_start_err = format!("{err}");
-                debug!(
-                    "Attempt {attempt}/{PROXY_TLS_CONNECT_MAX_RETRIES}: failed to start proxy \
-                    setup session (TLS server may still be starting): {err}"
-                );
-                tokio::time::sleep(PROXY_TLS_CONNECT_RETRY_DELAY).await;
-            }
-        }
-    }
-    if log_stream.is_none() {
-        return Err(format!(
-            "Failed to start proxy setup session after {PROXY_TLS_CONNECT_MAX_RETRIES} \
-            attempts: {last_start_err}"
-        ));
-    }
-
-    // Issue ACME certificate - the proxy streams back progress events followed by the cert.
-    let mut stream = client
-        .issue_acme(AcmeChallenge {
-            domain: domain.clone(),
-            use_staging,
-            account_credentials_json,
-        })
-        .await
-        .map_err(|e| format!("IssueAcme RPC failed: {e}"))?
-        .into_inner();
-
-    loop {
-        match stream.message().await {
-            Ok(Some(event)) => match event.payload {
-                Some(acme_issue_event::Payload::Progress(p)) => {
-                    if let Ok(step) = AcmeStep::try_from(p.step) {
-                        // Fire-and-forget - the SSE handler may have already closed.
-                        let _ = progress_tx.send(step);
-                    }
-                }
-                Some(acme_issue_event::Payload::Certificate(cert)) => {
-                    // Let the log stream drop - proxy already cleaned up its session on success.
-                    drop(log_stream);
-                    return Ok((cert.cert_pem, cert.key_pem, cert.account_credentials_json));
-                }
-                None => {
-                    return Err("IssueAcme stream sent an event with no payload".to_string());
-                }
-            },
-            Ok(None) => {
-                return Err("IssueAcme stream ended without delivering a certificate".to_string());
-            }
-            Err(e) => {
-                return Err(format!("Failed to read IssueAcme response: {e}"));
-            }
-        }
-    }
-}
-
-/// Connects to an already-adopted proxy's `ProxySetup` gRPC service over TLS and calls
-/// `FinishSetup` so the proxy's setup server can shut down and the main gRPC server can start.
-///
-/// Should be called when no ACME step is needed (SSL type is `None`, `DefguardCa`, or
-/// `OwnCert`).
-pub async fn call_proxy_finish_setup(
-    pool: &PgPool,
-    proxy_host: &str,
-    proxy_port: u16,
-) -> Result<(), String> {
-    let certs = Certificates::get_or_default(pool)
-        .await
-        .map_err(|e| format!("Failed to load certificates: {e}"))?;
-    let ca_cert_der = certs
-        .ca_cert_der
-        .ok_or_else(|| "CA certificate not found in settings".to_string())?;
-
-    let cert_pem = der_to_pem(&ca_cert_der, PemLabel::Certificate)
-        .map_err(|e| format!("Failed to convert CA certificate to PEM: {e}"))?;
-
-    let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
-    let url = Url::parse(&endpoint_str)
-        .map_err(|e| format!("Invalid proxy endpoint URL: {e}"))?;
-
-    let base_endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| format!("Failed to build proxy endpoint: {e}"))?
-        .http2_keep_alive_interval(KEEPALIVE_INTERVAL_SECONDS)
-        .tcp_keepalive(Some(KEEPALIVE_INTERVAL_SECONDS))
-        .keep_alive_while_idle(true);
-
-    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-    let endpoint = base_endpoint
-        .tls_config(tls)
-        .map_err(|e| format!("Failed to configure TLS for proxy endpoint: {e}"))?;
-
-    let core_version = Version::parse(VERSION)
-        .map_err(|e| format!("Failed to parse core version: {e}"))?;
-
-    let token = Claims::new(
-        ClaimsType::Gateway,
-        url.to_string(),
-        TOKEN_CLIENT_ID.to_string(),
-        u32::MAX.into(),
-    )
-    .to_jwt()
-    .map_err(|e| format!("Failed to generate setup token: {e}"))?;
-
-    let version_interceptor = ClientVersionInterceptor::new(core_version);
-    let auth_interceptor = AuthInterceptor::new(token);
-
-    let mut client =
-        ProxySetupClient::with_interceptor(endpoint.connect_lazy(), move |mut req: Request<()>| {
-            req = version_interceptor.clone().call(req)?;
-            auth_interceptor.clone().call(req)
-        });
-
-    // Start the setup session and keep the log stream alive until after finish_setup completes.
-    // Dropping the stream immediately would close the channel on the proxy side, causing the
-    // proxy's log-streaming task to exit and call clear_setup_session() - invalidating the
-    // token before finish_setup can authenticate with it.
-    // The proxy's Phase-2 TLS server may take a moment to come up after transitioning from the
-    // plain-HTTP phase, so we retry the connection a few times before giving up.
-    let mut last_start_err = String::new();
-    let mut log_stream = None;
-    for attempt in 1..=PROXY_TLS_CONNECT_MAX_RETRIES {
-        match client.start(()).await {
-            Ok(resp) => {
-                log_stream = Some(resp.into_inner());
-                break;
-            }
-            Err(err) => {
-                last_start_err = format!("{err}");
-                debug!(
-                    "Attempt {attempt}/{PROXY_TLS_CONNECT_MAX_RETRIES}: failed to start proxy \
-                    setup session (TLS server may still be starting): {err}"
-                );
-                tokio::time::sleep(PROXY_TLS_CONNECT_RETRY_DELAY).await;
-            }
-        }
-    }
-    if log_stream.is_none() {
-        return Err(format!(
-            "Failed to start proxy setup session after {PROXY_TLS_CONNECT_MAX_RETRIES} \
-            attempts: {last_start_err}"
-        ));
-    }
-
-    client
-        .finish_setup(())
-        .await
-        .map_err(|e| format!("FinishSetup RPC failed: {e}"))?;
-
-    drop(log_stream);
 
     Ok(())
 }
