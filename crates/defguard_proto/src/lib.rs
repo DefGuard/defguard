@@ -1,17 +1,50 @@
 use std::fmt;
 
+mod generated {
+    pub mod defguard {
+        pub mod proxy {
+            pub mod v2 {
+                tonic::include_proto!("defguard.proxy.v2");
+            }
+        }
+
+        pub mod gateway {
+            pub mod v2 {
+                tonic::include_proto!("defguard.gateway.v2");
+            }
+        }
+
+        pub mod worker {
+            pub mod v2 {
+                tonic::include_proto!("defguard.worker.v2");
+            }
+        }
+
+        pub mod enterprise {
+            pub mod firewall {
+                pub mod v2 {
+                    tonic::include_proto!("defguard.enterprise.firewall.v2");
+                }
+            }
+        }
+    }
+}
+
 pub mod proxy {
-    tonic::include_proto!("defguard.proxy");
+    pub use crate::generated::defguard::proxy::v2::*;
 }
+
 pub mod gateway {
-    tonic::include_proto!("gateway");
+    pub use crate::generated::defguard::gateway::v2::*;
 }
+
 pub mod worker {
-    tonic::include_proto!("worker");
+    pub use crate::generated::defguard::worker::v2::*;
 }
+
 pub mod enterprise {
     pub mod firewall {
-        tonic::include_proto!("enterprise.firewall");
+        pub use crate::generated::defguard::enterprise::firewall::v2::*;
     }
 }
 
