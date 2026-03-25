@@ -1140,7 +1140,10 @@ pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<Str
 #[cfg(test)]
 mod test {
     use defguard_common::db::{
-        models::{Settings, User, settings::initialize_current_settings},
+        models::{
+            Settings, User,
+            settings::{initialize_current_settings, update_current_settings},
+        },
         setup_pool,
     };
     use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
@@ -1181,6 +1184,7 @@ mod test {
 
         let mut settings = Settings::get_current_settings();
         settings.enrollment_send_welcome_email = false;
+        update_current_settings(&pool, settings).await.unwrap();
 
         let (wireguard_tx, _) = broadcast::channel(1);
         let (bidi_event_tx, _) = unbounded_channel();
