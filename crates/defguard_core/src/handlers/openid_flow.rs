@@ -22,7 +22,7 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
     },
 };
-use defguard_mail::templates::new_device_ocid_login_mail;
+use defguard_mail::templates::new_device_oidc_login_mail;
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -580,7 +580,7 @@ pub async fn secure_authorization(
                         app.save(&appstate.pool).await?;
 
                         let mut conn = appstate.pool.begin().await?;
-                        new_device_ocid_login_mail(
+                        new_device_oidc_login_mail(
                             &session_info.user.email,
                             &mut conn,
                             Some(&session_info.session.into()),

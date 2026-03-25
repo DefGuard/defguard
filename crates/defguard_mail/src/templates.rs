@@ -322,7 +322,7 @@ pub async fn new_device_login_mail(
 }
 
 /// New device login from OpenID Connect.
-pub async fn new_device_ocid_login_mail(
+pub async fn new_device_oidc_login_mail(
     to: &str,
     conn: &mut PgConnection,
     session: Option<&SessionContext>,
@@ -334,7 +334,7 @@ pub async fn new_device_ocid_login_mail(
     context.insert("oauth2client_name", &oauth2client_name);
     context.insert("profile_url", &url);
 
-    let message = MailMessage::NewDeviceOCIDLogin;
+    let message = MailMessage::NewDeviceOIDCLogin;
     message.fill_context(conn, &mut context).await?;
     message.mail(&mut tera, &context, to)?.send_and_forget();
 
