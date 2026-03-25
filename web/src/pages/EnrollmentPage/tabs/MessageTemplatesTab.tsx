@@ -132,7 +132,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                   <form.AppField name="enrollment_display_welcome_message">
                     {(field) => (
                       <field.FormInteractiveBlock
-                        variant="static"
+                        variant="empty"
                         title={m.settings_enrollment_template_display_message_title()}
                         content={m.settings_enrollment_template_display_message_description()}
                       >
