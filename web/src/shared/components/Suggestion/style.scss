@@ -1,0 +1,19 @@
+.suggestion {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-lg);
+
+  .suggestion-header {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    align-items: center;
+    column-gap: var(--spacing-sm);
+  }
+
+  .suggestion-panel {
+    background-color: var(--bg-neutral-faded);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-sizing: border-box;
+  }
+}

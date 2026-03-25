@@ -8,18 +8,14 @@ import { Controls } from '../../../shared/components/Controls/Controls';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
-import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText';
+import { Suggestion } from '../../../shared/components/Suggestion/Suggestion';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import {
-  TextStyle,
-  ThemeSpacing,
-  ThemeVariable,
-} from '../../../shared/defguard-ui/types';
+import { ThemeSpacing, ThemeVariable } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
@@ -115,7 +111,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
   });
 
   return (
-    <SettingsLayout>
+    <SettingsLayout suggestion={<MessageTemplatesSuggestion />}>
       <div data-testid="enrollment-tab-message-templates">
         <div>
           <SettingsHeader
@@ -255,46 +251,44 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
             </form>
           </SettingsCard>
         </div>
-        <MessageTemplatesHelpPanel />
       </div>
     </SettingsLayout>
   );
 };
 
-const MessageTemplatesHelpPanel = () => {
+const MessageTemplatesSuggestion = () => {
   return (
-    <div className="message-templates-sidebar">
-      <div className="sidebar-header">
-        <Icon icon="info-outlined" staticColor={ThemeVariable.FgMuted} size={20} />
-        <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
-          {m.settings_enrollment_template_help_title()}
-        </AppText>
-      </div>
-      <div className="sidebar-panel">
-        <ul className="sidebar-list">
-          {messageTemplatesHelpVariables.map(([token, description]) => (
-            <li key={token}>
-              <span className="sidebar-token">{token}</span>
-              <span className="sidebar-separator"> - </span>
-              <span>{description}</span>
-            </li>
-          ))}
-        </ul>
-        <Divider />
-        <ul className="sidebar-list">
-          {messageTemplatesHelpMarkdown.map(([token, description, weight]) => (
-            <li key={token}>
-              <span
-                className={weight === 'medium' ? 'sidebar-token-medium' : 'sidebar-token'}
-              >
-                {token}
-              </span>
-              <span className="sidebar-separator"> - </span>
-              <span>{description}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <Suggestion
+      title={m.settings_enrollment_template_help_title()}
+      content={
+        <>
+          <ul className="sidebar-list">
+            {messageTemplatesHelpVariables.map(([token, description]) => (
+              <li key={token}>
+                <span className="sidebar-token">{token}</span>
+                <span className="sidebar-separator"> - </span>
+                <span>{description}</span>
+              </li>
+            ))}
+          </ul>
+          <Divider />
+          <ul className="sidebar-list">
+            {messageTemplatesHelpMarkdown.map(([token, description, weight]) => (
+              <li key={token}>
+                <span
+                  className={
+                    weight === 'medium' ? 'sidebar-token-medium' : 'sidebar-token'
+                  }
+                >
+                  {token}
+                </span>
+                <span className="sidebar-separator"> - </span>
+                <span>{description}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      }
+    />
   );
 };

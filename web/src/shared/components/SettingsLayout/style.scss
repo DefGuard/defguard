@@ -7,5 +7,21 @@
       grid-column: 1 / 7;
       grid-row: 1;
     }
+
+    & > .suggestion-content {
+      grid-row: 1;
+    }
+  }
+
+  &.with-suggestion {
+    & > .layout-grid {
+      & > .main-content {
+        grid-column: 1 / 10;
+      }
+
+      & > .suggestion-content {
+        grid-column: 10 / 13;
+      }
+    }
   }
 }
