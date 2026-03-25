@@ -6,6 +6,13 @@ export const externalLink = {
     pricing: 'https://defguard.net/pricing',
     download: 'https://defguard.net/download',
     sales: 'mailto:sales@defguard.net',
+    support: 'https://defguard.net/support/',
+    scheduleCall: 'https://defguard.net/',
+  },
+  github: {
+    bugReport: 'https://github.com/DefGuard/defguard/issues/new?template=bug_report.md',
+    featureRequest:
+      'https://github.com/DefGuard/defguard/issues/new?template=feature_request.md',
   },
   client: {
     desktop: {
