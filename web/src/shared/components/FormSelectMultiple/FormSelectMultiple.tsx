@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useFormFieldError } from '../../defguard-ui/hooks/useFormFieldError';
-import { useFieldContext } from '../../form';
+import { useFieldContext } from '../../form-context';
 import type { SelectionKey } from '../SelectionSection/type';
 import { SelectMultiple } from '../SelectMultiple/SelectMultiple';
 import type { SelectMultipleProps } from '../SelectMultiple/types';

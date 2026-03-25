@@ -39,7 +39,7 @@ use defguard_proto::proxy::{
     EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
     NewDevice, RegisterMobileAuthRequest,
 };
-use sqlx::{PgPool, query_scalar};
+use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
@@ -351,6 +351,32 @@ impl EnrollmentServer {
         Ok(())
     }
 
+    async fn send_welcome_email_if_enabled(
+        &self,
+        enrollment: &Token,
+        conn: &mut PgConnection,
+        user: &User<Id>,
+        ip_address: &str,
+        device_info: Option<&str>,
+    ) -> Result<(), Status> {
+        let settings = Settings::get_current_settings();
+        if !settings.enrollment_send_welcome_email {
+            info!(
+                "Skipping enrollment welcome email for user {} because it is disabled in settings",
+                user.username
+            );
+            return Ok(());
+        }
+
+        debug!("Try to send welcome email...");
+        enrollment
+            .send_welcome_email(conn, user, ip_address, device_info)
+            .await?;
+        info!("Welcome email sent to {} at {}", user.username, user.email);
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn activate_user(
         &self,
@@ -419,11 +445,14 @@ impl EnrollmentServer {
         debug!("Updating user details ended with success.");
         let _ = update_counts(&mut *transaction).await;
 
-        // send welcome email
-        debug!("Try to send welcome email...");
-        enrollment
-            .send_welcome_email(&mut transaction, &user, &ip_address, device_info.as_deref())
-            .await?;
+        self.send_welcome_email_if_enabled(
+            &enrollment,
+            &mut transaction,
+            &user,
+            &ip_address,
+            device_info.as_deref(),
+        )
+        .await?;
 
         // send success notification to admin
         debug!(
@@ -1106,4 +1135,66 @@ pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<Str
     );
 
     Ok(new_token.token)
+}
+
+#[cfg(test)]
+mod test {
+    use defguard_common::db::{
+        models::{
+            Settings, User,
+            settings::{initialize_current_settings, update_current_settings},
+        },
+        setup_pool,
+    };
+    use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel};
+
+    use super::EnrollmentServer;
+
+    #[sqlx::test]
+    async fn test_send_welcome_email_if_disabled_skips_mail(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "test_user_disabled_mail",
+            None,
+            "Test",
+            "User",
+            "user-disabled-mail@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let token = Token::new(
+            user.id,
+            None,
+            Some(user.email.clone()),
+            10,
+            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+        );
+
+        Settings::initialize_runtime_defaults(&pool).await.unwrap();
+        initialize_current_settings(&pool).await.unwrap();
+
+        let mut settings = Settings::get_current_settings();
+        settings.enrollment_send_welcome_email = false;
+        update_current_settings(&pool, settings).await.unwrap();
+
+        let (wireguard_tx, _) = broadcast::channel(1);
+        let (bidi_event_tx, _) = unbounded_channel();
+        let server = EnrollmentServer::new(pool.clone(), wireguard_tx, bidi_event_tx);
+
+        let mut transaction = pool.begin().await.unwrap();
+        let result = server
+            .send_welcome_email_if_enabled(&token, &mut transaction, &user, "127.0.0.1", None)
+            .await;
+
+        assert!(result.is_ok());
+    }
 }
