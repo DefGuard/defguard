@@ -7,7 +7,7 @@ export const externalLink = {
     download: 'https://defguard.net/download',
     sales: 'mailto:sales@defguard.net',
     support: 'https://defguard.net/support/',
-    scheduleCall: 'https://calendly.com/defguard',
+    scheduleCall: 'https://defguard.net/',
   },
   github: {
     bugReport: 'https://github.com/DefGuard/defguard/issues/new?template=bug_report.md',
