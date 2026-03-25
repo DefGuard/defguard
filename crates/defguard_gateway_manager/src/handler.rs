@@ -564,7 +564,7 @@ impl GatewayHandler {
             )));
         }
 
-        self.connect_tls_channel(&endpoint)
+        self.connect_tls_channel(endpoint)
     }
 
     pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
