@@ -15,7 +15,6 @@ use defguard_common::{
             settings::{initialize_current_settings, update_current_settings},
         },
     },
-    types::proxy::ProxyControlMessage,
 };
 use defguard_setup::{migration::build_migration_webapp, setup_server::build_setup_webapp};
 use reqwest::{
@@ -88,14 +87,10 @@ impl TestClient {
 #[allow(dead_code)]
 pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Receiver<()>) {
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
-    // Create a dummy proxy_control channel for tests — the ACME handler is not exercised here.
-    let (proxy_control_tx, _proxy_control_rx) =
-        tokio::sync::mpsc::channel::<ProxyControlMessage>(1);
     let app = build_setup_webapp(
         pool,
         Version::parse(VERSION).expect("Invalid version"),
         setup_shutdown_tx,
-        proxy_control_tx,
     );
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
     let listener = TcpListener::bind(addr)

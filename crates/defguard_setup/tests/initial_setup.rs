@@ -17,7 +17,6 @@ use defguard_common::{
         },
         setup_pool,
     },
-    types::proxy::ProxyControlMessage,
 };
 use defguard_setup::setup_server::build_setup_webapp;
 use reqwest::{
@@ -489,15 +488,10 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let shutdown_notify = Arc::new(Notify::new());
     let shutdown_notify_server = shutdown_notify.clone();
 
-    // Dummy proxy_control channel — ACME handler is not exercised by this test.
-    let (proxy_control_tx, _proxy_control_rx) =
-        tokio::sync::mpsc::channel::<ProxyControlMessage>(1);
-
     let app = build_setup_webapp(
         pool.clone(),
         Version::parse(VERSION).expect("Invalid version"),
         setup_shutdown_tx,
-        proxy_control_tx,
     );
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);

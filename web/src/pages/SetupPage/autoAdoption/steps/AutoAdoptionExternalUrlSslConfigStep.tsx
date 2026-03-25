@@ -6,7 +6,10 @@ import { Controls } from '../../../../shared/components/Controls/Controls';
 import { LoadingStep } from '../../../../shared/components/LoadingStep/LoadingStep';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
+import { CodeCard } from '../../../../shared/defguard-ui/components/CodeCard/CodeCard';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
+import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../../shared/hooks/useSSEController';
 import caIcon from '../../assets/ca.png';
 import { AutoAdoptionSetupStep } from '../types';
@@ -19,6 +22,7 @@ type AcmeEvent = {
   step: AcmeStepId;
   error: boolean;
   message?: string;
+  logs?: string[];
 };
 
 type AcmeStepState = {
@@ -26,6 +30,7 @@ type AcmeStepState = {
   isComplete: boolean;
   isProcessing: boolean;
   errorMessage: string | null;
+  proxyLogs: string[];
 };
 
 const ACME_STEP_IDS: AcmeStepId[] = [
@@ -39,6 +44,7 @@ const defaultAcmeState: AcmeStepState = {
   isComplete: false,
   isProcessing: false,
   errorMessage: null,
+  proxyLogs: [],
 };
 
 export const AutoAdoptionExternalUrlSslConfigStep = () => {
@@ -63,6 +69,7 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
       errorMessage: event.error
         ? (event.message ?? 'Certificate issuance failed.')
         : null,
+      proxyLogs: event.logs && event.logs.length > 0 ? [...event.logs] : [],
     });
   }, []);
 
@@ -171,6 +178,17 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
                 error={!!stepError(step.id)}
                 errorMessage={stepError(step.id) ?? undefined}
               >
+                {acmeState.proxyLogs.length > 0 ? (
+                  <>
+                    <CodeCard
+                      title={m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_error_log_title()}
+                      value={acmeState.proxyLogs.join('\n')}
+                      copy
+                      download
+                    />
+                    <SizedBox height={ThemeSpacing.Xl} />
+                  </>
+                ) : null}
                 <Controls>
                   <div className="left">
                     <Button

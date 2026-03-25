@@ -30,7 +30,7 @@ use defguard_common::{
 use defguard_proto::{
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::{
-        AcmeChallenge, AcmeStep, CertificateInfo, DerPayload, acme_issue_event,
+        AcmeChallenge, AcmeLogs, AcmeStep, CertificateInfo, DerPayload, acme_issue_event,
         proxy_client::ProxyClient, proxy_setup_client::ProxySetupClient,
     },
 };
@@ -1078,6 +1078,8 @@ struct AcmeSetupResponse {
     error: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    logs: Option<Vec<String>>,
 }
 
 fn acme_event(step: &'static str) -> Event {
@@ -1085,16 +1087,18 @@ fn acme_event(step: &'static str) -> Event {
         step,
         error: false,
         message: None,
+        logs: None,
     })
     .unwrap_or_else(|_| format!(r#"{{"step":"{step}","error":false}}"#));
     Event::default().data(body)
 }
 
-fn acme_error_event(step: &'static str, message: String) -> Event {
+fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String>>) -> Event {
     let body = serde_json::to_string(&AcmeSetupResponse {
         step,
         error: true,
         message: Some(message.clone()),
+        logs,
     })
     .unwrap_or_else(|_| format!(r#"{{"step":"{step}","error":true,"message":"{message}"}}"#));
     Event::default().data(body)
@@ -1112,8 +1116,9 @@ fn acme_step_name(step: AcmeStep) -> &'static str {
 
 /// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
 ///
-/// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or an error
-/// string on failure.  Progress steps are forwarded via `progress_tx`.
+/// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
+/// `(error_message, log_lines)` on failure where `log_lines` are the proxy log entries
+/// collected during the ACME run (sent by the proxy via an [`AcmeLogs`] event).
 async fn call_proxy_trigger_acme(
     pool: &PgPool,
     proxy_host: &str,
@@ -1121,20 +1126,20 @@ async fn call_proxy_trigger_acme(
     domain: String,
     account_credentials_json: String,
     progress_tx: UnboundedSender<AcmeStep>,
-) -> Result<(String, String, String), String> {
+) -> Result<(String, String, String), (String, Vec<String>)> {
     let certs = Certificates::get_or_default(pool)
         .await
-        .map_err(|e| format!("Failed to load certificates: {e}"))?;
+        .map_err(|e| (format!("Failed to load certificates: {e}"), vec![]))?;
     let ca_cert_der = certs
         .ca_cert_der
-        .ok_or_else(|| "CA certificate not found in settings".to_string())?;
+        .ok_or_else(|| ("CA certificate not found in settings".to_string(), vec![]))?;
 
     let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
-        .map_err(|e| format!("Failed to convert CA cert to PEM: {e}"))?;
+        .map_err(|e| (format!("Failed to convert CA cert to PEM: {e}"), vec![]))?;
 
     let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
     let endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| format!("Failed to build proxy endpoint: {e}"))?
+        .map_err(|e| (format!("Failed to build proxy endpoint: {e}"), vec![]))?
         .http2_keep_alive_interval(Duration::from_secs(5))
         .tcp_keepalive(Some(Duration::from_secs(5)))
         .keep_alive_while_idle(true);
@@ -1142,10 +1147,10 @@ async fn call_proxy_trigger_acme(
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
     let endpoint = endpoint
         .tls_config(tls)
-        .map_err(|e| format!("Failed to configure TLS for proxy endpoint: {e}"))?;
+        .map_err(|e| (format!("Failed to configure TLS for proxy endpoint: {e}"), vec![]))?;
 
     let version =
-        Version::parse(VERSION).map_err(|e| format!("Failed to parse core version: {e}"))?;
+        Version::parse(VERSION).map_err(|e| (format!("Failed to parse core version: {e}"), vec![]))?;
     let version_interceptor = ClientVersionInterceptor::new(version);
 
     let mut client =
@@ -1160,8 +1165,10 @@ async fn call_proxy_trigger_acme(
             account_credentials_json,
         })
         .await
-        .map_err(|e| format!("TriggerAcme RPC failed: {e}"))?
+        .map_err(|e| (format!("TriggerAcme RPC failed: {e}"), vec![]))?
         .into_inner();
+
+    let mut collected_logs: Vec<String> = Vec::new();
 
     loop {
         match stream.message().await {
@@ -1174,15 +1181,27 @@ async fn call_proxy_trigger_acme(
                 Some(acme_issue_event::Payload::Certificate(cert)) => {
                     return Ok((cert.cert_pem, cert.key_pem, cert.account_credentials_json));
                 }
+                Some(acme_issue_event::Payload::Logs(AcmeLogs { lines })) => {
+                    collected_logs = lines;
+                }
                 None => {
-                    return Err("TriggerAcme stream sent an event with no payload".to_string());
+                    return Err((
+                        "TriggerAcme stream sent an event with no payload".to_string(),
+                        collected_logs,
+                    ));
                 }
             },
             Ok(None) => {
-                return Err("TriggerAcme stream ended without delivering a certificate".to_string());
+                return Err((
+                    "TriggerAcme stream ended without delivering a certificate".to_string(),
+                    collected_logs,
+                ));
             }
             Err(e) => {
-                return Err(format!("Failed to read TriggerAcme response: {e}"));
+                return Err((
+                    format!("Failed to read TriggerAcme response: {e}"),
+                    collected_logs,
+                ));
             }
         }
     }
@@ -1206,7 +1225,7 @@ pub async fn stream_proxy_acme(
         let certs = match Certificates::get_or_default(&pool).await {
             Ok(c) => c,
             Err(e) => {
-                yield Ok(acme_error_event("Connecting", format!("Failed to load certificates: {e}")));
+                yield Ok(acme_error_event("Connecting", format!("Failed to load certificates: {e}"), None));
                 return;
             }
         };
@@ -1219,6 +1238,7 @@ pub async fn stream_proxy_acme(
                     "No ACME domain configured. Please re-submit the external URL settings \
                      with a Let's Encrypt domain."
                         .to_string(),
+                    None,
                 ));
                 return;
             }
@@ -1232,6 +1252,7 @@ pub async fn stream_proxy_acme(
                 yield Ok(acme_error_event(
                     "Connecting",
                     format!("Failed to load proxy list from DB: {e}"),
+                    None,
                 ));
                 return;
             }
@@ -1245,6 +1266,7 @@ pub async fn stream_proxy_acme(
                     "No proxy found in database. Please complete the edge adoption step \
                      first."
                         .to_string(),
+                    None,
                 ));
                 return;
             }
@@ -1260,7 +1282,7 @@ pub async fn stream_proxy_acme(
         let (progress_tx, mut progress_rx) =
             tokio::sync::mpsc::unbounded_channel::<AcmeStep>();
         let (result_tx, result_rx) =
-            tokio::sync::oneshot::channel::<Result<(String, String, String), String>>();
+            tokio::sync::oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
 
         let pool_clone = pool.clone();
         let domain_clone = domain.clone();
@@ -1305,6 +1327,7 @@ pub async fn stream_proxy_acme(
                             "ACME certificate issuance timed out after \
                              {ACME_TIMEOUT_SECS} seconds."
                         ),
+                        None,
                     ));
                     return;
                 }
@@ -1326,6 +1349,7 @@ pub async fn stream_proxy_acme(
                             yield Ok(acme_error_event(
                                 "Installing",
                                 format!("Failed to save certificate: {e}"),
+                                None,
                             ));
                             return;
                         }
@@ -1334,6 +1358,7 @@ pub async fn stream_proxy_acme(
                         yield Ok(acme_error_event(
                             "Installing",
                             format!("Failed to reload certificates for saving: {e}"),
+                            None,
                         ));
                         return;
                     }
@@ -1353,15 +1378,16 @@ pub async fn stream_proxy_acme(
                 info!("ACME certificate issued and saved for domain: {domain}");
                 yield Ok(acme_event("Done"));
             }
-            Ok(Err(acme_err)) => {
+            Ok(Err((acme_err, logs))) => {
                 let msg = format!("ACME issuance failed: {acme_err}");
                 error!("{msg}");
-                yield Ok(acme_error_event(current_step, msg));
+                yield Ok(acme_error_event(current_step, msg, Some(logs)));
             }
             Err(_) => {
                 yield Ok(acme_error_event(
                     current_step,
                     "ACME task terminated unexpectedly.".to_string(),
+                    None,
                 ));
             }
         }

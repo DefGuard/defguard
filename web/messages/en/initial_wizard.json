@@ -152,6 +152,7 @@
   "initial_setup_auto_adoption_external_url_ssl_lets_encrypt_connecting": "Connecting \"Let's Encrypt\"® to obtain certificate",
   "initial_setup_auto_adoption_external_url_ssl_lets_encrypt_validating": "Validating with Let's Encrypt the domain name",
   "initial_setup_auto_adoption_external_url_ssl_lets_encrypt_issuing": "Issuing Certificate",
+  "initial_setup_auto_adoption_external_url_ssl_lets_encrypt_error_log_title": "ACME error log",
   "initial_setup_auto_adoption_external_url_ssl_ca_title": "Certificate Generated",
   "initial_setup_auto_adoption_external_url_ssl_ca_description": "You have chosen to secure the Edge component with Defguard's internal CA, here you can download the CA Certificate Root File, please import it in your browser.",
   "initial_setup_auto_adoption_external_url_ssl_ca_download": "Download certificate",
