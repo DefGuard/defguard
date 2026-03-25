@@ -16,10 +16,10 @@ export const SettingsLayout = ({ children, className, suggestion, ...props }: Pr
       })}
     >
       <LayoutGrid variant="default">
-        <div className={clsx('main-content', className)} {...props}>
+        <div className={clsx('main', className)} {...props}>
           {children}
         </div>
-        {suggestion && <div className="suggestion-content">{suggestion}</div>}
+        {suggestion && <div className="helpers">{suggestion}</div>}
       </LayoutGrid>
     </div>
   );

@@ -3,12 +3,12 @@
     box-sizing: border-box;
     padding: var(--spacing-3xl) var(--spacing-xl);
 
-    & > .main-content {
+    & > .main {
       grid-column: 1 / 7;
       grid-row: 1;
     }
 
-    & > .suggestion-content {
+    & > .helpers {
       grid-row: 1;
       grid-column: 7 / 10;
       justify-self: start;
