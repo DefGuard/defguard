@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", latest_session.endpoint \"device_endpoint?\", last_successful_session.connected_at \"last_connected_at?\", latest_session.state \"state?: VpnClientSessionState\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN LATERAL ( SELECT id, state, location_id, endpoint, connected_at FROM vpn_client_session WHERE location_id = n.id and device_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1 ) latest_session ON latest_session.location_id = n.id LEFT JOIN LATERAL ( SELECT connected_at FROM vpn_client_session WHERE location_id = n.id AND device_id = $1 AND connected_at IS NOT NULL ORDER BY connected_at DESC, id DESC LIMIT 1 ) last_successful_session ON true WHERE wnd.device_id = $1",
+  "query": "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", latest_successful_stats.endpoint \"device_endpoint?\", latest_successful_session.connected_at \"last_connected_at?\", latest_successful_session.state \"state?: VpnClientSessionState\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN LATERAL ( SELECT id, state, connected_at FROM vpn_client_session WHERE location_id = n.id AND device_id = $1 AND connected_at IS NOT NULL ORDER BY connected_at DESC, id DESC LIMIT 1 ) latest_successful_session ON true LEFT JOIN LATERAL ( SELECT endpoint FROM vpn_session_stats WHERE session_id = latest_successful_session.id ORDER BY collected_at DESC, id DESC LIMIT 1 ) latest_successful_stats ON true WHERE wnd.device_id = $1",
   "describe": {
     "columns": [
       {
@@ -65,5 +65,5 @@
       false
     ]
   },
-  "hash": "1a828cfcdc03c0aef96b6b18e43c47c7ffbee0e6a825568b4a55f69e225bb7b0"
+  "hash": "9ca51f33ffa6d6c8897db9b5a4f066317bb4ca6fdd2d15960e76ff6214de0144"
 }

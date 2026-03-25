@@ -51,7 +51,7 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
-    #[error("Invalid defguard_url `{0}`")]
+    #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
     InvalidDefguardUrl(String),
 }
 

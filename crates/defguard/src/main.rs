@@ -117,6 +117,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 
+    Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}
@@ -136,9 +137,6 @@ async fn main() -> Result<(), anyhow::Error> {
             ActiveWizard::Migration => {
                 let mut settings = Settings::get_current_settings();
                 settings.update_from_config(&pool, &config).await?;
-
-                Settings::initialize_runtime_defaults(&pool).await?;
-
                 config.initialize_post_settings();
                 SERVER_CONFIG
                     .set(config.clone())
@@ -158,8 +156,6 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     }
-
-    Settings::initialize_runtime_defaults(&pool).await?;
 
     if ini_server_config {
         config.initialize_post_settings();
