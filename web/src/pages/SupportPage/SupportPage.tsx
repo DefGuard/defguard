@@ -1,6 +1,4 @@
 import './styles.scss';
-import clsx from 'clsx';
-import type { ReactNode } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { Page } from '../../shared/components/Page/Page';
@@ -8,13 +6,16 @@ import { SettingsCard } from '../../shared/components/SettingsCard/SettingsCard'
 import { SettingsHeader } from '../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../shared/components/SettingsLayout/SettingsLayout';
 import { externalLink } from '../../shared/constants';
+import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonMenu } from '../../shared/defguard-ui/components/ButtonMenu/MenuButton';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
-import { Icon } from '../../shared/defguard-ui/components/Icon';
-import type { IconKindValue } from '../../shared/defguard-ui/components/Icon/icon-types';
+import { MarkedSection } from '../../shared/defguard-ui/components/MarkedSection/MarkedSection';
+import { MarkedSectionHeader } from '../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
 import docIllustration from '../../shared/defguard-ui/components/SectionSelect/assets/manual-user.png';
+import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { downloadFile, downloadText } from '../../shared/utils/download';
 
 export const SupportPage = () => {
@@ -27,7 +28,11 @@ export const SupportPage = () => {
           subtitle={m.support_page_subtitle()}
         />
         <SettingsCard>
-          <SupportSection icon="help" title={m.support_page_docs_title()}>
+          <MarkedSection icon="help">
+            <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+              {m.support_page_docs_title()}
+            </AppText>
+            <SizedBox height={ThemeSpacing.Xl} />
             <div className="doc-highlight">
               <img src={docIllustration} alt="" className="doc-highlight-illustration" />
               <div className="doc-highlight-content">
@@ -46,13 +51,17 @@ export const SupportPage = () => {
                 />
               </div>
             </div>
-          </SupportSection>
-          <Divider />
-          <SupportSection
-            icon="bug"
-            title={m.support_page_bug_title()}
-            subtitle={<BugDescription />}
-          >
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="bug">
+            <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+              {m.support_page_bug_title()}
+            </AppText>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+              <BugDescription />
+            </AppText>
+            <SizedBox height={ThemeSpacing.Xl} />
             <ButtonsGroup>
               <Button
                 variant="secondary"
@@ -98,13 +107,13 @@ export const SupportPage = () => {
                 ]}
               />
             </ButtonsGroup>
-          </SupportSection>
-          <Divider />
-          <SupportSection
-            icon="request"
-            title={m.support_page_feature_title()}
-            subtitle={m.support_page_feature_desc()}
-          >
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="request">
+            <MarkedSectionHeader
+              title={m.support_page_feature_title()}
+              description={m.support_page_feature_desc()}
+            />
             <ButtonsGroup>
               <Button
                 variant="secondary"
@@ -119,25 +128,24 @@ export const SupportPage = () => {
                 }
               />
             </ButtonsGroup>
-          </SupportSection>
-          <Divider />
-          <SupportSection
-            icon="mail"
-            title={m.support_page_email_title()}
-            subtitleDark
-            subtitle={
-              <>
-                {m.support_page_email_desc()}{' '}
-                <a href="mailto:support@defguard.net">support@defguard.net</a>
-              </>
-            }
-          />
-          <Divider />
-          <SupportSection
-            icon="chat"
-            title={m.support_page_assistance_title()}
-            subtitle={m.support_page_assistance_desc()}
-          >
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="mail">
+            <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
+              {m.support_page_email_title()}
+            </AppText>
+            <SizedBox height={ThemeSpacing.Xl} />
+            <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgDefault}>
+              {m.support_page_email_desc()}{' '}
+              <a href="mailto:support@defguard.net">support@defguard.net</a>
+            </AppText>
+          </MarkedSection>
+          <Divider spacing={ThemeSpacing.Xl2} />
+          <MarkedSection icon="chat">
+            <MarkedSectionHeader
+              title={m.support_page_assistance_title()}
+              description={m.support_page_assistance_desc()}
+            />
             <ButtonsGroup>
               <Button
                 variant="outlined"
@@ -164,7 +172,7 @@ export const SupportPage = () => {
                 }
               />
             </ButtonsGroup>
-          </SupportSection>
+          </MarkedSection>
         </SettingsCard>
       </SettingsLayout>
     </Page>
@@ -184,41 +192,5 @@ const BugDescription = () => {
       <strong>{boldPhrase}</strong>
       {after}
     </>
-  );
-};
-
-interface SupportSectionProps {
-  icon: IconKindValue;
-  title: string;
-  subtitle?: ReactNode;
-  subtitleDark?: boolean;
-  children?: ReactNode;
-}
-
-const SupportSection = ({
-  icon,
-  title,
-  subtitle,
-  subtitleDark,
-  children,
-}: SupportSectionProps) => {
-  return (
-    <div className="support-section">
-      <div className="support-section-icon">
-        <div className="bg" />
-        <Icon icon={icon} size={20} />
-      </div>
-      <div className="support-section-content">
-        <div className="section-header">
-          <p className="section-title">{title}</p>
-          {subtitle && (
-            <p className={clsx('section-subtitle', { 'subtitle-dark': subtitleDark })}>
-              {subtitle}
-            </p>
-          )}
-        </div>
-        {children}
-      </div>
-    </div>
   );
 };
