@@ -36,7 +36,9 @@ export const SupportPage = () => {
             <div className="doc-highlight">
               <img src={docIllustration} alt="" className="doc-highlight-illustration" />
               <div className="doc-highlight-content">
-                <p>{m.support_page_docs_desc()}</p>
+                <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
+                  {m.support_page_docs_desc()}
+                </AppText>
                 <Button
                   variant="primary"
                   text={m.support_page_docs_btn()}
