@@ -40,17 +40,6 @@
       & > .content {
         display: flex;
         flex-flow: column;
-        row-gap: var(--spacing-md);
-
-        .text-track {
-          display: flex;
-          flex-flow: column;
-          row-gap: var(--spacing-xs);
-
-          &.with-divider {
-            row-gap: var(--spacing-md);
-          }
-        }
 
         .top {
           width: 100%;
@@ -105,14 +94,6 @@
       display: flex;
       flex-flow: column;
       align-items: flex-start;
-      gap: var(--spacing-md);
-
-      .text-track {
-        display: flex;
-        flex-flow: column;
-        align-items: flex-start;
-        gap: var(--spacing-xs);
-      }
 
       .title {
         color: var(--fg-critical);

@@ -27,14 +27,14 @@ export const SettingsLicenseBusinessUpsellSection = () => {
             <img src={enterpriseImage} alt="" />
           </div>
           <div className="content">
-            <div className="text-track">
-              <div className="top">
-                <p className="title">{m.settings_license_plan_enterprise_title()}</p>
-              </div>
-              <p className="description">
-                {m.settings_license_plan_enterprise_description()}
-              </p>
+            <div className="top">
+              <p className="title">{m.settings_license_plan_enterprise_title()}</p>
             </div>
+            <SizedBox height={ThemeSpacing.Xs} />
+            <p className="description">
+              {m.settings_license_plan_enterprise_description()}
+            </p>
+            <SizedBox height={ThemeSpacing.Md} />
             <div className="actions">
               <a
                 href={externalLink.defguard.sales}
