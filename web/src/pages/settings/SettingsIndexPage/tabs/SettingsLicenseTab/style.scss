@@ -1,4 +1,12 @@
+#settings-license-tab {
+  .license-main-card {
+    padding: var(--spacing-lg);
+  }
+}
+
 #license-plans {
+  padding: var(--spacing-lg) var(--spacing-xl);
+
   header {
     display: flex;
     flex-flow: row;
@@ -32,7 +40,17 @@
       & > .content {
         display: flex;
         flex-flow: column;
-        row-gap: var(--spacing-xs);
+        row-gap: var(--spacing-md);
+
+        .text-track {
+          display: flex;
+          flex-flow: column;
+          row-gap: var(--spacing-xs);
+
+          &.with-divider {
+            row-gap: var(--spacing-md);
+          }
+        }
 
         .top {
           width: 100%;

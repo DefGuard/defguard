@@ -31,21 +31,22 @@ export const SettingsLicenseNoLicenseSection = () => {
             <img src={businessImage} alt="" />
           </div>
           <div className="content">
-            <div className="top">
-              <p className="title">{m.settings_license_plan_business_title()}</p>
-              <Badge
-                text={m.settings_license_plan_business_badge()}
-                variant={BadgeVariant.Plan}
-              />
+            <div className="text-track with-divider">
+              <div className="top">
+                <p className="title">{m.settings_license_plan_business_title()}</p>
+                <Badge
+                  text={m.settings_license_plan_business_badge()}
+                  variant={BadgeVariant.Plan}
+                />
+              </div>
+              <p className="description">
+                {m.settings_license_plan_business_description()}
+              </p>
+              <Divider />
+              <p className="promotional-copy">
+                {m.settings_license_plan_business_promotional_copy()}
+              </p>
             </div>
-            <p className="description">
-              {m.settings_license_plan_business_description()}
-            </p>
-            <Divider spacing={ThemeSpacing.Md} />
-            <p className="promotional-copy">
-              {m.settings_license_plan_business_promotional_copy()}
-            </p>
-            <SizedBox height={ThemeSpacing.Md} />
             <div className="actions">
               <a
                 href={externalLink.defguard.pricing}
@@ -68,13 +69,14 @@ export const SettingsLicenseNoLicenseSection = () => {
             <img src={enterpriseImage} alt="" />
           </div>
           <div className="content">
-            <div className="top">
-              <p className="title">{m.settings_license_plan_enterprise_title()}</p>
+            <div className="text-track">
+              <div className="top">
+                <p className="title">{m.settings_license_plan_enterprise_title()}</p>
+              </div>
+              <p className="description">
+                {m.settings_license_plan_enterprise_description()}
+              </p>
             </div>
-            <p className="description">
-              {m.settings_license_plan_enterprise_description()}
-            </p>
-            <SizedBox height={ThemeSpacing.Md} />
             <div className="actions">
               <a
                 href={externalLink.defguard.sales}
