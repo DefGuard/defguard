@@ -1,6 +1,8 @@
 {{ title }}
-{{ subtitle }}
+{% if subtitle %}{{ subtitle }}{% endif %}
 
 {{ label_device }}: {{ device_name }}
 {{ label_pubkey }}: {{ public_key }}
+{% for location in locations %}
 {{ location.name }}: {{ location.assigned_ips }}
+{% endfor %}

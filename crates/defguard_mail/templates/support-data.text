@@ -1,2 +1,2 @@
 {{ title }}
-{{ subtitle }}
+{% if subtitle %}{{ subtitle }}{% endif %}

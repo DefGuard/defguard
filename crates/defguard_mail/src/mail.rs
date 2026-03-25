@@ -402,7 +402,9 @@ impl MailMessage {
             Self::PasswordReset => include_str!("../templates/password-reset.text"),
             Self::PasswordResetDone => include_str!("../templates/password-reset-done.text"),
             Self::UserImportBlocked => include_str!("../templates/plain-notification.text"),
-            Self::EnrollmentNotification => include_str!("../templates/enrollment-admin-notification.text"),
+            Self::EnrollmentNotification => {
+                include_str!("../templates/enrollment-admin-notification.text")
+            }
         }
     }
 

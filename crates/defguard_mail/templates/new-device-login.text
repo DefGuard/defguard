@@ -1,5 +1,5 @@
 {{ title }}
-{{ subtitle }}
+{% if subtitle %}{{ subtitle }}{% endif %}
 
 {% if ip_address %}
 {{ label_device }}: {{ ip_address }}
