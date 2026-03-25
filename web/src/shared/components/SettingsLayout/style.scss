@@ -10,18 +10,10 @@
 
     & > .suggestion-content {
       grid-row: 1;
-    }
-  }
-
-  &.with-suggestion {
-    & > .layout-grid {
-      & > .main-content {
-        grid-column: 1 / 10;
-      }
-
-      & > .suggestion-content {
-        grid-column: 10 / 13;
-      }
+      grid-column: 7 / 10;
+      justify-self: start;
+      width: 100%;
+      max-width: 373px;
     }
   }
 }
