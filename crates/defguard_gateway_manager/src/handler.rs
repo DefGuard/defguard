@@ -51,7 +51,10 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{Code, Status, transport::Endpoint};
+use tonic::{
+    Code, Status,
+    transport::{Channel, Endpoint},
+};
 
 use crate::{Client, TEN_SECS, error::GatewayError};
 
@@ -59,7 +62,7 @@ use crate::{Client, TEN_SECS, error::GatewayError};
 use crate::GatewayManagerTestSupport;
 
 #[cfg(test)]
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct GatewayTestTransport {
     socket_path: Option<PathBuf>,
 }
@@ -129,17 +132,11 @@ impl GatewayHandler {
     }
 
     #[cfg(not(test))]
-    fn connect_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
+    fn connect_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
         self.connect_tls_channel(endpoint)
     }
 
-    fn connect_tls_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
+    fn connect_tls_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
         let settings = Settings::get_current_settings();
         let Some(ca_cert_der) = settings.ca_cert_der else {
             return Err(GatewayError::EndpointError(
@@ -371,7 +368,7 @@ impl GatewayHandler {
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
 
-        let channel = self.connect_channel(endpoint)?;
+        let channel = self.connect_channel(&endpoint)?;
 
         debug!("Connecting to Gateway {uri}");
         let interceptor = ClientVersionInterceptor::new(
@@ -553,10 +550,7 @@ impl GatewayHandler {
             .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
     }
 
-    fn connect_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
+    fn connect_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
         if let Some(socket_path) = self.test_transport.socket_path().cloned() {
             return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
                 move |_: tonic::transport::Uri| {
@@ -570,7 +564,7 @@ impl GatewayHandler {
             )));
         }
 
-        self.connect_tls_channel(endpoint)
+        self.connect_tls_channel(&endpoint)
     }
 
     pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {

@@ -131,12 +131,6 @@ impl Mail {
         &self.subject
     }
 
-    /// Getter for `content`.
-    // #[must_use]
-    // pub fn content(&self) -> &str {
-    //     &self.html
-    // }
-
     /// Add to context.
     pub fn add_to_context<K, V>(&mut self, key: K, value: &V)
     where
