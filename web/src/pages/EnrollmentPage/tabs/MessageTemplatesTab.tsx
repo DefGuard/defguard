@@ -151,11 +151,11 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                             />
                           )}
                         </form.AppField>
+                        <Divider spacing={ThemeSpacing.Xl2} />
                       </field.FormInteractiveBlock>
                     )}
                   </form.AppField>
                 </div>
-                <Divider spacing={ThemeSpacing.Xl2} />
                 <div>
                   <form.AppField name="enrollment_send_welcome_email">
                     {(field) => {
