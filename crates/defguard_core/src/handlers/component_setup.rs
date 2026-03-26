@@ -1145,12 +1145,15 @@ async fn call_proxy_trigger_acme(
         .keep_alive_while_idle(true);
 
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-    let endpoint = endpoint
-        .tls_config(tls)
-        .map_err(|e| (format!("Failed to configure TLS for proxy endpoint: {e}"), vec![]))?;
+    let endpoint = endpoint.tls_config(tls).map_err(|e| {
+        (
+            format!("Failed to configure TLS for proxy endpoint: {e}"),
+            vec![],
+        )
+    })?;
 
-    let version =
-        Version::parse(VERSION).map_err(|e| (format!("Failed to parse core version: {e}"), vec![]))?;
+    let version = Version::parse(VERSION)
+        .map_err(|e| (format!("Failed to parse core version: {e}"), vec![]))?;
     let version_interceptor = ClientVersionInterceptor::new(version);
 
     let mut client =
@@ -1211,9 +1214,9 @@ async fn call_proxy_trigger_acme(
 ///
 /// Delegates the ACME HTTP-01 process to the proxy component via the `TriggerAcme`
 /// RPC on the permanent `Proxy` gRPC service.  Reads proxy address and ACME
-/// domain/credentials from the database — no query parameters needed.
+/// domain/credentials from the database - no query parameters needed.
 ///
-/// On success, saves the certificate to the database and (when called post-wizard)
+/// On success, saves the certificate to the database and (when called post initial wizard)
 /// broadcasts `HttpsCerts` to the proxy via `proxy_control_tx`.
 // GET: EventSource only supports GET
 pub async fn stream_proxy_acme(
@@ -1314,7 +1317,7 @@ pub async fn stream_proxy_acme(
                             yield Ok(acme_event(current_step));
                         }
                         None => {
-                            // progress_tx dropped — ACME task finished; stop polling progress.
+                            // progress_tx dropped - ACME task finished; stop polling progress.
                             break;
                         }
                     }
@@ -1334,7 +1337,7 @@ pub async fn stream_proxy_acme(
             }
         }
 
-        // Progress channel closed — collect the final result.
+        // Progress channel closed - collect the final result.
         match result_rx.await {
             Ok(Ok((cert_pem, key_pem, new_account_credentials_json))) => {
                 match Certificates::get_or_default(&pool).await {

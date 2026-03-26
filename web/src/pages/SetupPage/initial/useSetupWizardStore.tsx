@@ -2,6 +2,7 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
+import type { CertInfo, ExternalSslType, InternalSslType } from '../autoAdoption/types';
 import { type CAOptionType, SetupPageStep, type SetupPageStepValue } from './types';
 
 const edgeAdoptionStateDefaults: EdgeAdoptionState = {
@@ -35,6 +36,11 @@ type StoreValues = {
   ca_validity_period_years: number;
   ca_cert_file: File | null;
   ca_option: CAOptionType | null;
+  // SSL settings
+  internal_ssl_type: InternalSslType | null;
+  internal_ssl_cert_info: CertInfo | null;
+  external_ssl_type: ExternalSslType | null;
+  external_ssl_cert_info: CertInfo | null;
   // Edge settings
   common_name: string;
   ip_or_domain: string;
@@ -72,6 +78,11 @@ const defaults: StoreValues = {
   ca_validity_period_years: 5,
   ca_cert_file: null,
   ca_option: null,
+  // SSL settings
+  internal_ssl_type: null,
+  internal_ssl_cert_info: null,
+  external_ssl_type: null,
+  external_ssl_cert_info: null,
   // Edge settings
   common_name: '',
   ip_or_domain: '',

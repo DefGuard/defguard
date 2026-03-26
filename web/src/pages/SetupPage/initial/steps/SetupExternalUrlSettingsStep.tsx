@@ -13,14 +13,15 @@ import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snac
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import { AutoAdoptionSetupStep, type ExternalSslType } from '../types';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
+import type { ExternalSslType } from '../../autoAdoption/types';
+import '../../autoAdoption/steps/style.scss';
+import { SetupPageStep } from '../types';
+import { useSetupWizardStore } from '../useSetupWizardStore';
 
-export const AutoAdoptionExternalUrlSettingsStep = () => {
-  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const storedProxyUrl = useAutoAdoptionSetupWizardStore((s) => s.public_proxy_url);
-  const storedSslType = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_type);
+export const SetupExternalUrlSettingsStep = () => {
+  const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
+  const storedProxyUrl = useSetupWizardStore((s) => s.public_proxy_url);
+  const storedSslType = useSetupWizardStore((s) => s.external_ssl_type);
 
   const formSchema = z.object({
     public_proxy_url: z
@@ -35,15 +36,15 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
     mutationFn: api.initial_setup.setAutoAdoptionExternalUrlSettings,
     meta: { invalidate: ['setupStatus'] },
     onSuccess: (response) => {
-      useAutoAdoptionSetupWizardStore.setState({
+      useSetupWizardStore.setState({
         external_ssl_type: form.getFieldValue('ssl_type'),
         external_ssl_cert_info: response.data.cert_info ?? null,
       });
-      setActiveStep(AutoAdoptionSetupStep.ExternalUrlSslConfig);
+      setActiveStep(SetupPageStep.ExternalUrlSslConfig);
     },
     onError: (error) => {
       Snackbar.error(m.initial_setup_general_config_error_save_failed());
-      console.error(error);
+      console.error('Failed to save external URL settings:', error);
     },
   });
 
@@ -66,7 +67,7 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
         );
         return;
       }
-      useAutoAdoptionSetupWizardStore.setState({
+      useSetupWizardStore.setState({
         public_proxy_url: value.public_proxy_url,
       });
       mutate({
@@ -179,7 +180,7 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
         <Button
           text={m.initial_setup_controls_back()}
           variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.InternalUrlSslConfig)}
+          onClick={() => setActiveStep(SetupPageStep.InternalUrlSslConfig)}
         />
         <div className="right">
           <Button

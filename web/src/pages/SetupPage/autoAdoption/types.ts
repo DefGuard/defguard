@@ -1,3 +1,9 @@
+export type {
+  CertInfo,
+  ExternalSslType,
+  InternalSslType,
+} from '../../../shared/api/types';
+
 export const AutoAdoptionSetupStep = {
   AdminUser: 'adminUser',
   InternalUrlSettings: 'internalUrlSettings',
@@ -22,14 +28,3 @@ export const AutoAdoptionSetupSteps = [
   AutoAdoptionSetupStep.MfaSetup,
   AutoAdoptionSetupStep.Summary,
 ] as const;
-
-export type InternalSslType = 'none' | 'defguard_ca' | 'own_cert';
-
-export type ExternalSslType = 'none' | 'lets_encrypt' | 'defguard_ca' | 'own_cert';
-
-export interface CertInfo {
-  common_name: string;
-  valid_for_days: number;
-  not_before: string;
-  not_after: string;
-}

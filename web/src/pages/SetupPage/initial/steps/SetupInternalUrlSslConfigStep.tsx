@@ -9,14 +9,14 @@ import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/Siz
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { downloadFile } from '../../../../shared/utils/download';
 import caIcon from '../../assets/ca.png';
-import { AutoAdoptionSetupStep } from '../types';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
+import '../../autoAdoption/steps/style.scss';
+import { SetupPageStep } from '../types';
+import { useSetupWizardStore } from '../useSetupWizardStore';
 
-export const AutoAdoptionInternalUrlSslConfigStep = () => {
-  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const sslType = useAutoAdoptionSetupWizardStore((s) => s.internal_ssl_type);
-  const certInfo = useAutoAdoptionSetupWizardStore((s) => s.internal_ssl_cert_info);
+export const SetupInternalUrlSslConfigStep = () => {
+  const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
+  const sslType = useSetupWizardStore((s) => s.internal_ssl_type);
+  const certInfo = useSetupWizardStore((s) => s.internal_ssl_cert_info);
 
   const { data: sslInfoData } = useQuery({
     queryKey: ['internal_ssl_info'],
@@ -129,12 +129,12 @@ export const AutoAdoptionInternalUrlSslConfigStep = () => {
         <Button
           text={m.initial_setup_controls_back()}
           variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.InternalUrlSettings)}
+          onClick={() => setActiveStep(SetupPageStep.InternalUrlSettings)}
         />
         <div className="right">
           <Button
             text={m.initial_setup_controls_continue()}
-            onClick={() => setActiveStep(AutoAdoptionSetupStep.ExternalUrlSettings)}
+            onClick={() => setActiveStep(SetupPageStep.ExternalUrlSettings)}
           />
         </div>
       </Controls>

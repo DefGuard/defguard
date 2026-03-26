@@ -13,9 +13,9 @@ import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useSSEController } from '../../../../shared/hooks/useSSEController';
 import { downloadFile } from '../../../../shared/utils/download';
 import caIcon from '../../assets/ca.png';
-import { AutoAdoptionSetupStep } from '../types';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
+import '../../autoAdoption/steps/style.scss';
+import { SetupPageStep } from '../types';
+import { useSetupWizardStore } from '../useSetupWizardStore';
 
 type AcmeStepId = 'Connecting' | 'ValidatingDomain' | 'IssuingCertificate' | 'Done';
 
@@ -48,10 +48,10 @@ const defaultAcmeState: AcmeStepState = {
   proxyLogs: [],
 };
 
-export const AutoAdoptionExternalUrlSslConfigStep = () => {
-  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const sslType = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_type);
-  const certInfo = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_cert_info);
+export const SetupExternalUrlSslConfigStep = () => {
+  const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
+  const sslType = useSetupWizardStore((s) => s.external_ssl_type);
+  const certInfo = useSetupWizardStore((s) => s.external_ssl_cert_info);
 
   const [acmeState, setAcmeState] = useState<AcmeStepState>(defaultAcmeState);
 
@@ -286,13 +286,13 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
         <Button
           text={m.initial_setup_controls_back()}
           variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.ExternalUrlSettings)}
+          onClick={() => setActiveStep(SetupPageStep.ExternalUrlSettings)}
           disabled={isLetsEncryptProcessing || acmeState.isComplete}
         />
         <div className="right">
           <Button
             text={m.initial_setup_controls_continue()}
-            onClick={() => setActiveStep(AutoAdoptionSetupStep.VpnSettings)}
+            onClick={() => setActiveStep(SetupPageStep.Confirmation)}
             disabled={isLetsEncryptProcessing || isLetsEncryptIncomplete}
           />
         </div>

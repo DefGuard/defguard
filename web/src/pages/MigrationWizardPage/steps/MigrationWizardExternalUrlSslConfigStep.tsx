@@ -1,21 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
-import { m } from '../../../../paraglide/messages';
-import api from '../../../../shared/api/api';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { LoadingStep } from '../../../../shared/components/LoadingStep/LoadingStep';
-import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { CodeCard } from '../../../../shared/defguard-ui/components/CodeCard/CodeCard';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { useSSEController } from '../../../../shared/hooks/useSSEController';
-import { downloadFile } from '../../../../shared/utils/download';
-import caIcon from '../../assets/ca.png';
-import { AutoAdoptionSetupStep } from '../types';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
+import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
+import { Controls } from '../../../shared/components/Controls/Controls';
+import { LoadingStep } from '../../../shared/components/LoadingStep/LoadingStep';
+import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useSSEController } from '../../../shared/hooks/useSSEController';
+import { downloadFile } from '../../../shared/utils/download';
+import caIcon from '../../SetupPage/assets/ca.png';
+import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
+import '../../SetupPage/autoAdoption/steps/style.scss';
 
 type AcmeStepId = 'Connecting' | 'ValidatingDomain' | 'IssuingCertificate' | 'Done';
 
@@ -48,10 +47,9 @@ const defaultAcmeState: AcmeStepState = {
   proxyLogs: [],
 };
 
-export const AutoAdoptionExternalUrlSslConfigStep = () => {
-  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const sslType = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_type);
-  const certInfo = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_cert_info);
+export const MigrationWizardExternalUrlSslConfigStep = () => {
+  const sslType = useMigrationWizardStore((s) => s.external_ssl_type);
+  const certInfo = useMigrationWizardStore((s) => s.external_ssl_cert_info);
 
   const [acmeState, setAcmeState] = useState<AcmeStepState>(defaultAcmeState);
 
@@ -284,15 +282,15 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
       <Divider />
       <Controls>
         <Button
-          text={m.initial_setup_controls_back()}
+          text={m.controls_back()}
           variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.ExternalUrlSettings)}
+          onClick={() => useMigrationWizardStore.getState().back()}
           disabled={isLetsEncryptProcessing || acmeState.isComplete}
         />
         <div className="right">
           <Button
-            text={m.initial_setup_controls_continue()}
-            onClick={() => setActiveStep(AutoAdoptionSetupStep.VpnSettings)}
+            text={m.controls_continue()}
+            onClick={() => useMigrationWizardStore.getState().next()}
             disabled={isLetsEncryptProcessing || isLetsEncryptIncomplete}
           />
         </div>

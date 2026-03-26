@@ -1,27 +1,26 @@
 import { useMutation } from '@tanstack/react-query';
 import z from 'zod';
-import { m } from '../../../../paraglide/messages';
-import api from '../../../../shared/api/api';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { Helper } from '../../../../shared/defguard-ui/components/Helper/Helper';
-import { Radio } from '../../../../shared/defguard-ui/components/Radio/Radio';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { useAppForm } from '../../../../shared/form';
-import { formChangeLogic } from '../../../../shared/formLogic';
-import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
-import { AutoAdoptionSetupStep, type InternalSslType } from '../types';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
+import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
+import { Controls } from '../../../shared/components/Controls/Controls';
+import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
+import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { useAppForm } from '../../../shared/form';
+import { formChangeLogic } from '../../../shared/formLogic';
+import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
+import type { InternalSslType } from '../../SetupPage/autoAdoption/types';
+import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
+import '../../SetupPage/autoAdoption/steps/style.scss';
 
-export const AutoAdoptionInternalUrlSettingsStep = () => {
-  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const storedUrl = useAutoAdoptionSetupWizardStore((s) => s.defguard_url);
-  const storedSslType = useAutoAdoptionSetupWizardStore((s) => s.internal_ssl_type);
+export const MigrationWizardInternalUrlSettingsStep = () => {
+  const storedUrl = useMigrationWizardStore((s) => s.defguard_url);
+  const storedSslType = useMigrationWizardStore((s) => s.internal_ssl_type);
 
   const formSchema = z.object({
     defguard_url: z
@@ -43,15 +42,15 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
     mutationFn: api.initial_setup.setAutoAdoptionInternalUrlSettings,
     meta: { invalidate: ['setupStatus'] },
     onSuccess: (response) => {
-      useAutoAdoptionSetupWizardStore.setState({
+      useMigrationWizardStore.setState({
         internal_ssl_type: form.getFieldValue('ssl_type'),
         internal_ssl_cert_info: response.data.cert_info ?? null,
       });
-      setActiveStep(AutoAdoptionSetupStep.InternalUrlSslConfig);
+      useMigrationWizardStore.getState().next();
     },
     onError: (error) => {
       Snackbar.error(m.initial_setup_general_config_error_save_failed());
-      console.error(error);
+      console.error('Failed to save internal URL settings:', error);
     },
   });
 
@@ -74,7 +73,7 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
         );
         return;
       }
-      useAutoAdoptionSetupWizardStore.setState({
+      useMigrationWizardStore.setState({
         defguard_url: value.defguard_url,
       });
       mutate({
@@ -145,7 +144,7 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
                 </div>
                 {sslType === 'own_cert' && (
                   <div className="cert-upload-section">
-                    <SizedBox height={ThemeSpacing.Xl} />
+                    <SizedBox height={ThemeSpacing.Lg} />
                     <form.AppField name="cert_pem_file">
                       {(field) => (
                         <field.FormUploadField
@@ -154,7 +153,7 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
                         />
                       )}
                     </form.AppField>
-                    <SizedBox height={ThemeSpacing.Lg} />
+                    <SizedBox height={ThemeSpacing.Md} />
                     <form.AppField name="key_pem_file">
                       {(field) => (
                         <field.FormUploadField
@@ -174,13 +173,13 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
       <Divider />
       <Controls>
         <Button
-          text={m.initial_setup_controls_back()}
+          text={m.controls_back()}
           variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.AdminUser)}
+          onClick={() => useMigrationWizardStore.getState().back()}
         />
         <div className="right">
           <Button
-            text={m.initial_setup_controls_continue()}
+            text={m.controls_continue()}
             onClick={form.handleSubmit}
             loading={isPending}
           />

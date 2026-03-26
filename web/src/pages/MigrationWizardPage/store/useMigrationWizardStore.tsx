@@ -10,6 +10,11 @@ import type {
 } from '../../../shared/api/types';
 import { getMigrationStateQueryOptions } from '../../../shared/query';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
+import type {
+  CertInfo,
+  ExternalSslType,
+  InternalSslType,
+} from '../../SetupPage/autoAdoption/types';
 import {
   type CAOptionType,
   MigrationWizardStep,
@@ -20,6 +25,15 @@ interface StoreValues extends MigrationWizardApiState {
   // general config
   defguard_url: string;
   public_proxy_url: string;
+  default_admin_group_name: string;
+  authentication_period_days: number;
+  mfa_code_timeout_seconds: number;
+  // internal URL SSL configuration
+  internal_ssl_type: InternalSslType;
+  internal_ssl_cert_info: CertInfo | null;
+  // external URL SSL configuration
+  external_ssl_type: ExternalSslType;
+  external_ssl_cert_info: CertInfo | null;
   // ca
   ca_common_name: string;
   ca_email: string;
@@ -47,6 +61,13 @@ const defaults: StoreValues = {
   location_state: null,
   defguard_url: '',
   public_proxy_url: '',
+  default_admin_group_name: 'admin',
+  authentication_period_days: 30,
+  mfa_code_timeout_seconds: 300,
+  internal_ssl_type: 'none',
+  internal_ssl_cert_info: null,
+  external_ssl_type: 'none',
+  external_ssl_cert_info: null,
   ca_common_name: m.migration_wizard_ca_placeholder_common_name(),
   ca_email: '',
   ca_validity_period_years: 5,
@@ -134,6 +155,18 @@ export const useMigrationWizardStore = create<Store>()(
           case 'edgeAdoption':
             stepToSet = MigrationWizardStep.Edge;
             break;
+          case 'internalUrlSettings':
+            stepToSet = MigrationWizardStep.EdgeAdoption;
+            break;
+          case 'internalUrlSslConfig':
+            stepToSet = MigrationWizardStep.InternalUrlSettings;
+            break;
+          case 'externalUrlSettings':
+            stepToSet = MigrationWizardStep.InternalUrlSslConfig;
+            break;
+          case 'externalUrlSslConfig':
+            stepToSet = MigrationWizardStep.ExternalUrlSettings;
+            break;
           case 'confirmation':
             stepToSet = null;
             break;
@@ -168,6 +201,18 @@ export const useMigrationWizardStore = create<Store>()(
             stepToSet = MigrationWizardStep.EdgeAdoption;
             break;
           case 'edgeAdoption':
+            stepToSet = MigrationWizardStep.InternalUrlSettings;
+            break;
+          case 'internalUrlSettings':
+            stepToSet = MigrationWizardStep.InternalUrlSslConfig;
+            break;
+          case 'internalUrlSslConfig':
+            stepToSet = MigrationWizardStep.ExternalUrlSettings;
+            break;
+          case 'externalUrlSettings':
+            stepToSet = MigrationWizardStep.ExternalUrlSslConfig;
+            break;
+          case 'externalUrlSslConfig':
             stepToSet = MigrationWizardStep.Confirmation;
             break;
           case 'confirmation':

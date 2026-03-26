@@ -68,11 +68,9 @@ export interface CreateAdminRequest {
 }
 
 export interface SetGeneralConfigRequest {
-  defguard_url: string;
   default_admin_group_name: string;
   default_authentication: number;
   default_mfa_code_lifetime: number;
-  public_proxy_url: string;
   admin_username: string;
 }
 
@@ -845,7 +843,7 @@ export type InitialSetupStepValue =
 export type AutoAdoptionAdoptionStepValue =
   | 'welcome'
   | 'admin_user'
-  | 'url_settings'
+  | 'internal_url_settings'
   | 'internal_url_ssl_config'
   | 'external_url_settings'
   | 'external_url_ssl_config'

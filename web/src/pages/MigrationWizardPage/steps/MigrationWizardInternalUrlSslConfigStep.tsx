@@ -1,22 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
-import { m } from '../../../../paraglide/messages';
-import api from '../../../../shared/api/api';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { downloadFile } from '../../../../shared/utils/download';
-import caIcon from '../../assets/ca.png';
-import { AutoAdoptionSetupStep } from '../types';
-import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
-import './style.scss';
+import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
+import { Controls } from '../../../shared/components/Controls/Controls';
+import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { downloadFile } from '../../../shared/utils/download';
+import caIcon from '../../SetupPage/assets/ca.png';
+import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
+import '../../SetupPage/autoAdoption/steps/style.scss';
 
-export const AutoAdoptionInternalUrlSslConfigStep = () => {
-  const setActiveStep = useAutoAdoptionSetupWizardStore((s) => s.setActiveStep);
-  const sslType = useAutoAdoptionSetupWizardStore((s) => s.internal_ssl_type);
-  const certInfo = useAutoAdoptionSetupWizardStore((s) => s.internal_ssl_cert_info);
+export const MigrationWizardInternalUrlSslConfigStep = () => {
+  const sslType = useMigrationWizardStore((s) => s.internal_ssl_type);
+  const certInfo = useMigrationWizardStore((s) => s.internal_ssl_cert_info);
 
   const { data: sslInfoData } = useQuery({
     queryKey: ['internal_ssl_info'],
@@ -127,14 +125,14 @@ export const AutoAdoptionInternalUrlSslConfigStep = () => {
       <Divider />
       <Controls>
         <Button
-          text={m.initial_setup_controls_back()}
+          text={m.controls_back()}
           variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.InternalUrlSettings)}
+          onClick={() => useMigrationWizardStore.getState().back()}
         />
         <div className="right">
           <Button
-            text={m.initial_setup_controls_continue()}
-            onClick={() => setActiveStep(AutoAdoptionSetupStep.ExternalUrlSettings)}
+            text={m.controls_continue()}
+            onClick={() => useMigrationWizardStore.getState().next()}
           />
         </div>
       </Controls>
