@@ -36,6 +36,22 @@ const formSchema = z.object({
     .refine(
       (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
       m.form_error_invalid(),
+    )
+    .refine(
+      (val) =>
+        !val
+          .split(',')
+          .map((a) => a.trim())
+          .some((a) => Validate.isNetworkAddress(a)),
+      m.form_error_network_address(),
+    )
+    .refine(
+      (val) =>
+        !val
+          .split(',')
+          .map((a) => a.trim())
+          .some((a) => Validate.isBroadcastAddress(a)),
+      m.form_error_broadcast_address(),
     ),
   allowed_ips: z
     .string()

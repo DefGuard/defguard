@@ -79,6 +79,22 @@ const formSchema = z
       .refine(
         (val) => Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true),
         m.form_error_invalid(),
+      )
+      .refine(
+        (val) =>
+          !val
+            .split(',')
+            .map((a) => a.trim())
+            .some((a) => Validate.isNetworkAddress(a)),
+        m.form_error_network_address(),
+      )
+      .refine(
+        (val) =>
+          !val
+            .split(',')
+            .map((a) => a.trim())
+            .some((a) => Validate.isBroadcastAddress(a)),
+        m.form_error_broadcast_address(),
       ),
     endpoint: z
       .string(m.form_error_required())
