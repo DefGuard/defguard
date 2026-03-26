@@ -131,22 +131,9 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
               title={m.settings_gateway_notifications_disconnect_title()}
               content={m.settings_gateway_notifications_disconnect_content()}
               disabled={formDisabled}
-            />
-          )}
-        </form.AppField>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="gateway_disconnect_notifications_reconnect_notification_enabled">
-          {(field) => (
-            <field.FormInteractiveBlock
-              variant="toggle"
-              title={m.settings_gateway_notifications_reconnect_title()}
-              content={m.settings_gateway_notifications_reconnect_content()}
-              disabled={formDisabled}
             >
               <form.Subscribe
-                selector={(s) =>
-                  s.values.gateway_disconnect_notifications_reconnect_notification_enabled
-                }
+                selector={(s) => s.values.gateway_disconnect_notifications_enabled}
               >
                 {(enabled) => (
                   <Fold open={enabled && !formDisabled}>
@@ -165,6 +152,17 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                 )}
               </form.Subscribe>
             </field.FormInteractiveBlock>
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="gateway_disconnect_notifications_reconnect_notification_enabled">
+          {(field) => (
+            <field.FormInteractiveBlock
+              variant="toggle"
+              title={m.settings_gateway_notifications_reconnect_title()}
+              content={m.settings_gateway_notifications_reconnect_content()}
+              disabled={formDisabled}
+            />
           )}
         </form.AppField>
         <form.Subscribe

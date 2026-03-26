@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../../../paraglide/messages';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -75,7 +76,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormInput
                   type="number"
                   required
-                  label="Synchronization interval"
+                  label={m.settings_openid_provider_label_sync_interval()}
                 />
               )}
             </form.AppField>

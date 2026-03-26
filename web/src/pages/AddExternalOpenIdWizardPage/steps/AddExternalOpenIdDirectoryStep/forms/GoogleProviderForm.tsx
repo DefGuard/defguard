@@ -121,7 +121,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormInput
                   type="number"
                   required
-                  label="Synchronization interval"
+                  label={m.settings_openid_provider_label_sync_interval()}
                 />
               )}
             </form.AppField>

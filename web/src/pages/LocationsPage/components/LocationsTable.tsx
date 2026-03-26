@@ -62,7 +62,7 @@ export const LocationsTable = () => {
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add Location',
+      text: m.location_add(),
       iconLeft: 'add-location',
       testId: 'add-location',
       onClick: () => {
@@ -84,7 +84,7 @@ export const LocationsTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Name',
+        header: m.form_label_name(),
         enableSorting: true,
         sortingFn: 'text',
         minSize: 200,
@@ -98,7 +98,7 @@ export const LocationsTable = () => {
         ),
       }),
       columnHelper.accessor('gateways', {
-        header: 'Gateway status',
+        header: m.location_col_gateway_status(),
         size: 175,
         minSize: 175,
         cell: (info) => (
@@ -108,7 +108,7 @@ export const LocationsTable = () => {
         ),
       }),
       columnHelper.accessor('endpoint', {
-        header: 'Gateway IP',
+        header: m.location_col_gateway_ip(),
         size: 200,
         minSize: 200,
         cell: (info) => {
@@ -120,7 +120,7 @@ export const LocationsTable = () => {
         },
       }),
       columnHelper.accessor('acl_enabled', {
-        header: 'Firewall',
+        header: m.cmp_nav_group_firewall(),
         minSize: 100,
         cell: (info) => (
           <TableCell className="cell-with-check-icons">
@@ -133,38 +133,46 @@ export const LocationsTable = () => {
         ),
       }),
       columnHelper.accessor('address', {
-        header: 'VPN network',
+        header: m.location_col_vpn_network(),
         minSize: 250,
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
       columnHelper.accessor('location_mfa_mode', {
-        header: 'MFA',
+        header: m.location_col_mfa(),
         minSize: 100,
         cell: (info) => {
           switch (info.getValue()) {
             case 'disabled':
               return (
                 <TableCell>
-                  <Badge text="No MFA" />
+                  <Badge text={m.location_mfa_none()} />
                 </TableCell>
               );
             case 'external':
               return (
                 <TableCell>
-                  <Badge icon="external-mfa" text="External" variant="warning" />
+                  <Badge
+                    icon="external-mfa"
+                    text={m.location_mfa_external()}
+                    variant="warning"
+                  />
                 </TableCell>
               );
             case 'internal':
               return (
                 <TableCell>
-                  <Badge icon="internal-mfa" text="Internal" variant="success" />
+                  <Badge
+                    icon="internal-mfa"
+                    text={m.location_mfa_internal()}
+                    variant="success"
+                  />
                 </TableCell>
               );
           }
         },
       }),
       columnHelper.accessor('service_location_mode', {
-        header: 'Location type',
+        header: m.location_col_type(),
         minSize: 100,
         enableSorting: true,
         sortingFn: 'text',
@@ -173,26 +181,26 @@ export const LocationsTable = () => {
             case 'disabled':
               return (
                 <TableCell>
-                  <span>Regular</span>
+                  <span>{m.location_type_regular()}</span>
                 </TableCell>
               );
             case 'prelogon':
               return (
                 <TableCell>
-                  <span>Pre-logon</span>
+                  <span>{m.location_type_prelogon()}</span>
                 </TableCell>
               );
             case 'alwayson':
               return (
                 <TableCell>
-                  <span>Always</span>
+                  <span>{m.location_type_always()}</span>
                 </TableCell>
               );
           }
         },
       }),
       columnHelper.accessor('fwmark', {
-        header: 'FWMark',
+        header: m.location_col_fwmark(),
         minSize: 75,
         cell: (info) => (
           <TableCell>
@@ -201,7 +209,7 @@ export const LocationsTable = () => {
         ),
       }),
       columnHelper.accessor('mtu', {
-        header: 'MTU',
+        header: m.location_col_mtu(),
         minSize: 75,
         cell: (info) => (
           <TableCell>
@@ -210,7 +218,7 @@ export const LocationsTable = () => {
         ),
       }),
       columnHelper.accessor('allowed_groups', {
-        header: 'Allowed groups',
+        header: m.location_col_allowed_groups(),
         size: 400,
         minSize: 200,
         cell: (info) => {
@@ -224,7 +232,7 @@ export const LocationsTable = () => {
                   showIcon
                   icon="status-available"
                   variant="success"
-                  text="All allowed"
+                  text={m.location_allowed_groups_all()}
                 />
               )}
               {!allowAllGroups && len > 0 && <span>{info.getValue()?.join(', ')}</span>}
@@ -258,7 +266,7 @@ export const LocationsTable = () => {
                     },
                     {
                       icon: 'network-settings',
-                      text: 'Gateway setup',
+                      text: m.location_action_gateway_setup(),
                       onClick: async () => {
                         // allow 1 gateway per location if below business tier
                         const action = () => {
@@ -328,7 +336,7 @@ export const LocationsTable = () => {
       {locations.length > 0 && (
         <>
           <SizedBox height={ThemeSpacing.Xl3} />
-          <TableTop text="Locations management">
+          <TableTop text={m.locations_management_title()}>
             <Search
               placeholder={m.controls_search()}
               onChange={setSearch}
@@ -348,8 +356,8 @@ export const LocationsTable = () => {
       )}
       {locations.length === 0 && (
         <EmptyStateFlexible
-          title="No locations found"
-          subtitle="Click button below to add one."
+          title={m.locations_empty_title()}
+          subtitle={m.locations_empty_subtitle()}
           primaryAction={addButtonProps}
         />
       )}
