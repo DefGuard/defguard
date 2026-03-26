@@ -57,7 +57,13 @@ export const AppUpdateModal = () => {
           {isPresent(modalData) && <ModalContent data={modalData} />}
         </div>
         <div className="media-track">
-          <img src={updateImage} alt="defguard update" />
+          <img
+            src={updateImage}
+            id="update-image"
+            width={842}
+            height={799}
+            style={{ top: -30, left: -220 }}
+          />
         </div>
       </div>
     </ModalFoundation>
