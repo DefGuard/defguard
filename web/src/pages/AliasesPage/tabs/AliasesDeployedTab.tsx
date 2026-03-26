@@ -42,7 +42,7 @@ export const AliasesDeployedTab = () => {
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add new alias',
+      text: m.acl_aliases_button_create(),
       iconLeft: 'add-alias',
       variant: 'primary',
       testId: 'add-alias',
@@ -85,14 +85,14 @@ export const AliasesDeployedTab = () => {
       {isEmpty && (
         <EmptyStateFlexible
           icon="aliases"
-          title={`You haven't created any aliases yet.`}
-          subtitle="Click the first alias by clicking button below."
+          title={m.acl_aliases_empty_deployed_title()}
+          subtitle={m.acl_aliases_empty_deployed_subtitle()}
           primaryAction={addButtonProps}
         />
       )}
       {!isEmpty && (
         <>
-          <TableTop text="Deployed aliases">
+          <TableTop text={m.acl_aliases_table_title_deployed()}>
             <Search
               placeholder={m.controls_search()}
               initialValue={search}
@@ -106,8 +106,8 @@ export const AliasesDeployedTab = () => {
           {visibleEmpty && (
             <EmptyStateFlexible
               icon="search"
-              title="No aliases found."
-              subtitle="Try different search."
+              title={m.acl_aliases_search_empty_title()}
+              subtitle={m.acl_aliases_search_empty_subtitle()}
             />
           )}
         </>

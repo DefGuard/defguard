@@ -119,7 +119,7 @@ export const ProfileGeneralCard = () => {
 
   return (
     <ProfileCard id="general-card">
-      <h2>General</h2>
+      <h2>{m.profile_general_card_title()}</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();

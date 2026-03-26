@@ -89,7 +89,7 @@ export const SettingsExternalOpenIdPage = () => {
         <SettingsHeader
           icon="openid"
           title={m.settings_openid_providers_title()}
-          subtitle={m.settings_client_subtitle()}
+          subtitle={m.settings_openid_providers_subtitle()}
         />
         {isPresent(activeProvider) && (
           <>

@@ -1,5 +1,6 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { AclStatus } from '../../../shared/api/types';
 import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
@@ -29,7 +30,7 @@ export const RulesPendingTab = () => {
 
   const buttonProps = useMemo(
     (): ButtonProps => ({
-      text: `Deploy all pending (${rules.length})`,
+      text: m.acl_rules_button_deploy_all_pending({ count: rules.length }),
       iconLeft: 'deploy',
       variant: 'primary',
       loading: isPending,
@@ -50,8 +51,8 @@ export const RulesPendingTab = () => {
       {isEmpty && (
         <EmptyStateFlexible
           icon="rules"
-          title={`You don't have any pending rules.`}
-          subtitle={`They will appear here once your create your first rule.`}
+          title={m.acl_rules_empty_pending_title()}
+          subtitle={m.acl_rules_empty_pending_subtitle()}
         />
       )}
       {!isEmpty && loading && <TableSkeleton />}
@@ -62,7 +63,7 @@ export const RulesPendingTab = () => {
         license !== undefined && (
           <RulesTable
             variant="pending"
-            title="Pending rules"
+            title={m.acl_rules_table_title_pending()}
             buttonProps={buttonProps}
             data={rules}
             aliases={aliases}

@@ -2,6 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { Suspense } from 'react';
 import Skeleton from 'react-loading-skeleton';
+import { m } from '../../../../paraglide/messages';
 import { businessBadgeProps } from '../../../../shared/components/badges/BusinessBadge';
 import { SettingsLayout } from '../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
@@ -40,8 +41,8 @@ const Content = () => {
       <Link to="/settings/openid">
         <SectionSelect
           image="external-id"
-          title="OpenID"
-          content="Manage user permissions and configuration options for device control, WireGuard setup, and VPN routing."
+          title={m.settings_openid_providers_title()}
+          content={m.settings_openid_providers_subtitle()}
           badgeProps={canUseBusiness ? undefined : businessBadgeProps}
         />
       </Link>
@@ -49,8 +50,8 @@ const Content = () => {
       <Link to="/settings/ldap">
         <SectionSelect
           image="ldap"
-          title="LDAP and Active Directory"
-          content="Manage how and when your gateway sends notifications. Configure alert types, delivery methods, and recipients to stay informed about important events. "
+          title={m.settings_ldap_title()}
+          content={m.settings_ldap_subtitle()}
           badgeProps={canUseBusiness ? undefined : businessBadgeProps}
         />
       </Link>

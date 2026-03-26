@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Suspense, useMemo, useState } from 'react';
 import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
@@ -20,7 +21,8 @@ export const DestinationsPage = () => {
   );
 
   const pendingCount = destinationsCount?.pending ?? 0;
-  const pendingTitle = pendingCount ? `Pending (${pendingCount})` : 'Pending';
+  const pendingTitle =
+    pendingCount > 0 ? `${m.state_pending()} (${pendingCount})` : m.state_pending();
   const pendingIcon = pendingCount > 0 ? IconKind.AttentionFilled : undefined;
 
   const tabs = useMemo(
@@ -30,7 +32,7 @@ export const DestinationsPage = () => {
         onClick: () => {
           setActiveTab(AclDeploymentState.Applied);
         },
-        title: 'Deployed',
+        title: m.state_deployed(),
       },
       {
         active: activeTab === AclDeploymentState.Modified,
@@ -45,7 +47,7 @@ export const DestinationsPage = () => {
   );
 
   return (
-    <Page title="Destinations" id="destination-page">
+    <Page title={m.cmp_nav_item_destinations()} id="destination-page">
       <TablePageLayout>
         <Tabs items={tabs} />
         <Suspense fallback={<TableSkeleton />}>

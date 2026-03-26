@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import './style.scss';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -25,14 +26,14 @@ export const LocationsPage = () => {
   const tabs = useMemo(
     (): TabsItem[] => [
       {
-        title: 'Locations',
+        title: m.cmp_nav_item_locations(),
         active: activeTab === LocationsPageTab.Locations,
         onClick: () => {
           setActiveTab(LocationsPageTab.Locations);
         },
       },
       {
-        title: 'Gateways',
+        title: m.gateway_title(),
         active: activeTab === LocationsPageTab.Gateways,
         onClick: () => {
           setActiveTab(LocationsPageTab.Gateways);
@@ -43,7 +44,7 @@ export const LocationsPage = () => {
   );
 
   return (
-    <Page title="Locations" id="locations-page">
+    <Page title={m.cmp_nav_item_locations()} id="locations-page">
       <SizedBox height={ThemeSpacing.Md} />
       <Tabs items={tabs} />
       <SizedBox height={ThemeSpacing.Xl2} />

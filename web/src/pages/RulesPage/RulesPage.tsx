@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Suspense, useMemo, useState } from 'react';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
@@ -20,7 +21,8 @@ export const RulesPage = () => {
 
   const pendingCount = rulesCount?.pending ?? 0;
   const pendingTabTitle = useMemo(
-    () => `Pending${pendingCount ? ` (${pendingCount})` : ''}`,
+    () =>
+      pendingCount > 0 ? `${m.state_pending()} (${pendingCount})` : m.state_pending(),
     [pendingCount],
   );
   const pendingIcon = pendingCount > 0 ? IconKind.AttentionFilled : undefined;
@@ -28,7 +30,7 @@ export const RulesPage = () => {
   const tabs = useMemo(
     (): TabsItem[] => [
       {
-        title: 'Deployed',
+        title: m.state_deployed(),
         active: activeTab === RulesPageTab.Deployed,
         onClick: () => {
           setActiveTab(RulesPageTab.Deployed);
@@ -47,7 +49,7 @@ export const RulesPage = () => {
   );
 
   return (
-    <Page title="Rules" id="rules-page">
+    <Page title={m.cmp_nav_item_rules()} id="rules-page">
       <SizedBox height={ThemeSpacing.Md} />
       <Tabs items={tabs} />
       <SizedBox height={ThemeSpacing.Xl2} />
