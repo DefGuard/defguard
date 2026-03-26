@@ -47,10 +47,10 @@ const breadcrumbsLinks = [
       tab: 'identity',
     }}
   >
-    Identity Providers
+    {m.settings_breadcrumb_identity_providers()}
   </Link>,
   <Link key={1} to="/settings/ldap">
-    LDAP and Active Directory
+    {m.settings_ldap_title()}
   </Link>,
 ];
 
@@ -63,13 +63,13 @@ export const SettingsLdapPage = () => {
   }, [licenseInfo]);
 
   return (
-    <Page id="settings-ldap-page" title="Settings">
+    <Page id="settings-ldap-page" title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
       <SettingsLayout>
         <SettingsHeader
           icon={IconKind.Servers}
-          title="LDAP and Active Directory"
-          subtitle={`Manage LDAP/Active Directory connection details, user and group mapping, and synchronization rules that determine how users are imported and updated in Defguard.`}
+          title={m.settings_ldap_title()}
+          subtitle={m.settings_ldap_subtitle()}
           badgeProps={
             isPresent(canUseFeature) && !canUseFeature ? businessBadgeProps : undefined
           }
@@ -161,7 +161,7 @@ const PageForm = () => {
       Snackbar.default(m.settings_msg_saved());
     },
     onError: (e) => {
-      Snackbar.error('Failed to save settings.');
+      Snackbar.error(m.settings_msg_save_failed());
       console.error(e);
     },
   });
@@ -169,10 +169,10 @@ const PageForm = () => {
   const { mutate: handleLdapTest, isPending: testInProgress } = useMutation({
     mutationFn: api.settings.getLdapConnectionStatus,
     onSuccess: () => {
-      Snackbar.default('LDAP Connected');
+      Snackbar.default(m.settings_ldap_test_success());
     },
     onError: (e) => {
-      Snackbar.error('Connection failed');
+      Snackbar.error(m.settings_ldap_test_failed());
       console.error(e);
     },
   });
@@ -212,74 +212,122 @@ const PageForm = () => {
       <form.AppForm>
         <MarkedSection icon={IconKind.NetworkSettings}>
           <MarkedSectionHeader
-            title={`Connection settings`}
-            description={`Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).`}
+            title={m.settings_ldap_section_connection_title()}
+            description={m.settings_ldap_section_connection_description()}
           />
           <div className="checkbox-group-column">
             <form.AppField name="ldap_use_starttls">
-              {(field) => <field.FormCheckbox text={`Use StartTLS`} />}
+              {(field) => (
+                <field.FormCheckbox text={m.settings_ldap_checkbox_use_starttls()} />
+              )}
             </form.AppField>
             <form.AppField name="ldap_uses_ad">
-              {(field) => <field.FormCheckbox text={`LDAP server is Active Directory`} />}
+              {(field) => (
+                <field.FormCheckbox
+                  text={m.settings_ldap_checkbox_server_is_active_directory()}
+                />
+              )}
             </form.AppField>
             <form.AppField name="ldap_tls_verify_cert">
-              {(field) => <field.FormCheckbox text={`Verify TLS certificate`} />}
+              {(field) => (
+                <field.FormCheckbox
+                  text={m.settings_ldap_checkbox_verify_tls_certificate()}
+                />
+              )}
             </form.AppField>
           </div>
           <SizedBox height={ThemeSpacing.Xl2} />
           <EvenSplit>
             <form.AppField name="ldap_url">
-              {(field) => <field.FormInput label="URL" required notNull />}
+              {(field) => <field.FormInput label={m.form_label_url()} required notNull />}
             </form.AppField>
             <form.AppField name="ldap_bind_username">
-              {(field) => <field.FormInput label="Bind username" required notNull />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_bind_username()}
+                  required
+                  notNull
+                />
+              )}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="ldap_bind_password">
               {(field) => (
-                <field.FormInput label="Bind password" required notNull type="password" />
+                <field.FormInput
+                  label={m.settings_ldap_label_bind_password()}
+                  required
+                  notNull
+                  type="password"
+                />
               )}
             </form.AppField>
             <form.AppField name="ldap_sync_groups">
-              {(field) => (
-                <field.FormInput label="Limit synchronization to these groups" />
-              )}
+              {(field) => <field.FormInput label={m.settings_ldap_label_sync_groups()} />}
             </form.AppField>
           </EvenSplit>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="add-user">
           <MarkedSectionHeader
-            title={`User settings`}
-            description={`Configure LDAP user settings here. These settings determine how Defguard maps and synchronizes LDAP user information with local users.`}
+            title={m.settings_ldap_section_user_title()}
+            description={m.settings_ldap_section_user_description()}
           />
           <EvenSplit>
             <form.AppField name="ldap_username_attr">
-              {(field) => <field.FormInput label="Username attribute" required notNull />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_username_attribute()}
+                  required
+                  notNull
+                />
+              )}
             </form.AppField>
             <form.AppField name="ldap_user_rdn_attr">
-              {(field) => <field.FormInput label="User RDN attribute" />}
+              {(field) => (
+                <field.FormInput label={m.settings_ldap_label_user_rdn_attribute()} />
+              )}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="ldap_user_search_base">
-              {(field) => <field.FormInput label="User search base" required notNull />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_user_search_base()}
+                  required
+                  notNull
+                />
+              )}
             </form.AppField>
             <form.AppField name="ldap_user_obj_class">
-              {(field) => <field.FormInput label="User object class" required notNull />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_user_object_class()}
+                  required
+                  notNull
+                />
+              )}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="ldap_member_attr">
-              {(field) => <field.FormInput label="Member attribute" required notNull />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_member_attribute()}
+                  required
+                  notNull
+                />
+              )}
             </form.AppField>
             <form.AppField name="ldap_user_auxiliary_obj_classes">
               {(field) => (
-                <field.FormInput label="Additional user object classes" notNull />
+                <field.FormInput
+                  label={m.settings_ldap_label_additional_user_object_classes()}
+                  notNull
+                />
               )}
             </form.AppField>
           </EvenSplit>
@@ -287,44 +335,64 @@ const PageForm = () => {
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="groups">
           <MarkedSectionHeader
-            title={`Group settings`}
-            description={`Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.`}
+            title={m.settings_ldap_section_group_title()}
+            description={m.settings_ldap_section_group_description()}
           />
           <EvenSplit>
             <form.AppField name="ldap_groupname_attr">
               {(field) => (
-                <field.FormInput label="Groupname attribute" notNull required />
+                <field.FormInput
+                  label={m.settings_ldap_label_groupname_attribute()}
+                  notNull
+                  required
+                />
               )}
             </form.AppField>
             <form.AppField name="ldap_group_obj_class">
-              {(field) => <field.FormInput label="Group object class" notNull required />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_group_object_class()}
+                  notNull
+                  required
+                />
+              )}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="ldap_group_member_attr">
               {(field) => (
-                <field.FormInput label="Group member attribute" notNull required />
+                <field.FormInput
+                  label={m.settings_ldap_label_group_member_attribute()}
+                  notNull
+                  required
+                />
               )}
             </form.AppField>
             <form.AppField name="ldap_group_search_base">
-              {(field) => <field.FormInput label="Group search base" notNull required />}
+              {(field) => (
+                <field.FormInput
+                  label={m.settings_ldap_label_group_search_base()}
+                  notNull
+                  required
+                />
+              )}
             </form.AppField>
           </EvenSplit>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon={IconKind.Sync}>
           <MarkedSectionHeader
-            title="LDAP synchronization"
-            description="Control how Defguard synchronizes users with LDAP."
+            title={m.settings_ldap_section_sync_title()}
+            description={m.settings_ldap_section_sync_description()}
           />
           <form.AppField name="ldap_sync_enabled">
             {(field) => (
               <field.FormInteractiveBlock
                 variant={'radio'}
                 value={false}
-                title={`One-way synchronization`}
-                content={`Changes made to users in Defguard are propagated to your LDAP directory.`}
+                title={m.settings_ldap_sync_one_way_title()}
+                content={m.settings_ldap_sync_one_way_content()}
               />
             )}
           </form.AppField>
@@ -334,8 +402,8 @@ const PageForm = () => {
               <field.FormInteractiveBlock
                 variant={'radio'}
                 value={true}
-                title={`Two-way synchronization`}
-                content={`Defguard and LDAP stay in sync. Changes made in either system can be synchronized, and the selected authority decides which data wins if conflicts occur.`}
+                title={m.settings_ldap_sync_two_way_title()}
+                content={m.settings_ldap_sync_two_way_content()}
               />
             )}
           </form.AppField>
@@ -344,8 +412,8 @@ const PageForm = () => {
               <>
                 <Fold open={syncEnabled}>
                   <Divider spacing={ThemeSpacing.Xl} />
-                  <DescriptionBlock title="Source of authority">
-                    <p>{`Select whether user data should be controlled by LDAP or by Defguard. The selected system becomes the primary source and can overwrite the other one when differences appear.`}</p>
+                  <DescriptionBlock title={m.settings_ldap_authority_block_title()}>
+                    <p>{m.settings_ldap_authority_block_description()}</p>
                   </DescriptionBlock>
                   <SizedBox height={ThemeSpacing.Xl} />
                   <form.AppField name="ldap_is_authoritative">
@@ -353,8 +421,8 @@ const PageForm = () => {
                       <field.FormInteractiveBlock
                         variant={'radio'}
                         value={false}
-                        title={`Defguard is the source of truth`}
-                        content={`When this option is enabled, users will be able to select all routing options.`}
+                        title={m.settings_ldap_authority_defguard_title()}
+                        content={m.settings_ldap_authority_defguard_content()}
                       />
                     )}
                   </form.AppField>
@@ -364,8 +432,8 @@ const PageForm = () => {
                       <field.FormInteractiveBlock
                         variant={'radio'}
                         value={true}
-                        title={`LDAP is the source of truth`}
-                        content={`LDAP directory data overrides Defguard records. User and group information in Defguard will be updated to match LDAP during synchronization.`}
+                        title={m.settings_ldap_authority_ldap_title()}
+                        content={m.settings_ldap_authority_ldap_content()}
                       />
                     )}
                   </form.AppField>
@@ -374,7 +442,7 @@ const PageForm = () => {
                     {(field) => (
                       <field.FormInput
                         notNull
-                        label="Synchronization interval (sec)"
+                        label={m.settings_ldap_label_sync_interval()}
                         type="number"
                         required={syncEnabled}
                       />
@@ -387,7 +455,9 @@ const PageForm = () => {
         </MarkedSection>
         <Controls>
           <form.AppField name="ldap_enabled">
-            {(field) => <field.FormToggle label={`Enable LDAP integration`} />}
+            {(field) => (
+              <field.FormToggle label={m.settings_ldap_toggle_enable_integration()} />
+            )}
           </form.AppField>
           <div className="right">
             <form.Subscribe
@@ -409,7 +479,7 @@ const PageForm = () => {
                         <Button
                           type="button"
                           variant="outlined"
-                          text={`Test connection`}
+                          text={m.settings_ldap_button_test_connection()}
                           iconLeft={IconKind.Refresh}
                           disabled={
                             isSubmitting ||
@@ -425,7 +495,7 @@ const PageForm = () => {
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{`To test connection please fill the form and save the changes first.`}</p>
+                      <p>{m.settings_ldap_test_connection_tooltip()}</p>
                     </TooltipContent>
                   </TooltipProvider>
                   <Button
