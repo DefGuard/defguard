@@ -45,3 +45,5 @@ export const licenseGracePeriodDays = 14;
 export const edgeDefaultGrpcPort = 50051;
 
 export const gatewayDefaultGrpcPort = 50066;
+
+export const DISMISSED_UPDATE_KEY = 'dismissed-update-version';

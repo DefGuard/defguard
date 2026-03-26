@@ -3,6 +3,7 @@ import './style.scss';
 import { useEffect, useMemo, useState } from 'react';
 
 import { m } from '../../../../paraglide/messages';
+import { DISMISSED_UPDATE_KEY } from '../../../constants';
 import { AppText } from '../../../defguard-ui/components/AppText/AppText';
 import { Badge } from '../../../defguard-ui/components/Badge/Badge';
 import { Button } from '../../../defguard-ui/components/Button/Button';
@@ -23,7 +24,6 @@ import { Controls } from '../../Controls/Controls';
 import updateImage from './update-image.png';
 
 const modalNameKey = ModalName.AppUpdate;
-const DISMISSED_UPDATE_KEY = 'dismissed-update-version';
 
 type ModalData = OpenAppUpdateModal;
 

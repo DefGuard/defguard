@@ -2,14 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { type PropsWithChildren, useEffect, useRef } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../api/api';
+import { DISMISSED_UPDATE_KEY } from '../constants';
 import { Snackbar } from '../defguard-ui/providers/snackbar/snackbar';
 import { isPresent } from '../defguard-ui/utils/isPresent';
 import { openModal } from '../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../hooks/modalControls/modalTypes';
 import { useApp } from '../hooks/useApp';
 import { useAuth } from '../hooks/useAuth';
-
-const DISMISSED_UPDATE_KEY = 'dismissed-update-version';
 
 export const AppInfoProvider = ({ children }: PropsWithChildren) => {
   const isAuthenticated = useAuth((s) => isPresent(s.user));
