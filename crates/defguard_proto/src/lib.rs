@@ -18,12 +18,12 @@ pub mod enterprise {
 use defguard_common::{
     csv::AsCsv,
     db::{
+        Id,
         models::{
+            Device, DeviceConfig, User, WireguardNetwork,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
-            Device, DeviceConfig, User, WireguardNetwork,
         },
-        Id,
     },
 };
 use proxy::{CoreError, MfaMethod};
