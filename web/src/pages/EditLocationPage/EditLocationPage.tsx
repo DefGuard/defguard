@@ -8,6 +8,7 @@ import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
+  type EditNetworkLocation,
   LocationMfaMode,
   LocationServiceMode,
   type NetworkLocation,
@@ -161,6 +162,147 @@ const formSchema = z
 
 type FormFields = z.infer<typeof formSchema>;
 
+type DisconnectRelevantField =
+  | 'address'
+  | 'port'
+  | 'mtu'
+  | 'fwmark'
+  | 'location_mfa_mode'
+  | 'service_location_mode'
+  | 'allow_all_groups'
+  | 'allowed_groups';
+
+type DisconnectRelevantLocationData = Pick<
+  EditNetworkLocation,
+  | 'address'
+  | 'port'
+  | 'mtu'
+  | 'fwmark'
+  | 'location_mfa_mode'
+  | 'service_location_mode'
+  | 'allow_all_groups'
+  | 'allowed_groups'
+>;
+
+const normalizeCommaSeparatedValues = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .sort();
+
+const normalizeSelectedGroups = (groups: string[]) =>
+  [...new Set(groups.map((group) => group.trim()).filter(Boolean))].sort();
+
+const areEqualStringArrays = (left: string[], right: string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
+const buildLocationSubmissionData = (
+  value: FormFields,
+  location: NetworkLocation,
+): EditNetworkLocation => {
+  const normalizedValue = cloneDeep(value);
+
+  if (normalizedValue.location_mfa_mode !== LocationMfaMode.Disabled) {
+    normalizedValue.service_location_mode = LocationServiceMode.Disabled;
+  }
+
+  return {
+    ...omit(normalizedValue, ['firewall']),
+    allowed_ips: normalizedValue.allowed_ips ?? '',
+    acl_default_allow: normalizedValue.firewall === LocationFirewall.Allow,
+    acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
+    peer_disconnect_threshold:
+      normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
+  };
+};
+
+const getDisconnectRelevantLocationData = (
+  value: EditNetworkLocation,
+): DisconnectRelevantLocationData => ({
+  address: value.address,
+  port: value.port,
+  mtu: value.mtu,
+  fwmark: value.fwmark,
+  location_mfa_mode: value.location_mfa_mode,
+  service_location_mode: value.service_location_mode,
+  allow_all_groups: value.allow_all_groups,
+  allowed_groups: value.allow_all_groups ? [] : value.allowed_groups,
+});
+
+const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string => {
+  switch (field) {
+    case 'address':
+      return m.location_edit_field_address();
+    case 'port':
+      return m.location_edit_field_port();
+    case 'mtu':
+      return m.location_edit_field_mtu();
+    case 'fwmark':
+      return m.location_edit_field_fwmark();
+    case 'location_mfa_mode':
+      return m.location_edit_field_location_mfa_mode();
+    case 'service_location_mode':
+      return m.location_edit_field_service_location_mode();
+    case 'allow_all_groups':
+      return m.location_edit_field_allow_all_groups();
+    case 'allowed_groups':
+      return m.location_edit_field_allowed_groups();
+  }
+};
+
+const getDisconnectRelevantChangedFields = (
+  original: DisconnectRelevantLocationData,
+  submitted: DisconnectRelevantLocationData,
+): DisconnectRelevantField[] => {
+  const changedFields: DisconnectRelevantField[] = [];
+
+  if (
+    !areEqualStringArrays(
+      normalizeCommaSeparatedValues(original.address),
+      normalizeCommaSeparatedValues(submitted.address),
+    )
+  ) {
+    changedFields.push('address');
+  }
+
+  if (original.port !== submitted.port) {
+    changedFields.push('port');
+  }
+
+  if (original.mtu !== submitted.mtu) {
+    changedFields.push('mtu');
+  }
+
+  if (original.fwmark !== submitted.fwmark) {
+    changedFields.push('fwmark');
+  }
+
+  if (original.location_mfa_mode !== submitted.location_mfa_mode) {
+    changedFields.push('location_mfa_mode');
+  }
+
+  if (original.service_location_mode !== submitted.service_location_mode) {
+    changedFields.push('service_location_mode');
+  }
+
+  if (original.allow_all_groups !== submitted.allow_all_groups) {
+    changedFields.push('allow_all_groups');
+  }
+
+  if (
+    !submitted.allow_all_groups &&
+    !areEqualStringArrays(
+      normalizeSelectedGroups(original.allowed_groups),
+      normalizeSelectedGroups(submitted.allowed_groups),
+    )
+  ) {
+    changedFields.push('allowed_groups');
+  }
+
+  return changedFields;
+};
+
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const navigate = useNavigate();
 
@@ -233,7 +375,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       name: location.name,
       address: location.address.join(','),
       allow_all_groups: location.allow_all_groups,
-      allowed_groups: location.allowed_groups,
+      allowed_groups: [...location.allowed_groups],
       allowed_ips: location.allowed_ips.join(','),
       dns: location.dns,
       endpoint: location.endpoint,
@@ -249,6 +391,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     [location],
   );
 
+  const submitLocationChanges = async (value: FormFields) => {
+    await editLocation({
+      id: location.id,
+      data: buildLocationSubmissionData(value, location),
+    });
+  };
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -257,26 +406,30 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const clone = cloneDeep(value);
-      if (clone.location_mfa_mode !== LocationMfaMode.Disabled) {
-        clone.service_location_mode = LocationServiceMode.Disabled;
+      const changedFields = getDisconnectRelevantChangedFields(
+        getDisconnectRelevantLocationData(
+          buildLocationSubmissionData(defaultValues, location),
+        ),
+        getDisconnectRelevantLocationData(buildLocationSubmissionData(value, location)),
+      );
+
+      if (changedFields.length > 0) {
+        openModal(ModalName.ConfirmAction, {
+          title: m.modal_edit_location_disconnect_warning_title(),
+          contentMd: m.modal_edit_location_disconnect_warning_body({
+            fields: changedFields
+              .map((field) => `- ${getDisconnectRelevantFieldLabel(field)}`)
+              .join('\n'),
+          }),
+          actionPromise: () => submitLocationChanges(value),
+          submitProps: {
+            text: m.controls_save_changes(),
+          },
+        });
+        return;
       }
 
-      const peerDisconnectThreshold =
-        clone.peer_disconnect_threshold ?? location.peer_disconnect_threshold;
-
-      await editLocation({
-        id: location.id,
-        data: {
-          ...omit(clone, ['firewall']),
-          allow_all_groups: clone.allow_all_groups,
-          allowed_groups: clone.allowed_groups,
-          allowed_ips: clone.allowed_ips ?? '',
-          acl_default_allow: clone.firewall === LocationFirewall.Allow,
-          acl_enabled: !(clone.firewall === LocationFirewall.Disabled),
-          peer_disconnect_threshold: peerDisconnectThreshold,
-        },
-      });
+      await submitLocationChanges(value);
     },
   });
 
@@ -295,7 +448,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
-            {(field) => <field.FormInput required label="Gateway port" type="number" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.location_edit_field_port()}
+                type="number"
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="endpoint">
@@ -317,7 +476,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           )}
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput required label="Gateway VPN IP address and netmask" />
+              <field.FormInput required label={m.location_edit_field_address()} />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
@@ -342,12 +501,14 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="mtu">
             {(field) => (
-              <field.FormInput label="Maximum Transmission Unit (MTU)" type="number" />
+              <field.FormInput label={m.location_edit_field_mtu()} type="number" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="fwmark">
-            {(field) => <field.FormInput label="Firewall Mark (FwMark)" type="number" />}
+            {(field) => (
+              <field.FormInput label={m.location_edit_field_fwmark()} type="number" />
+            )}
           </form.AppField>
         </EditPageFormSection>
         <form.Subscribe
@@ -361,10 +522,10 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                 <InfoBanner
                   icon="info-outlined"
                   variant="warning"
-                  text={`You can't use MFA on any service locations. If you want to enforce MFA please select “Regular location” type`}
+                  text={m.location_edit_service_location_mfa_warning()}
                 />
               )}
-              <EditPageFormSection label="Multi-Factor Authentication">
+              <EditPageFormSection label={m.location_edit_field_location_mfa_mode()}>
                 <form.AppField
                   name="location_mfa_mode"
                   validators={{
@@ -464,13 +625,11 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       <InfoBanner
                         variant="warning"
                         icon="info-outlined"
-                        text={
-                          "If your location is MFA protected, you won't be able to set is as a service location. The location must have MFA disabled in order to use service location mode.You can read more about service locations in our documentation."
-                        }
+                        text={m.location_edit_mfa_service_location_warning()}
                       />
                     )}
                     <EditPageFormSection
-                      label="Location type (Windows only)"
+                      label={m.location_edit_field_service_location_mode()}
                       labelContent={serviceLocationLabelContent}
                     >
                       <field.FormRadio
@@ -507,8 +666,8 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                       options={groupsOptions}
                       counterText={(count) => `+${count} groups`}
                       editText="Edit groups"
-                      modalTitle="Select allowed groups"
-                      toggleText="All groups have access"
+                      modalTitle={m.location_edit_field_allowed_groups()}
+                      toggleText={m.location_edit_field_allow_all_groups()}
                       toggleValue={allowAllGroups}
                       onToggleChange={(value) => {
                         form.setFieldValue('allow_all_groups', value);
