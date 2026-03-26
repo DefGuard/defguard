@@ -48,6 +48,7 @@
   "edge_setup_step_deploy_label": "Deploy Edge component",
   "edge_setup_step_deploy_description": "Before we can adopt a Edge this component needs to be launched. If you already have done so, please go to the next step, if not, please choose one of the desired deployment method bellow.",
   "edge_setup_step_deploy_confirm": "Confirm that you have deployed Edge",
+  "edge_setup_step_deploy_confirm_tooltip": "Please confirm you have deployed the Edge by selecting checkbox",
   "edge_setup_step_deploy_tabs_docker": "Docker",
   "edge_setup_step_deploy_tabs_docker_title": "Docker",
   "edge_setup_step_deploy_tabs_docker_subtitle": "In order to launch Edge with Docker, please copy and run the following command:",
