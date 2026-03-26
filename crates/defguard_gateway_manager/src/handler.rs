@@ -209,7 +209,7 @@ impl GatewayHandler {
         let peers = get_location_allowed_peers(&network, &self.pool).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
-        let payload = Some(core_response::Payload::Config(gen_config(
+        let payload = Some(core_response::Payload::Config(Configuration::new(
             &network,
             peers,
             maybe_firewall_config,
@@ -1000,23 +1000,6 @@ fn try_protos_into_stats_message(
     ))
 }
 
-fn gen_config<I>(
-    network: &WireguardNetwork<I>,
-    peers: Vec<Peer>,
-    maybe_firewall_config: Option<FirewallConfig>,
-) -> Configuration {
-    Configuration {
-        name: network.name.clone(),
-        port: network.port.cast_unsigned(),
-        prvkey: network.prvkey.clone(),
-        addresses: network.address().iter().map(ToString::to_string).collect(),
-        peers,
-        firewall_config: maybe_firewall_config,
-        mtu: network.mtu.cast_unsigned(),
-        fwmark: network.fwmark as u32,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
@@ -1034,13 +1017,12 @@ mod tests {
         setup_pool,
     };
     use defguard_core::grpc::GatewayEvent;
-    use defguard_proto::gateway::{Peer, PeerStats, core_response};
+    use defguard_proto::gateway::{Configuration, Peer, PeerStats, core_response};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
     use super::{
-        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, gen_config,
-        try_protos_into_stats_message,
+        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, try_protos_into_stats_message,
     };
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
@@ -1145,7 +1127,7 @@ mod tests {
 
     #[test]
     fn gen_config_maps_network_fields() {
-        let config = gen_config(
+        let config = Configuration::new(
             &build_network(),
             vec![Peer {
                 pubkey: "peer-public-key".to_string(),
@@ -1186,7 +1168,7 @@ mod tests {
 
     #[test]
     fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
-        let config = gen_config(&build_network(), Vec::new(), None);
+        let config = Configuration::new(&build_network(), Vec::new(), None);
 
         assert!(config.peers.is_empty());
         assert!(config.firewall_config.is_none());
