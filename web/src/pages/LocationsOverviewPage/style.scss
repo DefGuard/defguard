@@ -21,7 +21,7 @@
     flex-flow: column;
     row-gap: var(--spacing-md);
     list-style: none;
-    padding: 0 var(--spacing-xl);
+    padding: 0 var(--spacing-xl) var(--spacing-md);
 
     .location-overview-card .summary-top {
       p {
