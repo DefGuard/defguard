@@ -346,7 +346,7 @@ pub(crate) async fn create_acl_rule(
     // validate submitted ACL rule
     data.validate()?;
 
-    let rule = AclRule::create_from_api(&appstate.pool, &data)
+    let rule = AclRule::create_from_api(&appstate.pool, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error creating ACL rule {data:?}: {err}");
@@ -385,7 +385,7 @@ pub(crate) async fn update_acl_rule(
     // validate submitted ACL rule
     data.validate()?;
 
-    let rule = AclRule::update_from_api(&appstate.pool, id, &data)
+    let rule = AclRule::update_from_api(&appstate.pool, id, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error updating ACL rule {data:?}: {err}");
@@ -415,7 +415,7 @@ pub(crate) async fn delete_acl_rule(
     Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting ACL rule {id}", session.user.username);
-    AclRule::delete_from_api(&appstate.pool, id)
+    AclRule::delete_from_api(&appstate.pool, id, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error deleting ACL rule {id}: {err}");
@@ -445,7 +445,7 @@ pub(crate) async fn apply_acl_rules(
         "User {} applying ACL rules: {:?}",
         session.user.username, data.rules
     );
-    AclRule::apply_rules(&data.rules, &appstate)
+    AclRule::apply_rules(&data.rules, &session.user.username, &appstate)
         .await
         .map_err(|err| {
             error!("Error applying ACL rules {data:?}: {err}");

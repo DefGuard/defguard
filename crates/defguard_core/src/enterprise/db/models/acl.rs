@@ -5,7 +5,7 @@ use std::{
     ops::{Bound, RangeInclusive},
 };
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use defguard_common::db::{
     Id, NoId,
     models::{Device, DeviceType, WireguardNetwork, group::Group, user::User},
@@ -271,6 +271,8 @@ pub struct AclRule<I = NoId> {
     pub any_port: bool,
     pub any_protocol: bool,
     pub use_manual_destination_settings: bool,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: String,
 }
 
 impl Default for AclRule {
@@ -296,7 +298,16 @@ impl Default for AclRule {
             any_port: true,
             any_protocol: true,
             use_manual_destination_settings: true,
+            modified_at: Utc::now().naive_utc(),
+            modified_by: "admin".into(),
         }
+    }
+}
+
+impl<I> AclRule<I> {
+    pub(crate) fn stamp_modified(&mut self, actor: &str) {
+        self.modified_at = Utc::now().naive_utc();
+        self.modified_by = actor.to_owned();
     }
 }
 
@@ -305,11 +316,13 @@ impl AclRule {
     pub(crate) async fn create_from_api(
         pool: &PgPool,
         api_rule: &EditAclRule,
+        actor: &str,
     ) -> Result<ApiAclRule, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the rule
-        let rule: AclRule = api_rule.clone().try_into()?;
+        let mut rule: AclRule = api_rule.clone().try_into()?;
+        rule.stamp_modified(actor);
         let rule = rule.save(&mut *transaction).await?;
 
         // create related objects
@@ -343,6 +356,7 @@ impl AclRule {
         pool: &PgPool,
         id: Id,
         api_rule: &EditAclRule,
+        actor: &str,
     ) -> Result<ApiAclRule, AclError> {
         debug!("Updating rule ID {id} with {api_rule:?}");
         let mut transaction = pool.begin().await?;
@@ -357,6 +371,7 @@ impl AclRule {
 
         // convert API rule to model
         let mut rule: AclRule<NoId> = api_rule.clone().try_into()?;
+        rule.stamp_modified(actor);
 
         // perform appropriate updates depending on existing rule's state
         let rule = match existing_rule.state {
@@ -434,7 +449,7 @@ impl AclRule {
     ///   2. The rule itself is deleted from the database
     ///
     /// Since these rules were not yet applied, we can safely remove them.
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id, actor: &str) -> Result<(), AclError> {
         debug!("Deleting rule {id}");
         let mut transaction = pool.begin().await?;
 
@@ -470,6 +485,7 @@ impl AclRule {
                 let mut rule = existing_rule.as_noid();
                 rule.state = RuleState::Deleted;
                 rule.parent_id = Some(id);
+                rule.stamp_modified(actor);
                 let rule = rule.save(&mut *transaction).await?;
 
                 // inherit related objects from parent rule
@@ -502,7 +518,7 @@ impl AclRule {
     /// # Errors
     ///
     /// - `AclError::RuleNotFoundError`
-    pub async fn apply_rules(rules: &[Id], appstate: &AppState) -> Result<(), AclError> {
+    pub async fn apply_rules(rules: &[Id], actor: &str, appstate: &AppState) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = appstate.pool.begin().await?;
 
@@ -517,7 +533,7 @@ impl AclRule {
             for location in locations {
                 affected_locations.insert(location);
             }
-            rule.apply(&mut transaction).await?;
+            rule.apply(&mut transaction, actor).await?;
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
 
@@ -890,6 +906,8 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             any_port: rule.any_port,
             any_protocol: rule.any_protocol,
             use_manual_destination_settings: rule.use_manual_destination_settings,
+            modified_at: Utc::now().naive_utc(),
+            modified_by: "admin".into(),
         })
     }
 }
@@ -907,7 +925,7 @@ impl AclRule<Id> {
     /// # Errors
     ///
     /// - `AclError::RuleAreadyApplied`
-    pub async fn apply(mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+    pub async fn apply(mut self, transaction: &mut PgConnection, actor: &str) -> Result<(), AclError> {
         let acl_id = self.id;
         debug!("Applying ACL rule {acl_id} pending state change");
 
@@ -918,6 +936,7 @@ impl AclRule<Id> {
                 self.state = RuleState::Applied;
                 let parent_id = self.parent_id;
                 self.parent_id = None;
+                self.stamp_modified(actor);
                 self.save(&mut *transaction).await?;
 
                 // delete parent rule
@@ -973,16 +992,15 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            AclAlias,
-            "SELECT a.id, parent_id, name, kind \"kind: AliasKind\",state \"state: AliasState\", \
-            addresses, ports, protocols, any_address, any_port, any_protocol \
+        query_as::<_, AclAlias<Id>>(
+            "SELECT a.id, a.parent_id, a.name, a.kind, a.state, a.addresses, a.ports, a.protocols, \
+            a.any_address, a.any_port, a.any_protocol, a.modified_at, a.modified_by \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
             WHERE r.rule_id = $1",
-            self.id,
         )
+        .bind(self.id)
         .fetch_all(executor)
         .await
     }
@@ -1470,7 +1488,7 @@ pub enum AliasKind {
 /// rules with common restrictions. In addition to the [`AclAlias`] we provide
 /// [`AclAliasInfo`] and [`ApiAclAlias`] that combine all related objects for
 /// easier downstream processing.
-#[derive(Clone, Debug, Default, Model, PartialEq)]
+#[derive(Clone, Debug, FromRow, Model, PartialEq)]
 pub struct AclAlias<I = NoId> {
     pub id: I,
     // if present points to the original alias before modification
@@ -1489,6 +1507,35 @@ pub struct AclAlias<I = NoId> {
     pub any_address: bool,
     pub any_port: bool,
     pub any_protocol: bool,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: String,
+}
+
+impl Default for AclAlias {
+    fn default() -> Self {
+        Self {
+            id: NoId,
+            parent_id: None,
+            name: String::new(),
+            kind: AliasKind::default(),
+            state: AliasState::default(),
+            addresses: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            any_address: false,
+            any_port: false,
+            any_protocol: false,
+            modified_at: Utc::now().naive_utc(),
+            modified_by: "admin".into(),
+        }
+    }
+}
+
+impl<I> AclAlias<I> {
+    pub(crate) fn stamp_modified(&mut self, actor: &str) {
+        self.modified_at = Utc::now().naive_utc();
+        self.modified_by = actor.to_owned();
+    }
 }
 
 impl AclAlias {
@@ -1516,6 +1563,8 @@ impl AclAlias {
             any_address,
             any_port,
             any_protocol,
+            modified_at: Utc::now().naive_utc(),
+            modified_by: "admin".into(),
         }
     }
 
@@ -1591,6 +1640,7 @@ impl AclAlias {
     pub(crate) async fn apply_by_kind(
         aliases: &[Id],
         kind: AliasKind,
+        actor: &str,
         appstate: &AppState,
     ) -> Result<(), AclError> {
         debug!(
@@ -1611,7 +1661,7 @@ impl AclAlias {
                     AliasKind::Destination => AclError::DestinationNotFoundError(*id),
                 })?;
             // run `apply` before fetching relations, since they'll get updated
-            alias.clone().apply(&mut transaction).await?;
+            alias.clone().apply(&mut transaction, actor).await?;
 
             // fetch ACL rules which are using this alias
             let rules = alias.get_rules(&mut *transaction).await?;
@@ -1680,6 +1730,8 @@ impl TryFrom<&EditAclAlias> for AclAlias {
             any_address: false,
             any_port: false,
             any_protocol: false,
+            modified_at: Utc::now().naive_utc(),
+            modified_by: "admin".into(),
         })
     }
 }
@@ -1690,13 +1742,12 @@ impl AclAlias<Id> {
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query_as!(
-            Self,
-            "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", \
-            addresses, ports, protocols, any_address, any_port, any_protocol \
+        sqlx::query_as::<_, Self>(
+            "SELECT id, parent_id, name, kind, state, addresses, ports, protocols, any_address, \
+            any_port, any_protocol, modified_at, modified_by \
             FROM aclalias WHERE kind = $1",
-            kind as AliasKind
         )
+        .bind(kind)
         .fetch_all(executor)
         .await
     }
@@ -1709,14 +1760,13 @@ impl AclAlias<Id> {
     where
         E: sqlx::PgExecutor<'e>,
     {
-        sqlx::query_as!(
-            Self,
-            "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", \
-            addresses, ports, protocols, any_address, any_port, any_protocol \
+        sqlx::query_as::<_, Self>(
+            "SELECT id, parent_id, name, kind, state, addresses, ports, protocols, any_address, \
+            any_port, any_protocol, modified_at, modified_by \
             FROM aclalias WHERE id = $1 AND kind = $2",
-            id,
-            kind as AliasKind
         )
+        .bind(id)
+        .bind(kind)
         .fetch_optional(executor)
         .await
     }
@@ -1741,6 +1791,8 @@ impl TryFrom<&EditAclDestination> for AclAlias {
             any_address: alias.any_address,
             any_port: alias.any_port,
             any_protocol: alias.any_protocol,
+            modified_at: Utc::now().naive_utc(),
+            modified_by: "admin".into(),
         })
     }
 }
@@ -1792,17 +1844,17 @@ impl AclAlias<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            AclRule,
-            "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-            deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, \
-            addresses, ports, protocols, enabled, expires, any_address, any_port, \
-            any_protocol, use_manual_destination_settings \
+        query_as::<_, AclRule<Id>>(
+            "SELECT ar.id, ar.parent_id, ar.state, ar.name, ar.allow_all_users, ar.deny_all_users, \
+            ar.allow_all_groups, ar.deny_all_groups, ar.allow_all_network_devices, \
+            ar.deny_all_network_devices, ar.all_locations, ar.addresses, ar.ports, ar.protocols, \
+            ar.enabled, ar.expires, ar.any_address, ar.any_port, ar.any_protocol, \
+            ar.use_manual_destination_settings, ar.modified_at, ar.modified_by \
             FROM aclrulealias ara \
             JOIN aclrule ar ON ar.id = ara.rule_id \
             WHERE ara.alias_id = $1",
-            self.id,
         )
+        .bind(self.id)
         .fetch_all(executor)
         .await
     }
@@ -1841,7 +1893,11 @@ impl AclAlias<Id> {
     /// # Errors
     ///
     /// - `AclError::AliasAreadyApplied`
-    pub async fn apply(mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+    pub async fn apply(
+        mut self,
+        transaction: &mut PgConnection,
+        actor: &str,
+    ) -> Result<(), AclError> {
         let alias_id = self.id;
         debug!("Applying ACL alias {alias_id} pending state change");
 
@@ -1852,6 +1908,7 @@ impl AclAlias<Id> {
                 self.state = AliasState::Applied;
                 let parent_id = self.parent_id;
                 self.parent_id = None;
+                self.stamp_modified(actor);
                 self.save(&mut *transaction).await?;
 
                 if let Some(parent_id) = parent_id {
