@@ -8,7 +8,7 @@
   & > .tracks {
     display: grid;
     grid-template-columns: 667fr 443fr;
-    min-height: 657px;
+    height: 657px;
 
     & > .content-track {
       box-sizing: border-box;
@@ -16,6 +16,7 @@
       display: flex;
       flex-flow: column;
       background-color: var(--bg-default);
+      overflow: hidden;
 
       .header-section {
         display: flex;
@@ -45,6 +46,12 @@
         padding-top: var(--spacing-2xl);
       }
 
+      & > .markdown-render {
+        overflow-y: auto;
+        flex: 1 1 0;
+        min-height: 0;
+      }
+
       .markdown-render {
         display: flex;
         flex-flow: column;
@@ -71,11 +78,6 @@
           flex-flow: column;
           row-gap: var(--spacing-xs);
           padding-left: var(--spacing-lg);
-
-          li a {
-            color: var(--fg-action);
-            text-decoration: underline;
-          }
         }
 
         h1,
