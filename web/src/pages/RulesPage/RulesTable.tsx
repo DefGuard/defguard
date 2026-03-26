@@ -234,17 +234,6 @@ export const RulesTable = ({
           return <TableValuesListCell values={locationNames} />;
         },
       }),
-      columnHelper.display({
-        id: 'status',
-        header: 'Status',
-        size: 125,
-        minSize: 125,
-        enableSorting: false,
-        cell: (info) => {
-          const row = info.row.original;
-          return renderStatusCell(row.state, row.enabled);
-        },
-      }),
       columnHelper.accessor('modified_at', {
         size: 175,
         minSize: 175,
@@ -267,6 +256,17 @@ export const RulesTable = ({
             <span>{info.getValue()}</span>
           </TableCell>
         ),
+      }),
+      columnHelper.display({
+        id: 'status',
+        header: 'Status',
+        size: 125,
+        minSize: 125,
+        enableSorting: false,
+        cell: (info) => {
+          const row = info.row.original;
+          return renderStatusCell(row.state, row.enabled);
+        },
       }),
       columnHelper.display({
         id: 'edit',
