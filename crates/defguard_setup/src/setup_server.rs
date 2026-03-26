@@ -29,8 +29,7 @@ use tracing::{info, instrument};
 use crate::handlers::{
     auto_wizard::{
         get_auto_adoption_result, get_external_ssl_info, get_internal_ssl_info,
-        set_external_url_settings, set_internal_url_settings, set_mfa_settings,
-        set_vpn_settings,
+        set_external_url_settings, set_internal_url_settings, set_mfa_settings, set_vpn_settings,
     },
     initial_wizard::{
         create_admin, create_ca, finish_setup, get_ca, get_wizard_state, set_general_config,

@@ -17,9 +17,8 @@ use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::api::PaginatedApiResponse;
-
 use super::common::{exceed_enterprise_limits, make_client, setup_pool};
+use crate::api::PaginatedApiResponse;
 
 #[derive(Deserialize)]
 struct UrlResponse {

@@ -78,14 +78,18 @@ async fn test_core_cert_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.core_http_cert_source, CoreCertSource::SelfSigned);
-    assert!(saved
-        .core_http_cert_pem
-        .as_deref()
-        .unwrap_or("")
-        .contains("BEGIN CERTIFICATE"));
-    assert!(saved
-        .core_http_cert_key_pem
-        .as_deref()
-        .unwrap_or("")
-        .contains("BEGIN"));
+    assert!(
+        saved
+            .core_http_cert_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
+    assert!(
+        saved
+            .core_http_cert_key_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN")
+    );
 }

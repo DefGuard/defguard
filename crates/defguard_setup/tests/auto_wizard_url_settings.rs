@@ -1,18 +1,15 @@
 use defguard_certs::{CertificateAuthority, Csr, PemLabel, der_to_pem, generate_key_pair};
-use defguard_common::{
-    db::{
-        Id,
-        models::{
-            Certificates,
-            certificates::{CoreCertSource, ProxyCertSource},
-            settings::initialize_current_settings,
-            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-            wireguard::{LocationMfaMode, ServiceLocationMode},
-            wizard::{ActiveWizard, Wizard},
-            WireguardNetwork,
-        },
-        setup_pool,
+use defguard_common::db::{
+    Id,
+    models::{
+        Certificates, WireguardNetwork,
+        certificates::{CoreCertSource, ProxyCertSource},
+        settings::initialize_current_settings,
+        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+        wireguard::{LocationMfaMode, ServiceLocationMode},
+        wizard::{ActiveWizard, Wizard},
     },
+    setup_pool,
 };
 use ipnetwork::IpNetwork;
 use rcgen::DnType;
@@ -31,7 +28,9 @@ const SESSION_COOKIE_NAME: &str = "defguard_session";
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,
 ) -> (common::TestClient, tokio::sync::oneshot::Receiver<()>) {
-    Wizard::init(pool, true).await.expect("Failed to init wizard");
+    Wizard::init(pool, true)
+        .await
+        .expect("Failed to init wizard");
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
     let resp = client
         .post("/api/v1/initial_setup/admin")
@@ -78,7 +77,10 @@ async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
     .set_address(["10.0.0.1/24".parse::<IpNetwork>().unwrap()])
     .unwrap();
     location.mtu = 1280;
-    location.save(pool).await.expect("Failed to save wireguard network")
+    location
+        .save(pool)
+        .await
+        .expect("Failed to save wireguard network")
 }
 
 #[sqlx::test]
@@ -96,7 +98,10 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::InternalUrlSslConfig);
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
@@ -119,7 +124,13 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
     assert_eq!(certs.core_http_cert_source, CoreCertSource::SelfSigned);
-    assert!(certs.core_http_cert_pem.as_deref().unwrap_or("").contains("BEGIN CERTIFICATE"));
+    assert!(
+        certs
+            .core_http_cert_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
     assert!(certs.core_http_cert_key_pem.is_some());
     assert!(certs.ca_cert_der.is_some());
     assert!(certs.ca_key_der.is_some());
@@ -145,7 +156,10 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     let certs = Certificates::get_or_default(&pool).await.unwrap();
     assert_eq!(certs.core_http_cert_source, CoreCertSource::Custom);
     assert_eq!(certs.core_http_cert_pem.as_deref(), Some(cert_pem.as_str()));
-    assert_eq!(certs.core_http_cert_key_pem.as_deref(), Some(key_pem.as_str()));
+    assert_eq!(
+        certs.core_http_cert_key_pem.as_deref(),
+        Some(key_pem.as_str())
+    );
 
     // own_cert without key_pem
     let (cert_pem_only, _) = generate_test_cert_pem("defguard.example.com");
@@ -191,7 +205,12 @@ async fn test_get_internal_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body: serde_json::Value = resp.json().await.unwrap();
-    assert!(body["ca_cert_pem"].as_str().unwrap_or("").contains("BEGIN CERTIFICATE"));
+    assert!(
+        body["ca_cert_pem"]
+            .as_str()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
 }
 
 #[sqlx::test]
@@ -209,7 +228,10 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::ExternalUrlSslConfig);
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
@@ -219,7 +241,9 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     // ssl_type = lets_encrypt: stores ACME domain, does not issue cert yet
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
-        .json(&json!({ "public_proxy_url": "https://proxy.example.com", "ssl_type": "lets_encrypt" }))
+        .json(
+            &json!({ "public_proxy_url": "https://proxy.example.com", "ssl_type": "lets_encrypt" }),
+        )
         .send()
         .await
         .unwrap();
@@ -234,7 +258,9 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     // ssl_type = defguard_ca
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
-        .json(&json!({ "public_proxy_url": "https://proxy.example.com", "ssl_type": "defguard_ca" }))
+        .json(
+            &json!({ "public_proxy_url": "https://proxy.example.com", "ssl_type": "defguard_ca" }),
+        )
         .send()
         .await
         .unwrap();
@@ -245,7 +271,13 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
     assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::SelfSigned);
-    assert!(certs.proxy_http_cert_pem.as_deref().unwrap_or("").contains("BEGIN CERTIFICATE"));
+    assert!(
+        certs
+            .proxy_http_cert_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
     assert!(certs.proxy_http_cert_key_pem.is_some());
     assert!(certs.ca_cert_der.is_some());
 
@@ -266,8 +298,14 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
     assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::Custom);
-    assert_eq!(certs.proxy_http_cert_pem.as_deref(), Some(cert_pem.as_str()));
-    assert_eq!(certs.proxy_http_cert_key_pem.as_deref(), Some(key_pem.as_str()));
+    assert_eq!(
+        certs.proxy_http_cert_pem.as_deref(),
+        Some(cert_pem.as_str())
+    );
+    assert_eq!(
+        certs.proxy_http_cert_key_pem.as_deref(),
+        Some(key_pem.as_str())
+    );
 }
 
 #[sqlx::test]
@@ -287,7 +325,9 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
 
     client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
-        .json(&json!({ "public_proxy_url": "https://proxy.example.com", "ssl_type": "defguard_ca" }))
+        .json(
+            &json!({ "public_proxy_url": "https://proxy.example.com", "ssl_type": "defguard_ca" }),
+        )
         .send()
         .await
         .unwrap();
@@ -299,7 +339,12 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body: serde_json::Value = resp.json().await.unwrap();
-    assert!(body["ca_cert_pem"].as_str().unwrap_or("").contains("BEGIN CERTIFICATE"));
+    assert!(
+        body["ca_cert_pem"]
+            .as_str()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
 }
 
 #[sqlx::test]
@@ -343,16 +388,17 @@ async fn test_url_settings_endpoints_require_auth(_: PgPoolOptions, options: PgC
             .unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED, "POST {path}");
 
-        let resp = unauth.get(format!("{base_url}{path}")).send().await.unwrap();
+        let resp = unauth
+            .get(format!("{base_url}{path}"))
+            .send()
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED, "GET {path}");
     }
 }
 
 #[sqlx::test]
-async fn test_auto_adoption_full_flow_new_url_steps(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool).await.unwrap();
     seed_wireguard_network(&pool).await;
@@ -370,7 +416,10 @@ async fn test_auto_adoption_full_flow_new_url_steps(
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::UrlSettings);
 
     let resp = client
@@ -380,7 +429,10 @@ async fn test_auto_adoption_full_flow_new_url_steps(
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::InternalUrlSslConfig);
 
     let resp = client
@@ -390,7 +442,10 @@ async fn test_auto_adoption_full_flow_new_url_steps(
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::ExternalUrlSslConfig);
 
     let resp = client
@@ -406,7 +461,10 @@ async fn test_auto_adoption_full_flow_new_url_steps(
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::MfaSettings);
 
     let resp = client
@@ -416,7 +474,10 @@ async fn test_auto_adoption_full_flow_new_url_steps(
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::CREATED);
-    let state = AutoAdoptionWizardState::get(&pool).await.unwrap().unwrap_or_default();
+    let state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .unwrap()
+        .unwrap_or_default();
     assert_eq!(state.step, AutoAdoptionWizardStep::Summary);
 
     let resp = client

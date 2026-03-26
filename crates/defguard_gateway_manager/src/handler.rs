@@ -7,18 +7,16 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
 };
-
 #[cfg(test)]
 use std::{path::PathBuf, time::Duration};
 
 use chrono::{DateTime, TimeDelta};
-use defguard_common::db::models::Certificates;
 use defguard_common::{
     VERSION,
     db::{
         Id,
         models::{
-            DeviceNetworkInfo, Settings, WireguardNetwork, gateway::Gateway,
+            Certificates, DeviceNetworkInfo, Settings, WireguardNetwork, gateway::Gateway,
             wireguard::DEFAULT_WIREGUARD_MTU,
         },
     },
@@ -57,10 +55,9 @@ use tonic::{
     transport::{Channel, Endpoint},
 };
 
-use crate::{Client, TEN_SECS, error::GatewayError};
-
 #[cfg(test)]
 use crate::GatewayManagerTestSupport;
+use crate::{Client, TEN_SECS, error::GatewayError};
 
 #[cfg(test)]
 #[derive(Default)]

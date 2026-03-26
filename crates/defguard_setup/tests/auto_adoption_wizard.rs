@@ -1,3 +1,5 @@
+use std::sync::Once;
+
 use defguard_common::{
     config::DefGuardConfig,
     db::{
@@ -21,7 +23,6 @@ use reqwest::{
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use std::sync::Once;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod common;

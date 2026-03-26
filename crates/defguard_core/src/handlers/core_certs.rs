@@ -1,8 +1,4 @@
-use axum::{
-    Json,
-    extract::State,
-    http::StatusCode,
-};
+use axum::{Json, extract::State, http::StatusCode};
 use defguard_certs::{CertificateAuthority, Csr, DnType, generate_key_pair};
 use defguard_common::db::models::{Certificates, CoreCertSource};
 use utoipa::ToSchema;

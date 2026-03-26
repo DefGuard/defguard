@@ -5,10 +5,7 @@ use std::{
 };
 
 use axum_extra::extract::cookie::Key;
-use defguard_common::{
-    db::models::proxy::Proxy,
-    types::proxy::ProxyControlMessage,
-};
+use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
 use defguard_proto::proxy::{CoreResponse, core_response};
 use sqlx::PgPool;

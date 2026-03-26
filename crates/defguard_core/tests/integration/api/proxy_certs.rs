@@ -90,8 +90,20 @@ async fn test_proxy_cert_endpoints(_: PgPoolOptions, options: PgConnectOptions) 
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::SelfSigned);
-    assert!(saved.proxy_http_cert_pem.as_deref().unwrap_or("").contains("BEGIN CERTIFICATE"));
-    assert!(saved.proxy_http_cert_key_pem.as_deref().unwrap_or("").contains("BEGIN"));
+    assert!(
+        saved
+            .proxy_http_cert_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
+    assert!(
+        saved
+            .proxy_http_cert_key_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN")
+    );
 
     // ACME issue: existing proxy -> 202, missing proxy -> 404
     let response = client
