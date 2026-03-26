@@ -52,7 +52,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('url', {
-        header: 'Webhook URL',
+        header: m.form_label_webhook_url(),
         minSize: 300,
         size: 450,
         cell: (info) => (
@@ -62,7 +62,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
         ),
       }),
       columnHelper.accessor('description', {
-        header: 'Description',
+        header: m.form_label_description(),
         minSize: 300,
         meta: {
           flex: true,
@@ -74,7 +74,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
         ),
       }),
       columnHelper.accessor('enabled', {
-        header: 'Status',
+        header: m.col_status(),
         minSize: 125,
         cell: (info) => (
           <TableCell>
@@ -158,7 +158,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
     <>
       {webhooks.length > 0 && (
         <>
-          <TableTop text="All Webhooks">
+          <TableTop text={m.webhooks_table_title()}>
             <Button {...addButtonProps} />
           </TableTop>
           <TableBody table={table} />
