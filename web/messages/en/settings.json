@@ -158,6 +158,7 @@
   "settings_smtp_label_encryption": "Encryption",
   "settings_smtp_button_reset_settings": "Reset settings",
   "settings_smtp_button_send_test_email": "Send test email",
+  "settings_smtp_test_email_description": "Check if your SMTP configuration works by sending a test email.",
   "settings_ldap_title": "LDAP and Active Directory",
   "settings_ldap_subtitle": "Manage LDAP/Active Directory connection details, user and group mapping, and synchronization rules that determine how users are imported and updated in Defguard.",
   "settings_ldap_test_success": "LDAP Connected",
