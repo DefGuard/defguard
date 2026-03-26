@@ -70,7 +70,7 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
         to="/acl/aliases"
         search={tab ? { tab } : undefined}
         key={0}
-      >{`Aliases`}</Link>,
+      >{m.cmp_nav_item_aliases()}</Link>,
     ];
 
     if (isEdit) {
@@ -81,7 +81,7 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
             tab ? { alias: alias?.id as number, tab } : { alias: alias?.id as number }
           }
           key={1}
-        >{`Edit alias`}</Link>,
+        >{m.acl_alias_form_title_edit()}</Link>,
       );
     } else {
       res.push(
@@ -89,7 +89,7 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
           to="/acl/add-alias"
           search={tab ? { tab } : undefined}
           key={1}
-        >{`Add new alias`}</Link>,
+        >{m.acl_alias_form_title_add()}</Link>,
       );
     }
 
@@ -98,13 +98,13 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
 
   return (
     <EditPage
-      pageTitle="Aliases"
+      pageTitle={m.cmp_nav_item_aliases()}
       links={breadcrumbs}
       onBack={tab === undefined ? undefined : returnToAliases}
       headerProps={{
         icon: 'add-alias',
-        title: isEdit ? `Edit alias` : `Add new alias`,
-        subtitle: `ACL alias functionality allows administrators to create reusable elements which can then be used when defining a destination in multiple ACL rules. You must define at least one element in the alias settings.`,
+        title: isEdit ? m.acl_alias_form_title_edit() : m.acl_alias_form_title_add(),
+        subtitle: m.acl_alias_form_subtitle(),
       }}
     >
       <FormContent alias={alias} onReturnToAliases={returnToAliases} />
@@ -120,9 +120,6 @@ const formSchema = z.object({
 });
 
 type FormFields = z.infer<typeof formSchema>;
-
-const aliasCreatedMessage = 'Alias created.';
-const aliasEditedMessage = 'Aliase added to Pending tab and awaiting deployment.';
 
 const anyComponentDefined = (fields: FormFields): boolean => {
   return (
@@ -187,10 +184,10 @@ const FormContent = ({
 
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
-        Snackbar.default(aliasEditedMessage);
+        Snackbar.default(m.acl_alias_updated_pending());
       } else {
         await addAlias(toSend);
-        Snackbar.default(aliasCreatedMessage);
+        Snackbar.default(m.acl_alias_created());
       }
 
       await onReturnToAliases();
@@ -208,39 +205,33 @@ const FormContent = ({
       <form.AppForm>
         <MarkedSection icon="settings">
           <form.AppField name="name">
-            {(field) => <field.FormInput required label="Alias name" />}
+            {(field) => <field.FormInput required label={m.acl_alias_col_name()} />}
           </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="location-tracking">
-          <DescriptionBlock title="Addresses/Ranges">
-            <p>{`Define the IP addresses or ranges that form the destination of this ACL rule.`}</p>
+          <DescriptionBlock title={m.acl_form_section_addresses_title()}>
+            <p>{m.acl_form_section_addresses_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="addresses">
             {(field) => (
-              <field.FormInput
-                notNull
-                label={`IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)`}
-              />
+              <field.FormInput notNull label={m.acl_form_addresses_label()} />
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Ports">
-            <p>{`You may specify the exact ports accessible to users in this location.`}</p>
+          <DescriptionBlock title={m.acl_form_section_ports_title()}>
+            <p>{m.acl_form_section_ports_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="ports">
             {(field) => (
-              <field.FormInput
-                notNull
-                label={`Manually defined ports (or multiple values separated by commas)`}
-              />
+              <field.FormInput notNull label={m.acl_form_ports_label()} />
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Protocols">
-            <p>{`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must be selected.`}</p>
+          <DescriptionBlock title={m.acl_form_section_protocols_title()}>
+            <p>{m.acl_form_section_protocols_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="protocols">
@@ -275,14 +266,14 @@ const FormContent = ({
                     <div>
                       <Button
                         type="submit"
-                        text={isEdit ? 'Edit alias' : 'Add alias'}
+                        text={isEdit ? m.controls_save_changes() : m.acl_alias_action_add()}
                         loading={isSubmitting}
                         disabled={isEmpty}
                       />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{`At least one component is required.`}</p>
+                    <p>{m.acl_alias_form_component_required()}</p>
                   </TooltipContent>
                 </TooltipProvider>
               </div>
