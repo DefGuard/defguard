@@ -48,7 +48,7 @@ export const SettingsClientPage = () => {
       <SettingsLayout>
         <SettingsHeader
           icon="user"
-          title={m.settings_breadcrumb_client_behavior()}
+          title={m.settings_client_title()}
           subtitle={m.settings_client_subtitle()}
           badgeProps={!isPresent(license) && isFetched ? businessBadgeProps : undefined}
         />

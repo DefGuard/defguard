@@ -8,6 +8,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { maxBy } from 'lodash-es';
+import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { GatewaysStatusBadge } from '../../../../shared/components/GatewaysStatusBadge/GatewaysStatusBadge';
 import { TransferChart } from '../../../../shared/components/TransferChart/TransferChart';
@@ -81,7 +82,7 @@ export const LocationOverviewCard = ({
             <GatewaysStatusBadge data={location.gateways ?? []} showDetails />
             <Divider orientation="vertical" spacing={ThemeSpacing.Lg} />
             <Button
-              text="Details"
+              text={m.misc_details()}
               variant="outlined"
               onClick={() => {
                 navigate({
@@ -135,11 +136,8 @@ export const OverviewCard = ({
               <SizedBox height={ThemeSpacing.Xl2} />
               <EmptyState
                 icon="dashboard"
-                title={emptyStateTitle ?? `This location doesn't have any data.`}
-                subtitle={
-                  emptyStateSubtitle ??
-                  `The data for this location will be shown once the location is connected.`
-                }
+                title={emptyStateTitle ?? m.location_overview_empty_title()}
+                subtitle={emptyStateSubtitle ?? m.location_overview_empty_subtitle()}
               />
               <SizedBox height={ThemeSpacing.Xl2} />
             </>
@@ -161,34 +159,34 @@ const Stats = ({ stats, period }: StatsProps) => {
       <div className="stats-track">
         <StatsSegment
           icon="user"
-          name="Currently active users"
+          name={m.location_overview_stats_current_active_users()}
           count={stats.current_active_users}
           subCount={stats.current_active_user_devices}
-          subCountLabel="Total user devices"
+          subCountLabel={m.location_overview_stats_total_user_devices()}
         />
         <StatsSegment
           icon="connected-devices"
-          name="Currently active devices"
+          name={m.location_overview_stats_current_active_devices()}
           count={stats.current_active_user_devices + stats.current_active_network_devices}
         />
         <StatsSegment
           icon="user-active"
-          name="Active users"
+          name={m.location_overview_stats_active_users()}
           count={stats.active_users}
-          subCountLabel="Total user devices"
+          subCountLabel={m.location_overview_stats_total_user_devices()}
           subCount={stats.active_user_devices}
         />
         <StatsSegment
           icon="devices-active"
-          name="Active devices in"
+          name={m.location_overview_stats_active_devices()}
           count={stats.active_user_devices + stats.active_network_devices}
         />
-        <StatsSegment icon="activity" name="Network usage">
+        <StatsSegment icon="activity" name={m.location_overview_stats_network_usage()}>
           <SizedBox height={8} />
           <div className="transfer-bar download">
             <div className="left">
               <Icon icon="arrow-big" rotationDirection="right" />
-              <p>In</p>
+              <p>{m.location_overview_stats_network_usage_in()}</p>
             </div>
             <div className="right">
               <TransferText variant="download" data={stats.download} />
@@ -198,7 +196,7 @@ const Stats = ({ stats, period }: StatsProps) => {
           <div className="transfer-bar upload">
             <div className="left">
               <Icon icon="arrow-big" rotationDirection="left" />
-              <p>Out</p>
+              <p>{m.location_overview_stats_network_usage_out()}</p>
             </div>
             <div className="right">
               <TransferText variant="upload" data={stats.upload} />
@@ -262,13 +260,17 @@ const TransferSection = ({ transfer, period }: TransferSectionProps) => {
   );
 
   const chartMap = useMemo(() => mapTransferToChart(transfer), [transfer]);
+  const activityPeriodLabel =
+    period === 1
+      ? m.location_overview_activity_period_one_hour()
+      : m.location_overview_activity_period_hours({ period });
 
   return (
     <div className="transfer-section">
       <div className="top">
-        <p>Activity in {`${period} hours`}</p>
+        <p>{activityPeriodLabel}</p>
         <div className="right">
-          <p className="peak">Peak</p>
+          <p className="peak">{m.location_overview_peak()}</p>
           <TransferText data={maxDownload} variant="download" icon />
           <span className="sep">/</span>
           <TransferText data={maxUpload} variant="upload" icon />

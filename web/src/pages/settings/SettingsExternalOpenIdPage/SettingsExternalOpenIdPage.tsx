@@ -5,6 +5,7 @@ import { ExternalProviderCard } from './components/ExternalProviderCard/External
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import {
   OpenIdProviderKind,
@@ -28,10 +29,10 @@ const breadcrumbsLinks = [
       tab: 'identity',
     }}
   >
-    {`Identity Providers`}
+    {m.settings_breadcrumb_identity_providers()}
   </Link>,
   <Link to="/settings/openid" key={1}>
-    {`OpenID Providers`}
+    {m.settings_openid_providers_breadcrumb()}
   </Link>,
 ];
 
@@ -82,17 +83,19 @@ export const SettingsExternalOpenIdPage = () => {
   }, [licenseInfo, activeProvider, navigate]);
 
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
       <SettingsLayout id="settings-openid-page">
         <SettingsHeader
           icon="openid"
-          title="External OpenID Providers"
-          subtitle="Manage user permissions and configuration options for device control, WireGuard setup, and VPN routing."
+          title={m.settings_openid_providers_title()}
+          subtitle={m.settings_client_subtitle()}
         />
         {isPresent(activeProvider) && (
           <>
-            <p className="section-label">{'Active external ID Providers'}</p>
+            <p className="section-label">
+              {m.settings_openid_providers_section_active()}
+            </p>
             <SizedBox height={ThemeSpacing.Md} />
             <ExternalProviderCard
               edit
@@ -102,14 +105,12 @@ export const SettingsExternalOpenIdPage = () => {
               onClick={handleEditProvider}
             />
             <SizedBox height={ThemeSpacing.Xl3} />
-            <p className="section-label">{'Other external ID providers'}</p>
+            <p className="section-label">{m.settings_openid_providers_section_other()}</p>
             <SizedBox height={ThemeSpacing.Md} />
             <InfoBanner
               variant="warning"
               icon="info-outlined"
-              text={
-                'We currently support only one external ID provider, but we plan to add support for multiple providers in the near future.'
-              }
+              text={m.settings_openid_providers_single_provider_notice()}
             />
             <SizedBox height={ThemeSpacing.Md} />
           </>
