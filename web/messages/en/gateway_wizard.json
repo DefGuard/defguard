@@ -48,6 +48,7 @@
   "gateway_setup_step_deploy_label": "Deploy Gateway component",
   "gateway_setup_step_deploy_description": "Before we can adopt a Gateway this component needs to be launched. If you already have done so, please go to the next step, if not, please choose one of the desired deployment method bellow.",
   "gateway_setup_step_deploy_confirm": "Confirm that you have deployed Gateway",
+  "gateway_setup_step_deploy_confirm_tooltip": "Please confirm you have deployed the Gateway by selecting checkbox",
   "gateway_setup_step_deploy_tabs_docker": "Docker",
   "gateway_setup_step_deploy_tabs_docker_title": "Docker",
   "gateway_setup_step_deploy_tabs_docker_subtitle": "In order to launch Defguard Gateway with Docker, please copy and run the following command:",

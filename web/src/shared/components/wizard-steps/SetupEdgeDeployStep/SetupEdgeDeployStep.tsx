@@ -9,6 +9,9 @@ import { RenderMarkdown } from '../../../defguard-ui/components/RenderMarkdown/R
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../../defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../defguard-ui/components/Tabs/types';
+import { TooltipContent } from '../../../defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../../defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../../defguard-ui/providers/tooltip/TooltipTrigger';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { Card } from '../../Card/Card';
@@ -83,7 +86,20 @@ export const SetupEdgeDeployStep = ({ onBack, onNext }: SetupEdgeDeployStepProps
           <Button variant={'outlined'} text={m.controls_back()} onClick={onBack} />
         )}
         <div className="right">
-          <Button text={m.controls_next()} disabled={!confirmed} onClick={onNext} />
+          <TooltipProvider disabled={confirmed}>
+            <TooltipTrigger>
+              <div>
+                <Button
+                  text={m.controls_continue()}
+                  disabled={!confirmed}
+                  onClick={onNext}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{m.edge_setup_step_deploy_confirm_tooltip()}</p>
+            </TooltipContent>
+          </TooltipProvider>
         </div>
       </Controls>
     </WizardCard>
