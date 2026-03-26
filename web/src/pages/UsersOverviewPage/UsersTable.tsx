@@ -88,6 +88,16 @@ export const UsersTable = () => {
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  const tableFilterMessages = useMemo(
+    () => ({
+      searchPlaceholder: m.controls_search(),
+      clearButton: m.controls_reset(),
+      applyButton: m.controls_submit(),
+      emptyState: m.search_empty_common_title(),
+    }),
+    [],
+  );
+
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
   const groupsOptions = useMemo(
@@ -653,6 +663,9 @@ export const UsersTable = () => {
     state: {
       rowSelection: selected,
       columnFilters: columnFilters,
+    },
+    meta: {
+      filterMessages: tableFilterMessages,
     },
     columns,
     data: transformedData,
