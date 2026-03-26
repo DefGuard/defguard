@@ -6,9 +6,6 @@ pub mod proxy {
 pub mod gateway {
     tonic::include_proto!("gateway");
 }
-pub mod auth {
-    tonic::include_proto!("auth");
-}
 pub mod worker {
     tonic::include_proto!("worker");
 }
@@ -23,7 +20,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceConfig, User,
+            Device, DeviceConfig, User, WireguardNetwork,
             vpn_client_session::VpnClientMfaMethod,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -33,20 +30,21 @@ use proxy::{CoreError, MfaMethod};
 use serde::Serialize;
 use tonic::Status;
 
+use crate::{
+    enterprise::firewall::FirewallConfig,
+    gateway::{Configuration, Peer},
+};
+
 // Client MFA methods
 impl fmt::Display for MfaMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Totp => "TOTP",
-                Self::Email => "Email",
-                Self::Oidc => "OIDC",
-                Self::Biometric => "Biometric",
-                Self::MobileApprove => "MobileApprove",
-            }
-        )
+        f.write_str(match self {
+            Self::Totp => "TOTP",
+            Self::Email => "Email",
+            Self::Oidc => "OIDC",
+            Self::Biometric => "Biometric",
+            Self::MobileApprove => "MobileApprove",
+        })
     }
 }
 
@@ -156,6 +154,25 @@ impl From<ServiceLocationMode> for proxy::ServiceLocationMode {
             ServiceLocationMode::Disabled => proxy::ServiceLocationMode::Disabled,
             ServiceLocationMode::PreLogon => proxy::ServiceLocationMode::Prelogon,
             ServiceLocationMode::AlwaysOn => proxy::ServiceLocationMode::Alwayson,
+        }
+    }
+}
+
+impl Configuration {
+    pub fn new(
+        location: &WireguardNetwork<Id>,
+        peers: Vec<Peer>,
+        maybe_firewall_config: Option<FirewallConfig>,
+    ) -> Self {
+        Self {
+            name: location.name.clone(),
+            port: location.port.cast_unsigned(),
+            prvkey: location.prvkey.clone(),
+            addresses: location.address().iter().map(ToString::to_string).collect(),
+            peers,
+            firewall_config: maybe_firewall_config,
+            mtu: location.mtu.cast_unsigned(),
+            fwmark: location.fwmark as u32,
         }
     }
 }

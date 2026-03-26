@@ -13,7 +13,7 @@ use defguard_common::db::{
     },
 };
 use rand::{Rng, rngs::ThreadRng};
-use sqlx::{PgConnection, PgPool, QueryBuilder};
+use sqlx::{PgConnection, PgPool, QueryBuilder, query};
 use tracing::{debug, info};
 
 use crate::{user_devices::prepare_user_devices, users::prepare_users};
@@ -24,7 +24,7 @@ const HANDSHAKE_INTERVAL: Duration = Duration::minutes(2);
 #[derive(Debug)]
 pub struct VpnSessionGeneratorConfig {
     pub location_id: Id,
-    pub num_users: u16,
+    pub num_users: usize,
     pub devices_per_user: u8,
     pub sessions_per_device: u8,
     pub no_truncate: bool,
@@ -53,7 +53,7 @@ pub async fn generate_vpn_session_stats(
     let gateway = prepare_gateway(&pool, location.id).await?;
 
     // prepare requested number of users
-    let user_count = config.num_users as usize;
+    let user_count = config.num_users;
     let users = prepare_users(&pool, &mut rng, user_count).await?;
 
     // generate sessions for each user
@@ -148,10 +148,10 @@ pub async fn generate_vpn_session_stats(
     Ok(())
 }
 
-/// Remove all records from sessions & stats tables.
-/// This also resets the auto-incrementing sequences
+/// Remove all records from sessions and stats tables.
+/// This also resets the auto-incrementing sequences.
 async fn truncate_with_restart(pool: &PgPool) -> Result<()> {
-    sqlx::query("TRUNCATE TABLE vpn_client_session RESTART IDENTITY CASCADE")
+    query("TRUNCATE vpn_client_session RESTART IDENTITY CASCADE")
         .execute(pool)
         .await?;
 
@@ -248,7 +248,8 @@ async fn insert_stats_batch(
     }
 
     let mut query_builder = QueryBuilder::new(
-        "INSERT INTO vpn_session_stats (session_id, gateway_id, collected_at, latest_handshake, endpoint, total_upload, total_download, upload_diff, download_diff) ",
+        "INSERT INTO vpn_session_stats (session_id, gateway_id, collected_at, latest_handshake, \
+        endpoint, total_upload, total_download, upload_diff, download_diff) ",
     );
 
     query_builder.push_values(stats_batch, |mut b, stats| {

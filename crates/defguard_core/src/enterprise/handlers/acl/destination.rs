@@ -219,7 +219,7 @@ impl From<AclAliasInfo> for ApiAclDestination {
     path = "/api/v1/acl/destination",
     tag = "ACL",
     responses(
-        (status = OK, description = "ACL destination", body = Vec<ApiAclDestination>),
+        (status = OK, description = "ACL destination", body = [ApiAclDestination]),
     )
 )]
 pub(crate) async fn list_acl_destinations(

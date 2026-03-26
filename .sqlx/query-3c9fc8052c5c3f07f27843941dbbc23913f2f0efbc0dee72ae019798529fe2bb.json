@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"rule_id\",\"network_id\" FROM \"aclrulenetwork\" LIMIT $1 OFFSET $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "network_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3c9fc8052c5c3f07f27843941dbbc23913f2f0efbc0dee72ae019798529fe2bb"
+}

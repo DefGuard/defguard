@@ -28,7 +28,7 @@
 </mj-section>
 <mj-section mj-class="s-2xl">
   <mj-column>
-    <mj-button href="https://defguard.net" align="left" mj-class="dg-button">
+    <mj-button href="{{ url }}/open-desktop?token={{ token }}" align="left" mj-class="dg-button">
       {{ configure }}
     </mj-button>
   </mj-column>

@@ -1,6 +1,7 @@
 import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import type { CertInfo, ExternalSslType, InternalSslType } from '../autoAdoption/types';
 import { type CAOptionType, SetupPageStep, type SetupPageStepValue } from './types';
@@ -86,7 +87,7 @@ const defaults: StoreValues = {
   // Edge settings
   common_name: '',
   ip_or_domain: '',
-  grpc_port: 50051,
+  grpc_port: edgeDefaultGrpcPort,
   edgeAdoptionState: edgeAdoptionStateDefaults,
 };
 

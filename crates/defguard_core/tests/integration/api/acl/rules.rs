@@ -1,4 +1,5 @@
 use super::*;
+use crate::api::PaginatedApiResponse;
 
 fn assert_related_object_rules_rewritten(
     related_object_name: &str,
@@ -61,7 +62,10 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     // list
     let response = client.get("/api/v1/acl/rule").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_rules: Vec<ApiAclRule> = response.json().await;
+    let response_rules = response
+        .json::<PaginatedApiResponse<ApiAclRule>>()
+        .await
+        .data;
     assert_eq!(response_rules.len(), 1);
     let response_rule = response_rules[0].clone();
     assert_eq!(response_rule, expected_response);
@@ -89,7 +93,10 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let response = client.get("/api/v1/acl/rule").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_rules: Vec<Value> = response.json().await;
+    let response_rules = response
+        .json::<PaginatedApiResponse<ApiAclRule>>()
+        .await
+        .data;
     assert_eq!(response_rules.len(), 0);
 }
 
@@ -229,7 +236,10 @@ async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let response = client.get("/api/v1/acl/rule").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_rules: Vec<Value> = response.json().await;
+    let response_rules = response
+        .json::<PaginatedApiResponse<ApiAclRule>>()
+        .await
+        .data;
     assert_eq!(response_rules.len(), 1);
     let response = client.get("/api/v1/acl/rule").send().await;
     assert_eq!(response.status(), StatusCode::OK);

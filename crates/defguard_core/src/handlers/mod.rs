@@ -68,7 +68,6 @@ pub enum WebErrorCode {
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
-pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;
 
 pub(crate) fn cookie_domain() -> Option<String> {
     server_config().cookie_domain.clone().or_else(|| {

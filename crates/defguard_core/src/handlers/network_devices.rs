@@ -4,7 +4,7 @@ use std::{
 };
 
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
@@ -32,6 +32,7 @@ use crate::{
     enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
+    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
 };
 
 #[derive(Serialize)]
@@ -41,7 +42,7 @@ struct NetworkDeviceLocation {
 }
 
 #[derive(Serialize)]
-struct NetworkDeviceInfo {
+pub(crate) struct NetworkDeviceInfo {
     id: Id,
     name: String,
     assigned_ips: Vec<IpAddr>,
@@ -74,7 +75,7 @@ impl NetworkDeviceInfo {
                     device.name, network.name
                 )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
-        let split_ips: Vec<SplitIp> = wireguard_device
+        let split_ips = wireguard_device
             .wireguard_ips
             .iter()
             .copied()
@@ -108,7 +109,7 @@ impl NetworkDeviceInfo {
     }
 }
 
-pub async fn download_network_device_config(
+pub(crate) async fn download_network_device_config(
     _admin_role: AdminRole,
     State(appstate): State<AppState>,
     Path(device_id): Path<Id>,
@@ -140,7 +141,7 @@ pub async fn download_network_device_config(
     Ok(Device::create_config(&network, &network_device))
 }
 
-pub async fn get_network_device(
+pub(crate) async fn get_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
     Path(device_id): Path<Id>,
@@ -169,14 +170,25 @@ pub async fn get_network_device(
     )))
 }
 
+/// GET /api/v1/device/network
 pub(crate) async fn list_network_devices(
     _admin_role: AdminRole,
     State(appstate): State<AppState>,
-) -> ApiResult {
-    debug!("Listing all network devices");
-    let mut devices_response: Vec<NetworkDeviceInfo> = Vec::new();
+    pagination: Query<PaginationParams>,
+) -> PaginatedApiResult<NetworkDeviceInfo> {
+    let pagination = pagination.0;
+
+    debug!("Listing network devices");
+
+    let mut devices_response = Vec::new();
     let mut transaction = appstate.pool.begin().await?;
-    let devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
+    let devices = Device::find_by_type_paginated(
+        &mut *transaction,
+        DeviceType::Network,
+        i64::from(pagination.per_page()),
+        i64::from(pagination.offset()),
+    )
+    .await?;
     for device in devices {
         match NetworkDeviceInfo::from_device(device, &mut transaction).await {
             Ok(device_info) => {
@@ -190,10 +202,16 @@ pub(crate) async fn list_network_devices(
             }
         }
     }
+    let count = Device::count_by_type(&mut *transaction, DeviceType::Network).await?;
     transaction.commit().await?;
 
     info!("Listed {} network devices", devices_response.len());
-    Ok(ApiResponse::json(devices_response, StatusCode::OK))
+
+    Ok(PaginatedApiResponse::new(
+        devices_response,
+        pagination,
+        count as u32,
+    ))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -243,8 +261,8 @@ pub(crate) async fn check_ip_availability(
         .await?
         .ok_or_else(|| {
             error!(
-                "Failed to check IP availability for location with ID {network_id}, location not found",
-
+                "Failed to check IP availability for location with ID {network_id}, location not \
+                found",
             );
             WebError::BadRequest("Failed to check IP availability, location not found".into())
         })?;
@@ -255,7 +273,7 @@ pub(crate) async fn check_ip_availability(
         match IpAddr::from_str(ip) {
             Ok(ip) => {
                 debug!(
-                    "Checking if IP address {ip} can be assigned to a device in location {location}",
+                    "Checking if IP address {ip} can be assigned to a device in location {location}"
                 );
                 let result = match location
                     .can_assign_ips(&mut transaction, &[ip], check.device_id)
@@ -264,13 +282,15 @@ pub(crate) async fn check_ip_availability(
                     Ok(()) => IpAvailabilityCheckResult::new(true, true),
                     Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
                         warn!(
-                            "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
+                            "Provided device IP address {ip} is not in the network {name} range: \
+                            {networks:?}"
                         );
                         IpAvailabilityCheckResult::new(false, false)
                     }
                     Err(NetworkAddressError::ReservedForGateway(name, ip)) => {
                         warn!(
-                            "Provided device IP address {ip} may overlap with the gateway's IP address on network {name}",
+                            "Provided device IP address {ip} may overlap with the gateway's IP \
+                            address on network {name}",
                         );
                         IpAvailabilityCheckResult::new(false, true)
                     }
@@ -296,7 +316,8 @@ pub(crate) async fn check_ip_availability(
             }
             Err(_err) => {
                 warn!(
-                    "Failed to check IP availability for location {location}, invalid IP address {ip}",
+                    "Failed to check IP availability for location {location}, invalid IP address \
+                    {ip}",
                 );
                 validation_results.push(IpAvailabilityCheckResult {
                     available: false,
@@ -446,7 +467,8 @@ pub(crate) async fn start_network_device_setup(
         .await?;
 
     info!(
-        "User {} added a new unconfigured network device {device_name} with IPs {ips:?} to network {}",
+        "User {} added a new unconfigured network device {device_name} with IPs {ips:?} to network \
+        {}",
         user.username, network.name
     );
 
@@ -468,7 +490,8 @@ pub(crate) async fn start_network_device_setup(
     .await?;
 
     debug!(
-        "Generated a new device CLI configuration token for a network device {device_name} with ID {}: {configuration_token}",
+        "Generated a new device CLI configuration token for a network device {device_name} with ID \
+        {}: {configuration_token}",
         result.device.id
     );
 
@@ -477,7 +500,10 @@ pub(crate) async fn start_network_device_setup(
     transaction.commit().await?;
 
     Ok(ApiResponse::new(
-        json!({"enrollment_token": configuration_token, "enrollment_url":  settings.proxy_public_url()?.to_string()}),
+        json!({
+            "enrollment_token": configuration_token,
+            "enrollment_url":  settings.proxy_public_url()?.to_string()
+        }),
         StatusCode::CREATED,
     ))
 }

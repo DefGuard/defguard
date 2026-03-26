@@ -75,6 +75,87 @@ fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
     device
 }
 
+fn expected_ipv4_source_range_for_user(user_id: Id) -> IpAddress {
+    let user_octet = user_id as u8;
+    IpAddress {
+        address: Some(Address::IpRange(IpRange {
+            start: format!("10.0.{user_octet}.1"),
+            end: format!("10.0.{user_octet}.2"),
+        })),
+    }
+}
+
+async fn create_test_user_with_devices<R: Rng>(
+    rng: &mut R,
+    pool: &PgPool,
+    test_locations: &[&WireguardNetwork<Id>],
+) -> User<Id> {
+    let user: User<NoId> = rng.r#gen();
+    let user = user.save(pool).await.unwrap();
+
+    for device_number in 1u8..=2 {
+        let device = Device {
+            id: NoId,
+            name: format!("device-{}-{device_number}", user.id),
+            user_id: user.id,
+            device_type: DeviceType::User,
+            description: None,
+            wireguard_pubkey: String::default(),
+            created: NaiveDateTime::default(),
+            configured: true,
+        };
+        let device = device.save(pool).await.unwrap();
+
+        for location in test_locations {
+            let wireguard_ips = location
+                .address()
+                .iter()
+                .map(|subnet| match subnet {
+                    IpNetwork::V4(ipv4_network) => {
+                        let octets = ipv4_network.network().octets();
+                        IpAddr::V4(Ipv4Addr::new(
+                            octets[0],
+                            octets[1],
+                            user.id as u8,
+                            device_number,
+                        ))
+                    }
+                    IpNetwork::V6(ipv6_network) => {
+                        let mut octets = ipv6_network.network().octets();
+                        octets[14] = user.id as u8;
+                        octets[15] = device_number;
+                        IpAddr::V6(Ipv6Addr::from(octets))
+                    }
+                })
+                .collect();
+
+            WireguardNetworkDevice {
+                device_id: device.id,
+                wireguard_network_id: location.id,
+                wireguard_ips,
+            }
+            .insert(pool)
+            .await
+            .unwrap();
+        }
+    }
+
+    user
+}
+
+async fn add_users_to_group(pool: &PgPool, group_id: Id, users: &[&User<Id>]) {
+    for user in users {
+        query!(
+            "INSERT INTO group_user (user_id, group_id) VALUES ($1, $2)",
+            user.id,
+            group_id
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+}
+
 async fn create_test_users_and_devices(
     rng: &mut ThreadRng,
     pool: &PgPool,
@@ -130,9 +211,6 @@ async fn create_test_users_and_devices(
                     device_id: device.id,
                     wireguard_network_id: location.id,
                     wireguard_ips,
-                    preshared_key: None,
-                    is_authorized: true,
-                    authorized_at: None,
                 };
                 network_device.insert(pool).await.unwrap();
             }
@@ -290,9 +368,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
                     user.id as u8,
                     device_num as u8,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }
@@ -389,9 +464,6 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
             device_id,
             wireguard_network_id: location.id,
             wireguard_ips: vec![ip],
-            preshared_key: None,
-            is_authorized: true,
-            authorized_at: None,
         };
         network_device.insert(&pool).await.unwrap();
     }
@@ -717,9 +789,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
                     user.id as u16,
                     device_num as u16,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }
@@ -816,9 +885,6 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
             device_id,
             wireguard_network_id: location.id,
             wireguard_ips: vec![ip],
-            preshared_key: None,
-            is_authorized: true,
-            authorized_at: None,
         };
         network_device.insert(&pool).await.unwrap();
     }
@@ -1175,9 +1241,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
                         device_num as u16,
                     )),
                 ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }
@@ -1283,9 +1346,6 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
             device_id,
             wireguard_network_id: location.id,
             wireguard_ips: ips,
-            preshared_key: None,
-            is_authorized: true,
-            authorized_at: None,
         };
         network_device.insert(&pool).await.unwrap();
     }
@@ -2127,6 +2187,570 @@ async fn test_no_allowed_users_ipv4(_: PgPoolOptions, options: PgConnectOptions)
 }
 
 #[sqlx::test]
+async fn test_allow_all_groups_expands_all_group_members_into_firewall_sources(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    let mut rng = thread_rng();
+
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
+    let location = location.save(&pool).await.unwrap();
+
+    let grouped_allowed_user_a = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let grouped_allowed_user_b = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let grouped_denied_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let explicitly_allowed_ungrouped_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let ungrouped_blocked_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+
+    let first_group = Group {
+        name: "allow-all-groups-first".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let second_group = Group {
+        name: "allow-all-groups-second".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    add_users_to_group(
+        &pool,
+        first_group.id,
+        &[&grouped_allowed_user_a, &grouped_denied_user],
+    )
+    .await;
+    add_users_to_group(&pool, second_group.id, &[&grouped_allowed_user_b]).await;
+
+    let acl_rule = AclRule {
+        name: "allow all groups source expansion".into(),
+        state: RuleState::Applied,
+        allow_all_groups: true,
+        addresses: vec!["192.168.10.0/24".parse().unwrap()],
+        ports: vec![PortRange::new(443, 443).into()],
+        protocols: vec![Protocol::Tcp.into()],
+        any_address: false,
+        any_port: false,
+        any_protocol: false,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+
+    create_acl_rule(
+        &pool,
+        acl_rule,
+        vec![location.id],
+        vec![explicitly_allowed_ungrouped_user.id],
+        vec![grouped_denied_user.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let mut expected_allowed_user_ids = vec![
+        grouped_allowed_user_a.id,
+        grouped_allowed_user_b.id,
+        explicitly_allowed_ungrouped_user.id,
+    ];
+    expected_allowed_user_ids.sort_unstable();
+    let expected_source_addrs: Vec<_> = expected_allowed_user_ids
+        .into_iter()
+        .map(expected_ipv4_source_range_for_user)
+        .collect();
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.source_addrs, expected_source_addrs);
+    assert_eq!(
+        allow_rule.destination_addrs,
+        [IpAddress {
+            address: Some(Address::IpSubnet("192.168.10.0/24".to_string())),
+        }]
+    );
+    assert_eq!(
+        allow_rule.destination_ports,
+        [Port {
+            port: Some(PortInner::SinglePort(443)),
+        }]
+    );
+    assert_eq!(allow_rule.protocols, [i32::from(Protocol::Tcp)]);
+    assert!(
+        allow_rule
+            .source_addrs
+            .iter()
+            .all(|addr| addr != &expected_ipv4_source_range_for_user(grouped_denied_user.id))
+    );
+    assert!(
+        allow_rule
+            .source_addrs
+            .iter()
+            .all(|addr| addr != &expected_ipv4_source_range_for_user(ungrouped_blocked_user.id))
+    );
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
+    assert!(deny_rule.destination_ports.is_empty());
+    assert!(deny_rule.protocols.is_empty());
+}
+
+#[sqlx::test]
+async fn test_allow_all_groups_deduplicates_shared_group_members_before_source_resolution(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    let mut rng = thread_rng();
+
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
+    let location = location.save(&pool).await.unwrap();
+
+    let shared_grouped_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let first_group_only_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let second_group_only_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let explicitly_allowed_ungrouped_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let ungrouped_blocked_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+
+    let first_group = Group {
+        name: "allow-all-groups-dedup-first".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let second_group = Group {
+        name: "allow-all-groups-dedup-second".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    add_users_to_group(
+        &pool,
+        first_group.id,
+        &[&shared_grouped_user, &first_group_only_user],
+    )
+    .await;
+    add_users_to_group(
+        &pool,
+        second_group.id,
+        &[&shared_grouped_user, &second_group_only_user],
+    )
+    .await;
+
+    let acl_rule = AclRule {
+        name: "allow all groups dedup source expansion".into(),
+        state: RuleState::Applied,
+        allow_all_groups: true,
+        addresses: vec!["192.168.30.0/24".parse().unwrap()],
+        ports: vec![PortRange::new(443, 443).into()],
+        protocols: vec![Protocol::Tcp.into()],
+        any_address: false,
+        any_port: false,
+        any_protocol: false,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+
+    let acl_rule_info = create_acl_rule(
+        &pool,
+        acl_rule,
+        vec![location.id],
+        vec![explicitly_allowed_ungrouped_user.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+
+    let allowed_users = acl_rule_info
+        .get_all_allowed_users(&mut conn)
+        .await
+        .unwrap();
+    let denied_users = acl_rule_info.get_all_denied_users(&mut conn).await.unwrap();
+    let mut resolved_source_user_ids: Vec<_> =
+        super::get_source_users(allowed_users, &denied_users)
+            .into_iter()
+            .map(|user| user.id)
+            .collect();
+
+    let mut expected_source_user_ids = vec![
+        shared_grouped_user.id,
+        first_group_only_user.id,
+        second_group_only_user.id,
+        explicitly_allowed_ungrouped_user.id,
+    ];
+    expected_source_user_ids.sort_unstable();
+    resolved_source_user_ids.sort_unstable();
+
+    assert_eq!(resolved_source_user_ids, expected_source_user_ids);
+    assert_eq!(resolved_source_user_ids.len(), 4);
+
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let expected_source_addrs: Vec<_> = expected_source_user_ids
+        .into_iter()
+        .map(expected_ipv4_source_range_for_user)
+        .collect();
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(allow_rule.source_addrs, expected_source_addrs);
+    assert_eq!(
+        allow_rule.destination_addrs,
+        [IpAddress {
+            address: Some(Address::IpSubnet("192.168.30.0/24".to_string())),
+        }]
+    );
+    assert_eq!(
+        allow_rule.destination_ports,
+        [Port {
+            port: Some(PortInner::SinglePort(443)),
+        }]
+    );
+    assert_eq!(allow_rule.protocols, [i32::from(Protocol::Tcp)]);
+    assert!(
+        allow_rule
+            .source_addrs
+            .iter()
+            .all(|addr| addr != &expected_ipv4_source_range_for_user(ungrouped_blocked_user.id))
+    );
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
+    assert!(deny_rule.destination_ports.is_empty());
+    assert!(deny_rule.protocols.is_empty());
+}
+
+#[sqlx::test]
+async fn test_deny_all_groups_excludes_members_of_every_group_from_firewall_sources(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    let mut rng = thread_rng();
+
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
+    let location = location.save(&pool).await.unwrap();
+
+    let grouped_denied_user_a = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let grouped_denied_user_b = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let grouped_denied_user_c = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let ungrouped_allowed_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let explicitly_denied_ungrouped_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+
+    let first_group = Group {
+        name: "deny-all-groups-first".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let second_group = Group {
+        name: "deny-all-groups-second".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    add_users_to_group(
+        &pool,
+        first_group.id,
+        &[&grouped_denied_user_a, &grouped_denied_user_c],
+    )
+    .await;
+    add_users_to_group(&pool, second_group.id, &[&grouped_denied_user_b]).await;
+
+    let acl_rule = AclRule {
+        name: "deny all groups source filtering".into(),
+        state: RuleState::Applied,
+        allow_all_users: true,
+        deny_all_groups: true,
+        addresses: vec!["192.168.20.0/24".parse().unwrap()],
+        ports: vec![PortRange::new(8443, 8443).into()],
+        protocols: vec![Protocol::Tcp.into()],
+        any_address: false,
+        any_port: false,
+        any_protocol: false,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+
+    create_acl_rule(
+        &pool,
+        acl_rule,
+        vec![location.id],
+        Vec::new(),
+        vec![explicitly_denied_ungrouped_user.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(
+        allow_rule.source_addrs,
+        [expected_ipv4_source_range_for_user(
+            ungrouped_allowed_user.id
+        )]
+    );
+    assert_eq!(
+        allow_rule.destination_addrs,
+        [IpAddress {
+            address: Some(Address::IpSubnet("192.168.20.0/24".to_string())),
+        }]
+    );
+    assert_eq!(
+        allow_rule.destination_ports,
+        [Port {
+            port: Some(PortInner::SinglePort(8443)),
+        }]
+    );
+    assert_eq!(allow_rule.protocols, [i32::from(Protocol::Tcp)]);
+    for denied_user in [
+        grouped_denied_user_a.id,
+        grouped_denied_user_b.id,
+        grouped_denied_user_c.id,
+        explicitly_denied_ungrouped_user.id,
+    ] {
+        assert!(
+            allow_rule
+                .source_addrs
+                .iter()
+                .all(|addr| addr != &expected_ipv4_source_range_for_user(denied_user))
+        );
+    }
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
+    assert!(deny_rule.destination_ports.is_empty());
+    assert!(deny_rule.protocols.is_empty());
+}
+
+#[sqlx::test]
+async fn test_deny_all_groups_deduplicates_shared_group_members_before_source_filtering(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    set_test_license_business();
+    let pool = setup_pool(options).await;
+    let mut rng = thread_rng();
+
+    let mut location = WireguardNetwork::default()
+        .set_address(["10.0.0.1/16".parse().unwrap()])
+        .unwrap();
+    location.acl_enabled = true;
+    let location = location.save(&pool).await.unwrap();
+
+    let shared_grouped_denied_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let first_group_only_denied_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let second_group_only_denied_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let ungrouped_allowed_user = create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+    let explicitly_denied_ungrouped_user =
+        create_test_user_with_devices(&mut rng, &pool, &[&location]).await;
+
+    let first_group = Group {
+        name: "deny-all-groups-dedup-first".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+    let second_group = Group {
+        name: "deny-all-groups-dedup-second".into(),
+        ..Default::default()
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    add_users_to_group(
+        &pool,
+        first_group.id,
+        &[&shared_grouped_denied_user, &first_group_only_denied_user],
+    )
+    .await;
+    add_users_to_group(
+        &pool,
+        second_group.id,
+        &[&shared_grouped_denied_user, &second_group_only_denied_user],
+    )
+    .await;
+
+    let acl_rule = AclRule {
+        name: "deny all groups dedup source filtering".into(),
+        state: RuleState::Applied,
+        allow_all_users: true,
+        deny_all_groups: true,
+        addresses: vec!["192.168.40.0/24".parse().unwrap()],
+        ports: vec![PortRange::new(8443, 8443).into()],
+        protocols: vec![Protocol::Tcp.into()],
+        any_address: false,
+        any_port: false,
+        any_protocol: false,
+        use_manual_destination_settings: true,
+        ..Default::default()
+    };
+
+    let acl_rule_info = create_acl_rule(
+        &pool,
+        acl_rule,
+        vec![location.id],
+        Vec::new(),
+        vec![explicitly_denied_ungrouped_user.id],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .await;
+
+    let mut conn = pool.acquire().await.unwrap();
+
+    let allowed_users = acl_rule_info
+        .get_all_allowed_users(&mut conn)
+        .await
+        .unwrap();
+    let denied_users = acl_rule_info.get_all_denied_users(&mut conn).await.unwrap();
+
+    let mut denied_user_ids: Vec<_> = denied_users.iter().map(|user| user.id).collect();
+    let mut expected_denied_user_ids = vec![
+        shared_grouped_denied_user.id,
+        first_group_only_denied_user.id,
+        second_group_only_denied_user.id,
+        explicitly_denied_ungrouped_user.id,
+    ];
+    denied_user_ids.sort_unstable();
+    expected_denied_user_ids.sort_unstable();
+
+    assert_eq!(denied_user_ids, expected_denied_user_ids);
+    assert_eq!(denied_user_ids.len(), 4);
+
+    let mut resolved_source_user_ids: Vec<_> =
+        super::get_source_users(allowed_users, &denied_users)
+            .into_iter()
+            .map(|user| user.id)
+            .collect();
+    resolved_source_user_ids.sort_unstable();
+    assert_eq!(resolved_source_user_ids, [ungrouped_allowed_user.id]);
+
+    let generated_firewall_rules = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .unwrap()
+        .unwrap()
+        .rules;
+
+    assert_eq!(generated_firewall_rules.len(), 2);
+
+    let allow_rule = &generated_firewall_rules[0];
+    assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+    assert_eq!(
+        allow_rule.source_addrs,
+        [expected_ipv4_source_range_for_user(
+            ungrouped_allowed_user.id
+        )]
+    );
+    assert_eq!(
+        allow_rule.destination_addrs,
+        [IpAddress {
+            address: Some(Address::IpSubnet("192.168.40.0/24".to_string())),
+        }]
+    );
+    assert_eq!(
+        allow_rule.destination_ports,
+        [Port {
+            port: Some(PortInner::SinglePort(8443)),
+        }]
+    );
+    assert_eq!(allow_rule.protocols, [i32::from(Protocol::Tcp)]);
+    for denied_user in expected_denied_user_ids {
+        assert!(
+            allow_rule
+                .source_addrs
+                .iter()
+                .all(|addr| addr != &expected_ipv4_source_range_for_user(denied_user))
+        );
+    }
+
+    let deny_rule = &generated_firewall_rules[1];
+    assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+    assert!(deny_rule.source_addrs.is_empty());
+    assert_eq!(deny_rule.destination_addrs, allow_rule.destination_addrs);
+    assert!(deny_rule.destination_ports.is_empty());
+    assert!(deny_rule.protocols.is_empty());
+}
+
+#[sqlx::test]
 async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
     set_test_license_business();
     let pool = setup_pool(options).await;
@@ -2184,9 +2808,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                     user.id as u8,
                     device_num as u8,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
             let network_device = WireguardNetworkDevice {
@@ -2202,9 +2823,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                     user.id as u16,
                     device_num as u16,
                 ))],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
             let network_device = WireguardNetworkDevice {
@@ -2223,9 +2841,6 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
                         device_num as u16,
                     )),
                 ],
-                preshared_key: None,
-                is_authorized: true,
-                authorized_at: None,
             };
             network_device.insert(&pool).await.unwrap();
         }

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wireguard_network_device SET wireguard_ips = $3 WHERE device_id = $1 AND wireguard_network_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "InetArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8aa6ed2a7f4069cd6e0e0176ce4724039e1a281dd4d3122b5bb8e1cb499070b0"
+}

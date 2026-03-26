@@ -87,6 +87,7 @@ async-stream = "0.3"
 
 [dev-dependencies]
 claims.workspace = true
+hyper-util = "0.1"
 matches.workspace = true
 reqwest = { version = "0.12", features = [
     "cookies",

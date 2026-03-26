@@ -12,7 +12,7 @@ use defguard_common::{
         Id,
         models::{
             Device, Settings, WireguardNetwork,
-            device::{DeviceInfo, WireguardNetworkDevice},
+            device::{DeviceInfo, DeviceNetworkInfo},
             wireguard::ServiceLocationMode,
         },
     },
@@ -24,7 +24,6 @@ use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 
 use crate::{
-    auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
         db::models::{
@@ -33,10 +32,9 @@ use crate::{
         },
         is_business_license_active, is_enterprise_license_active,
     },
-    grpc::{auth::AuthServer, interceptor::JwtInterceptor, worker::WorkerServer},
+    grpc::{interceptor::JwtInterceptor, worker::WorkerServer},
 };
 
-mod auth;
 pub mod client_version;
 pub mod interceptor;
 pub mod proxy;
@@ -52,8 +50,8 @@ pub mod proto {
 }
 
 use defguard_proto::{
-    auth::auth_service_server::AuthServiceServer, enterprise::firewall::FirewallConfig,
-    gateway::Peer, worker::worker_service_server::WorkerServiceServer,
+    enterprise::firewall::FirewallConfig, gateway::Peer,
+    worker::worker_service_server::WorkerServiceServer,
 };
 use tonic::transport::{Identity, Server, ServerTlsConfig, server::Router};
 
@@ -71,7 +69,6 @@ pub async fn run_grpc_server(
     pool: PgPool,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let server = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
@@ -81,7 +78,7 @@ pub async fn run_grpc_server(
         Server::builder()
     };
 
-    let router = build_grpc_service_router(server, pool, worker_state, failed_logins).await?;
+    let router = build_grpc_service_router(server, pool, worker_state).await?;
 
     // Run gRPC server
     let addr = SocketAddr::new(
@@ -96,15 +93,11 @@ pub async fn run_grpc_server(
     Ok(())
 }
 
-pub(crate) async fn build_grpc_service_router(
+pub async fn build_grpc_service_router(
     server: Server,
     pool: PgPool,
     worker_state: Arc<Mutex<WorkerState>>,
-    failed_logins: Arc<Mutex<FailedLoginMap>>,
-    // incompatible_components: Arc<RwLock<IncompatibleComponents>>,
 ) -> Result<Router, anyhow::Error> {
-    let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
         JwtInterceptor::new(ClaimsType::YubiBridge),
@@ -112,15 +105,17 @@ pub(crate) async fn build_grpc_service_router(
 
     let (health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
-        .set_serving::<AuthServiceServer<AuthServer>>()
+        .set_serving::<WorkerServiceServer<WorkerServer>>()
+        .await;
+    health_reporter
+        .set_serving::<WorkerServiceServer<WorkerServer>>()
         .await;
 
     let router = server
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
-        .add_service(auth_service);
-    let router = router.add_service(worker_service);
+        .add_service(worker_service);
 
     Ok(router)
 }
@@ -229,7 +224,7 @@ pub enum GatewayEvent {
     DeviceDeleted(DeviceInfo),
     FirewallConfigChanged(Id, FirewallConfig),
     FirewallDisabled(Id),
-    MfaSessionAuthorized(Id, Device<Id>, WireguardNetworkDevice),
+    MfaSessionAuthorized(Id, Device<Id>, DeviceNetworkInfo),
     MfaSessionDisconnected(Id, Device<Id>),
 }
 

@@ -17,6 +17,8 @@ use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
+use crate::api::PaginatedApiResponse;
+
 use super::common::{exceed_enterprise_limits, make_client, setup_pool};
 
 #[derive(Deserialize)]
@@ -134,7 +136,10 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let openid_clients = response.json::<Vec<OAuth2Client<Id>>>().await;
+    let openid_clients = response
+        .json::<PaginatedApiResponse<OAuth2Client<Id>>>()
+        .await
+        .data;
     assert_eq!(openid_clients.len(), 1);
     let openid_client = openid_clients.first().unwrap();
     assert_eq!(openid_client.name, "Defguard");

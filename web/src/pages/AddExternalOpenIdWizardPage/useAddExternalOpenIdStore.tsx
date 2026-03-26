@@ -13,7 +13,7 @@ import {
   externalProviderName,
   googleProviderBaseUrl,
   jumpcloudProviderBaseUrl,
-  SUPPORTED_SYNC_PROVIDERS,
+  supportedSyncProviders,
 } from '../../shared/constants';
 import { AddExternalProviderStep, type AddExternalProviderStepValue } from './types';
 
@@ -78,7 +78,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
       next: (data) => {
         const { provider, activeStep, providerState } = get();
         let targetStep = activeStep;
-        const canDirectorySync = SUPPORTED_SYNC_PROVIDERS.has(provider);
+        const canDirectorySync = supportedSyncProviders.has(provider);
         switch (activeStep) {
           case 'client-settings':
             if (canDirectorySync) {
@@ -99,7 +99,7 @@ export const useAddExternalOpenIdStore = create<Store>()(
       back: (data) => {
         const { provider, activeStep, providerState } = get();
         let targetStep = activeStep;
-        const canDirectorySync = SUPPORTED_SYNC_PROVIDERS.has(provider);
+        const canDirectorySync = supportedSyncProviders.has(provider);
         switch (activeStep) {
           case 'directory-sync':
             targetStep = AddExternalProviderStep.ClientSettings;

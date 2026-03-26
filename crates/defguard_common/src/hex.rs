@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    fmt::{Display, Formatter, Result as FmtResult},
-};
+use std::{error::Error, fmt};
 
 #[derive(Debug, PartialEq)]
 pub enum HexError {
@@ -11,8 +8,8 @@ pub enum HexError {
 
 impl Error for HexError {}
 
-impl Display for HexError {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+impl fmt::Display for HexError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::InvalidCharacter(char) => {
                 write!(f, "Invalid character {char}")

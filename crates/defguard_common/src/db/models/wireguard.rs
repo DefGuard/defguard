@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{self, Display},
+    fmt,
     iter::zip,
     net::{IpAddr, Ipv4Addr},
 };
@@ -78,13 +78,13 @@ pub enum LocationMfaMode {
     External,
 }
 
-impl Display for LocationMfaMode {
+impl fmt::Display for LocationMfaMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LocationMfaMode::Disabled => write!(f, "MFA disabled"),
-            LocationMfaMode::Internal => write!(f, "Internal MFA"),
-            LocationMfaMode::External => write!(f, "External MFA"),
-        }
+        f.write_str(match self {
+            LocationMfaMode::Disabled => "MFA disabled",
+            LocationMfaMode::Internal => "Internal MFA",
+            LocationMfaMode::External => "External MFA",
+        })
     }
 }
 
@@ -137,7 +137,7 @@ pub struct WireguardKey {
 
 impl fmt::Display for WireguardNetwork<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        f.write_str(&self.name)
     }
 }
 
@@ -210,18 +210,6 @@ pub enum NetworkAddressError {
 }
 
 impl WireguardNetwork {
-    pub async fn count<'e, E>(executor: E) -> sqlx::Result<usize>
-    where
-        E: PgExecutor<'e>,
-    {
-        let count = query_scalar!("SELECT COUNT(*) FROM wireguard_network")
-            .fetch_one(executor)
-            .await?
-            .unwrap_or_default();
-
-        Ok(count as usize)
-    }
-
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new<V>(
@@ -722,8 +710,8 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-        page: u32,
-        page_size: u32,
+        limit: u32,
+        offset: u32,
     ) -> sqlx::Result<(Vec<LocationConnectedUserStats>, u32)> {
         // helper struct used to fetch connected users from the DB
         struct ConnectedUserRow {
@@ -735,8 +723,6 @@ impl WireguardNetwork<Id> {
             wireguard_ips: Vec<IpAddr>,
             endpoint: String,
         }
-        let limit = page_size;
-        let offset = (page - 1) * page_size;
 
         // fetch currently connected users
         let connected_users = query_as!(
@@ -1410,7 +1396,7 @@ impl WireguardNetwork<Id> {
             VpnClientSession,
             "SELECT id, location_id, user_id, device_id, created_at, connected_at, \
             disconnected_at, mfa_method \"mfa_method: VpnClientMfaMethod\", \
-            state \"state: VpnClientSessionState\" \
+            state \"state: VpnClientSessionState\", preshared_key \
             FROM vpn_client_session \
             WHERE location_id = $1 AND state = 'connected'::vpn_client_session_state",
             self.id,

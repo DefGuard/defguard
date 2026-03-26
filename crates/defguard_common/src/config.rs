@@ -191,6 +191,8 @@ pub enum Command {
         about = "Add a new VPN location and return a gateway token. Used for automated setup."
     )]
     InitVpnLocation(InitVpnLocationArgs),
+    #[command(about = "Output the gateway gRPC configuration payload for a VPN location by ID.")]
+    GatewayConfig(GatewayConfigArgs),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -215,6 +217,12 @@ pub struct InitVpnLocationArgs {
     pub id: Option<i64>,
 }
 
+#[derive(Args, Debug, Clone)]
+pub struct GatewayConfigArgs {
+    #[arg(long)]
+    pub location_id: i64,
+}
+
 impl DefGuardConfig {
     #[must_use]
     pub fn new() -> Self {
@@ -230,7 +238,48 @@ impl DefGuardConfig {
     // this is an ugly workaround to avoid `cargo test` args being captured by `clap`
     #[must_use]
     pub fn new_test_config() -> Self {
-        Self::parse_from::<[_; 0], String>([])
+        #[expect(
+            deprecated,
+            reason = "Test config still initializes compatibility-only deprecated fields"
+        )]
+        let config = Self {
+            log_level: "info".to_string(),
+            log_file: None,
+            secret_key: None,
+            database_host: "localhost".to_string(),
+            database_port: 5432,
+            database_name: "defguard".to_string(),
+            database_user: "defguard".to_string(),
+            database_password: SecretString::from(String::new()),
+            http_port: 8000,
+            grpc_port: 50055,
+            grpc_cert: None,
+            grpc_key: None,
+            openid_signing_key: None,
+            url: None,
+            disable_stats_purge: None,
+            stats_purge_frequency: None,
+            stats_purge_threshold: None,
+            enrollment_url: None,
+            enrollment_token_timeout: None,
+            mfa_code_timeout: None,
+            session_timeout: None,
+            password_reset_token_timeout: None,
+            enrollment_session_timeout: None,
+            password_reset_session_timeout: None,
+            cookie_domain: None,
+            cookie_insecure: false,
+            cmd: None,
+            check_period: std::time::Duration::from_secs(12 * 3600).into(),
+            check_period_no_license: std::time::Duration::from_secs(24 * 3600).into(),
+            check_period_renewal_window: std::time::Duration::from_secs(3600).into(),
+            http_bind_address: None,
+            grpc_bind_address: None,
+            adopt_gateway: None,
+            adopt_edge: None,
+        };
+
+        config
     }
 
     /// Validate that the auto-adoption flags are consistent.

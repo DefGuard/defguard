@@ -20,15 +20,11 @@ pub enum DirectorySyncUserBehavior {
 
 impl fmt::Display for DirectorySyncUserBehavior {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                DirectorySyncUserBehavior::Keep => "keep",
-                DirectorySyncUserBehavior::Disable => "disable",
-                DirectorySyncUserBehavior::Delete => "delete",
-            }
-        )
+        f.write_str(match self {
+            DirectorySyncUserBehavior::Keep => "keep",
+            DirectorySyncUserBehavior::Disable => "disable",
+            DirectorySyncUserBehavior::Delete => "delete",
+        })
     }
 }
 
@@ -61,15 +57,11 @@ pub enum DirectorySyncTarget {
 
 impl fmt::Display for DirectorySyncTarget {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                DirectorySyncTarget::All => "all",
-                DirectorySyncTarget::Users => "users",
-                DirectorySyncTarget::Groups => "groups",
-            }
-        )
+        f.write_str(match self {
+            DirectorySyncTarget::All => "all",
+            DirectorySyncTarget::Users => "users",
+            DirectorySyncTarget::Groups => "groups",
+        })
     }
 }
 

@@ -1,8 +1,9 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use defguard_common::db::{Id, init_db};
-use defguard_generator::vpn_session_stats::{
-    VpnSessionGeneratorConfig, generate_vpn_session_stats,
+use defguard_generator::{
+    acl_rules::generate_acl_rules,
+    vpn_session_stats::{VpnSessionGeneratorConfig, generate_vpn_session_stats},
 };
 use tracing_subscriber::EnvFilter;
 
@@ -35,7 +36,7 @@ enum Commands {
         #[arg(long)]
         location_id: Id,
         #[arg(long)]
-        num_users: u16,
+        num_users: usize,
         #[arg(long)]
         devices_per_user: u8,
         #[arg(long)]
@@ -46,6 +47,11 @@ enum Commands {
         /// insert stats records in batches of specified size
         #[arg(long, default_value_t = 1000)]
         stats_batch_size: u16,
+    },
+    /// Generates ACL rules
+    AclRules {
+        #[arg(long)]
+        num_rules: u32,
     },
 }
 
@@ -92,6 +98,7 @@ async fn main() -> Result<()> {
 
             generate_vpn_session_stats(pool, config).await?;
         }
+        Commands::AclRules { num_rules } => generate_acl_rules(pool, num_rules).await?,
     };
 
     Ok(())

@@ -25,21 +25,21 @@ use defguard_core::{
         client_version::ClientFeature,
         utils::{build_device_config_response, parse_client_ip_agent},
     },
-    handlers::{
-        mail::{send_email_mfa_activation_email, send_mfa_configured_email},
-        user::check_password_strength,
-    },
+    handlers::user::check_password_strength,
     headers::get_device_info,
     is_valid_phone_number,
 };
-use defguard_mail::templates::{TemplateLocation, new_device_added_mail};
+use defguard_mail::templates::{
+    TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
+    new_device_added_mail,
+};
 use defguard_proto::proxy::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
     EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
     NewDevice, RegisterMobileAuthRequest,
 };
-use sqlx::{PgPool, query_scalar};
+use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedSender, error::SendError},
@@ -351,6 +351,32 @@ impl EnrollmentServer {
         Ok(())
     }
 
+    async fn send_welcome_email_if_enabled(
+        &self,
+        enrollment: &Token,
+        conn: &mut PgConnection,
+        user: &User<Id>,
+        ip_address: &str,
+        device_info: Option<&str>,
+    ) -> Result<(), Status> {
+        let settings = Settings::get_current_settings();
+        if !settings.enrollment_send_welcome_email {
+            info!(
+                "Skipping enrollment welcome email for user {} because it is disabled in settings",
+                user.username
+            );
+            return Ok(());
+        }
+
+        debug!("Try to send welcome email...");
+        enrollment
+            .send_welcome_email(conn, user, ip_address, device_info)
+            .await?;
+        info!("Welcome email sent to {} at {}", user.username, user.email);
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     pub(crate) async fn activate_user(
         &self,
@@ -417,23 +443,16 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
         debug!("Updating user details ended with success.");
-        let _ = update_counts(&self.pool).await;
+        let _ = update_counts(&mut *transaction).await;
 
-        debug!("Retriving settings to send welcome email...");
-        let settings = Settings::get_current_settings();
-        debug!("Settings successfully retrieved.");
-
-        // send welcome email
-        debug!("Try to send welcome email...");
-        enrollment
-            .send_welcome_email(
-                &mut transaction,
-                &user,
-                &settings,
-                &ip_address,
-                device_info.as_deref(),
-            )
-            .await?;
+        self.send_welcome_email_if_enabled(
+            &enrollment,
+            &mut transaction,
+            &user,
+            &ip_address,
+            device_info.as_deref(),
+        )
+        .await?;
 
         // send success notification to admin
         debug!(
@@ -442,9 +461,19 @@ impl EnrollmentServer {
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
         if let Some(admin) = admin {
-            debug!("Send admin notification mail.");
-            Token::send_admin_notification(&admin, &user, &ip_address, device_info.as_deref())
-                .await?;
+            debug!("Sending admin notification mail");
+            if let Err(err) = enrollment_admin_notification(
+                &admin.email,
+                &mut transaction,
+                user.name().as_str(),
+                admin.name().as_str(),
+                &ip_address,
+                device_info.as_deref(),
+            )
+            .await
+            {
+                error!("Failed to send admin notification mail: {err}");
+            }
         }
 
         // Unset the enrollment-pending flag (https://github.com/DefGuard/client/issues/647).
@@ -914,7 +943,7 @@ impl EnrollmentServer {
         &self,
         request: CodeMfaSetupStartRequest,
     ) -> Result<CodeMfaSetupStartResponse, Status> {
-        debug!("Begin enrollment code mfa setup start");
+        debug!("Begin enrollment code MFA setup start");
         let method = request.method();
         if method != MfaMethod::Email && method != MfaMethod::Totp {
             return Err(Status::invalid_argument("Method not supported".to_string()));
@@ -929,7 +958,7 @@ impl EnrollmentServer {
             MfaMethod::Email => {
                 let settings = Settings::get_current_settings();
                 if !settings.smtp_configured() {
-                    error!("Unable to start Email mfa setup. SMTP is not configured");
+                    error!("Unable to start email MFA setup; SMTP is not configured");
                     return Err(Status::internal("SMTP not configured".to_string()));
                 }
                 if user.email_mfa_enabled {
@@ -942,10 +971,20 @@ impl EnrollmentServer {
                     Status::internal("Failed to setup email mfa".to_string())
                 })?;
                 info!("Created email secret for {}", &user.username);
-                send_email_mfa_activation_email(&user, None).map_err(|e| {
-                    error!("Failed to send email mfa activation email.\nReason:{e}");
-                    Status::internal("Failed to send activation email".to_string())
+                let mut transaction = self.pool.begin().await.map_err(|err| {
+                    error!("Failed to begin database transaction\nReason:{err}");
+                    Status::internal("Failed begin database transaction".to_string())
                 })?;
+                let code = user.generate_email_mfa_code().map_err(|err| {
+                    error!("Failed to generate MFA code for {user}\nReason:{err}");
+                    Status::internal("Failed to generate MFA code".to_string())
+                })?;
+                mfa_activation_mail(&user.email, &mut transaction, &user.first_name, &code, None)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to send MFA activation email\nReason:{err}");
+                        Status::internal("Failed to send activation email".to_string())
+                    })?;
                 Ok(CodeMfaSetupStartResponse { totp_secret: None })
             }
             MfaMethod::Totp => {
@@ -955,10 +994,10 @@ impl EnrollmentServer {
                     ));
                 }
                 let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
-                    error!("Failed to make new totp secret");
-                    Status::internal(String::new())
+                    error!("Failed to make new TOTP secret");
+                    Status::internal("Failed to make new TOTP secret".to_string())
                 })?;
-                info!("New totp secret created for {}", &user.username);
+                info!("New TOTP secret created for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
                     totp_secret: Some(secret),
                 })
@@ -1022,8 +1061,12 @@ impl EnrollmentServer {
             .await
             .map_err(|_| Status::internal("Failed to get recovery codes.".to_string()))?
             .ok_or_else(|| Status::internal("Recovery codes not found".to_string()))?;
-        if let Err(e) = send_mfa_configured_email(None, &user, &mfa_method) {
-            error!("Failed to send mfa configured email\nReason: {e}");
+        if let Ok(mut conn) = self.pool.begin().await {
+            if let Err(err) = mfa_configured_mail(&user.email, &mut conn, None, &mfa_method).await {
+                error!("Failed to send MFA configured email\nReason: {err}");
+            }
+        } else {
+            error!("Failed to begin database session");
         }
         info!(
             "Successfully enabled MFA method {} for user {}",
@@ -1096,91 +1139,62 @@ pub async fn new_polling_token(pool: &PgPool, device: &Device<Id>) -> Result<Str
 
 #[cfg(test)]
 mod test {
-    use defguard_common::{
-        config::{DefGuardConfig, SERVER_CONFIG},
-        db::{
-            models::{Settings, User, settings::initialize_current_settings},
-            setup_pool,
+    use defguard_common::db::{
+        models::{
+            Settings, User,
+            settings::{initialize_current_settings, update_current_settings},
         },
+        setup_pool,
     };
     use defguard_core::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::sync::{broadcast, mpsc::unbounded_channel};
 
-    #[ignore]
+    use super::EnrollmentServer;
+
     #[sqlx::test]
-    async fn dg25_11_test_enrollment_welcome_email(_: PgPoolOptions, options: PgConnectOptions) {
+    async fn test_send_welcome_email_if_disabled_skips_mail(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
         let pool = setup_pool(options).await;
 
-        // initialize server config
-        SERVER_CONFIG
-            .set(DefGuardConfig::new_test_config())
-            .unwrap();
-
-        // setup users
-        let admin = User::new(
-            "test_admin",
-            Some("pass123"),
-            "Test",
-            "Admin",
-            "admin@test.com",
-            None,
-        )
-        .save(&pool)
-        .await
-        .unwrap();
         let user = User::new(
-            "test_user",
-            Some("pass123"),
+            "test_user_disabled_mail",
+            None,
             "Test",
             "User",
-            "user@test.com",
+            "user-disabled-mail@test.com",
             None,
         )
         .save(&pool)
         .await
         .unwrap();
 
-        // generate enrollment token
         let token = Token::new(
             user.id,
-            Some(admin.id),
+            None,
             Some(user.email.clone()),
             10,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
 
-        // initialize settings
         Settings::initialize_runtime_defaults(&pool).await.unwrap();
         initialize_current_settings(&pool).await.unwrap();
 
-        let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+        let mut settings = Settings::get_current_settings();
+        settings.enrollment_send_welcome_email = false;
+        update_current_settings(&pool, settings).await.unwrap();
 
-        // send welcome email
+        let (wireguard_tx, _) = broadcast::channel(1);
+        let (bidi_event_tx, _) = unbounded_channel();
+        let server = EnrollmentServer::new(pool.clone(), wireguard_tx, bidi_event_tx);
+
         let mut transaction = pool.begin().await.unwrap();
-        token
-            .send_welcome_email(&mut transaction, &user, &settings, "127.0.0.1", None)
-            .await
-            .unwrap();
+        let result = server
+            .send_welcome_email_if_enabled(&token, &mut transaction, &user, "127.0.0.1", None)
+            .await;
 
-        // check email content
-        // assert_eq!(mail.to(), user.email);
-        // assert_eq!(
-        //     mail.subject(),
-        //     settings.enrollment_welcome_email_subject.unwrap()
-        // );
-
-        // set subject to None
-        settings.enrollment_welcome_email_subject = None;
-
-        // send another welcome email
-        let mut transaction = pool.begin().await.unwrap();
-        token
-            .send_welcome_email(&mut transaction, &user, &settings, "127.0.0.1", None)
-            .await
-            .unwrap();
-
-        // check email content
-        // assert_eq!(mail.to(), user.email);
-        // assert_eq!(mail.subject(), WELCOME_EMAIL_SUBJECT);
+        assert!(result.is_ok());
     }
 }

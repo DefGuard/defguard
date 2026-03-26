@@ -22,6 +22,7 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
     },
 };
+use defguard_mail::templates::new_device_oidc_login_mail;
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -48,10 +49,7 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserClaims},
     error::WebError,
-    handlers::{
-        SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, cookie_domain,
-        mail::send_new_device_ocid_login_email,
-    },
+    handlers::{SIGN_IN_COOKIE_MAX_AGE, SIGN_IN_COOKIE_NAME, cookie_domain},
     server_config,
 };
 
@@ -581,11 +579,14 @@ pub async fn secure_authorization(
                         let app = OAuth2AuthorizedApp::new(session_info.user.id, oauth2client.id);
                         app.save(&appstate.pool).await?;
 
-                        send_new_device_ocid_login_email(
+                        let mut conn = appstate.pool.begin().await?;
+                        new_device_oidc_login_mail(
                             &session_info.user.email,
+                            &mut conn,
+                            Some(&session_info.session.into()),
                             &oauth2client.name,
-                            &session_info.session.into(),
-                        )?;
+                        )
+                        .await?;
                     }
                     info!(
                         "User {} allowed login with client {}",

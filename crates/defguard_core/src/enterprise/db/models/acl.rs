@@ -85,7 +85,7 @@ impl fmt::Display for PortRange {
             (start, end) if end == start => start.to_string(),
             (start, end) => format!("{start}-{end}"),
         };
-        write!(f, "{s}")
+        f.write_str(&s)
     }
 }
 

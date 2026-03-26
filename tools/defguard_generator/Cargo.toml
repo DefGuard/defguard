@@ -8,14 +8,13 @@ repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.87.0"
 
 [dependencies]
-defguard_common = { workspace = true }
+anyhow = { workspace = true }
 chrono = { workspace = true }
-rand = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
+defguard_common = { workspace = true }
+defguard_core = { workspace = true }
+rand = { workspace = true }
 sqlx = { workspace = true, features = ["postgres", "runtime-tokio-native-tls", "chrono"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
-
-[dev-dependencies]

@@ -1,8 +1,17 @@
+#settings-license-tab {
+  #license-main-card {
+    padding: var(--spacing-lg);
+  }
+}
+
 #license-plans {
+  padding: var(--spacing-lg) var(--spacing-xl);
+
   header {
     display: flex;
     flex-flow: row;
     align-items: center;
+    gap: var(--spacing-md);
 
     & > a {
       margin-left: auto;
@@ -31,7 +40,6 @@
       & > .content {
         display: flex;
         flex-flow: column;
-        row-gap: var(--spacing-xs);
 
         .top {
           width: 100%;
@@ -51,6 +59,50 @@
           font: var(--t-body-sm-400);
           color: var(--fg-muted);
         }
+
+        .promotional-copy {
+          font: var(--t-body-sm-600);
+          color: var(--fg-success);
+        }
+
+        .actions {
+          display: flex;
+          flex-flow: row wrap;
+          gap: var(--spacing-md);
+        }
+      }
+    }
+  }
+}
+
+#license-expired-notice {
+  padding: var(--spacing-lg) var(--spacing-xl);
+
+  .notice-track {
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    gap: var(--spacing-xl);
+    align-items: start;
+
+    .image-track {
+      img {
+        width: 100%;
+      }
+    }
+
+    .content-track {
+      display: flex;
+      flex-flow: column;
+      align-items: flex-start;
+
+      .title {
+        color: var(--fg-critical);
+        font: var(--t-title-h5);
+      }
+
+      .description {
+        color: var(--fg-default);
+        font: var(--t-body-primary-400);
       }
     }
   }

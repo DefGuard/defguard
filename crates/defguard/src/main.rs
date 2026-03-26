@@ -26,6 +26,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent},
+    gateway_config,
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     setup_logs::CoreSetupLogLayer,
@@ -63,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let mut config = DefGuardConfig::new();
     let log_filter = format!(
-        "{},defguard_core::handlers::component_setup=debug",
+        "{},defguard_core::handlers::component_setup=debug,defguard_setup::auto_adoption=debug",
         config.log_level
     );
 
@@ -87,6 +88,29 @@ async fn main() -> Result<(), anyhow::Error> {
     )
     .await;
 
+    if config.openid_signing_key.is_some() {
+        info!("Using RSA OpenID signing key");
+    } else {
+        info!("Using HMAC OpenID signing key");
+    }
+
+    // initialize global settings struct
+    initialize_current_settings(&pool).await?;
+
+    debug!("Checking enterprise license status");
+    match License::load_or_renew(&pool).await {
+        Ok(license) => {
+            set_cached_license(license);
+        }
+        Err(err) => {
+            warn!(
+                "There was an error while loading the license, error: {err}. The enterprise \
+                features will be disabled."
+            );
+            set_cached_license(None);
+        }
+    }
+
     // handle optional subcommands
     if let Some(command) = &config.cmd {
         match command {
@@ -97,20 +121,15 @@ async fn main() -> Result<(), anyhow::Error> {
                 let token = init_vpn_location(&pool, args).await?;
                 println!("{token}");
             }
+            Command::GatewayConfig(args) => {
+                let config = gateway_config(&pool, args).await?;
+                println!("{config:?}");
+            }
         }
 
         // return early
         return Ok(());
     }
-
-    if config.openid_signing_key.is_some() {
-        info!("Using RSA OpenID signing key");
-    } else {
-        info!("Using HMAC OpenID signing key");
-    }
-
-    // initialize global settings struct
-    initialize_current_settings(&pool).await?;
 
     // Both flags must be provided together
     if let Err(msg) = config.validate_adopt_flags() {
@@ -120,6 +139,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
 
+    Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}
@@ -136,12 +156,9 @@ async fn main() -> Result<(), anyhow::Error> {
                     .set(config.clone())
                     .expect("Failed to initialize server config.");
 
-                if let Err(err) = run_setup_web_server(
-                    pool.clone(),
-                    config.http_bind_address,
-                    config.http_port,
-                )
-                .await
+                if let Err(err) =
+                    run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
+                        .await
                 {
                     anyhow::bail!("Setup web server exited with error: {err}");
                 }
@@ -149,9 +166,6 @@ async fn main() -> Result<(), anyhow::Error> {
             ActiveWizard::Migration => {
                 let mut settings = Settings::get_current_settings();
                 settings.update_from_config(&pool, &config).await?;
-
-                Settings::initialize_runtime_defaults(&pool).await?;
-
                 config.initialize_post_settings();
                 SERVER_CONFIG
                     .set(config.clone())
@@ -169,8 +183,6 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     }
-
-    Settings::initialize_runtime_defaults(&pool).await?;
 
     // Only set SERVER_CONFIG if it has not already been set (e.g. by the setup
     // path above).
@@ -221,20 +233,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     update_counts(&pool).await?;
 
-    debug!("Checking enterprise license status");
-    match License::load_or_renew(&pool).await {
-        Ok(license) => {
-            set_cached_license(license);
-        }
-        Err(err) => {
-            warn!(
-                "There was an error while loading the license, error: {err}. The enterprise \
-                features will be disabled."
-            );
-            set_cached_license(None);
-        }
-    }
-
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
     let proxy_secret_key = settings.secret_key_required()?;
     let proxy_manager = ProxyManager::new(
@@ -267,7 +265,6 @@ async fn main() -> Result<(), anyhow::Error> {
             pool.clone(),
             grpc_cert,
             grpc_key,
-            failed_logins.clone(),
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,

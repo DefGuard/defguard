@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt;
 
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
@@ -14,12 +14,12 @@ pub enum AuthenticationKeyType {
     Gpg,
 }
 
-impl Display for AuthenticationKeyType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AuthenticationKeyType::Ssh => write!(f, "SSH"),
-            AuthenticationKeyType::Gpg => write!(f, "GPG"),
-        }
+impl fmt::Display for AuthenticationKeyType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            AuthenticationKeyType::Ssh => "SSH",
+            AuthenticationKeyType::Gpg => "GPG",
+        })
     }
 }
 

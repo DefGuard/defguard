@@ -16,7 +16,7 @@ use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
-    config::{DefGuardConfig, InitVpnLocationArgs, server_config},
+    config::{DefGuardConfig, GatewayConfigArgs, InitVpnLocationArgs, server_config},
     db::{
         init_db,
         models::{
@@ -28,6 +28,7 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
+use defguard_proto::gateway::Configuration;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use events::ApiEvent;
@@ -73,6 +74,7 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
+        firewall::try_get_location_firewall_config,
         handlers::{
             acl::{
                 alias::{
@@ -168,7 +170,9 @@ use crate::{
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
-    location_management::sync_location_allowed_devices,
+    location_management::{
+        allowed_peers::get_location_allowed_peers, sync_location_allowed_devices,
+    },
     version::IncompatibleComponents,
 };
 
@@ -958,6 +962,46 @@ pub async fn init_vpn_location(
     .to_jwt()?;
 
     Ok(token)
+}
+
+pub async fn gateway_config(
+    pool: &PgPool,
+    args: &GatewayConfigArgs,
+) -> Result<Configuration, anyhow::Error> {
+    let location_id = args.location_id;
+
+    let mut conn = pool.acquire().await?;
+
+    // fetch specified location
+    let location = match WireguardNetwork::find_by_id(&mut *conn, location_id).await {
+        Ok(Some(network)) => network,
+        Ok(None) => return Err(anyhow!("Location {location_id} not found")),
+        Err(err) => {
+            return Err(anyhow!(
+                "Failed to retrieve location {location_id} with error: {err}"
+            ));
+        }
+    };
+
+    // get peers
+    let peers = get_location_allowed_peers(&location, &mut *conn)
+        .await
+        .map_err(|err| anyhow!("Failed to get peers for location {location} with error: {err}"))?;
+
+    // prepare firewall config
+    let maybe_firewall_config = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .map_err(|err| {
+            anyhow!("Failed to prepare firewall config for location {location} with error: {err}")
+        })?;
+
+    // generate config
+    let mut config = Configuration::new(&location, peers, maybe_firewall_config);
+
+    // overwrite private key just in case
+    config.prvkey = "REDACTED".into();
+
+    Ok(config)
 }
 
 pub fn is_valid_phone_number(number: &str) -> bool {

@@ -9,7 +9,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceConfig, DeviceNetworkInfo, DeviceType, WireguardNetwork,
+            Device, DeviceConfig, DeviceType, WireguardNetwork,
             device::{AddDevice, DeviceInfo, ModifyDevice, WireguardNetworkDevice},
             wireguard::{LocationMfaMode, MappedDevice, ServiceLocationMode},
         },
@@ -516,7 +516,12 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
 pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Counting WireGuard networks");
     let count = WireguardNetwork::count(&appstate.pool).await?;
-    Ok(ApiResponse::json(LocationsCount { count }, StatusCode::OK))
+    Ok(ApiResponse::json(
+        LocationsCount {
+            count: count as usize,
+        },
+        StatusCode::OK,
+    ))
 }
 
 /// Details of network
@@ -1027,12 +1032,9 @@ pub(crate) async fn modify_device(
         let wireguard_network_device =
             WireguardNetworkDevice::find(&appstate.pool, device.id, network.id).await?;
         if let Some(wireguard_network_device) = wireguard_network_device {
-            let device_network_info = DeviceNetworkInfo {
-                network_id: network.id,
-                device_wireguard_ips: wireguard_network_device.wireguard_ips,
-                preshared_key: wireguard_network_device.preshared_key,
-                is_authorized: wireguard_network_device.is_authorized,
-            };
+            let device_network_info = wireguard_network_device
+                .to_device_network_info_runtime(&appstate.pool, network)
+                .await?;
             network_info.push(device_network_info);
         }
     }
