@@ -252,6 +252,12 @@ ALTER TABLE wireguard_network_device
     DROP COLUMN is_authorized,
     DROP COLUMN authorized_at;
 
+CREATE INDEX wireguard_network_device_network_id_device_id_idx
+    ON wireguard_network_device (wireguard_network_id, device_id);
+
+CREATE INDEX device_user_id_device_type_id_idx
+    ON device (user_id, device_type, id);
+
 CREATE TABLE vpn_session_stats (
     id bigserial PRIMARY KEY,
     session_id bigint NOT NULL,
@@ -346,6 +352,9 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('test', 'subtitle', 'en_US', 'If you received it, your SMTP configuration is correct.'),
     ('support-data', 'title', 'en_US', 'Support data'),
     ('support-data', 'subtitle', 'en_US', 'Support data can be found in the attachment.');
+
+CREATE UNIQUE INDEX api_token_token_hash_idx
+    ON api_token (token_hash);
 
 -- Wizard state is centralized outside of settings.
 CREATE TYPE active_wizard AS ENUM ('none', 'initial', 'auto_adoption', 'migration');

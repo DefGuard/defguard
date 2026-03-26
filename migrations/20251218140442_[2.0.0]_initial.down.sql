@@ -5,6 +5,12 @@ DROP TYPE active_wizard;
 -- Remove database-backed mail templates.
 DROP TABLE mail_context;
 
+DROP INDEX api_token_token_hash_idx;
+
+DROP INDEX device_user_id_device_type_id_idx;
+
+DROP INDEX wireguard_network_device_network_id_device_id_idx;
+
 UPDATE activity_log_event
 SET ip = '0.0.0.0'::inet
 WHERE ip IS NULL;
