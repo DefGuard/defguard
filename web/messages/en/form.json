@@ -28,6 +28,8 @@
   "form_error_key_exists": "Key already exists",
   "form_error_ip_invalid": "IP is invalid",
   "form_error_ip_reserved": "IP is not available",
+  "form_error_network_address": "Cannot use a network address as a gateway address",
+  "form_error_broadcast_address": "Cannot use a broadcast address as a gateway address",
   "password_form_check_title": "Your password must include:",
   "password_form_check_number": "At least one number required",
   "password_form_check_special": "At least one special character",

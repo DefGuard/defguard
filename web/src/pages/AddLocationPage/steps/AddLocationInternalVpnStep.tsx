@@ -33,10 +33,18 @@ const formSchema = z.object({
     .string(m.form_error_required())
     .trim()
     .min(1, m.form_error_required())
-    .refine(
-      (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
-      m.form_error_invalid(),
-    ),
+    .superRefine((val, ctx) => {
+      if (!Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true)) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_invalid() });
+        return;
+      }
+      const addresses = val.split(',').map((a) => a.trim());
+      if (addresses.some((a) => Validate.isNetworkAddress(a))) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_network_address() });
+      } else if (addresses.some((a) => Validate.isBroadcastAddress(a))) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_broadcast_address() });
+      }
+    }),
   allowed_ips: z
     .string()
     .trim()
