@@ -4,7 +4,7 @@ use defguard_common::{
         Id,
         models::{
             Device, DeviceType, User, WireguardNetwork,
-            group::Group,
+            group::{Group, Permission},
             settings::initialize_current_settings,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -88,6 +88,21 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
     rule.state = state;
     rule.parent_id = parent_id;
     rule.save(pool).await.unwrap();
+}
+
+async fn authenticate_promoted_admin(client: &mut TestClient, pool: &PgPool, username: &str) {
+    let user = User::find_by_username(pool, username)
+        .await
+        .unwrap()
+        .unwrap();
+    let admin_group = Group::find_by_permission(pool, Permission::IsAdmin)
+        .await
+        .unwrap()
+        .into_iter()
+        .next()
+        .expect("admin group should exist in test database");
+    user.add_to_group(pool, &admin_group).await.unwrap();
+    client.login_user(username, "pass123").await;
 }
 
 fn make_alias() -> EditAclAlias {

@@ -376,17 +376,13 @@ pub(crate) async fn update_acl_destination(
         session.user.username
     );
     data.validate()?;
-    let alias = ApiAclDestination::update_from_api(
-        &appstate.pool,
-        id,
-        &data,
-        &session.user.username,
-    )
-        .await
-        .map_err(|err| {
-            error!("Error updating ACL destination {data:?}: {err}");
-            err
-        })?;
+    let alias =
+        ApiAclDestination::update_from_api(&appstate.pool, id, &data, &session.user.username)
+            .await
+            .map_err(|err| {
+                error!("Error updating ACL destination {data:?}: {err}");
+                err
+            })?;
     info!("User {} updated ACL destination", session.user.username);
     Ok(ApiResponse::json(alias, StatusCode::OK))
 }
@@ -454,11 +450,11 @@ pub(crate) async fn apply_acl_destinations(
         &session.user.username,
         &appstate,
     )
-        .await
-        .map_err(|err| {
-            error!("Error applying ACL destinations {data:?}: {err}");
-            err
-        })?;
+    .await
+    .map_err(|err| {
+        error!("Error applying ACL destinations {data:?}: {err}");
+        err
+    })?;
     info!(
         "User {} applied ACL destinations: {:?}",
         session.user.username, data.destinations

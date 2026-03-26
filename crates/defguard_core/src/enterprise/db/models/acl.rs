@@ -449,7 +449,11 @@ impl AclRule {
     ///   2. The rule itself is deleted from the database
     ///
     /// Since these rules were not yet applied, we can safely remove them.
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id, actor: &str) -> Result<(), AclError> {
+    pub(crate) async fn delete_from_api(
+        pool: &PgPool,
+        id: Id,
+        actor: &str,
+    ) -> Result<(), AclError> {
         debug!("Deleting rule {id}");
         let mut transaction = pool.begin().await?;
 
@@ -518,7 +522,11 @@ impl AclRule {
     /// # Errors
     ///
     /// - `AclError::RuleNotFoundError`
-    pub async fn apply_rules(rules: &[Id], actor: &str, appstate: &AppState) -> Result<(), AclError> {
+    pub async fn apply_rules(
+        rules: &[Id],
+        actor: &str,
+        appstate: &AppState,
+    ) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = appstate.pool.begin().await?;
 
@@ -925,7 +933,11 @@ impl AclRule<Id> {
     /// # Errors
     ///
     /// - `AclError::RuleAreadyApplied`
-    pub async fn apply(mut self, transaction: &mut PgConnection, actor: &str) -> Result<(), AclError> {
+    pub async fn apply(
+        mut self,
+        transaction: &mut PgConnection,
+        actor: &str,
+    ) -> Result<(), AclError> {
         let acl_id = self.id;
         debug!("Applying ACL rule {acl_id} pending state change");
 

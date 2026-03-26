@@ -413,11 +413,11 @@ pub(crate) async fn apply_acl_aliases(
         &session.user.username,
         &appstate,
     )
-        .await
-        .map_err(|err| {
-            error!("Error applying ACL aliases {data:?}: {err}");
-            err
-        })?;
+    .await
+    .map_err(|err| {
+        error!("Error applying ACL aliases {data:?}: {err}");
+        err
+    })?;
     info!(
         "User {} applied ACL aliases: {:?}",
         session.user.username, data.aliases

@@ -1035,6 +1035,69 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
+async fn test_rule_audit_fields_track_acting_user_across_mutations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_promoted_admin(&mut client, &pool, "hpotter").await;
+
+    let rule = make_rule();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created_rule: ApiAclRule = response.json().await;
+
+    let created_rule_row = AclRule::find_by_id(&pool, created_rule.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(created_rule_row.modified_by, "hpotter");
+    assert_ne!(created_rule_row.modified_by, "admin");
+    let created_modified_at = created_rule_row.modified_at;
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+
+    let mut updated_rule = created_rule.clone();
+    updated_rule.name = "rule updated by hpotter".to_string();
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .json(&updated_rule)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated_rule_row = AclRule::find_by_id(&pool, created_rule.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(updated_rule_row.modified_by, "hpotter");
+    assert_eq!(updated_rule_row.name, "rule updated by hpotter");
+    assert!(updated_rule_row.modified_at > created_modified_at);
+    let updated_modified_at = updated_rule_row.modified_at;
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": [created_rule.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_rule_row = AclRule::find_by_id(&pool, created_rule.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(applied_rule_row.state, RuleState::Applied);
+    assert_eq!(applied_rule_row.modified_by, "hpotter");
+    assert_ne!(applied_rule_row.modified_by, "admin");
+    assert!(applied_rule_row.modified_at > updated_modified_at);
+}
+
+#[sqlx::test]
 async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
     _: PgPoolOptions,
     options: PgConnectOptions,
