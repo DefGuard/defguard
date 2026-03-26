@@ -1,6 +1,9 @@
 .wizard-page {
   --page-content-limit: 1120px;
 
+  max-height: 100dvh;
+  overflow-y: auto;
+
   & > .limiter {
     display: flex;
     flex-flow: row;
