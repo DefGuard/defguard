@@ -1,0 +1,25 @@
+name: Build http-01 image
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+on:
+  push:
+    branches:
+      - http-01
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-http-01:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      flavor: |
+        latest=false
+      tags: |
+        type=raw,value=2.0.0-http-01

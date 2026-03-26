@@ -690,7 +690,7 @@ pub async fn run_web_server(
 
     if let Some((cert_pem, key_pem)) = tls_cert_pair {
         let tls_config =
-            RustlsConfig::from_pem(cert_pem.into_bytes().into(), key_pem.into_bytes().into())
+            RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
                 .await
                 .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
         axum_server::bind_rustls(addr, tls_config)
@@ -748,10 +748,12 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Failed to update settings");
 
-    let mut certs = Certificates::default();
-    certs.ca_cert_der = Some(ca.cert_der().to_vec());
-    certs.ca_key_der = Some(ca.key_pair_der().to_vec());
-    certs.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
+    let certs = Certificates {
+        ca_cert_der: Some(ca.cert_der().to_vec()),
+        ca_key_der: Some(ca.key_pair_der().to_vec()),
+        ca_expiry: Some(ca.expiry().expect("Failed to get CA expiry")),
+        ..Default::default()
+    };
     certs
         .save(&pool)
         .await
