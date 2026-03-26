@@ -138,12 +138,16 @@ fn edit_rule_data_into_api_response(
     id: Id,
     parent_id: Option<Id>,
     state: RuleState,
+    modified_at: chrono::NaiveDateTime,
+    modified_by: String,
 ) -> ApiAclRule {
     ApiAclRule {
         id,
         parent_id,
         state,
         name: data.name.clone(),
+        modified_at,
+        modified_by,
         all_locations: data.all_locations,
         locations: data.locations.clone(),
         expires: data.expires,
