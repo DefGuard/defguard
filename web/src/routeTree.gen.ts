@@ -37,9 +37,11 @@ import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_autho
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
 import { Route as AuthorizedDefaultUsersRouteImport } from './routes/_authorized/_default/users'
+import { Route as AuthorizedDefaultSupportRouteImport } from './routes/_authorized/_default/support'
 import { Route as AuthorizedDefaultOpenidRouteImport } from './routes/_authorized/_default/openid'
 import { Route as AuthorizedDefaultNetworkDevicesRouteImport } from './routes/_authorized/_default/network-devices'
 import { Route as AuthorizedDefaultGroupsRouteImport } from './routes/_authorized/_default/groups'
+import { Route as AuthorizedDefaultEnrollmentRouteImport } from './routes/_authorized/_default/enrollment'
 import { Route as AuthorizedDefaultEdgesRouteImport } from './routes/_authorized/_default/edges'
 import { Route as AuthorizedDefaultActivityRouteImport } from './routes/_authorized/_default/activity'
 import { Route as AuthorizedDefaultVpnOverviewIndexRouteImport } from './routes/_authorized/_default/vpn-overview/index'
@@ -52,7 +54,6 @@ import { Route as AuthorizedDefaultSettingsOpenidRouteImport } from './routes/_a
 import { Route as AuthorizedDefaultSettingsLdapRouteImport } from './routes/_authorized/_default/settings/ldap'
 import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/_authorized/_default/settings/instance'
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
-import { Route as AuthorizedDefaultSettingsEnrollmentRouteImport } from './routes/_authorized/_default/settings/enrollment'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
@@ -211,6 +212,12 @@ const AuthorizedDefaultUsersRoute = AuthorizedDefaultUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthorizedDefaultRoute,
 } as any)
+const AuthorizedDefaultSupportRoute =
+  AuthorizedDefaultSupportRouteImport.update({
+    id: '/support',
+    path: '/support',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultOpenidRoute = AuthorizedDefaultOpenidRouteImport.update({
   id: '/openid',
   path: '/openid',
@@ -227,6 +234,12 @@ const AuthorizedDefaultGroupsRoute = AuthorizedDefaultGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => AuthorizedDefaultRoute,
 } as any)
+const AuthorizedDefaultEnrollmentRoute =
+  AuthorizedDefaultEnrollmentRouteImport.update({
+    id: '/enrollment',
+    path: '/enrollment',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultEdgesRoute = AuthorizedDefaultEdgesRouteImport.update({
   id: '/edges',
   path: '/edges',
@@ -296,12 +309,6 @@ const AuthorizedDefaultSettingsGatewayNotificationsRoute =
   AuthorizedDefaultSettingsGatewayNotificationsRouteImport.update({
     id: '/settings/gateway-notifications',
     path: '/settings/gateway-notifications',
-    getParentRoute: () => AuthorizedDefaultRoute,
-  } as any)
-const AuthorizedDefaultSettingsEnrollmentRoute =
-  AuthorizedDefaultSettingsEnrollmentRouteImport.update({
-    id: '/settings/enrollment',
-    path: '/settings/enrollment',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
 const AuthorizedDefaultSettingsEditOpenidRoute =
@@ -407,9 +414,11 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
+  '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
+  '/support': typeof AuthorizedDefaultSupportRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -432,7 +441,6 @@ export interface FileRoutesByFullPath {
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
-  '/settings/enrollment': typeof AuthorizedDefaultSettingsEnrollmentRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
   '/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
@@ -464,9 +472,11 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthIndexRoute
   '/activity': typeof AuthorizedDefaultActivityRoute
   '/edges': typeof AuthorizedDefaultEdgesRoute
+  '/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/groups': typeof AuthorizedDefaultGroupsRoute
   '/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/openid': typeof AuthorizedDefaultOpenidRoute
+  '/support': typeof AuthorizedDefaultSupportRoute
   '/users': typeof AuthorizedDefaultUsersRoute
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -489,7 +499,6 @@ export interface FileRoutesByTo {
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
-  '/settings/enrollment': typeof AuthorizedDefaultSettingsEnrollmentRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
   '/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
@@ -525,9 +534,11 @@ export interface FileRoutesById {
   '/auth/': typeof AuthIndexRoute
   '/_authorized/_default/activity': typeof AuthorizedDefaultActivityRoute
   '/_authorized/_default/edges': typeof AuthorizedDefaultEdgesRoute
+  '/_authorized/_default/enrollment': typeof AuthorizedDefaultEnrollmentRoute
   '/_authorized/_default/groups': typeof AuthorizedDefaultGroupsRoute
   '/_authorized/_default/network-devices': typeof AuthorizedDefaultNetworkDevicesRoute
   '/_authorized/_default/openid': typeof AuthorizedDefaultOpenidRoute
+  '/_authorized/_default/support': typeof AuthorizedDefaultSupportRoute
   '/_authorized/_default/users': typeof AuthorizedDefaultUsersRoute
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
@@ -550,7 +561,6 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
-  '/_authorized/_default/settings/enrollment': typeof AuthorizedDefaultSettingsEnrollmentRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   '/_authorized/_default/settings/instance': typeof AuthorizedDefaultSettingsInstanceRoute
   '/_authorized/_default/settings/ldap': typeof AuthorizedDefaultSettingsLdapRoute
@@ -585,9 +595,11 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/activity'
     | '/edges'
+    | '/enrollment'
     | '/groups'
     | '/network-devices'
     | '/openid'
+    | '/support'
     | '/users'
     | '/webhooks'
     | '/add-external-openid'
@@ -610,7 +622,6 @@ export interface FileRouteTypes {
     | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
-    | '/settings/enrollment'
     | '/settings/gateway-notifications'
     | '/settings/instance'
     | '/settings/ldap'
@@ -642,9 +653,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/activity'
     | '/edges'
+    | '/enrollment'
     | '/groups'
     | '/network-devices'
     | '/openid'
+    | '/support'
     | '/users'
     | '/webhooks'
     | '/add-external-openid'
@@ -667,7 +680,6 @@ export interface FileRouteTypes {
     | '/acl/rules'
     | '/settings/client'
     | '/settings/edit-openid'
-    | '/settings/enrollment'
     | '/settings/gateway-notifications'
     | '/settings/instance'
     | '/settings/ldap'
@@ -702,9 +714,11 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/_authorized/_default/activity'
     | '/_authorized/_default/edges'
+    | '/_authorized/_default/enrollment'
     | '/_authorized/_default/groups'
     | '/_authorized/_default/network-devices'
     | '/_authorized/_default/openid'
+    | '/_authorized/_default/support'
     | '/_authorized/_default/users'
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
@@ -727,7 +741,6 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/rules'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
-    | '/_authorized/_default/settings/enrollment'
     | '/_authorized/_default/settings/gateway-notifications'
     | '/_authorized/_default/settings/instance'
     | '/_authorized/_default/settings/ldap'
@@ -956,6 +969,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultUsersRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/support': {
+      id: '/_authorized/_default/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthorizedDefaultSupportRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/openid': {
       id: '/_authorized/_default/openid'
       path: '/openid'
@@ -975,6 +995,13 @@ declare module '@tanstack/react-router' {
       path: '/groups'
       fullPath: '/groups'
       preLoaderRoute: typeof AuthorizedDefaultGroupsRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/enrollment': {
+      id: '/_authorized/_default/enrollment'
+      path: '/enrollment'
+      fullPath: '/enrollment'
+      preLoaderRoute: typeof AuthorizedDefaultEnrollmentRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/edges': {
@@ -1059,13 +1086,6 @@ declare module '@tanstack/react-router' {
       path: '/settings/gateway-notifications'
       fullPath: '/settings/gateway-notifications'
       preLoaderRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRouteImport
-      parentRoute: typeof AuthorizedDefaultRoute
-    }
-    '/_authorized/_default/settings/enrollment': {
-      id: '/_authorized/_default/settings/enrollment'
-      path: '/settings/enrollment'
-      fullPath: '/settings/enrollment'
-      preLoaderRoute: typeof AuthorizedDefaultSettingsEnrollmentRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
     '/_authorized/_default/settings/edit-openid': {
@@ -1172,9 +1192,11 @@ declare module '@tanstack/react-router' {
 interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultActivityRoute: typeof AuthorizedDefaultActivityRoute
   AuthorizedDefaultEdgesRoute: typeof AuthorizedDefaultEdgesRoute
+  AuthorizedDefaultEnrollmentRoute: typeof AuthorizedDefaultEnrollmentRoute
   AuthorizedDefaultGroupsRoute: typeof AuthorizedDefaultGroupsRoute
   AuthorizedDefaultNetworkDevicesRoute: typeof AuthorizedDefaultNetworkDevicesRoute
   AuthorizedDefaultOpenidRoute: typeof AuthorizedDefaultOpenidRoute
+  AuthorizedDefaultSupportRoute: typeof AuthorizedDefaultSupportRoute
   AuthorizedDefaultUsersRoute: typeof AuthorizedDefaultUsersRoute
   AuthorizedDefaultWebhooksRoute: typeof AuthorizedDefaultWebhooksRoute
   AuthorizedDefaultAclAddAliasRoute: typeof AuthorizedDefaultAclAddAliasRoute
@@ -1188,7 +1210,6 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
-  AuthorizedDefaultSettingsEnrollmentRoute: typeof AuthorizedDefaultSettingsEnrollmentRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
   AuthorizedDefaultSettingsInstanceRoute: typeof AuthorizedDefaultSettingsInstanceRoute
   AuthorizedDefaultSettingsLdapRoute: typeof AuthorizedDefaultSettingsLdapRoute
@@ -1207,9 +1228,11 @@ interface AuthorizedDefaultRouteChildren {
 const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultActivityRoute: AuthorizedDefaultActivityRoute,
   AuthorizedDefaultEdgesRoute: AuthorizedDefaultEdgesRoute,
+  AuthorizedDefaultEnrollmentRoute: AuthorizedDefaultEnrollmentRoute,
   AuthorizedDefaultGroupsRoute: AuthorizedDefaultGroupsRoute,
   AuthorizedDefaultNetworkDevicesRoute: AuthorizedDefaultNetworkDevicesRoute,
   AuthorizedDefaultOpenidRoute: AuthorizedDefaultOpenidRoute,
+  AuthorizedDefaultSupportRoute: AuthorizedDefaultSupportRoute,
   AuthorizedDefaultUsersRoute: AuthorizedDefaultUsersRoute,
   AuthorizedDefaultWebhooksRoute: AuthorizedDefaultWebhooksRoute,
   AuthorizedDefaultAclAddAliasRoute: AuthorizedDefaultAclAddAliasRoute,
@@ -1226,8 +1249,6 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,
-  AuthorizedDefaultSettingsEnrollmentRoute:
-    AuthorizedDefaultSettingsEnrollmentRoute,
   AuthorizedDefaultSettingsGatewayNotificationsRoute:
     AuthorizedDefaultSettingsGatewayNotificationsRoute,
   AuthorizedDefaultSettingsInstanceRoute:

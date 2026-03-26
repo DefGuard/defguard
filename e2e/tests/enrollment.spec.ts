@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { testUserTemplate } from '../config';
 import { NetworkForm, User } from '../types';
 import { apiEnrollmentActivateUser, apiEnrollmentStart } from '../utils/api/enrollment';
-import { createUserEnrollment, password } from '../utils/controllers/enrollment';
+import { createUserEnrollment } from '../utils/controllers/enrollment';
 import { loginBasic } from '../utils/controllers/login';
 import { disableUser } from '../utils/controllers/toggleUserState';
 import { createRegularLocation } from '../utils/controllers/vpn/createNetwork';
@@ -18,6 +18,8 @@ const testNetwork: NetworkForm = {
   port: '5055',
 };
 
+// TODO: Enable when https://github.com/DefGuard/defguard/issues/2424 is fixed.
+
 test.describe('Create user and enroll him', () => {
   let token: string;
   const user: User = { ...testUserTemplate, username: 'test' };
@@ -29,18 +31,18 @@ test.describe('Create user and enroll him', () => {
     await createRegularLocation(browser, testNetwork);
   });
 
-  test('Complete user enrollment via API', async ({ request, page }) => {
+  test.skip('Complete user enrollment via API', async ({ request, page }) => {
     expect(token).toBeDefined();
     await apiEnrollmentStart(request, token);
-    await apiEnrollmentActivateUser(request, password, '+48123456789');
+    await apiEnrollmentActivateUser(request, user.password, '+48123456789');
 
     await waitForBase(page);
     const responsePromise = page.waitForResponse('**/auth');
-    await loginBasic(page, { username: user.username, password });
+    await loginBasic(page, { username: user.username, password: user.password });
     const response = await responsePromise;
     expect(response.ok()).toBeTruthy();
   });
-  test('Try to complete disabled user enrollment via API', async ({
+  test.skip('Try to complete disabled user enrollment via API', async ({
     page,
     request,
     browser,
@@ -48,11 +50,11 @@ test.describe('Create user and enroll him', () => {
     expect(token).toBeDefined();
     await disableUser(browser, user);
     await apiEnrollmentStart(request, token);
-    await apiEnrollmentActivateUser(request, password, '+48123456789');
+    await apiEnrollmentActivateUser(request, user.password, '+48123456789');
 
     await waitForBase(page);
     const responsePromise = page.waitForResponse('**/auth');
-    await loginBasic(page, { username: user.username, password });
+    await loginBasic(page, { username: user.username, password: user.password });
     const response = await responsePromise;
     expect(response.ok()).toBeFalsy();
   });

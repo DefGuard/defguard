@@ -61,10 +61,10 @@ pub enum DeviceType {
 
 impl fmt::Display for DeviceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::User => write!(f, "user"),
-            Self::Network => write!(f, "network"),
-        }
+        f.write_str(match self {
+            Self::User => "user",
+            Self::Network => "network",
+        })
     }
 }
 
@@ -94,7 +94,7 @@ pub struct Device<I = NoId> {
 
 impl fmt::Display for Device<NoId> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        f.write_str(&self.name)
     }
 }
 
@@ -239,25 +239,25 @@ impl UserDevice {
         // fetch device config and connection info for all allowed networks
         let result = query!(
             "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", latest_session.endpoint \"device_endpoint?\", \
-	            last_successful_session.connected_at \"last_connected_at?\", \
-	            latest_session.state \"state?: VpnClientSessionState\" \
+	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", latest_successful_stats.endpoint \"device_endpoint?\", \
+	            latest_successful_session.connected_at \"last_connected_at?\", \
+	            latest_successful_session.state \"state?: VpnClientSessionState\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN LATERAL ( \
-				SELECT id, state, location_id, endpoint, connected_at \
-				FROM vpn_client_session \
-				WHERE location_id = n.id and device_id = $1 \
-				ORDER BY created_at DESC, id DESC \
-				LIMIT 1 \
-	            ) latest_session ON latest_session.location_id = n.id \
-	            LEFT JOIN LATERAL ( \
-				SELECT connected_at \
+				SELECT id, state, connected_at \
 				FROM vpn_client_session \
 				WHERE location_id = n.id AND device_id = $1 AND connected_at IS NOT NULL \
 				ORDER BY connected_at DESC, id DESC \
 				LIMIT 1 \
-	            ) last_successful_session ON true \
+	            ) latest_successful_session ON true \
+	            LEFT JOIN LATERAL ( \
+				SELECT endpoint \
+				FROM vpn_session_stats \
+				WHERE session_id = latest_successful_session.id \
+				ORDER BY collected_at DESC, id DESC \
+				LIMIT 1 \
+	            ) latest_successful_stats ON true \
             WHERE wnd.device_id = $1",
             device.id,
         )
@@ -348,12 +348,12 @@ impl WireguardNetworkDevice {
         network: &WireguardNetwork<Id>,
         active_session: Option<&VpnClientSession<Id>>,
     ) -> DeviceNetworkInfo {
-        let (preshared_key, is_authorized) = if !network.mfa_enabled() {
-            (None, true)
-        } else {
+        let (preshared_key, is_authorized) = if network.mfa_enabled() {
             let preshared_key = active_session.and_then(|session| session.preshared_key.clone());
             let is_authorized = preshared_key.is_some();
             (preshared_key, is_authorized)
+        } else {
+            (None, true)
         };
 
         DeviceNetworkInfo {
@@ -1036,12 +1036,53 @@ impl Device<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(Self,
-            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+        query_as!(
+            Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device WHERE device_type = $1 ORDER BY name",
             device_type as DeviceType
-        ).fetch_all(executor).await
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn find_by_type_paginated<'e, E>(
+        executor: E,
+        device_type: DeviceType,
+        limit: i64,
+        offset: i64,
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
+            FROM device WHERE device_type = $1 ORDER BY name \
+            LIMIT $2 OFFSET $3",
+            device_type as DeviceType,
+            limit,
+            offset
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub async fn count_by_type<'e, E>(executor: E, device_type: DeviceType) -> sqlx::Result<i64>
+    where
+        E: PgExecutor<'e>,
+    {
+        let count = query_scalar!(
+            "SELECT count(*) FROM device WHERE device_type = $1",
+            device_type as DeviceType
+        )
+        .fetch_one(executor)
+        .await?
+        .unwrap_or_default();
+
+        Ok(count)
     }
 
     pub async fn find_by_type_and_network<'e, E>(
@@ -1052,15 +1093,19 @@ impl Device<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(Self,
-            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+        query_as!(
+            Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device WHERE device_type = $1 \
-            AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \
+            AND id IN \
+            (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \
             ORDER BY name",
             device_type as DeviceType,
             network_id
-        ).fetch_all(executor).await
+        )
+        .fetch_all(executor)
+        .await
     }
 
     pub async fn get_owner<'e, E>(&self, executor: E) -> sqlx::Result<User<Id>>
@@ -1069,13 +1114,15 @@ impl Device<Id> {
     {
         query_as!(
             User,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
+            totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" WHERE id = $1",
             self.user_id
-        ).fetch_one(executor).await
+        )
+        .fetch_one(executor)
+        .await
     }
 
     pub async fn last_connected_at<'e, E: PgExecutor<'e>>(
@@ -1103,7 +1150,13 @@ mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::{models::vpn_client_session::VpnClientMfaMethod, setup_pool};
+    use crate::db::{
+        models::{
+            gateway::Gateway, vpn_client_session::VpnClientMfaMethod,
+            vpn_session_stats::VpnSessionStats,
+        },
+        setup_pool,
+    };
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network
@@ -1840,13 +1893,26 @@ mod test {
         .await
         .unwrap();
 
+        let gateway = Gateway::new(network.id, "gateway", "198.51.100.1", 51820, "tester")
+            .save(&pool)
+            .await
+            .unwrap();
+
         let last_successful_connection = NaiveDate::from_ymd_opt(2026, 1, 2)
             .expect("expected valid date")
             .and_hms_opt(3, 4, 5)
             .expect("expected valid time");
+        let last_successful_stats_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 5, 6)
+            .expect("expected valid time");
         let newer_session_created_at = NaiveDate::from_ymd_opt(2026, 1, 3)
             .expect("expected valid date")
             .and_hms_opt(4, 5, 6)
+            .expect("expected valid time");
+        let newer_session_stats_at = NaiveDate::from_ymd_opt(2026, 1, 3)
+            .expect("expected valid date")
+            .and_hms_opt(4, 6, 7)
             .expect("expected valid time");
 
         let mut connected_session = VpnClientSession::new(
@@ -1857,14 +1923,44 @@ mod test {
             None,
         );
         connected_session.created_at = last_successful_connection;
-        connected_session.save(&pool).await.unwrap();
+        let connected_session = connected_session.save(&pool).await.unwrap();
+
+        VpnSessionStats::new(
+            connected_session.id,
+            gateway.id,
+            last_successful_stats_at,
+            last_successful_stats_at,
+            "203.0.113.10:51820".into(),
+            1,
+            1,
+            1,
+            1,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         let mut disconnected_session =
             VpnClientSession::new(network.id, user.id, device.id, None, None);
         disconnected_session.created_at = newer_session_created_at;
         disconnected_session.disconnected_at = Some(newer_session_created_at);
         disconnected_session.state = VpnClientSessionState::Disconnected;
-        disconnected_session.save(&pool).await.unwrap();
+        let disconnected_session = disconnected_session.save(&pool).await.unwrap();
+
+        VpnSessionStats::new(
+            disconnected_session.id,
+            gateway.id,
+            newer_session_stats_at,
+            newer_session_stats_at,
+            "198.51.100.99:51820".into(),
+            2,
+            2,
+            2,
+            2,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         let user_device = UserDevice::from_device(&pool, device)
             .await
@@ -1876,7 +1972,8 @@ mod test {
             .find(|network_info| network_info.network_id == network.id)
             .expect("expected created network in user device response");
 
-        assert!(!network_info.is_active);
+        assert!(network_info.is_active);
+        assert_eq!(network_info.last_connected_ip, Some("203.0.113.10".into()));
         assert_eq!(
             network_info.last_connected_at,
             Some(last_successful_connection)
@@ -1975,6 +2072,383 @@ mod test {
             network_info.last_connected_at,
             Some(last_successful_connection)
         );
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_from_device_reads_latest_endpoint_from_session_stats(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".into(),
+            "pubkey".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let gateway = Gateway::new(network.id, "gateway", "198.51.100.1", 51820, "tester")
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 4, 5)
+            .expect("expected valid time");
+        let collected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 5, 6)
+            .expect("expected valid time");
+
+        let session =
+            VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), None)
+                .save(&pool)
+                .await
+                .unwrap();
+
+        VpnSessionStats::new(
+            session.id,
+            gateway.id,
+            collected_at,
+            collected_at,
+            "[2001:db8::1]:51820".into(),
+            1,
+            1,
+            1,
+            1,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+        let network_info = user_device
+            .networks
+            .into_iter()
+            .find(|network_info| network_info.network_id == network.id)
+            .expect("expected created network in user device response");
+
+        assert_eq!(network_info.last_connected_ip, Some("2001:db8::1".into()));
+        assert_eq!(network_info.last_connected_at, Some(connected_at));
+        assert!(network_info.is_active);
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_from_device_returns_empty_connection_fields_without_successful_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".into(),
+            "pubkey".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let gateway = Gateway::new(network.id, "gateway", "198.51.100.1", 51820, "tester")
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let attempted_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 4, 5)
+            .expect("expected valid time");
+        let stats_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 5, 6)
+            .expect("expected valid time");
+
+        let mut attempted_session =
+            VpnClientSession::new(network.id, user.id, device.id, None, None);
+        attempted_session.created_at = attempted_at;
+        let attempted_session = attempted_session.save(&pool).await.unwrap();
+
+        VpnSessionStats::new(
+            attempted_session.id,
+            gateway.id,
+            stats_at,
+            stats_at,
+            "203.0.113.10:51820".into(),
+            1,
+            1,
+            1,
+            1,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+        let network_info = user_device
+            .networks
+            .into_iter()
+            .find(|network_info| network_info.network_id == network.id)
+            .expect("expected created network in user device response");
+
+        assert_eq!(network_info.last_connected_at, None);
+        assert_eq!(network_info.last_connected_ip, None);
+        assert!(!network_info.is_active);
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_from_device_returns_none_for_successful_session_without_stats(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".into(),
+            "pubkey".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 4, 5)
+            .expect("expected valid time");
+
+        VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), None)
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+        let network_info = user_device
+            .networks
+            .into_iter()
+            .find(|network_info| network_info.network_id == network.id)
+            .expect("expected created network in user device response");
+
+        assert_eq!(network_info.last_connected_at, Some(connected_at));
+        assert_eq!(network_info.last_connected_ip, None);
+        assert!(network_info.is_active);
+    }
+
+    #[sqlx::test]
+    async fn test_user_device_from_device_uses_stats_id_as_tie_breaker_for_latest_successful_session(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let user = User::new(
+            "testuser",
+            Some("password"),
+            "Tester",
+            "Test",
+            "test@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".into(),
+            "pubkey".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let network = WireguardNetwork::default()
+            .try_set_address("10.1.1.1/24")
+            .unwrap()
+            .save(&pool)
+            .await
+            .unwrap();
+
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            [IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+
+        let gateway = Gateway::new(network.id, "gateway", "198.51.100.1", 51820, "tester")
+            .save(&pool)
+            .await
+            .unwrap();
+
+        let connected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 4, 5)
+            .expect("expected valid time");
+        let collected_at = NaiveDate::from_ymd_opt(2026, 1, 2)
+            .expect("expected valid date")
+            .and_hms_opt(3, 5, 6)
+            .expect("expected valid time");
+
+        let session =
+            VpnClientSession::new(network.id, user.id, device.id, Some(connected_at), None)
+                .save(&pool)
+                .await
+                .unwrap();
+
+        VpnSessionStats::new(
+            session.id,
+            gateway.id,
+            collected_at,
+            collected_at,
+            "198.51.100.10:51820".into(),
+            1,
+            1,
+            1,
+            1,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        VpnSessionStats::new(
+            session.id,
+            gateway.id,
+            collected_at,
+            collected_at,
+            "198.51.100.11:51820".into(),
+            2,
+            2,
+            2,
+            2,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_device = UserDevice::from_device(&pool, device)
+            .await
+            .unwrap()
+            .unwrap();
+        let network_info = user_device
+            .networks
+            .into_iter()
+            .find(|network_info| network_info.network_id == network.id)
+            .expect("expected created network in user device response");
+
+        assert_eq!(network_info.last_connected_ip, Some("198.51.100.11".into()));
+        assert_eq!(network_info.last_connected_at, Some(connected_at));
+        assert!(network_info.is_active);
     }
 
     #[sqlx::test]

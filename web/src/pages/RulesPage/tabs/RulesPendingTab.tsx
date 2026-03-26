@@ -14,7 +14,7 @@ import { useRuleDeps } from '../useRuleDeps';
 export const RulesPendingTab = () => {
   const { data: rules } = useSuspenseQuery({
     ...getRulesQueryOptions,
-    select: (resp) => resp.data.filter((rule) => rule.state !== AclStatus.Applied),
+    select: (rules) => rules.filter((rule) => rule.state !== AclStatus.Applied),
   });
   const isEmpty = rules.length === 0;
 
@@ -25,8 +25,7 @@ export const RulesPendingTab = () => {
     },
   });
 
-  const { aliases, destinations, groups, locations, users, devices, license, loading } =
-    useRuleDeps();
+  const { aliases, destinations, locations, license, loading } = useRuleDeps();
 
   const buttonProps = useMemo(
     (): ButtonProps => ({
@@ -59,10 +58,7 @@ export const RulesPendingTab = () => {
       {!isEmpty &&
         isPresent(aliases) &&
         isPresent(destinations) &&
-        isPresent(groups) &&
         isPresent(locations) &&
-        isPresent(users) &&
-        isPresent(devices) &&
         license !== undefined && (
           <RulesTable
             variant="pending"
@@ -71,9 +67,6 @@ export const RulesPendingTab = () => {
             data={rules}
             aliases={aliases}
             destinations={destinations}
-            groups={groups}
-            devices={devices}
-            users={users}
             locations={locations}
             license={license}
           />

@@ -9,18 +9,30 @@ use crate::{
     support::dump_config,
 };
 
-pub async fn configuration(
+pub(crate) async fn configuration(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} dumping app configuration", session.user.username);
-    let config = dump_config(&appstate.pool).await;
-    info!("User {} dumped app configuration", session.user.username);
-    Ok(ApiResponse::new(config, StatusCode::OK))
+
+    let mut conn = appstate.pool.begin().await?;
+    Ok(match dump_config(&mut conn).await {
+        Ok(config) => {
+            info!("User {} dumped app configuration", session.user.username);
+            ApiResponse::new(config, StatusCode::OK)
+        }
+        Err(err) => {
+            warn!("Failed to dump app configuration: {err}");
+            ApiResponse::json(
+                serde_json::json!({"err": err.to_string()}),
+                StatusCode::BAD_REQUEST,
+            )
+        }
+    })
 }
 
-pub async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
+pub(crate) async fn logs(_admin: AdminRole, session: SessionInfo) -> Result<String, WebError> {
     debug!("User {} dumping app logs", session.user.username);
     if let Some(ref log_file) = server_config().log_file {
         match tokio::fs::read_to_string(log_file).await {

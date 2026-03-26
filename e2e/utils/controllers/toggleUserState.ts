@@ -15,6 +15,7 @@ export const enableUser = async (browser: Browser, user: User): Promise<void> =>
   const userRow = page.locator('.virtual-row').filter({ hasText: user.username });
   await userRow.locator('.icon-button').click();
   await page.getByTestId('change-account-status').click();
+  await page.getByRole('button', { name: 'Enable account' }).click();
   await expect(userRow).toContainText('Active');
   await context.close();
 };
@@ -28,6 +29,7 @@ export const disableUser = async (browser: Browser, user: User): Promise<void> =
   const userRow = page.locator('.virtual-row').filter({ hasText: user.username });
   await userRow.locator('.icon-button').click();
   await page.getByTestId('change-account-status').click();
+  await page.getByRole('button', { name: 'Disable account' }).click();
   await expect(userRow).toContainText('Disabled');
   await context.close();
 };

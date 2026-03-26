@@ -60,7 +60,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let mut config = DefGuardConfig::new();
     let log_filter = format!(
-        "{},defguard_core::handlers::component_setup=debug",
+        "{},defguard_core::handlers::component_setup=debug,defguard_setup::auto_adoption=debug",
         config.log_level
     );
 
@@ -136,6 +136,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 
+    Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}
@@ -155,9 +156,6 @@ async fn main() -> Result<(), anyhow::Error> {
             ActiveWizard::Migration => {
                 let mut settings = Settings::get_current_settings();
                 settings.update_from_config(&pool, &config).await?;
-
-                Settings::initialize_runtime_defaults(&pool).await?;
-
                 config.initialize_post_settings();
                 SERVER_CONFIG
                     .set(config.clone())
@@ -177,8 +175,6 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     }
-
-    Settings::initialize_runtime_defaults(&pool).await?;
 
     if ini_server_config {
         config.initialize_post_settings();
@@ -263,7 +259,6 @@ async fn main() -> Result<(), anyhow::Error> {
             pool.clone(),
             grpc_cert,
             grpc_key,
-            failed_logins.clone(),
         ) => error!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,

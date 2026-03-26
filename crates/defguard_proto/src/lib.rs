@@ -6,9 +6,6 @@ pub mod proxy {
 pub mod gateway {
     tonic::include_proto!("gateway");
 }
-pub mod auth {
-    tonic::include_proto!("auth");
-}
 pub mod worker {
     tonic::include_proto!("worker");
 }
@@ -41,17 +38,13 @@ use crate::{
 // Client MFA methods
 impl fmt::Display for MfaMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Totp => "TOTP",
-                Self::Email => "Email",
-                Self::Oidc => "OIDC",
-                Self::Biometric => "Biometric",
-                Self::MobileApprove => "MobileApprove",
-            }
-        )
+        f.write_str(match self {
+            Self::Totp => "TOTP",
+            Self::Email => "Email",
+            Self::Oidc => "OIDC",
+            Self::Biometric => "Biometric",
+            Self::MobileApprove => "MobileApprove",
+        })
     }
 }
 

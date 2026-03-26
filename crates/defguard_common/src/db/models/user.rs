@@ -63,16 +63,12 @@ pub enum MFAMethod {
 // Web MFA methods
 impl fmt::Display for MFAMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                MFAMethod::None => "None",
-                MFAMethod::OneTimePassword => "TOTP",
-                MFAMethod::Webauthn => "WebAuthn",
-                MFAMethod::Email => "Email",
-            }
-        )
+        f.write_str(match self {
+            MFAMethod::None => "None",
+            MFAMethod::OneTimePassword => "TOTP",
+            MFAMethod::Webauthn => "WebAuthn",
+            MFAMethod::Email => "Email",
+        })
     }
 }
 
@@ -244,7 +240,7 @@ impl User {
 
 impl<I> fmt::Display for User<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.username)
+        f.write_str(&self.username)
     }
 }
 
@@ -589,14 +585,17 @@ impl User<Id> {
 
     /// Select all users without sensitive data.
     // FIXME: Remove it when Model macro will support SecretString
-    pub async fn all_without_sensitive_data(pool: &PgPool) -> sqlx::Result<Vec<UserDiagnostic>> {
+    pub async fn all_without_sensitive_data<'e, E>(executor: E) -> sqlx::Result<Vec<UserDiagnostic>>
+    where
+        E: PgExecutor<'e>,
+    {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
                 mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, \
                 from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\""
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await?;
         let res = users
             .iter()

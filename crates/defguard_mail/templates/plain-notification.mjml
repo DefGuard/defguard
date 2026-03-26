@@ -7,7 +7,7 @@
 <mj-section>
   <mj-column>
     <mj-text mj-class="t-body-sm-400" css-class="fg-neutral-c">
-      {{notification_text}}
+      {{ notification_text }}
     </mj-text>
   </mj-column>
 </mj-section>

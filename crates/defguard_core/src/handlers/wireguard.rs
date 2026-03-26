@@ -516,7 +516,12 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
 pub async fn count_networks(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Counting WireGuard networks");
     let count = WireguardNetwork::count(&appstate.pool).await?;
-    Ok(ApiResponse::json(LocationsCount { count }, StatusCode::OK))
+    Ok(ApiResponse::json(
+        LocationsCount {
+            count: count as usize,
+        },
+        StatusCode::OK,
+    ))
 }
 
 /// Details of network

@@ -53,6 +53,10 @@ export const Validate = {
     if (!ipv4WithCIDRPattern.test(ip)) {
       return false;
     }
+    const ipPart = ip.split('/')[0];
+    if (ipPart.split('.').some((octet) => octet.length > 1 && octet.startsWith('0'))) {
+      return false;
+    }
     if (ip.endsWith('/0') && !allow_zero) {
       return false;
     }
@@ -114,7 +118,7 @@ export const Validate = {
     if (!value) {
       return true;
     }
-    const items = value.replaceAll(' ', '').split(splitWith);
+    const items = value.split(splitWith).map((item) => item.trim());
 
     if (items.length > 1 && !allowList) {
       return false;
@@ -144,7 +148,7 @@ export const Validate = {
     if (!value) {
       return true;
     }
-    const items = value.replaceAll(' ', '').split(splitWith);
+    const items = value.split(splitWith).map((item) => item.trim());
 
     if (items.length > 1 && !allowList) {
       return false;

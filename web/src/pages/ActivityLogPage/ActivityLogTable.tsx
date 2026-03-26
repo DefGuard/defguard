@@ -17,11 +17,13 @@ import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/Tab
 import { useApiToTableState } from '../../shared/defguard-ui/hooks/useApiToTableState';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../shared/utils/displayDate';
+import { formatIpForDisplay } from '../../shared/utils/formatIpForDisplay';
 
 type RowData = ActivityLogEvent;
 
 const columnHelper = createColumnHelper<RowData>();
 const missingValuePlaceholder = '—';
+const activityLogTimestampFormat = 'DD/MM/YYYY | HH:mm:ss';
 
 const renderOptionalTableValue = (
   value: string | null | undefined,
@@ -62,10 +64,10 @@ export const ActivityLogTable = ({
       columnHelper.accessor('timestamp', {
         header: 'Date',
         enableSorting: true,
-        minSize: 160,
+        minSize: 180,
         cell: (info) => {
           const data = info.getValue();
-          const formatted = displayDate(data);
+          const formatted = displayDate(data, activityLogTimestampFormat);
           return (
             <TableCell>
               <span>{formatted}</span>
@@ -87,8 +89,11 @@ export const ActivityLogTable = ({
         minSize: 150,
         cell: (info) => {
           const value = info.getValue();
+          const displayValue = isPresent(value) ? formatIpForDisplay(value) : value;
           return (
-            <TableCell>{renderOptionalTableValue(value, 'No IP recorded')}</TableCell>
+            <TableCell>
+              {renderOptionalTableValue(displayValue, 'No IP recorded')}
+            </TableCell>
           );
         },
       }),
@@ -118,7 +123,7 @@ export const ActivityLogTable = ({
       }),
       columnHelper.accessor('module', {
         header: 'Module',
-        minSize: 140,
+        minSize: 120,
         cell: (info) => {
           const value = info.getValue();
           return (

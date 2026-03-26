@@ -81,6 +81,12 @@ const navigationConfig: NavGroupProps[] = [
         link: '/groups',
         testId: 'groups',
       },
+      {
+        id: 'enrollment',
+        icon: 'key',
+        label: m.cmp_nav_item_enrollment(),
+        link: '/enrollment',
+      },
     ],
   },
   {
@@ -149,6 +155,12 @@ const navigationConfig: NavGroupProps[] = [
         icon: 'settings',
         label: m.cmp_nav_item_settings(),
         link: '/settings',
+      },
+      {
+        id: 'support',
+        icon: 'support',
+        label: m.cmp_nav_item_support(),
+        link: '/support',
       },
       {
         id: 'edges',
@@ -277,7 +289,7 @@ const NavItem = ({
     return false;
   }, [license, licenseTier]);
 
-  const showPending = isPresent(pendingCount) && pendingCount > 0;
+  const showPending = !showLock && isPresent(pendingCount) && pendingCount > 0;
   const showRight = showPending || (showLock && isPresent(licenseTier));
 
   return (

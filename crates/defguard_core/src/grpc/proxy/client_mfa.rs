@@ -481,7 +481,7 @@ impl ClientMfaServer {
         // Prepare event context
         let (ip, _user_agent) = parse_client_ip_agent(&info).map_err(Status::internal)?;
         let context =
-            BidiRequestContext::new(user.id, user.username.clone(), ip, format!("{}", device));
+            BidiRequestContext::new(user.id, user.username.clone(), ip, format!("{device}"));
 
         // validate code
         match method {
@@ -838,7 +838,7 @@ impl ClientMfaServer {
                 user_id: user.id,
                 username: user.username.clone(),
                 ip: None,
-                device_name: format!("{}", device),
+                device_name: format!("{device}"),
             };
             self.emit_event(BidiStreamEvent {
                 context,

@@ -1,0 +1,44 @@
+#enrollment-page {
+  .sidebar-list {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+    list-style: disc;
+    padding-left: 20px;
+    color: var(--fg-faded);
+    font: var(--t-body-sm-400);
+
+    li {
+      color: var(--fg-faded);
+      font: var(--t-body-sm-400);
+      line-height: 20px;
+    }
+  }
+
+  .sidebar-token,
+  .sidebar-token-medium {
+    color: var(--fg-faded);
+    font: var(--t-body-sm-600);
+  }
+
+  .sidebar-separator {
+    color: var(--fg-faded);
+  }
+
+  .message-templates-success-banner {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    column-gap: var(--spacing-md);
+    align-items: center;
+    background-color: var(--fg-success-muted);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    box-sizing: border-box;
+    min-height: 36px;
+
+    .copy {
+      font: var(--t-body-xs-500);
+      color: var(--fg-success);
+    }
+  }
+}

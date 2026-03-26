@@ -166,9 +166,6 @@ export interface GroupInfo {
   is_admin: boolean;
 }
 
-export interface GroupsResponse {
-  groups: string[];
-}
 export interface UsersListItem extends User {
   name: string;
   devices: Device[];
@@ -887,6 +884,7 @@ export interface SettingsEnrollment {
   enrollment_welcome_email: string;
   enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
+  enrollment_send_welcome_email: boolean;
 }
 
 export interface SettingsModules {
@@ -1275,7 +1273,7 @@ export interface PaginationMeta {
   current_page: number;
   page_size: number;
   total_items: number;
-  total_pagers: number;
+  total_pages: number;
   next_page: number | null;
 }
 

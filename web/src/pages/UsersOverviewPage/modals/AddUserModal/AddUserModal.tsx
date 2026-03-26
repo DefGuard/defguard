@@ -354,9 +354,7 @@ const AddUserModalForm = () => {
       }
       const clean = removeEmptyStrings(value);
       const { data: created } = await addUserMutation(clean);
-      const {
-        data: { groups },
-      } = await api.group.getGroups();
+      const groups = await api.group.getGroups();
       if (enrollmentEnabled) {
         try {
           const enrollmentResponse = (
