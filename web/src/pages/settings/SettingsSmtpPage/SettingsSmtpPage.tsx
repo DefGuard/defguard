@@ -42,10 +42,10 @@ const breadcrumbsLinks = [
     }}
     key={0}
   >
-    Notifications
+    {m.settings_breadcrumb_notifications()}
   </Link>,
   <Link key={1} to="/settings/smtp">
-    SMTP Configuration
+    {m.settings_smtp_title()}
   </Link>,
 ];
 
@@ -54,22 +54,19 @@ export const SettingsSmtpPage = () => {
   const smtp = useApp((s) => s.appInfo.smtp_enabled);
 
   return (
-    <Page id="settings-smtp-page" title="Settings">
+    <Page id="settings-smtp-page" title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
       <SettingsLayout>
         <SettingsHeader
-          title="SMTP Configuration"
-          subtitle="Here you can configure SMTP server used to send system messages to the users."
+          title={m.settings_smtp_title()}
+          subtitle={m.settings_smtp_subtitle()}
           icon="mail"
           badgeProps={smtp ? configuredBadge : notConfiguredBadge}
         />
         {isPresent(settings) && (
           <SettingsCard>
-            <DescriptionBlock title="Server settings">
-              <p>
-                Configure the SMTP server here — it’s required for sending system messages
-                to users.
-              </p>
+            <DescriptionBlock title={m.settings_smtp_section_server_title()}>
+              <p>{m.settings_smtp_section_server_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Xl2} />
             <Content settings={settings} />
@@ -84,11 +81,11 @@ export const SettingsSmtpPage = () => {
 const encryptionValueToLabel = (value: SmtpEncryptionValue): string => {
   switch (value) {
     case 'ImplicitTls':
-      return 'Implicit TLS';
+      return m.settings_smtp_encryption_implicit_tls();
     case 'StartTls':
-      return 'Start TLS';
+      return m.settings_smtp_encryption_start_tls();
     case 'None':
-      return 'None';
+      return m.settings_smtp_encryption_none();
   }
 };
 
@@ -187,31 +184,51 @@ const Content = ({ settings }: { settings: Settings }) => {
       <form.AppForm>
         <EvenSplit>
           <form.AppField name="smtp_server">
-            {(field) => <field.FormInput required label="Server Address" />}
+            {(field) => (
+              <field.FormInput required label={m.settings_smtp_label_server_address()} />
+            )}
           </form.AppField>
           <form.AppField name="smtp_port">
-            {(field) => <field.FormInput required label="Server port" type="number" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_smtp_label_server_port()}
+                type="number"
+              />
+            )}
           </form.AppField>
         </EvenSplit>
         <SizedBox height={ThemeSpacing.Xl} />
         <EvenSplit>
           <form.AppField name="smtp_user">
-            {(field) => <field.FormInput label="Server username" />}
+            {(field) => (
+              <field.FormInput label={m.settings_smtp_label_server_username()} />
+            )}
           </form.AppField>
           <form.AppField name="smtp_password">
-            {(field) => <field.FormInput label="Server password" type="password" />}
+            {(field) => (
+              <field.FormInput
+                label={m.settings_smtp_label_server_password()}
+                type="password"
+              />
+            )}
           </form.AppField>
         </EvenSplit>
         <SizedBox height={ThemeSpacing.Xl} />
         <EvenSplit>
           <form.AppField name="smtp_sender">
-            {(field) => <field.FormInput required label="Sender email address" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_smtp_label_sender_email_address()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="smtp_encryption">
             {(field) => (
               <field.FormSelect
                 options={encryptionSelectOptions}
-                label="Encryption"
+                label={m.settings_smtp_label_encryption()}
                 required
               />
             )}
@@ -228,7 +245,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               {smtpConfigured && (
                 <Button
                   variant="critical"
-                  text="Reset settings"
+                  text={m.settings_smtp_button_reset_settings()}
                   onClick={() => {
                     openModal(ModalName.ConfirmAction, {
                       title: m.settings_smtp_reset_confirm_title(),
@@ -250,7 +267,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                   <Button
                     variant="outlined"
                     iconLeft="mail"
-                    text="Send test email"
+                    text={m.settings_smtp_button_send_test_email()}
                     onClick={() => {
                       openModal(ModalName.SendTestMail);
                     }}
