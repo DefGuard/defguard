@@ -17,7 +17,13 @@ import '../../autoAdoption/steps/style.scss';
 import { SetupPageStep } from '../types';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 
-type AcmeStepId = 'Connecting' | 'ValidatingDomain' | 'IssuingCertificate' | 'Done';
+type AcmeStepId =
+  | 'Connecting'
+  | 'CheckingDomain'
+  | 'ValidatingDomain'
+  | 'IssuingCertificate'
+  | 'Installing'
+  | 'Done';
 
 type AcmeEvent = {
   step: AcmeStepId;
@@ -35,9 +41,11 @@ type AcmeStepState = {
 };
 
 const ACME_STEP_IDS: AcmeStepId[] = [
+  'CheckingDomain',
   'Connecting',
   'ValidatingDomain',
   'IssuingCertificate',
+  'Installing',
 ];
 
 const defaultAcmeState: AcmeStepState = {
@@ -149,6 +157,11 @@ export const SetupExternalUrlSslConfigStep = () => {
     if (sslType === 'lets_encrypt') {
       const steps: { id: AcmeStepId; title: string }[] = [
         {
+          id: 'CheckingDomain',
+          title:
+            m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_checking_domain(),
+        },
+        {
           id: 'Connecting',
           title: m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_connecting(),
         },
@@ -159,6 +172,10 @@ export const SetupExternalUrlSslConfigStep = () => {
         {
           id: 'IssuingCertificate',
           title: m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_issuing(),
+        },
+        {
+          id: 'Installing',
+          title: m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_installing(),
         },
       ];
       return (
@@ -200,7 +217,6 @@ export const SetupExternalUrlSslConfigStep = () => {
               </LoadingStep>
             ))}
           </div>
-          <Divider />
         </div>
       );
     }

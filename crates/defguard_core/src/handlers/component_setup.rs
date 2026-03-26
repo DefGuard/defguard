@@ -1109,6 +1109,7 @@ fn acme_step_name(step: AcmeStep) -> &'static str {
     match step {
         AcmeStep::Unspecified => "Connecting",
         AcmeStep::Connecting => "Connecting",
+        AcmeStep::CheckingDomain => "CheckingDomain",
         AcmeStep::ValidatingDomain => "ValidatingDomain",
         AcmeStep::IssuingCertificate => "IssuingCertificate",
     }
