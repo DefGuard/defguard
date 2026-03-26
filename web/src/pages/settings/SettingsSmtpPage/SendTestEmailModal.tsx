@@ -38,7 +38,7 @@ export const SendTestEmailModal = () => {
 
   return (
     <Modal
-      title={'Send test email'}
+      title={m.settings_smtp_button_send_test_email()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       size="small"
@@ -80,7 +80,7 @@ const ModalContent = () => {
   return (
     <>
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-        {`Check if your SMTP configuration works by sending a test email.`}
+        {m.settings_smtp_test_email_description()}
       </AppText>
       <SizedBox height={ThemeSpacing.Xl2} />
       <form
@@ -110,6 +110,9 @@ const ModalContent = () => {
                 cancelProps={{
                   text: m.controls_cancel(),
                   disabled: isSubmitting,
+                  onClick: () => {
+                    closeModal(modalNameValue);
+                  },
                 }}
               />
             )}
