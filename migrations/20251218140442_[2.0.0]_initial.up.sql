@@ -332,7 +332,7 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('gateway-disconnect', 'gateway_label', 'en_US', 'Gateway name:'),
     ('gateway-disconnect', 'ip_address_label', 'en_US', 'Gateway IP address:'),
     ('gateway-disconnect', 'location_label', 'en_US', 'VPN location:'),
-    ('gateway-reconnect', 'title', 'en_US', 'Defguard Gateway has just disconnected.'),
+    ('gateway-reconnect', 'title', 'en_US', 'Defguard Gateway has just reconnected.'),
     ('gateway-reconnect', 'gateway_label', 'en_US', 'Gateway name:'),
     ('gateway-reconnect', 'ip_address_label', 'en_US', 'Gateway IP address:'),
     ('gateway-reconnect', 'location_label', 'en_US', 'VPN location:'),

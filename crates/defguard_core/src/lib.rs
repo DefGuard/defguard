@@ -947,7 +947,7 @@ pub async fn gateway_config(
         Ok(None) => return Err(anyhow!("Location {location_id} not found")),
         Err(err) => {
             return Err(anyhow!(
-                "Failed to rerieve location {location_id} with error: {err}"
+                "Failed to retrieve location {location_id} with error: {err}"
             ));
         }
     };
