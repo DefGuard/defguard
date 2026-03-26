@@ -11,6 +11,7 @@ import {
 import clsx from 'clsx';
 import { useCallback, useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { LocationConnectedUser } from '../../shared/api/types';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
@@ -27,15 +28,6 @@ import { ConnectionDurationCell } from './components/ConnectionDurationCell';
 import { DeviceTrafficChartCell } from './components/DeviceTrafficChartCell/DeviceTrafficChartCell';
 
 const columnHelper = createColumnHelper<LocationConnectedUser>();
-
-const expansionHeaders = [
-  'Device name',
-  'Public IP',
-  'VPN IP',
-  'Connected',
-  '',
-  'Device traffic',
-];
 
 type ExpandedUserDevicesRowProps = {
   userId: number;
@@ -173,7 +165,7 @@ export const LocationOverviewUsersTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('full_name', {
-        header: 'User name',
+        header: m.users_col_name(),
         meta: {
           flex: true,
         },
@@ -190,7 +182,7 @@ export const LocationOverviewUsersTable = () => {
         ),
       }),
       columnHelper.accessor('public_ip', {
-        header: 'Public IP',
+        header: m.profile_devices_col_pub_ip(),
         size: 200,
         cell: (info) => (
           <TableCell>
@@ -199,19 +191,19 @@ export const LocationOverviewUsersTable = () => {
         ),
       }),
       columnHelper.accessor('vpn_ips', {
-        header: 'VPN IP',
+        header: m.location_overview_col_vpn_ip(),
         size: 250,
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
       columnHelper.accessor('connected_at', {
         size: 125,
-        header: 'Connected',
+        header: m.location_overview_col_connected(),
         cell: (info) => <ConnectionDurationCell connectedAt={info.getValue()} />,
       }),
       columnHelper.display({
         size: 125,
         id: 'devices_count',
-        header: 'Device',
+        header: m.location_overview_col_device(),
         cell: (info) => (
           <TableCell className="devices-count-cell">
             <Icon icon="connected-devices" />
@@ -222,7 +214,7 @@ export const LocationOverviewUsersTable = () => {
       columnHelper.display({
         id: 'stats',
         size: 500,
-        header: 'Traffic',
+        header: m.location_overview_col_traffic(),
         cell: (info) => {
           const row = info.row.original;
           const { stats, total_download, total_upload } = row;
@@ -235,6 +227,18 @@ export const LocationOverviewUsersTable = () => {
           );
         },
       }),
+    ],
+    [],
+  );
+
+  const expansionHeaders = useMemo(
+    () => [
+      m.form_label_device_name(),
+      m.profile_devices_col_pub_ip(),
+      m.location_overview_col_vpn_ip(),
+      m.location_overview_col_connected(),
+      '',
+      m.location_overview_col_traffic(),
     ],
     [],
   );
@@ -273,8 +277,8 @@ export const LocationOverviewUsersTable = () => {
   if (flatData.length === 0)
     return (
       <EmptyStateFlexible
-        title="No connected users"
-        subtitle="Wait for some user to connect"
+        title={m.location_overview_connected_users_empty_title()}
+        subtitle={m.location_overview_connected_users_empty_subtitle()}
       />
     );
 

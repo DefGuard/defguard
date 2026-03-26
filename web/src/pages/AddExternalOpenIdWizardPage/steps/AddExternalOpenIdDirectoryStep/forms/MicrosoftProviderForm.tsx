@@ -71,7 +71,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   options={directorySyncTargetOptions}
                   required
-                  label="Synchronize"
+                  label={m.settings_openid_provider_label_sync_target()}
                 />
               )}
             </form.AppField>
@@ -91,7 +91,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="User behavior"
+                  label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -100,7 +100,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="Admin behavior"
+                  label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -108,11 +108,17 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="directory_sync_group_match">
-            {(field) => <field.FormInput label="Sync only matching groups" />}
+            {(field) => (
+              <field.FormInput
+                label={m.settings_openid_provider_label_sync_only_matching_groups()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="prefetch_users">
-            {(field) => <field.FormCheckbox text="Prefetch users" />}
+            {(field) => (
+              <field.FormCheckbox text={m.settings_openid_provider_prefetch_users()} />
+            )}
           </form.AppField>
         </ProviderSyncToggle>
         <ProviderFormControls

@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useCallback, useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import type {
   WizardPageStep,
   WizardWelcomePageConfig,
@@ -35,8 +36,8 @@ export const AddLocationPage = () => {
 
   const welcomeConfig = useMemo(
     (): WizardWelcomePageConfig => ({
-      title: 'Add new location',
-      subtitle: `Welcome! Let's set up a new location to organize users, manage access, and connect gateways for activity tracking and monitoring.`,
+      title: m.add_location_welcome_title(),
+      subtitle: m.add_location_welcome_subtitle(),
       content: <AddLocationWelcomeStep />,
       displayDocs: false,
       media: <WizardCoverImage variant="location" />,
@@ -50,52 +51,46 @@ export const AddLocationPage = () => {
       start: {
         id: AddLocationPageStep.Start,
         order: 0,
-        label: 'Public Facing Data',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.add_location_step_public_facing_data_label(),
+        description: m.add_location_step_common_description(),
       },
       internalVpnSettings: {
         id: AddLocationPageStep.InternalVpnSettings,
         order: 1,
-        label: 'Internal VPN',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.add_location_step_internal_vpn_label(),
+        description: m.add_location_step_common_description(),
       },
       networkSettings: {
         id: AddLocationPageStep.NetworkSettings,
         order: 2,
-        label: 'Network Settings',
-        description:
-          'Manage core details and connection parameters for your VPN location.',
+        label: m.add_location_step_network_settings_label(),
+        description: m.add_location_step_common_description(),
       },
       mfa: {
         id: AddLocationPageStep.Mfa,
         order: 3,
-        label: 'Multi-Factor Authentication',
+        label: m.add_location_step_mfa_label(),
         hidden: locationType === 'service',
-        description:
-          'Configure multi-factor authentication (MFA) to add a secondary verification step to user authentication.',
+        description: m.add_location_step_mfa_description(),
       },
       serviceLocationSettings: {
         id: AddLocationPageStep.ServiceLocationSettings,
         order: 4,
         hidden: locationType === 'regular',
-        label: 'Service Location Settings',
-        description:
-          'A special kind of locations that allow establishing automatic VPN connections on system boot. Service locations are currently only supported with Defguard Client for Windows.',
+        label: m.add_location_step_service_location_settings_label(),
+        description: m.add_location_step_service_location_settings_description(),
       },
       accessControl: {
         id: AddLocationPageStep.AccessControl,
         order: 5,
-        label: 'Access Control',
-        description: 'Assign user groups with access permissions to this location.',
+        label: m.add_location_step_access_control_label(),
+        description: m.add_location_step_access_control_description(),
       },
       firewall: {
         id: AddLocationPageStep.Firewall,
         order: 6,
-        label: 'Firewall',
-        description:
-          'The default policy defines how to handle traffic not covered by ACL rules.',
+        label: m.add_location_step_firewall_label(),
+        description: m.add_location_step_firewall_description(),
       },
     }),
     [locationType],
@@ -119,8 +114,8 @@ export const AddLocationPage = () => {
       isOnWelcomePage={isWelcome}
       activeStep={activeStep}
       onClose={onClose}
-      subtitle="Welcome! Let's set up a new location to organize users, manage access, and connect gateways for activity tracking and monitoring."
-      title="Create new location"
+      subtitle={m.add_location_welcome_subtitle()}
+      title={m.add_location_page_title()}
       steps={stepsConfig}
       id="add-location-wizard"
       welcomePageConfig={welcomeConfig}

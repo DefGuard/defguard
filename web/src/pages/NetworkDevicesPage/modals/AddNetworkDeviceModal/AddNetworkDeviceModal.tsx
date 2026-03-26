@@ -173,7 +173,7 @@ const ManualStep = ({
       <div className="box-controls">
         <Button
           variant="outlined"
-          text={m.modal_add_user_device_manual_download_actions_download()}
+          text={m.modal_network_device_manual_config_download()}
           iconLeft="download"
           testId="download-config"
           onClick={() => {

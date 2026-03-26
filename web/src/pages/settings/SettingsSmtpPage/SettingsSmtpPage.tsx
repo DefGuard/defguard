@@ -31,7 +31,7 @@ import { useApp } from '../../../shared/hooks/useApp';
 import { patternValidEmail } from '../../../shared/patterns';
 import { getSettingsQueryOptions } from '../../../shared/query';
 import { Validate } from '../../../shared/validate';
-import { configuredBadge, notConfiguredBadge } from '../SettingsIndexPage/types';
+import { getConfiguredBadge, getNotConfiguredBadge } from '../SettingsIndexPage/types';
 import { SendTestEmailModal } from './SendTestEmailModal';
 
 const breadcrumbsLinks = [
@@ -61,7 +61,7 @@ export const SettingsSmtpPage = () => {
           title={m.settings_smtp_title()}
           subtitle={m.settings_smtp_subtitle()}
           icon="mail"
-          badgeProps={smtp ? configuredBadge : notConfiguredBadge}
+          badgeProps={smtp ? getConfiguredBadge() : getNotConfiguredBadge()}
         />
         {isPresent(settings) && (
           <SettingsCard>

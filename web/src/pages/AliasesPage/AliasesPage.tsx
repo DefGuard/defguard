@@ -2,6 +2,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { Suspense, useCallback, useEffect, useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import {
   AclListTab,
   type AclListTabValue,
@@ -41,7 +42,9 @@ export const AliasesPage = () => {
   );
 
   const pendingCount = aliasesCount?.pending ?? 0;
-  const pendingTitle = pendingCount ? `Pending (${pendingCount})` : 'Pending';
+  const pendingTitle = pendingCount
+    ? `${m.state_pending()} (${pendingCount})`
+    : m.state_pending();
   const pendingIcon = pendingCount > 0 ? IconKind.AttentionFilled : undefined;
 
   const tabs = useMemo(
@@ -49,7 +52,7 @@ export const AliasesPage = () => {
       {
         active: activeTab === AclListTab.Deployed,
         onClick: () => setActiveTab(AclListTab.Deployed),
-        title: 'Deployed',
+        title: m.state_deployed(),
       },
       {
         active: activeTab === AclListTab.Pending,
@@ -62,7 +65,7 @@ export const AliasesPage = () => {
   );
 
   return (
-    <Page id="aliases-page" title={'Aliases'}>
+    <Page id="aliases-page" title={m.cmp_nav_item_aliases()}>
       <TablePageLayout>
         <Tabs items={tabs} />
         <Suspense fallback={<TableSkeleton />}>
