@@ -368,7 +368,7 @@ fn login_redirect(
     if let Some(cookie_domain) = cookie_domain() {
         cookie = cookie.domain(cookie_domain);
     }
-    Ok(redirect_to("/login", private_cookies.add(cookie)))
+    Ok(redirect_to("/auth/login", private_cookies.add(cookie)))
 }
 
 /// Authorization Endpoint
