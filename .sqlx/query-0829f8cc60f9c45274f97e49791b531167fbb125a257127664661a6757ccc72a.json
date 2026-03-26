@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"aclalias\" (\"parent_id\",\"name\",\"kind\",\"state\",\"addresses\",\"ports\",\"protocols\",\"any_address\",\"any_port\",\"any_protocol\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
+  "query": "INSERT INTO \"aclalias\" (\"parent_id\",\"name\",\"kind\",\"state\",\"addresses\",\"ports\",\"protocols\",\"any_address\",\"any_port\",\"any_protocol\",\"modified_at\",\"modified_by\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -40,12 +40,14 @@
         "Int4Array",
         "Bool",
         "Bool",
-        "Bool"
+        "Bool",
+        "Timestamp",
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "9457aa22a755f600e1cb2be0a1b5b54c25f6ce675b8d445cd4a8e60f5617ebd0"
+  "hash": "0829f8cc60f9c45274f97e49791b531167fbb125a257127664661a6757ccc72a"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, addresses, ports, protocols, enabled, expires, any_address, any_port, any_protocol, use_manual_destination_settings FROM aclrulealias ara JOIN aclrule ar ON ar.id = ara.rule_id WHERE ara.alias_id = $1",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_groups\",\"deny_all_groups\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_locations\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_address\",\"any_port\",\"any_protocol\",\"use_manual_destination_settings\",\"modified_at\",\"modified_by\" FROM \"aclrule\" LIMIT $1 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "state: RuleState",
+        "name": "state: _",
         "type_info": {
           "Custom": {
             "name": "aclrule_state",
@@ -73,17 +73,17 @@
       },
       {
         "ordinal": 11,
-        "name": "addresses",
+        "name": "addresses: _",
         "type_info": "InetArray"
       },
       {
         "ordinal": 12,
-        "name": "ports",
+        "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 13,
-        "name": "protocols",
+        "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
@@ -115,10 +115,21 @@
         "ordinal": 19,
         "name": "use_manual_destination_settings",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 20,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 21,
+        "name": "modified_by",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -142,8 +153,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "707ad10c1504f8b90f3005a33f02c7741c93938e28cc40d57dc43b035852c707"
+  "hash": "e924cd8240161d95a30c2116fbc943c598073e07c4da13b4e09e87a325b61e51"
 }
