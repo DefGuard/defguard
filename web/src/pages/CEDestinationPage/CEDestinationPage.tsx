@@ -165,7 +165,9 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
     <EditPage
       pageTitle={m.cmp_nav_item_destinations()}
       headerProps={{
-        title: isEdit ? m.acl_destination_form_title_edit() : m.controls_add_destination(),
+        title: isEdit
+          ? m.acl_destination_form_title_edit()
+          : m.controls_add_destination(),
         icon: 'add-location',
         subtitle: m.acl_destination_form_subtitle(),
       }}
@@ -190,7 +192,9 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
         >
           <MarkedSection icon="settings">
             <form.AppField name="name">
-              {(field) => <field.FormInput required label={m.acl_destination_col_name()} />}
+              {(field) => (
+                <field.FormInput required label={m.acl_destination_col_name()} />
+              )}
             </form.AppField>
           </MarkedSection>
           <Divider spacing={ThemeSpacing.Xl2} />
@@ -232,10 +236,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
                   <SizedBox height={ThemeSpacing.Lg} />
                   <form.AppField name="ports">
                     {(field) => (
-                      <field.FormInput
-                        required
-                        label={m.acl_form_ports_label()}
-                      />
+                      <field.FormInput required label={m.acl_form_ports_label()} />
                     )}
                   </form.AppField>
                 </Fold>

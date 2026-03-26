@@ -635,7 +635,9 @@ const Content = ({ rule: initialRule, tab }: Props) => {
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="location-tracking">
-          <AppText font={TextStyle.TBodyPrimary600}>{m.acl_rule_section_destination()}</AppText>
+          <AppText font={TextStyle.TBodyPrimary600}>
+            {m.acl_rule_section_destination()}
+          </AppText>
           <SizedBox height={ThemeSpacing.Sm} />
           <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
             {m.acl_rule_destinations_description()}
@@ -785,7 +787,9 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                   </DescriptionBlock>
                   <SizedBox height={ThemeSpacing.Xl} />
                   <form.AppField name="any_address">
-                    {(field) => <field.FormToggle label={m.acl_destination_any_address()} />}
+                    {(field) => (
+                      <field.FormToggle label={m.acl_destination_any_address()} />
+                    )}
                   </form.AppField>
                   <form.Subscribe selector={(s) => !s.values.any_address}>
                     {(open) => (
@@ -835,7 +839,9 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                   </DescriptionBlock>
                   <SizedBox height={ThemeSpacing.Xl} />
                   <form.AppField name="any_protocol">
-                    {(field) => <field.FormToggle label={m.acl_destination_any_protocol()} />}
+                    {(field) => (
+                      <field.FormToggle label={m.acl_destination_any_protocol()} />
+                    )}
                   </form.AppField>
                   <form.Subscribe selector={(s) => !s.values.any_protocol}>
                     {(open) => (
@@ -875,7 +881,9 @@ const Content = ({ rule: initialRule, tab }: Props) => {
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="enrollment">
-          <AppText font={TextStyle.TBodyPrimary600}>{m.acl_rule_section_permissions()}</AppText>
+          <AppText font={TextStyle.TBodyPrimary600}>
+            {m.acl_rule_section_permissions()}
+          </AppText>
           <SizedBox height={ThemeSpacing.Xl} />
           <DescriptionBlock title={m.acl_rule_permissions_description_title()}>
             <p>{m.acl_rule_permissions_description()}</p>
@@ -949,7 +957,9 @@ const Content = ({ rule: initialRule, tab }: Props) => {
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="lock-closed">
-          <AppText font={TextStyle.TBodyPrimary600}>{m.acl_rule_section_restrictions()}</AppText>
+          <AppText font={TextStyle.TBodyPrimary600}>
+            {m.acl_rule_section_restrictions()}
+          </AppText>
           <SizedBox height={ThemeSpacing.Xl} />
           <DescriptionBlock title={m.acl_rule_limit_access()}>
             <p>{m.acl_rule_limit_access_description()}</p>
@@ -1020,7 +1030,10 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="deny_all_groups">
                   {(field) => (
-                    <field.FormRadio text={m.acl_rule_exclude_all_groups()} value={true} />
+                    <field.FormRadio
+                      text={m.acl_rule_exclude_all_groups()}
+                      value={true}
+                    />
                   )}
                 </form.AppField>
                 <SizedBox height={ThemeSpacing.Md} />

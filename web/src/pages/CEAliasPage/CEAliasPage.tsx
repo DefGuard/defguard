@@ -66,11 +66,9 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
 
   const breadcrumbs = useMemo(() => {
     const res = [
-      <Link
-        to="/acl/aliases"
-        search={tab ? { tab } : undefined}
-        key={0}
-      >{m.cmp_nav_item_aliases()}</Link>,
+      <Link to="/acl/aliases" search={tab ? { tab } : undefined} key={0}>
+        {m.cmp_nav_item_aliases()}
+      </Link>,
     ];
 
     if (isEdit) {
@@ -81,15 +79,15 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
             tab ? { alias: alias?.id as number, tab } : { alias: alias?.id as number }
           }
           key={1}
-        >{m.acl_alias_form_title_edit()}</Link>,
+        >
+          {m.acl_alias_form_title_edit()}
+        </Link>,
       );
     } else {
       res.push(
-        <Link
-          to="/acl/add-alias"
-          search={tab ? { tab } : undefined}
-          key={1}
-        >{m.acl_alias_form_title_add()}</Link>,
+        <Link to="/acl/add-alias" search={tab ? { tab } : undefined} key={1}>
+          {m.acl_alias_form_title_add()}
+        </Link>,
       );
     }
 
@@ -215,9 +213,7 @@ const FormContent = ({
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="addresses">
-            {(field) => (
-              <field.FormInput notNull label={m.acl_form_addresses_label()} />
-            )}
+            {(field) => <field.FormInput notNull label={m.acl_form_addresses_label()} />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title={m.acl_form_section_ports_title()}>
@@ -225,9 +221,7 @@ const FormContent = ({
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="ports">
-            {(field) => (
-              <field.FormInput notNull label={m.acl_form_ports_label()} />
-            )}
+            {(field) => <field.FormInput notNull label={m.acl_form_ports_label()} />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title={m.acl_form_section_protocols_title()}>
@@ -266,7 +260,9 @@ const FormContent = ({
                     <div>
                       <Button
                         type="submit"
-                        text={isEdit ? m.controls_save_changes() : m.acl_alias_action_add()}
+                        text={
+                          isEdit ? m.controls_save_changes() : m.acl_alias_action_add()
+                        }
                         loading={isSubmitting}
                         disabled={isEmpty}
                       />
