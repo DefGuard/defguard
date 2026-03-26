@@ -73,10 +73,6 @@ type FormFields = z.infer<typeof formSchema>;
 
 const getProtocolName = (value: AclProtocolValue): string => AclProtocolName[value];
 
-const destinationCreatedMessage = 'Destination created.';
-const destinationEditedMessage =
-  'Destination added to Pending tab and awaiting deployment.';
-
 export const CEDestinationPage = ({ destination }: Props) => {
   const router = useRouter();
   const isEdit = isPresent(destination);
@@ -84,7 +80,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
   const { mutateAsync: addDestination } = useMutation({
     mutationFn: api.acl.destination.addDestination,
     onError: (e) => {
-      Snackbar.error('Error occurred');
+      Snackbar.error(m.acl_destination_save_failed());
       console.error(e);
     },
     meta: {
@@ -95,7 +91,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
   const { mutateAsync: editDestination } = useMutation({
     mutationFn: api.acl.destination.editDestination,
     onError: (e) => {
-      Snackbar.error('Error occurred');
+      Snackbar.error(m.acl_destination_save_failed());
       console.error(e);
     },
     meta: {
@@ -138,10 +134,10 @@ export const CEDestinationPage = ({ destination }: Props) => {
             ...toSend,
             id: destination.id,
           });
-          Snackbar.default(destinationEditedMessage);
+          Snackbar.default(m.acl_destination_updated_pending());
         } else {
           await addDestination(toSend);
-          Snackbar.default(destinationCreatedMessage);
+          Snackbar.default(m.acl_destination_created());
         }
 
         router.history.back();
@@ -153,11 +149,11 @@ export const CEDestinationPage = ({ destination }: Props) => {
 
   return (
     <EditPage
-      pageTitle="Destinations"
+      pageTitle={m.cmp_nav_item_destinations()}
       headerProps={{
-        title: isEdit ? 'Edit destination' : 'Add destination',
+        title: isEdit ? m.acl_destination_form_title_edit() : m.controls_add_destination(),
         icon: 'add-location',
-        subtitle: `ACL alias functionality allows administrators to create reusable elements which can then be used when defining a destination in multiple ACL rules. You must define at least one element in the alias settings.`,
+        subtitle: m.acl_destination_form_subtitle(),
       }}
     >
       {(destination?.rules?.length ?? 0) > 0 && (
@@ -165,7 +161,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
           <InfoBanner
             variant="warning"
             icon="info-outlined"
-            text={`This destination is linked to one or more active ACL rules. Any changes you make here after the destination is deployed will also affect the rules that depend on it.`}
+            text={m.acl_destination_active_rules_warning()}
           />
           <SizedBox height={ThemeSpacing.Xl2} />
         </>
@@ -180,17 +176,17 @@ export const CEDestinationPage = ({ destination }: Props) => {
         >
           <MarkedSection icon="settings">
             <form.AppField name="name">
-              {(field) => <field.FormInput required label="Destination name" />}
+              {(field) => <field.FormInput required label={m.acl_destination_col_name()} />}
             </form.AppField>
           </MarkedSection>
           <Divider spacing={ThemeSpacing.Xl2} />
           <MarkedSection icon="location-tracking">
-            <DescriptionBlock title="Addresses/Ranges">
-              <p>{`Define the IP addresses or ranges that form the destination of this ACL rule.`}</p>
+            <DescriptionBlock title={m.acl_form_section_addresses_title()}>
+              <p>{m.acl_form_section_addresses_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
             <form.AppField name="any_address">
-              {(field) => <field.FormToggle label="All IP addresses" />}
+              {(field) => <field.FormToggle label={m.acl_destination_any_address()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_address}>
               {(open) => (
@@ -200,8 +196,8 @@ export const CEDestinationPage = ({ destination }: Props) => {
                     {(field) => (
                       <field.FormTextarea
                         required
-                        placeholder="ex. 192.168.12.1, 192.23.56.12, 198.156.23.12"
-                        label="IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)"
+                        placeholder={m.acl_form_addresses_placeholder()}
+                        label={m.acl_form_addresses_label()}
                       />
                     )}
                   </form.AppField>
@@ -209,12 +205,12 @@ export const CEDestinationPage = ({ destination }: Props) => {
               )}
             </form.Subscribe>
             <Divider spacing={ThemeSpacing.Xl} />
-            <DescriptionBlock title="Ports">
-              <p>{`You may specify the exact ports accessible to users in this location.`}</p>
+            <DescriptionBlock title={m.acl_form_section_ports_title()}>
+              <p>{m.acl_form_section_ports_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
             <form.AppField name="any_port">
-              {(field) => <field.FormToggle label="All ports" />}
+              {(field) => <field.FormToggle label={m.acl_destination_any_port()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_port}>
               {(open) => (
@@ -224,7 +220,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
                     {(field) => (
                       <field.FormInput
                         required
-                        label="Manually defined ports (or multiple values separated by commas)"
+                        label={m.acl_form_ports_label()}
                       />
                     )}
                   </form.AppField>
@@ -232,12 +228,12 @@ export const CEDestinationPage = ({ destination }: Props) => {
               )}
             </form.Subscribe>
             <Divider spacing={ThemeSpacing.Xl} />
-            <DescriptionBlock title="Protocols">
-              <p>{`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must remain selected.`}</p>
+            <DescriptionBlock title={m.acl_form_section_protocols_title()}>
+              <p>{m.acl_form_section_protocols_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
             <form.AppField name="any_protocol">
-              {(field) => <field.FormToggle label="All protocols" />}
+              {(field) => <field.FormToggle label={m.acl_destination_any_protocol()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_protocol}>
               {(open) => (
@@ -267,7 +263,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
               />
               <Button
                 variant="primary"
-                text={isEdit ? 'Save changes' : 'Add destination'}
+                text={isEdit ? m.controls_save_changes() : m.controls_add_destination()}
                 type="submit"
               />
             </div>
