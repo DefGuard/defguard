@@ -277,6 +277,8 @@ CREATE INDEX idx_vpn_session_stats_gateway_id ON vpn_session_stats(gateway_id);
 CREATE INDEX idx_vpn_session_stats_collected_at ON vpn_session_stats(collected_at DESC);
 CREATE INDEX idx_vpn_session_stats_latest_handshake ON vpn_session_stats(latest_handshake DESC);
 CREATE INDEX idx_vpn_session_stats_session_collected ON vpn_session_stats(session_id, collected_at DESC);
+CREATE INDEX idx_vpn_session_stats_session_latest_handshake
+    ON vpn_session_stats(session_id, latest_handshake DESC);
 
 -- Remove legacy peer stats structures superseded by VPN session tracking.
 DROP VIEW wireguard_peer_stats_view;
