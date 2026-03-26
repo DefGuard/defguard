@@ -159,18 +159,6 @@ export const SupportPage = () => {
             <ButtonsGroup>
               <Button
                 variant="outlined"
-                text={m.support_page_assistance_btn_ticket()}
-                iconRight="open-in-new-window"
-                onClick={() =>
-                  window.open(
-                    externalLink.defguard.support,
-                    '_blank',
-                    'noopener,noreferrer',
-                  )
-                }
-              />
-              <Button
-                variant="outlined"
                 text={m.support_page_assistance_btn_call()}
                 iconRight="calendar"
                 onClick={() =>
