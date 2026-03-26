@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"name\",\"kind\" \"kind: _\",\"state\" \"state: _\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"any_address\",\"any_port\",\"any_protocol\" FROM \"aclalias\"",
+  "query": "SELECT id, \"parent_id\",\"name\",\"kind\" \"kind: _\",\"state\" \"state: _\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"any_address\",\"any_port\",\"any_protocol\",\"modified_at\",\"modified_by\" FROM \"aclalias\"",
   "describe": {
     "columns": [
       {
@@ -77,6 +77,16 @@
         "ordinal": 10,
         "name": "any_protocol",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "modified_by",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -93,8 +103,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "3456b6ba4d6f4f37ef0db33a8d30ae180d62382bec045c3ac32c76f163fe3adf"
+  "hash": "fe4d955400ff0e1bdfe85de1ec90646a364b274e7b3f17dc22ee5d89b07709d3"
 }

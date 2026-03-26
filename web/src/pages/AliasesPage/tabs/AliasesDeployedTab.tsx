@@ -2,6 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import { AclListTab } from '../../../shared/aclTabs';
 import { AclStatus } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -50,7 +51,12 @@ export const AliasesDeployedTab = () => {
       onClick: () => {
         if (license === undefined) return;
         licenseActionCheck(canUseBusinessFeature(license), () => {
-          navigate({ to: '/acl/add-alias' });
+          navigate({
+            to: '/acl/add-alias',
+            search: {
+              tab: AclListTab.Deployed,
+            },
+          });
         });
       },
     }),
@@ -102,7 +108,9 @@ export const AliasesDeployedTab = () => {
             />
             <Button {...addButtonProps} />
           </TableTop>
-          {!visibleEmpty && <AliasTable data={filteredAliases} rules={rules} />}
+          {!visibleEmpty && (
+            <AliasTable data={filteredAliases} rules={rules} tab={AclListTab.Deployed} />
+          )}
           {visibleEmpty && (
             <EmptyStateFlexible
               icon="search"

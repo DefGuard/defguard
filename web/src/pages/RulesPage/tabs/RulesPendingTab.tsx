@@ -1,5 +1,6 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { AclListTab } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
 import { AclStatus } from '../../../shared/api/types';
 import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
@@ -61,7 +62,7 @@ export const RulesPendingTab = () => {
         isPresent(locations) &&
         license !== undefined && (
           <RulesTable
-            variant="pending"
+            variant={AclListTab.Pending}
             title="Pending rules"
             buttonProps={buttonProps}
             data={rules}

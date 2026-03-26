@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { omit } from 'radashi';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import type { AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import {
   type AclDestination,
@@ -30,6 +31,7 @@ import { aclDestinationValidator, aclPortsValidator } from '../../shared/validat
 
 type Props = {
   destination?: AclDestination;
+  tab?: AclListTabValue;
 };
 
 const formSchema = z
@@ -77,15 +79,28 @@ const destinationCreatedMessage = 'Destination created.';
 const destinationEditedMessage =
   'Destination added to Pending tab and awaiting deployment.';
 
-export const CEDestinationPage = ({ destination }: Props) => {
+export const CEDestinationPage = ({ destination, tab }: Props) => {
   const router = useRouter();
+  const navigate = useNavigate();
   const isEdit = isPresent(destination);
+  const returnToDestinations = useCallback(() => {
+    if (tab === undefined) {
+      router.history.back();
+      return;
+    }
+
+    navigate({
+      to: '/acl/destinations',
+      search: {
+        tab,
+      },
+    });
+  }, [navigate, router, tab]);
 
   const { mutateAsync: addDestination } = useMutation({
     mutationFn: api.acl.destination.addDestination,
-    onError: (e) => {
+    onError: () => {
       Snackbar.error('Error occurred');
-      console.error(e);
     },
     meta: {
       invalidate: ['acl', 'destination'],
@@ -94,9 +109,8 @@ export const CEDestinationPage = ({ destination }: Props) => {
 
   const { mutateAsync: editDestination } = useMutation({
     mutationFn: api.acl.destination.editDestination,
-    onError: (e) => {
+    onError: () => {
       Snackbar.error('Error occurred');
-      console.error(e);
     },
     meta: {
       invalidate: ['acl', 'destination'],
@@ -144,9 +158,9 @@ export const CEDestinationPage = ({ destination }: Props) => {
           Snackbar.default(destinationCreatedMessage);
         }
 
-        router.history.back();
-      } catch (e) {
-        console.error(e);
+        returnToDestinations();
+      } catch {
+        return;
       }
     },
   });
@@ -262,7 +276,7 @@ export const CEDestinationPage = ({ destination }: Props) => {
                 text={m.controls_cancel()}
                 variant="secondary"
                 onClick={() => {
-                  router.history.back();
+                  returnToDestinations();
                 }}
               />
               <Button

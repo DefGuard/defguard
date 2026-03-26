@@ -523,6 +523,84 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
 }
 
 #[sqlx::test]
+async fn test_destination_audit_fields_track_acting_user_across_mutations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_promoted_admin(&mut client, &pool, "hpotter").await;
+
+    let destination = make_destination();
+    let response = client
+        .post("/api/v1/acl/destination")
+        .json(&destination)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created_destination: ApiAclDestination = response.json().await;
+
+    let created_destination_row =
+        AclAlias::find_by_id_and_kind(&pool, created_destination.id, AliasKind::Destination)
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(created_destination_row.modified_by, "hpotter");
+    assert_ne!(created_destination_row.modified_by, "admin");
+    let created_modified_at = created_destination_row.modified_at;
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+
+    let mut destination_update = created_destination.clone();
+    destination_update.name = "destination updated by hpotter".to_string();
+    let response = client
+        .put(format!(
+            "/api/v1/acl/destination/{}",
+            created_destination.id
+        ))
+        .json(&destination_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated_destination: ApiAclDestination = response.json().await;
+
+    let updated_destination_row =
+        AclAlias::find_by_id_and_kind(&pool, updated_destination.id, AliasKind::Destination)
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(updated_destination_row.state, AliasState::Modified);
+    assert_eq!(updated_destination_row.modified_by, "hpotter");
+    assert_eq!(
+        updated_destination_row.name,
+        "destination updated by hpotter"
+    );
+    assert!(updated_destination_row.modified_at > created_modified_at);
+    let updated_modified_at = updated_destination_row.modified_at;
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+
+    let response = client
+        .put("/api/v1/acl/destination/apply")
+        .json(&json!({ "destinations": [updated_destination.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_destination_row =
+        AclAlias::find_by_id_and_kind(&pool, updated_destination.id, AliasKind::Destination)
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(applied_destination_row.state, AliasState::Applied);
+    assert_eq!(applied_destination_row.modified_by, "hpotter");
+    assert_ne!(applied_destination_row.modified_by, "admin");
+    assert!(applied_destination_row.modified_at > updated_modified_at);
+}
+
+#[sqlx::test]
 async fn test_destination_apply_after_delete_recreate_preserves_rule_association(
     _: PgPoolOptions,
     options: PgConnectOptions,

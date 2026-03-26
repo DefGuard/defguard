@@ -92,12 +92,13 @@ impl ApiAclAlias {
     pub(crate) async fn create_from_api(
         pool: &PgPool,
         api_alias: &EditAclAlias,
+        actor: &str,
     ) -> Result<Self, AclError> {
         let mut transaction = pool.begin().await?;
 
-        let alias = AclAlias::try_from(api_alias)?
-            .save(&mut *transaction)
-            .await?;
+        let mut alias = AclAlias::try_from(api_alias)?;
+        alias.stamp_modified(actor);
+        let alias = alias.save(&mut *transaction).await?;
 
         api_alias
             .create_related_objects(&mut transaction, alias.id)
@@ -113,6 +114,7 @@ impl ApiAclAlias {
         pool: &PgPool,
         id: Id,
         api_alias: &EditAclAlias,
+        actor: &str,
     ) -> Result<Self, AclError> {
         let mut transaction = pool.begin().await?;
 
@@ -127,6 +129,7 @@ impl ApiAclAlias {
 
         // Convert alias from API to model.
         let mut alias = AclAlias::try_from(api_alias)?;
+        alias.stamp_modified(actor);
 
         // perform appropriate updates depending on existing alias' state
         let alias = match existing_alias.state {
@@ -309,7 +312,7 @@ pub(crate) async fn create_acl_alias(
 ) -> ApiResult {
     debug!("User {} creating ACL alias {data:?}", session.user.username);
     data.validate()?;
-    let alias = ApiAclAlias::create_from_api(&appstate.pool, &data)
+    let alias = ApiAclAlias::create_from_api(&appstate.pool, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error creating ACL alias {data:?}: {err}");
@@ -345,7 +348,7 @@ pub(crate) async fn update_acl_alias(
 ) -> ApiResult {
     debug!("User {} updating ACL alias {data:?}", session.user.username);
     data.validate()?;
-    let alias = ApiAclAlias::update_from_api(&appstate.pool, id, &data)
+    let alias = ApiAclAlias::update_from_api(&appstate.pool, id, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error updating ACL alias {data:?}: {err}");
@@ -404,12 +407,17 @@ pub(crate) async fn apply_acl_aliases(
         "User {} applying ACL aliases: {:?}",
         session.user.username, data.aliases
     );
-    AclAlias::apply_by_kind(&data.aliases, AliasKind::Component, &appstate)
-        .await
-        .map_err(|err| {
-            error!("Error applying ACL aliases {data:?}: {err}");
-            err
-        })?;
+    AclAlias::apply_by_kind(
+        &data.aliases,
+        AliasKind::Component,
+        &session.user.username,
+        &appstate,
+    )
+    .await
+    .map_err(|err| {
+        error!("Error applying ACL aliases {data:?}: {err}");
+        err
+    })?;
     info!(
         "User {} applied ACL aliases: {:?}",
         session.user.username, data.aliases
