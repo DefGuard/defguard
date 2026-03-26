@@ -8,7 +8,6 @@ import type { WizardPageStep } from '../../shared/components/wizard/types';
 import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import deployImage from './assets/deploy.svg';
@@ -67,7 +66,7 @@ export const EdgeSetupPage = () => {
 
   const WelcomePageContent = () => (
     <>
-      <Divider spacing={ThemeSpacing.Xl} />
+      <SizedBox height={ThemeSpacing.Xl} />
       <div className="left">
         <ActionCard
           title={m.edge_setup_welcome_deploy_title()}

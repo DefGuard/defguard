@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { m } from '../../../../paraglide/messages';
 import { AppText } from '../../../defguard-ui/components/AppText/AppText';
+import { Divider } from '../../../defguard-ui/components/Divider/Divider';
 import { ExternalLink } from '../../../defguard-ui/components/ExternalLink/ExternalLink';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
@@ -40,6 +41,8 @@ export const WizardWelcomePage = ({
             <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgFaded}>
               {subtitle}
             </AppText>
+            <SizedBox height={ThemeSpacing.Xl2} />
+            <Divider spacing={ThemeSpacing.Xs} />
             <div className="left">{content}</div>
           </div>
           {displayDocs && (
