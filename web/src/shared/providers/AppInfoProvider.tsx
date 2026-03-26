@@ -13,6 +13,7 @@ const DISMISSED_UPDATE_KEY = 'dismissed-update-version';
 
 export const AppInfoProvider = ({ children }: PropsWithChildren) => {
   const isAuthenticated = useAuth((s) => isPresent(s.user));
+  const isAdmin = useAuth((s) => s.isAdmin);
   const updateModalOpenedRef = useRef(false);
 
   const { data: appInfo } = useQuery({
@@ -42,7 +43,7 @@ export const AppInfoProvider = ({ children }: PropsWithChildren) => {
   }, [appInfo]);
 
   useEffect(() => {
-    if (!update || updateModalOpenedRef.current) return;
+    if (!update || !isAdmin || updateModalOpenedRef.current) return;
 
     const dismissedVersion = localStorage.getItem(DISMISSED_UPDATE_KEY);
     if (dismissedVersion === update.version) return;
@@ -62,7 +63,7 @@ export const AppInfoProvider = ({ children }: PropsWithChildren) => {
       },
       dismissible: true,
     });
-  }, [update]);
+  }, [update, isAdmin]);
 
   return <>{children}</>;
 };
