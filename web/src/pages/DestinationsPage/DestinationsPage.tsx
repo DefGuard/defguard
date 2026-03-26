@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Suspense, useMemo, useState } from 'react';
-import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
 import { m } from '../../paraglide/messages';
+import { AclDeploymentState, type AclDeploymentStateValue } from '../../shared/api/types';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';

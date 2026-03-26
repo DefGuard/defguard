@@ -40,7 +40,11 @@ export const CEAliasPage = ({ alias }: Props) => {
   const isEdit = useMemo(() => isPresent(alias), [alias]);
 
   const breadcrumbs = useMemo(() => {
-    const res = [<Link to="/acl/aliases" key={0}>{m.cmp_nav_item_aliases()}</Link>];
+    const res = [
+      <Link to="/acl/aliases" key={0}>
+        {m.cmp_nav_item_aliases()}
+      </Link>,
+    ];
     if (isEdit) {
       res.push(
         <Link
@@ -54,7 +58,11 @@ export const CEAliasPage = ({ alias }: Props) => {
         </Link>,
       );
     } else {
-      res.push(<Link to="/acl/add-alias" key={1}>{m.acl_alias_form_title_add()}</Link>);
+      res.push(
+        <Link to="/acl/add-alias" key={1}>
+          {m.acl_alias_form_title_add()}
+        </Link>,
+      );
     }
     return res;
   }, [alias?.id, isEdit]);
