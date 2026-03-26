@@ -1165,7 +1165,6 @@ async fn call_proxy_trigger_acme(
     let mut stream = client
         .trigger_acme(AcmeChallenge {
             domain: domain.clone(),
-            use_staging: false,
             account_credentials_json,
         })
         .await
