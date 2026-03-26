@@ -15,9 +15,12 @@ ALTER TABLE settings
     ADD COLUMN stats_purge_frequency_hours int4 NOT NULL DEFAULT 24,
     ADD COLUMN stats_purge_threshold_days int4 NOT NULL DEFAULT 30,
     ADD COLUMN enrollment_token_timeout_hours int4 NOT NULL DEFAULT 24,
+    ADD COLUMN enrollment_send_welcome_email boolean NOT NULL DEFAULT true,
     ADD COLUMN password_reset_token_timeout_hours int4 NOT NULL DEFAULT 24,
     ADD COLUMN enrollment_session_timeout_minutes int4 NOT NULL DEFAULT 10,
     ADD COLUMN password_reset_session_timeout_minutes int4 NOT NULL DEFAULT 10;
+
+ALTER TABLE activity_log_event ALTER COLUMN ip DROP NOT NULL;
 
 ALTER TABLE settings
     ADD CONSTRAINT fk_default_admin
@@ -228,6 +231,7 @@ CREATE TABLE vpn_client_session (
     connected_at timestamp without time zone NULL,
     disconnected_at timestamp without time zone NULL,
     mfa_method vpn_client_mfa_method NULL,
+    preshared_key text NULL,
     state vpn_client_session_state NOT NULL DEFAULT 'new',
     FOREIGN KEY (location_id) REFERENCES wireguard_network(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
@@ -239,6 +243,14 @@ CREATE INDEX idx_vpn_client_session_location_id ON vpn_client_session(location_i
 CREATE INDEX idx_vpn_client_session_state ON vpn_client_session(state);
 CREATE INDEX idx_vpn_client_session_created_at ON vpn_client_session(created_at DESC);
 CREATE INDEX idx_vpn_client_session_connected_at ON vpn_client_session(connected_at DESC);
+CREATE UNIQUE INDEX vpn_client_session_active_location_device_unique
+    ON vpn_client_session(location_id, device_id)
+    WHERE state IN ('new', 'connected');
+
+ALTER TABLE wireguard_network_device
+    DROP COLUMN preshared_key,
+    DROP COLUMN is_authorized,
+    DROP COLUMN authorized_at;
 
 CREATE TABLE vpn_session_stats (
     id bigserial PRIMARY KEY,
@@ -300,7 +312,40 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('mfa-code', 'subtitle', 'en_US', 'It seems like you are trying to login to Defguard. Here is the code you need to access your account.'),
     ('mfa-code', 'code_is_valid', 'en_US', 'The code is valid for 1 minute'),
     ('user-import-blocked', 'title', 'en_US', 'User import blocked'),
-    ('user-import-blocked', 'notification_text', 'en_US', 'Import of an external user was blocked because it would exceed your current license capacity.');
+    ('user-import-blocked', 'notification_text', 'en_US', 'Import of an external user was blocked because it would exceed your current license capacity.'),
+    ('mfa-activation', 'title', 'en_US', 'Hello,'),
+    ('mfa-activation', 'subtitle', 'en_US', 'You are activating Multi-Factor Authentication using email verification codes.'),
+    ('mfa-activation', 'code_is_valid', 'en_US', 'The code is valid for:'),
+    ('enrollment-admin-notification', 'title', 'en_US', 'Dear,'),
+    ('enrollment-admin-notification', 'message', 'en_US', 'just completed their enrollment process.'),
+    ('enrollment-admin-notification', 'goodday', 'en_US', 'Have a good day!'),
+    ('gateway-disconnect', 'title', 'en_US', 'Defguard Gateway has just disconnected.'),
+    ('gateway-disconnect', 'subtitle', 'en_US', 'Please login to your gateway server and see the logs.'),
+    ('gateway-disconnect', 'gateway_label', 'en_US', 'Gateway name:'),
+    ('gateway-disconnect', 'ip_address_label', 'en_US', 'Gateway IP address:'),
+    ('gateway-disconnect', 'location_label', 'en_US', 'VPN location:'),
+    ('gateway-reconnect', 'title', 'en_US', 'Defguard Gateway has just disconnected.'),
+    ('gateway-reconnect', 'gateway_label', 'en_US', 'Gateway name:'),
+    ('gateway-reconnect', 'ip_address_label', 'en_US', 'Gateway IP address:'),
+    ('gateway-reconnect', 'location_label', 'en_US', 'VPN location:'),
+    ('mfa-configured', 'title', 'en_US', 'Hello,'),
+    ('mfa-configured', 'subtitle', 'en_US', 'A Multi-Factor Authentication (MFA) has been activated in your account.'),
+    ('mfa-configured', 'mfa_method_label', 'en_US', 'MFA method:'),
+    ('new-device-login', 'title', 'en_US', 'Your account was just logged into from a new device.'),
+    ('new-device-login', 'label_device', 'en_US', 'Device name:'),
+    ('new-device-login', 'label_date', 'en_US', 'Date:'),
+    ('new-device-oidc-login', 'title', 'en_US', 'Your account was just logged into a system using OpenID Connect authorization'),
+    ('new-device-oidc-login', 'subtitle', 'en_US', 'You can deauthorize all applications that have access to your account from the web vault under (My Profile > Apps).'),
+    ('new-device-oidc-login', 'label_profile', 'en_US', 'Profile URL:'),
+    ('new-device-oidc-login', 'label_oauth2client', 'en_US', 'System name:'),
+    ('password-reset', 'title', 'en_US', 'Password reset'),
+    ('password-reset', 'subtitle', 'en_US', 'If you wish to reset your password, please copy and paste the following URL in your browser:'),
+    ('password-reset-done', 'title', 'en_US', 'Password reset'),
+    ('password-reset-done', 'subtitle', 'en_US', 'Your password has been successfully changed.'),
+    ('test', 'title', 'en_US', 'This is test email from Defguard system.'),
+    ('test', 'subtitle', 'en_US', 'If you received it, your SMTP configuration is correct.'),
+    ('support-data', 'title', 'en_US', 'Support data'),
+    ('support-data', 'subtitle', 'en_US', 'Support data can be found in the attachment.');
 
 -- Wizard state is centralized outside of settings.
 CREATE TYPE active_wizard AS ENUM ('none', 'initial', 'auto_adoption', 'migration');
