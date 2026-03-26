@@ -110,7 +110,7 @@ const formSchema = z.object({
   ),
   ldap_uses_ad: z.boolean(),
   ldap_user_rdn_attr: z.string().trim().nullable(),
-  ldap_sync_groups: z.string().trim(),
+  ldap_sync_groups: z.string().trim().nullable(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -148,7 +148,7 @@ const PageForm = () => {
       ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
-      ldap_sync_groups: settings?.ldap_sync_groups.join(', ') ?? '',
+      ldap_sync_groups: settings?.ldap_sync_groups.join(', ') || null,
     };
   }, [settings]);
 
@@ -196,7 +196,12 @@ const PageForm = () => {
         ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes
           .split(',')
           .map((item) => item.trim()),
-        ldap_sync_groups: value.ldap_sync_groups.split(',').map((item) => item.trim()),
+        ldap_sync_groups: value.ldap_sync_groups
+          ? value.ldap_sync_groups
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : [],
       });
     },
   });

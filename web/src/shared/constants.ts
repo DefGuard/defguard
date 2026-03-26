@@ -6,13 +6,13 @@ export const externalLink = {
     pricing: 'https://defguard.net/pricing',
     download: 'https://defguard.net/download',
     sales: 'mailto:sales@defguard.net',
-    support: 'https://defguard.net/support/',
-    scheduleCall: 'https://defguard.net/',
+    scheduleCall:
+      'https://docs.google.com/forms/d/e/1FAIpQLSdKr1NXH1DlQuAF5oQWvT7Zri5yPQ3txvwz3qgtb1n9FtKTgw/viewform',
   },
   github: {
-    bugReport: 'https://github.com/DefGuard/defguard/issues/new?template=bug_report.md',
+    bugReport: 'https://github.com/DefGuard/defguard/issues/new?template=02-bug.yml',
     featureRequest:
-      'https://github.com/DefGuard/defguard/issues/new?template=feature_request.md',
+      'https://github.com/DefGuard/defguard/issues/new?template=01-feature-request.yml',
   },
   client: {
     desktop: {

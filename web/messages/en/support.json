@@ -17,9 +17,8 @@
   "support_page_feature_desc": "We grow with the help of our community. If you have an idea or a missing feature to suggest, please share it – we'll review it.",
   "support_page_feature_btn": "Submit on Github",
   "support_page_email_title": "Contact us by email",
-  "support_page_email_desc": "For any additional requests, reach out to us at",
-  "support_page_assistance_title": "Need Assistance?",
+  "support_page_email_desc": "Basic email support or direct support customers, reach out to us at",
+  "support_page_assistance_title": "Need Direct Support?",
   "support_page_assistance_desc": "Let us know your issue or arrange a meeting with our support team.",
-  "support_page_assistance_btn_ticket": "Open a support ticket",
   "support_page_assistance_btn_call": "Schedule a call with our support team"
 }
