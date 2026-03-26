@@ -80,11 +80,6 @@ export interface MigrationGeneralConfigRequest {
   public_proxy_url: string;
 }
 
-export interface SetAutoAdoptionUrlSettingsRequest {
-  defguard_url: string;
-  public_proxy_url: string;
-}
-
 export type InternalSslType = 'none' | 'defguard_ca' | 'own_cert';
 
 export interface SetAutoAdoptionInternalUrlSettingsRequest {

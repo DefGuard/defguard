@@ -29,7 +29,7 @@ use tracing::{info, instrument};
 use crate::handlers::{
     auto_wizard::{
         get_auto_adoption_result, get_external_ssl_info, get_internal_ssl_info,
-        set_external_url_settings, set_internal_url_settings, set_mfa_settings, set_url_settings,
+        set_external_url_settings, set_internal_url_settings, set_mfa_settings,
         set_vpn_settings,
     },
     initial_wizard::{
@@ -72,7 +72,6 @@ pub fn build_setup_webapp(
                         .route("/session", get(setup_session))
                         // .route("/step", post(advance_setup_step))
                         .route("/auto_adoption", get(get_auto_adoption_result))
-                        .route("/auto_wizard/url_settings", post(set_url_settings))
                         .route(
                             "/auto_wizard/internal_url_settings",
                             post(set_internal_url_settings).get(get_internal_ssl_info),

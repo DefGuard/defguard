@@ -94,7 +94,6 @@ import type {
   SetAutoAdoptionInternalUrlSettingsRequest,
   SetAutoAdoptionInternalUrlSettingsResponse,
   SetAutoAdoptionMfaSettingsRequest,
-  SetAutoAdoptionUrlSettingsRequest,
   SetAutoAdoptionVpnSettingsRequest,
   SetGeneralConfigRequest,
   Settings,
@@ -147,8 +146,6 @@ const api = {
     getWizardState: () => client.get<WizardState>('/wizard'),
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post('/initial_setup/general_config', data),
-    setAutoAdoptionUrlSettings: (data: SetAutoAdoptionUrlSettingsRequest) =>
-      client.post('/initial_setup/auto_wizard/url_settings', data),
     setAutoAdoptionInternalUrlSettings: (
       data: SetAutoAdoptionInternalUrlSettingsRequest,
     ) =>

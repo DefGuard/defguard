@@ -388,36 +388,6 @@ pub async fn get_external_ssl_info(
     ))
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct UrlSettingsConfig {
-    defguard_url: String,
-    public_proxy_url: String,
-}
-
-/// Updates URL settings used by auto-adoption wizard (legacy - sets both at once).
-pub async fn set_url_settings(
-    _: AdminOrSetupRole,
-    Extension(pool): Extension<PgPool>,
-    Json(url_settings): Json<UrlSettingsConfig>,
-) -> ApiResult {
-    info!("Applying Auto-adoption wizard URL settings");
-    debug!(
-        "URL settings received: defguard_url={}, public_proxy_url={}",
-        url_settings.defguard_url, url_settings.public_proxy_url,
-    );
-
-    let mut settings = defguard_common::db::models::Settings::get_current_settings();
-    settings.defguard_url = url_settings.defguard_url;
-    settings.public_proxy_url = url_settings.public_proxy_url;
-    update_current_settings(&pool, settings).await?;
-
-    advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::VpnSettings).await?;
-
-    info!("Auto-adoption wizard URL settings applied");
-
-    Ok(ApiResponse::with_status(StatusCode::CREATED))
-}
-
 #[allow(clippy::struct_field_names)]
 #[derive(Deserialize, Serialize, Debug)]
 pub struct VpnSettingsConfig {
