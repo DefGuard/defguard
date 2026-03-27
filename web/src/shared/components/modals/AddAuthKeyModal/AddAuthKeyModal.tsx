@@ -168,10 +168,22 @@ const ModalContent = ({ username }: { username: string }) => {
             label={m.form_label_type()}
           />
           <form.AppField name="name">
-            {(field) => <field.FormInput label={m.form_label_name()} required />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_name()}
+                required
+                helper={m.form_helper_name()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="key">
-            {(field) => <field.FormTextarea label={m.form_label_key()} required />}
+            {(field) => (
+              <field.FormTextarea
+                label={m.form_label_key()}
+                required
+                helper={m.form_helper_key()}
+              />
+            )}
           </form.AppField>
         </form.AppForm>
       </form>

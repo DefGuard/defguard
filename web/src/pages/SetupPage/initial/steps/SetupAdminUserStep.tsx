@@ -182,6 +182,7 @@ export const SetupAdminUserStep = () => {
                   required
                   label={m.initial_setup_admin_user_label_first_name()}
                   type="text"
+                  helper={m.initial_setup_admin_user_helper_first_name()}
                 />
               )}
             </form.AppField>
@@ -191,6 +192,7 @@ export const SetupAdminUserStep = () => {
                   required
                   label={m.initial_setup_admin_user_label_last_name()}
                   type="text"
+                  helper={m.initial_setup_admin_user_helper_last_name()}
                 />
               )}
             </form.AppField>
@@ -199,6 +201,7 @@ export const SetupAdminUserStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_admin_user_label_username()}
+                  helper={m.initial_setup_admin_user_helper_username()}
                   type="text"
                 />
               )}
@@ -208,6 +211,7 @@ export const SetupAdminUserStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_admin_user_label_email()}
+                  helper={m.initial_setup_admin_user_helper_email()}
                 />
               )}
             </form.AppField>
@@ -218,6 +222,7 @@ export const SetupAdminUserStep = () => {
                     required
                     label={m.initial_setup_admin_user_label_password()}
                     type="password"
+                    helper={m.initial_setup_admin_user_helper_password()}
                   />
                 )}
               </form.AppField>

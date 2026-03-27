@@ -167,10 +167,22 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         />
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_device_name()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_device_name()}
+                helper={m.form_helper_device_name()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="description">
-            {(field) => <field.FormInput required label={m.form_label_description()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_description()}
+                helper={m.form_helper_description()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="modifiableIpParts" mode="array">
             {(field) =>
@@ -180,6 +192,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
                     <subField.FormSuggestedIPInput
                       data={device.split_ips[index]}
                       label={m.form_label_assigned_ip_address()}
+                      helper={m.form_helper_assigned_ip_address()}
                       required
                     />
                   )}

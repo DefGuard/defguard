@@ -100,15 +100,33 @@ const EditEdgeForm = ({ edge }: { edge: Edge }) => {
       <form.AppForm>
         <EditPageFormSection label={m.edge_edit_general_info()}>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.edge_edit_name()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.edge_edit_name()}
+                helper={m.edge_helper_name()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="address">
-            {(field) => <field.FormInput disabled label={m.edge_edit_address()} />}
+            {(field) => (
+              <field.FormInput
+                disabled
+                label={m.edge_edit_address()}
+                helper={m.edge_helper_address()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
-            {(field) => <field.FormInput disabled label={m.edge_edit_port()} />}
+            {(field) => (
+              <field.FormInput
+                disabled
+                label={m.edge_edit_port()}
+                helper={m.edge_helper_port()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="enabled">

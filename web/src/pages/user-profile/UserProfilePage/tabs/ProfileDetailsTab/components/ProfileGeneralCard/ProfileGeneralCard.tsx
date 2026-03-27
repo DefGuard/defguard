@@ -130,26 +130,49 @@ export const ProfileGeneralCard = () => {
         <form.AppForm>
           <form.AppField name="username">
             {(field) => (
-              <field.FormInput {...fieldProps} label={m.form_label_username()} />
+              <field.FormInput
+                {...fieldProps}
+                label={m.form_label_username()}
+                helper={m.form_helper_username()}
+              />
             )}
           </form.AppField>
           <EvenSplit>
             <form.AppField name="first_name">
               {(field) => (
-                <field.FormInput {...fieldProps} label={m.form_label_first_name()} />
+                <field.FormInput
+                  {...fieldProps}
+                  label={m.form_label_first_name()}
+                  helper={m.form_helper_first_name()}
+                />
               )}
             </form.AppField>
             <form.AppField name="last_name">
               {(field) => (
-                <field.FormInput {...fieldProps} label={m.form_label_last_name()} />
+                <field.FormInput
+                  {...fieldProps}
+                  label={m.form_label_last_name()}
+                  helper={m.form_helper_last_name()}
+                />
               )}
             </form.AppField>
           </EvenSplit>
           <form.AppField name="phone">
-            {(field) => <field.FormInput label={m.form_label_phone()} />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_phone()}
+                helper={m.form_helper_phone()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="email">
-            {(field) => <field.FormInput {...fieldProps} label={m.form_label_email()} />}
+            {(field) => (
+              <field.FormInput
+                {...fieldProps}
+                label={m.form_label_email()}
+                helper={m.form_helper_email()}
+              />
+            )}
           </form.AppField>
           <Button
             type="submit"
