@@ -331,7 +331,7 @@ pub(crate) async fn create_group(
     let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
     if !validate_group_name(&group_info.name) {
-        error!("Group name contains forbidden characters!");
+        error!("Group name contains forbidden characters");
         return Err(WebError::BadRequest(
             "Group name contains forbidden characters".into(),
         ));
@@ -431,7 +431,7 @@ pub(crate) async fn modify_group(
     let mut transaction = appstate.pool.begin().await?;
 
     if !validate_group_name(&group_info.name) {
-        error!("Group name contains forbidden characters!");
+        error!("Group name contains forbidden characters");
         return Err(WebError::BadRequest(
             "Group name contains forbidden characters".into(),
         ));
