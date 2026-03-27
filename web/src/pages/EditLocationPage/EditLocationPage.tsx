@@ -192,6 +192,7 @@ type DisconnectRelevantLocationData = Pick<
   | 'allowed_groups'
 >;
 
+// Normalizes comma-separated values so formatting-only edits do not trigger warnings.
 const normalizeCommaSeparatedValues = (value: string) =>
   value
     .split(',')
@@ -199,12 +200,14 @@ const normalizeCommaSeparatedValues = (value: string) =>
     .filter(Boolean)
     .sort();
 
+// Normalizes group selections before comparing disconnect-related access changes.
 const normalizeSelectedGroups = (groups: string[]) =>
   [...new Set(groups.map((group) => group.trim()).filter(Boolean))].sort();
 
 const areEqualStringArrays = (left: string[], right: string[]) =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
+// Builds the submitted location payload used for both save and warning comparisons.
 const buildLocationSubmissionData = (
   value: FormFields,
   location: NetworkLocation,
@@ -225,6 +228,7 @@ const buildLocationSubmissionData = (
   };
 };
 
+// Extracts only the location fields that can affect connected peers.
 const getDisconnectRelevantLocationData = (
   value: EditNetworkLocation,
 ): DisconnectRelevantLocationData => ({
@@ -238,6 +242,7 @@ const getDisconnectRelevantLocationData = (
   allowed_groups: value.allow_all_groups ? [] : value.allowed_groups,
 });
 
+// Maps disconnect-relevant fields to the labels shown in the warning modal.
 const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string => {
   switch (field) {
     case 'address':
@@ -259,6 +264,7 @@ const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string
   }
 };
 
+// Lists disconnect-relevant fields whose effective values changed on submit.
 const getDisconnectRelevantChangedFields = (
   original: DisconnectRelevantLocationData,
   submitted: DisconnectRelevantLocationData,
@@ -399,6 +405,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     [location],
   );
 
+  // Reuses the same save request for direct submits and confirmed warning actions.
   const submitLocationChanges = async (value: FormFields) => {
     await editLocation({
       id: location.id,
