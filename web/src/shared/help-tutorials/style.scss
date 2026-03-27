@@ -138,7 +138,6 @@
 .help-tutorial-card-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   overflow: hidden;
 }
 
@@ -151,13 +150,6 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.help-tutorial-card-duration {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 14px;
-  color: var(--fg-muted);
 }
 
 // Close button — small circle, replaces launcher when panel is open

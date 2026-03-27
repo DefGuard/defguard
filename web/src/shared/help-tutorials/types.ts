@@ -2,7 +2,6 @@ export interface HelpTutorial {
   youtubeVideoId: string;
   thumbnailUrl?: string;
   title: string;
-  duration?: string;
 }
 
 // outer key = version string (e.g. "2.2"), inner key = canonicalized route key (e.g. "/users")
