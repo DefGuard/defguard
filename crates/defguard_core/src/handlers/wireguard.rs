@@ -130,6 +130,15 @@ impl WireguardNetworkData {
 
         Ok(())
     }
+
+    pub(crate) fn validate_allowed_groups(&self) -> Result<(), WebError> {
+        if self.allow_all_groups || !self.allowed_groups.is_empty() {
+            return Ok(());
+        }
+        Err(WebError::BadRequest(
+            "At least one group must be specified when allow_all_groups is disabled".into(),
+        ))
+    }
 }
 
 // Used in process of importing network from WireGuard config.
@@ -216,6 +225,7 @@ pub(crate) async fn create_network(
 
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
+    data.validate_allowed_groups()?;
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -325,6 +335,7 @@ pub(crate) async fn modify_network(
 
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
+    data.validate_allowed_groups()?;
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
