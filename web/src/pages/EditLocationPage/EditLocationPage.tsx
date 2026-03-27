@@ -171,7 +171,7 @@ const formSchema = z
       context.addIssue({
         code: 'custom',
         path: ['peer_disconnect_threshold'],
-        message: m.form_min_value({ value: peerDisconnectThresholdMinimum }),
+        message: m.form_error_min({ value: peerDisconnectThresholdMinimum }),
       });
     }
   });

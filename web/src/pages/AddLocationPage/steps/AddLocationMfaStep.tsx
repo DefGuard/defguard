@@ -19,7 +19,7 @@ import { useAddLocationStore } from '../useAddLocationStore';
 
 const schema = z
   .number(m.form_error_required())
-  .min(120, m.form_min_value({ value: 120 }));
+  .min(120, m.form_error_min({ value: 120 }));
 
 export const AddLocationMfaStep = () => {
   const [error, setError] = useState<string | null>(null);

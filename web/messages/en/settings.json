@@ -27,7 +27,7 @@
   "settings_vpn_stats_label_purge_threshold": "Stats purge threshold",
   "settings_enrollment_label_token_validity": "Enrollment token validity",
   "settings_enrollment_label_password_reset_token_validity": "Password reset token validity",
-  "settings_enrollment_label_session_expires_in": "Enrollment session expiration",
+  "settings_enrollment_label_session_expiration": "Enrollment session expiration",
   "settings_enrollment_page_title": "Enrollment",
   "settings_enrollment_page_subtitle": "Configure enrollment settings to control how users join your instance and manage the enrollment flow.",
   "settings_enrollment_tab_general": "General",
