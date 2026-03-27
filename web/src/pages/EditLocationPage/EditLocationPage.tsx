@@ -424,6 +424,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           actionPromise: () => submitLocationChanges(value),
           submitProps: {
             text: m.controls_save_changes(),
+            variant: 'critical',
           },
         });
         return;

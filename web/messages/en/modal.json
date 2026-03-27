@@ -11,7 +11,7 @@
   "modal_delete_location_body": "Deleting location {name} will also delete related gateways. This action cannot be undone.",
   "modal_delete_network_device_title": "Delete device",
   "modal_delete_network_device_body": "Are you sure you want to delete this device? This action cannot be undone.",
-  "modal_edit_location_disconnect_warning_title": "Save changes that may disconnect VPN clients?",
+  "modal_edit_location_disconnect_warning_title": "Save location changes",
   "modal_edit_location_disconnect_warning_body": "These changes may disconnect active VPN client sessions for this location.\n\nModified settings:\n\n{fields}",
   "modal_delete_user_title": "Delete user",
   "modal_delete_user_body": "Are you sure you want to delete user {name}? This action cannot be undone.",
