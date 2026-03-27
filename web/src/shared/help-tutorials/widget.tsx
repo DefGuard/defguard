@@ -1,23 +1,9 @@
 import './style.scss';
 import { useEffect, useRef, useState } from 'react';
+import { IconTutorial } from '../defguard-ui/components/Icon/icons/IconTutorial';
 import { Modal } from '../defguard-ui/components/Modal/Modal';
 import { useResolvedHelpTutorials } from './resolved';
 import type { HelpTutorial } from './types';
-
-// Inline SVG: simple video-camera icon for the launcher button
-const VideoCameraIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <rect x="1" y="3.5" width="9" height="9" rx="1.5" fill="currentColor" />
-    <path d="M10 6.5L15 4v8l-5-2.5V6.5Z" fill="currentColor" />
-  </svg>
-);
 
 /**
  * Returns the thumbnail URL for a tutorial.
@@ -127,7 +113,7 @@ export const HelpTutorialsWidget = () => {
           aria-label="Video support"
           aria-expanded={panelOpen}
         >
-          <VideoCameraIcon />
+          <IconTutorial aria-hidden="true" />
           <span>Video support</span>
         </button>
       </div>
