@@ -25,9 +25,7 @@ export const MigrationWizardStart = () => {
         }}
         content={`${m.migration_wizard_start_explain_1()}</br></br>${m.migration_wizard_start_explain_2()}`}
       />
-      <SizedBox height={ThemeSpacing.Xl} />
-      <Divider spacing={ThemeSpacing.Xs} />
-      <SizedBox height={ThemeSpacing.Xl} />
+      <Divider spacing={ThemeSpacing.Xl2} />
       <Controls>
         <div className="left">
           <Button
