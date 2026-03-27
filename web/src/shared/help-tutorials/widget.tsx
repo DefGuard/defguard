@@ -1,7 +1,8 @@
 import './style.scss';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { IconClose } from '../defguard-ui/components/Icon/icons/IconClose';
 import { IconTutorial } from '../defguard-ui/components/Icon/icons/IconTutorial';
-import { Modal } from '../defguard-ui/components/Modal/Modal';
 import { useResolvedHelpTutorials } from './resolved';
 import type { HelpTutorial } from './types';
 
@@ -58,6 +59,58 @@ const TutorialCard = ({ tutorial, onClick }: TutorialCardProps) => (
   </button>
 );
 
+interface VideoOverlayProps {
+  tutorial: HelpTutorial;
+  onClose: () => void;
+}
+
+const VideoOverlay = ({ tutorial, onClose }: VideoOverlayProps) => {
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const modalsRoot = document.getElementById('modals-root');
+  if (!modalsRoot) return null;
+
+  return createPortal(
+    <div
+      className="help-tutorials-overlay"
+      onClick={onClose}
+      aria-modal="true"
+      role="dialog"
+      aria-label={tutorial.title}
+    >
+      <div
+        className="help-tutorials-modal-container"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="help-tutorials-modal-close"
+          onClick={onClose}
+          aria-label="Close video"
+        >
+          <IconClose aria-hidden="true" />
+        </button>
+        <div className="help-tutorials-modal">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${tutorial.youtubeVideoId}?autoplay=1`}
+            title={tutorial.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    </div>,
+    modalsRoot,
+  );
+};
+
 export const HelpTutorialsWidget = () => {
   const tutorials = useResolvedHelpTutorials();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -79,8 +132,6 @@ export const HelpTutorialsWidget = () => {
     setSelectedVideo(tutorial);
     setPanelOpen(false);
   };
-
-  const handleModalClose = () => setSelectedVideo(null);
 
   return (
     <>
@@ -116,24 +167,9 @@ export const HelpTutorialsWidget = () => {
         )}
       </div>
 
-      <Modal
-        id="help-tutorials-modal"
-        title={selectedVideo?.title ?? ''}
-        isOpen={selectedVideo !== null}
-        onClose={handleModalClose}
-        afterClose={() => setSelectedVideo(null)}
-      >
-        {selectedVideo && (
-          <div className="help-tutorials-video-wrapper">
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeVideoId}?autoplay=1`}
-              title={selectedVideo.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        )}
-      </Modal>
+      {selectedVideo && (
+        <VideoOverlay tutorial={selectedVideo} onClose={() => setSelectedVideo(null)} />
+      )}
     </>
   );
 };

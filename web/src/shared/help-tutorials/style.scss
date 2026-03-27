@@ -115,12 +115,7 @@
   .skeleton {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      90deg,
-      #e8e7e7 25%,
-      var(--border-muted) 50%,
-      #e8e7e7 75%
-    );
+    background: linear-gradient(90deg, #e8e7e7 25%, var(--border-muted) 50%, #e8e7e7 75%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.4s infinite;
   }
@@ -130,6 +125,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -169,7 +165,9 @@
   line-height: 1;
   cursor: pointer;
   align-self: flex-end;
-  transition: box-shadow 0.15s ease, color 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
@@ -178,22 +176,60 @@
 }
 
 // ---------------------------------------------------------------------------
-// Video modal
+// Video overlay
 // ---------------------------------------------------------------------------
 
-#help-tutorials-modal {
-  .modal-content {
-    padding: 0;
-  }
+.help-tutorials-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.help-tutorials-video-wrapper {
-  width: min(760px, 90vw);
+.help-tutorials-modal-container {
+  position: relative;
+  display: inline-block;
+  padding-top: 36px;
+}
+
+.help-tutorials-modal {
+  background: var(--bg-default);
+  border-radius: 12px;
+  box-shadow: 0 6px 30px 0 rgba(0, 0, 0, 0.09);
+  padding: 20px;
+  width: 920px;
+  max-width: 90vw;
 
   iframe {
     display: block;
     width: 100%;
     aspect-ratio: 16 / 9;
     border: none;
+    border-radius: 4px;
+  }
+}
+
+.help-tutorials-modal-close {
+  position: absolute;
+  top: 4px;
+  right: -36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-default);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.15s ease;
+  z-index: 1;
+
+  &:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.16);
   }
 }
