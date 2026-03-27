@@ -244,12 +244,12 @@ const PageForm = () => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <EvenSplit>
             <form.AppField name="ldap_url">
-              {(field) => <field.FormInput label={m.form_label_url()} required notNull />}
+              {(field) => <field.FormInput label="form_label_url" required notNull />}
             </form.AppField>
             <form.AppField name="ldap_bind_username">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_bind_username()}
+                  label="settings_ldap_label_bind_username"
                   required
                   notNull
                 />
@@ -261,7 +261,7 @@ const PageForm = () => {
             <form.AppField name="ldap_bind_password">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_bind_password()}
+                  label="settings_ldap_label_bind_password"
                   required
                   notNull
                   type="password"
@@ -269,7 +269,7 @@ const PageForm = () => {
               )}
             </form.AppField>
             <form.AppField name="ldap_sync_groups">
-              {(field) => <field.FormInput label={m.settings_ldap_label_sync_groups()} />}
+              {(field) => <field.FormInput label="settings_ldap_label_sync_groups" />}
             </form.AppField>
           </EvenSplit>
         </MarkedSection>
@@ -283,7 +283,7 @@ const PageForm = () => {
             <form.AppField name="ldap_username_attr">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_username_attribute()}
+                  label="settings_ldap_label_username_attribute"
                   required
                   notNull
                 />
@@ -291,7 +291,7 @@ const PageForm = () => {
             </form.AppField>
             <form.AppField name="ldap_user_rdn_attr">
               {(field) => (
-                <field.FormInput label={m.settings_ldap_label_user_rdn_attribute()} />
+                <field.FormInput label="settings_ldap_label_user_rdn_attribute" />
               )}
             </form.AppField>
           </EvenSplit>
@@ -300,7 +300,7 @@ const PageForm = () => {
             <form.AppField name="ldap_user_search_base">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_user_search_base()}
+                  label="settings_ldap_label_user_search_base"
                   required
                   notNull
                 />
@@ -309,7 +309,7 @@ const PageForm = () => {
             <form.AppField name="ldap_user_obj_class">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_user_object_class()}
+                  label="settings_ldap_label_user_object_class"
                   required
                   notNull
                 />
@@ -321,7 +321,7 @@ const PageForm = () => {
             <form.AppField name="ldap_member_attr">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_member_attribute()}
+                  label="settings_ldap_label_member_attribute"
                   required
                   notNull
                 />
@@ -330,7 +330,7 @@ const PageForm = () => {
             <form.AppField name="ldap_user_auxiliary_obj_classes">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_additional_user_object_classes()}
+                  label="settings_ldap_label_additional_user_object_classes"
                   notNull
                 />
               )}
@@ -347,7 +347,7 @@ const PageForm = () => {
             <form.AppField name="ldap_groupname_attr">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_groupname_attribute()}
+                  label="settings_ldap_label_groupname_attribute"
                   notNull
                   required
                 />
@@ -356,7 +356,7 @@ const PageForm = () => {
             <form.AppField name="ldap_group_obj_class">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_group_object_class()}
+                  label="settings_ldap_label_group_object_class"
                   notNull
                   required
                 />
@@ -368,7 +368,7 @@ const PageForm = () => {
             <form.AppField name="ldap_group_member_attr">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_group_member_attribute()}
+                  label="settings_ldap_label_group_member_attribute"
                   notNull
                   required
                 />
@@ -377,7 +377,7 @@ const PageForm = () => {
             <form.AppField name="ldap_group_search_base">
               {(field) => (
                 <field.FormInput
-                  label={m.settings_ldap_label_group_search_base()}
+                  label="settings_ldap_label_group_search_base"
                   notNull
                   required
                 />
@@ -447,7 +447,7 @@ const PageForm = () => {
                     {(field) => (
                       <field.FormInput
                         notNull
-                        label={m.settings_ldap_label_sync_interval()}
+                        label="settings_ldap_label_sync_interval"
                         type="number"
                         required={syncEnabled}
                       />

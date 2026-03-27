@@ -165,17 +165,15 @@ const ModalContent = ({ webhook }: ModalData) => {
     >
       <form.AppForm>
         <form.AppField name="url">
-          {(field) => <field.FormInput required label={m.form_label_webhook_url()} />}
+          {(field) => <field.FormInput required label="form_label_webhook_url" />}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="description">
-          {(field) => <field.FormInput required label={m.form_label_description()} />}
+          {(field) => <field.FormInput required label="form_label_description" />}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Xl} />
         <form.AppField name="token">
-          {(field) => (
-            <field.FormInput label={m.form_label_secret_token()} type="password" />
-          )}
+          {(field) => <field.FormInput label="form_label_secret_token" type="password" />}
         </form.AppField>
         <Divider spacing={ThemeSpacing.Xl} />
         <DescriptionBlock title={m.modal_ce_webhook_events_title()}>

@@ -86,7 +86,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.migration_wizard_general_config_label_defguard_url()}
+                label="migration_wizard_general_config_label_defguard_url"
                 type="text"
               />
             )}
@@ -100,7 +100,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.migration_wizard_general_config_label_public_proxy_url()}
+                label="migration_wizard_general_config_label_public_proxy_url"
                 type="text"
               />
             )}

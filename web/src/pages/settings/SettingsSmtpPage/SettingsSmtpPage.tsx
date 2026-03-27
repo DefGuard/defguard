@@ -185,14 +185,14 @@ const Content = ({ settings }: { settings: Settings }) => {
         <EvenSplit>
           <form.AppField name="smtp_server">
             {(field) => (
-              <field.FormInput required label={m.settings_smtp_label_server_address()} />
+              <field.FormInput required label="settings_smtp_label_server_address" />
             )}
           </form.AppField>
           <form.AppField name="smtp_port">
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_smtp_label_server_port()}
+                label="settings_smtp_label_server_port"
                 type="number"
               />
             )}
@@ -201,14 +201,12 @@ const Content = ({ settings }: { settings: Settings }) => {
         <SizedBox height={ThemeSpacing.Xl} />
         <EvenSplit>
           <form.AppField name="smtp_user">
-            {(field) => (
-              <field.FormInput label={m.settings_smtp_label_server_username()} />
-            )}
+            {(field) => <field.FormInput label="settings_smtp_label_server_username" />}
           </form.AppField>
           <form.AppField name="smtp_password">
             {(field) => (
               <field.FormInput
-                label={m.settings_smtp_label_server_password()}
+                label="settings_smtp_label_server_password"
                 type="password"
               />
             )}
@@ -220,7 +218,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_smtp_label_sender_email_address()}
+                label="settings_smtp_label_sender_email_address"
               />
             )}
           </form.AppField>
@@ -228,7 +226,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             {(field) => (
               <field.FormSelect
                 options={encryptionSelectOptions}
-                label={m.settings_smtp_label_encryption()}
+                label="settings_smtp_label_encryption"
                 required
               />
             )}

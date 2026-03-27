@@ -183,7 +183,7 @@ const EnrollmentStep = () => {
                 <field.FormInput
                   required={sendEmail}
                   disabled={!sendEmail}
-                  label={m.form_label_email()}
+                  label="form_label_email"
                 />
               )}
             </form.AppField>
@@ -405,7 +405,7 @@ const AddUserModalForm = () => {
                 <field.FormInput
                   data-testid="field-username"
                   required
-                  label={m.form_label_username()}
+                  label="form_label_username"
                 />
               )}
             </form.AppField>
@@ -414,7 +414,7 @@ const AddUserModalForm = () => {
                 <field.FormInput
                   data-testid="field-email"
                   required
-                  label={m.form_label_email()}
+                  label="form_label_email"
                 />
               )}
             </form.AppField>
@@ -426,7 +426,7 @@ const AddUserModalForm = () => {
                 {(field) => (
                   <field.FormInput
                     required
-                    label={m.form_label_password()}
+                    label="form_label_password"
                     mapError={(val) => mapPasswordFieldError(val, true)}
                     type="password"
                   />
@@ -443,7 +443,7 @@ const AddUserModalForm = () => {
                 <field.FormInput
                   data-testid="field-first_name"
                   required
-                  label={m.form_label_first_name()}
+                  label="form_label_first_name"
                 />
               )}
             </form.AppField>
@@ -452,7 +452,7 @@ const AddUserModalForm = () => {
                 <field.FormInput
                   data-testid="field-last_name"
                   required
-                  label={m.form_label_last_name()}
+                  label="form_label_last_name"
                 />
               )}
             </form.AppField>
@@ -460,7 +460,7 @@ const AddUserModalForm = () => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="phone">
             {(field) => (
-              <field.FormInput data-testid="field-phone" label={m.form_label_phone()} />
+              <field.FormInput data-testid="field-phone" label="form_label_phone" />
             )}
           </form.AppField>
         </form.AppForm>

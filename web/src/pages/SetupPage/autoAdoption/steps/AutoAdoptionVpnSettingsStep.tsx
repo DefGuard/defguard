@@ -132,7 +132,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_auto_adoption_vpn_label_public_ip()}
+                  label="initial_setup_auto_adoption_vpn_label_public_ip"
                 />
               )}
             </form.AppField>
@@ -140,7 +140,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_auto_adoption_vpn_label_wireguard_port()}
+                  label="initial_setup_auto_adoption_vpn_label_wireguard_port"
                   type="number"
                 />
               )}
@@ -153,7 +153,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.initial_setup_auto_adoption_vpn_label_gateway_address()}
+                label="initial_setup_auto_adoption_vpn_label_gateway_address"
               />
             )}
           </form.AppField>
@@ -162,9 +162,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_allowed_ips">
             {(field) => (
-              <field.FormInput
-                label={m.initial_setup_auto_adoption_vpn_label_allowed_ips()}
-              />
+              <field.FormInput label="initial_setup_auto_adoption_vpn_label_allowed_ips" />
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl} />
@@ -172,9 +170,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="vpn_dns_server_ip">
             {(field) => (
-              <field.FormInput
-                label={m.initial_setup_auto_adoption_vpn_label_dns_server_ip()}
-              />
+              <field.FormInput label="initial_setup_auto_adoption_vpn_label_dns_server_ip" />
             )}
           </form.AppField>
           <Controls>

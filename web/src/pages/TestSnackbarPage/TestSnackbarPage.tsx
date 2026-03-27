@@ -37,7 +37,7 @@ export const TestSnackbarPage = () => {
       <Input
         notNull
         value={snackbarText}
-        label="Snackbar content"
+        label="form_label_description"
         onChange={(val) => {
           if (typeof val === 'string') {
             setSnackbarContent(val);

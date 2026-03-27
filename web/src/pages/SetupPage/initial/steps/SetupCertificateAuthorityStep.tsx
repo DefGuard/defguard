@@ -183,8 +183,7 @@ export const SetupCertificateAuthorityStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_ca_label_common_name()}
-                  helper={m.initial_setup_ca_helper_common_name()}
+                  label="initial_setup_ca_label_common_name"
                   type="text"
                   placeholder={m.initial_setup_ca_placeholder_common_name()}
                 />
@@ -195,8 +194,7 @@ export const SetupCertificateAuthorityStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_ca_label_email()}
-                  helper={m.initial_setup_ca_helper_email()}
+                  label="initial_setup_ca_label_email"
                   placeholder={m.initial_setup_ca_placeholder_email()}
                 />
               )}
@@ -206,7 +204,7 @@ export const SetupCertificateAuthorityStep = () => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label={m.initial_setup_ca_label_validity()}
+                  label="initial_setup_ca_label_validity"
                   options={validityOptions}
                 />
               )}

@@ -105,15 +105,15 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
       <form.AppForm>
         <EditPageFormSection label={m.gateway_edit_general_info()}>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.gateway_edit_name()} />}
+            {(field) => <field.FormInput required label="gateway_edit_name" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="address">
-            {(field) => <field.FormInput disabled label={m.gateway_edit_address()} />}
+            {(field) => <field.FormInput disabled label="gateway_edit_address" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
-            {(field) => <field.FormInput disabled label={m.gateway_edit_port()} />}
+            {(field) => <field.FormInput disabled label="gateway_edit_port" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="enabled">

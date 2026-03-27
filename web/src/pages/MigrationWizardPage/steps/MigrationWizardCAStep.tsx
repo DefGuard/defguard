@@ -116,8 +116,7 @@ export const MigrationWizardCAStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.migration_wizard_ca_label_common_name()}
-                  helper={m.migration_wizard_ca_helper_common_name()}
+                  label="migration_wizard_ca_label_common_name"
                   type="text"
                   placeholder={m.migration_wizard_ca_placeholder_common_name()}
                 />
@@ -127,8 +126,7 @@ export const MigrationWizardCAStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.migration_wizard_ca_label_email()}
-                  helper={m.migration_wizard_ca_helper_email()}
+                  label="migration_wizard_ca_label_email"
                   placeholder={m.migration_wizard_ca_placeholder_email()}
                 />
               )}
@@ -139,7 +137,7 @@ export const MigrationWizardCAStep = () => {
             {(field) => (
               <field.FormSelect
                 required
-                label={m.migration_wizard_ca_label_validity()}
+                label="migration_wizard_ca_label_validity"
                 options={validityOptions}
               />
             )}

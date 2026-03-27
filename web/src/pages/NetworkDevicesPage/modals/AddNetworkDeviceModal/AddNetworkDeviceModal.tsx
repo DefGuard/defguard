@@ -457,14 +457,14 @@ const FormStep = ({
             options={locationOptions}
             value={selected}
             onChange={handleLocationChange}
-            label={m.form_label_location()}
+            label="form_label_location"
             required
           />
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_device_name()} />}
+            {(field) => <field.FormInput required label="form_label_device_name" />}
           </form.AppField>
           <form.AppField name="description">
-            {(field) => <field.FormInput label={m.form_label_description()} />}
+            {(field) => <field.FormInput label="form_label_description" />}
           </form.AppField>
           <form.AppField name="modifiableIpParts" mode="array">
             {(field) =>
@@ -474,7 +474,7 @@ const FormStep = ({
                     <subField.FormSuggestedIPInput
                       data={availableIps[index]}
                       required
-                      label={m.form_label_assigned_ip_address()}
+                      label="form_label_assigned_ip_address"
                     />
                   )}
                 </form.AppField>
@@ -511,9 +511,7 @@ const FormStep = ({
               <>
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="wireguard_pubkey">
-                  {(field) => (
-                    <field.FormInput required label={m.form_label_public_key()} />
-                  )}
+                  {(field) => <field.FormInput required label="form_label_public_key" />}
                 </form.AppField>
               </>
             )}

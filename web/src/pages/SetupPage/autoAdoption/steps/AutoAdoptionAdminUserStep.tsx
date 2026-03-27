@@ -175,7 +175,7 @@ export const AutoAdoptionAdminUserStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_admin_user_label_first_name()}
+                  label="initial_setup_admin_user_label_first_name"
                   type="text"
                 />
               )}
@@ -184,7 +184,7 @@ export const AutoAdoptionAdminUserStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_admin_user_label_last_name()}
+                  label="initial_setup_admin_user_label_last_name"
                   type="text"
                 />
               )}
@@ -193,17 +193,14 @@ export const AutoAdoptionAdminUserStep = () => {
               {(field) => (
                 <field.FormInput
                   required
-                  label={m.initial_setup_admin_user_label_username()}
+                  label="initial_setup_admin_user_label_username"
                   type="text"
                 />
               )}
             </form.AppField>
             <form.AppField name="email">
               {(field) => (
-                <field.FormInput
-                  required
-                  label={m.initial_setup_admin_user_label_email()}
-                />
+                <field.FormInput required label="initial_setup_admin_user_label_email" />
               )}
             </form.AppField>
             <div className="full-row">
@@ -211,7 +208,7 @@ export const AutoAdoptionAdminUserStep = () => {
                 {(field) => (
                   <field.FormInput
                     required
-                    label={m.initial_setup_admin_user_label_password()}
+                    label="initial_setup_admin_user_label_password"
                     type="password"
                   />
                 )}

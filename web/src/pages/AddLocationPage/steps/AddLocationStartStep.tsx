@@ -76,7 +76,7 @@ export const AddLocationStartStep = () => {
         <form.AppForm>
           <form.AppField name="name">
             {(field) => (
-              <field.FormInput required label={m.profile_devices_col_location_name()} />
+              <field.FormInput required label="profile_devices_col_location_name" />
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
@@ -86,7 +86,7 @@ export const AddLocationStartStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="endpoint">
             {(field) => (
-              <field.FormInput required label={m.add_location_start_label_endpoint()} />
+              <field.FormInput required label="add_location_start_label_endpoint" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -94,7 +94,7 @@ export const AddLocationStartStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.add_location_start_label_port()}
+                label="add_location_start_label_port"
                 type="number"
               />
             )}

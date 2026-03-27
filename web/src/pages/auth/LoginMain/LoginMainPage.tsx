@@ -120,15 +120,11 @@ export const LoginMainPage = () => {
           }}
         >
           <form.AppField name="username">
-            {(field) => <field.FormInput label={m.form_label_username()} size="lg" />}
+            {(field) => <field.FormInput label="form_label_username" size="lg" />}
           </form.AppField>
           <form.AppField name="password">
             {(field) => (
-              <field.FormInput
-                type="password"
-                label={m.form_label_password()}
-                size="lg"
-              />
+              <field.FormInput type="password" label="form_label_password" size="lg" />
             )}
           </form.AppField>
           <Button

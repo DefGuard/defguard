@@ -134,10 +134,7 @@ export const AddLocationInternalVpnStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput
-                required
-                label={m.add_location_internal_vpn_label_address()}
-              />
+              <field.FormInput required label="add_location_internal_vpn_label_address" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -147,14 +144,12 @@ export const AddLocationInternalVpnStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="allowed_ips">
             {(field) => (
-              <field.FormInput label={m.add_location_internal_vpn_label_allowed_ips()} />
+              <field.FormInput label="add_location_internal_vpn_label_allowed_ips" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="dns">
-            {(field) => (
-              <field.FormInput label={m.add_location_internal_vpn_label_dns()} />
-            )}
+            {(field) => <field.FormInput label="add_location_internal_vpn_label_dns" />}
           </form.AppField>
           <Controls>
             <Button

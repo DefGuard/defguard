@@ -158,7 +158,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         }}
       >
         <Select
-          label={m.form_label_location()}
+          label="form_label_location"
           value={locationOption}
           options={[locationOption]}
           onChange={() => {}}
@@ -167,10 +167,10 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         />
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_device_name()} />}
+            {(field) => <field.FormInput required label="form_label_device_name" />}
           </form.AppField>
           <form.AppField name="description">
-            {(field) => <field.FormInput required label={m.form_label_description()} />}
+            {(field) => <field.FormInput required label="form_label_description" />}
           </form.AppField>
           <form.AppField name="modifiableIpParts" mode="array">
             {(field) =>
@@ -179,7 +179,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
                   {(subField) => (
                     <subField.FormSuggestedIPInput
                       data={device.split_ips[index]}
-                      label={m.form_label_assigned_ip_address()}
+                      label="form_label_assigned_ip_address"
                       required
                     />
                   )}

@@ -105,7 +105,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
       <QrCard value={qrConfig} />
       <div className="right">
         <Select
-          label={m.modal_add_user_device_manual_download_location_label()}
+          label="modal_add_user_device_manual_download_location_label"
           options={selectOptions}
           onChange={setSelected}
           value={selectedOption}

@@ -98,8 +98,7 @@ export const SetupGatewayComponentStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.gateway_setup_component_label_common_name()}
-                helper={m.gateway_setup_component_label_common_name_help()}
+                label="gateway_setup_component_label_common_name"
                 type="text"
               />
             )}
@@ -109,8 +108,7 @@ export const SetupGatewayComponentStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.gateway_setup_component_label_ip_or_domain()}
-                helper={m.gateway_setup_component_label_ip_or_domain_help()}
+                label="gateway_setup_component_label_ip_or_domain"
                 type="text"
               />
             )}
@@ -120,8 +118,7 @@ export const SetupGatewayComponentStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.gateway_setup_component_label_grpc_port()}
-                helper={m.gateway_setup_component_label_grpc_port_help()}
+                label="gateway_setup_component_label_grpc_port"
                 type="number"
               />
             )}

@@ -118,9 +118,7 @@ const ModalContent = () => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => (
-              <field.FormInput label={m.modal_mfa_add_passkey_label()} required />
-            )}
+            {(field) => <field.FormInput label="modal_mfa_add_passkey_label" required />}
           </form.AppField>
         </form.AppForm>
       </form>

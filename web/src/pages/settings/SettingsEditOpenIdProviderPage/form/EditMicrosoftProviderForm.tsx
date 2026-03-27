@@ -104,7 +104,7 @@ export const EditMicrosoftProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_display_name()}
+                label="settings_openid_provider_label_display_name"
               />
             )}
           </form.AppField>
@@ -112,7 +112,7 @@ export const EditMicrosoftProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_microsoft_tenant_id()}
+                label="settings_openid_provider_label_microsoft_tenant_id"
               />
             )}
           </form.AppField>
@@ -121,7 +121,7 @@ export const EditMicrosoftProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_client_id()}
+                label="settings_openid_provider_label_client_id"
               />
             )}
           </form.AppField>
@@ -131,7 +131,7 @@ export const EditMicrosoftProviderForm = ({
               <field.FormInput
                 type="password"
                 required
-                label={m.settings_openid_provider_label_client_secret()}
+                label="settings_openid_provider_label_client_secret"
               />
             )}
           </form.AppField>
@@ -140,7 +140,7 @@ export const EditMicrosoftProviderForm = ({
             {(field) => (
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
-                label={m.settings_openid_provider_label_username_handling()}
+                label="settings_openid_provider_label_username_handling"
               />
             )}
           </form.AppField>
@@ -171,7 +171,7 @@ export const EditMicrosoftProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncTargetOptions}
-                      label={m.settings_openid_provider_label_sync_target()}
+                      label="settings_openid_provider_label_sync_target"
                     />
                   )}
                 </form.AppField>
@@ -180,7 +180,7 @@ export const EditMicrosoftProviderForm = ({
                   {(field) => (
                     <field.FormInput
                       required
-                      label={m.settings_openid_provider_label_sync_interval()}
+                      label="settings_openid_provider_label_sync_interval"
                       type="number"
                     />
                   )}
@@ -190,7 +190,7 @@ export const EditMicrosoftProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
-                      label={m.settings_openid_provider_label_sync_user_behavior()}
+                      label="settings_openid_provider_label_sync_user_behavior"
                     />
                   )}
                 </form.AppField>
@@ -199,16 +199,14 @@ export const EditMicrosoftProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
-                      label={m.settings_openid_provider_label_sync_admin_behavior()}
+                      label="settings_openid_provider_label_sync_admin_behavior"
                     />
                   )}
                 </form.AppField>
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="directory_sync_group_match">
                   {(field) => (
-                    <field.FormInput
-                      label={m.settings_openid_provider_label_sync_only_matching_groups()}
-                    />
+                    <field.FormInput label="settings_openid_provider_label_sync_only_matching_groups" />
                   )}
                 </form.AppField>
                 <SizedBox height={ThemeSpacing.Xl2} />

@@ -68,7 +68,7 @@ export const AddLocationNetworkStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.location_network_label_keepalive_interval()}
+                label="location_network_label_keepalive_interval"
                 type="number"
               />
             )}
@@ -76,13 +76,13 @@ export const AddLocationNetworkStep = () => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="mtu">
             {(field) => (
-              <field.FormInput label={m.location_network_label_mtu()} type="number" />
+              <field.FormInput label="location_network_label_mtu" type="number" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="fwmark">
             {(field) => (
-              <field.FormInput label={m.location_network_label_fwmark()} type="number" />
+              <field.FormInput label="location_network_label_fwmark" type="number" />
             )}
           </form.AppField>
           <Controls>

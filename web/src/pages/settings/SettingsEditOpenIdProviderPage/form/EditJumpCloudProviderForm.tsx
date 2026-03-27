@@ -82,7 +82,7 @@ export const EditJumpCloudProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_display_name()}
+                label="settings_openid_provider_label_display_name"
               />
             )}
           </form.AppField>
@@ -91,7 +91,7 @@ export const EditJumpCloudProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_client_id()}
+                label="settings_openid_provider_label_client_id"
               />
             )}
           </form.AppField>
@@ -101,7 +101,7 @@ export const EditJumpCloudProviderForm = ({
               <field.FormInput
                 type="password"
                 required
-                label={m.settings_openid_provider_label_client_secret()}
+                label="settings_openid_provider_label_client_secret"
               />
             )}
           </form.AppField>
@@ -111,7 +111,7 @@ export const EditJumpCloudProviderForm = ({
               <field.FormInput
                 type="password"
                 required
-                label={m.settings_openid_provider_label_jumpcloud_api_key()}
+                label="settings_openid_provider_label_jumpcloud_api_key"
               />
             )}
           </form.AppField>
@@ -120,7 +120,7 @@ export const EditJumpCloudProviderForm = ({
             {(field) => (
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
-                label={m.settings_openid_provider_label_username_handling()}
+                label="settings_openid_provider_label_username_handling"
               />
             )}
           </form.AppField>
@@ -151,7 +151,7 @@ export const EditJumpCloudProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncTargetOptions}
-                      label={m.settings_openid_provider_label_sync_target()}
+                      label="settings_openid_provider_label_sync_target"
                     />
                   )}
                 </form.AppField>
@@ -160,7 +160,7 @@ export const EditJumpCloudProviderForm = ({
                   {(field) => (
                     <field.FormInput
                       required
-                      label={m.settings_openid_provider_label_sync_interval()}
+                      label="settings_openid_provider_label_sync_interval"
                       type="number"
                     />
                   )}
@@ -170,7 +170,7 @@ export const EditJumpCloudProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
-                      label={m.settings_openid_provider_label_sync_user_behavior()}
+                      label="settings_openid_provider_label_sync_user_behavior"
                     />
                   )}
                 </form.AppField>
@@ -179,7 +179,7 @@ export const EditJumpCloudProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
-                      label={m.settings_openid_provider_label_sync_admin_behavior()}
+                      label="settings_openid_provider_label_sync_admin_behavior"
                     />
                   )}
                 </form.AppField>

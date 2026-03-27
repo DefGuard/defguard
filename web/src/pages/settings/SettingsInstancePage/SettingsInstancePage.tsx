@@ -259,24 +259,19 @@ const Content = ({ settings }: { settings: Settings }) => {
           />
           <form.AppField name="defguard_url">
             {(field) => (
-              <field.FormInput
-                required
-                label={m.settings_instance_label_defguard_url()}
-              />
+              <field.FormInput required label="settings_instance_label_defguard_url" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="instance_name">
-            {(field) => (
-              <field.FormInput required label={m.settings_instance_label_name()} />
-            )}
+            {(field) => <field.FormInput required label="settings_instance_label_name" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="public_proxy_url">
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_instance_label_public_proxy_url()}
+                label="settings_instance_label_public_proxy_url"
               />
             )}
           </form.AppField>
@@ -285,7 +280,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             {(field) => (
               <field.FormSelect
                 required
-                label={m.settings_instance_label_session_duration()}
+                label="settings_instance_label_session_duration"
                 options={sessionDurationSelectOptions}
               />
             )}
@@ -311,7 +306,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                         {(field) => (
                           <field.FormSelect
                             required
-                            label={m.settings_vpn_stats_label_purge_frequency()}
+                            label="settings_vpn_stats_label_purge_frequency"
                             options={statsPurgeFrequencySelectOptions}
                           />
                         )}
@@ -321,7 +316,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                         {(field) => (
                           <field.FormSelect
                             required
-                            label={m.settings_vpn_stats_label_purge_threshold()}
+                            label="settings_vpn_stats_label_purge_threshold"
                             options={statsPurgeThresholdSelectOptions}
                           />
                         )}
@@ -343,7 +338,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             {(field) => (
               <field.FormSelect
                 required
-                label={m.settings_enrollment_label_password_reset_token_validity()}
+                label="settings_enrollment_label_password_reset_token_validity"
                 options={passwordResetTokenTimeoutOptions}
               />
             )}
@@ -353,7 +348,7 @@ const Content = ({ settings }: { settings: Settings }) => {
             {(field) => (
               <field.FormSelect
                 required
-                label={m.settings_instance_label_password_reset_session_expiration()}
+                label="settings_instance_label_password_reset_session_expiration"
                 options={passwordResetSessionTimeoutOptions}
               />
             )}

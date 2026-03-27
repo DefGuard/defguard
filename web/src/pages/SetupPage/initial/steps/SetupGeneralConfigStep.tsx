@@ -127,7 +127,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.initial_setup_general_config_label_defguard_url()}
+                label="initial_setup_general_config_label_defguard_url"
                 type="text"
               />
             )}
@@ -137,7 +137,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.initial_setup_general_config_label_admin_group()}
+                label="initial_setup_general_config_label_admin_group"
                 type="text"
               />
             )}
@@ -147,7 +147,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.initial_setup_general_config_label_auth_period()}
+                label="initial_setup_general_config_label_auth_period"
                 type="number"
               />
             )}
@@ -157,7 +157,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.initial_setup_general_config_label_mfa_timeout()}
+                label="initial_setup_general_config_label_mfa_timeout"
                 type="number"
               />
             )}
@@ -167,7 +167,7 @@ export const SetupGeneralConfigStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.initial_setup_general_config_label_public_proxy_url()}
+                label="initial_setup_general_config_label_public_proxy_url"
                 type="text"
               />
             )}

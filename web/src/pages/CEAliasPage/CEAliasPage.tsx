@@ -203,7 +203,7 @@ const FormContent = ({
       <form.AppForm>
         <MarkedSection icon="settings">
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.acl_alias_col_name()} />}
+            {(field) => <field.FormInput required label="acl_alias_col_name" />}
           </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
@@ -213,7 +213,7 @@ const FormContent = ({
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="addresses">
-            {(field) => <field.FormInput notNull label={m.acl_form_addresses_label()} />}
+            {(field) => <field.FormInput notNull label="acl_form_addresses_label" />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title={m.acl_form_section_ports_title()}>
@@ -221,7 +221,7 @@ const FormContent = ({
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="ports">
-            {(field) => <field.FormInput notNull label={m.acl_form_ports_label()} />}
+            {(field) => <field.FormInput notNull label="acl_form_ports_label" />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title={m.acl_form_section_protocols_title()}>

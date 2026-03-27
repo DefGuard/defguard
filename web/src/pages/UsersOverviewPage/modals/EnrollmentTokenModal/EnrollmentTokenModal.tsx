@@ -173,7 +173,7 @@ const ModalContent = ({ user, appInfo, enrollmentResponse }: ModalData) => {
           <>
             <SizedBox height={ThemeSpacing.Xl} />
             <form.AppField name="email">
-              {(field) => <field.FormInput label={m.form_label_email()} required />}
+              {(field) => <field.FormInput label="form_label_email" required />}
             </form.AppField>
           </>
         )}

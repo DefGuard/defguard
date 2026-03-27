@@ -141,7 +141,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                           {(field) => (
                             <field.FormTextarea
                               required
-                              label={m.settings_enrollment_template_message_label()}
+                              label="settings_enrollment_template_message_label"
                               minHeight={383}
                               maxHeight={383}
                             />
@@ -169,7 +169,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                               {(field) => (
                                 <field.FormInput
                                   required
-                                  label={m.settings_enrollment_template_email_subject_label()}
+                                  label="settings_enrollment_template_email_subject_label"
                                 />
                               )}
                             </form.AppField>
@@ -202,7 +202,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                           {(field) => (
                                             <field.FormTextarea
                                               required
-                                              label={m.settings_enrollment_template_email_label()}
+                                              label="settings_enrollment_template_email_label"
                                               minHeight={383}
                                               maxHeight={383}
                                             />

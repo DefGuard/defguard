@@ -112,7 +112,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   options={directorySyncTargetOptions}
                   required
-                  label={m.settings_openid_provider_label_sync_target()}
+                  label="settings_openid_provider_label_sync_target"
                 />
               )}
             </form.AppField>
@@ -121,7 +121,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormInput
                   type="number"
                   required
-                  label={m.settings_openid_provider_label_sync_interval()}
+                  label="settings_openid_provider_label_sync_interval"
                 />
               )}
             </form.AppField>
@@ -132,7 +132,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label={m.settings_openid_provider_label_sync_user_behavior()}
+                  label="settings_openid_provider_label_sync_user_behavior"
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -141,7 +141,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label={m.settings_openid_provider_label_sync_admin_behavior()}
+                  label="settings_openid_provider_label_sync_admin_behavior"
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -152,7 +152,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_admin_email()}
+                label="settings_openid_provider_label_admin_email"
               />
             )}
           </form.AppField>

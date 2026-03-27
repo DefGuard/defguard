@@ -134,7 +134,7 @@ const ModalContent = ({ username }: OpenAddApiTokenModal) => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_name()} />}
+            {(field) => <field.FormInput required label="form_label_name" />}
           </form.AppField>
         </form.AppForm>
       </form>

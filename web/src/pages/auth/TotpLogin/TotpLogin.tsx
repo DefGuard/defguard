@@ -69,7 +69,7 @@ export const TotpLogin = () => {
       >
         <form.AppForm>
           <form.AppField name="code">
-            {(field) => <field.FormInput size="lg" label={m.form_label_auth_code()} />}
+            {(field) => <field.FormInput size="lg" label="form_label_auth_code" />}
           </form.AppField>
           <form.FormSubmitButton
             testId="submit-totp"

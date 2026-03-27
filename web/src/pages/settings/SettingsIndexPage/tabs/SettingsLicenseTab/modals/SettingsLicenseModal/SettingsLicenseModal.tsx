@@ -198,7 +198,7 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
           {(field) => (
             <field.FormTextarea
               placeholder={m.settings_license_enter_key_title()}
-              label={m.settings_license_key_title()}
+              label="settings_license_key_title"
               maxHeight={300}
             />
           )}

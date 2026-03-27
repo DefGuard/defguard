@@ -144,7 +144,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_display_name()}
+                label="settings_openid_provider_label_display_name"
               />
             )}
           </form.AppField>
@@ -165,7 +165,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                 {(field) => (
                   <field.FormInput
                     required
-                    label={m.settings_openid_provider_label_microsoft_tenant_id()}
+                    label="settings_openid_provider_label_microsoft_tenant_id"
                   />
                 )}
               </form.AppField>
@@ -178,7 +178,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                 {(field) => (
                   <field.FormInput
                     required
-                    label={m.settings_openid_provider_label_base_url()}
+                    label="settings_openid_provider_label_base_url"
                   />
                 )}
               </form.AppField>
@@ -189,7 +189,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_client_id()}
+                label="settings_openid_provider_label_client_id"
               />
             )}
           </form.AppField>
@@ -198,7 +198,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_client_secret()}
+                label="settings_openid_provider_label_client_secret"
                 type="password"
               />
             )}
@@ -209,7 +209,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
                 required
-                label={m.settings_openid_provider_label_username_handling()}
+                label="settings_openid_provider_label_username_handling"
               />
             )}
           </form.AppField>

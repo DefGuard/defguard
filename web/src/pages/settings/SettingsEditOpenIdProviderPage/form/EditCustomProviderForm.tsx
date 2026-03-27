@@ -57,17 +57,14 @@ export const EditCustomProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_display_name()}
+                label="settings_openid_provider_label_display_name"
               />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="base_url">
             {(field) => (
-              <field.FormInput
-                required
-                label={m.settings_openid_provider_label_base_url()}
-              />
+              <field.FormInput required label="settings_openid_provider_label_base_url" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
@@ -75,7 +72,7 @@ export const EditCustomProviderForm = ({
             {(field) => (
               <field.FormInput
                 required
-                label={m.settings_openid_provider_label_client_id()}
+                label="settings_openid_provider_label_client_id"
               />
             )}
           </form.AppField>
@@ -85,7 +82,7 @@ export const EditCustomProviderForm = ({
               <field.FormInput
                 type="password"
                 required
-                label={m.settings_openid_provider_label_client_secret()}
+                label="settings_openid_provider_label_client_secret"
               />
             )}
           </form.AppField>
@@ -94,7 +91,7 @@ export const EditCustomProviderForm = ({
             {(field) => (
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
-                label={m.settings_openid_provider_label_username_handling()}
+                label="settings_openid_provider_label_username_handling"
               />
             )}
           </form.AppField>

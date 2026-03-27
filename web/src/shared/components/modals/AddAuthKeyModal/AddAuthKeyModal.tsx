@@ -165,13 +165,13 @@ const ModalContent = ({ username }: { username: string }) => {
             onChange={setSelected}
             options={selectOptions}
             testId="field-type"
-            label={m.form_label_type()}
+            label="form_label_type"
           />
           <form.AppField name="name">
-            {(field) => <field.FormInput label={m.form_label_name()} required />}
+            {(field) => <field.FormInput label="form_label_name" required />}
           </form.AppField>
           <form.AppField name="key">
-            {(field) => <field.FormTextarea label={m.form_label_key()} required />}
+            {(field) => <field.FormTextarea label="form_label_key" required />}
           </form.AppField>
         </form.AppForm>
       </form>

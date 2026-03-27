@@ -307,14 +307,14 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       <form.AppForm>
         <EditPageFormSection label={m.add_location_step_public_facing_data_label()}>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.location_form_label_name()} />}
+            {(field) => <field.FormInput required label="location_form_label_name" />}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="port">
             {(field) => (
               <field.FormInput
                 required
-                label={m.add_location_start_label_port()}
+                label="add_location_start_label_port"
                 type="number"
               />
             )}
@@ -322,7 +322,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="endpoint">
             {(field) => (
-              <field.FormInput required label={m.add_location_start_label_endpoint()} />
+              <field.FormInput required label="add_location_start_label_endpoint" />
             )}
           </form.AppField>
         </EditPageFormSection>
@@ -339,23 +339,18 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           )}
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput
-                required
-                label={m.add_location_internal_vpn_label_address()}
-              />
+              <field.FormInput required label="add_location_internal_vpn_label_address" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="allowed_ips">
             {(field) => (
-              <field.FormInput label={m.add_location_internal_vpn_label_allowed_ips()} />
+              <field.FormInput label="add_location_internal_vpn_label_allowed_ips" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="dns">
-            {(field) => (
-              <field.FormInput label={m.add_location_internal_vpn_label_dns()} />
-            )}
+            {(field) => <field.FormInput label="add_location_internal_vpn_label_dns" />}
           </form.AppField>
         </EditPageFormSection>
         <EditPageFormSection label={m.add_location_step_network_settings_label()}>
@@ -363,7 +358,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
             {(field) => (
               <field.FormInput
                 required
-                label={m.location_network_label_keepalive_interval()}
+                label="location_network_label_keepalive_interval"
                 type="number"
               />
             )}
@@ -371,13 +366,13 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="mtu">
             {(field) => (
-              <field.FormInput label={m.location_network_label_mtu()} type="number" />
+              <field.FormInput label="location_network_label_mtu" type="number" />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="fwmark">
             {(field) => (
-              <field.FormInput label={m.location_network_label_fwmark()} type="number" />
+              <field.FormInput label="location_network_label_fwmark" type="number" />
             )}
           </form.AppField>
         </EditPageFormSection>
@@ -453,7 +448,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
                           {(field) => (
                             <field.FormInput
                               required
-                              label={m.location_mfa_label_client_disconnect_threshold()}
+                              label="location_mfa_label_client_disconnect_threshold"
                               type="number"
                             />
                           )}

@@ -144,27 +144,25 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_name()} />}
+            {(field) => <field.FormInput required label="form_label_name" />}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="url">
-            {(field) => <field.FormInput required label={m.form_label_url()} />}
+            {(field) => <field.FormInput required label="form_label_url" />}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="username">
-            {(field) => <field.FormInput label={m.form_label_username()} />}
+            {(field) => <field.FormInput label="form_label_username" />}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="password">
-            {(field) => (
-              <field.FormInput label={m.form_label_password()} type="password" />
-            )}
+            {(field) => <field.FormInput label="form_label_password" type="password" />}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
