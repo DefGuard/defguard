@@ -110,7 +110,7 @@ export const AddNetworkDeviceModal = () => {
   return (
     <Modal
       id="add-network-device-modal"
-      title={'Add new network device'}
+      title={m.modal_add_network_device_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -158,16 +158,14 @@ const ManualStep = ({
 
   return (
     <>
-      <DescriptionBlock title="Get configuration file">
-        <p>{`Use the provided configuration file by importing it into your device's WireGuard app.`}</p>
+      <DescriptionBlock title={m.modal_network_device_manual_config_title()}>
+        <p>{m.modal_network_device_manual_config_content()}</p>
       </DescriptionBlock>
       <SizedBox height={ThemeSpacing.Xl2} />
       <InfoBanner
         variant="warning"
         icon={IconKind.WarningOutlined}
-        text={
-          "Defguard doesn't store private keys. Keys are generated in your browser — only the public key is saved. Download the configuration now; the private key won't be available later."
-        }
+        text={m.modal_network_device_manual_config_warning()}
       />
       <SizedBox height={ThemeSpacing.Xl2} />
       <CodeBox text={config.replaceAll('\n', '<br/>')} markdown />
@@ -175,7 +173,7 @@ const ManualStep = ({
       <div className="box-controls">
         <Button
           variant="outlined"
-          text="Download config file"
+          text={m.modal_network_device_manual_config_download()}
           iconLeft="download"
           testId="download-config"
           onClick={() => {
@@ -209,14 +207,19 @@ const CliStep = ({ data }: { data: StartEnrollmentResponse }) => {
   const command = `dg enroll -u ${data.enrollment_url} -t ${data.enrollment_token}`;
   return (
     <>
-      <AppText font={TextStyle.TBodySm500}>Activate your device in terminal</AppText>
+      <AppText font={TextStyle.TBodySm500}>
+        {m.modal_network_device_cli_step_title()}
+      </AppText>
       <SizedBox height={ThemeSpacing.Xs} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-        Copy and paste the command below to authenticate and configure your Defguard
-        Command Line Client.
+        {m.modal_network_device_cli_step_content()}
       </AppText>
       <SizedBox height={ThemeSpacing.Xl2} />
-      <CopyField label="Command" text={command} copyTooltip={m.misc_clipboard_copy()} />
+      <CopyField
+        label={m.form_label_command()}
+        text={command}
+        copyTooltip={m.misc_clipboard_copy()}
+      />
       <ModalControls
         submitProps={{
           testId: 'finish',
@@ -245,9 +248,9 @@ const ChoiceStep = ({ setModalState }: StepProps) => {
     <>
       <SectionSelect
         image="device-clc"
-        title="Defguard Command Line Client"
+        title={m.modal_add_network_device_choice_cli_title()}
         data-testid="defguard-cli"
-        content="When using Defguard CLI your device will be automatically configured."
+        content={m.modal_add_network_device_choice_cli_content()}
         onClick={() => {
           handleSelect(true);
         }}
@@ -255,9 +258,9 @@ const ChoiceStep = ({ setModalState }: StepProps) => {
       <SizedBox height={ThemeSpacing.Md} />
       <SectionSelect
         image="wireguard-device"
-        title="Manual WireGuard Client"
+        title={m.modal_add_network_device_choice_manual_title()}
         data-testid="wireguard-client"
-        content="If your device doesn't support our CLI, you can generate a WireGuard config and set it up manually — but future location updates must be applied manually."
+        content={m.modal_add_network_device_choice_manual_content()}
         onClick={() => {
           handleSelect(false);
         }}
@@ -446,7 +449,7 @@ const FormStep = ({
         <InfoBanner
           variant="warning"
           icon="info-outlined"
-          text="Only locations without Multi-Factor Authentication are shown in the selector below, as MFA is currently supported only in the Defguard Desktop Client."
+          text={m.modal_add_network_device_mfa_warning()}
         />
         <SizedBox height={ThemeSpacing.Xl} />
         <div className="fields">
@@ -454,14 +457,14 @@ const FormStep = ({
             options={locationOptions}
             value={selected}
             onChange={handleLocationChange}
-            label="Location"
+            label={m.form_label_location()}
             required
           />
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={'Device name'} />}
+            {(field) => <field.FormInput required label={m.form_label_device_name()} />}
           </form.AppField>
           <form.AppField name="description">
-            {(field) => <field.FormInput label={'Description'} />}
+            {(field) => <field.FormInput label={m.form_label_description()} />}
           </form.AppField>
           <form.AppField name="modifiableIpParts" mode="array">
             {(field) =>
@@ -471,7 +474,7 @@ const FormStep = ({
                     <subField.FormSuggestedIPInput
                       data={availableIps[index]}
                       required
-                      label="Assigned IP Address"
+                      label={m.form_label_assigned_ip_address()}
                     />
                   )}
                 </form.AppField>
@@ -484,23 +487,33 @@ const FormStep = ({
           <>
             <SizedBox height={ThemeSpacing.Xl3} />
             <AppText font={TextStyle.TBodyPrimary500}>
-              {'Specify your private keys'}
+              {m.modal_add_user_device_manual_setup_choice()}
             </AppText>
             <SizedBox height={ThemeSpacing.Xl} />
             <form.AppField name="generateKeys">
-              {(field) => <field.FormRadio value={true} text="Generate a key pair" />}
+              {(field) => (
+                <field.FormRadio
+                  value={true}
+                  text={m.modal_add_user_device_manual_setup_choice_auto()}
+                />
+              )}
             </form.AppField>
             <SizedBox height={ThemeSpacing.Md} />
             <form.AppField name="generateKeys">
               {(field) => (
-                <field.FormRadio value={false} text="Provide your own public key" />
+                <field.FormRadio
+                  value={false}
+                  text={m.modal_add_network_device_manual_setup_choice_manual()}
+                />
               )}
             </form.AppField>
             {!genValue && (
               <>
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="wireguard_pubkey">
-                  {(field) => <field.FormInput required label="Public key" />}
+                  {(field) => (
+                    <field.FormInput required label={m.form_label_public_key()} />
+                  )}
                 </form.AppField>
               </>
             )}

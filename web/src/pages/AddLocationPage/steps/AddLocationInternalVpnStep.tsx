@@ -128,30 +128,33 @@ export const AddLocationInternalVpnStep = () => {
         }}
       >
         <form.AppForm>
-          <DescriptionBlock title="Gateway address">
-            <p>
-              {
-                'The VPN network will be derived from this address (e.g., 10.10.10.1 → 10.10.10.0). You can specify multiple addresses separated by commas. The first one is used as the primary address for device IP assignment.'
-              }
-            </p>
+          <DescriptionBlock title={m.add_location_internal_vpn_gateway_address_title()}>
+            <p>{m.add_location_internal_vpn_gateway_address_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="address">
             {(field) => (
-              <field.FormInput required label="Gateway VPN IP address and netmask" />
+              <field.FormInput
+                required
+                label={m.add_location_internal_vpn_label_address()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
-          <DescriptionBlock title={`Allowed IP's`}>
-            <p>{`List of addresses/masks that should be routed through the VPN network.`}</p>
+          <DescriptionBlock title={m.add_location_internal_vpn_allowed_ips_title()}>
+            <p>{m.add_location_internal_vpn_allowed_ips_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="allowed_ips">
-            {(field) => <field.FormInput label={'Allowed IPs'} />}
+            {(field) => (
+              <field.FormInput label={m.add_location_internal_vpn_label_allowed_ips()} />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="dns">
-            {(field) => <field.FormInput label={'DNS'} />}
+            {(field) => (
+              <field.FormInput label={m.add_location_internal_vpn_label_dns()} />
+            )}
           </form.AppField>
           <Controls>
             <Button

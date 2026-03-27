@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
@@ -12,7 +13,7 @@ export const WebhooksPage = () => {
 
   return (
     <>
-      <Page id="webhooks-page" title="Webhooks">
+      <Page id="webhooks-page" title={m.webhooks_title()}>
         <SizedBox height={ThemeSpacing.Xl3} />
         <TablePageLayout>
           <WebhooksTable webhooks={webhooks} />

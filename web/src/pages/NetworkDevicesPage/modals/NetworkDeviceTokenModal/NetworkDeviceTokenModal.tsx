@@ -42,7 +42,7 @@ export const NetworkDeviceTokenModal = () => {
   return (
     <Modal
       id="network-device-token-modal"
-      title={'Configure your Defguard Command Line Client'}
+      title={m.modal_network_device_token_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -58,16 +58,17 @@ const ModalContent = ({ enrollment }: ModalData) => {
   const command = `dg enroll -u ${enrollment.enrollment_url} -t ${enrollment.enrollment_token}`;
   return (
     <>
-      <AppText font={TextStyle.TBodySm500}>Activate your device in terminal</AppText>
+      <AppText font={TextStyle.TBodySm500}>
+        {m.modal_network_device_cli_step_title()}
+      </AppText>
       <SizedBox height={ThemeSpacing.Xs} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-        Copy and paste the command below to authenticate and configure your Defguard
-        Command Line Client.
+        {m.modal_network_device_cli_step_content()}
       </AppText>
       <SizedBox height={ThemeSpacing.Xl2} />
       <CopyField
         data-testid="copy-field"
-        label="Command"
+        label={m.form_label_command()}
         text={command}
         copyTooltip={m.misc_clipboard_copy()}
       />

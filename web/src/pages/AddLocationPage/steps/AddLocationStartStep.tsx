@@ -75,21 +75,29 @@ export const AddLocationStartStep = () => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={'Location name'} />}
+            {(field) => (
+              <field.FormInput required label={m.profile_devices_col_location_name()} />
+            )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Gateway public address">
-            <p>{`Used by VPN users to connect.`}</p>
+          <DescriptionBlock title={m.add_location_start_public_address_title()}>
+            <p>{m.add_location_start_public_address_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="endpoint">
             {(field) => (
-              <field.FormInput required label={'Gateway VPN IP address or domain name'} />
+              <field.FormInput required label={m.add_location_start_label_endpoint()} />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="port">
-            {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.add_location_start_label_port()}
+                type="number"
+              />
+            )}
           </form.AppField>
           <Controls>
             <Button

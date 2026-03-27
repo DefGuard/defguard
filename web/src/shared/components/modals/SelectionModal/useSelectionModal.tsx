@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { m } from '../../../../paraglide/messages';
 import type {
   SelectionKey,
   SelectionOption,
@@ -20,8 +21,8 @@ interface StoreValues {
   renderItem?: SectionProps['renderItem'];
 }
 
-const defaultValues: StoreValues = {
-  title: 'Select',
+const getDefaultValues = (): StoreValues => ({
+  title: m.modal_selection_title(),
   options: [],
   selected: new Set<number>(),
   isOpen: false,
@@ -31,13 +32,13 @@ const defaultValues: StoreValues = {
   orderItems: undefined,
   renderItem: undefined,
   onCancel: undefined,
-};
+});
 
 interface Store extends StoreValues {
   reset: () => void;
 }
 
 export const useSelectionModal = create<Store>((set) => ({
-  ...defaultValues,
-  reset: () => set(defaultValues),
+  ...getDefaultValues(),
+  reset: () => set(getDefaultValues()),
 }));
