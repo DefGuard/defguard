@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { LoginLoadingPage } from '../../pages/auth/LoginLoading/LoginLoadingPage';
-import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../../shared/query';
+import { getSessionInfoQueryOptions } from '../../shared/query';
 
 export const Route = createFileRoute('/auth/')({
   beforeLoad: async ({ context }) => {
@@ -16,12 +16,17 @@ export const Route = createFileRoute('/auth/')({
         });
       }
 
-      const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;
+      if (!sessionInfo.username) {
+        throw redirect({
+          to: '/auth/login',
+          replace: true,
+        });
+      }
 
       throw redirect({
         to: '/user/$username',
         params: {
-          username: me.username,
+          username: sessionInfo.username,
         },
         replace: true,
       });
