@@ -78,7 +78,6 @@ export const GatewaySetupPage = () => {
 
   const WelcomePageContent = () => (
     <>
-      <SizedBox height={ThemeSpacing.Md} />
       <div className="left">
         <Controls>
           <Button
