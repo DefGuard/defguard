@@ -43,6 +43,10 @@ const tutorialSchema = z
       ),
     thumbnailUrl: z.url().optional(),
     title: z.string().min(1, 'title must be non-empty'),
+    duration: z
+      .string()
+      .regex(/^\d+:\d{2}$/, 'duration must be in m:ss or mm:ss format')
+      .optional(),
   })
   .strip();
 

@@ -40,26 +40,18 @@
   }
 }
 
-// Floating panel
-
-.help-tutorials-panel {
-  background-color: var(--bg-default);
-  border: var(--border-1) solid var(--border-muted);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
-  width: 280px;
-  overflow: hidden;
-}
+// Floating panel — no background, just stacks the cards
 
 .help-tutorials-list {
   list-style: none;
   margin: 0;
-  padding: var(--spacing-sm);
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  max-height: 400px;
+  gap: 8px;
+  max-height: 70vh;
   overflow-y: auto;
+  width: 300px;
 }
 
 // Individual tutorial card
@@ -67,28 +59,29 @@
 .help-tutorial-card {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 16px;
   width: 100%;
-  padding: var(--spacing-sm);
-  background: none;
-  border: none;
-  border-radius: var(--radius-md);
+  padding: 12px;
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-disabled);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
   text-align: left;
-  transition: background-color 0.12s ease;
+  transition: box-shadow 0.12s ease;
 
   &:hover {
-    background-color: var(--bg-action-muted);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
   }
 }
 
 .help-tutorial-thumbnail {
   flex-shrink: 0;
-  width: 80px;
-  height: 52px;
-  border-radius: var(--radius-md);
+  width: 106px;
+  height: 60px;
+  border-radius: 8px;
   overflow: hidden;
-  background-color: var(--bg-emphasis);
+  background-color: #e8e7e7;
   position: relative;
 
   img {
@@ -98,7 +91,7 @@
   }
 
   &.placeholder {
-    background-color: var(--bg-emphasis);
+    background-color: #e8e7e7;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -120,9 +113,9 @@
     inset: 0;
     background: linear-gradient(
       90deg,
-      var(--bg-emphasis) 25%,
+      #e8e7e7 25%,
       var(--border-muted) 50%,
-      var(--bg-emphasis) 75%
+      #e8e7e7 75%
     );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.4s infinite;
@@ -141,12 +134,14 @@
 .help-tutorial-card-info {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xxs);
+  gap: 4px;
   overflow: hidden;
 }
 
 .help-tutorial-card-title {
-  font: var(--t-body-sm-500);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
   color: var(--fg-neutral);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -154,41 +149,35 @@
   overflow: hidden;
 }
 
-.help-tutorial-card-description {
-  font: var(--t-body-xs-500);
+.help-tutorial-card-duration {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
   color: var(--fg-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-// Panel footer with close button
-
-.help-tutorials-panel-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-top: var(--border-1) solid var(--border-disabled);
-}
+// Close button — small circle, replaces launcher when panel is open
 
 .help-tutorials-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  background-color: var(--bg-default);
   border: var(--border-1) solid var(--border-muted);
-  background: none;
-  color: var(--fg-neutral);
-  cursor: pointer;
-  font-size: 18px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
+  color: var(--fg-muted);
+  font-size: 20px;
   line-height: 1;
-  transition: background-color 0.12s ease;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: box-shadow 0.15s ease, color 0.15s ease;
 
   &:hover {
-    background-color: var(--bg-action-muted);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+    color: var(--fg-neutral);
   }
 }
 

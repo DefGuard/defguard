@@ -54,6 +54,9 @@ const TutorialCard = ({ tutorial, onClick }: TutorialCardProps) => (
     <Thumbnail url={resolveThumbnailUrl(tutorial)} title={tutorial.title} />
     <div className="help-tutorial-card-info">
       <span className="help-tutorial-card-title">{tutorial.title}</span>
+      {tutorial.duration && (
+        <span className="help-tutorial-card-duration">{tutorial.duration}</span>
+      )}
     </div>
   </button>
 );
@@ -86,36 +89,34 @@ export const HelpTutorialsWidget = () => {
     <>
       <div className="help-tutorials-widget">
         {panelOpen && (
-          <div className="help-tutorials-panel">
-            <ul className="help-tutorials-list">
-              {tutorials.map((t) => (
-                <li key={t.youtubeVideoId}>
-                  <TutorialCard tutorial={t} onClick={() => handleCardClick(t)} />
-                </li>
-              ))}
-            </ul>
-            <div className="help-tutorials-panel-footer">
-              <button
-                type="button"
-                className="help-tutorials-close-btn"
-                onClick={() => setPanelOpen(false)}
-                aria-label="Close video support panel"
-              >
-                ×
-              </button>
-            </div>
-          </div>
+          <ul className="help-tutorials-list">
+            {tutorials.map((t) => (
+              <li key={t.youtubeVideoId}>
+                <TutorialCard tutorial={t} onClick={() => handleCardClick(t)} />
+              </li>
+            ))}
+          </ul>
         )}
-        <button
-          type="button"
-          className="help-tutorials-launcher"
-          onClick={() => setPanelOpen((o) => !o)}
-          aria-label="Video support"
-          aria-expanded={panelOpen}
-        >
-          <IconTutorial aria-hidden="true" />
-          <span>Video support</span>
-        </button>
+        {panelOpen ? (
+          <button
+            type="button"
+            className="help-tutorials-close-btn"
+            onClick={() => setPanelOpen(false)}
+            aria-label="Close video support panel"
+          >
+            ×
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="help-tutorials-launcher"
+            onClick={() => setPanelOpen(true)}
+            aria-label="Video support"
+          >
+            <IconTutorial aria-hidden="true" />
+            <span>Video support</span>
+          </button>
+        )}
       </div>
 
       <Modal
