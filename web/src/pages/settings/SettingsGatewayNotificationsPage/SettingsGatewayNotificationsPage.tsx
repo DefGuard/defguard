@@ -58,7 +58,7 @@ const formSchema = z.object({
   gateway_disconnect_notifications_enabled: z.boolean(),
   gateway_disconnect_notifications_inactivity_threshold: z
     .number(m.form_error_required())
-    .min(0, m.form_min_value({ value: 0 })),
+    .min(0, m.form_error_min({ value: 0 })),
   gateway_disconnect_notifications_reconnect_notification_enabled: z.boolean(),
 });
 

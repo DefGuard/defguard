@@ -178,9 +178,9 @@ export const UsersTable = () => {
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
-              <Badge variant="success" text={m.misc_active()} />
+              <Badge variant="success" text={m.state_active()} />
             ) : (
-              <Badge variant="critical" text={m.misc_disabled()} />
+              <Badge variant="critical" text={m.state_disabled()} />
             )}
           </TableCell>
         ),

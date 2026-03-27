@@ -1,6 +1,5 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "form_min_value": "Minimal value of {value} required",
   "form_select_at_least_one": "Select at least one option",
   "form_error_license": "License is not valid",
   "form_error_file_format": "Invalid file format",

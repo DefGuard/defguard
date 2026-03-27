@@ -79,7 +79,7 @@ export const WebhooksTable = ({ webhooks }: Props) => {
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
-              <Badge variant="success" text={m.misc_active()} />
+              <Badge variant="success" text={m.state_active()} />
             ) : (
               <Badge variant="critical" text={m.state_disabled()} />
             )}
