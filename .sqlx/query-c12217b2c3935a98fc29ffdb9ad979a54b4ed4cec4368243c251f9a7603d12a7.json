@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"aclrule\" (\"parent_id\",\"state\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_groups\",\"deny_all_groups\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_locations\",\"addresses\",\"ports\",\"protocols\",\"enabled\",\"expires\",\"any_address\",\"any_port\",\"any_protocol\",\"use_manual_destination_settings\",\"modified_at\",\"modified_by\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "aclrule_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "new",
+                "modified",
+                "deleted",
+                "expired"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "InetArray",
+        "Int4RangeArray",
+        "Int4Array",
+        "Bool",
+        "Timestamp",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c12217b2c3935a98fc29ffdb9ad979a54b4ed4cec4368243c251f9a7603d12a7"
+}

@@ -30,6 +30,7 @@ export const SettingsLicenseBusinessUpsellSection = () => {
             <div className="top">
               <p className="title">{m.settings_license_plan_enterprise_title()}</p>
             </div>
+            <SizedBox height={ThemeSpacing.Xs} />
             <p className="description">
               {m.settings_license_plan_enterprise_description()}
             </p>

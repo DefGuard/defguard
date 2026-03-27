@@ -22,7 +22,7 @@ use defguard_common::db::{
         oauth2client::OAuth2Client,
     },
 };
-use defguard_mail::templates::new_device_ocid_login_mail;
+use defguard_mail::templates::new_device_oidc_login_mail;
 use openidconnect::{
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
     EmptyAdditionalProviderMetadata, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName,
@@ -368,7 +368,7 @@ fn login_redirect(
     if let Some(cookie_domain) = cookie_domain() {
         cookie = cookie.domain(cookie_domain);
     }
-    Ok(redirect_to("/login", private_cookies.add(cookie)))
+    Ok(redirect_to("/auth/login", private_cookies.add(cookie)))
 }
 
 /// Authorization Endpoint
@@ -580,7 +580,7 @@ pub async fn secure_authorization(
                         app.save(&appstate.pool).await?;
 
                         let mut conn = appstate.pool.begin().await?;
-                        new_device_ocid_login_mail(
+                        new_device_oidc_login_mail(
                             &session_info.user.email,
                             &mut conn,
                             Some(&session_info.session.into()),

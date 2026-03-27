@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"aclalias\" (\"parent_id\",\"name\",\"kind\",\"state\",\"addresses\",\"ports\",\"protocols\",\"any_address\",\"any_port\",\"any_protocol\",\"modified_at\",\"modified_by\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "aclalias_kind",
+            "kind": {
+              "Enum": [
+                "destination",
+                "component"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "aclalias_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "modified"
+              ]
+            }
+          }
+        },
+        "InetArray",
+        "Int4RangeArray",
+        "Int4Array",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0829f8cc60f9c45274f97e49791b531167fbb125a257127664661a6757ccc72a"
+}

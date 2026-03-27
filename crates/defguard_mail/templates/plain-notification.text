@@ -1,0 +1,4 @@
+{{ title }}
+{% if subtitle %}{{ subtitle }}{% endif %}
+
+{{ notification_text }}

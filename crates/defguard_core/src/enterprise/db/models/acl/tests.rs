@@ -1,5 +1,6 @@
 use std::ops::Bound;
 
+use chrono::{NaiveDateTime, Timelike};
 use defguard_common::{
     db::{
         models::wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -11,6 +12,12 @@ use rand::{Rng, thread_rng};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::*;
+
+fn truncate_timestamp_to_microseconds(timestamp: NaiveDateTime) -> NaiveDateTime {
+    timestamp
+        .with_nanosecond((timestamp.nanosecond() / 1_000) * 1_000)
+        .expect("microsecond timestamp truncation should produce a valid NaiveDateTime")
+}
 
 #[sqlx::test]
 async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
@@ -227,7 +234,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // create 2 devices
-    let device1 = Device::new(
+    let mut device1 = Device::new(
         "device1".to_string(),
         String::new(),
         1,
@@ -238,7 +245,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .save(&pool)
     .await
     .unwrap();
-    let device2 = Device::new(
+    let mut device2 = Device::new(
         "device2".to_string(),
         String::new(),
         1,
@@ -263,7 +270,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // create 2 aliases
-    let alias1 = AclAlias::new(
+    let mut alias1 = AclAlias::new(
         "alias1",
         AliasState::Applied,
         AliasKind::Destination,
@@ -304,6 +311,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     let info = rule.to_info(&mut conn).await.unwrap();
 
     assert_eq!(info.destinations.len(), 1);
+    alias1.modified_at = truncate_timestamp_to_microseconds(alias1.modified_at);
     assert_eq!(info.destinations[0], alias1);
 
     assert_eq!(info.allowed_users.len(), 1);
@@ -315,14 +323,16 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(info.allowed_groups.len(), 1);
     assert_eq!(info.allowed_groups[0], group1);
 
+    device1.created = truncate_timestamp_to_microseconds(device1.created);
     assert_eq!(info.denied_groups.len(), 1);
     assert_eq!(info.denied_groups[0], group2);
 
     assert_eq!(info.allowed_network_devices.len(), 1);
-    assert_eq!(info.allowed_network_devices[0].id, device1.id); // db modifies datetime precision
+    assert_eq!(info.allowed_network_devices[0], device1);
 
+    device2.created = truncate_timestamp_to_microseconds(device2.created);
     assert_eq!(info.denied_network_devices.len(), 1);
-    assert_eq!(info.denied_network_devices[0].id, device2.id); // db modifies datetime precision
+    assert_eq!(info.denied_network_devices[0], device2);
 
     assert_eq!(info.locations.len(), 1);
     assert_eq!(info.locations[0], network1);

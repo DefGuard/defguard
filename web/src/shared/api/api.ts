@@ -97,6 +97,7 @@ import type {
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  UpdateInfo,
   UploadCARequest,
   User,
   UserChangePasswordRequest,
@@ -175,6 +176,7 @@ const api = {
   },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),
+    updates: () => client.get<UpdateInfo | null>('/updates'),
   },
   user: {
     addUser: (data: AddUserRequest) => client.post<User>('/user', data),
@@ -444,7 +446,7 @@ const api = {
       client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
   },
   mail: {
-    sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+    sendTestEmail: (data: { to: string }) => client.post('/mail/test', data),
   },
   edge: {
     getEdges: () => client.get<EdgeInfo[]>('/proxy'),
@@ -530,6 +532,10 @@ const api = {
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
   info: () => client.get<ApplicationInfo>('/info'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
+  support: {
+    getSupportData: () => client.get<object>('/support/configuration'),
+    getLogs: () => client.get<string>('/support/logs'),
+  },
 } as const;
 
 export default api;

@@ -985,7 +985,7 @@ pub(crate) async fn get_location_active_acl_rules(
         allow_all_groups, deny_all_groups, \
         allow_all_network_devices, deny_all_network_devices, addresses, ports, protocols, \
         expires, enabled, parent_id, state, any_address, any_port, any_protocol,
-        use_manual_destination_settings \
+        use_manual_destination_settings, modified_at, modified_by \
         FROM aclrule a \
         LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
         WHERE (an.network_id = $1 OR a.all_locations) AND enabled \

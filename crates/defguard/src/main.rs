@@ -26,6 +26,7 @@ use defguard_core::{
         limits::update_counts,
     },
     events::{ApiEvent, BidiStreamEvent},
+    gateway_config,
     grpc::{GatewayEvent, WorkerState, run_grpc_server},
     init_dev_env, init_vpn_location, run_web_server,
     setup_logs::CoreSetupLogLayer,
@@ -83,6 +84,29 @@ async fn main() -> Result<(), anyhow::Error> {
     )
     .await;
 
+    if config.openid_signing_key.is_some() {
+        info!("Using RSA OpenID signing key");
+    } else {
+        info!("Using HMAC OpenID signing key");
+    }
+
+    // initialize global settings struct
+    initialize_current_settings(&pool).await?;
+
+    debug!("Checking enterprise license status");
+    match License::load_or_renew(&pool).await {
+        Ok(license) => {
+            set_cached_license(license);
+        }
+        Err(err) => {
+            warn!(
+                "There was an error while loading the license, error: {err}. The enterprise \
+                features will be disabled."
+            );
+            set_cached_license(None);
+        }
+    }
+
     // handle optional subcommands
     if let Some(command) = &config.cmd {
         match command {
@@ -93,20 +117,15 @@ async fn main() -> Result<(), anyhow::Error> {
                 let token = init_vpn_location(&pool, args).await?;
                 println!("{token}");
             }
+            Command::GatewayConfig(args) => {
+                let config = gateway_config(&pool, args).await?;
+                println!("{config:#?}");
+            }
         }
 
         // return early
         return Ok(());
     }
-
-    if config.openid_signing_key.is_some() {
-        info!("Using RSA OpenID signing key");
-    } else {
-        info!("Using HMAC OpenID signing key");
-    }
-
-    // initialize global settings struct
-    initialize_current_settings(&pool).await?;
 
     // Both flags must be provided together
     if let Err(msg) = config.validate_adopt_flags() {
@@ -117,6 +136,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
     let mut ini_server_config = true;
 
+    Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}
@@ -136,9 +156,6 @@ async fn main() -> Result<(), anyhow::Error> {
             ActiveWizard::Migration => {
                 let mut settings = Settings::get_current_settings();
                 settings.update_from_config(&pool, &config).await?;
-
-                Settings::initialize_runtime_defaults(&pool).await?;
-
                 config.initialize_post_settings();
                 SERVER_CONFIG
                     .set(config.clone())
@@ -158,8 +175,6 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     }
-
-    Settings::initialize_runtime_defaults(&pool).await?;
 
     if ini_server_config {
         config.initialize_post_settings();
@@ -211,20 +226,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
     update_counts(&pool).await?;
-
-    debug!("Checking enterprise license status");
-    match License::load_or_renew(&pool).await {
-        Ok(license) => {
-            set_cached_license(license);
-        }
-        Err(err) => {
-            warn!(
-                "There was an error while loading the license, error: {err}. The enterprise \
-                features will be disabled."
-            );
-            set_cached_license(None);
-        }
-    }
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
     let proxy_secret_key = settings.secret_key_required()?;

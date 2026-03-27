@@ -3,14 +3,14 @@
     <mj-font name="Geist" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=IBM+Plex+Mono&display=swaphttps://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" />
     <mj-attributes>
       <mj-all padding="0" />
-      <mj-class name="t-title-h1" font-size="32px" font-weight="600" line-height="44px" font-family="Geist" color="inherit" />
-      <mj-class name="t-title-h3" font-size="24px" font-weight="600" line-height="32px" font-family="Geist" color="inherit" />
-      <mj-class name="t-body-primary-600" font-size="16px" font-weight="600" line-height="24px" font-family="Geist" color="inherit" />
-      <mj-class name="t-body-primary-400" font-size="16px" font-weight="400" line-height="24px" font-family="Geist" color="inherit" />
-      <mj-class name="t-body-sm-400" font-size="14px" font-weight="400" line-height="20px" font-family="Geist" color="inherit" />
-      <mj-class name="t-body-sm-500" font-size="14px" font-weight="500" line-height="20px" font-family="Geist" color="inherit" />
-      <mj-class name="t-body-xs-400" font-size="12px" font-weight="400" line-height="16px" font-family="Geist" color="inherit" />
-      <mj-class name="t-body-xs-500" font-size="12px" font-weight="500" line-height="16px" font-family="Geist" color="inherit" />
+      <mj-class name="t-title-h1" font-size="32px" font-weight="600" line-height="44px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-title-h3" font-size="24px" font-weight="600" line-height="32px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-body-primary-600" font-size="16px" font-weight="600" line-height="24px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-body-primary-400" font-size="16px" font-weight="400" line-height="24px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-body-sm-400" font-size="14px" font-weight="400" line-height="20px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-body-sm-500" font-size="14px" font-weight="500" line-height="20px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-body-xs-400" font-size="12px" font-weight="400" line-height="16px" font-family="Geist, Arial, sans-serif" color="inherit" />
+      <mj-class name="t-body-xs-500" font-size="12px" font-weight="500" line-height="16px" font-family="Geist, Arial, sans-serif" color="inherit" />
       <mj-class name="divider" border-width="1px" border-style="solid" border-color="#DFE3E9" />
       <mj-class name="s-5xl" padding="0px 0px 48px 0px" />
       <mj-class name="s-4xl" padding="0px 0px 40px 0px" />
@@ -21,8 +21,8 @@
       <mj-class name="s-md" padding="0px 0px 12px 0px" />
       <mj-class name="s-sm" padding="0px 0px 8px 0px" />
       <mj-class name="s-xs" padding="0px 0px 4px 0px" />
-      <mj-class name="dg-button" border="1px solid #3961DB" padding="0" margin="0" inner-padding="13px 15px" background-color="#3961DB" border-radius="8px" color="#ffffff" font-family="Geist" font-size="14px" font-weight="400" />
-      <mj-class name="dg-button-outlined" border="1px solid #3961DB" padding="0" margin="0" inner-padding="13px 15px" background-color="#fff" border-radius="8px" color="#3961DB" font-family="Geist" font-size="14px" font-weight="400" />
+      <mj-class name="dg-button" border="1px solid #3961DB" padding="0" margin="0" inner-padding="13px 15px" background-color="#3961DB" border-radius="8px" color="#ffffff" font-family="Geist, Arial, sans-serif" font-size="14px" font-weight="400" />
+      <mj-class name="dg-button-outlined" border="1px solid #3961DB" padding="0" margin="0" inner-padding="13px 15px" background-color="#fff" border-radius="8px" color="#3961DB" font-family="Geist, Arial, sans-serif" font-size="14px" font-weight="400" />
       {% block attributes %}
       {% endblock attributes %}
     </mj-attributes>
@@ -33,7 +33,7 @@
       }
 
       .t-titles-h1 {
-        font-family: Geist;
+        font-family: Geist, Arial, sans-serif;
         font-size: 32px;
         line-height: 44px;
         font-weight: 600;
@@ -147,14 +147,14 @@
       }
 
       .dg-table td:not(:first-child) {
-        font-family: Geist;
+        font-family: Geist, Arial, sans-serif;
         font-size: 14px;
         font-weight: 500;
         color: #141517;
       }
 
       .dg-table td:first-child {
-        font-family: Geist;
+        font-family: Geist, Arial, sans-serif;
         font-size: 14px;
         line-height: 20px;
         font-weight: 400;

@@ -12,4 +12,6 @@
   </mj-column>
 </mj-section>
 
+{{ macros::footer_divider() }}
+
 {% endblock content %}
