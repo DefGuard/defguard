@@ -66,11 +66,9 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
 
   const breadcrumbs = useMemo(() => {
     const res = [
-      <Link
-        to="/acl/aliases"
-        search={tab ? { tab } : undefined}
-        key={0}
-      >{m.cmp_nav_item_aliases()}</Link>,
+      <Link to="/acl/aliases" search={tab ? { tab } : undefined} key={0}>
+        {m.cmp_nav_item_aliases()}
+      </Link>,
     ];
 
     if (isEdit) {
@@ -87,11 +85,9 @@ export const CEAliasPage = ({ alias, tab }: Props) => {
       );
     } else {
       res.push(
-        <Link
-          to="/acl/add-alias"
-          search={tab ? { tab } : undefined}
-          key={1}
-        >{m.acl_alias_form_title_add()}</Link>,
+        <Link to="/acl/add-alias" search={tab ? { tab } : undefined} key={1}>
+          {m.acl_alias_form_title_add()}
+        </Link>,
       );
     }
 
