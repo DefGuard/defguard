@@ -25,7 +25,10 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+    handlers::{
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+        user::validate_group_name,
+    },
     hashset,
     location_management::sync_all_networks,
 };
@@ -327,7 +330,12 @@ pub(crate) async fn create_group(
 
     let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
-
+    if !validate_group_name(&group_info.name) {
+        error!("Group name contains forbidden characters!");
+        return Err(WebError::BadRequest(
+            "Group name contains forbidden characters".into(),
+        ));
+    }
     // FIXME: conflicts must not return internal server error (500).
     let group = Group::new(&group_info.name).save(&appstate.pool).await?;
     group
@@ -422,6 +430,12 @@ pub(crate) async fn modify_group(
     let mut remove_from_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
 
+    if !validate_group_name(&group_info.name) {
+        error!("Group name contains forbidden characters!");
+        return Err(WebError::BadRequest(
+            "Group name contains forbidden characters".into(),
+        ));
+    }
     // Rename only when needed.
     //
     if group.name != group_info.name {

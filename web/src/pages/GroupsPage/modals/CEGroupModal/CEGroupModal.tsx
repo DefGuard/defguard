@@ -169,6 +169,10 @@ const StartStep = ({ reservedNames, setModalState, groupInfo, startForm }: StepP
           .string()
           .trim()
           .min(1, m.form_error_required())
+          .refine(
+            (value) => !['/', '\\', '?', '#', '%', '\0'].some((c) => value.includes(c)),
+            m.form_error_forbidden_char(),
+          )
           .refine((value) => {
             // exclude initial name
             if (groupInfo && groupInfo.name === value) return true;
