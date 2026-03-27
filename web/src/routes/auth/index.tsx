@@ -1,9 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { LoginLoadingPage } from '../../pages/auth/LoginLoading/LoginLoadingPage';
-import {
-  getSessionInfoQueryOptions,
-  getUserMeQueryOptions,
-} from '../../shared/query';
+import { getSessionInfoQueryOptions, getUserMeQueryOptions } from '../../shared/query';
 
 export const Route = createFileRoute('/auth/')({
   beforeLoad: async ({ context }) => {

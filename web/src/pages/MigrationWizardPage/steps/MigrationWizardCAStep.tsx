@@ -4,7 +4,6 @@ import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
-import type { User } from '../../../shared/api/types';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
