@@ -254,21 +254,21 @@ const getDisconnectRelevantLocationData = (
 const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string => {
   switch (field) {
     case 'address':
-      return m.location_edit_field_address();
+      return m.add_location_internal_vpn_label_address();
     case 'port':
-      return m.location_edit_field_port();
+      return m.add_location_start_label_port();
     case 'mtu':
-      return m.location_edit_field_mtu();
+      return m.location_network_label_mtu();
     case 'fwmark':
-      return m.location_edit_field_fwmark();
+      return m.location_network_label_fwmark();
     case 'location_mfa_mode':
-      return m.location_edit_field_location_mfa_mode();
+      return m.add_location_step_mfa_label();
     case 'service_location_mode':
-      return m.location_edit_field_service_location_mode();
+      return m.location_edit_section_location_type();
     case 'allow_all_groups':
-      return m.location_edit_field_allow_all_groups();
+      return m.location_access_section_label();
     case 'allowed_groups':
-      return m.location_edit_field_allowed_groups();
+      return m.location_access_section_label();
   }
 };
 
