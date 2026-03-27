@@ -1,0 +1,210 @@
+// ---------------------------------------------------------------------------
+// Help Tutorials Widget
+// Floating launcher button + expandable panel (bottom-right corner)
+// ---------------------------------------------------------------------------
+
+.help-tutorials-widget {
+  position: fixed;
+  bottom: var(--spacing-xl);
+  right: var(--spacing-xl);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+}
+
+// Launcher pill button
+
+.help-tutorials-launcher {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-default);
+  color: var(--fg-action);
+  border: var(--border-1) solid var(--border-muted);
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  font: var(--t-body-sm-500);
+  white-space: nowrap;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+// Floating panel
+
+.help-tutorials-panel {
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  width: 280px;
+  overflow: hidden;
+}
+
+.help-tutorials-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+// Individual tutorial card
+
+.help-tutorial-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease;
+
+  &:hover {
+    background-color: var(--bg-action-muted);
+  }
+}
+
+.help-tutorial-thumbnail {
+  flex-shrink: 0;
+  width: 80px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--bg-emphasis);
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &.placeholder {
+    background-color: var(--bg-emphasis);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::after {
+      content: '';
+      width: 24px;
+      height: 24px;
+      background-color: var(--fg-disabled);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='3.5' width='9' height='9' rx='1.5' fill='currentColor'/%3E%3Cpath d='M10 6.5L15 4v8l-5-2.5V6.5Z' fill='currentColor'/%3E%3C/svg%3E");
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+    }
+  }
+
+  .skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      var(--bg-emphasis) 25%,
+      var(--border-muted) 50%,
+      var(--bg-emphasis) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.help-tutorial-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  overflow: hidden;
+}
+
+.help-tutorial-card-title {
+  font: var(--t-body-sm-500);
+  color: var(--fg-neutral);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.help-tutorial-card-description {
+  font: var(--t-body-xs-500);
+  color: var(--fg-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Panel footer with close button
+
+.help-tutorials-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-top: var(--border-1) solid var(--border-disabled);
+}
+
+.help-tutorials-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: var(--border-1) solid var(--border-muted);
+  background: none;
+  color: var(--fg-neutral);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: background-color 0.12s ease;
+
+  &:hover {
+    background-color: var(--bg-action-muted);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Video modal
+// ---------------------------------------------------------------------------
+
+#help-tutorials-modal {
+  .modal-content {
+    padding: 0;
+  }
+}
+
+.help-tutorials-video-wrapper {
+  width: min(760px, 90vw);
+
+  iframe {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+  }
+}
