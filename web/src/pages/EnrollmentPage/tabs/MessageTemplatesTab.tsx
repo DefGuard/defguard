@@ -185,7 +185,10 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                         text={m.settings_enrollment_template_same_as_message()}
                                       />
                                       <SizedBox height={ThemeSpacing.Xl} />
-                                      <Fold open={sameAsWelcomeMessage}>
+                                      <Fold
+                                        open={sameAsWelcomeMessage}
+                                        className="message-template-fold"
+                                      >
                                         <div className="message-templates-success-banner">
                                           <Icon
                                             icon="check-circle"
@@ -197,7 +200,10 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                           </p>
                                         </div>
                                       </Fold>
-                                      <Fold open={!sameAsWelcomeMessage}>
+                                      <Fold
+                                        open={!sameAsWelcomeMessage}
+                                        className="message-template-fold"
+                                      >
                                         <form.AppField name="enrollment_welcome_email">
                                           {(field) => (
                                             <field.FormTextarea
@@ -271,7 +277,9 @@ const MessageTemplatesSuggestion = () => {
               </li>
             ))}
           </ul>
+          <SizedBox height={ThemeSpacing.Lg} />
           <Divider />
+          <SizedBox height={ThemeSpacing.Lg} />
           <ul className="sidebar-list">
             {messageTemplatesHelpMarkdown.map(([token, description, weight]) => (
               <li key={token}>
