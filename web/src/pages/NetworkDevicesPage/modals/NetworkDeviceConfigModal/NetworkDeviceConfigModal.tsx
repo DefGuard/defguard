@@ -45,7 +45,7 @@ export const NetworkDeviceConfigModal = () => {
   return (
     <Modal
       id="network-device-config-modal"
-      title={'Device VPN configuration'}
+      title={m.modal_network_device_config_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -61,20 +61,14 @@ const ModalContent = ({ config, device }: ModalData) => {
   const { writeToClipboard } = useClipboard();
   return (
     <>
-      <DescriptionBlock title={`Get configuration file`}>
-        <p>
-          {
-            "Use the provided configuration file by importing it into your device's WireGuard app."
-          }
-        </p>
+      <DescriptionBlock title={m.modal_network_device_manual_config_title()}>
+        <p>{m.modal_network_device_manual_config_content()}</p>
       </DescriptionBlock>
       <SizedBox height={ThemeSpacing.Xl2} />
       <InfoBanner
         variant="warning"
         icon={IconKind.WarningOutlined}
-        text={
-          "Defguard doesn't store private keys. Keys are generated in your browser — only the public key is saved. Download the configuration now; the private key won't be available later."
-        }
+        text={m.modal_network_device_manual_config_warning()}
       />
       <SizedBox height={ThemeSpacing.Xl2} />
       <CodeBox text={config.replaceAll('\n', '<br/>')} markdown />
@@ -82,7 +76,7 @@ const ModalContent = ({ config, device }: ModalData) => {
       <div className="box-controls">
         <Button
           variant="outlined"
-          text="Download config file"
+          text={m.modal_network_device_manual_config_download()}
           iconLeft="download"
           onClick={() => {
             downloadText(config, formatFileName(device.name), 'conf');

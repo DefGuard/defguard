@@ -141,7 +141,12 @@ export const AddExternalOpenIdClientSettingsStep = () => {
       >
         <form.AppForm>
           <form.AppField name="display_name">
-            {(field) => <field.FormInput required label="Display Name" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_display_name()}
+              />
+            )}
           </form.AppField>
           {provider === OpenIdProviderKind.Microsoft && (
             <>
@@ -157,7 +162,12 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                   },
                 }}
               >
-                {(field) => <field.FormInput required label="Tenant ID" />}
+                {(field) => (
+                  <field.FormInput
+                    required
+                    label={m.settings_openid_provider_label_microsoft_tenant_id()}
+                  />
+                )}
               </form.AppField>
             </>
           )}
@@ -165,18 +175,32 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             <>
               <SizedBox height={ThemeSpacing.Xl2} />
               <form.AppField name="base_url">
-                {(field) => <field.FormInput required label="Base URL" />}
+                {(field) => (
+                  <field.FormInput
+                    required
+                    label={m.settings_openid_provider_label_base_url()}
+                  />
+                )}
               </form.AppField>
             </>
           )}
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_id">
-            {(field) => <field.FormInput required label="Client ID" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_client_id()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput required label="Client Secret" type="password" />
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_client_secret()}
+                type="password"
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
@@ -185,7 +209,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
                 required
-                label="Username handling"
+                label={m.settings_openid_provider_label_username_handling()}
               />
             )}
           </form.AppField>
@@ -194,8 +218,8 @@ export const AddExternalOpenIdClientSettingsStep = () => {
             {(field) => (
               <field.FormInteractiveBlock
                 variant="checkbox"
-                title="Automatically create user account when logging in for the first time through external OpenID."
-                content="If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID. Otherwise, the user account must first be created by an administrator."
+                title={m.settings_openid_provider_create_account_title()}
+                content={m.settings_openid_provider_create_account_content()}
               />
             )}
           </form.AppField>

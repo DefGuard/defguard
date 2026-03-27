@@ -1,6 +1,7 @@
 import './style.scss';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { OverviewPeriodSelect } from '../../shared/components/OverviewPeriodSelect/OverviewPeriodSelect';
 import { Page } from '../../shared/components/Page/Page';
@@ -33,10 +34,10 @@ export const LocationsOverviewPage = () => {
   });
 
   return (
-    <Page title="VPN Overview" id="locations-overview-page">
+    <Page title={m.cmp_nav_item_overview()} id="locations-overview-page">
       <SizedBox height={ThemeSpacing.Xl3} />
       <div className="top">
-        <p>Dashboard</p>
+        <p>{m.locations_overview_dashboard()}</p>
         <div className="right">
           <OverviewPeriodSelect
             onChange={(value) => {
@@ -59,11 +60,11 @@ export const LocationsOverviewPage = () => {
               statsPeriod={period}
               data={allStats}
               expanded={true}
-              emptyStateTitle={`No data.`}
-              emptyStateSubtitle={`Connect to any location to view summary statistics.`}
+              emptyStateTitle={m.locations_overview_empty_title()}
+              emptyStateSubtitle={m.locations_overview_empty_subtitle()}
             >
               <div className="summary-top">
-                <p>All locations summary</p>
+                <p>{m.locations_overview_summary_title()}</p>
               </div>
             </OverviewCard>
           </li>

@@ -107,7 +107,7 @@ export const RulesTable = ({
   const { mutate: deployRule } = useMutation({
     mutationFn: api.acl.rule.applyRules,
     onSuccess: () => {
-      Snackbar.default(`Rule deployed`);
+      Snackbar.default(m.acl_rules_deploy_success());
     },
     meta: {
       invalidate: ['acl'],
@@ -123,16 +123,18 @@ export const RulesTable = ({
         return (
           <TableCell>
             {isEnabled ? (
-              <Badge variant={BadgeVariant.Success} text="Active" />
+              <Badge variant={BadgeVariant.Success} text={m.state_active()} />
             ) : (
-              <Badge variant={BadgeVariant.Critical} text="Disabled" />
+              <Badge variant={BadgeVariant.Critical} text={m.state_disabled()} />
             )}
           </TableCell>
         );
-      } else if (ruleState === AclStatus.Deleted) {
+      }
+
+      if (ruleState === AclStatus.Deleted) {
         return (
           <TableCell>
-            <Badge variant={BadgeVariant.Critical} text="Deleted" />
+            <Badge variant={BadgeVariant.Critical} text={m.acl_rules_state_deleted()} />
           </TableCell>
         );
       } else {
@@ -150,7 +152,7 @@ export const RulesTable = ({
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Rule name',
+        header: m.acl_rules_col_name(),
         enableSorting: true,
         sortingFn: 'text',
         minSize: 210,
@@ -165,7 +167,7 @@ export const RulesTable = ({
       }),
       columnHelper.display({
         id: 'predefined-destinations',
-        header: 'Predefined destinations',
+        header: m.acl_rules_col_predefined_destinations(),
         minSize: 300,
         cell: (info) => {
           const row = info.row.original;
@@ -186,7 +188,7 @@ export const RulesTable = ({
       }),
       columnHelper.display({
         id: 'manual-destinations',
-        header: 'Manually configured destination',
+        header: m.acl_rules_col_manual_destination(),
         minSize: 300,
         cell: (info) => {
           const row = info.row.original;
@@ -212,7 +214,7 @@ export const RulesTable = ({
       }),
       columnHelper.display({
         id: 'locations',
-        header: 'Locations',
+        header: m.acl_rules_col_locations(),
         minSize: 220,
         cell: (info) => {
           const row = info.row.original;
@@ -221,7 +223,7 @@ export const RulesTable = ({
               <TableCell>
                 <Badge
                   variant={BadgeVariant.Success}
-                  text="All locations"
+                  text={m.acl_rules_all_locations()}
                   icon="check-filled"
                 />
               </TableCell>
@@ -259,7 +261,7 @@ export const RulesTable = ({
       }),
       columnHelper.display({
         id: 'status',
-        header: 'Status',
+        header: m.col_status(),
         size: 125,
         minSize: 125,
         enableSorting: false,

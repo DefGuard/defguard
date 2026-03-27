@@ -4,6 +4,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import { activityLogEventDisplay } from '../../shared/api/activity-log-types';
 import type {
   ActivityLogEvent,
@@ -62,7 +63,7 @@ export const ActivityLogTable = ({
   const columns = useMemo(
     () => [
       columnHelper.accessor('timestamp', {
-        header: 'Date',
+        header: m.activity_log_col_date(),
         enableSorting: true,
         minSize: 180,
         cell: (info) => {
@@ -76,7 +77,7 @@ export const ActivityLogTable = ({
         },
       }),
       columnHelper.accessor('username', {
-        header: 'User',
+        header: m.activity_log_col_user(),
         minSize: 150,
         cell: (info) => (
           <TableCell>
@@ -85,32 +86,32 @@ export const ActivityLogTable = ({
         ),
       }),
       columnHelper.accessor('ip', {
-        header: 'IP',
+        header: m.activity_log_col_ip(),
         minSize: 150,
         cell: (info) => {
           const value = info.getValue();
           const displayValue = isPresent(value) ? formatIpForDisplay(value) : value;
           return (
             <TableCell>
-              {renderOptionalTableValue(displayValue, 'No IP recorded')}
+              {renderOptionalTableValue(displayValue, m.activity_log_missing_ip())}
             </TableCell>
           );
         },
       }),
       columnHelper.accessor('location', {
-        header: 'Location',
+        header: m.activity_log_col_location(),
         minSize: 130,
         cell: (info) => {
           const value = info.getValue();
           return (
             <TableCell>
-              {renderOptionalTableValue(value, 'No location recorded')}
+              {renderOptionalTableValue(value, m.activity_log_missing_location())}
             </TableCell>
           );
         },
       }),
       columnHelper.accessor('event', {
-        header: 'Event',
+        header: m.activity_log_col_event(),
         minSize: 190,
         cell: (info) => {
           const event = info.getValue();
@@ -122,7 +123,7 @@ export const ActivityLogTable = ({
         },
       }),
       columnHelper.accessor('module', {
-        header: 'Module',
+        header: m.activity_log_col_module(),
         minSize: 120,
         cell: (info) => {
           const value = info.getValue();
@@ -134,7 +135,7 @@ export const ActivityLogTable = ({
         },
       }),
       columnHelper.accessor('description', {
-        header: 'Description',
+        header: m.activity_log_col_description(),
         minSize: 300,
         size: 300,
         enableResizing: true,
@@ -182,14 +183,14 @@ export const ActivityLogTable = ({
     return (
       <EmptyStateFlexible
         icon="log"
-        title={`You don't have any logs.`}
-        subtitle={`Activity logs will be displayed here once events occur.`}
+        title={m.activity_log_empty_title()}
+        subtitle={m.activity_log_empty_subtitle()}
       />
     );
 
   return (
     <>
-      <TableTop text="Activity"></TableTop>
+      <TableTop text={m.activity_log_table_title()}></TableTop>
       <TableBody
         table={table}
         hasNextPage={hasNextPage}

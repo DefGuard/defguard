@@ -100,7 +100,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
 
   const addDeviceProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add device',
+      text: m.profile_devices_add_new(),
       variant: 'primary',
       testId: 'add-device',
       iconLeft: 'add-device',
@@ -147,7 +147,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
                 });
               })
               .catch((error) => {
-                Snackbar.error('Failed to load device IP settings');
+                Snackbar.error(m.profile_devices_ip_settings_load_failed());
                 console.error(error);
               });
           },
@@ -317,14 +317,14 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     <>
       {rowData.length === 0 && (
         <EmptyStateFlexible
-          title="No devices"
-          subtitle="To add new device click the button below."
+          title={m.profile_devices_empty_title()}
+          subtitle={m.profile_devices_empty_subtitle()}
           primaryAction={addDeviceProps}
         />
       )}
       {rowData.length > 0 && (
         <>
-          <TableTop text="All devices">
+          <TableTop text={m.profile_devices_title()}>
             <Button {...addDeviceProps} />
           </TableTop>
           <TableBody

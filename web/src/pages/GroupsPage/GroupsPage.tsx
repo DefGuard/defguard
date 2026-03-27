@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
@@ -15,7 +16,7 @@ export const GroupsPage = () => {
   const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
   return (
     <>
-      <Page id="groups-page" title="Groups">
+      <Page id="groups-page" title={m.groups_title()}>
         <SizedBox height={ThemeSpacing.Xl3} />
         <TablePageLayout>
           <GroupsTable groups={groups} users={users} />

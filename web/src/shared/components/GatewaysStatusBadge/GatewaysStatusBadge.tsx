@@ -10,23 +10,24 @@ import {
   useFloating,
   useInteractions,
 } from '@floating-ui/react';
+import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { type HTMLProps, useMemo, useState } from 'react';
+import { useGatewayWizardStore } from '../../../pages/GatewaySetupPage/useGatewayWizardStore';
+import { m } from '../../../paraglide/messages';
+import api from '../../api/api';
+import type { GatewayInfo } from '../../api/types';
 import { Badge } from '../../defguard-ui/components/Badge/Badge';
 import type { BadgeVariantValue } from '../../defguard-ui/components/Badge/types';
 import { Button } from '../../defguard-ui/components/Button/Button';
-import type { IconKindValue } from '../../defguard-ui/components/Icon/icon-types';
-import { InteractionBox } from '../../defguard-ui/components/InteractionBox/InteractionBox';
-import './style.scss';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { useGatewayWizardStore } from '../../../pages/GatewaySetupPage/useGatewayWizardStore';
-import api from '../../api/api';
-import type { GatewayInfo } from '../../api/types';
 import { Divider } from '../../defguard-ui/components/Divider/Divider';
 import { Icon } from '../../defguard-ui/components/Icon';
+import type { IconKindValue } from '../../defguard-ui/components/Icon/icon-types';
+import { InteractionBox } from '../../defguard-ui/components/InteractionBox/InteractionBox';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
+import './style.scss';
 
 type Status = 'all' | 'none' | 'some';
 
@@ -81,11 +82,11 @@ export const GatewaysStatusBadge = ({ data, showDetails = false }: Props) => {
   const text = () => {
     switch (status) {
       case 'all':
-        return 'Gateway (all) connected';
+        return m.gateway_status_all_connected();
       case 'some':
-        return `Gateway (${connectedLength}) connected`;
+        return m.gateway_status_connected_count({ count: connectedLength });
       case 'none':
-        return 'None connected';
+        return m.gateway_status_none_connected();
     }
   };
 
@@ -161,7 +162,7 @@ const FloatingMenu = ({
     <div className={clsx('gateways-status-floating', className)} {...rest}>
       {connected.length > 0 && (
         <div className="connected">
-          <p>Connected</p>
+          <p>{m.gateway_status_connected()}</p>
           <ul>
             {connected.map((gw) => (
               <li key={gw.id}>
@@ -182,7 +183,7 @@ const FloatingMenu = ({
       )}
       {disconnected.length > 0 && (
         <div className="disconnected">
-          <p>Disconnected</p>
+          <p>{m.gateway_status_disconnected()}</p>
           <ul>
             {disconnected.map((gw) => (
               <li key={gw.id}>
@@ -210,7 +211,7 @@ const FloatingMenu = ({
         iconLeft="network-settings"
         size="big"
         variant="outlined"
-        text="Add more gateways"
+        text={m.gateway_add_more()}
         onClick={() => {
           useGatewayWizardStore.getState().start({ network_id: locationId });
           navigate({ to: '/setup-gateway', replace: true });
