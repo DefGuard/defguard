@@ -193,7 +193,11 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
           <MarkedSection icon="settings">
             <form.AppField name="name">
               {(field) => (
-                <field.FormInput required label={m.acl_destination_col_name()} />
+                <field.FormInput
+                  required
+                  label={m.acl_destination_col_name()}
+                  helper={m.acl_helper_destination_name()}
+                />
               )}
             </form.AppField>
           </MarkedSection>
@@ -216,6 +220,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
                         required
                         placeholder={m.acl_form_addresses_placeholder()}
                         label={m.acl_form_addresses_label()}
+                        helper={m.acl_helper_addresses()}
                       />
                     )}
                   </form.AppField>
@@ -236,7 +241,11 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
                   <SizedBox height={ThemeSpacing.Lg} />
                   <form.AppField name="ports">
                     {(field) => (
-                      <field.FormInput required label={m.acl_form_ports_label()} />
+                      <field.FormInput
+                        required
+                        label={m.acl_form_ports_label()}
+                        helper={m.acl_helper_ports()}
+                      />
                     )}
                   </form.AppField>
                 </Fold>

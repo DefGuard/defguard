@@ -1,145 +1,148 @@
-import { useMutation } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import z from 'zod';
-import { useShallow } from 'zustand/react/shallow';
-import { m } from '../../../../paraglide/messages';
-import api from '../../../../shared/api/api';
-import { Controls } from '../../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { useAppForm } from '../../../../shared/form';
-import { formChangeLogic } from '../../../../shared/formLogic';
-import { SetupPageStep } from '../types';
-import { useSetupWizardStore } from '../useSetupWizardStore';
+import { useMutation } from "@tanstack/react-query";
+import { useMemo } from "react";
+import z from "zod";
+import { useShallow } from "zustand/react/shallow";
+import { m } from "../../../../paraglide/messages";
+import api from "../../../../shared/api/api";
+import { Controls } from "../../../../shared/components/Controls/Controls";
+import { WizardCard } from "../../../../shared/components/wizard/WizardCard/WizardCard";
+import { Button } from "../../../../shared/defguard-ui/components/Button/Button";
+import { SizedBox } from "../../../../shared/defguard-ui/components/SizedBox/SizedBox";
+import { Snackbar } from "../../../../shared/defguard-ui/providers/snackbar/snackbar";
+import { ThemeSpacing } from "../../../../shared/defguard-ui/types";
+import { useAppForm } from "../../../../shared/form";
+import { formChangeLogic } from "../../../../shared/formLogic";
+import { SetupPageStep } from "../types";
+import { useSetupWizardStore } from "../useSetupWizardStore";
 
 type FormFields = {
-  default_admin_group_name: string;
-  default_authentication: number;
-  default_mfa_code_lifetime: number;
+	default_admin_group_name: string;
+	default_authentication: number;
+	default_mfa_code_lifetime: number;
 };
 
 export const SetupGeneralConfigStep = () => {
-  const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
-  const defaultValues = useSetupWizardStore(
-    useShallow(
-      (s): FormFields => ({
-        default_admin_group_name: s.default_admin_group_name,
-        default_authentication: s.default_authentication_period_days,
-        default_mfa_code_lifetime: s.default_mfa_code_timeout_seconds,
-      }),
-    ),
-  );
+	const setActiveStep = useSetupWizardStore((s) => s.setActiveStep);
+	const defaultValues = useSetupWizardStore(
+		useShallow(
+			(s): FormFields => ({
+				default_admin_group_name: s.default_admin_group_name,
+				default_authentication: s.default_authentication_period_days,
+				default_mfa_code_lifetime: s.default_mfa_code_timeout_seconds,
+			}),
+		),
+	);
 
-  const formSchema = useMemo(
-    () =>
-      z.object({
-        default_admin_group_name: z
-          .string()
-          .min(1, m.initial_setup_general_config_error_admin_group_required()),
-        default_authentication: z
-          .number()
-          .min(1, m.initial_setup_general_config_error_auth_period_min()),
-        default_mfa_code_lifetime: z
-          .number()
-          .min(60, m.initial_setup_general_config_error_mfa_timeout_min()),
-      }),
-    [],
-  );
+	const formSchema = useMemo(
+		() =>
+			z.object({
+				default_admin_group_name: z
+					.string()
+					.min(1, m.initial_setup_general_config_error_admin_group_required()),
+				default_authentication: z
+					.number()
+					.min(1, m.initial_setup_general_config_error_auth_period_min()),
+				default_mfa_code_lifetime: z
+					.number()
+					.min(60, m.initial_setup_general_config_error_mfa_timeout_min()),
+			}),
+		[],
+	);
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: api.initial_setup.setGeneralConfig,
-    meta: {
-      invalidate: ['setupStatus'],
-    },
-    onSuccess: () => {
-      setActiveStep(SetupPageStep.CertificateAuthority);
-    },
-    onError: (error) => {
-      Snackbar.error(m.initial_setup_general_config_error_save_failed());
-      console.error('Failed to save general config:', error);
-    },
-  });
+	const { mutate, isPending } = useMutation({
+		mutationFn: api.initial_setup.setGeneralConfig,
+		meta: {
+			invalidate: ["setupStatus"],
+		},
+		onSuccess: () => {
+			setActiveStep(SetupPageStep.CertificateAuthority);
+		},
+		onError: (error) => {
+			Snackbar.error(m.initial_setup_general_config_error_save_failed());
+			console.error("Failed to save general config:", error);
+		},
+	});
 
-  const form = useAppForm({
-    defaultValues,
-    validationLogic: formChangeLogic,
-    validators: {
-      onSubmit: formSchema,
-      onChange: formSchema,
-    },
-    onSubmit: ({ value }) => {
-      useSetupWizardStore.setState({
-        default_admin_group_name: value.default_admin_group_name,
-        default_authentication_period_days: value.default_authentication,
-        default_mfa_code_timeout_seconds: value.default_mfa_code_lifetime,
-      });
-      const store = useSetupWizardStore.getState();
-      mutate({
-        default_admin_group_name: value.default_admin_group_name,
-        default_authentication: value.default_authentication,
-        default_mfa_code_lifetime: value.default_mfa_code_lifetime,
-        admin_username: store.admin_username,
-      });
-    },
-  });
+	const form = useAppForm({
+		defaultValues,
+		validationLogic: formChangeLogic,
+		validators: {
+			onSubmit: formSchema,
+			onChange: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			useSetupWizardStore.setState({
+				default_admin_group_name: value.default_admin_group_name,
+				default_authentication_period_days: value.default_authentication,
+				default_mfa_code_timeout_seconds: value.default_mfa_code_lifetime,
+			});
+			const store = useSetupWizardStore.getState();
+			mutate({
+				default_admin_group_name: value.default_admin_group_name,
+				default_authentication: value.default_authentication,
+				default_mfa_code_lifetime: value.default_mfa_code_lifetime,
+				admin_username: store.admin_username,
+			});
+		},
+	});
 
-  const handleNext = () => {
-    form.handleSubmit();
-  };
+	const handleNext = () => {
+		form.handleSubmit();
+	};
 
-  return (
-    <WizardCard>
-      <form
-        onSubmit={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-      >
-        <form.AppForm>
-          <form.AppField name="default_admin_group_name">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.initial_setup_general_config_label_admin_group()}
-                type="text"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="default_authentication">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.initial_setup_general_config_label_auth_period()}
-                type="number"
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="default_mfa_code_lifetime">
-            {(field) => (
-              <field.FormInput
-                required
-                label={m.initial_setup_general_config_label_mfa_timeout()}
-                type="number"
-              />
-            )}
-          </form.AppField>
-        </form.AppForm>
-      </form>
-      <Controls>
-        <div className="right">
-          <Button
-            text={m.initial_setup_controls_continue()}
-            onClick={handleNext}
-            loading={isPending}
-          />
-        </div>
-      </Controls>
-    </WizardCard>
-  );
+	return (
+		<WizardCard>
+			<form
+				onSubmit={(e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					form.handleSubmit();
+				}}
+			>
+				<form.AppForm>
+					<form.AppField name="default_admin_group_name">
+						{(field) => (
+							<field.FormInput
+								required
+								label={m.initial_setup_general_config_label_admin_group()}
+								helper={m.initial_setup_general_config_helper_admin_group()}
+								type="text"
+							/>
+						)}
+					</form.AppField>
+					<SizedBox height={ThemeSpacing.Xl} />
+					<form.AppField name="default_authentication">
+						{(field) => (
+							<field.FormInput
+								required
+								label={m.initial_setup_general_config_label_auth_period()}
+								helper={m.initial_setup_general_config_helper_auth_period()}
+								type="number"
+							/>
+						)}
+					</form.AppField>
+					<SizedBox height={ThemeSpacing.Xl} />
+					<form.AppField name="default_mfa_code_lifetime">
+						{(field) => (
+							<field.FormInput
+								required
+								label={m.initial_setup_general_config_label_mfa_timeout()}
+								helper={m.initial_setup_general_config_helper_mfa_timeout()}
+								type="number"
+							/>
+						)}
+					</form.AppField>
+				</form.AppForm>
+			</form>
+			<Controls>
+				<div className="right">
+					<Button
+						text={m.initial_setup_controls_continue()}
+						onClick={handleNext}
+						loading={isPending}
+					/>
+				</div>
+			</Controls>
+		</WizardCard>
+	);
 };

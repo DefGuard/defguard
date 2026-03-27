@@ -101,7 +101,13 @@ const ModalContent = () => {
       >
         <form.AppForm>
           <form.AppField name="email">
-            {(field) => <field.FormInput required label={m.form_label_email()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_email()}
+                helper={m.settings_smtp_test_email_helper_email()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.Subscribe

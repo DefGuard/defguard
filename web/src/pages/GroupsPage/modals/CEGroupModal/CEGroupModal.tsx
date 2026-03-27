@@ -216,7 +216,11 @@ const StartStep = ({ reservedNames, setModalState, groupInfo, startForm }: StepP
         <form.AppForm>
           <form.AppField name="name">
             {(field) => (
-              <field.FormInput label={m.modal_add_group_form_label_name()} required />
+              <field.FormInput
+                label={m.modal_add_group_form_label_name()}
+                helper={m.modal_add_group_helper_name()}
+                required
+              />
             )}
           </form.AppField>
         </form.AppForm>

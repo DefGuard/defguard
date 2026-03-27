@@ -68,6 +68,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   options={directorySyncTargetOptions}
                   required
                   label={m.settings_openid_provider_label_sync_target()}
+                  helper={m.settings_openid_provider_helper_sync_target()}
                 />
               )}
             </form.AppField>
@@ -77,6 +78,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   type="number"
                   required
                   label={m.settings_openid_provider_label_sync_interval()}
+                  helper={m.settings_openid_provider_helper_sync_interval()}
                 />
               )}
             </form.AppField>
@@ -89,6 +91,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   required
                   label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_user_behavior()}
                 />
               )}
             </form.AppField>
@@ -98,6 +101,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   required
                   label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_admin_behavior()}
                 />
               )}
             </form.AppField>
@@ -109,6 +113,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 required
                 label={m.settings_openid_provider_label_jumpcloud_api_key()}
                 type="password"
+                helper={m.settings_openid_provider_helper_jumpcloud_api_key()}
               />
             )}
           </form.AppField>

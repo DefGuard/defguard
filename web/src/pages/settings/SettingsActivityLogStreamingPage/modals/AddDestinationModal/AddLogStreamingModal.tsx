@@ -195,26 +195,47 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_name()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_name()}
+                helper={m.modal_add_log_streaming_helper_name()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="url">
-            {(field) => <field.FormInput required label={m.form_label_url()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_url()}
+                helper={m.modal_add_log_streaming_helper_url()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="username">
-            {(field) => <field.FormInput label={m.form_label_username()} />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_username()}
+                helper={m.modal_add_log_streaming_helper_username()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="password">
             {(field) => (
-              <field.FormInput label={m.form_label_password()} type="password" />
+              <field.FormInput
+                label={m.form_label_password()}
+                type="password"
+                helper={m.modal_add_log_streaming_helper_password()}
+              />
             )}
           </form.AppField>
 

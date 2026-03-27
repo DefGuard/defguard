@@ -605,7 +605,13 @@ const Content = ({ rule: initialRule, tab }: Props) => {
           </AppText>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.acl_rules_col_name()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.acl_rules_col_name()}
+                helper={m.acl_helper_rule_name()}
+              />
+            )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
           <DescriptionBlock title={m.cmp_nav_item_locations()}>
@@ -797,7 +803,10 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                         <SizedBox height={ThemeSpacing.Xl} />
                         <form.AppField name="addresses">
                           {(field) => (
-                            <field.FormTextarea label={m.acl_form_addresses_label()} />
+                            <field.FormTextarea
+                              label={m.acl_form_addresses_label()}
+                              helper={m.acl_helper_addresses()}
+                            />
                           )}
                         </form.AppField>
                         <AliasDataBlock
@@ -822,7 +831,10 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                         <SizedBox height={ThemeSpacing.Xl} />
                         <form.AppField name="ports">
                           {(field) => (
-                            <field.FormInput label={m.acl_form_ports_label()} />
+                            <field.FormInput
+                              label={m.acl_form_ports_label()}
+                              helper={m.acl_helper_ports()}
+                            />
                           )}
                         </form.AppField>
                         <AliasDataBlock
