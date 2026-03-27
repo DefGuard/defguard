@@ -33,7 +33,7 @@ export const LicenseModalControls = ({ modalName, linkText }: Props) => {
             href={externalLink.defguard.pricing}
           >
             <Button
-              text={linkText ?? `Check our plans`}
+              text={linkText ?? m.license_see_other_plans()}
               iconRight={IconKind.OpenInNewWindow}
             />
           </a>

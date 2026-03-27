@@ -38,7 +38,7 @@ export const DisplayListModal = () => {
   return (
     <Modal
       id="display-list-modal"
-      title={'Details'}
+      title={m.misc_details()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {

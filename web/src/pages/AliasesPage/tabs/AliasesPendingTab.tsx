@@ -1,4 +1,6 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { m } from '../../../paraglide/messages';
+import { AclListTab } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
 import { AclStatus } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -29,18 +31,20 @@ export const AliasesPendingTab = () => {
       {isEmpty && (
         <EmptyStateFlexible
           icon="aliases"
-          title={`You don't have any pending items.`}
-          subtitle={`They will appear here once you add or modify one.`}
+          title={m.acl_destinations_empty_pending_title()}
+          subtitle={m.acl_destinations_empty_pending_subtitle()}
         />
       )}
       {!isEmpty && (
         <>
-          <TableTop text="Pending aliases">
+          <TableTop text={m.acl_aliases_table_title_pending()}>
             {aliases.length > 0 && (
               <Button
                 variant="primary"
                 iconLeft="deploy"
-                text={`Deploy all pending (${aliases.length})`}
+                text={m.acl_destinations_button_deploy_all_pending({
+                  count: aliases.length,
+                })}
                 loading={isPending}
                 disabled={loading}
                 onClick={() => {
@@ -52,7 +56,12 @@ export const AliasesPendingTab = () => {
               />
             )}
           </TableTop>
-          <AliasTable data={aliases} rules={rules} disableBlockedModal />
+          <AliasTable
+            data={aliases}
+            rules={rules}
+            tab={AclListTab.Pending}
+            disableBlockedModal
+          />
         </>
       )}
     </>

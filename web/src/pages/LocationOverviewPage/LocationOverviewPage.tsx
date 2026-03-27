@@ -1,4 +1,5 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import './style.scss';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
@@ -47,7 +48,7 @@ export const LocationOverviewPage = () => {
   });
 
   return (
-    <Page title="VPN Overview" id="location-overview-page">
+    <Page title={m.cmp_nav_item_overview()} id="location-overview-page">
       <SizedBox height={ThemeSpacing.Xl3} />
       <div className="info">
         <div className="top">
@@ -84,12 +85,12 @@ const DevicesSection = () => {
   const tabItems = useMemo(
     (): TabsItem[] => [
       {
-        title: 'Users',
+        title: m.cmp_nav_item_users(),
         active: selected === 'users',
         onClick: () => setSelected('users'),
       },
       {
-        title: 'Network devices',
+        title: m.cmp_nav_item_network_devices(),
         active: selected === 'devices',
         onClick: () => setSelected('devices'),
       },
@@ -100,8 +101,9 @@ const DevicesSection = () => {
     <>
       <div className="table-selection">
         <p className="table-title">
-          {selected === 'users' && "Connected users' devices"}
-          {selected === 'devices' && 'Connected network devices'}
+          {selected === 'users' && m.location_overview_section_connected_users_devices()}
+          {selected === 'devices' &&
+            m.location_overview_section_connected_network_devices()}
         </p>
         <SizedBox height={ThemeSpacing.Lg} />
         <Tabs items={tabItems} />

@@ -1,6 +1,2 @@
-export const RulesPageTab = {
-  Deployed: 'deployed',
-  Pending: 'pending',
-} as const;
-
-export type RulesPageTabValue = (typeof RulesPageTab)[keyof typeof RulesPageTab];
+export type { AclListTabValue as RulesPageTabValue } from '../../shared/aclTabs';
+export { AclListTab as RulesPageTab } from '../../shared/aclTabs';

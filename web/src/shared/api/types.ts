@@ -432,6 +432,15 @@ export interface ApplicationInfo {
   ldap_info: LdapInfo;
 }
 
+export interface UpdateInfo {
+  version: string;
+  release_date: string;
+  release_notes_url: string;
+  update_url: string;
+  critical: boolean;
+  notes: string;
+}
+
 export interface WebauthnRegisterStartResponse {
   publicKey: PublicKeyCredentialCreationOptionsJSON;
 }
@@ -1186,6 +1195,8 @@ export interface AclRule {
   id: number;
   state: AclStatusValue;
   name: string;
+  modified_at: string;
+  modified_by: string;
   all_locations: boolean;
   allow_all_users: boolean;
   deny_all_users: boolean;
@@ -1214,9 +1225,15 @@ export interface AclRule {
   destinations: number[];
 }
 
-export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;
+export type EditAclRuleRequest = Omit<
+  AclRule,
+  'state' | 'parent_id' | 'modified_at' | 'modified_by'
+>;
 
-export type AddAclRuleRequest = Omit<AclRule, 'state' | 'parent_id' | 'id'>;
+export type AddAclRuleRequest = Omit<
+  AclRule,
+  'state' | 'parent_id' | 'id' | 'modified_at' | 'modified_by'
+>;
 
 export interface OpenIdAuthInfo {
   url: string;

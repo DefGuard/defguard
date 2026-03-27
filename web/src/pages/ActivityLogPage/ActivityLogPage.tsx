@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { Page } from '../../shared/components/Page/Page';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -35,7 +36,7 @@ export const ActivityLogPage = () => {
   const pagination = lastItem ? lastItem.pagination : null;
 
   return (
-    <Page id="activity-log-page" title={`Activity log`}>
+    <Page id="activity-log-page" title={m.cmp_nav_item_activity_log()}>
       <SizedBox height={ThemeSpacing.Xl3} />
       <TablePageLayout>
         {isPresent(flatData) && isPresent(pagination) && (

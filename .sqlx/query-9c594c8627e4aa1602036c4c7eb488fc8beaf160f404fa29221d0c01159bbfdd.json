@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, parent_id, name, kind \"kind: _\", state \"state: _\", addresses, ports, protocols, any_address, any_port, any_protocol FROM aclalias WHERE kind = $1",
+  "query": "SELECT id, \"parent_id\",\"name\",\"kind\" \"kind: _\",\"state\" \"state: _\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"any_address\",\"any_port\",\"any_protocol\",\"modified_at\",\"modified_by\" FROM \"aclalias\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,17 +50,17 @@
       },
       {
         "ordinal": 5,
-        "name": "addresses",
+        "name": "addresses: _",
         "type_info": "InetArray"
       },
       {
         "ordinal": 6,
-        "name": "ports",
+        "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 7,
-        "name": "protocols",
+        "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
@@ -77,21 +77,21 @@
         "ordinal": 10,
         "name": "any_protocol",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "modified_by",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        {
-          "Custom": {
-            "name": "aclalias_kind",
-            "kind": {
-              "Enum": [
-                "destination",
-                "component"
-              ]
-            }
-          }
-        }
+        "Int8"
       ]
     },
     "nullable": [
@@ -105,8 +105,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "ef93737a937eed2cb1a192d71f52ed0eb93c05d42b6d864f354ffe0135d9d094"
+  "hash": "9c594c8627e4aa1602036c4c7eb488fc8beaf160f404fa29221d0c01159bbfdd"
 }

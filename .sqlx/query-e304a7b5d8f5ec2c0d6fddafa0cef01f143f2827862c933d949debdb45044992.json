@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_groups\",\"deny_all_groups\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_locations\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_address\",\"any_port\",\"any_protocol\",\"use_manual_destination_settings\" FROM \"aclrule\" WHERE id = $1",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_groups\",\"deny_all_groups\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_locations\",\"addresses\" \"addresses: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\",\"any_address\",\"any_port\",\"any_protocol\",\"use_manual_destination_settings\",\"modified_at\",\"modified_by\" FROM \"aclrule\"",
   "describe": {
     "columns": [
       {
@@ -115,12 +115,20 @@
         "ordinal": 19,
         "name": "use_manual_destination_settings",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 20,
+        "name": "modified_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 21,
+        "name": "modified_by",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -142,8 +150,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "d21c30bfd10d3e47c065ae2485eba079437dab3a0540cbbbceac6874505d672d"
+  "hash": "e304a7b5d8f5ec2c0d6fddafa0cef01f143f2827862c933d949debdb45044992"
 }

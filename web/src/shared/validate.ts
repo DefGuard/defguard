@@ -163,4 +163,32 @@ export const Validate = {
 
     return true;
   },
+  isNetworkAddress: (cidr: string): boolean => {
+    try {
+      if (ipaddr.IPv4.isValidCIDR(cidr)) {
+        const [addr] = ipaddr.parseCIDR(cidr);
+        const network = ipaddr.IPv4.networkAddressFromCIDR(cidr);
+        return addr.toString() === network.toString();
+      }
+      if (ipaddr.IPv6.isValidCIDR(cidr)) {
+        const [addr] = ipaddr.parseCIDR(cidr);
+        const network = ipaddr.IPv6.networkAddressFromCIDR(cidr);
+        return addr.toString() === network.toString();
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+  isBroadcastAddress: (cidr: string): boolean => {
+    try {
+      if (!ipaddr.IPv4.isValidCIDR(cidr)) return false;
+      const [addr, prefixLen] = ipaddr.parseCIDR(cidr);
+      // /31 and /32 have no broadcast address
+      if (prefixLen >= 31) return false;
+      return addr.toString() === ipaddr.IPv4.broadcastAddressFromCIDR(cidr).toString();
+    } catch {
+      return false;
+    }
+  },
 } as const;

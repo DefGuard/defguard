@@ -48,7 +48,7 @@ export const OpenIdClientTable = () => {
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add new application',
+      text: m.openid_add_application(),
       iconLeft: 'openid',
       testId: 'add-new-app',
       onClick: () => {
@@ -63,7 +63,7 @@ export const OpenIdClientTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'App name',
+        header: m.openid_table_header_app_name(),
         enableSorting: true,
         sortingFn: 'text',
         size: 300,
@@ -78,14 +78,14 @@ export const OpenIdClientTable = () => {
         ),
       }),
       columnHelper.accessor('enabled', {
-        header: 'Status',
+        header: m.col_status(),
         minSize: 125,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
-              <Badge variant="success" text="Enabled" />
+              <Badge variant="success" text={m.state_enabled()} />
             ) : (
-              <Badge variant="critical" text="Disabled" />
+              <Badge variant="critical" text={m.state_disabled()} />
             )}
           </TableCell>
         ),

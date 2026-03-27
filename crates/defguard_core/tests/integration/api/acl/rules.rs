@@ -42,6 +42,12 @@ fn assert_pending_related_object_rules_not_exposed(
     );
 }
 
+fn assert_rule_matches_ignoring_modified_at(actual: &ApiAclRule, expected: &ApiAclRule) {
+    let mut normalized_rule = actual.clone();
+    normalized_rule.modified_at = expected.modified_at;
+    assert_eq!(normalized_rule, *expected);
+}
+
 #[sqlx::test]
 async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -55,8 +61,14 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_rule: ApiAclRule = response.json().await;
-    let expected_response =
-        edit_rule_data_into_api_response(&rule, response_rule.id, None, RuleState::New);
+    let expected_response = edit_rule_data_into_api_response(
+        &rule,
+        response_rule.id,
+        None,
+        RuleState::New,
+        response_rule.modified_at,
+        response_rule.modified_by.clone(),
+    );
     assert_eq!(response_rule, expected_response);
 
     // list
@@ -68,23 +80,32 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .data;
     assert_eq!(response_rules.len(), 1);
     let response_rule = response_rules[0].clone();
-    assert_eq!(response_rule, expected_response);
+    assert_rule_matches_ignoring_modified_at(&response_rule, &expected_response);
 
     // retrieve
     let response = client.get("/api/v1/acl/rule/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_rule: ApiAclRule = response.json().await;
-    assert_eq!(response_rule, expected_response);
+    assert_rule_matches_ignoring_modified_at(&response_rule, &expected_response);
 
     // update
     let mut rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    let previous_modified_at = rule.modified_at;
+    let acting_user = rule.modified_by.clone();
     rule.name = "modified".to_string();
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_rule: ApiAclRule = response.json().await;
-    assert_eq!(response_rule, rule);
-    let response_rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
-    assert_eq!(response_rule, rule);
+    assert_eq!(response_rule.modified_by, acting_user);
+    assert!(response_rule.modified_at >= previous_modified_at);
+    let mut expected_rule = rule.clone();
+    expected_rule.modified_at = response_rule.modified_at;
+    expected_rule.modified_by = response_rule.modified_by.clone();
+    assert_eq!(response_rule, expected_rule);
+    let persisted_rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(persisted_rule.modified_by, response_rule.modified_by);
+    assert!(persisted_rule.modified_at >= previous_modified_at);
+    assert_rule_matches_ignoring_modified_at(&persisted_rule, &response_rule);
 
     // delete
     let response = client.delete("/api/v1/acl/rule/1").send().await;
@@ -270,6 +291,8 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
         response_rule.id,
         response_rule.parent_id,
         response_rule.state.clone(),
+        response_rule.modified_at,
+        response_rule.modified_by.clone(),
     );
     assert_eq!(response_rule, expected_response);
 
@@ -707,27 +730,41 @@ async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptio
     let mut rule_modified: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
     assert_eq!(rule_modified.state, RuleState::New);
     rule_modified.enabled = !rule.enabled;
+    let previous_modified_at = rule_modified.modified_at;
+    let acting_user = rule_modified.modified_by.clone();
     let response = client
         .put("/api/v1/acl/rule/1")
         .json(&rule_modified)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    let updated_rule: ApiAclRule = response.json().await;
     let rule_from_api: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
-    assert_eq!(rule_from_api, rule_modified);
+    assert_eq!(updated_rule.modified_by, acting_user);
+    assert!(updated_rule.modified_at >= previous_modified_at);
+    let mut expected_rule = rule_modified.clone();
+    expected_rule.modified_at = updated_rule.modified_at;
+    expected_rule.modified_by = updated_rule.modified_by.clone();
+    assert_eq!(updated_rule, expected_rule);
+    assert_eq!(rule_from_api.modified_by, updated_rule.modified_by);
+    assert!(rule_from_api.modified_at >= previous_modified_at);
+    assert_rule_matches_ignoring_modified_at(&rule_from_api, &updated_rule);
 
     // test APPLIED rule modification
     set_rule_state(&pool, 1, RuleState::Applied, None).await;
     let rule_before_mods: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
     let mut rule_modified = rule_before_mods.clone();
     rule_modified.enabled = !rule_modified.enabled;
+    let previous_modified_at = rule_before_mods.modified_at;
+    let acting_user = rule_before_mods.modified_by.clone();
     let response = client
         .put("/api/v1/acl/rule/1")
         .json(&rule_modified)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    let updated_rule_child: ApiAclRule = response.json().await;
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
     let rule_parent: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
     let rule_child: ApiAclRule = client.get("/api/v1/acl/rule/2").send().await.json().await;
@@ -736,7 +773,14 @@ async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptio
     rule_modified.id = 2;
     rule_modified.state = RuleState::Modified;
     rule_modified.parent_id = Some(1);
-    assert_eq!(rule_child, rule_modified);
+    rule_modified.modified_at = updated_rule_child.modified_at;
+    rule_modified.modified_by = updated_rule_child.modified_by.clone();
+    assert_eq!(updated_rule_child.modified_by, acting_user);
+    assert!(updated_rule_child.modified_at >= previous_modified_at);
+    assert_eq!(updated_rule_child, rule_modified);
+    assert_eq!(rule_child.modified_by, updated_rule_child.modified_by);
+    assert!(rule_child.modified_at >= previous_modified_at);
+    assert_rule_matches_ignoring_modified_at(&rule_child, &updated_rule_child);
     assert_eq!(rule_child.state, RuleState::Modified);
     assert_eq!(rule_child.parent_id, Some(rule_parent.id));
 }
@@ -782,6 +826,8 @@ async fn test_rule_modify_pending_child_updates_in_place(
     assert_eq!(pending_child_before_update.state, RuleState::Modified);
     assert_eq!(pending_child_before_update.parent_id, Some(1));
 
+    let previous_modified_at = pending_child_before_update.modified_at;
+    let acting_user = pending_child_before_update.modified_by.clone();
     let mut pending_child_update = pending_child_before_update.clone();
     pending_child_update.name = "rule pending child updated".to_string();
     let response = client
@@ -820,11 +866,20 @@ async fn test_rule_modify_pending_child_updates_in_place(
 
     let mut expected_pending_child = pending_child_before_update.clone();
     expected_pending_child.name = "rule pending child updated".to_string();
+    expected_pending_child.modified_at = updated_pending_child.modified_at;
+    expected_pending_child.modified_by = updated_pending_child.modified_by.clone();
+    assert_eq!(updated_pending_child.modified_by, acting_user);
+    assert!(updated_pending_child.modified_at >= previous_modified_at);
     assert_eq!(updated_pending_child, expected_pending_child);
 
     let pending_child_after_update: ApiAclRule =
         client.get("/api/v1/acl/rule/2").send().await.json().await;
-    assert_eq!(pending_child_after_update, expected_pending_child);
+    assert_eq!(
+        pending_child_after_update.modified_by,
+        updated_pending_child.modified_by
+    );
+    assert!(pending_child_after_update.modified_at >= previous_modified_at);
+    assert_rule_matches_ignoring_modified_at(&pending_child_after_update, &expected_pending_child);
     assert_eq!(
         pending_child_after_update.id,
         pending_child_before_update.id
@@ -896,7 +951,11 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
     rule_after_mods.id = 2;
     rule_after_mods.state = RuleState::Deleted;
     rule_after_mods.parent_id = Some(1);
+    rule_after_mods.modified_at = rule_child.modified_at;
+    rule_after_mods.modified_by = rule_child.modified_by.clone();
 
+    assert_eq!(rule_child.modified_by, rule_before_mods.modified_by);
+    assert!(rule_child.modified_at >= rule_before_mods.modified_at);
     assert_eq!(rule_after_mods, rule_child);
 
     // related networks are returned correctly
@@ -1032,6 +1091,69 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
 
     // verify rules were removed
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 0);
+}
+
+#[sqlx::test]
+async fn test_rule_audit_fields_track_acting_user_across_mutations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let config = init_config(None, &pool).await;
+    let mut client = make_client_v2(pool.clone(), config).await;
+    authenticate_promoted_admin(&mut client, &pool, "hpotter").await;
+
+    let rule = make_rule();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created_rule: ApiAclRule = response.json().await;
+
+    let created_rule_row = AclRule::find_by_id(&pool, created_rule.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(created_rule_row.modified_by, "hpotter");
+    assert_ne!(created_rule_row.modified_by, "admin");
+    let created_modified_at = created_rule_row.modified_at;
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+
+    let mut updated_rule = created_rule.clone();
+    updated_rule.name = "rule updated by hpotter".to_string();
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .json(&updated_rule)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated_rule_row = AclRule::find_by_id(&pool, created_rule.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(updated_rule_row.modified_by, "hpotter");
+    assert_eq!(updated_rule_row.name, "rule updated by hpotter");
+    assert!(updated_rule_row.modified_at > created_modified_at);
+    let updated_modified_at = updated_rule_row.modified_at;
+
+    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": [created_rule.id] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let applied_rule_row = AclRule::find_by_id(&pool, created_rule.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(applied_rule_row.state, RuleState::Applied);
+    assert_eq!(applied_rule_row.modified_by, "hpotter");
+    assert_ne!(applied_rule_row.modified_by, "admin");
+    assert!(applied_rule_row.modified_at > updated_modified_at);
 }
 
 #[sqlx::test]

@@ -93,7 +93,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add new device',
+      text: m.modal_add_network_device_title(),
       iconLeft: 'add-device',
       loading: addPending,
       testId: 'add-device',
@@ -107,7 +107,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Device name',
+        header: m.form_label_device_name(),
         enableSorting: true,
         sortingFn: 'text',
         minSize: 250,
@@ -121,7 +121,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ),
       }),
       columnHelper.accessor('location.name', {
-        header: 'Location',
+        header: m.form_label_location(),
         size: 225,
         minSize: 175,
         cell: (info) => (
@@ -131,7 +131,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ),
       }),
       columnHelper.accessor('assigned_ips', {
-        header: 'Assigned IPs',
+        header: m.network_devices_col_assigned_ips(),
         size: 250,
         cell: (info) => (
           <TableCell>
@@ -140,7 +140,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ),
       }),
       columnHelper.accessor('description', {
-        header: 'Description',
+        header: m.form_label_description(),
         size: 300,
         minSize: 250,
         cell: (info) => (
@@ -150,7 +150,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ),
       }),
       columnHelper.accessor('added_by', {
-        header: 'Added by',
+        header: m.network_devices_col_added_by(),
         size: 140,
         minSize: 100,
         cell: (info) => (
@@ -160,7 +160,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ),
       }),
       columnHelper.accessor('added_date', {
-        header: 'Added date',
+        header: m.network_devices_col_added_date(),
         size: 170,
         minSize: 170,
         cell: (info) => (
@@ -170,16 +170,20 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         ),
       }),
       columnHelper.accessor('configured', {
-        header: 'Configured',
+        header: m.network_devices_col_configured(),
         size: 150,
         minSize: 125,
         cell: (info) => (
           <TableCell>
             <span>
               {info.getValue() ? (
-                <Badge text="Ready" />
+                <Badge text={m.network_devices_status_ready()} />
               ) : (
-                <Badge icon="pending" variant="warning" text="Awaiting Setup" />
+                <Badge
+                  icon="pending"
+                  variant="warning"
+                  text={m.network_devices_status_awaiting_setup()}
+                />
               )}
             </span>
           </TableCell>
@@ -204,7 +208,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
               },
             },
             {
-              text: 'Generate auth token',
+              text: m.network_devices_action_generate_auth_token(),
               icon: 'token',
               testId: 'generate-auth-token',
               onClick: async () => {
@@ -220,7 +224,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
           ];
           if (row.configured) {
             mainItems.splice(1, 0, {
-              text: 'View config',
+              text: m.network_devices_action_view_config(),
               icon: 'config',
               onClick: async () => {
                 const { data: config } = await api.network_device.getDeviceConfig(row.id);
@@ -281,15 +285,15 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
       {networkDevices.length === 0 && (
         <EmptyStateFlexible
           icon="devices"
-          title="You don't have any network devices."
-          subtitle="To add one, click the button below."
+          title={m.network_devices_empty_title()}
+          subtitle={m.network_devices_empty_subtitle()}
           primaryAction={addButtonProps}
         />
       )}
       {networkDevices.length !== 0 && (
         <>
           <SizedBox height={ThemeSize.Xl3} />
-          <TableTop text="All network devices">
+          <TableTop text={m.network_devices_table_title()}>
             <Button {...addButtonProps} />
           </TableTop>
           <TableBody table={table} />

@@ -13,6 +13,7 @@ type Props = {
   pageTitle: string;
   headerProps: EditHeaderProps;
   links?: BreadcrumbsProps['links'];
+  onBack?: BreadcrumbsProps['onBack'];
 } & PropsWithChildren &
   HTMLProps<HTMLDivElement>;
 
@@ -21,12 +22,13 @@ export const EditPage = ({
   children,
   className,
   links,
+  onBack,
   headerProps,
   ...containerProps
 }: Props) => {
   return (
     <Page title={pageTitle} className={clsx('edit-page', className)} {...containerProps}>
-      {isPresent(links) && <Breadcrumbs links={links} />}
+      {isPresent(links) && <Breadcrumbs links={links} onBack={onBack} />}
       <LayoutGrid>
         <div className="main-content">
           <EditHeader {...headerProps} />

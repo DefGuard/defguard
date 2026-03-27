@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
-import { Link, useRouter } from '@tanstack/react-router';
+import { Link, useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router';
 import { cloneDeep } from 'lodash-es';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import type { AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import {
   type AclAlias,
@@ -34,40 +35,77 @@ const getProtocolLabel = (protocol: AclProtocolValue) => AclProtocolName[protoco
 
 interface Props {
   alias?: AclAlias;
+  tab?: AclListTabValue;
 }
 
-export const CEAliasPage = ({ alias }: Props) => {
+export const CEAliasPage = ({ alias, tab }: Props) => {
   const isEdit = useMemo(() => isPresent(alias), [alias]);
+  const canGoBack = useCanGoBack();
+  const navigate = useNavigate();
+  const router = useRouter();
+
+  const returnToAliases = useCallback(async () => {
+    if (canGoBack) {
+      router.history.back();
+      return;
+    }
+
+    if (tab === undefined) {
+      router.history.back();
+      return;
+    }
+
+    await navigate({
+      to: '/acl/aliases',
+      search: {
+        tab,
+      },
+      replace: true,
+    });
+  }, [canGoBack, navigate, router, tab]);
 
   const breadcrumbs = useMemo(() => {
-    const res = [<Link to="/acl/aliases" key={0}>{`Aliases`}</Link>];
+    const res = [
+      <Link to="/acl/aliases" search={tab ? { tab } : undefined} key={0}>
+        {m.cmp_nav_item_aliases()}
+      </Link>,
+    ];
+
     if (isEdit) {
       res.push(
         <Link
           to="/acl/edit-alias"
-          search={{
-            alias: alias?.id as number,
-          }}
+          search={
+            tab ? { alias: alias?.id as number, tab } : { alias: alias?.id as number }
+          }
           key={1}
-        >{`Edit alias`}</Link>,
+        >
+          {m.acl_alias_form_title_edit()}
+        </Link>,
       );
     } else {
-      res.push(<Link to="/acl/add-alias" key={1}>{`Add new alias`}</Link>);
+      res.push(
+        <Link to="/acl/add-alias" search={tab ? { tab } : undefined} key={1}>
+          {m.acl_alias_form_title_add()}
+        </Link>,
+      );
     }
+
     return res;
-  }, [alias?.id, isEdit]);
+  }, [alias?.id, isEdit, tab]);
 
   return (
     <EditPage
-      pageTitle="Aliases"
+      pageTitle={m.cmp_nav_item_aliases()}
       links={breadcrumbs}
+      onBack={tab === undefined ? undefined : returnToAliases}
       headerProps={{
         icon: 'add-alias',
-        title: isEdit ? `Edit alias` : `Add new alias`,
-        subtitle: `ACL alias functionality allows administrators to create reusable elements which can then be used when defining a destination in multiple ACL rules. You must define at least one element in the alias settings.`,
+        title: isEdit ? m.acl_alias_form_title_edit() : m.acl_alias_form_title_add(),
+        subtitle: m.acl_alias_form_subtitle(),
       }}
     >
-      <FormContent alias={alias} />
+      <FormContent alias={alias} onReturnToAliases={returnToAliases} />
     </EditPage>
   );
 };
@@ -81,9 +119,6 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>;
 
-const aliasCreatedMessage = 'Alias created.';
-const aliasEditedMessage = 'Aliase added to Pending tab and awaiting deployment.';
-
 const anyComponentDefined = (fields: FormFields): boolean => {
   return (
     fields.ports.trim().length > 0 ||
@@ -92,7 +127,13 @@ const anyComponentDefined = (fields: FormFields): boolean => {
   );
 };
 
-const FormContent = ({ alias }: { alias?: AclAlias }) => {
+const FormContent = ({
+  alias,
+  onReturnToAliases,
+}: {
+  alias?: AclAlias;
+  onReturnToAliases: () => Promise<void>;
+}) => {
   const isEdit = isPresent(alias);
 
   const defaultValues = useMemo((): FormFields => {
@@ -111,8 +152,6 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       protocols: new Set(),
     };
   }, [alias]);
-
-  const router = useRouter();
 
   const { mutateAsync: addAlias } = useMutation({
     mutationFn: api.acl.alias.addAlias,
@@ -143,13 +182,13 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
 
       if (isPresent(alias)) {
         await editAlias({ ...toSend, id: alias.id });
-        Snackbar.default(aliasEditedMessage);
+        Snackbar.default(m.acl_alias_updated_pending());
       } else {
         await addAlias(toSend);
-        Snackbar.default(aliasCreatedMessage);
+        Snackbar.default(m.acl_alias_created());
       }
 
-      router.history.back();
+      await onReturnToAliases();
     },
   });
 
@@ -164,39 +203,29 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
       <form.AppForm>
         <MarkedSection icon="settings">
           <form.AppField name="name">
-            {(field) => <field.FormInput required label="Alias name" />}
+            {(field) => <field.FormInput required label={m.acl_alias_col_name()} />}
           </form.AppField>
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon="location-tracking">
-          <DescriptionBlock title="Addresses/Ranges">
-            <p>{`Define the IP addresses or ranges that form the destination of this ACL rule.`}</p>
+          <DescriptionBlock title={m.acl_form_section_addresses_title()}>
+            <p>{m.acl_form_section_addresses_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="addresses">
-            {(field) => (
-              <field.FormInput
-                notNull
-                label={`IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)`}
-              />
-            )}
+            {(field) => <field.FormInput notNull label={m.acl_form_addresses_label()} />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Ports">
-            <p>{`You may specify the exact ports accessible to users in this location.`}</p>
+          <DescriptionBlock title={m.acl_form_section_ports_title()}>
+            <p>{m.acl_form_section_ports_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="ports">
-            {(field) => (
-              <field.FormInput
-                notNull
-                label={`Manually defined ports (or multiple values separated by commas)`}
-              />
-            )}
+            {(field) => <field.FormInput notNull label={m.acl_form_ports_label()} />}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Protocols">
-            <p>{`By default, all protocols are allowed for this location. You can change this configuration, but at least one protocol must be selected.`}</p>
+          <DescriptionBlock title={m.acl_form_section_protocols_title()}>
+            <p>{m.acl_form_section_protocols_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="protocols">
@@ -223,7 +252,7 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
                   variant="secondary"
                   text={m.controls_cancel()}
                   onClick={() => {
-                    router.history.back();
+                    void onReturnToAliases();
                   }}
                 />
                 <TooltipProvider disabled={!isEmpty}>
@@ -231,14 +260,16 @@ const FormContent = ({ alias }: { alias?: AclAlias }) => {
                     <div>
                       <Button
                         type="submit"
-                        text={isEdit ? 'Edit alias' : 'Add alias'}
+                        text={
+                          isEdit ? m.controls_save_changes() : m.acl_alias_action_add()
+                        }
                         loading={isSubmitting}
                         disabled={isEmpty}
                       />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{`At least one component is required.`}</p>
+                    <p>{m.acl_alias_form_component_required()}</p>
                   </TooltipContent>
                 </TooltipProvider>
               </div>
