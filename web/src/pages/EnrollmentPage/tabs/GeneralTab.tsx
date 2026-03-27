@@ -135,6 +135,7 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
                 <field.FormSelect
                   required
                   label={m.settings_enrollment_label_token_validity()}
+                  helper={m.settings_enrollment_label_token_validity_help()}
                   options={enrollmentTokenTimeoutOptions}
                 />
               )}
@@ -145,6 +146,7 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
                 <field.FormSelect
                   required
                   label={m.settings_enrollment_label_session_expires_in()}
+                  helper={m.settings_enrollment_label_session_expires_in_help()}
                   options={enrollmentSessionTimeoutOptions}
                 />
               )}

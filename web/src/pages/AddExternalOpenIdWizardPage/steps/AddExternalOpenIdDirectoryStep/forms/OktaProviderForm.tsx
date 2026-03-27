@@ -68,6 +68,7 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   options={directorySyncTargetOptions}
                   required
                   label={m.settings_openid_provider_label_sync_target()}
+                  helper={m.settings_openid_provider_label_sync_target_help()}
                 />
               )}
             </form.AppField>
@@ -88,6 +89,7 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   required
                   label={m.settings_openid_provider_label_sync_user_behavior()}
+                  helper={m.settings_openid_provider_label_sync_user_behavior_help()}
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -97,6 +99,7 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   required
                   label={m.settings_openid_provider_label_sync_admin_behavior()}
+                  helper={m.settings_openid_provider_label_sync_admin_behavior_help()}
                   options={directorySyncBehaviorOptions}
                 />
               )}

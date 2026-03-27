@@ -207,6 +207,7 @@ export const SetupCertificateAuthorityStep = () => {
                 <field.FormSelect
                   required
                   label={m.initial_setup_ca_label_validity()}
+                  helper={m.initial_setup_ca_label_validity_help()}
                   options={validityOptions}
                 />
               )}

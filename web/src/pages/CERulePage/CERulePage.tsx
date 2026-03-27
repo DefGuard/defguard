@@ -797,7 +797,10 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                         <SizedBox height={ThemeSpacing.Xl} />
                         <form.AppField name="addresses">
                           {(field) => (
-                            <field.FormTextarea label={m.acl_form_addresses_label()} />
+                            <field.FormTextarea
+                              label={m.acl_form_addresses_label()}
+                              helper={m.acl_form_addresses_label_help()}
+                            />
                           )}
                         </form.AppField>
                         <AliasDataBlock

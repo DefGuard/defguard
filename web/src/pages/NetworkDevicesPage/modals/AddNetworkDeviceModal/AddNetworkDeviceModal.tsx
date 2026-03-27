@@ -458,6 +458,7 @@ const FormStep = ({
             value={selected}
             onChange={handleLocationChange}
             label={m.form_label_location()}
+            helper={m.form_label_location_help()}
             required
           />
           <form.AppField name="name">
@@ -475,6 +476,7 @@ const FormStep = ({
                       data={availableIps[index]}
                       required
                       label={m.form_label_assigned_ip_address()}
+                      helper={m.form_label_assigned_ip_address_help()}
                     />
                   )}
                 </form.AppField>

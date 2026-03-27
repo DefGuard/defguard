@@ -133,6 +133,7 @@ export const EditGoogleProviderForm = ({
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
                 label={m.settings_openid_provider_label_username_handling()}
+                helper={m.settings_openid_provider_label_username_handling_help()}
               />
             )}
           </form.AppField>
@@ -164,6 +165,7 @@ export const EditGoogleProviderForm = ({
                     <field.FormSelect
                       options={directorySyncTargetOptions}
                       label={m.settings_openid_provider_label_sync_target()}
+                      helper={m.settings_openid_provider_label_sync_target_help()}
                     />
                   )}
                 </form.AppField>
@@ -183,6 +185,7 @@ export const EditGoogleProviderForm = ({
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
                       label={m.settings_openid_provider_label_sync_user_behavior()}
+                      helper={m.settings_openid_provider_label_sync_user_behavior_help()}
                     />
                   )}
                 </form.AppField>
@@ -192,6 +195,7 @@ export const EditGoogleProviderForm = ({
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
                       label={m.settings_openid_provider_label_sync_admin_behavior()}
+                      helper={m.settings_openid_provider_label_sync_admin_behavior_help()}
                     />
                   )}
                 </form.AppField>

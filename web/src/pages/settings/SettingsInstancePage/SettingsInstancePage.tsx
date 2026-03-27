@@ -286,6 +286,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_instance_label_session_duration()}
+                helper={m.settings_instance_label_session_duration_help()}
                 options={sessionDurationSelectOptions}
               />
             )}
@@ -312,6 +313,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                           <field.FormSelect
                             required
                             label={m.settings_vpn_stats_label_purge_frequency()}
+                            helper={m.settings_vpn_stats_label_purge_frequency_help()}
                             options={statsPurgeFrequencySelectOptions}
                           />
                         )}
@@ -322,6 +324,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                           <field.FormSelect
                             required
                             label={m.settings_vpn_stats_label_purge_threshold()}
+                            helper={m.settings_vpn_stats_label_purge_threshold_help()}
                             options={statsPurgeThresholdSelectOptions}
                           />
                         )}
@@ -344,6 +347,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_enrollment_label_password_reset_token_validity()}
+                helper={m.settings_enrollment_label_password_reset_token_validity_help()}
                 options={passwordResetTokenTimeoutOptions}
               />
             )}
@@ -354,6 +358,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_instance_label_password_reset_session_expiration()}
+                helper={m.settings_instance_label_password_reset_session_expiration_help()}
                 options={passwordResetSessionTimeoutOptions}
               />
             )}

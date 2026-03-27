@@ -159,6 +159,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       >
         <Select
           label={m.form_label_location()}
+          helper={m.form_label_location_help()}
           value={locationOption}
           options={[locationOption]}
           onChange={() => {}}
@@ -180,6 +181,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
                     <subField.FormSuggestedIPInput
                       data={device.split_ips[index]}
                       label={m.form_label_assigned_ip_address()}
+                      helper={m.form_label_assigned_ip_address_help()}
                       required
                     />
                   )}

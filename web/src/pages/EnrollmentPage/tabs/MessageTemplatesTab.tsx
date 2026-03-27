@@ -142,6 +142,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                             <field.FormTextarea
                               required
                               label={m.settings_enrollment_template_message_label()}
+                              helper={m.settings_enrollment_template_message_label_help()}
                               minHeight={383}
                               maxHeight={383}
                             />
@@ -203,6 +204,7 @@ const MessageTemplatesTabContent = ({ settings }: { settings: Settings }) => {
                                             <field.FormTextarea
                                               required
                                               label={m.settings_enrollment_template_email_label()}
+                                              helper={m.settings_enrollment_template_email_label_help()}
                                               minHeight={383}
                                               maxHeight={383}
                                             />

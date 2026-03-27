@@ -106,6 +106,7 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
       <div className="right">
         <Select
           label={m.modal_add_user_device_manual_download_location_label()}
+          helper={m.modal_add_user_device_manual_download_location_label_help()}
           options={selectOptions}
           onChange={setSelected}
           value={selectedOption}

@@ -95,6 +95,7 @@ export const EditCustomProviderForm = ({
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
                 label={m.settings_openid_provider_label_username_handling()}
+                helper={m.settings_openid_provider_label_username_handling_help()}
               />
             )}
           </form.AppField>

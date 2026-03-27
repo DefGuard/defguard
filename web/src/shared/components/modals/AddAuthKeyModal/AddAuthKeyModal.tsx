@@ -166,12 +166,19 @@ const ModalContent = ({ username }: { username: string }) => {
             options={selectOptions}
             testId="field-type"
             label={m.form_label_type()}
+            helper={m.form_label_type_help()}
           />
           <form.AppField name="name">
             {(field) => <field.FormInput label={m.form_label_name()} required />}
           </form.AppField>
           <form.AppField name="key">
-            {(field) => <field.FormTextarea label={m.form_label_key()} required />}
+            {(field) => (
+              <field.FormTextarea
+                label={m.form_label_key()}
+                helper={m.form_label_key_help()}
+                required
+              />
+            )}
           </form.AppField>
         </form.AppForm>
       </form>

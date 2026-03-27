@@ -91,6 +91,7 @@
   "acl_form_section_addresses_description": "Define the IP addresses or ranges that form the destination of this ACL rule.",
   "acl_form_addresses_placeholder": "e.g. 192.168.12.1, 192.23.56.12, 198.156.23.12",
   "acl_form_addresses_label": "IPv4/IPv6 CIDR ranges or addresses (or multiple values separated by commas)",
+  "acl_form_addresses_label_help": "",
   "acl_form_section_ports_title": "Ports",
   "acl_form_section_ports_description": "Specify the exact ports that should be accessible.",
   "acl_form_ports_label": "Manually defined ports (or multiple values separated by commas)",

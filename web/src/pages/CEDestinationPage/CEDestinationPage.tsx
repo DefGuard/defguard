@@ -216,6 +216,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
                         required
                         placeholder={m.acl_form_addresses_placeholder()}
                         label={m.acl_form_addresses_label()}
+                        helper={m.acl_form_addresses_label_help()}
                       />
                     )}
                   </form.AppField>

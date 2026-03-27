@@ -229,6 +229,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 options={encryptionSelectOptions}
                 label={m.settings_smtp_label_encryption()}
+                helper={m.settings_smtp_label_encryption_help()}
                 required
               />
             )}
