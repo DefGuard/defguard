@@ -43,7 +43,7 @@ export const EditNetworkDeviceModal = () => {
   return (
     <Modal
       id="edit-network-device-modal"
-      title={'Edit network device'}
+      title={m.modal_edit_network_device_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -158,7 +158,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         }}
       >
         <Select
-          label="Location"
+          label={m.form_label_location()}
           value={locationOption}
           options={[locationOption]}
           onChange={() => {}}
@@ -179,7 +179,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
                   {(subField) => (
                     <subField.FormSuggestedIPInput
                       data={device.split_ips[index]}
-                      label="Assigned IP Address"
+                      label={m.form_label_assigned_ip_address()}
                       required
                     />
                   )}

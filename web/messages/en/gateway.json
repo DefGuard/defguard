@@ -9,6 +9,15 @@
   "gateway_edit_delete": "Delete",
   "gateway_edit_success": "Gateway updated",
   "gateway_edit_failed": "Failed to update gateway",
+  "gateway_status_all_connected": "All gateways connected",
+  "gateway_status_connected_count": "{count} gateways connected",
+  "gateway_status_none_connected": "No gateways connected",
+  "gateway_status_connected": "Connected",
+  "gateway_status_not_connected": "Not connected",
+  "gateway_status_disconnected": "Disconnected",
+  "gateway_add_more": "Add more gateways",
+  "gateway_empty_title": "No gateways found",
+  "gateway_col_used_in_location": "Used in location",
   "gateway_delete_success": "Gateway deleted",
   "gateway_delete_failed": "Failed to delete gateway"
 }

@@ -7,6 +7,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import type { LocationConnectedNetworkDevice } from '../../shared/api/types';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
@@ -68,7 +69,7 @@ export const LocationOverviewNetworkDevicesTable = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('device_name', {
-        header: 'Device name',
+        header: m.form_label_device_name(),
         meta: {
           flex: true,
         },
@@ -81,7 +82,7 @@ export const LocationOverviewNetworkDevicesTable = () => {
       }),
       columnHelper.accessor('public_ip', {
         size: 200,
-        header: 'Public IP',
+        header: m.profile_devices_col_pub_ip(),
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -90,17 +91,17 @@ export const LocationOverviewNetworkDevicesTable = () => {
       }),
       columnHelper.accessor('vpn_ips', {
         size: 250,
-        header: 'VPN IP',
+        header: m.location_overview_col_vpn_ip(),
         cell: (info) => <TableValuesListCell values={info.getValue()} />,
       }),
       columnHelper.accessor('connected_at', {
         size: 125,
-        header: 'Connected',
+        header: m.location_overview_col_connected(),
         cell: (info) => <ConnectionDurationCell connectedAt={info.getValue()} />,
       }),
       columnHelper.display({
         id: 'stats',
-        header: 'Traffic',
+        header: m.location_overview_col_traffic(),
         size: 500,
         cell: (info) => {
           const row = info.row.original;
@@ -138,8 +139,8 @@ export const LocationOverviewNetworkDevicesTable = () => {
   if (flatData.length === 0)
     return (
       <EmptyStateFlexible
-        title="No connected network devices"
-        subtitle="Wait for some device to connect"
+        title={m.location_overview_connected_network_devices_empty_title()}
+        subtitle={m.location_overview_connected_network_devices_empty_subtitle()}
       />
     );
 

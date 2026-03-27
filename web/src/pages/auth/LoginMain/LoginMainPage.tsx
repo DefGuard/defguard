@@ -132,7 +132,7 @@ export const LoginMainPage = () => {
             )}
           </form.AppField>
           <Button
-            text="Sign in"
+            text={m.controls_sign_in()}
             type="submit"
             testId="sign-in"
             variant="primary"
@@ -150,15 +150,15 @@ export const LoginMainPage = () => {
 const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
   const text = useMemo(() => {
     if (data.button_display_name) {
-      return `Sign in with ${data.button_display_name}`;
+      return m.login_main_sign_in_with({ provider: data.button_display_name });
     }
-    return `Sign in with external provider`;
+    return m.login_main_sign_in_with_external_provider();
   }, [data.button_display_name]);
 
   return (
     <div id="external-login">
       <OIDCButton url={data.url} text={text} />
-      <Divider text="or" spacing={ThemeSpacing.Xl2} />
+      <Divider text={m.misc_or()} spacing={ThemeSpacing.Xl2} />
     </div>
   );
 };

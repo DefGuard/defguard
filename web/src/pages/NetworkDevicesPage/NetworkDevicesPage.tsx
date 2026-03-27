@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { m } from '../../paraglide/messages';
 import { Page } from '../../shared/components/Page/Page';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getNetworkDevicesQueryOptions } from '../../shared/query';
@@ -13,7 +14,7 @@ export const NetworkDevicesPage = () => {
 
   return (
     <>
-      <Page id="network-devices-page" title="Network Devices">
+      <Page id="network-devices-page" title={m.cmp_nav_item_network_devices()}>
         <TablePageLayout>
           <NetworkDevicesTable networkDevices={networkDevices} />
         </TablePageLayout>

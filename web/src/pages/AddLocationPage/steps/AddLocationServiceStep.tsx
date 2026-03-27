@@ -30,8 +30,8 @@ export const AddLocationServiceStep = () => {
         onClick={() => {
           handleChange(LocationServiceMode.Prelogon);
         }}
-        title="Pre-logon connection."
-        content="The VPN connects at system boot and disconnects after user login, useful for one-time authentication with external identity providers like Active Directory."
+        title={m.add_location_service_prelogon_title()}
+        content={m.add_location_service_prelogon_content()}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <InteractiveBlock
@@ -39,8 +39,8 @@ export const AddLocationServiceStep = () => {
         onClick={() => {
           handleChange(LocationServiceMode.Alwayson);
         }}
-        title="Always on connection"
-        content="Always-on: the VPN connects at system boot and stays active until the network, client, or mode changes. Use when constant access is needed."
+        title={m.add_location_service_always_on_title()}
+        content={m.add_location_service_always_on_content()}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <Divider />

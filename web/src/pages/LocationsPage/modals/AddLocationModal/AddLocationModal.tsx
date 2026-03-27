@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { m } from '../../../../paraglide/messages';
 import { LocationServiceMode } from '../../../../shared/api/types';
 import { enterpriseBadgeProps } from '../../../../shared/components/badges/EnterpriseBadge';
 import { Modal } from '../../../../shared/defguard-ui/components/Modal/Modal';
@@ -35,7 +36,7 @@ export const AddLocationModal = () => {
 
   return (
     <Modal
-      title="Selection location type"
+      title={m.modal_add_location_title()}
       isOpen={isOpen}
       onClose={() => {
         setOpen(false);
@@ -57,8 +58,8 @@ const ModalContent = ({ modalData }: { modalData: OpenAddLocationModal }) => {
     <>
       <SectionSelect
         image="location"
-        content="Set up your location manually by defining all configuration parameters yourself."
-        title="Regular location"
+        content={m.modal_add_location_regular_content()}
+        title={m.modal_add_location_regular_title()}
         data-testid="add-regular-location"
         onClick={() => {
           useAddLocationStore.getState().start();
@@ -71,8 +72,8 @@ const ModalContent = ({ modalData }: { modalData: OpenAddLocationModal }) => {
       <SectionSelect
         badgeProps={!isEnterprise ? enterpriseBadgeProps : undefined}
         image="service-location"
-        content="Service locations are a special kind of locations that allow establishing automatic VPN connections on system boot."
-        title="Service location (Windows only)"
+        content={m.modal_add_location_service_content()}
+        title={m.modal_add_location_service_title()}
         data-testid="add-service-location"
         disabled={!isEnterprise}
         onClick={() => {

@@ -66,7 +66,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Alias name',
+        header: m.acl_alias_col_name(),
         enableSorting: true,
         sortingFn: 'text',
         minSize: 300,
@@ -80,7 +80,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
         ),
       }),
       columnHelper.accessor('addresses', {
-        header: 'IP4/6 CIDR range address',
+        header: m.acl_alias_col_cidr_range_address(),
         enableSorting: false,
         size: 430,
         minSize: 300,
@@ -90,14 +90,14 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
         },
       }),
       columnHelper.accessor('ports', {
-        header: 'Ports',
+        header: m.acl_col_ports(),
         enableSorting: false,
         size: 145,
         minSize: 145,
         cell: (info) => <TableValuesListCell values={info.getValue().split(',')} />,
       }),
       columnHelper.accessor('protocols', {
-        header: 'Protocols',
+        header: m.acl_col_protocols(),
         enableSorting: false,
         size: 163,
         minSize: 163,
@@ -106,7 +106,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
           if (value.length === 0) {
             return (
               <TableCell>
-                <span>All protocols</span>
+                <span>{m.acl_protocols_all()}</span>
               </TableCell>
             );
           }
@@ -115,7 +115,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
         },
       }),
       columnHelper.accessor('rules', {
-        header: 'Used in rules',
+        header: m.acl_col_used_in_rules(),
         size: 400,
         minSize: 300,
         enableSorting: false,
@@ -161,12 +161,13 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
                     licenseActionCheck(canUseBusinessFeature(licenseInfo), () => {
                       if (row.rules.length > 0) {
                         const ruleNames = row.rules.map(
-                          (ruleId) => rulesById?.[ruleId]?.name ?? `Rule ${ruleId}`,
+                          (ruleId) =>
+                            rulesById?.[ruleId]?.name ??
+                            m.acl_rule_fallback_name({ id: ruleId }),
                         );
                         openModal(ModalName.DeleteAliasDestinationBlocked, {
-                          title: 'Deletion blocked',
-                          description:
-                            'This alias is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
+                          title: m.modal_delete_acl_blocked_title(),
+                          description: m.modal_delete_acl_alias_blocked_body(),
                           rules: ruleNames,
                         });
                         return;
@@ -187,7 +188,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
           ];
           if (row.state === 'Modified') {
             menuItems[0].items.splice(1, 0, {
-              text: 'Deploy',
+              text: m.controls_deploy(),
               icon: 'deploy',
               onClick: () => {
                 if (licenseInfo === undefined) return;

@@ -43,13 +43,13 @@ const breadcrumbs = [
 export const SettingsClientPage = () => {
   const { data: license, isFetched } = useQuery(getLicenseInfoQueryOptions);
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
           icon="user"
-          title="Client behavior"
-          subtitle="Manage user permissions and configuration options for device control, WireGuard setup, and VPN routing."
+          title={m.settings_client_title()}
+          subtitle={m.settings_client_subtitle()}
           badgeProps={!isPresent(license) && isFetched ? businessBadgeProps : undefined}
         />
         <Suspense fallback={<Skeleton height={480} />}>
@@ -132,20 +132,17 @@ const Content = () => {
       >
         <form.AppForm>
           <MarkedSection icon="enrollment">
-            <h3>Permissions</h3>
-            <DescriptionBlock title="Client Configuration Permissions">
-              <p>
-                Define which VPN client settings users can modify and which are
-                restricted.
-              </p>
+            <h3>{m.settings_client_section_permissions_title()}</h3>
+            <DescriptionBlock title={m.settings_client_permissions_description_title()}>
+              <p>{m.settings_client_permissions_description()}</p>
             </DescriptionBlock>
             <form.AppField name="admin_device_management">
               {(field) => (
                 <field.FormInteractiveBlock
                   disabled={noLicense}
                   variant="toggle"
-                  title="Device management for users"
-                  content="When this option is on, only Admins can manage devices in user profiles."
+                  title={m.settings_client_device_management_title()}
+                  content={m.settings_client_device_management_content()}
                 />
               )}
             </form.AppField>
@@ -154,20 +151,19 @@ const Content = () => {
                 <field.FormInteractiveBlock
                   disabled={noLicense}
                   variant="toggle"
-                  title="WireGuard configuration for users"
-                  content="When this option is on, users can't view or download manual WireGuard configurations. Only Defguard desktop client setup will be available."
+                  title={m.settings_client_wireguard_configuration_title()}
+                  content={m.settings_client_wireguard_configuration_content()}
                 />
               )}
             </form.AppField>
           </MarkedSection>
           <Divider spacing={ThemeSpacing.Xl2} />
           <MarkedSection icon="protection">
-            <h3>Client traffic policy</h3>
-            <DescriptionBlock title="Client traffic rules">
-              <p>
-                Specify the conditions that determine how traffic should behave in the
-                application.
-              </p>
+            <h3>{m.settings_client_section_traffic_policy_title()}</h3>
+            <DescriptionBlock
+              title={m.settings_client_traffic_policy_description_title()}
+            >
+              <p>{m.settings_client_traffic_policy_description()}</p>
             </DescriptionBlock>
             <form.AppField name="client_traffic_policy">
               {(field) => (
@@ -175,8 +171,8 @@ const Content = () => {
                   disabled={noLicense}
                   value={ClientTrafficPolicy.None}
                   variant="radio"
-                  title="None"
-                  content="When this option is enabled, users will be able to select all routing options."
+                  title={m.settings_client_traffic_policy_none_title()}
+                  content={m.settings_client_traffic_policy_none_content()}
                 />
               )}
             </form.AppField>
@@ -186,8 +182,8 @@ const Content = () => {
                   disabled={noLicense}
                   value={ClientTrafficPolicy.DisableAllTraffic}
                   variant="radio"
-                  title="Disable all traffic"
-                  content="When this option is enabled, users will not be able to route all traffic through the VPN."
+                  title={m.settings_client_traffic_policy_disable_all_title()}
+                  content={m.settings_client_traffic_policy_disable_all_content()}
                 />
               )}
             </form.AppField>
@@ -197,8 +193,8 @@ const Content = () => {
                   disabled={noLicense}
                   value={ClientTrafficPolicy.ForceAllTraffic}
                   variant="radio"
-                  title="Force all traffic"
-                  content="When this option is enabled, the users will always route all traffic through the VPN."
+                  title={m.settings_client_traffic_policy_force_all_title()}
+                  content={m.settings_client_traffic_policy_force_all_content()}
                 />
               )}
             </form.AppField>
