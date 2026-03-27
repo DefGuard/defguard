@@ -187,8 +187,18 @@ pub async fn set_internal_url_settings(
         }
     };
 
-    advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::InternalUrlSslConfig).await?;
-    advance_initial_wizard_to_step(&pool, InitialSetupStep::InternalUrlSslConfig).await?;
+    // When ssl_type is None, there is no SSL config step to complete; skip straight to the
+    // next step in each wizard.
+    let auto_next = match config.ssl_type {
+        InternalSslType::None => AutoAdoptionWizardStep::ExternalUrlSettings,
+        _ => AutoAdoptionWizardStep::InternalUrlSslConfig,
+    };
+    let initial_next = match config.ssl_type {
+        InternalSslType::None => InitialSetupStep::ExternalUrlSettings,
+        _ => InitialSetupStep::InternalUrlSslConfig,
+    };
+    advance_auto_wizard_to_step(&pool, auto_next).await?;
+    advance_initial_wizard_to_step(&pool, initial_next).await?;
 
     info!("Auto-adoption wizard internal URL settings applied");
 
@@ -358,8 +368,18 @@ pub async fn set_external_url_settings(
         }
     };
 
-    advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::ExternalUrlSslConfig).await?;
-    advance_initial_wizard_to_step(&pool, InitialSetupStep::ExternalUrlSslConfig).await?;
+    // When ssl_type is None, there is no SSL config step to complete; skip straight to the
+    // next step in each wizard.
+    let auto_next = match config.ssl_type {
+        ExternalSslType::None => AutoAdoptionWizardStep::VpnSettings,
+        _ => AutoAdoptionWizardStep::ExternalUrlSslConfig,
+    };
+    let initial_next = match config.ssl_type {
+        ExternalSslType::None => InitialSetupStep::Confirmation,
+        _ => InitialSetupStep::ExternalUrlSslConfig,
+    };
+    advance_auto_wizard_to_step(&pool, auto_next).await?;
+    advance_initial_wizard_to_step(&pool, initial_next).await?;
 
     info!("Auto-adoption wizard external URL settings applied");
     Ok(ApiResponse::new(

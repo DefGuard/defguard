@@ -130,7 +130,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .expect("Failed to set internal URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::InternalUrlSslConfig).await;
+    assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::ExternalUrlSettings).await;
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
@@ -143,7 +143,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .expect("Failed to set external URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::ExternalUrlSslConfig).await;
+    assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::VpnSettings).await;
 
     let settings = Settings::get_current_settings();
     assert_eq!(settings.defguard_url, "https://auto.example.com");

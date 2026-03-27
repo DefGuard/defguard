@@ -234,7 +234,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
             .expect("Auto adoption state should be set");
     assert_eq!(
         auto_state.step,
-        AutoAdoptionWizardStep::InternalUrlSslConfig
+        AutoAdoptionWizardStep::ExternalUrlSettings
     );
 
     let resp = client
@@ -255,7 +255,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
             .expect("Auto adoption state should be set");
     assert_eq!(
         auto_state.step,
-        AutoAdoptionWizardStep::ExternalUrlSslConfig
+        AutoAdoptionWizardStep::VpnSettings
     );
 
     let resp = client

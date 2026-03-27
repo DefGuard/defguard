@@ -244,7 +244,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch settings")
         .expect("Settings not found");
-    assert_eq!(settings.defguard_url, "https://example.com");
+    assert_eq!(settings.defguard_url, "http://localhost:8000");
     assert_eq!(settings.default_admin_group_name, "admins");
     assert_eq!(settings.authentication_period_days, 14);
     assert_eq!(settings.mfa_code_timeout_seconds, 120);

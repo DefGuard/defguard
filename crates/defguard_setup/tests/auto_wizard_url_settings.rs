@@ -102,7 +102,7 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .await
         .unwrap()
         .unwrap_or_default();
-    assert_eq!(state.step, AutoAdoptionWizardStep::InternalUrlSslConfig);
+    assert_eq!(state.step, AutoAdoptionWizardStep::ExternalUrlSettings);
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
     assert_eq!(certs.core_http_cert_source, CoreCertSource::None);
@@ -253,7 +253,7 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
         .await
         .unwrap()
         .unwrap_or_default();
-    assert_eq!(state.step, AutoAdoptionWizardStep::ExternalUrlSslConfig);
+    assert_eq!(state.step, AutoAdoptionWizardStep::VpnSettings);
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
     assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::None);
@@ -476,7 +476,7 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
         .await
         .unwrap()
         .unwrap_or_default();
-    assert_eq!(state.step, AutoAdoptionWizardStep::InternalUrlSslConfig);
+    assert_eq!(state.step, AutoAdoptionWizardStep::ExternalUrlSettings);
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
@@ -489,7 +489,7 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
         .await
         .unwrap()
         .unwrap_or_default();
-    assert_eq!(state.step, AutoAdoptionWizardStep::ExternalUrlSslConfig);
+    assert_eq!(state.step, AutoAdoptionWizardStep::VpnSettings);
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/vpn_settings")
