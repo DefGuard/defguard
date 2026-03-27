@@ -1,6 +1,5 @@
 export interface HelpTutorial {
   youtubeVideoId: string;
-  thumbnailUrl?: string;
   title: string;
 }
 

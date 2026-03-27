@@ -206,17 +206,6 @@ describe('parseHelpTutorials', () => {
     expect(() => parseHelpTutorials(raw)).toThrow();
   });
 
-  it('should reject an invalid thumbnailUrl', () => {
-    const raw = {
-      versions: {
-        '2.2': {
-          '/users': [{ youtubeVideoId: 'abcDEFghiJK', title: 'Test', thumbnailUrl: 'not-a-url' }],
-        },
-      },
-    };
-    expect(() => parseHelpTutorials(raw)).toThrow();
-  });
-
   it('should reject duplicate route keys after canonicalization', () => {
     const raw = {
       versions: {

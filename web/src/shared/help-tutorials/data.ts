@@ -41,7 +41,6 @@ const tutorialSchema = z
         /^[A-Za-z0-9_-]{11}$/,
         'youtubeVideoId must be exactly 11 alphanumeric/-/_ chars',
       ),
-    thumbnailUrl: z.url().optional(),
     title: z.string().min(1, 'title must be non-empty'),
   })
   .strip();

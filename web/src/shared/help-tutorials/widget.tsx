@@ -6,16 +6,8 @@ import { IconTutorial } from '../defguard-ui/components/Icon/icons/IconTutorial'
 import { useResolvedHelpTutorials } from './resolved';
 import type { HelpTutorial } from './types';
 
-/**
- * Returns the thumbnail URL for a tutorial.
- * Uses the explicit thumbnailUrl from the JSON if present, otherwise derives
- * one from the YouTube thumbnail endpoint using the video ID.
- */
 function resolveThumbnailUrl(tutorial: HelpTutorial): string {
-  return (
-    tutorial.thumbnailUrl ??
-    `https://img.youtube.com/vi/${tutorial.youtubeVideoId}/hqdefault.jpg`
-  );
+  return `https://img.youtube.com/vi/${tutorial.youtubeVideoId}/hqdefault.jpg`;
 }
 
 interface ThumbnailProps {
