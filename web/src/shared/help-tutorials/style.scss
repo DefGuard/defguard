@@ -38,6 +38,10 @@
   svg {
     flex-shrink: 0;
   }
+
+  span {
+    color: inherit;
+  }
 }
 
 // Floating panel — no background, just stacks the cards
