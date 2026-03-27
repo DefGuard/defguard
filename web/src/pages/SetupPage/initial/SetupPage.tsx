@@ -6,6 +6,7 @@ import { Controls } from '../../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../../shared/components/wizard/types';
 import { WizardPage } from '../../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { getSessionInfoQueryOptions } from '../../../shared/query';
@@ -28,7 +29,7 @@ const handleStartWizard = () => {
 
 const WelcomePageContent = () => (
   <div className="left">
-    <SizedBox height={ThemeSpacing.Xl} />
+    <Divider spacing={ThemeSpacing.Xl2} />
     <Controls>
       <Button
         text={m.initial_setup_welcome_button_configure()}

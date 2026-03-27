@@ -8,6 +8,7 @@ import { WizardCover } from '../../shared/components/wizard/WizardCoverImage/typ
 import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
@@ -79,6 +80,7 @@ export const GatewaySetupPage = () => {
   const WelcomePageContent = () => (
     <>
       <div className="left">
+        <Divider spacing={ThemeSpacing.Xs} />
         <Controls>
           <Button
             text={m.gateway_setup_controls_configure()}

@@ -1,6 +1,7 @@
 import { m } from '../../../paraglide/messages';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { IconKind } from '../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
 import { RenderMarkdown } from '../../../shared/defguard-ui/components/RenderMarkdown/RenderMarkdown';
@@ -24,6 +25,8 @@ export const MigrationWizardStart = () => {
         }}
         content={`${m.migration_wizard_start_explain_1()}</br></br>${m.migration_wizard_start_explain_2()}`}
       />
+      <SizedBox height={ThemeSpacing.Xl} />
+      <Divider spacing={ThemeSpacing.Xs} />
       <SizedBox height={ThemeSpacing.Xl} />
       <Controls>
         <div className="left">
