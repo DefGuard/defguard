@@ -17,7 +17,7 @@ export const baseExternalProviderConfigSchema = z.object({
 });
 
 export const baseExternalProviderSyncSchema = z.object({
-  directory_sync_interval: z.number().min(60, m.form_min_value({ value: 60 })),
+  directory_sync_interval: z.number().min(60, m.form_error_min({ value: 60 })),
   directory_sync_user_behavior: z.enum(DirectorySyncBehavior),
   directory_sync_admin_behavior: z.enum(DirectorySyncBehavior),
   directory_sync_target: z.enum(DirectorySyncTarget),

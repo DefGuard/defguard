@@ -14,7 +14,7 @@ export const Suggestion = ({ title, content, className, ...props }: Props) => {
   return (
     <div className={clsx('suggestion', className)} {...props}>
       <div className="suggestion-header">
-        <Icon icon="info-outlined" staticColor={ThemeVariable.FgMuted} size={20} />
+        <Icon icon="light-bulb" staticColor={ThemeVariable.FgMuted} size={20} />
         <AppText font={TextStyle.TBodyPrimary600} color={ThemeVariable.FgDefault}>
           {title}
         </AppText>

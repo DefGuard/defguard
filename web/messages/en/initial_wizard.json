@@ -68,7 +68,7 @@
   "initial_setup_general_config_label_auth_period": "Default Authentication Period (days)",
   "initial_setup_general_config_label_mfa_timeout": "Default MFA Code Timeout (seconds)",
   "initial_setup_general_config_label_public_proxy_url": "Public Edge component URL",
-  "initial_setup_general_config_error_save_failed": "Failed to create admin user. Please try again.",
+  "initial_setup_general_config_error_save_failed": "Failed to save settings. Please try again.",
   "initial_setup_general_config_error_public_proxy_url_invalid": "Public Proxy URL must be a valid URL",
   "initial_setup_general_config_error_public_proxy_url_required": "Public Proxy URL is required",
 

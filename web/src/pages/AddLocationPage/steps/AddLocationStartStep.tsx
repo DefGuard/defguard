@@ -32,7 +32,7 @@ const formSchema = z.object({
     ),
   port: z
     .number(m.form_error_required())
-    .min(1, m.form_min_value({ value: 1 }))
+    .min(1, m.form_error_min({ value: 1 }))
     .max(65535, m.form_error_port_max()),
 });
 

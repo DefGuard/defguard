@@ -8,6 +8,7 @@ import z from 'zod';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import {
+  type EditNetworkLocation,
   LocationMfaMode,
   LocationServiceMode,
   type NetworkLocation,
@@ -170,12 +171,159 @@ const formSchema = z
       context.addIssue({
         code: 'custom',
         path: ['peer_disconnect_threshold'],
-        message: m.form_min_value({ value: peerDisconnectThresholdMinimum }),
+        message: m.form_error_min({ value: peerDisconnectThresholdMinimum }),
       });
     }
   });
 
 type FormFields = z.infer<typeof formSchema>;
+
+type DisconnectRelevantField =
+  | 'address'
+  | 'port'
+  | 'mtu'
+  | 'fwmark'
+  | 'location_mfa_mode'
+  | 'service_location_mode'
+  | 'allow_all_groups'
+  | 'allowed_groups';
+
+type DisconnectRelevantLocationData = Pick<
+  EditNetworkLocation,
+  | 'address'
+  | 'port'
+  | 'mtu'
+  | 'fwmark'
+  | 'location_mfa_mode'
+  | 'service_location_mode'
+  | 'allow_all_groups'
+  | 'allowed_groups'
+>;
+
+// Normalizes comma-separated values so formatting-only edits do not trigger warnings.
+const normalizeCommaSeparatedValues = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .sort();
+
+// Normalizes group selections before comparing disconnect-related access changes.
+const normalizeSelectedGroups = (groups: string[]) =>
+  [...new Set(groups.map((group) => group.trim()).filter(Boolean))].sort();
+
+const areEqualStringArrays = (left: string[], right: string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
+// Builds the submitted location payload used for both save and warning comparisons.
+const buildLocationSubmissionData = (
+  value: FormFields,
+  location: NetworkLocation,
+): EditNetworkLocation => {
+  const normalizedValue = cloneDeep(value);
+
+  if (normalizedValue.location_mfa_mode !== LocationMfaMode.Disabled) {
+    normalizedValue.service_location_mode = LocationServiceMode.Disabled;
+  }
+
+  return {
+    ...omit(normalizedValue, ['firewall']),
+    allowed_ips: normalizedValue.allowed_ips ?? '',
+    acl_default_allow: normalizedValue.firewall === LocationFirewall.Allow,
+    acl_enabled: normalizedValue.firewall !== LocationFirewall.Disabled,
+    peer_disconnect_threshold:
+      normalizedValue.peer_disconnect_threshold ?? location.peer_disconnect_threshold,
+  };
+};
+
+// Extracts only the location fields that can affect connected peers.
+const getDisconnectRelevantLocationData = (
+  value: EditNetworkLocation,
+): DisconnectRelevantLocationData => ({
+  address: value.address,
+  port: value.port,
+  mtu: value.mtu,
+  fwmark: value.fwmark,
+  location_mfa_mode: value.location_mfa_mode,
+  service_location_mode: value.service_location_mode,
+  allow_all_groups: value.allow_all_groups,
+  allowed_groups: value.allow_all_groups ? [] : value.allowed_groups,
+});
+
+// Maps disconnect-relevant fields to the labels shown in the warning modal.
+const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string => {
+  switch (field) {
+    case 'address':
+      return m.add_location_internal_vpn_label_address();
+    case 'port':
+      return m.add_location_start_label_port();
+    case 'mtu':
+      return m.location_network_label_mtu();
+    case 'fwmark':
+      return m.location_network_label_fwmark();
+    case 'location_mfa_mode':
+      return m.add_location_step_mfa_label();
+    case 'service_location_mode':
+      return m.location_edit_section_location_type();
+    case 'allow_all_groups':
+      return m.location_access_section_label();
+    case 'allowed_groups':
+      return m.location_access_section_label();
+  }
+};
+
+// Lists disconnect-relevant fields whose effective values changed on submit.
+const getDisconnectRelevantChangedFields = (
+  original: DisconnectRelevantLocationData,
+  submitted: DisconnectRelevantLocationData,
+): DisconnectRelevantField[] => {
+  const changedFields: DisconnectRelevantField[] = [];
+
+  if (
+    !areEqualStringArrays(
+      normalizeCommaSeparatedValues(original.address),
+      normalizeCommaSeparatedValues(submitted.address),
+    )
+  ) {
+    changedFields.push('address');
+  }
+
+  if (original.port !== submitted.port) {
+    changedFields.push('port');
+  }
+
+  if (original.mtu !== submitted.mtu) {
+    changedFields.push('mtu');
+  }
+
+  if (original.fwmark !== submitted.fwmark) {
+    changedFields.push('fwmark');
+  }
+
+  if (original.location_mfa_mode !== submitted.location_mfa_mode) {
+    changedFields.push('location_mfa_mode');
+  }
+
+  if (original.service_location_mode !== submitted.service_location_mode) {
+    changedFields.push('service_location_mode');
+  }
+
+  if (original.allow_all_groups !== submitted.allow_all_groups) {
+    changedFields.push('allow_all_groups');
+  }
+
+  if (
+    !submitted.allow_all_groups &&
+    !areEqualStringArrays(
+      normalizeSelectedGroups(original.allowed_groups),
+      normalizeSelectedGroups(submitted.allowed_groups),
+    )
+  ) {
+    changedFields.push('allowed_groups');
+  }
+
+  return changedFields;
+};
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
   const navigate = useNavigate();
@@ -249,7 +397,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       name: location.name,
       address: location.address.join(','),
       allow_all_groups: location.allow_all_groups,
-      allowed_groups: location.allowed_groups,
+      allowed_groups: [...location.allowed_groups],
       allowed_ips: location.allowed_ips.join(','),
       dns: location.dns,
       endpoint: location.endpoint,
@@ -265,6 +413,14 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     [location],
   );
 
+  // Reuses the same save request for direct submits and confirmed warning actions.
+  const submitLocationChanges = async (value: FormFields) => {
+    await editLocation({
+      id: location.id,
+      data: buildLocationSubmissionData(value, location),
+    });
+  };
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -273,26 +429,31 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const clone = cloneDeep(value);
-      if (clone.location_mfa_mode !== LocationMfaMode.Disabled) {
-        clone.service_location_mode = LocationServiceMode.Disabled;
+      const changedFields = getDisconnectRelevantChangedFields(
+        getDisconnectRelevantLocationData(
+          buildLocationSubmissionData(defaultValues, location),
+        ),
+        getDisconnectRelevantLocationData(buildLocationSubmissionData(value, location)),
+      );
+
+      if (changedFields.length > 0) {
+        openModal(ModalName.ConfirmAction, {
+          title: m.modal_edit_location_disconnect_warning_title(),
+          contentMd: m.modal_edit_location_disconnect_warning_body({
+            fields: changedFields
+              .map((field) => `- ${getDisconnectRelevantFieldLabel(field)}`)
+              .join('\n'),
+          }),
+          actionPromise: () => submitLocationChanges(value),
+          submitProps: {
+            text: m.controls_save_changes(),
+            variant: 'critical',
+          },
+        });
+        return;
       }
 
-      const peerDisconnectThreshold =
-        clone.peer_disconnect_threshold ?? location.peer_disconnect_threshold;
-
-      await editLocation({
-        id: location.id,
-        data: {
-          ...omit(clone, ['firewall']),
-          allow_all_groups: clone.allow_all_groups,
-          allowed_groups: clone.allowed_groups,
-          allowed_ips: clone.allowed_ips ?? '',
-          acl_default_allow: clone.firewall === LocationFirewall.Allow,
-          acl_enabled: !(clone.firewall === LocationFirewall.Disabled),
-          peer_disconnect_threshold: peerDisconnectThreshold,
-        },
-      });
+      await submitLocationChanges(value);
     },
   });
 
