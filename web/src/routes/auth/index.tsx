@@ -1,24 +1,39 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { LoginLoadingPage } from '../../pages/auth/LoginLoading/LoginLoadingPage';
-import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
-import { useAuth } from '../../shared/hooks/useAuth';
+import {
+  getSessionInfoQueryOptions,
+  getUserMeQueryOptions,
+} from '../../shared/query';
 
 export const Route = createFileRoute('/auth/')({
-  beforeLoad: () => {
-    const authState = useAuth.getState();
-    if (isPresent(authState.user)) {
+  beforeLoad: async ({ context }) => {
+    const sessionInfo = (
+      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
+    ).data;
+
+    if (sessionInfo.authorized) {
+      if (sessionInfo.is_admin) {
+        throw redirect({
+          to: '/vpn-overview',
+          replace: true,
+        });
+      }
+
+      const me = (await context.queryClient.fetchQuery(getUserMeQueryOptions)).data;
+
       throw redirect({
         to: '/user/$username',
         params: {
-          username: authState.user.username,
+          username: me.username,
         },
-      });
-    } else {
-      throw redirect({
-        to: '/auth/login',
         replace: true,
       });
     }
+
+    throw redirect({
+      to: '/auth/login',
+      replace: true,
+    });
   },
   component: RouteComponent,
 });
