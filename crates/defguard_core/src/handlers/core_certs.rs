@@ -123,11 +123,12 @@ pub(crate) async fn core_cert_self_signed(
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
 
-    let common_name = data
-        .san
-        .first()
-        .cloned()
-        .unwrap_or_else(|| "defguard".to_string());
+    let Some(common_name) = data.san.first() else {
+        return Err(WebError::BadRequest(
+            "At least one SAN entry is required to issue a certificate".to_string(),
+        ));
+    };
+
     let csr = Csr::new(
         &leaf_key,
         &data.san,

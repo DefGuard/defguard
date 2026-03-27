@@ -689,10 +689,9 @@ pub async fn run_web_server(
     );
 
     if let Some((cert_pem, key_pem)) = tls_cert_pair {
-        let tls_config =
-            RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
-                .await
-                .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
+        let tls_config = RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
+            .await
+            .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
         axum_server::bind_rustls(addr, tls_config)
             .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
             .await

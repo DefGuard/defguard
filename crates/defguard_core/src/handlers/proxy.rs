@@ -342,17 +342,18 @@ pub(crate) async fn proxy_cert_self_signed(
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
         })?;
 
+    let Some(common_name) = data.san.first() else {
+        return Err(WebError::BadRequest(
+            "At least one SAN entry is required to issue a certificate".to_string(),
+        ));
+    };
+
     // Generate a new leaf key pair + CSR.
     let leaf_key = generate_key_pair().map_err(|err| {
         error!("Failed to generate leaf key pair: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
 
-    let common_name = data
-        .san
-        .first()
-        .cloned()
-        .unwrap_or_else(|| "defguard-proxy".to_string());
     let csr = Csr::new(
         &leaf_key,
         &data.san,
