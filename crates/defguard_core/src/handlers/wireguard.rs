@@ -58,7 +58,7 @@ pub(crate) struct LocationsCount {
     count: usize,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
     pub address: String, // comma-separated list of addresses
