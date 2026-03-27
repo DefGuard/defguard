@@ -15,7 +15,6 @@ import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackba
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { useAuth } from '../../../shared/hooks/useAuth';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 type ValidityValue = 1 | 2 | 3 | 5 | 10;
@@ -41,12 +40,11 @@ type CreateCAStoreValues = {
 };
 
 export const MigrationWizardCAStep = () => {
-  const currentUser = useAuth((s) => s.user as User);
   const createCAdefaultValues = useMigrationWizardStore(
     useShallow(
       (s): CreateCAFormFields => ({
         ca_common_name: s.ca_common_name,
-        ca_email: s.ca_email.length ? s.ca_email : currentUser.email,
+        ca_email: s.ca_email,
         ca_validity_period_years: s.ca_validity_period_years,
       }),
     ),
