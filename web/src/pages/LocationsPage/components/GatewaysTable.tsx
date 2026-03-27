@@ -36,17 +36,34 @@ const getStatusBadge = (gateway: GatewayInfo) => {
     );
   }
   if (gateway.connected) {
-    return <Badge icon="check-filled" showIcon variant="success" text="Connected" />;
+    return (
+      <Badge
+        icon="check-filled"
+        showIcon
+        variant="success"
+        text={m.gateway_status_connected()}
+      />
+    );
   }
 
   if (!gateway.connected_at) {
     return (
-      <Badge icon="status-attention" showIcon variant="warning" text="Not connected" />
+      <Badge
+        icon="status-attention"
+        showIcon
+        variant="warning"
+        text={m.gateway_status_not_connected()}
+      />
     );
   }
 
   return (
-    <Badge icon="status-important" showIcon variant="critical" text="Disconnected" />
+    <Badge
+      icon="status-important"
+      showIcon
+      variant="critical"
+      text={m.gateway_status_disconnected()}
+    />
   );
 };
 
@@ -157,7 +174,7 @@ export const GatewaysTable = () => {
         ),
       }),
       columnHelper.accessor('location_name', {
-        header: 'Used in location',
+        header: m.gateway_col_used_in_location(),
         size: 220,
         minSize: 200,
         meta: {
@@ -255,12 +272,12 @@ export const GatewaysTable = () => {
   });
 
   if (gateways.length === 0) {
-    return <EmptyStateFlexible title="No gateways found" />;
+    return <EmptyStateFlexible title={m.gateway_empty_title()} />;
   }
 
   return (
     <>
-      <TableTop text="Gateways management">
+      <TableTop text={m.gateway_title()}>
         <Search
           placeholder={m.controls_search()}
           initialValue={search}

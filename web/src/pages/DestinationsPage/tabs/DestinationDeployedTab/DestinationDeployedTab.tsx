@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
+import { m } from '../../../../paraglide/messages';
 import { AclListTab } from '../../../../shared/aclTabs';
 import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
@@ -30,7 +31,7 @@ export const DestinationDeployedTab = () => {
 
   const addButtonProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add new destination',
+      text: m.acl_destinations_button_create(),
       variant: 'primary',
       iconLeft: 'add-location',
       disabled: loading,
@@ -54,14 +55,14 @@ export const DestinationDeployedTab = () => {
       {destinations.length === 0 && (
         <EmptyStateFlexible
           icon="gateway"
-          title="You haven't created any destinations yet."
-          subtitle="Click the first destination by clicking button below."
+          title={m.acl_destinations_empty_deployed_title()}
+          subtitle={m.acl_destinations_empty_deployed_subtitle()}
           primaryAction={addButtonProps}
         />
       )}
       {destinations.length > 0 && (
         <DestinationsTable
-          title="Deployed destinations"
+          title={m.acl_destinations_table_title_deployed()}
           destinations={destinations}
           rules={rules}
           tab={AclListTab.Deployed}

@@ -46,7 +46,7 @@ export const AddLocationAccessStep = () => {
   return (
     <WizardCard>
       <Toggle
-        label="All groups have access"
+        label={m.location_access_all_groups_have_access()}
         active={allowAllGroups}
         onClick={() => {
           const value = !allowAllGroups;

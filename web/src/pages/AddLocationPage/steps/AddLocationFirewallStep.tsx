@@ -97,7 +97,7 @@ export const AddLocationFirewallStep = () => {
             <a href={externalLink.defguard.pricing} target="_blank" rel="noreferrer">
               <Button
                 variant="outlined"
-                text="See other plans"
+                text={m.license_see_other_plans()}
                 iconRight="open-in-new-window"
               />
             </a>
@@ -110,7 +110,7 @@ export const AddLocationFirewallStep = () => {
         onClick={() => {
           setState('disable');
         }}
-        text="Disable firewall option"
+        text={m.location_firewall_option_disabled()}
         disabled={firewallLocked}
       />
       <SizedBox height={ThemeSpacing.Md} />
@@ -119,7 +119,7 @@ export const AddLocationFirewallStep = () => {
         onClick={() => {
           setState('enabled-allowed');
         }}
-        text="Users/devices can access all resources unless limited by ACL rules."
+        text={m.location_firewall_option_default_allow()}
         disabled={firewallLocked}
       />
       <SizedBox height={ThemeSpacing.Md} />
@@ -128,17 +128,17 @@ export const AddLocationFirewallStep = () => {
         onClick={() => {
           setState('enabled-denied');
         }}
-        text="All traffic not explicitly allowed by an ACL rule will be blocked."
+        text={m.location_firewall_option_default_deny()}
         disabled={firewallLocked}
       />
       <Divider spacing={ThemeSpacing.Xl2} />
       <ActionCard
         imageSrc={actionCardImage}
-        title="Activate location by setting up gateway"
-        subtitle="To activate your location, you must add at least one gateway connection. You can do this immediately after creation or later in the location settings."
+        title={m.add_location_firewall_gateway_activation_title()}
+        subtitle={m.add_location_firewall_gateway_activation_subtitle()}
       >
         <Checkbox
-          text="Run the gateway activation wizard once the location is created"
+          text={m.add_location_firewall_gateway_activation_checkbox()}
           active={showGateway}
           onClick={() => {
             setShowGateway((s) => !s);
@@ -160,7 +160,7 @@ export const AddLocationFirewallStep = () => {
         <div className="right">
           <Button
             testId="create-location"
-            text="Create location"
+            text={m.add_location_create_location()}
             loading={isPending}
             onClick={() => {
               handleSubmit();

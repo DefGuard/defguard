@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { type JSX, useMemo } from 'react';
+import { m } from '../../../paraglide/messages';
 import { Page } from '../../../shared/components/Page/Page';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
@@ -23,15 +24,15 @@ const tabComponent: Record<SettingsTabValue, JSX.Element> = {
 const tabToTitle = (tab: SettingsTabValue): string => {
   switch (tab) {
     case 'general':
-      return 'General';
+      return m.settings_tab_general();
     case 'activity':
-      return 'Activity streaming';
+      return m.settings_tab_activity_streaming();
     case 'license':
-      return 'License';
+      return m.settings_tab_license();
     case 'notifications':
-      return 'Notifications';
+      return m.settings_tab_notifications();
     case 'identity':
-      return 'Identity Providers';
+      return m.settings_tab_identity_providers();
   }
 };
 
@@ -54,7 +55,7 @@ export const SettingsIndexPage = () => {
   );
 
   return (
-    <Page id="settings-index-page" title="Settings">
+    <Page id="settings-index-page" title={m.settings_page_title()}>
       <SizedBox height={ThemeSpacing.Md} />
       <Tabs items={tabs} />
       {tabComponent[search.tab]}

@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react';
+import { m } from '../../../../paraglide/messages';
 import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -20,7 +21,7 @@ export const ProviderSyncToggle = ({ children }: PropsWithChildren) => {
             providerState: { ...s.providerState, directory_sync_enabled: !enabled },
           }));
         }}
-        label="Directory synchronization"
+        label={m.settings_openid_provider_directory_sync_toggle()}
       />
       <Fold open={enabled}>
         <SizedBox height={ThemeSpacing.Xl} />

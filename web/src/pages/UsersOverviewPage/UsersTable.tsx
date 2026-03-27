@@ -65,7 +65,7 @@ export const UsersTable = () => {
   const addButtonProps = useMemo(
     (): ButtonProps => ({
       variant: 'primary',
-      text: 'Add new user',
+      text: m.users_add(),
       iconLeft: 'add-user',
       testId: 'add-user',
       onClick: () => {
@@ -87,6 +87,16 @@ export const UsersTable = () => {
 
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const tableFilterMessages = useMemo(
+    () => ({
+      searchPlaceholder: m.controls_search(),
+      clearButton: m.controls_reset(),
+      applyButton: m.controls_submit(),
+      emptyState: m.search_empty_common_title(),
+    }),
+    [],
+  );
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
@@ -162,7 +172,7 @@ export const UsersTable = () => {
         },
       }),
       columnHelper.accessor('is_active', {
-        header: m.users_col_status(),
+        header: m.col_status(),
         size: 100,
         minSize: 100,
         cell: (info) => (
@@ -426,7 +436,7 @@ export const UsersTable = () => {
                         });
                       })
                       .catch((error) => {
-                        Snackbar.error('Failed to initiate enrollment');
+                        Snackbar.error(m.failed_to_start_enrollment());
                         console.error(error);
                       });
                   },
@@ -540,7 +550,7 @@ export const UsersTable = () => {
                   });
                 })
                 .catch((error) => {
-                  Snackbar.error('Failed to load device IP settings');
+                  Snackbar.error(m.profile_devices_ip_settings_load_failed());
                   console.error(error);
                 });
             },
@@ -654,6 +664,9 @@ export const UsersTable = () => {
       rowSelection: selected,
       columnFilters: columnFilters,
     },
+    meta: {
+      filterMessages: tableFilterMessages,
+    },
     columns,
     data: transformedData,
     enableRowSelection: true,
@@ -671,8 +684,8 @@ export const UsersTable = () => {
   if (users.length === 0)
     return (
       <EmptyStateFlexible
-        title={`No users here yet.`}
-        subtitle={`Add users by clicking the button below.`}
+        title={m.users_empty_title()}
+        subtitle={m.users_empty_subtitle()}
         primaryAction={addButtonProps}
       />
     );
@@ -684,7 +697,7 @@ export const UsersTable = () => {
           isPresent(groups) && (
             <Button
               variant="outlined"
-              text="Assign to a group"
+              text={m.users_bulk_assign_to_groups()}
               iconLeft="add-group"
               testId="bulk-assign"
               onClick={() => {

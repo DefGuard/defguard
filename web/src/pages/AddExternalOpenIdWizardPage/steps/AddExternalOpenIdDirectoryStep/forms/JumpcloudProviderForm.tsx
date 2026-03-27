@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
+import { m } from '../../../../../paraglide/messages';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -66,7 +67,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   options={directorySyncTargetOptions}
                   required
-                  label="Synchronize"
+                  label={m.settings_openid_provider_label_sync_target()}
                 />
               )}
             </form.AppField>
@@ -75,7 +76,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormInput
                   type="number"
                   required
-                  label="Synchronization interval"
+                  label={m.settings_openid_provider_label_sync_interval()}
                 />
               )}
             </form.AppField>
@@ -86,7 +87,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="User behavior"
+                  label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -95,7 +96,7 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="Admin behavior"
+                  label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
                 />
               )}
@@ -104,7 +105,11 @@ export const JumpcloudProviderForm = ({ onSubmit }: ProviderFormProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="jumpcloud_api_key">
             {(field) => (
-              <field.FormInput required label="JumpCloud API key" type="password" />
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_jumpcloud_api_key()}
+                type="password"
+              />
             )}
           </form.AppField>
         </ProviderSyncToggle>

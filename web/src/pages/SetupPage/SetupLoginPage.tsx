@@ -118,7 +118,7 @@ export const SetupLoginPage = () => {
             )}
           </form.AppField>
           <Button
-            text="Sign in"
+            text={m.controls_sign_in()}
             type="submit"
             testId="sign-in"
             variant="primary"
