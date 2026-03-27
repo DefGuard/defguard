@@ -153,6 +153,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
                     required
                     type="password"
                     label={m.form_label_current_password()}
+                    helper={m.form_helper_current_password()}
                   />
                 )}
               </form.AppField>
@@ -163,6 +164,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
                     type="password"
                     label={m.form_label_new_password()}
                     mapError={mapPasswordFieldError}
+                    helper={m.form_helper_new_password()}
                   />
                 )}
               </form.AppField>
@@ -172,6 +174,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
                     required
                     type="password"
                     label={m.form_label_confirm_new_password()}
+                    helper={m.form_helper_confirm_new_password()}
                   />
                 )}
               </form.AppField>
@@ -185,6 +188,7 @@ const ModalContent = ({ isAdmin, user }: { isAdmin: boolean; user: User }) => {
                   type="password"
                   label={m.form_label_new_password()}
                   mapError={mapPasswordFieldError}
+                  helper={m.form_helper_new_password()}
                 />
               )}
             </form.AppField>

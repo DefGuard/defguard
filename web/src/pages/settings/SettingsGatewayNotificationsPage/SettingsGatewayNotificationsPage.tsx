@@ -143,6 +143,7 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                         <field.FormInput
                           required
                           label={m.settings_gateway_notifications_inactivity_threshold_label()}
+                          helper={m.settings_gateway_notifications_inactivity_threshold_helper()}
                           type="number"
                           disabled={formDisabled}
                         />

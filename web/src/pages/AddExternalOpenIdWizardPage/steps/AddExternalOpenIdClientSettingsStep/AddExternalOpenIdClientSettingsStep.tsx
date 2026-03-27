@@ -145,6 +145,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.settings_openid_provider_label_display_name()}
+                helper={m.settings_openid_provider_helper_display_name()}
               />
             )}
           </form.AppField>
@@ -166,6 +167,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                   <field.FormInput
                     required
                     label={m.settings_openid_provider_label_microsoft_tenant_id()}
+                    helper={m.settings_openid_provider_helper_microsoft_tenant_id()}
                   />
                 )}
               </form.AppField>
@@ -179,6 +181,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                   <field.FormInput
                     required
                     label={m.settings_openid_provider_label_base_url()}
+                    helper={m.settings_openid_provider_helper_base_url()}
                   />
                 )}
               </form.AppField>
@@ -190,6 +193,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.settings_openid_provider_label_client_id()}
+                helper={m.settings_openid_provider_helper_client_id()}
               />
             )}
           </form.AppField>
@@ -200,6 +204,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                 required
                 label={m.settings_openid_provider_label_client_secret()}
                 type="password"
+                helper={m.settings_openid_provider_helper_client_secret()}
               />
             )}
           </form.AppField>
@@ -210,6 +215,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
                 options={providerUsernameHandlingOptions}
                 required
                 label={m.settings_openid_provider_label_username_handling()}
+                helper={m.settings_openid_provider_helper_username_handling()}
               />
             )}
           </form.AppField>

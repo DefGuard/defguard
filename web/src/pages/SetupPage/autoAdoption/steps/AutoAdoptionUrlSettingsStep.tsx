@@ -105,6 +105,7 @@ export const AutoAdoptionUrlSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_general_config_label_defguard_url()}
+                helper={m.initial_setup_general_config_helper_defguard_url()}
                 type="text"
               />
             )}
@@ -117,6 +118,7 @@ export const AutoAdoptionUrlSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_general_config_label_public_proxy_url()}
+                helper={m.initial_setup_general_config_helper_public_proxy_url()}
                 type="text"
               />
             )}

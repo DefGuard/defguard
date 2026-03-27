@@ -136,6 +136,7 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
                   required
                   label={m.settings_enrollment_label_token_validity()}
                   options={enrollmentTokenTimeoutOptions}
+                  helper={m.settings_enrollment_helper_token_timeout()}
                 />
               )}
             </form.AppField>
@@ -146,6 +147,7 @@ const GeneralTabContent = ({ settings }: { settings: Settings }) => {
                   required
                   label={m.settings_enrollment_label_session_expires_in()}
                   options={enrollmentSessionTimeoutOptions}
+                  helper={m.settings_enrollment_helper_session_timeout()}
                 />
               )}
             </form.AppField>
