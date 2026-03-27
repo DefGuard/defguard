@@ -109,7 +109,19 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     assert!(certs.core_http_cert_pem.is_none());
     assert!(certs.core_http_cert_key_pem.is_none());
 
-    // ssl_type = defguard_ca
+    // ssl_type = defguard_ca: requires an existing CA, so create one first
+    let resp = client
+        .post("/api/v1/initial_setup/ca")
+        .json(&json!({
+            "common_name": "Test CA",
+            "email": "ca@example.com",
+            "validity_period_years": 1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
         .json(&json!({ "defguard_url": "https://defguard.example.com", "ssl_type": "defguard_ca" }))
@@ -132,8 +144,6 @@ async fn test_internal_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
             .contains("BEGIN CERTIFICATE")
     );
     assert!(certs.core_http_cert_key_pem.is_some());
-    assert!(certs.ca_cert_der.is_some());
-    assert!(certs.ca_key_der.is_some());
 
     // ssl_type = own_cert
     let (cert_pem, key_pem) = generate_test_cert_pem("defguard.example.com");
@@ -190,6 +200,17 @@ async fn test_get_internal_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
     assert_eq!(resp.status(), StatusCode::OK);
     let body: serde_json::Value = resp.json().await.unwrap();
     assert!(body["ca_cert_pem"].is_null());
+
+    client
+        .post("/api/v1/initial_setup/ca")
+        .json(&json!({
+            "common_name": "Test CA",
+            "email": "ca@example.com",
+            "validity_period_years": 1
+        }))
+        .send()
+        .await
+        .unwrap();
 
     client
         .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
@@ -255,7 +276,19 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     assert!(certs.proxy_http_cert_pem.is_none());
     assert!(certs.proxy_http_cert_key_pem.is_none());
 
-    // ssl_type = defguard_ca
+    // ssl_type = defguard_ca: requires an existing CA, so create one first
+    let resp = client
+        .post("/api/v1/initial_setup/ca")
+        .json(&json!({
+            "common_name": "Test CA",
+            "email": "ca@example.com",
+            "validity_period_years": 1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
         .json(
@@ -279,7 +312,6 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
             .contains("BEGIN CERTIFICATE")
     );
     assert!(certs.proxy_http_cert_key_pem.is_some());
-    assert!(certs.ca_cert_der.is_some());
 
     // ssl_type = own_cert
     let (cert_pem, key_pem) = generate_test_cert_pem("proxy.example.com");
@@ -322,6 +354,17 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
     assert_eq!(resp.status(), StatusCode::OK);
     let body: serde_json::Value = resp.json().await.unwrap();
     assert!(body["ca_cert_pem"].is_null());
+
+    client
+        .post("/api/v1/initial_setup/ca")
+        .json(&json!({
+            "common_name": "Test CA",
+            "email": "ca@example.com",
+            "validity_period_years": 1
+        }))
+        .send()
+        .await
+        .unwrap();
 
     client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")

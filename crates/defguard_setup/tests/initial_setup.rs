@@ -226,12 +226,10 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
-        "defguard_url": "https://example.com",
         "default_admin_group_name": "admins",
         "default_authentication": 14,
         "default_mfa_code_lifetime": 120,
-        "admin_username": "admin1",
-        "public_proxy_url": "https://proxy.example.com"
+        "admin_username": "admin1"
     });
 
     let response = client
@@ -267,7 +265,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to fetch group membership");
     assert!(groups.contains(&"admins".to_string()));
 
-    assert_setup_step(&pool, InitialSetupStep::Ca).await;
+    assert_setup_step(&pool, InitialSetupStep::InternalUrlSettings).await;
 }
 
 #[sqlx::test]
@@ -548,18 +546,16 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/general_config"))
         .json(&json!({
-            "defguard_url": "https://example.com",
             "default_admin_group_name": "admins",
             "default_authentication": 14,
             "default_mfa_code_lifetime": 120,
-            "public_proxy_url": "https://proxy.example.com",
             "admin_username": "admin1"
         }))
         .send()
         .await
         .expect("Failed to set general config");
     assert_eq!(response.status(), StatusCode::CREATED);
-    assert_setup_step(&pool, InitialSetupStep::Ca).await;
+    assert_setup_step(&pool, InitialSetupStep::InternalUrlSettings).await;
 
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/ca"))
@@ -586,7 +582,6 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch settings")
         .expect("Settings not found");
-    assert_eq!(settings.defguard_url, "https://example.com");
     assert_eq!(settings.default_admin_group_name, "admins");
     assert_eq!(settings.authentication_period_days, 14);
     assert_eq!(settings.mfa_code_timeout_seconds, 120);
