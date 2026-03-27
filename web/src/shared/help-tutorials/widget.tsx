@@ -121,7 +121,7 @@ export const HelpTutorialsWidget = () => {
             onClick={() => setPanelOpen(true)}
             aria-label="Video support"
           >
-            <Icon icon="tutorial" size={18} />
+            <Icon icon="tutorial" size={18} staticColor="var(--fg-action)" />
             <span>Video support</span>
           </button>
         )}
