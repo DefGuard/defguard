@@ -29,7 +29,7 @@ const defaults: StoreValues = {
   keepalive_interval: 25,
   mtu: 1420,
   fwmark: 0,
-  allow_all_groups: false,
+  allow_all_groups: true,
   peer_disconnect_threshold: 300,
   acl_default_allow: true,
   acl_enabled: false,
