@@ -19,18 +19,73 @@ const VideoCameraIcon = () => (
   </svg>
 );
 
+/** Resolved tutorial entry: thumbnailUrl is always present after validation. */
+interface ValidatedTutorial {
+  tutorial: HelpTutorial;
+  thumbnailUrl: string;
+}
+
+/**
+ * Returns the YouTube thumbnail URL to use for a given video ID.
+ * The explicit thumbnailUrl from the JSON takes precedence; otherwise the
+ * standard YouTube thumbnail endpoint is used.
+ */
+function resolveThumbnailUrl(tutorial: HelpTutorial): string {
+  return (
+    tutorial.thumbnailUrl ??
+    `https://img.youtube.com/vi/${tutorial.youtubeVideoId}/hqdefault.jpg`
+  );
+}
+
+/**
+ * Probes thumbnail URLs for each tutorial in parallel.
+ * Entries whose thumbnail returns a 404 (invalid/private/deleted video) are
+ * silently discarded. Returns null while probing is in progress.
+ */
+function useValidatedTutorials(tutorials: HelpTutorial[]): ValidatedTutorial[] | null {
+  const [validated, setValidated] = useState<ValidatedTutorial[] | null>(null);
+
+  useEffect(() => {
+    if (tutorials.length === 0) {
+      setValidated([]);
+      return;
+    }
+
+    setValidated(null); // mark as loading while probing
+
+    let cancelled = false;
+
+    const probes = tutorials.map(
+      (tutorial) =>
+        new Promise<ValidatedTutorial | null>((resolve) => {
+          const url = resolveThumbnailUrl(tutorial);
+          const img = new Image();
+          img.onload = () => resolve({ tutorial, thumbnailUrl: url });
+          img.onerror = () => resolve(null); // 404 or network error → discard
+          img.src = url;
+        }),
+    );
+
+    Promise.all(probes).then((results) => {
+      if (cancelled) return;
+      setValidated(results.filter((r): r is ValidatedTutorial => r !== null));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tutorials]);
+
+  return validated;
+}
+
 interface ThumbnailProps {
-  url?: string;
+  url: string;
   title: string;
 }
 
 const Thumbnail = ({ url, title }: ThumbnailProps) => {
   const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
-
-  if (!url || errored) {
-    return <div className="help-tutorial-thumbnail placeholder" aria-label={title} />;
-  }
 
   return (
     <div className="help-tutorial-thumbnail">
@@ -39,7 +94,6 @@ const Thumbnail = ({ url, title }: ThumbnailProps) => {
         src={url}
         alt={title}
         onLoad={() => setLoaded(true)}
-        onError={() => setErrored(true)}
         style={{ display: loaded ? 'block' : 'none' }}
       />
     </div>
@@ -47,17 +101,19 @@ const Thumbnail = ({ url, title }: ThumbnailProps) => {
 };
 
 interface TutorialCardProps {
-  tutorial: HelpTutorial;
+  entry: ValidatedTutorial;
   onClick: () => void;
 }
 
-const TutorialCard = ({ tutorial, onClick }: TutorialCardProps) => (
+const TutorialCard = ({ entry, onClick }: TutorialCardProps) => (
   <button type="button" className="help-tutorial-card" onClick={onClick}>
-    <Thumbnail url={tutorial.thumbnailUrl} title={tutorial.title} />
+    <Thumbnail url={entry.thumbnailUrl} title={entry.tutorial.title} />
     <div className="help-tutorial-card-info">
-      <span className="help-tutorial-card-title">{tutorial.title}</span>
-      {tutorial.description && (
-        <span className="help-tutorial-card-description">{tutorial.description}</span>
+      <span className="help-tutorial-card-title">{entry.tutorial.title}</span>
+      {entry.tutorial.description && (
+        <span className="help-tutorial-card-description">
+          {entry.tutorial.description}
+        </span>
       )}
     </div>
   </button>
@@ -65,6 +121,7 @@ const TutorialCard = ({ tutorial, onClick }: TutorialCardProps) => (
 
 export const HelpTutorialsWidget = () => {
   const tutorials = useResolvedHelpTutorials();
+  const validated = useValidatedTutorials(tutorials);
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<HelpTutorial | null>(null);
   const prevTutorialsRef = useRef(tutorials);
@@ -78,7 +135,8 @@ export const HelpTutorialsWidget = () => {
     }
   }, [tutorials]);
 
-  if (tutorials.length === 0) return null;
+  // Hide button while validation is in progress or no valid videos remain
+  if (!validated || validated.length === 0) return null;
 
   const handleCardClick = (tutorial: HelpTutorial) => {
     setSelectedVideo(tutorial);
@@ -93,9 +151,12 @@ export const HelpTutorialsWidget = () => {
         {panelOpen && (
           <div className="help-tutorials-panel">
             <ul className="help-tutorials-list">
-              {tutorials.map((t) => (
-                <li key={t.youtubeVideoId}>
-                  <TutorialCard tutorial={t} onClick={() => handleCardClick(t)} />
+              {validated.map((entry) => (
+                <li key={entry.tutorial.youtubeVideoId}>
+                  <TutorialCard
+                    entry={entry}
+                    onClick={() => handleCardClick(entry.tutorial)}
+                  />
                 </li>
               ))}
             </ul>
