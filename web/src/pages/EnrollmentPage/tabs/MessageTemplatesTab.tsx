@@ -271,7 +271,9 @@ const MessageTemplatesSuggestion = () => {
               </li>
             ))}
           </ul>
+          <SizedBox height={ThemeSpacing.Lg} />
           <Divider />
+          <SizedBox height={ThemeSpacing.Lg} />
           <ul className="sidebar-list">
             {messageTemplatesHelpMarkdown.map(([token, description, weight]) => (
               <li key={token}>
