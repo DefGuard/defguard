@@ -45,7 +45,10 @@ const tutorialSchema = z
   })
   .strip();
 
-const routeMapSchema = z.record(z.string(), z.array(tutorialSchema));
+const routeMapSchema = z.record(
+  z.string().regex(/^\//, 'route key must start with "/"'),
+  z.array(tutorialSchema),
+);
 
 const mappingsSchema = z.object({
   versions: z.record(

@@ -218,6 +218,17 @@ describe('parseHelpTutorials', () => {
     expect(() => parseHelpTutorials(raw)).toThrow(/[Dd]uplicate/);
   });
 
+  it('should reject a route key missing a leading slash', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          'settings': [{ youtubeVideoId: 'abcDEFghiJK', title: 'Test' }],
+        },
+      },
+    };
+    expect(() => parseHelpTutorials(raw)).toThrow();
+  });
+
   it('should reject an invalid version key format', () => {
     const raw = {
       versions: {

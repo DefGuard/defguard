@@ -8,6 +8,9 @@ import type { HelpTutorial } from './types';
 
 const SHELL_ROUTE_PREFIX = '/_authorized/_default/';
 
+// Stable empty reference — avoids triggering effects/memos that depend on this value.
+const EMPTY_TUTORIALS: HelpTutorial[] = [];
+
 /**
  * Derives the canonical route key for the current page from TanStack Router
  * matches, skipping pathless shell/layout routes.
@@ -32,6 +35,6 @@ export function useResolvedHelpTutorials(): HelpTutorial[] {
   const appVersion = useApp((s) => s.appInfo.version);
   const routeKey = useHelpTutorialsRouteKey();
 
-  if (!data || !appVersion || !routeKey) return [];
+  if (!data || !appVersion || !routeKey) return EMPTY_TUTORIALS;
   return resolveHelpTutorials(data, appVersion, routeKey);
 }

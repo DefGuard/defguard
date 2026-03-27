@@ -19,8 +19,8 @@
 .help-tutorials-launcher {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl);
   background-color: var(--bg-default);
   color: var(--fg-action);
   border: var(--border-1) solid var(--border-muted);
@@ -52,7 +52,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
   max-height: 70vh;
   overflow-y: auto;
   width: 300px;
@@ -63,12 +63,12 @@
 .help-tutorial-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-lg);
   width: 100%;
-  padding: 12px;
+  padding: var(--spacing-md);
   background-color: var(--bg-default);
   border: var(--border-1) solid var(--border-disabled);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
   text-align: left;
@@ -83,19 +83,23 @@
   flex-shrink: 0;
   width: 106px;
   height: 60px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background-color: #e8e7e7;
+  background-color: var(--bg-emphasis);
   position: relative;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: none;
+
+    &.loaded {
+      display: block;
+    }
   }
 
   &.placeholder {
-    background-color: #e8e7e7;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,7 +119,12 @@
   .skeleton {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, #e8e7e7 25%, var(--border-muted) 50%, #e8e7e7 75%);
+    background: linear-gradient(
+      90deg,
+      var(--bg-emphasis) 25%,
+      var(--border-muted) 50%,
+      var(--bg-emphasis) 75%
+    );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.4s infinite;
   }
@@ -138,9 +147,7 @@
 }
 
 .help-tutorial-card-title {
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
+  font: var(--t-body-xs-400);
   color: var(--fg-neutral);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -148,58 +155,43 @@
   overflow: hidden;
 }
 
-// Close button — small circle, replaces launcher when panel is open
+// Close button — replaces launcher when panel is open.
+// Overrides IconButton's default square shape to a floating circle with shadow.
 
 .help-tutorials-close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: var(--bg-default);
+  width: var(--size-2xl) !important;
+  height: var(--size-2xl) !important;
+  border-radius: 50% !important;
+  background-color: var(--bg-default) !important;
   border: var(--border-1) solid var(--border-muted);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
-  color: var(--fg-muted);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
   align-self: flex-end;
   transition:
     box-shadow 0.15s ease,
-    color 0.15s ease;
+    background-color 0.15s ease !important;
 
   &:hover {
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
-    color: var(--fg-neutral);
+    background-color: var(--bg-default) !important;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Video overlay
+// Video modal
+// ModalFoundation provides the backdrop and portal; we style the content here.
 // ---------------------------------------------------------------------------
-
-.help-tutorials-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .help-tutorials-modal-container {
   position: relative;
   display: inline-block;
-  padding-top: 36px;
+  padding-top: var(--size-2xl);
 }
 
 .help-tutorials-modal {
   background: var(--bg-default);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 6px 30px 0 rgba(0, 0, 0, 0.09);
-  padding: 20px;
+  padding: var(--spacing-xl);
   width: 920px;
   max-width: 90vw;
 
@@ -208,28 +200,27 @@
     width: 100%;
     aspect-ratio: 16 / 9;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
   }
 }
 
+// Modal close button — floats outside the modal card (top-right).
+// Overrides IconButton's default to a white circle with shadow.
+
 .help-tutorials-modal-close {
-  position: absolute;
-  top: 4px;
-  right: -36px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-default);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  position: absolute !important;
+  top: var(--spacing-xs);
+  right: calc(-1 * var(--size-2xl));
+  width: var(--size-2xl) !important;
+  height: var(--size-2xl) !important;
+  border-radius: 50% !important;
+  background-color: var(--bg-default) !important;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.15s ease;
   z-index: 1;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease !important;
 
   &:hover {
     box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.16);
+    background-color: var(--bg-default) !important;
   }
 }

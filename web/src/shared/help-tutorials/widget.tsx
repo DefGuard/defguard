@@ -1,14 +1,10 @@
 import './style.scss';
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { IconClose } from '../defguard-ui/components/Icon/icons/IconClose';
-import { IconTutorial } from '../defguard-ui/components/Icon/icons/IconTutorial';
+import { Icon } from '../defguard-ui/components/Icon/Icon';
+import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
+import { ModalFoundation } from '../defguard-ui/components/ModalFoundation/ModalFoundation';
 import { useResolvedHelpTutorials } from './resolved';
 import type { HelpTutorial } from './types';
-
-function resolveThumbnailUrl(tutorial: HelpTutorial): string {
-  return `https://img.youtube.com/vi/${tutorial.youtubeVideoId}/hqdefault.jpg`;
-}
 
 interface ThumbnailProps {
   url: string;
@@ -31,7 +27,7 @@ const Thumbnail = ({ url, title }: ThumbnailProps) => {
         alt={title}
         onLoad={() => setLoaded(true)}
         onError={() => setErrored(true)}
-        style={{ display: loaded ? 'block' : 'none' }}
+        className={loaded ? 'loaded' : undefined}
       />
     </div>
   );
@@ -44,7 +40,10 @@ interface TutorialCardProps {
 
 const TutorialCard = ({ tutorial, onClick }: TutorialCardProps) => (
   <button type="button" className="help-tutorial-card" onClick={onClick}>
-    <Thumbnail url={resolveThumbnailUrl(tutorial)} title={tutorial.title} />
+    <Thumbnail
+      url={`https://img.youtube.com/vi/${tutorial.youtubeVideoId}/hqdefault.jpg`}
+      title={tutorial.title}
+    />
     <div className="help-tutorial-card-info">
       <span className="help-tutorial-card-title">{tutorial.title}</span>
     </div>
@@ -56,52 +55,24 @@ interface VideoOverlayProps {
   onClose: () => void;
 }
 
-const VideoOverlay = ({ tutorial, onClose }: VideoOverlayProps) => {
-  // Close on Escape key
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  const modalsRoot = document.getElementById('modals-root');
-  if (!modalsRoot) return null;
-
-  return createPortal(
-    <div
-      className="help-tutorials-overlay"
-      onClick={onClose}
-      aria-modal="true"
-      role="dialog"
-      aria-label={tutorial.title}
-    >
-      <div
-        className="help-tutorials-modal-container"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="help-tutorials-modal-close"
-          onClick={onClose}
-          aria-label="Close video"
-        >
-          <IconClose aria-hidden="true" />
-        </button>
-        <div className="help-tutorials-modal">
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${tutorial.youtubeVideoId}?autoplay=1`}
-            title={tutorial.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      </div>
-    </div>,
-    modalsRoot,
-  );
-};
+const VideoOverlay = ({ tutorial, onClose }: VideoOverlayProps) => (
+  <ModalFoundation
+    isOpen
+    onClose={onClose}
+    afterClose={() => {}}
+    contentClassName="help-tutorials-modal-container"
+  >
+    <IconButton icon="close" className="help-tutorials-modal-close" onClick={onClose} />
+    <div className="help-tutorials-modal">
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${tutorial.youtubeVideoId}?autoplay=1`}
+        title={tutorial.title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    </div>
+  </ModalFoundation>
+);
 
 export const HelpTutorialsWidget = () => {
   const tutorials = useResolvedHelpTutorials();
@@ -129,7 +100,7 @@ export const HelpTutorialsWidget = () => {
     <>
       <div className="help-tutorials-widget">
         {panelOpen && (
-          <ul className="help-tutorials-list">
+          <ul className="help-tutorials-list" aria-label="Video tutorials">
             {tutorials.map((t) => (
               <li key={t.youtubeVideoId}>
                 <TutorialCard tutorial={t} onClick={() => handleCardClick(t)} />
@@ -138,14 +109,11 @@ export const HelpTutorialsWidget = () => {
           </ul>
         )}
         {panelOpen ? (
-          <button
-            type="button"
+          <IconButton
+            icon="close"
             className="help-tutorials-close-btn"
             onClick={() => setPanelOpen(false)}
-            aria-label="Close video support panel"
-          >
-            ×
-          </button>
+          />
         ) : (
           <button
             type="button"
@@ -153,7 +121,7 @@ export const HelpTutorialsWidget = () => {
             onClick={() => setPanelOpen(true)}
             aria-label="Video support"
           >
-            <IconTutorial aria-hidden="true" />
+            <Icon icon="tutorial" size={18} />
             <span>Video support</span>
           </button>
         )}
