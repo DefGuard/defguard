@@ -15,7 +15,6 @@ mod oauth;
 mod openid;
 mod openid_login;
 mod proxy;
-mod proxy_certs;
 mod settings;
 mod snat;
 mod user;
