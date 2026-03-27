@@ -9,7 +9,6 @@ import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImag
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupDeployGatewayStep } from './steps/SetupDeployGatewayStep';
@@ -79,15 +78,13 @@ export const GatewaySetupPage = () => {
 
   const WelcomePageContent = () => (
     <>
-      <div className="left">
-        <Divider spacing={ThemeSpacing.Xs} />
-        <Controls>
-          <Button
-            text={m.gateway_setup_controls_configure()}
-            onClick={() => setIsOnWelcomePage(false)}
-          />
-        </Controls>
-      </div>
+      <Divider spacing={ThemeSpacing.Xl2} />
+      <Controls>
+        <Button
+          text={m.gateway_setup_controls_configure()}
+          onClick={() => setIsOnWelcomePage(false)}
+        />
+      </Controls>
     </>
   );
 

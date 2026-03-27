@@ -2,15 +2,13 @@ import './style.scss';
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
-import { ActionCard } from '../../shared/components/ActionCard/ActionCard';
 import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
 import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
-import deployImage from './assets/deploy.svg';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
@@ -66,21 +64,13 @@ export const EdgeSetupPage = () => {
 
   const WelcomePageContent = () => (
     <>
-      <SizedBox height={ThemeSpacing.Xl} />
-      <div className="left">
-        <ActionCard
-          title={m.edge_setup_welcome_deploy_title()}
-          subtitle={m.edge_setup_welcome_deploy_subtitle()}
-          imageSrc={deployImage}
+      <Divider spacing={ThemeSpacing.Xl2} />
+      <Controls>
+        <Button
+          text={m.edge_setup_controls_configure()}
+          onClick={() => setIsOnWelcomePage(false)}
         />
-        <SizedBox height={ThemeSpacing.Xl} />
-        <Controls>
-          <Button
-            text={m.edge_setup_controls_configure()}
-            onClick={() => setIsOnWelcomePage(false)}
-          />
-        </Controls>
-      </div>
+      </Controls>
     </>
   );
 
