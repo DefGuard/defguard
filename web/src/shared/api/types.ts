@@ -29,6 +29,7 @@ export interface SessionInfo {
   is_admin: boolean;
   // if it's not null then wizard is in progress / complete = false
   active_wizard: ActiveWizardValue | null;
+  username: string | null;
 }
 
 export interface GatewayTokenResponse {
