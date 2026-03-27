@@ -19,20 +19,20 @@
 .help-tutorials-launcher {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: 12px;
+  padding: 12px 20px;
   background-color: var(--bg-default);
   color: var(--fg-action);
   border: var(--border-1) solid var(--border-muted);
   border-radius: var(--radius-full);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
   cursor: pointer;
   font: var(--t-body-sm-500);
   white-space: nowrap;
   transition: box-shadow 0.15s ease;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
   }
 
   svg {
