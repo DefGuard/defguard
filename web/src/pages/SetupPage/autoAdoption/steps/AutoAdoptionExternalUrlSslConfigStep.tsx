@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { Controls } from '../../../../shared/components/Controls/Controls';
@@ -77,6 +77,8 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
     select: (response) => response.data,
   });
 
+  const [acmeState, setAcmeState] = useState<AcmeStepState>(defaultAcmeState);
+
   const handleAcmeEvent = useCallback((event: AcmeEvent) => {
     setAcmeState({
       currentStep: event.step,
@@ -106,24 +108,33 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
     };
   }, []);
 
-  const stepDone = useCallback((stepId: AcmeStepId): boolean => {
-    const stepIndex = ACME_STEP_IDS.indexOf(stepId);
-    const currentIndex = acmeState.currentStep
-      ? ACME_STEP_IDS.indexOf(acmeState.currentStep)
-      : -1;
-    return stepIndex < currentIndex || acmeState.isComplete;
-  }, []);
+  const stepDone = useCallback(
+    (stepId: AcmeStepId): boolean => {
+      const stepIndex = ACME_STEP_IDS.indexOf(stepId);
+      const currentIndex = acmeState.currentStep
+        ? ACME_STEP_IDS.indexOf(acmeState.currentStep)
+        : -1;
+      return stepIndex < currentIndex || acmeState.isComplete;
+    },
+    [acmeState.currentStep, acmeState.isComplete],
+  );
 
-  const stepLoading = useCallback((stepId: AcmeStepId): boolean => {
-    return acmeState.isProcessing && acmeState.currentStep === stepId;
-  }, []);
+  const stepLoading = useCallback(
+    (stepId: AcmeStepId): boolean => {
+      return acmeState.isProcessing && acmeState.currentStep === stepId;
+    },
+    [acmeState.isProcessing, acmeState.currentStep],
+  );
 
-  const stepError = useCallback((stepId: AcmeStepId): string | null => {
-    if (acmeState.errorMessage && acmeState.currentStep === stepId) {
-      return acmeState.errorMessage;
-    }
-    return null;
-  }, []);
+  const stepError = useCallback(
+    (stepId: AcmeStepId): string | null => {
+      if (acmeState.errorMessage && acmeState.currentStep === stepId) {
+        return acmeState.errorMessage;
+      }
+      return null;
+    },
+    [acmeState.errorMessage, acmeState.currentStep],
+  );
 
   const handleDownloadCaCert = () => {
     if (!sslInfoData?.ca_cert_pem) return;
