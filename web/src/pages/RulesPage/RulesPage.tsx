@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Suspense, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
+import { getCanonicalAclListUrlSearch } from '../../shared/aclTabs';
 import { Page } from '../../shared/components/Page/Page';
 import { TableSkeleton } from '../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import { IconKind } from '../../shared/defguard-ui/components/Icon';
@@ -15,9 +17,26 @@ import { RulesPendingTab } from './tabs/RulesPendingTab';
 import { RulesPageTab, type RulesPageTabValue } from './types';
 
 export const RulesPage = () => {
-  const [activeTab, setActiveTab] = useState<RulesPageTabValue>(RulesPageTab.Deployed);
+  const navigate = useNavigate({ from: '/acl/rules' });
+  const search = useSearch({ from: '/_authorized/_default/acl/rules' });
+  const activeTab = search.tab;
+
+  useEffect(() => {
+    if (window.location.search === getCanonicalAclListUrlSearch(activeTab)) {
+      return;
+    }
+
+    void navigate({ search: { tab: activeTab }, replace: true });
+  }, [activeTab, navigate]);
 
   const { data: rulesCount } = useQuery(getRulesCountQueryOptions);
+
+  const setActiveTab = useCallback(
+    (tab: RulesPageTabValue) => {
+      navigate({ search: { tab } });
+    },
+    [navigate],
+  );
 
   const pendingCount = rulesCount?.pending ?? 0;
   const pendingTabTitle = useMemo(
@@ -32,20 +51,16 @@ export const RulesPage = () => {
       {
         title: m.state_deployed(),
         active: activeTab === RulesPageTab.Deployed,
-        onClick: () => {
-          setActiveTab(RulesPageTab.Deployed);
-        },
+        onClick: () => setActiveTab(RulesPageTab.Deployed),
       },
       {
         title: pendingTabTitle,
         icon: pendingIcon,
         active: activeTab === RulesPageTab.Pending,
-        onClick: () => {
-          setActiveTab(RulesPageTab.Pending);
-        },
+        onClick: () => setActiveTab(RulesPageTab.Pending),
       },
     ],
-    [activeTab, pendingIcon, pendingTabTitle],
+    [activeTab, pendingIcon, pendingTabTitle, setActiveTab],
   );
 
   return (

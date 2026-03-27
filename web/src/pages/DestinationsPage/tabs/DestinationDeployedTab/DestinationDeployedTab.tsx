@@ -2,6 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { m } from '../../../../paraglide/messages';
+import { AclListTab } from '../../../../shared/aclTabs';
 import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
@@ -39,6 +40,9 @@ export const DestinationDeployedTab = () => {
         licenseActionCheck(canUseBusinessFeature(license), () => {
           navigate({
             to: '/acl/add-destination',
+            search: {
+              tab: AclListTab.Deployed,
+            },
           });
         });
       },
@@ -61,6 +65,7 @@ export const DestinationDeployedTab = () => {
           title={m.acl_destinations_table_title_deployed()}
           destinations={destinations}
           rules={rules}
+          tab={AclListTab.Deployed}
           primaryProps={addButtonProps}
           search
         />

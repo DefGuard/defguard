@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import type { AclListTabValue } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
 import {
   type AclDestination,
@@ -34,6 +35,7 @@ type Props = {
   title: string;
   destinations: AclDestination[];
   rules: AclRule[];
+  tab: AclListTabValue;
   primaryProps: ButtonProps;
   search?: boolean;
   disableBlockedModal?: boolean;
@@ -47,6 +49,7 @@ export const DestinationsTable = ({
   primaryProps,
   destinations,
   rules,
+  tab,
   title,
   search,
   disableBlockedModal,
@@ -173,6 +176,7 @@ export const DestinationsTable = ({
                         to: '/acl/edit-destination',
                         search: {
                           destination: row.id,
+                          tab,
                         },
                       });
                     });
@@ -241,6 +245,7 @@ export const DestinationsTable = ({
       licenseInfo,
       disableBlockedModal,
       applyDestinations,
+      tab,
     ],
   );
 

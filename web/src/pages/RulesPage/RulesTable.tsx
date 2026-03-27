@@ -3,12 +3,14 @@ import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import { cloneDeep } from 'radashi';
 import { useCallback, useMemo, useState } from 'react';
 import './RulesTable.scss';
 import { m } from '../../paraglide/messages';
+import { AclListTab, type AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import {
   type AclAlias,
@@ -37,6 +39,7 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { displayDate } from '../../shared/utils/displayDate';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
 
 type RowData = AclRule;
@@ -51,7 +54,7 @@ type Props = {
   data: AclRule[];
   title: string;
   buttonProps: ButtonProps;
-  variant: 'deployed' | 'pending';
+  variant: AclListTabValue;
   enableSearch?: boolean;
 };
 
@@ -150,6 +153,8 @@ export const RulesTable = ({
     () => [
       columnHelper.accessor('name', {
         header: m.acl_rules_col_name(),
+        enableSorting: true,
+        sortingFn: 'text',
         minSize: 210,
         meta: {
           flex: true,
@@ -231,11 +236,35 @@ export const RulesTable = ({
           return <TableValuesListCell values={locationNames} />;
         },
       }),
+      columnHelper.accessor('modified_at', {
+        size: 175,
+        minSize: 175,
+        header: m.edges_col_last_modified(),
+        enableSorting: true,
+        cell: (info) => (
+          <TableCell>
+            <span>{displayDate(info.getValue())}</span>
+          </TableCell>
+        ),
+      }),
+      columnHelper.accessor('modified_by', {
+        size: 175,
+        minSize: 175,
+        header: m.edges_col_modified_by(),
+        enableSorting: true,
+        sortingFn: 'text',
+        cell: (info) => (
+          <TableCell>
+            <span>{info.getValue()}</span>
+          </TableCell>
+        ),
+      }),
       columnHelper.display({
         id: 'status',
         header: m.col_status(),
         size: 125,
         minSize: 125,
+        enableSorting: false,
         cell: (info) => {
           const row = info.row.original;
           return renderStatusCell(row.state, row.enabled);
@@ -245,6 +274,7 @@ export const RulesTable = ({
         id: 'edit',
         header: '',
         size: tableEditColumnSize,
+        enableSorting: false,
         enableResizing: false,
         cell: (info) => {
           const row = info.row.original;
@@ -258,6 +288,7 @@ export const RulesTable = ({
                     to: '/acl/edit-rule',
                     search: {
                       rule: row.id,
+                      tab: variant,
                     },
                   });
                 });
@@ -265,7 +296,7 @@ export const RulesTable = ({
             },
           ];
           switch (variant) {
-            case 'deployed':
+            case AclListTab.Deployed:
               if (row.enabled) {
                 topItems.push({
                   icon: 'disabled',
@@ -288,7 +319,7 @@ export const RulesTable = ({
                 });
               }
               break;
-            case 'pending':
+            case AclListTab.Pending:
               topItems.push({
                 icon: 'deploy',
                 text: m.controls_deploy(),
@@ -341,17 +372,31 @@ export const RulesTable = ({
 
   const visibleRules = useMemo(() => {
     let res = data;
-    if (search.length) {
-      res = res.filter((rule) => rule.name.toLowerCase().includes(search.toLowerCase()));
+    const query = search.trim().toLowerCase();
+    if (query.length > 0) {
+      res = res.filter(
+        (rule) =>
+          rule.name.toLowerCase().includes(query) ||
+          rule.modified_by.toLowerCase().includes(query),
+      );
     }
     return res;
   }, [search, data]);
 
   const table = useReactTable({
+    initialState: {
+      sorting: [
+        {
+          id: 'name',
+          desc: false,
+        },
+      ],
+    },
     columns,
     data: visibleRules,
     enableRowSelection: false,
     columnResizeMode: 'onChange',
+    getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
   });
 

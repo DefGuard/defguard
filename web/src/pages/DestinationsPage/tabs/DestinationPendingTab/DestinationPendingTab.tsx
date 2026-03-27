@@ -1,6 +1,7 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { m } from '../../../../paraglide/messages';
+import { AclListTab } from '../../../../shared/aclTabs';
 import api from '../../../../shared/api/api';
 import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
@@ -62,6 +63,7 @@ export const DestinationPendingTab = () => {
         <DestinationsTable
           destinations={destinations}
           rules={rules}
+          tab={AclListTab.Pending}
           primaryProps={deployPending}
           title={m.acl_destinations_table_title_pending()}
           disableBlockedModal

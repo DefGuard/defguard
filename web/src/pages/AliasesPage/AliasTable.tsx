@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { m } from '../../paraglide/messages';
+import type { AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import { type AclAlias, AclProtocolName, type AclRule } from '../../shared/api/types';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -29,10 +30,11 @@ const columnHelper = createColumnHelper<RowData>();
 type Props = {
   data: RowData[];
   rules: AclRule[];
+  tab: AclListTabValue;
   disableBlockedModal?: boolean;
 };
 
-export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props) => {
+export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: Props) => {
   const navigate = useNavigate();
 
   const { data: licenseInfo, isFetching: isLicenseFetching } = useQuery(
@@ -143,6 +145,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
                         to: '/acl/edit-alias',
                         search: {
                           alias: row.id,
+                          tab,
                         },
                       });
                     });
@@ -207,6 +210,7 @@ export const AliasTable = ({ data: rowData, rules, disableBlockedModal }: Props)
       navigate,
       isLicenseFetching,
       licenseInfo,
+      tab,
     ],
   );
 

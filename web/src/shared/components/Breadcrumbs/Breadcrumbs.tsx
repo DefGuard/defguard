@@ -7,9 +7,11 @@ import { IconButton } from '../../defguard-ui/components/IconButton/IconButton';
 import { ThemeSpacing, ThemeVariable } from '../../defguard-ui/types';
 import type { BreadcrumbsProps } from './types';
 
-export const Breadcrumbs = ({ links }: BreadcrumbsProps) => {
+export const Breadcrumbs = ({ links, onBack }: BreadcrumbsProps) => {
   const router = useRouter();
   const canGoBack = useCanGoBack();
+  const canUseBackButton = onBack !== undefined || canGoBack;
+
   return (
     <div className="breadcrumbs">
       <div className="track">
@@ -18,9 +20,14 @@ export const Breadcrumbs = ({ links }: BreadcrumbsProps) => {
             icon="arrow-big"
             iconRotation="left"
             onClick={() => {
+              if (onBack) {
+                void onBack();
+                return;
+              }
+
               router.history.back();
             }}
-            disabled={!canGoBack}
+            disabled={!canUseBackButton}
           />
         </div>
         <Divider orientation="vertical" spacing={ThemeSpacing.Xl} />

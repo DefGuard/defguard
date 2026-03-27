@@ -1,5 +1,6 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { m } from '../../../paraglide/messages';
+import { AclListTab } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
 import { AclStatus } from '../../../shared/api/types';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -55,7 +56,12 @@ export const AliasesPendingTab = () => {
               />
             )}
           </TableTop>
-          <AliasTable data={aliases} rules={rules} disableBlockedModal />
+          <AliasTable
+            data={aliases}
+            rules={rules}
+            tab={AclListTab.Pending}
+            disableBlockedModal
+          />
         </>
       )}
     </>

@@ -1,12 +1,13 @@
 import './style.scss';
 import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
 import { cloneDeep, flat, omit } from 'radashi';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
+import type { AclListTabValue } from '../../shared/aclTabs';
 import api from '../../shared/api/api';
 import {
   type AclDestination,
@@ -152,9 +153,10 @@ const renderLocationSelectionItem: SelectionSectionCustomRender<
 
 type Props = {
   rule?: AclRule;
+  tab?: AclListTabValue;
 };
 
-export const CERulePage = ({ rule }: Props) => {
+export const CERulePage = ({ rule, tab }: Props) => {
   const isEdit = isPresent(rule);
 
   return (
@@ -167,15 +169,29 @@ export const CERulePage = ({ rule }: Props) => {
         subtitle: m.acl_rule_form_subtitle(),
       }}
     >
-      <Content rule={rule} />
+      <Content rule={rule} tab={tab} />
     </EditPage>
   );
 };
 
-const Content = ({ rule: initialRule }: Props) => {
+const Content = ({ rule: initialRule, tab }: Props) => {
   const router = useRouter();
+  const navigate = useNavigate();
 
   const isEdit = isPresent(initialRule);
+  const returnToRules = useCallback(() => {
+    if (tab === undefined) {
+      router.history.back();
+      return;
+    }
+
+    navigate({
+      to: '/acl/rules',
+      search: {
+        tab,
+      },
+    });
+  }, [navigate, router, tab]);
 
   const { mutateAsync: addRule } = useMutation({
     mutationFn: api.acl.rule.addRule,
@@ -184,7 +200,7 @@ const Content = ({ rule: initialRule }: Props) => {
     },
     onSuccess: () => {
       Snackbar.default(m.acl_rule_submit_success());
-      router.history.back();
+      returnToRules();
     },
   });
 
@@ -195,7 +211,7 @@ const Content = ({ rule: initialRule }: Props) => {
     },
     onSuccess: () => {
       Snackbar.default(m.acl_rule_submit_success());
-      router.history.back();
+      returnToRules();
     },
   });
 
@@ -1121,6 +1137,13 @@ const Content = ({ rule: initialRule }: Props) => {
                 {(field) => <field.FormToggle label={m.acl_rule_enable()} />}
               </form.AppField>
               <div className="right">
+                <Button
+                  text={m.controls_cancel()}
+                  variant="secondary"
+                  onClick={() => {
+                    returnToRules();
+                  }}
+                />
                 <Button
                   text={isEdit ? m.controls_save_changes() : m.acl_rule_action_create()}
                   type="submit"
