@@ -232,10 +232,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
             .await
             .expect("Failed to get auto adoption state")
             .expect("Auto adoption state should be set");
-    assert_eq!(
-        auto_state.step,
-        AutoAdoptionWizardStep::ExternalUrlSettings
-    );
+    assert_eq!(auto_state.step, AutoAdoptionWizardStep::ExternalUrlSettings);
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
@@ -253,10 +250,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
             .await
             .expect("Failed to get auto adoption state")
             .expect("Auto adoption state should be set");
-    assert_eq!(
-        auto_state.step,
-        AutoAdoptionWizardStep::VpnSettings
-    );
+    assert_eq!(auto_state.step, AutoAdoptionWizardStep::VpnSettings);
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/vpn_settings")
