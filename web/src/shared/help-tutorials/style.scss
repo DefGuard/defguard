@@ -29,7 +29,8 @@
   cursor: pointer;
   font: var(--t-body-sm-500);
   white-space: nowrap;
-  transition: box-shadow 0.15s ease;
+
+  @include animate(box-shadow);
 
   &:hover {
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
@@ -48,8 +49,6 @@
 
 .help-tutorials-list {
   list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
@@ -72,7 +71,8 @@
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
   text-align: left;
-  transition: box-shadow 0.12s ease;
+
+  @include animate(box-shadow);
 
   &:hover {
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
@@ -156,24 +156,16 @@
 }
 
 // Close button — replaces launcher when panel is open.
-// Overrides IconButton's default square shape to a floating circle with shadow.
+// Uses IconButton; overrides border-radius token to circular and adds background/border.
 
 .help-tutorials-close-btn {
-  width: var(--size-2xl) !important;
-  height: var(--size-2xl) !important;
-  border-radius: 50% !important;
-  background-color: var(--bg-default) !important;
+  --button-border-radius-sm: var(--radius-full);
+  background-color: var(--bg-default);
   border: var(--border-1) solid var(--border-muted);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
   align-self: flex-end;
-  transition:
-    box-shadow 0.15s ease,
-    background-color 0.15s ease !important;
 
-  &:hover {
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
-    background-color: var(--bg-default) !important;
-  }
+  @include animate(box-shadow);
 }
 
 // ---------------------------------------------------------------------------
@@ -205,22 +197,16 @@
 }
 
 // Modal close button — floats outside the modal card (top-right).
-// Overrides IconButton's default to a white circle with shadow.
+// Uses IconButton; overrides border-radius token to circular and adds background/shadow.
 
 .help-tutorials-modal-close {
-  position: absolute !important;
+  --button-border-radius-sm: var(--radius-full);
+  position: absolute;
   top: var(--spacing-xs);
   right: calc(-1 * var(--size-2xl));
-  width: var(--size-2xl) !important;
-  height: var(--size-2xl) !important;
-  border-radius: 50% !important;
-  background-color: var(--bg-default) !important;
+  background-color: var(--bg-default);
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
   z-index: 1;
-  transition: box-shadow 0.15s ease, background-color 0.15s ease !important;
 
-  &:hover {
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.16);
-    background-color: var(--bg-default) !important;
-  }
+  @include animate(box-shadow);
 }

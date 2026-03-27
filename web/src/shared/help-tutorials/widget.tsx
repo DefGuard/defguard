@@ -59,7 +59,6 @@ const VideoOverlay = ({ tutorial, onClose }: VideoOverlayProps) => (
   <ModalFoundation
     isOpen
     onClose={onClose}
-    afterClose={() => {}}
     contentClassName="help-tutorials-modal-container"
   >
     <IconButton icon="close" className="help-tutorials-modal-close" onClick={onClose} />
