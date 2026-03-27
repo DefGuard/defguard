@@ -30,10 +30,10 @@ interface StoreValues extends MigrationWizardApiState {
   authentication_period_days: number;
   mfa_code_timeout_seconds: number;
   // internal URL SSL configuration
-  internal_ssl_type: InternalSslType;
+  internal_ssl_type: InternalSslType | null;
   internal_ssl_cert_info: CertInfo | null;
   // external URL SSL configuration
-  external_ssl_type: ExternalSslType;
+  external_ssl_type: ExternalSslType | null;
   external_ssl_cert_info: CertInfo | null;
   // ca
   ca_common_name: string;
@@ -65,9 +65,9 @@ const defaults: StoreValues = {
   default_admin_group_name: 'admin',
   authentication_period_days: 30,
   mfa_code_timeout_seconds: 300,
-  internal_ssl_type: 'none',
+  internal_ssl_type: null,
   internal_ssl_cert_info: null,
-  external_ssl_type: 'none',
+  external_ssl_type: null,
   external_ssl_cert_info: null,
   ca_common_name: m.migration_wizard_ca_placeholder_common_name(),
   ca_email: '',

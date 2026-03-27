@@ -87,11 +87,12 @@
   .ssl-result-card-header {
     h3 {
       font: var(--t-body-primary-600);
-      color: var(--fg-neutral);
+      color: var(--fg-faded);
     }
 
     p {
-      color: var(--fg-neutral);
+      color: var(--fg-faded);
+      font: var(--t-body-sm-400);
     }
   }
 

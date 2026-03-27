@@ -7,6 +7,7 @@ use defguard_common::{
     db::models::{
         Certificates, WireguardNetwork,
         certificates::{CoreCertSource, ProxyCertSource},
+        initial_setup_wizard::InitialSetupStep,
         settings::update_current_settings,
         setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
         wireguard::LocationMfaMode,
@@ -25,6 +26,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{PgPool, query_scalar};
 use tracing::{debug, info};
+
+use crate::handlers::initial_wizard::advance_initial_wizard_to_step;
 
 pub(crate) async fn is_auto_wizard_active(pool: &PgPool) -> Result<bool, WebError> {
     let wizard = Wizard::get(pool).await?;
@@ -185,6 +188,7 @@ pub async fn set_internal_url_settings(
     };
 
     advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::InternalUrlSslConfig).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::InternalUrlSslConfig).await?;
 
     info!("Auto-adoption wizard internal URL settings applied");
 
@@ -216,10 +220,11 @@ pub async fn get_internal_ssl_info(
 }
 
 /// SSL configuration type for the external (proxy) web server.
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Default, Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExternalSslType {
     /// No SSL - plain HTTP, user manages reverse proxy / SSL termination themselves.
+    #[default]
     None,
     /// Obtain certificate via ACME / Let's Encrypt.
     LetsEncrypt,
@@ -236,12 +241,6 @@ pub struct ExternalUrlSettingsConfig {
     ssl_type: ExternalSslType,
     cert_pem: Option<String>,
     key_pem: Option<String>,
-}
-
-impl Default for ExternalSslType {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 /// Updates external proxy URL settings (step 4).
@@ -360,6 +359,7 @@ pub async fn set_external_url_settings(
     };
 
     advance_auto_wizard_to_step(&pool, AutoAdoptionWizardStep::ExternalUrlSslConfig).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::ExternalUrlSslConfig).await?;
 
     info!("Auto-adoption wizard external URL settings applied");
     Ok(ApiResponse::new(

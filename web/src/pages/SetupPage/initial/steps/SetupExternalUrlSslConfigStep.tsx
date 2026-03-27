@@ -99,6 +99,15 @@ export const SetupExternalUrlSslConfigStep = () => {
     };
   }, []);
 
+  // If ssl_type is not set (e.g. fresh browser session), redirect back so the
+  // user can re-submit the settings step and repopulate the store.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
+  useEffect(() => {
+    if (sslType === null) {
+      setActiveStep(SetupPageStep.ExternalUrlSettings);
+    }
+  }, []);
+
   const stepDone = useCallback(
     (stepId: AcmeStepId): boolean => {
       const stepIndex = ACME_STEP_IDS.indexOf(stepId);
@@ -303,7 +312,7 @@ export const SetupExternalUrlSslConfigStep = () => {
           text={m.initial_setup_controls_back()}
           variant="outlined"
           onClick={() => setActiveStep(SetupPageStep.ExternalUrlSettings)}
-          disabled={isLetsEncryptProcessing || acmeState.isComplete}
+          disabled={isLetsEncryptProcessing}
         />
         <div className="right">
           <Button

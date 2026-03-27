@@ -609,13 +609,13 @@ pub async fn setup_proxy_tls_stream(
             Ok(wizard) => {
                 if !wizard.completed {
                     let state = InitialSetupState {
-                        step: InitialSetupStep::Confirmation,
+                        step: InitialSetupStep::InternalUrlSettings,
                     };
                     if let Err(err) = state.save(&pool).await {
                         yield Ok(flow.error(&format!("Failed to update setup step in wizard: {err}")));
                         return;
                     }
-                    debug!("Initial setup step advanced to 'Confirmation'");
+                    debug!("Initial setup step advanced to 'InternalUrlSettings'");
                 }
             }
             Err(err) => {

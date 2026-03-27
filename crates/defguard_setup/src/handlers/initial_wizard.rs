@@ -37,11 +37,17 @@ use tracing::{debug, info};
 
 use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
 
-async fn advance_initial_wizard_to_step(
+pub(crate) async fn advance_initial_wizard_to_step(
     pool: &PgPool,
     step: InitialSetupStep,
 ) -> Result<(), WebError> {
     let wizard = Wizard::get(pool).await?;
+
+    // Don't try to advance if the initial wizard is not active
+    if wizard.active_wizard != ActiveWizard::Initial {
+        debug!("Not advancing initial wizard step as initial wizard is not active");
+        return Ok(());
+    }
 
     // Don't try to advance if setup is already completed
     if wizard.completed {
@@ -329,7 +335,7 @@ pub async fn set_general_config(
 
     info!("Initial general configuration applied");
 
-    advance_initial_wizard_to_step(&pool, InitialSetupStep::Ca).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::InternalUrlSettings).await?;
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }

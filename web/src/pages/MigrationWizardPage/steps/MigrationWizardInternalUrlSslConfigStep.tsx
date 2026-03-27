@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
@@ -15,6 +16,15 @@ import '../../SetupPage/autoAdoption/steps/style.scss';
 export const MigrationWizardInternalUrlSslConfigStep = () => {
   const sslType = useMigrationWizardStore((s) => s.internal_ssl_type);
   const certInfo = useMigrationWizardStore((s) => s.internal_ssl_cert_info);
+
+  // If ssl_type is not set (e.g. fresh browser session), redirect back so the
+  // user can re-submit the settings step and repopulate the store.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
+  useEffect(() => {
+    if (sslType === null) {
+      useMigrationWizardStore.getState().back();
+    }
+  }, []);
 
   const { data: sslInfoData } = useQuery({
     queryKey: ['internal_ssl_info'],

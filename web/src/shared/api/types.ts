@@ -837,6 +837,10 @@ export type InitialSetupStepValue =
   | 'ca'
   | 'ca_summary'
   | 'edge_component'
+  | 'internal_url_settings'
+  | 'internal_url_ssl_config'
+  | 'external_url_settings'
+  | 'external_url_ssl_config'
   | 'confirmation'
   | 'finished';
 

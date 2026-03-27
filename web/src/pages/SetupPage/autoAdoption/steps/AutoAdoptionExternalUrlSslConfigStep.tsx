@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import { Controls } from '../../../../shared/components/Controls/Controls';
@@ -61,7 +61,14 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
   const sslType = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_type);
   const certInfo = useAutoAdoptionSetupWizardStore((s) => s.external_ssl_cert_info);
 
-  const [acmeState, setAcmeState] = useState<AcmeStepState>(defaultAcmeState);
+  // If ssl_type is not set (e.g. fresh browser session), redirect back so the
+  // user can re-submit the settings step and repopulate the store.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
+  useEffect(() => {
+    if (sslType === null) {
+      setActiveStep(AutoAdoptionSetupStep.ExternalUrlSettings);
+    }
+  }, []);
 
   const { data: sslInfoData } = useQuery({
     queryKey: ['external_ssl_info'],
@@ -99,33 +106,24 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
     };
   }, []);
 
-  const stepDone = useCallback(
-    (stepId: AcmeStepId): boolean => {
-      const stepIndex = ACME_STEP_IDS.indexOf(stepId);
-      const currentIndex = acmeState.currentStep
-        ? ACME_STEP_IDS.indexOf(acmeState.currentStep)
-        : -1;
-      return stepIndex < currentIndex || acmeState.isComplete;
-    },
-    [acmeState.isComplete, acmeState.currentStep],
-  );
+  const stepDone = useCallback((stepId: AcmeStepId): boolean => {
+    const stepIndex = ACME_STEP_IDS.indexOf(stepId);
+    const currentIndex = acmeState.currentStep
+      ? ACME_STEP_IDS.indexOf(acmeState.currentStep)
+      : -1;
+    return stepIndex < currentIndex || acmeState.isComplete;
+  }, []);
 
-  const stepLoading = useCallback(
-    (stepId: AcmeStepId): boolean => {
-      return acmeState.isProcessing && acmeState.currentStep === stepId;
-    },
-    [acmeState.isProcessing, acmeState.currentStep],
-  );
+  const stepLoading = useCallback((stepId: AcmeStepId): boolean => {
+    return acmeState.isProcessing && acmeState.currentStep === stepId;
+  }, []);
 
-  const stepError = useCallback(
-    (stepId: AcmeStepId): string | null => {
-      if (acmeState.errorMessage && acmeState.currentStep === stepId) {
-        return acmeState.errorMessage;
-      }
-      return null;
-    },
-    [acmeState.errorMessage, acmeState.currentStep],
-  );
+  const stepError = useCallback((stepId: AcmeStepId): string | null => {
+    if (acmeState.errorMessage && acmeState.currentStep === stepId) {
+      return acmeState.errorMessage;
+    }
+    return null;
+  }, []);
 
   const handleDownloadCaCert = () => {
     if (!sslInfoData?.ca_cert_pem) return;
@@ -303,7 +301,7 @@ export const AutoAdoptionExternalUrlSslConfigStep = () => {
           text={m.initial_setup_controls_back()}
           variant="outlined"
           onClick={() => setActiveStep(AutoAdoptionSetupStep.ExternalUrlSettings)}
-          disabled={isLetsEncryptProcessing || acmeState.isComplete}
+          disabled={isLetsEncryptProcessing}
         />
         <div className="right">
           <Button

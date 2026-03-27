@@ -37,6 +37,10 @@ const initialStepMap: Record<InitialSetupStepValue, SetupPageStepValue> = {
   ca: SetupPageStep.CertificateAuthority,
   ca_summary: SetupPageStep.CASummary,
   edge_component: SetupPageStep.EdgeComponent,
+  internal_url_settings: SetupPageStep.InternalUrlSettings,
+  internal_url_ssl_config: SetupPageStep.InternalUrlSslConfig,
+  external_url_settings: SetupPageStep.ExternalUrlSettings,
+  external_url_ssl_config: SetupPageStep.ExternalUrlSslConfig,
   confirmation: SetupPageStep.Confirmation,
   finished: SetupPageStep.Confirmation,
 };

@@ -121,6 +121,7 @@ impl ProxyHandler {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn from_proxy(
         proxy: &Proxy<Id>,
         pool: PgPool,

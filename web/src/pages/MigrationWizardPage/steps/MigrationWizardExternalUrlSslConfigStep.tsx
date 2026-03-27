@@ -61,6 +61,15 @@ export const MigrationWizardExternalUrlSslConfigStep = () => {
 
   const [acmeState, setAcmeState] = useState<AcmeStepState>(defaultAcmeState);
 
+  // If ssl_type is not set (e.g. fresh browser session), redirect back so the
+  // user can re-submit the settings step and repopulate the store.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
+  useEffect(() => {
+    if (sslType === null) {
+      useMigrationWizardStore.getState().back();
+    }
+  }, []);
+
   const { data: sslInfoData } = useQuery({
     queryKey: ['external_ssl_info'],
     queryFn: () => api.initial_setup.getExternalSslInfo(),
@@ -301,7 +310,7 @@ export const MigrationWizardExternalUrlSslConfigStep = () => {
           text={m.controls_back()}
           variant="outlined"
           onClick={() => useMigrationWizardStore.getState().back()}
-          disabled={isLetsEncryptProcessing || acmeState.isComplete}
+          disabled={isLetsEncryptProcessing}
         />
         <div className="right">
           <Button
