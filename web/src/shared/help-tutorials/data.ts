@@ -43,7 +43,6 @@ const tutorialSchema = z
       ),
     thumbnailUrl: z.url().optional(),
     title: z.string().min(1, 'title must be non-empty'),
-    description: z.string().min(1, 'description must be non-empty').optional(),
   })
   .strip();
 

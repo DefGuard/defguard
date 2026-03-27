@@ -68,9 +68,6 @@ const TutorialCard = ({ tutorial, onClick }: TutorialCardProps) => (
     <Thumbnail url={resolveThumbnailUrl(tutorial)} title={tutorial.title} />
     <div className="help-tutorial-card-info">
       <span className="help-tutorial-card-title">{tutorial.title}</span>
-      {tutorial.description && (
-        <span className="help-tutorial-card-description">{tutorial.description}</span>
-      )}
     </div>
   </button>
 );
