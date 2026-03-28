@@ -2,10 +2,11 @@ use std::{
     collections::HashMap,
     str::FromStr,
     sync::{Arc, RwLock},
+    time::Duration,
 };
 
 #[cfg(test)]
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
 
 use axum_extra::extract::cookie::Key;
 use defguard_common::{
@@ -204,6 +205,15 @@ impl ProxyHandler {
         Ok(())
     }
 
+    fn retry_delay(&self) -> Duration {
+        #[cfg(test)]
+        {
+            return self.handler_retry_delay();
+        }
+        #[cfg_attr(test, allow(unreachable_code))]
+        TEN_SECS
+    }
+
     fn endpoint(&self) -> Result<Endpoint, ProxyError> {
         let mut url = self.url.clone();
 
@@ -269,11 +279,12 @@ impl ProxyHandler {
                 Ok(ch) => ch,
                 Err(err) => {
                     error!(
-                        "Failed to create proxy channel for {}: {err}, retrying in {TEN_SECS:?}",
-                        endpoint.uri()
+                        "Failed to create proxy channel for {}: {err}, retrying in {:?}",
+                        endpoint.uri(),
+                        self.retry_delay()
                     );
                     self.mark_disconnected().await?;
-                    sleep(TEN_SECS).await;
+                    sleep(self.retry_delay()).await;
                     continue;
                 }
             };
@@ -290,20 +301,22 @@ impl ProxyHandler {
                         Code::FailedPrecondition => {
                             error!(
                                 "Failed to connect to proxy @ {}, version check failed, retrying in \
-                            10s: {err}",
-                                endpoint.uri()
+                            {:?}: {err}",
+                                endpoint.uri(),
+                                self.retry_delay()
                             );
                             // TODO push event
                         }
                         err => {
                             error!(
-                                "Failed to connect to proxy @ {}, retrying in 10s: {err}",
-                                endpoint.uri()
+                                "Failed to connect to proxy @ {}, retrying in {:?}: {err}",
+                                endpoint.uri(),
+                                self.retry_delay()
                             );
                         }
                     }
                     self.mark_disconnected().await?;
-                    sleep(TEN_SECS).await;
+                    sleep(self.retry_delay()).await;
                     continue;
                 }
             };
@@ -328,7 +341,7 @@ impl ProxyHandler {
                 data.insert(&incompatible_components);
 
                 // Sleep before trying to reconnect
-                sleep(TEN_SECS).await;
+                sleep(self.retry_delay()).await;
                 continue;
             }
             IncompatibleComponents::remove_proxy(&incompatible_components);
@@ -349,12 +362,12 @@ impl ProxyHandler {
             select! {
                 res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
                     if let Err(err) = res {
-                        error!("Proxy message loop ended with error: {err}, reconnecting in {TEN_SECS:?}",);
+                        error!("Proxy message loop ended with error: {err}, reconnecting in {:?}", self.retry_delay());
                     } else {
-                        info!("Proxy message loop ended, reconnecting in {TEN_SECS:?}");
+                        info!("Proxy message loop ended, reconnecting in {:?}", self.retry_delay());
                     }
                     self.mark_disconnected().await?;
-                    sleep(TEN_SECS).await;
+                    sleep(self.retry_delay()).await;
                 }
                 res = &mut *shutdown_signal.lock().await => {
                     match res {
@@ -863,9 +876,7 @@ impl ProxyHandler {
                 }
                 Err(err) => {
                     error!("Disconnected from proxy at {}: {err}", self.url);
-                    debug!("waiting 10s to re-establish the connection");
                     self.mark_disconnected().await?;
-                    sleep(TEN_SECS).await;
                     break 'message;
                 }
             }

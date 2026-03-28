@@ -16,6 +16,7 @@ use defguard_common::db::{
 };
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
 use defguard_proto::proxy::{CoreRequest, CoreResponse, InitialInfo, core_response, proxy_server};
+use defguard_version::server::DefguardVersionLayer;
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::UnixListener,
@@ -33,6 +34,9 @@ use tonic::{Request, Response, Status, Streaming, transport::Server};
 use crate::{ProxyManager, ProxyManagerTestSupport, ProxyTxSet, handler::ProxyHandler};
 
 pub(crate) const TEST_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Minimum proxy version that passes `is_proxy_version_supported()`.
+const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(1, 6, 0);
 
 macro_rules! assert_some {
     ($expr:expr, $message:literal) => {
@@ -202,6 +206,7 @@ impl MockProxyHarness {
         let server_task = tokio::spawn(async move {
             let (stream, _) = listener.accept().await?;
             Server::builder()
+                .layer(DefguardVersionLayer::new(MOCK_PROXY_VERSION))
                 .add_service(proxy_server::ProxyServer::new(service))
                 .serve_with_incoming(once(Ok::<_, io::Error>(stream)))
                 .await
@@ -349,8 +354,11 @@ impl Drop for MockProxyHarness {
 pub(crate) struct HandlerTestContext {
     pub(crate) pool: PgPool,
     pub(crate) proxy: Proxy<Id>,
+    pub(crate) wireguard_tx: broadcast::Sender<GatewayEvent>,
+    pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
+    shutdown_tx: Option<oneshot::Sender<bool>>,
 }
 
 impl HandlerTestContext {
@@ -363,8 +371,8 @@ impl HandlerTestContext {
         let proxy = create_proxy(&pool).await;
 
         let (wireguard_tx, _) = broadcast::channel(16);
-        let (bidi_events_tx, _bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
-        let tx_set = ProxyTxSet::new(wireguard_tx, bidi_events_tx);
+        let (bidi_events_tx, bidi_events_rx) = mpsc::unbounded_channel::<BidiStreamEvent>();
+        let tx_set = ProxyTxSet::new(wireguard_tx.clone(), bidi_events_tx);
 
         let (_, certs_rx) = watch::channel(Arc::new(HashMap::new()));
         let incompatible_components = Arc::new(std::sync::RwLock::new(
@@ -379,8 +387,6 @@ impl HandlerTestContext {
         let remote_mfa_responses = Arc::default();
         let sessions = Arc::default();
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<bool>();
-        // Keep shutdown_tx alive for the duration of the test context.
-        let _shutdown_tx = shutdown_tx;
 
         let handler = ProxyHandler::new_with_test_socket(
             pool.clone(),
@@ -408,8 +414,11 @@ impl HandlerTestContext {
         Self {
             pool,
             proxy,
+            wireguard_tx,
+            bidi_events_rx,
             mock_proxy: Some(mock_proxy),
             handler_task: Some(handler_task),
+            shutdown_tx: Some(shutdown_tx),
         }
     }
 
