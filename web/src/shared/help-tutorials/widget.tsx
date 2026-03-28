@@ -56,11 +56,7 @@ interface VideoOverlayProps {
 }
 
 const VideoOverlay = ({ tutorial, onClose }: VideoOverlayProps) => (
-  <ModalFoundation
-    isOpen
-    onClose={onClose}
-    contentClassName="help-tutorials-modal-container"
-  >
+  <ModalFoundation isOpen contentClassName="help-tutorials-modal-container">
     <IconButton icon="close" className="help-tutorials-modal-close" onClick={onClose} />
     <div className="help-tutorials-modal">
       <iframe

@@ -25,7 +25,7 @@
   color: var(--fg-action);
   border: var(--border-1) solid var(--border-muted);
   border-radius: var(--radius-full);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 7%);
   cursor: pointer;
   font: var(--t-body-sm-500);
   white-space: nowrap;
@@ -33,7 +33,7 @@
   @include animate(box-shadow);
 
   &:hover {
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 16px 0 rgb(0 0 0 / 12%);
   }
 
   svg {
@@ -68,14 +68,14 @@
   background-color: var(--bg-default);
   border: var(--border-1) solid var(--border-disabled);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 5%);
   cursor: pointer;
   text-align: left;
 
   @include animate(box-shadow);
 
   &:hover {
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px 0 rgb(0 0 0 / 10%);
   }
 }
 
@@ -160,9 +160,10 @@
 
 .help-tutorials-close-btn {
   --button-border-radius-sm: var(--radius-full);
+
   background-color: var(--bg-default);
   border: var(--border-1) solid var(--border-muted);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 7%);
   align-self: flex-end;
 
   @include animate(box-shadow);
@@ -182,7 +183,7 @@
 .help-tutorials-modal {
   background: var(--bg-default);
   border-radius: var(--radius-lg);
-  box-shadow: 0 6px 30px 0 rgba(0, 0, 0, 0.09);
+  box-shadow: 0 6px 30px 0 rgb(0 0 0 / 9%);
   padding: var(--spacing-xl);
   width: 920px;
   max-width: 90vw;
@@ -201,11 +202,12 @@
 
 .help-tutorials-modal-close {
   --button-border-radius-sm: var(--radius-full);
+
   position: absolute;
   top: var(--spacing-xs);
   right: calc(-1 * var(--size-2xl));
   background-color: var(--bg-default);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 10%);
   z-index: 1;
 
   @include animate(box-shadow);
