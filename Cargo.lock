@@ -1576,6 +1576,7 @@ dependencies = [
  "defguard_proto",
  "defguard_version",
  "hyper-rustls",
+ "hyper-util",
  "openidconnect",
  "reqwest",
  "semver",
@@ -1584,6 +1585,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tonic",
+ "tower",
  "tracing",
 ]
 

@@ -28,4 +28,8 @@ thiserror.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true
+tower.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+hyper-util = "0.1"

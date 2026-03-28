@@ -4,6 +4,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+#[cfg(test)]
+use std::{path::PathBuf, time::Duration};
+
 use axum_extra::extract::cookie::Key;
 use defguard_common::{
     VERSION,
@@ -67,9 +70,31 @@ use crate::{
     servers::{EnrollmentServer, PasswordResetServer},
 };
 
+#[cfg(test)]
+use crate::ProxyManagerTestSupport;
+
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
 type ShutdownReceiver = tokio::sync::oneshot::Receiver<bool>;
+
+#[cfg(test)]
+#[derive(Default)]
+struct ProxyTestTransport {
+    socket_path: Option<PathBuf>,
+}
+
+#[cfg(test)]
+impl ProxyTestTransport {
+    fn with_socket_path(socket_path: PathBuf) -> Self {
+        Self {
+            socket_path: Some(socket_path),
+        }
+    }
+
+    fn socket_path(&self) -> Option<&PathBuf> {
+        self.socket_path.as_ref()
+    }
+}
 
 /// Represents a single Core - Proxy connection.
 ///
@@ -88,6 +113,10 @@ pub(super) struct ProxyHandler {
     proxy_id: Id,
     proxy_cookie_key: Key,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
+    #[cfg(test)]
+    test_transport: ProxyTestTransport,
+    #[cfg(test)]
+    test_support: Option<ProxyManagerTestSupport>,
 }
 
 impl ProxyHandler {
@@ -113,6 +142,10 @@ impl ProxyHandler {
             proxy_id,
             proxy_cookie_key,
             client: None,
+            #[cfg(test)]
+            test_transport: ProxyTestTransport::default(),
+            #[cfg(test)]
+            test_support: None,
         }
     }
 
@@ -187,6 +220,37 @@ impl ProxyHandler {
         Ok(endpoint)
     }
 
+    fn connect_tls_channel(
+        &self,
+        endpoint: &Endpoint,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    ) -> Result<Channel, ProxyError> {
+        let settings = Settings::get_current_settings();
+        let Some(ref ca_cert_der) = settings.ca_cert_der else {
+            return Err(ProxyError::MissingConfiguration(
+                "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
+            ));
+        };
+        let tls_config = tls_certs::client_config(ca_cert_der, certs_rx, self.proxy_id)
+            .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+        let connector = HttpsConnectorBuilder::new()
+            .with_tls_config(tls_config)
+            .https_only()
+            .enable_http2()
+            .build();
+        let connector = HttpsSchemeConnector::new(connector);
+        Ok(endpoint.connect_with_connector_lazy(connector))
+    }
+
+    #[cfg(not(test))]
+    fn connect_channel(
+        &self,
+        endpoint: &Endpoint,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    ) -> Result<Channel, ProxyError> {
+        self.connect_tls_channel(endpoint, certs_rx)
+    }
+
     /// Establishes and maintains a gRPC bidirectional stream to the proxy.
     ///
     /// The proxy connection is retried on failure, compatibility is checked
@@ -201,24 +265,21 @@ impl ProxyHandler {
         let parsed_version = Version::parse(VERSION)?;
         loop {
             let endpoint = self.endpoint()?;
-            let settings = Settings::get_current_settings();
-            let Some(ref ca_cert_der) = settings.ca_cert_der else {
-                return Err(ProxyError::MissingConfiguration(
-                    "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
-                ));
+            let channel = match self.connect_channel(&endpoint, certs_rx.clone()) {
+                Ok(ch) => ch,
+                Err(err) => {
+                    error!(
+                        "Failed to create proxy channel for {}: {err}, retrying in {TEN_SECS:?}",
+                        endpoint.uri()
+                    );
+                    self.mark_disconnected().await?;
+                    sleep(TEN_SECS).await;
+                    continue;
+                }
             };
-            let tls_config = tls_certs::client_config(ca_cert_der, certs_rx.clone(), self.proxy_id)
-                .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
-            let connector = HttpsConnectorBuilder::new()
-                .with_tls_config(tls_config)
-                .https_only()
-                .enable_http2()
-                .build();
-            let connector = HttpsSchemeConnector::new(connector);
 
             debug!("Connecting to proxy at {}", endpoint.uri());
             let interceptor = ClientVersionInterceptor::new(parsed_version.clone());
-            let channel = endpoint.connect_with_connector_lazy(connector);
             let mut client = ProxyClient::with_interceptor(channel, interceptor);
             self.client = Some(client.clone());
             let (tx, rx) = mpsc::unbounded_channel();
@@ -811,6 +872,135 @@ impl ProxyHandler {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+impl ProxyHandler {
+    pub(crate) fn new_with_test_socket(
+        pool: PgPool,
+        url: Url,
+        tx: &ProxyTxSet,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
+        shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
+        proxy_id: Id,
+        proxy_cookie_key: Key,
+        socket_path: PathBuf,
+    ) -> Self {
+        let mut handler = Self::new(
+            pool,
+            url,
+            tx,
+            remote_mfa_responses,
+            sessions,
+            shutdown_signal,
+            proxy_id,
+            proxy_cookie_key,
+        );
+        handler.test_transport = ProxyTestTransport::with_socket_path(socket_path);
+        handler
+    }
+
+    pub(crate) fn attach_test_support(&mut self, test_support: ProxyManagerTestSupport) {
+        self.test_support = Some(test_support);
+    }
+
+    fn handler_retry_delay(&self) -> Duration {
+        self.test_support
+            .as_ref()
+            .map_or(TEN_SECS, ProxyManagerTestSupport::handler_reconnect_delay)
+    }
+
+    fn connect_channel(
+        &self,
+        endpoint: &Endpoint,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    ) -> Result<Channel, ProxyError> {
+        if let Some(socket_path) = self.test_transport.socket_path().cloned() {
+            return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
+                move |_: tonic::transport::Uri| {
+                    let socket_path = socket_path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                            tokio::net::UnixStream::connect(socket_path).await?,
+                        ))
+                    }
+                },
+            )));
+        }
+
+        self.connect_tls_channel(endpoint, certs_rx)
+    }
+
+    /// Single-iteration version of `run()` for use in tests.
+    ///
+    /// Attempts one connection to the proxy, processes the bidirectional
+    /// stream until it closes or an error occurs, then returns. Does not
+    /// retry or loop.
+    pub(crate) async fn run_once(
+        mut self,
+        tx_set: ProxyTxSet,
+        incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+        certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    ) -> Result<(), ProxyError> {
+        let parsed_version = Version::parse(VERSION)?;
+        let endpoint = self.endpoint()?;
+        let channel = self.connect_channel(&endpoint, certs_rx)?;
+
+        debug!(
+            "Connecting to proxy at {} (test, single iteration)",
+            endpoint.uri()
+        );
+        let interceptor = ClientVersionInterceptor::new(parsed_version);
+        let mut client = ProxyClient::with_interceptor(channel, interceptor);
+        self.client = Some(client.clone());
+        let (tx, rx) = mpsc::unbounded_channel();
+        let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
+            Ok(response) => response,
+            Err(err) => {
+                self.mark_disconnected().await?;
+                return Err(err.into());
+            }
+        };
+        let maybe_info = ComponentInfo::from_metadata(response.metadata());
+
+        let (version, info) = get_tracing_variables(&maybe_info);
+        let proxy_is_supported = is_proxy_version_supported(Some(&version));
+        self.mark_connected(&version).await?;
+
+        let span = tracing::info_span!("proxy_bidi", component = %DefguardComponent::Proxy,
+            version = version.to_string(), info);
+        let _guard = span.enter();
+        if !proxy_is_supported {
+            let maybe_version = if version == VERSION_ZERO {
+                None
+            } else {
+                Some(version)
+            };
+            let data = IncompatibleProxyData::new(maybe_version);
+            data.insert(&incompatible_components);
+            self.mark_disconnected().await?;
+            return Ok(());
+        }
+        IncompatibleComponents::remove_proxy(&incompatible_components);
+
+        info!("Connected to proxy at {} (test)", endpoint.uri());
+        let mut resp_stream = response.into_inner();
+
+        let initial_info = InitialInfo {
+            private_cookies_key: self.proxy_cookie_key.master().to_vec(),
+        };
+        let _ = tx.send(CoreResponse {
+            id: 0,
+            payload: Some(core_response::Payload::InitialInfo(initial_info)),
+        });
+
+        let result = self
+            .message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream)
+            .await;
+        self.mark_disconnected().await?;
+        result
     }
 }
 
