@@ -1,8 +1,8 @@
-# Help Tutorials
+# Video Support
 
-The help tutorials widget displays route-specific YouTube video tutorials inside
+The video support widget displays route-specific YouTube video tutorials inside
 the authenticated app shell. A floating "Video support" button appears in the
-bottom-right corner when tutorials are available for the current route. Clicking
+bottom-right corner when videos are available for the current route. Clicking
 it opens a panel listing the relevant videos; clicking a video opens a full-screen
 overlay with an embedded YouTube player.
 
@@ -13,8 +13,8 @@ available across the entire authenticated layout.
 
 ## Testing without remote API access
 
-In production the widget fetches its tutorial mapping from the URL configured in
-the `VITE_HELP_TUTORIALS_URL` environment variable (a remote API endpoint).
+In production the widget fetches its video mapping from the URL configured in
+the `VITE_VIDEO_SUPPORT_URL` environment variable (a remote API endpoint).
 
 To test locally without access to the remote API, create a JSON file that follows
 the structure described below and point the variable to it.
@@ -24,11 +24,11 @@ the structure described below and point the variable to it.
 Vite's dev server automatically serves everything in `web/public/` at the root
 path, so no extra server is needed:
 
-1. Create your file, e.g. `web/public/dev-tutorials.json`.
+1. Create your file, e.g. `web/public/dev-video-support.json`.
 2. Add to `web/.env.local`:
 
    ```
-   VITE_HELP_TUTORIALS_URL=/dev-tutorials.json
+   VITE_VIDEO_SUPPORT_URL=/dev-video-support.json
    ```
 
 3. Restart the dev server. The widget will load from your local file.
@@ -47,7 +47,7 @@ python3 -m http.server 4000
 Then set:
 
 ```
-VITE_HELP_TUTORIALS_URL=http://localhost:4000/tutorials.json
+VITE_VIDEO_SUPPORT_URL=http://localhost:4000/video-support.json
 ```
 
 > If the server runs on a different origin than the Vite dev server, it must
@@ -74,7 +74,7 @@ VITE_HELP_TUTORIALS_URL=http://localhost:4000/tutorials.json
         }
       ],
 
-      // A route can have multiple tutorials.
+      // A route can have multiple videos.
       "/users": [
         { "youtubeVideoId": "xyz987GHI12", "title": "Managing users" },
         { "youtubeVideoId": "lmn456JKL78", "title": "User roles overview" }
@@ -106,7 +106,7 @@ VITE_HELP_TUTORIALS_URL=http://localhost:4000/tutorials.json
 | Field | Required | Description |
 |---|---|---|
 | `youtubeVideoId` | Yes | Exactly 11 characters: letters, digits, `-`, `_`. Found in any YouTube video URL after `?v=` or in the short URL path. |
-| `title` | Yes | Non-empty string. Displayed on the tutorial card. |
+| `title` | Yes | Non-empty string. Displayed on the video card. |
 
 ### Route key rules
 
@@ -121,8 +121,8 @@ VITE_HELP_TUTORIALS_URL=http://localhost:4000/tutorials.json
 
 ## Version resolution
 
-When looking up tutorials for the current route, the resolver iterates mapped
-versions from **newest to oldest** and returns the tutorial list from the first
+When looking up videos for the current route, the resolver iterates mapped
+versions from **newest to oldest** and returns the video list from the first
 version that defines the current route key.
 
 - If the runtime app version has a prerelease or build suffix (e.g. `2.2.0-rc.1`)

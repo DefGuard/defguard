@@ -1,22 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMatches } from '@tanstack/react-router';
 import { useApp } from '../hooks/useApp';
-import { helpTutorialsQueryOptions } from './data';
-import { resolveHelpTutorials } from './resolver';
+import { videoSupportQueryOptions } from './data';
+import { resolveVideoSupport } from './resolver';
 import { canonicalizeRouteKey } from './route-key';
-import type { HelpTutorial } from './types';
+import type { VideoSupport } from './types';
 
 const SHELL_ROUTE_PREFIX = '/_authorized/_default/';
 
 // Stable empty reference — avoids triggering effects/memos that depend on this value.
-const EMPTY_TUTORIALS: HelpTutorial[] = [];
+const EMPTY_VIDEO_SUPPORT: VideoSupport[] = [];
 
 /**
  * Derives the canonical route key for the current page from TanStack Router
  * matches, skipping pathless shell/layout routes.
  * Returns null if no content route is active.
  */
-function useHelpTutorialsRouteKey(): string | null {
+function useVideoSupportRouteKey(): string | null {
   const matches = useMatches();
   // Find the deepest match that belongs to the authorized default shell
   const contentMatch = [...matches]
@@ -27,14 +27,14 @@ function useHelpTutorialsRouteKey(): string | null {
 }
 
 /**
- * Returns the resolved tutorial list for the current page and app version.
- * Returns an empty array when data is loading, errored, or no tutorials match.
+ * Returns the resolved video support list for the current page and app version.
+ * Returns an empty array when data is loading, errored, or no videos match.
  */
-export function useResolvedHelpTutorials(): HelpTutorial[] {
-  const { data } = useQuery(helpTutorialsQueryOptions);
+export function useResolvedVideoSupport(): VideoSupport[] {
+  const { data } = useQuery(videoSupportQueryOptions);
   const appVersion = useApp((s) => s.appInfo.version);
-  const routeKey = useHelpTutorialsRouteKey();
+  const routeKey = useVideoSupportRouteKey();
 
-  if (!data || !appVersion || !routeKey) return EMPTY_TUTORIALS;
-  return resolveHelpTutorials(data, appVersion, routeKey);
+  if (!data || !appVersion || !routeKey) return EMPTY_VIDEO_SUPPORT;
+  return resolveVideoSupport(data, appVersion, routeKey);
 }

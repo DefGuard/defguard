@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// Help Tutorials Widget
+// Video Support Widget
 // Floating launcher button + expandable panel (bottom-right corner)
 // ---------------------------------------------------------------------------
 
-.help-tutorials-widget {
+.video-support-widget {
   position: fixed;
   bottom: var(--spacing-xl);
   right: var(--spacing-xl);
@@ -16,7 +16,7 @@
 
 // Launcher pill button
 
-.help-tutorials-launcher {
+.video-support-launcher {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
@@ -47,7 +47,7 @@
 
 // Floating panel — no background, just stacks the cards
 
-.help-tutorials-list {
+.video-support-list {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -57,9 +57,9 @@
   width: 300px;
 }
 
-// Individual tutorial card
+// Individual video card
 
-.help-tutorial-card {
+.video-support-card {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
@@ -79,7 +79,7 @@
   }
 }
 
-.help-tutorial-thumbnail {
+.video-support-thumbnail {
   flex-shrink: 0;
   width: 106px;
   height: 60px;
@@ -140,13 +140,13 @@
   }
 }
 
-.help-tutorial-card-info {
+.video-support-card-info {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.help-tutorial-card-title {
+.video-support-card-title {
   font: var(--t-body-xs-400);
   color: var(--fg-default);
   display: -webkit-box;
@@ -158,7 +158,7 @@
 // Close button — replaces launcher when panel is open.
 // Uses IconButton; overrides border-radius token to circular and adds background/border.
 
-.help-tutorials-close-btn {
+.video-support-close-btn {
   --button-border-radius-sm: var(--radius-full);
 
   background-color: var(--bg-default);
@@ -174,13 +174,13 @@
 // ModalFoundation provides the backdrop and portal; we style the content here.
 // ---------------------------------------------------------------------------
 
-.help-tutorials-modal-container {
+.video-support-modal-container {
   position: relative;
   display: inline-block;
   padding-top: var(--size-2xl);
 }
 
-.help-tutorials-modal {
+.video-support-modal {
   background: var(--bg-default);
   border-radius: var(--radius-lg);
   box-shadow: 0 6px 30px 0 rgb(0 0 0 / 9%);
@@ -200,7 +200,7 @@
 // Modal close button — floats outside the modal card (top-right).
 // Uses IconButton; overrides border-radius token to circular and adds background/shadow.
 
-.help-tutorials-modal-close {
+.video-support-modal-close {
   --button-border-radius-sm: var(--radius-full);
 
   position: absolute;

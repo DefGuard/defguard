@@ -2,18 +2,18 @@ import { queryOptions } from '@tanstack/react-query';
 import axios from 'axios';
 import { z } from 'zod';
 import { canonicalizeRouteKey } from './route-key';
-import type { HelpTutorialsMappings } from './types';
+import type { VideoSupportMappings } from './types';
 
 // ---------------------------------------------------------------------------
 // Source resolution
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the URL to load the tutorial mapping from.
- * Override via VITE_HELP_TUTORIALS_URL for remote API migration.
+ * Returns the URL to load the video support mapping from.
+ * Override via VITE_VIDEO_SUPPORT_URL for remote API migration.
  */
 export function resolveSource(): string {
-  return import.meta.env.VITE_HELP_TUTORIALS_URL ?? '/help-tutorials.json';
+  return import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/video-support.json';
 }
 
 // ---------------------------------------------------------------------------
@@ -33,7 +33,7 @@ export async function fetchRawData(url: string): Promise<unknown> {
 // Zod schema + parser
 // ---------------------------------------------------------------------------
 
-const tutorialSchema = z
+const videoSupportSchema = z
   .object({
     youtubeVideoId: z
       .string()
@@ -47,7 +47,7 @@ const tutorialSchema = z
 
 const routeMapSchema = z.record(
   z.string().regex(/^\//, 'route key must start with "/"'),
-  z.array(tutorialSchema),
+  z.array(videoSupportSchema),
 );
 
 const mappingsSchema = z.object({
@@ -63,26 +63,26 @@ const mappingsSchema = z.object({
 });
 
 /**
- * Validates raw JSON against the tutorial mapping contract and returns a
- * trusted HelpTutorialsMappings object with canonicalized route keys.
+ * Validates raw JSON against the video support mapping contract and returns a
+ * trusted VideoSupportMappings object with canonicalized route keys.
  * Throws a ZodError if the contract is violated.
  */
-export function parseHelpTutorials(raw: unknown): HelpTutorialsMappings {
+export function parseVideoSupport(raw: unknown): VideoSupportMappings {
   const parsed = mappingsSchema.parse(raw);
 
-  const result: HelpTutorialsMappings = {};
+  const result: VideoSupportMappings = {};
 
   for (const [versionKey, routeMap] of Object.entries(parsed.versions)) {
-    const canonicalRouteMap: Record<string, HelpTutorialsMappings[string][string]> = {};
+    const canonicalRouteMap: Record<string, VideoSupportMappings[string][string]> = {};
 
-    for (const [routeKey, tutorials] of Object.entries(routeMap)) {
+    for (const [routeKey, videos] of Object.entries(routeMap)) {
       const canonical = canonicalizeRouteKey(routeKey);
       if (canonical in canonicalRouteMap) {
         throw new Error(
           `Duplicate route key "${canonical}" in version "${versionKey}" after canonicalization`,
         );
       }
-      canonicalRouteMap[canonical] = tutorials;
+      canonicalRouteMap[canonical] = videos;
     }
 
     result[versionKey] = canonicalRouteMap;
@@ -95,10 +95,10 @@ export function parseHelpTutorials(raw: unknown): HelpTutorialsMappings {
 // React Query integration
 // ---------------------------------------------------------------------------
 
-export const helpTutorialsQueryOptions = queryOptions({
-  queryKey: ['help-tutorials'],
-  queryFn: () => fetchRawData(resolveSource()).then(parseHelpTutorials),
-  // Tutorial mappings don't change at runtime — fetch once per session.
+export const videoSupportQueryOptions = queryOptions({
+  queryKey: ['video-support'],
+  queryFn: () => fetchRawData(resolveSource()).then(parseVideoSupport),
+  // Video support mappings don't change at runtime — fetch once per session.
   // When migrating to a remote API, change this to an appropriate cache window.
   staleTime: Infinity,
   // Silent failure: if the fetch or parse fails, the widget simply won't appear.

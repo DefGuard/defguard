@@ -1,9 +1,9 @@
-import type { HelpTutorial, HelpTutorialsMappings } from './types';
+import type { VideoSupport, VideoSupportMappings } from './types';
 import { compareVersions, parseVersion } from './version';
 
 /**
- * Given the parsed tutorial mappings, the current app version string, and the
- * current normalized route key, returns the best matching tutorial list.
+ * Given the parsed video support mappings, the current app version string, and the
+ * current normalized route key, returns the best matching video list.
  *
  * Resolution rules:
  * - Only version keys that are <= the runtime app version are eligible.
@@ -12,11 +12,11 @@ import { compareVersions, parseVersion } from './version';
  * - If no version defines the route key, returns [].
  * - If the app version or route key is invalid/missing, returns [].
  */
-export function resolveHelpTutorials(
-  mappings: HelpTutorialsMappings,
+export function resolveVideoSupport(
+  mappings: VideoSupportMappings,
   appVersionRaw: string,
   routeKey: string,
-): HelpTutorial[] {
+): VideoSupport[] {
   const appVersion = parseVersion(appVersionRaw);
   if (!appVersion) return [];
 
