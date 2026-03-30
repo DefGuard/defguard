@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
-import axios from 'axios';
 import { z } from 'zod';
+import { updateServiceClient } from '../api/update-service';
 import { canonicalizeRouteKey } from './route-key';
 import type { VideoSupportMappings } from './types';
 
@@ -9,11 +9,19 @@ import type { VideoSupportMappings } from './types';
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the URL to load the video support mapping from.
- * Override via VITE_VIDEO_SUPPORT_URL for remote API migration.
+ * Returns the path (relative to the update service base URL) to load the
+ * video support mapping from.
+ *
+ * The shared updateServiceClient resolves this against its baseURL
+ * (VITE_UPDATE_BASE_URL ?? 'https://pkgs.defguard.net/api'), so the
+ * production URL is https://pkgs.defguard.net/api/content/video-support.
+ *
+ * Override VITE_VIDEO_SUPPORT_URL to use a different path on the same server,
+ * or VITE_UPDATE_BASE_URL to redirect all update-service calls to a local
+ * server for development.
  */
 export function resolveSource(): string {
-  return import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/video-support.json';
+  return import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/content/video-support';
 }
 
 // ---------------------------------------------------------------------------
@@ -21,11 +29,11 @@ export function resolveSource(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches raw (unvalidated) data from the given URL.
- * Replace this function when migrating to an authenticated remote API.
+ * Fetches raw (unvalidated) data from the given path via the shared
+ * update-service axios client.
  */
-export async function fetchRawData(url: string): Promise<unknown> {
-  const response = await axios.get<unknown>(url);
+export async function fetchRawData(path: string): Promise<unknown> {
+  const response = await updateServiceClient.get<unknown>(path);
   return response.data;
 }
 

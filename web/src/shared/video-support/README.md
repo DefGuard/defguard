@@ -13,45 +13,53 @@ available across the entire authenticated layout.
 
 ## Testing without remote API access
 
-In production the widget fetches its video mapping from the URL configured in
-the `VITE_VIDEO_SUPPORT_URL` environment variable (a remote API endpoint).
+In production the widget fetches its video mapping via the shared update-service
+axios client. The default URL is:
 
-To test locally without access to the remote API, create a JSON file that follows
-the structure described below and point the variable to it.
+```
+https://pkgs.defguard.net/api/content/video-support
+```
 
-### Option A — serve from `web/public/` (zero extra setup)
+This is composed from the client's base URL (`https://pkgs.defguard.net/api`,
+overridable via `VITE_UPDATE_BASE_URL`) and the default path
+(`/content/video-support`, overridable via `VITE_VIDEO_SUPPORT_URL`).
 
-Vite's dev server automatically serves everything in `web/public/` at the root
-path, so no extra server is needed:
+Both variables are read at build time and live in `web/.env.local` (git-ignored).
 
-1. Create your file, e.g. `web/public/dev-video-support.json`.
-2. Add to `web/.env.local`:
+### Redirect the entire update service to a local server
 
-   ```
-   VITE_VIDEO_SUPPORT_URL=/dev-video-support.json
-   ```
+The simplest approach for local development — redirects both the video support
+config and the client artifact checks to your local server:
 
-3. Restart the dev server. The widget will load from your local file.
+```
+# web/.env.local
+VITE_UPDATE_BASE_URL=http://localhost:4000
+```
 
-> `web/.env.local` is git-ignored — your test file and env override stay local.
-
-### Option B — serve from any HTTP server
-
-You can also serve the JSON from a separate local server:
+Then serve a JSON file at `http://localhost:4000/content/video-support` (see
+[JSON structure](#json-structure) below for the expected format):
 
 ```bash
 # example using Python's built-in server from the directory containing your file
 python3 -m http.server 4000
 ```
 
-Then set:
+> The local server must respond with appropriate `Access-Control-Allow-Origin`
+> CORS headers if it runs on a different origin than the Vite dev server.
+
+### Override only the video support path
+
+To redirect just the video support fetch without affecting other update-service
+calls, override the path only:
 
 ```
-VITE_VIDEO_SUPPORT_URL=http://localhost:4000/video-support.json
+# web/.env.local
+VITE_VIDEO_SUPPORT_URL=/content/my-test-config
 ```
 
-> If the server runs on a different origin than the Vite dev server, it must
-> respond with appropriate `Access-Control-Allow-Origin` CORS headers.
+The path is still resolved against `VITE_UPDATE_BASE_URL` (or the default
+`https://pkgs.defguard.net/api`), so this is most useful when you have a test
+endpoint on the same server.
 
 ---
 
