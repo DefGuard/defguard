@@ -103,17 +103,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-
-    &::after {
-      content: '';
-      width: 24px;
-      height: 24px;
-      background-color: var(--fg-disabled);
-      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='3.5' width='9' height='9' rx='1.5' fill='currentColor'/%3E%3Cpath d='M10 6.5L15 4v8l-5-2.5V6.5Z' fill='currentColor'/%3E%3C/svg%3E");
-      mask-size: contain;
-      mask-repeat: no-repeat;
-      mask-position: center;
-    }
   }
 }
 

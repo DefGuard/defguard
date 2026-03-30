@@ -5,6 +5,7 @@ import { m } from '../../paraglide/messages';
 import { Icon } from '../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../defguard-ui/components/ModalFoundation/ModalFoundation';
+import { ThemeVariable } from '../defguard-ui/types';
 import { useResolvedVideoSupport, useVideoSupportRouteKey } from './resolved';
 import type { VideoSupport } from './types';
 
@@ -18,7 +19,11 @@ const Thumbnail = ({ url, title }: ThumbnailProps) => {
   const [errored, setErrored] = useState(false);
 
   if (errored) {
-    return <div className="video-support-thumbnail placeholder" aria-label={title} />;
+    return (
+      <div className="video-support-thumbnail placeholder" aria-label={title}>
+        <Icon icon="tutorial" size={24} staticColor={ThemeVariable.FgDisabled} />
+      </div>
+    );
   }
 
   return (
@@ -131,7 +136,7 @@ export const VideoSupportWidget = () => {
             onClick={() => setPanelOpen(true)}
             aria-label={m.cmp_video_support_launcher()}
           >
-            <Icon icon="tutorial" size={18} staticColor="var(--fg-action)" />
+            <Icon icon="tutorial" size={18} staticColor={ThemeVariable.FgAction} />
             <span>{m.cmp_video_support_launcher()}</span>
           </button>
         )}
