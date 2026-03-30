@@ -144,7 +144,7 @@ export const getUsersQueryOptions = queryOptions({
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({
-  queryFn: api.getUsersOverview,
+  queryFn: api.user.getUsers,
   queryKey: ['user-overview'],
   refetchOnMount: true,
   refetchOnReconnect: true,

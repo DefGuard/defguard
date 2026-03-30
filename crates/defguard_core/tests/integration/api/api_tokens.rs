@@ -302,7 +302,7 @@ async fn dg25_3_test_token_invalidation(_: PgPoolOptions, options: PgConnectOpti
     let admin_group = admin_groups.first().unwrap();
 
     let response = client
-        .post(format!("/api/v1/group/{}", admin_group.name))
+        .post(format!("/api/v1/group/{}", admin_group.id))
         .json(&json!({"username": "hpotter"}))
         .send()
         .await;

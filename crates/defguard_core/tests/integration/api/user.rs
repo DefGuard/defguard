@@ -339,9 +339,10 @@ async fn test_get_user_exposes_active_network_state(_: PgPoolOptions, options: P
     let user_details = fetch_user_details(&client, username).await;
 
     assert_eq!(user_details.user.username, username);
-    assert_eq!(user_details.devices.len(), 1);
+    assert_eq!(user_details.user.devices.len(), 1);
 
     let user_device = user_details
+        .user
         .devices
         .iter()
         .find(|user_device| user_device.device.id == device.id)
@@ -482,6 +483,7 @@ async fn test_get_user_keeps_last_successful_connection_for_newer_disconnected_s
     let user_details = fetch_user_details(&client, username).await;
 
     let user_device = user_details
+        .user
         .devices
         .iter()
         .find(|user_device| user_device.device.id == device.id)
