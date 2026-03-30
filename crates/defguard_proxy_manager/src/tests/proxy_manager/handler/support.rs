@@ -1,17 +1,23 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use defguard_common::db::{
-    Id,
+    Id, NoId,
     models::{
         Device, DeviceType, User, WireguardNetwork,
         polling_token::PollingToken,
+        settings::Settings,
         vpn_client_session::VpnClientSession,
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
-    enterprise::license::{License, LicenseTier, set_cached_license},
+    enterprise::{
+        db::models::openid_provider::{
+            DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
+        },
+        license::{License, LicenseTier, set_cached_license},
+    },
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::GatewayEvent,
 };
@@ -23,7 +29,7 @@ use defguard_proto::proxy::{
 use sqlx::PgPool;
 use ipnetwork::IpNetwork;
 
-use crate::tests::common::HandlerTestContext;
+use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 
 // ---------------------------------------------------------------------------
 // Per-module counters (separate from the global TEST_ID in common/mod.rs)
@@ -547,4 +553,57 @@ pub(crate) async fn assert_vpn_session_exists(
         .unwrap_or_else(|| {
             panic!("expected active VpnClientSession for location={location_id} device={device_id}")
         })
+}
+
+// ---------------------------------------------------------------------------
+// OIDC helpers
+// ---------------------------------------------------------------------------
+
+/// Insert a test `OpenIdProvider` backed by the given mock into the database.
+pub(crate) async fn create_oidc_provider(
+    pool: &PgPool,
+    mock: &MockOidcProvider,
+) -> OpenIdProvider<Id> {
+    OpenIdProvider::<NoId> {
+        id: NoId,
+        name: "test-oidc".to_string(),
+        base_url: mock.base_url.clone(),
+        kind: OpenIdProviderKind::Custom,
+        client_id: mock.client_id.clone(),
+        client_secret: mock.client_secret.clone(),
+        display_name: Some("Test OIDC".to_string()),
+        google_service_account_key: None,
+        google_service_account_email: None,
+        admin_email: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 600,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep,
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep,
+        directory_sync_target: DirectorySyncTarget::All,
+        okta_private_jwk: None,
+        okta_dirsync_client_id: None,
+        directory_sync_group_match: vec![],
+        jumpcloud_api_key: None,
+        prefetch_users: false,
+    }
+    .save(pool)
+    .await
+    .expect("failed to save test OpenIdProvider")
+}
+
+/// Set `Settings.public_proxy_url` in the DB (and in the global cache) so
+/// that `edge_callback_url` returns a valid URL during tests.
+pub(crate) async fn set_public_proxy_url(pool: &PgPool, url: &str) {
+    use defguard_common::db::models::settings::update_current_settings;
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = url.to_string();
+    update_current_settings(pool, settings)
+        .await
+        .expect("failed to update public_proxy_url in settings");
+}
+
+/// Build the authorization code expected by `MockOidcProvider`'s `/token`
+/// endpoint.  Format: `"{sub}:{email}:{nonce}"`.
+pub(crate) fn make_oidc_code(sub: &str, email: &str, nonce: &str) -> String {
+    format!("{sub}:{email}:{nonce}")
 }

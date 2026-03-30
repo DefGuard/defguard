@@ -32,5 +32,12 @@ tower.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+base64.workspace = true
 hyper-util = "0.1"
 ipnetwork.workspace = true
+jsonwebkey = { workspace = true }
+jsonwebtoken.workspace = true
+rand.workspace = true
+rsa.workspace = true
+serde.workspace = true
+serde_json.workspace = true
