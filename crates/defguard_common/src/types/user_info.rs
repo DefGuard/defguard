@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 use crate::{
     db::{
         Id,
-        models::{MFAMethod, group::Group, user::User},
+        models::{MFAMethod, device::UserDevice, group::Group, user::User},
     },
     types::group_diff::GroupDiff,
 };
@@ -13,7 +13,6 @@ use crate::{
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: Id,
-    pub user_id: Id,
     pub oauth2client_name: String,
 }
 
@@ -24,6 +23,7 @@ pub struct UserInfo {
     pub username: String,
     pub last_name: String,
     pub first_name: String,
+    name: String,
     pub email: String,
     pub phone: Option<String>,
     pub mfa_enabled: bool,
@@ -36,30 +36,38 @@ pub struct UserInfo {
     pub enrolled: bool,
     pub is_admin: bool,
     pub ldap_pass_requires_change: bool,
+    pub devices: Vec<UserDevice>,
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Self> {
+    /// Convert [`User`] to [`UserInfo`].
+    pub async fn from_user(pool: &PgPool, user: User<Id>) -> sqlx::Result<Self> {
+        let name = format!("{} {}", user.first_name, user.last_name);
         let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
+        let enrolled = user.is_enrolled();
+        let is_admin = user.is_admin(pool).await?;
+        let devices = user.user_devices(pool).await?;
 
         Ok(Self {
             id: user.id,
-            username: user.username.clone(),
-            last_name: user.last_name.clone(),
-            first_name: user.first_name.clone(),
-            email: user.email.clone(),
-            phone: user.phone.clone(),
+            username: user.username,
+            last_name: user.last_name,
+            first_name: user.first_name,
+            name,
+            email: user.email,
+            phone: user.phone,
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
             email_mfa_enabled: user.email_mfa_enabled,
             groups,
-            mfa_method: user.mfa_method.clone(),
+            mfa_method: user.mfa_method,
             authorized_apps,
             is_active: user.is_active,
-            enrolled: user.is_enrolled(),
-            is_admin: user.is_admin(pool).await?,
+            enrolled,
+            is_admin,
             ldap_pass_requires_change: user.ldap_pass_randomized,
+            devices,
         })
     }
 
@@ -176,7 +184,7 @@ mod test {
         user.add_to_group(&pool, &group1).await.unwrap();
         user.add_to_group(&pool, &group2).await.unwrap();
 
-        let mut user_info = UserInfo::from_user(&pool, &user).await.unwrap();
+        let mut user_info = UserInfo::from_user(&pool, user).await.unwrap();
         assert_eq!(user_info.groups, ["Gryffindor", "Hufflepuff"]);
 
         user_info.groups = vec!["Gryffindor".into(), "Ravenclaw".into()];

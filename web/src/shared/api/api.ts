@@ -103,7 +103,6 @@ import type {
   UserChangePasswordRequest,
   UserDevice,
   UserProfileResponse,
-  UsersListItem,
   ValidateDeviceIpsRequest,
   ValidateIpAssignmentRequest,
   WebauthnLoginStartResponse,
@@ -114,19 +113,6 @@ import type {
 } from './types';
 
 const api = {
-  getUsersOverview: async (): Promise<UsersListItem[]> => {
-    const users = await api.user.getUsers();
-    const res: UsersListItem[] = [];
-    for (const user of users) {
-      const { data: profile } = await api.user.getUser(user.username);
-      res.push({
-        ...user,
-        name: `${user.first_name} ${user.last_name}`,
-        devices: profile.devices,
-      });
-    }
-    return res;
-  },
   initial_setup: {
     createCA: (data: CreateCARequest) => client.post('/initial_setup/ca', data),
     getCA: () => client.get<GetCAResponse>('/initial_setup/ca'),

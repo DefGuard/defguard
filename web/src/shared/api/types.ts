@@ -167,11 +167,6 @@ export interface GroupInfo {
   is_admin: boolean;
 }
 
-export interface UsersListItem extends User {
-  name: string;
-  devices: Device[];
-}
-
 export interface EditGroupRequest extends CreateGroupRequest {
   id: number;
 }
@@ -202,6 +197,7 @@ export interface User {
   username: string;
   first_name: string;
   last_name: string;
+  name: string;
   mfa_method: UserMfaMethodValue;
   mfa_enabled: boolean;
   totp_enabled: boolean;
@@ -214,6 +210,7 @@ export interface User {
   ldap_pass_requires_change: boolean;
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
+  devices: Device[];
 }
 
 export interface LoginRequest {

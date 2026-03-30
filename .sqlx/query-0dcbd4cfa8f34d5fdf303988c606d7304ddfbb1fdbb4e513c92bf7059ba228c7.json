@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" u WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin AND user_id = u.id) AND u.is_active",
+  "query": "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" u WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin AND user_id = u.id) AND u.is_active",
   "describe": {
     "columns": [
       {
@@ -148,5 +148,5 @@
       false
     ]
   },
-  "hash": "a7e7af2754523b08fae3a2b79557db912ffd435531786493413df45b255adae9"
+  "hash": "0dcbd4cfa8f34d5fdf303988c606d7304ddfbb1fdbb4e513c92bf7059ba228c7"
 }

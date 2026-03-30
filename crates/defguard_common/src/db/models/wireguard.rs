@@ -696,7 +696,7 @@ impl WireguardNetwork<Id> {
                 .await?
                 .ok_or(sqlx::Error::RowNotFound)?;
             stats.push(WireguardUserStatsRow {
-                user: UserInfo::from_user(conn, &user).await?,
+                user: UserInfo::from_user(conn, user).await?,
                 devices: u.1.clone(),
             });
         }
