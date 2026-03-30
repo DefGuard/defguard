@@ -974,7 +974,7 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
         .unwrap()
         .id;
     let response = client
-        .delete(&format!("/api/v1/group/{allowed_group_id}"))
+        .delete(format!("/api/v1/group/{allowed_group_id}"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);

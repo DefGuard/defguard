@@ -63,7 +63,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .id;
     let response = client
-        .get(&format!("/api/v1/group/{admin_id}"))
+        .get(format!("/api/v1/group/{admin_id}"))
         .send()
         .await;
     let group_info: GroupInfo = response.json().await;
@@ -109,7 +109,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
 
     // check vpn locations for `admin` group
     let response = client
-        .get(&format!("/api/v1/group/{admin_id}"))
+        .get(format!("/api/v1/group/{admin_id}"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
