@@ -9,6 +9,8 @@ import { SettingsLayout } from '../../../shared/components/SettingsLayout/Settin
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { getSettingsQueryOptions } from '../../../shared/query';
 import { useQuery } from '@tanstack/react-query';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 
 const breadcrumbs = [
   <Link
@@ -36,17 +38,15 @@ export const SettingsCertificatesPage = () => {
           title={m.settings_certs_certs_title()}
           subtitle={m.settings_certs_certs_description()}
         />
-        {isPresent(settings) && (
-          <SettingsCard>
-            <Content settings={settings} />
-          </SettingsCard>
-        )}
+        <SettingsCard>
+          <SizedBox height={ThemeSpacing.Xl2} />
+          <Content />
+        </SettingsCard>
       </SettingsLayout>
     </Page>
   );
 };
 
-const Content = ({ settings }: { settings: Settings }) => {
-  console.log(settings);
+const Content = () => {
   return (<div>TODO</div>);
 };

@@ -1,0 +1,20 @@
+.ca-info-title {
+  font: var(--t-body-xs-500);
+}
+
+.ca-info-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--spacing-md) var(--spacing-lg);
+  align-items: center;
+
+  .ca-info-label {
+    color: var(--fg-neutral);
+    font: var(--t-body-sm-400);
+  }
+
+  .ca-info-value {
+    color: var(--fg-faded);
+    font: var(--t-body-sm-500);
+  }
+}
