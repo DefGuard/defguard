@@ -6,14 +6,21 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Device, DeviceType, User, WireguardNetwork, group::Group,
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU, LocationMfaMode, ServiceLocationMode},
+            Device, DeviceType, User, WireguardNetwork,
+            group::Group,
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
+                LocationMfaMode, ServiceLocationMode,
+            },
         },
     },
 };
 use defguard_core::{
     grpc::GatewayEvent,
-    handlers::{Auth, wireguard::{ImportedNetworkData, WireguardNetworkData}},
+    handlers::{
+        Auth,
+        wireguard::{ImportedNetworkData, WireguardNetworkData},
+    },
     location_management::allowed_peers::get_location_allowed_peers,
 };
 use matches::assert_matches;
@@ -1049,7 +1056,11 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
         location_mfa_mode: LocationMfaMode::Disabled,
         service_location_mode: ServiceLocationMode::Disabled,
     };
-    let response = client.post("/api/v1/network").json(&create_data).send().await;
+    let response = client
+        .post("/api/v1/network")
+        .json(&create_data)
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut modify_data = create_data.clone();
