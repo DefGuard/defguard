@@ -7,10 +7,10 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    AuthCallbackRequest, AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest,
-    ClientMfaOidcAuthenticateRequest, ClientMfaStartRequest, ClientMfaTokenValidationRequest,
-    CoreRequest, ExistingDevice, InstanceInfoRequest, MfaMethod, NewDevice, core_request,
-    core_response,
+    AuthCallbackRequest, AuthFlowType, AuthInfoRequest, AwaitRemoteMfaFinishRequest,
+    ClientMfaFinishRequest, ClientMfaOidcAuthenticateRequest, ClientMfaStartRequest,
+    ClientMfaTokenValidationRequest, CoreRequest, ExistingDevice, InstanceInfoRequest, MfaMethod,
+    NewDevice, core_request, core_response,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

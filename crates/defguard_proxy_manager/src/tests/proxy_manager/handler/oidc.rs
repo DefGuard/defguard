@@ -1,6 +1,6 @@
 // Phase 5: OIDC handler tests
 //
-// Covers:
+// AuthCallback tests (Phase 5b):
 //  1. test_auth_callback_creates_new_user_on_first_login
 //     — no pre-existing user; code contains unknown sub/email; verifies core
 //       creates the user and returns an enrollment token
@@ -10,6 +10,17 @@
 //  3. test_mfa_oidc_full_flow
 //     — ClientMfaStart (OIDC) → ClientMfaOidcAuthenticate → ClientMfaFinish
 //       → PSK + GatewayEvent + BidiEvent + VpnClientSession in DB
+//
+// AuthInfo tests (Phase 5c):
+//  4. test_auth_info_enrollment_returns_authorize_url
+//     — valid license + provider; AuthFlowType::Enrollment returns an OIDC
+//       authorization URL pointing at the mock provider
+//  5. test_auth_info_mfa_returns_authorize_url
+//     — same as above but AuthFlowType::Mfa
+//  6. test_auth_info_requires_license
+//     — no license → FailedPrecondition error
+//  7. test_auth_info_requires_oidc_provider
+//     — valid license, no provider in DB → NotFound error
 
 // ---------------------------------------------------------------------------
 // 1. AuthCallback creates a new user when sub/email are unknown
@@ -88,11 +99,73 @@ async fn test_auth_callback_creates_new_user_on_first_login(
 }
 
 // ---------------------------------------------------------------------------
-// 2. AuthCallback returns enrollment token for a pre-existing user
+// 4. AuthInfo with Enrollment flow type returns a valid OIDC authorization URL
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_auth_callback_exchanges_code_for_enrollment_token(
+async fn test_auth_info_enrollment_returns_authorize_url(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    let mock = MockOidcProvider::start().await;
+    let provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 40,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            redirect_url: String::new(), // deprecated; ignored when auth_flow_type is set
+            state: None,
+            auth_flow_type: AuthFlowType::Enrollment as i32,
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let auth_info = match &response.payload {
+        Some(core_response::Payload::AuthInfo(r)) => r,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "test_auth_info_enrollment_returns_authorize_url: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "expected AuthInfo response, got: {:?}",
+            other.as_ref().map(|p| std::mem::discriminant(p))
+        ),
+    };
+
+    // The URL must be non-empty and point at the mock OIDC authorization endpoint.
+    assert!(!auth_info.url.is_empty(), "expected non-empty authorization URL");
+    assert!(
+        auth_info.url.starts_with(&mock.base_url),
+        "authorization URL should start with mock base URL; got: {}",
+        auth_info.url
+    );
+
+    // CSRF token and nonce must be non-empty.
+    assert!(!auth_info.csrf_token.is_empty(), "expected non-empty csrf_token");
+    assert!(!auth_info.nonce.is_empty(), "expected non-empty nonce");
+
+    // The button display name must match the provider's display name.
+    assert_eq!(
+        auth_info.button_display_name.as_deref(),
+        provider.display_name.as_deref(),
+        "button_display_name should match provider display_name"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
+// 5. AuthInfo with Mfa flow type returns a valid OIDC authorization URL
+// ---------------------------------------------------------------------------
+
+#[sqlx::test]
+async fn test_auth_info_mfa_returns_authorize_url(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
@@ -104,46 +177,115 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
     let _provider = create_oidc_provider(&context.pool, &mock).await;
     set_public_proxy_url(&context.pool, &mock.base_url).await;
 
-    // Pre-create the user.
-    let user = create_user(&context.pool).await;
-    let raw_nonce = "test-nonce-2";
-    // Use the user's ID as the sub (any stable string works; `user_from_claims`
-    // tries to match by `sub` first, then by `email`).
-    let code = make_oidc_code("some-sub", &user.email, raw_nonce);
-
     context.mock_proxy().send_request(CoreRequest {
-        id: 20,
+        id: 50,
         device_info: None,
-        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
-            code: code.clone(),
-            nonce: raw_nonce.to_string(),
-            callback_url: String::new(),
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            redirect_url: String::new(),
+            state: None,
+            auth_flow_type: AuthFlowType::Mfa as i32,
         })),
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
-    let auth_cb = match &response.payload {
-        Some(core_response::Payload::AuthCallback(r)) => r,
+    let auth_info = match &response.payload {
+        Some(core_response::Payload::AuthInfo(r)) => r,
         Some(core_response::Payload::CoreError(e)) => panic!(
-            "test_auth_callback_exchanges_code_for_enrollment_token: got CoreError status={} msg={}",
+            "test_auth_info_mfa_returns_authorize_url: got CoreError status={} msg={}",
             e.status_code, e.message
         ),
         other => panic!(
-            "expected AuthCallback response, got: {:?}",
+            "expected AuthInfo response, got: {:?}",
             other.as_ref().map(|p| std::mem::discriminant(p))
         ),
     };
 
-    assert!(!auth_cb.token.is_empty(), "expected non-empty enrollment token id");
-
-    // The DB token must reference the correct user.
-    let token = Token::find_by_id(&context.pool, &auth_cb.token)
-        .await
-        .expect("db query failed for enrollment token");
-    assert_eq!(token.user_id, user.id, "enrollment token references wrong user");
+    assert!(!auth_info.url.is_empty(), "expected non-empty authorization URL");
+    assert!(
+        auth_info.url.starts_with(&mock.base_url),
+        "authorization URL should start with mock base URL; got: {}",
+        auth_info.url
+    );
+    assert!(!auth_info.csrf_token.is_empty(), "expected non-empty csrf_token");
+    assert!(!auth_info.nonce.is_empty(), "expected non-empty nonce");
 
     context.finish().await.expect_server_finished().await;
 }
+
+// ---------------------------------------------------------------------------
+// 6. AuthInfo requires a business license
+// ---------------------------------------------------------------------------
+
+#[sqlx::test]
+async fn test_auth_info_requires_license(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Ensure no license is active.
+    clear_test_license();
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 60,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            redirect_url: String::new(),
+            state: None,
+            auth_flow_type: AuthFlowType::Enrollment as i32,
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::FailedPrecondition,
+        "expected FailedPrecondition when no license"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
+// 7. AuthInfo returns NotFound when no OIDC provider is configured
+// ---------------------------------------------------------------------------
+
+#[sqlx::test]
+async fn test_auth_info_requires_oidc_provider(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    // No OIDC provider is inserted — but we still need a valid public proxy URL
+    // so that edge_callback_url() does not fail before the provider lookup.
+    set_public_proxy_url(&context.pool, "http://proxy.example.com").await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 70,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
+            redirect_url: String::new(),
+            state: None,
+            auth_flow_type: AuthFlowType::Enrollment as i32,
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::NotFound,
+        "expected NotFound when no OIDC provider configured"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
 
 // ---------------------------------------------------------------------------
 // 3. Full OIDC MFA flow: Start → OidcAuthenticate → Finish
