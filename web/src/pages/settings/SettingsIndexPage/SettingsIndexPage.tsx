@@ -12,6 +12,7 @@ import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
 import { SettingsLicenseTab } from './tabs/SettingsLicenseTab/SettingsLicenseTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
 import { type SettingsTabValue, settingsTabsSchema } from './types';
+import { SettingsCertificatesTab } from './tabs/SettingsCertificatesTab/SettingsCertificatesTab';
 
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
@@ -19,6 +20,7 @@ const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   activity: <SettingsActivityLogStreamingPage />,
   license: <SettingsLicenseTab />,
   identity: <SettingsExternalProvidersTab />,
+  certs: <SettingsCertificatesTab />,
 };
 
 const tabToTitle = (tab: SettingsTabValue): string => {
@@ -33,6 +35,8 @@ const tabToTitle = (tab: SettingsTabValue): string => {
       return m.settings_tab_notifications();
     case 'identity':
       return m.settings_tab_identity_providers();
+    case 'certs':
+      return m.settings_tab_certificates();
   }
 };
 

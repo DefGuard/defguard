@@ -7,6 +7,7 @@ export const settingsTabsSchema = z.enum([
   'notifications',
   'identity',
   'activity',
+  'certs',
   'license',
 ]);
 

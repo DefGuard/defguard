@@ -56,6 +56,8 @@ import { Route as AuthorizedDefaultSettingsInstanceRouteImport } from './routes/
 import { Route as AuthorizedDefaultSettingsGatewayNotificationsRouteImport } from './routes/_authorized/_default/settings/gateway-notifications'
 import { Route as AuthorizedDefaultSettingsEditOpenidRouteImport } from './routes/_authorized/_default/settings/edit-openid'
 import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_authorized/_default/settings/client'
+import { Route as AuthorizedDefaultSettingsCertsRouteImport } from './routes/_authorized/_default/settings/certs'
+import { Route as AuthorizedDefaultSettingsCaRouteImport } from './routes/_authorized/_default/settings/ca'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
 import { Route as AuthorizedDefaultAclEditRuleRouteImport } from './routes/_authorized/_default/acl/edit-rule'
 import { Route as AuthorizedDefaultAclEditDestinationRouteImport } from './routes/_authorized/_default/acl/edit-destination'
@@ -323,6 +325,18 @@ const AuthorizedDefaultSettingsClientRoute =
     path: '/settings/client',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultSettingsCertsRoute =
+  AuthorizedDefaultSettingsCertsRouteImport.update({
+    id: '/settings/certs',
+    path: '/settings/certs',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
+const AuthorizedDefaultSettingsCaRoute =
+  AuthorizedDefaultSettingsCaRouteImport.update({
+    id: '/settings/ca',
+    path: '/settings/ca',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclRulesRoute =
   AuthorizedDefaultAclRulesRouteImport.update({
     id: '/acl/rules',
@@ -439,6 +453,8 @@ export interface FileRoutesByFullPath {
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
+  '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -497,6 +513,8 @@ export interface FileRoutesByTo {
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
+  '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -559,6 +577,8 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/_authorized/_default/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
+  '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
+  '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
   '/_authorized/_default/settings/client': typeof AuthorizedDefaultSettingsClientRoute
   '/_authorized/_default/settings/edit-openid': typeof AuthorizedDefaultSettingsEditOpenidRoute
   '/_authorized/_default/settings/gateway-notifications': typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -620,6 +640,8 @@ export interface FileRouteTypes {
     | '/acl/edit-destination'
     | '/acl/edit-rule'
     | '/acl/rules'
+    | '/settings/ca'
+    | '/settings/certs'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -678,6 +700,8 @@ export interface FileRouteTypes {
     | '/acl/edit-destination'
     | '/acl/edit-rule'
     | '/acl/rules'
+    | '/settings/ca'
+    | '/settings/certs'
     | '/settings/client'
     | '/settings/edit-openid'
     | '/settings/gateway-notifications'
@@ -739,6 +763,8 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/edit-destination'
     | '/_authorized/_default/acl/edit-rule'
     | '/_authorized/_default/acl/rules'
+    | '/_authorized/_default/settings/ca'
+    | '/_authorized/_default/settings/certs'
     | '/_authorized/_default/settings/client'
     | '/_authorized/_default/settings/edit-openid'
     | '/_authorized/_default/settings/gateway-notifications'
@@ -1102,6 +1128,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultSettingsClientRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/settings/certs': {
+      id: '/_authorized/_default/settings/certs'
+      path: '/settings/certs'
+      fullPath: '/settings/certs'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsCertsRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
+    '/_authorized/_default/settings/ca': {
+      id: '/_authorized/_default/settings/ca'
+      path: '/settings/ca'
+      fullPath: '/settings/ca'
+      preLoaderRoute: typeof AuthorizedDefaultSettingsCaRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/rules': {
       id: '/_authorized/_default/acl/rules'
       path: '/acl/rules'
@@ -1208,6 +1248,8 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclEditDestinationRoute: typeof AuthorizedDefaultAclEditDestinationRoute
   AuthorizedDefaultAclEditRuleRoute: typeof AuthorizedDefaultAclEditRuleRoute
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
+  AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
+  AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
   AuthorizedDefaultSettingsClientRoute: typeof AuthorizedDefaultSettingsClientRoute
   AuthorizedDefaultSettingsEditOpenidRoute: typeof AuthorizedDefaultSettingsEditOpenidRoute
   AuthorizedDefaultSettingsGatewayNotificationsRoute: typeof AuthorizedDefaultSettingsGatewayNotificationsRoute
@@ -1246,6 +1288,8 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
     AuthorizedDefaultAclEditDestinationRoute,
   AuthorizedDefaultAclEditRuleRoute: AuthorizedDefaultAclEditRuleRoute,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
+  AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
+  AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
   AuthorizedDefaultSettingsClientRoute: AuthorizedDefaultSettingsClientRoute,
   AuthorizedDefaultSettingsEditOpenidRoute:
     AuthorizedDefaultSettingsEditOpenidRoute,
