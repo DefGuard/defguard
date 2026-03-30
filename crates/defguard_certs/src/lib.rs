@@ -1,12 +1,12 @@
 use std::str::FromStr;
 
 use base64::{Engine, prelude::BASE64_STANDARD};
+use chrono::NaiveDateTime;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
     ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
 };
 use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
-use sqlx::types::chrono::NaiveDateTime;
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 use x509_parser::parse_x509_certificate;
