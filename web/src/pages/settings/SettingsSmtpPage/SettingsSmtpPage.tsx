@@ -185,7 +185,11 @@ const Content = ({ settings }: { settings: Settings }) => {
         <EvenSplit>
           <form.AppField name="smtp_server">
             {(field) => (
-              <field.FormInput required label={m.settings_smtp_label_server_address()} />
+              <field.FormInput
+                required
+                label={m.settings_smtp_label_server_address()}
+                helper={m.settings_smtp_helper_server_address()}
+              />
             )}
           </form.AppField>
           <form.AppField name="smtp_port">
@@ -193,6 +197,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormInput
                 required
                 label={m.settings_smtp_label_server_port()}
+                helper={m.settings_smtp_helper_server_port()}
                 type="number"
               />
             )}
@@ -202,13 +207,17 @@ const Content = ({ settings }: { settings: Settings }) => {
         <EvenSplit>
           <form.AppField name="smtp_user">
             {(field) => (
-              <field.FormInput label={m.settings_smtp_label_server_username()} />
+              <field.FormInput
+                label={m.settings_smtp_label_server_username()}
+                helper={m.settings_smtp_helper_server_username()}
+              />
             )}
           </form.AppField>
           <form.AppField name="smtp_password">
             {(field) => (
               <field.FormInput
                 label={m.settings_smtp_label_server_password()}
+                helper={m.settings_smtp_helper_server_password()}
                 type="password"
               />
             )}
@@ -221,6 +230,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormInput
                 required
                 label={m.settings_smtp_label_sender_email_address()}
+                helper={m.settings_smtp_helper_sender_email_address()}
               />
             )}
           </form.AppField>
@@ -229,6 +239,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 options={encryptionSelectOptions}
                 label={m.settings_smtp_label_encryption()}
+                helper={m.settings_smtp_helper_encryption()}
                 required
               />
             )}

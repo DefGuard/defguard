@@ -120,7 +120,7 @@ export const GroupsTable = ({ groups, users }: Props) => {
                 openModal(ModalName.ConfirmAction, {
                   title: m.modal_delete_group_title(),
                   contentMd: m.modal_delete_group_body({ name: rowData.name }),
-                  actionPromise: () => api.group.deleteGroup(rowData.name),
+                  actionPromise: () => api.group.deleteGroup(rowData.id),
                   invalidateKeys: [['group'], ['group-info']],
                   submitProps: { text: m.controls_delete(), variant: 'critical' },
                   onSuccess: () => Snackbar.default(m.modal_delete_group_success()),

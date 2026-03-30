@@ -103,7 +103,6 @@ import type {
   UserChangePasswordRequest,
   UserDevice,
   UserProfileResponse,
-  UsersListItem,
   ValidateDeviceIpsRequest,
   ValidateIpAssignmentRequest,
   WebauthnLoginStartResponse,
@@ -114,19 +113,6 @@ import type {
 } from './types';
 
 const api = {
-  getUsersOverview: async (): Promise<UsersListItem[]> => {
-    const users = await api.user.getUsers();
-    const res: UsersListItem[] = [];
-    for (const user of users) {
-      const { data: profile } = await api.user.getUser(user.username);
-      res.push({
-        ...user,
-        name: `${user.first_name} ${user.last_name}`,
-        devices: profile.devices,
-      });
-    }
-    return res;
-  },
   initial_setup: {
     createCA: (data: CreateCARequest) => client.post('/initial_setup/ca', data),
     getCA: () => client.get<GetCAResponse>('/initial_setup/ca'),
@@ -168,9 +154,8 @@ const api = {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),
     getGroups: () => fetchAllPages<string>('/group'),
     getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
-    editGroup: ({ originalName, ...data }: EditGroupRequest) =>
-      client.put(`/group/${originalName ?? data.name}`, data),
-    deleteGroup: (name: string) => client.delete(`/group/${name}`),
+    editGroup: ({ id, ...data }: EditGroupRequest) => client.put(`/group/${id}`, data),
+    deleteGroup: (id: number) => client.delete(`/group/${id}`),
     addUsersToGroups: (data: AddUsersToGroupsRequest) =>
       client.post(`/groups-assign`, data),
   },

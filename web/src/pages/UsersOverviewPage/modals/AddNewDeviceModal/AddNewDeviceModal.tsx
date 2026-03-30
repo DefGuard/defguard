@@ -186,7 +186,13 @@ const EnrollmentChoice = ({
             <Fold open={selected === 'email'}>
               <SizedBox height={ThemeSpacing.Lg} />
               <form.AppField name="email">
-                {(field) => <field.FormInput label={m.form_label_email()} required />}
+                {(field) => (
+                  <field.FormInput
+                    label={m.form_label_email()}
+                    required
+                    helper={m.form_helper_email()}
+                  />
+                )}
               </form.AppField>
             </Fold>
           </SectionSelect>

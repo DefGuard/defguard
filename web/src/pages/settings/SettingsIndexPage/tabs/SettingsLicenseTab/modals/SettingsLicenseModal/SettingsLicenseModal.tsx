@@ -200,6 +200,7 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
               placeholder={m.settings_license_enter_key_title()}
               label={m.settings_license_key_title()}
               maxHeight={300}
+              helper={m.settings_license_helper_key()}
             />
           )}
         </form.AppField>

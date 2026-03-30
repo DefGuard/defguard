@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\" FROM oauth2authorizedapp JOIN oauth2client ON oauth2client.id = oauth2authorizedapp.oauth2client_id WHERE oauth2authorizedapp.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "oauth2client_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "oauth2client_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "46b60b1660a1f7988de5652f980b6f6472f272c7d0638dde33e311e898c5903b"
+}

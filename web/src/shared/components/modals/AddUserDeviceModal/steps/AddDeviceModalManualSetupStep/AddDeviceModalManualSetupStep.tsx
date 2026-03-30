@@ -44,7 +44,7 @@ const getFormSchema = (deviceNames: string[]) =>
         if (!result.success) {
           ctx.addIssue({
             code: 'custom',
-            message: result.error.message,
+            message: result.error.issues[0]?.message ?? m.form_error_required(),
             continue: false,
             path: ['publicKey'],
           });
@@ -151,7 +151,13 @@ export const AddDeviceModalManualSetupStep = () => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput label={m.form_label_device_name()} required />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_device_name()}
+                helper={m.form_helper_device_name()}
+                required
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl3} />
           <div className="choice">
@@ -219,7 +225,13 @@ const PublicKeyField = withForm({
       <>
         <SizedBox height={ThemeSpacing.Xl3} />
         <form.AppField name="publicKey">
-          {(field) => <field.FormInput label={m.form_label_public_key()} required />}
+          {(field) => (
+            <field.FormInput
+              label={m.form_label_public_key()}
+              helper={m.form_helper_public_key()}
+              required
+            />
+          )}
         </form.AppField>
       </>
     );

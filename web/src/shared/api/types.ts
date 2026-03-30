@@ -29,6 +29,7 @@ export interface SessionInfo {
   is_admin: boolean;
   // if it's not null then wizard is in progress / complete = false
   active_wizard: ActiveWizardValue | null;
+  username: string | null;
 }
 
 export interface GatewayTokenResponse {
@@ -166,13 +167,8 @@ export interface GroupInfo {
   is_admin: boolean;
 }
 
-export interface UsersListItem extends User {
-  name: string;
-  devices: Device[];
-}
-
 export interface EditGroupRequest extends CreateGroupRequest {
-  originalName?: string;
+  id: number;
 }
 
 export interface CreateGroupRequest {
@@ -201,6 +197,7 @@ export interface User {
   username: string;
   first_name: string;
   last_name: string;
+  name: string;
   mfa_method: UserMfaMethodValue;
   mfa_enabled: boolean;
   totp_enabled: boolean;
@@ -213,6 +210,7 @@ export interface User {
   ldap_pass_requires_change: boolean;
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
+  devices: Device[];
 }
 
 export interface LoginRequest {

@@ -141,7 +141,11 @@ const ModalContent = () => {
         <form.AppForm>
           <form.AppField name="code">
             {(field) => (
-              <field.FormInput label={m.form_label_verification_code()} required />
+              <field.FormInput
+                label={m.form_label_verification_code()}
+                helper={m.form_helper_verification_code()}
+                required
+              />
             )}
           </form.AppField>
         </form.AppForm>

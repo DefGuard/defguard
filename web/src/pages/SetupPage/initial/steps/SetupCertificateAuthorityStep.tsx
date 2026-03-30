@@ -208,6 +208,7 @@ export const SetupCertificateAuthorityStep = () => {
                   required
                   label={m.initial_setup_ca_label_validity()}
                   options={validityOptions}
+                  helper={m.initial_setup_ca_helper_validity_period_years()}
                 />
               )}
             </form.AppField>
