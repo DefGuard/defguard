@@ -153,10 +153,8 @@ impl Certificates {
     {
         Ok(Self::get(executor).await?.unwrap_or_default())
     }
-}
 
-/// Returns (cert_pem, key_pem) if a cert is configured, None if the proxy runs plain HTTP.
-impl Certificates {
+    /// Returns (cert_pem, key_pem) if a cert is configured, None if the proxy runs plain HTTP.
     #[must_use]
     pub fn proxy_http_cert_pair(&self) -> Option<(&str, &str)> {
         match self.proxy_http_cert_source {

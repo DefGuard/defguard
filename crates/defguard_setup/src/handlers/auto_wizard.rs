@@ -83,13 +83,12 @@ pub struct CertInfoResponse {
     pub not_after: String,
 }
 
-/// Updates internal URL settings and configures SSL for the core web server.
-pub async fn set_internal_url_settings(
-    _: AdminOrSetupRole,
-    Extension(pool): Extension<PgPool>,
-    Json(config): Json<InternalUrlSettingsConfig>,
-) -> ApiResult {
-    info!("Applying Auto-adoption wizard internal URL settings");
+/// Core logic for applying internal URL settings and configuring SSL for the core web server.
+/// Returns the cert info if a certificate was generated/uploaded, `None` for `ssl_type = None`.
+pub(crate) async fn apply_internal_url_settings(
+    pool: &PgPool,
+    config: InternalUrlSettingsConfig,
+) -> Result<Option<CertInfoResponse>, WebError> {
     debug!(
         "Internal URL settings received: defguard_url={}, ssl_type={:?}",
         config.defguard_url, config.ssl_type,
@@ -97,9 +96,9 @@ pub async fn set_internal_url_settings(
 
     let mut settings = defguard_common::db::models::Settings::get_current_settings();
     settings.defguard_url = config.defguard_url.clone();
-    update_current_settings(&pool, settings).await?;
+    update_current_settings(pool, settings).await?;
 
-    let mut certs = Certificates::get_or_default(&pool)
+    let mut certs = Certificates::get_or_default(pool)
         .await
         .map_err(WebError::from)?;
 
@@ -109,7 +108,7 @@ pub async fn set_internal_url_settings(
             certs.core_http_cert_pem = None;
             certs.core_http_cert_key_pem = None;
             certs.core_http_cert_expiry = None;
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
             None
         }
         InternalSslType::DefguardCa => {
@@ -150,7 +149,7 @@ pub async fn set_internal_url_settings(
             certs.core_http_cert_pem = Some(cert_pem);
             certs.core_http_cert_key_pem = Some(key_pem);
             certs.core_http_cert_expiry = Some(expiry);
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
@@ -176,7 +175,7 @@ pub async fn set_internal_url_settings(
             certs.core_http_cert_pem = Some(cert_pem_str);
             certs.core_http_cert_key_pem = Some(key_pem_str);
             certs.core_http_cert_expiry = Some(expiry);
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name.clone(),
@@ -187,13 +186,26 @@ pub async fn set_internal_url_settings(
         }
     };
 
+    Ok(cert_info)
+}
+
+/// Updates internal URL settings and configures SSL for the core web server.
+pub async fn set_internal_url_settings(
+    _: AdminOrSetupRole,
+    Extension(pool): Extension<PgPool>,
+    Json(config): Json<InternalUrlSettingsConfig>,
+) -> ApiResult {
+    info!("Applying Auto-adoption wizard internal URL settings");
+    let ssl_type = config.ssl_type.clone();
+    let cert_info = apply_internal_url_settings(&pool, config).await?;
+
     // When ssl_type is None, there is no SSL config step to complete; skip straight to the
     // next step in each wizard.
-    let auto_next = match config.ssl_type {
+    let auto_next = match ssl_type {
         InternalSslType::None => AutoAdoptionWizardStep::ExternalUrlSettings,
         _ => AutoAdoptionWizardStep::InternalUrlSslConfig,
     };
-    let initial_next = match config.ssl_type {
+    let initial_next = match ssl_type {
         InternalSslType::None => InitialSetupStep::ExternalUrlSettings,
         _ => InitialSetupStep::InternalUrlSslConfig,
     };
@@ -260,6 +272,35 @@ pub async fn set_external_url_settings(
     Json(config): Json<ExternalUrlSettingsConfig>,
 ) -> ApiResult {
     info!("Applying Auto-adoption wizard external URL settings");
+    let ssl_type = config.ssl_type.clone();
+    let cert_info = apply_external_url_settings(&pool, config).await?;
+
+    // When ssl_type is None, there is no SSL config step to complete; skip straight to the
+    // next step in each wizard.
+    let auto_next = match ssl_type {
+        ExternalSslType::None => AutoAdoptionWizardStep::VpnSettings,
+        _ => AutoAdoptionWizardStep::ExternalUrlSslConfig,
+    };
+    let initial_next = match ssl_type {
+        ExternalSslType::None => InitialSetupStep::Confirmation,
+        _ => InitialSetupStep::ExternalUrlSslConfig,
+    };
+    advance_auto_wizard_to_step(&pool, auto_next).await?;
+    advance_initial_wizard_to_step(&pool, initial_next).await?;
+
+    info!("Auto-adoption wizard external URL settings applied");
+    Ok(ApiResponse::new(
+        json!({ "cert_info": cert_info }),
+        StatusCode::CREATED,
+    ))
+}
+
+/// Core logic for applying external URL settings and configuring SSL for the proxy web server.
+/// Returns the cert info if a certificate was generated/uploaded, `None` otherwise.
+pub(crate) async fn apply_external_url_settings(
+    pool: &PgPool,
+    config: ExternalUrlSettingsConfig,
+) -> Result<Option<CertInfoResponse>, WebError> {
     debug!(
         "External URL settings received: public_proxy_url={}, ssl_type={:?}",
         config.public_proxy_url, config.ssl_type,
@@ -267,9 +308,9 @@ pub async fn set_external_url_settings(
 
     let mut settings = defguard_common::db::models::Settings::get_current_settings();
     settings.public_proxy_url = config.public_proxy_url.clone();
-    update_current_settings(&pool, settings).await?;
+    update_current_settings(pool, settings).await?;
 
-    let mut certs = Certificates::get_or_default(&pool)
+    let mut certs = Certificates::get_or_default(pool)
         .await
         .map_err(WebError::from)?;
 
@@ -279,7 +320,7 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_pem = None;
             certs.proxy_http_cert_key_pem = None;
             certs.proxy_http_cert_expiry = None;
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
             None
         }
         ExternalSslType::LetsEncrypt => {
@@ -292,7 +333,7 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_pem = None;
             certs.proxy_http_cert_key_pem = None;
             certs.proxy_http_cert_expiry = None;
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
             None
         }
         ExternalSslType::DefguardCa => {
@@ -331,7 +372,7 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_pem = Some(cert_pem);
             certs.proxy_http_cert_key_pem = Some(key_pem);
             certs.proxy_http_cert_expiry = Some(expiry);
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
@@ -357,7 +398,7 @@ pub async fn set_external_url_settings(
             certs.proxy_http_cert_pem = Some(cert_pem_str);
             certs.proxy_http_cert_key_pem = Some(key_pem_str);
             certs.proxy_http_cert_expiry = Some(expiry);
-            certs.save(&pool).await.map_err(WebError::from)?;
+            certs.save(pool).await.map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name.clone(),
@@ -368,24 +409,7 @@ pub async fn set_external_url_settings(
         }
     };
 
-    // When ssl_type is None, there is no SSL config step to complete; skip straight to the
-    // next step in each wizard.
-    let auto_next = match config.ssl_type {
-        ExternalSslType::None => AutoAdoptionWizardStep::VpnSettings,
-        _ => AutoAdoptionWizardStep::ExternalUrlSslConfig,
-    };
-    let initial_next = match config.ssl_type {
-        ExternalSslType::None => InitialSetupStep::Confirmation,
-        _ => InitialSetupStep::ExternalUrlSslConfig,
-    };
-    advance_auto_wizard_to_step(&pool, auto_next).await?;
-    advance_initial_wizard_to_step(&pool, initial_next).await?;
-
-    info!("Auto-adoption wizard external URL settings applied");
-    Ok(ApiResponse::new(
-        json!({ "cert_info": cert_info }),
-        StatusCode::CREATED,
-    ))
+    Ok(cert_info)
 }
 
 /// Returns external SSL certificate info (for the "Download CA certificate" step).

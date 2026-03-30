@@ -25,7 +25,7 @@ use defguard_core::{
             mfa_enable, recovery_code, request_email_mfa_code, totp_code, totp_enable, totp_secret,
             webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
         },
-        component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream},
+        component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream, stream_proxy_acme},
         resource_display::get_locations_display,
         session_info::get_session_info,
         settings::{get_settings, get_settings_essentials, patch_settings},
@@ -44,8 +44,12 @@ use tokio::{
 use tracing::{info, instrument};
 
 use crate::handlers::{
+    auto_wizard::{get_external_ssl_info, get_internal_ssl_info},
     initial_wizard::{create_ca, get_ca, upload_ca},
-    migration::{finish_setup, get_migration_state, update_migration_state},
+    migration::{
+        finish_setup, get_migration_state, migration_set_external_url_settings,
+        migration_set_internal_url_settings, update_migration_state,
+    },
 };
 
 /// FIXME: This is a workaround which enables us to reuse the same API handlers
@@ -100,6 +104,7 @@ pub fn build_migration_webapp(
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/settings", get(get_settings).patch(patch_settings))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+                .route("/proxy/acme/stream", get(stream_proxy_acme))
                 .route("/auth", post(authenticate))
                 .route("/auth/logout", post(logout))
                 .route("/auth/mfa", put(mfa_enable).delete(mfa_disable))
@@ -133,7 +138,15 @@ pub fn build_migration_webapp(
                         )
                         .route("/ca", post(create_ca).get(get_ca))
                         .route("/ca/upload", post(upload_ca))
-                        .route("/finish", post(finish_setup)),
+                        .route("/finish", post(finish_setup))
+                        .route(
+                            "/internal_url_settings",
+                            post(migration_set_internal_url_settings).get(get_internal_ssl_info),
+                        )
+                        .route(
+                            "/external_url_settings",
+                            post(migration_set_external_url_settings).get(get_external_ssl_info),
+                        ),
                 ),
         )
         .nest(

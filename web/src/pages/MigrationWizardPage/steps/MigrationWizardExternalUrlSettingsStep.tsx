@@ -31,7 +31,7 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
   });
 
   const { mutate, isPending } = useMutation({
-    mutationFn: api.initial_setup.setAutoAdoptionExternalUrlSettings,
+    mutationFn: api.migration.setExternalUrlSettings,
     meta: { invalidate: ['setupStatus'] },
     onSuccess: (response) => {
       useMigrationWizardStore.setState({

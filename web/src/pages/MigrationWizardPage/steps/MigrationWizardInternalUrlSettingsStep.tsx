@@ -39,7 +39,7 @@ export const MigrationWizardInternalUrlSettingsStep = () => {
   });
 
   const { mutate, isPending } = useMutation({
-    mutationFn: api.initial_setup.setAutoAdoptionInternalUrlSettings,
+    mutationFn: api.migration.setInternalUrlSettings,
     meta: { invalidate: ['setupStatus'] },
     onSuccess: (response) => {
       useMigrationWizardStore.setState({

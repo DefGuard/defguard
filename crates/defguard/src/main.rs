@@ -150,7 +150,6 @@ async fn main() -> Result<(), anyhow::Error> {
                     }
                 }
 
-                Settings::initialize_runtime_defaults(&pool).await?;
                 config.initialize_post_settings();
                 SERVER_CONFIG
                     .set(config.clone())

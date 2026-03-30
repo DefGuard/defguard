@@ -30,7 +30,7 @@ export const SetupConfirmationStep = () => {
       setIsSubmitting(true);
       useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
-      await new Promise((r) => setTimeout(r, 5000));
+      await new Promise((r) => setTimeout(r, 2000));
       redirectAfterFinish('/add-location');
     } catch (error) {
       console.error('Failed to finish setup flow:', error);
@@ -45,7 +45,7 @@ export const SetupConfirmationStep = () => {
       setIsSubmitting(true);
       useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
-      await new Promise((r) => setTimeout(r, 5000));
+      await new Promise((r) => setTimeout(r, 2000));
       redirectAfterFinish('/vpn-overview');
     } catch (error) {
       console.error('Failed to finish setup flow:', error);

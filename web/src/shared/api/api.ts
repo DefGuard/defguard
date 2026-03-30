@@ -559,6 +559,20 @@ const api = {
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },
+    setInternalUrlSettings: (data: SetAutoAdoptionInternalUrlSettingsRequest) =>
+      client.post<SetAutoAdoptionInternalUrlSettingsResponse>(
+        '/migration/internal_url_settings',
+        data,
+      ),
+    getInternalSslInfo: () =>
+      client.get<GetInternalSslInfoResponse>('/migration/internal_url_settings'),
+    setExternalUrlSettings: (data: SetAutoAdoptionExternalUrlSettingsRequest) =>
+      client.post<SetAutoAdoptionExternalUrlSettingsResponse>(
+        '/migration/external_url_settings',
+        data,
+      ),
+    getExternalSslInfo: () =>
+      client.get<GetExternalSslInfoResponse>('/migration/external_url_settings'),
   },
   checkLicense: (data: { license: string }) =>
     client.post<LicenseCheckResponse>('/license/check', data),

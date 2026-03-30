@@ -29,7 +29,7 @@ export const AutoAdoptionSummaryStep = () => {
       await finishSetup();
       const base = defguardUrl ? defguardUrl.replace(/\/$/, '') : window.location.origin;
       window.onbeforeunload = null;
-      await new Promise((r) => setTimeout(r, 5000));
+      await new Promise((r) => setTimeout(r, 2000));
       useAutoAdoptionSetupWizardStore.getState().reset();
       window.location.replace(`${base}/vpn-overview`);
     } catch (error) {
@@ -74,7 +74,9 @@ export const AutoAdoptionSummaryStep = () => {
       noteText={m.initial_setup_auto_adoption_summary_note()}
       ports={[
         m.initial_setup_auto_adoption_summary_ports_http_https(),
-        m.initial_setup_auto_adoption_summary_ports_wireguard({ port: wireguardPort }),
+        m.initial_setup_auto_adoption_summary_ports_wireguard({
+          port: wireguardPort,
+        }),
       ]}
       encourageText={m.initial_setup_auto_adoption_summary_encourage()}
       recommendations={recommendations}

@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS certificates (
+CREATE TABLE certificates (
     id                          INTEGER PRIMARY KEY DEFAULT 1,
     -- Core CA
     ca_cert_der                 BYTEA,
