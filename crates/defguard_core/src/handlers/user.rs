@@ -96,18 +96,6 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
 
     Ok(())
 }
-/// Check whether group name contains forbidden characters
-pub fn validate_group_name(group_name: &str) -> bool {
-    const GROUP_NAME_FORBIDDEN_CHARS: &[char] = &['/', '\\', '?', '#', '%', '\0'];
-
-    for char in group_name.chars() {
-        if GROUP_NAME_FORBIDDEN_CHARS.contains(&char) {
-            return false;
-        }
-    }
-    true
-}
-
 pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     if !(8..=128).contains(&password.len()) {
         return Err(WebError::Serialization("Incorrect password length".into()));

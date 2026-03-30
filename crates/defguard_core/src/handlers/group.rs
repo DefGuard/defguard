@@ -25,10 +25,7 @@ use crate::{
     },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{
-        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
-        user::validate_group_name,
-    },
+    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
     hashset,
     location_management::sync_all_networks,
 };
@@ -268,22 +265,22 @@ pub(crate) async fn get_group(
     _admin: AdminRole,
     _session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(name): Path<String>,
+    Path(id): Path<i64>,
 ) -> ApiResult {
-    debug!("Retrieving group {name}");
-    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+    debug!("Retrieving group {id}");
+    if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
         let members = group.member_usernames(&appstate.pool).await?;
         let vpn_locations = group.allowed_vpn_locations(&appstate.pool).await?;
         let is_admin = group
             .has_permission(&appstate.pool, Permission::IsAdmin)
             .await?;
-        info!("Retrieved group {name}");
+        info!("Retrieved group {id}");
         Ok(ApiResponse::json(
-            GroupInfo::new(group.id, name, members, vpn_locations, is_admin),
+            GroupInfo::new(group.id, group.name, members, vpn_locations, is_admin),
             StatusCode::OK,
         ))
     } else {
-        let msg = format!("Group {name} not found");
+        let msg = format!("Group {id} not found");
         error!(msg);
         Err(WebError::ObjectNotFound(msg))
     }
@@ -330,12 +327,7 @@ pub(crate) async fn create_group(
 
     let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
-    if !validate_group_name(&group_info.name) {
-        error!("Group name contains forbidden characters");
-        return Err(WebError::BadRequest(
-            "Group name contains forbidden characters".into(),
-        ));
-    }
+
     // FIXME: conflicts must not return internal server error (500).
     let group = Group::new(&group_info.name).save(&appstate.pool).await?;
     group
@@ -414,12 +406,12 @@ pub(crate) async fn modify_group(
     _role: AdminRole,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path(name): Path<String>,
+    Path(id): Path<i64>,
     Json(group_info): Json<EditGroupInfo>,
 ) -> ApiResult {
-    debug!("Modifying group {}", group_info.name);
-    let Some(mut group) = Group::find_by_name(&appstate.pool, &name).await? else {
-        let msg = format!("Group {name} not found");
+    debug!("Modifying group {id}");
+    let Some(mut group) = Group::find_by_id(&appstate.pool, id).await? else {
+        let msg = format!("Group {id} not found");
         error!(msg);
         return Err(WebError::ObjectNotFound(msg));
     };
@@ -430,12 +422,6 @@ pub(crate) async fn modify_group(
     let mut remove_from_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
 
-    if !validate_group_name(&group_info.name) {
-        error!("Group name contains forbidden characters");
-        return Err(WebError::BadRequest(
-            "Group name contains forbidden characters".into(),
-        ));
-    }
     // Rename only when needed.
     //
     if group.name != group_info.name {
@@ -451,7 +437,7 @@ pub(crate) async fn modify_group(
         if admin_groups_count == 1 {
             error!(
                 "Can't remove admin permissions from the last admin group: {}",
-                name
+                group.name
             );
             return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
         }
@@ -504,8 +490,8 @@ pub(crate) async fn modify_group(
 
     ldap_add_users_to_groups(add_to_ldap_groups, &appstate.pool).await;
     ldap_remove_users_from_groups(remove_from_ldap_groups, &appstate.pool).await;
-    if name != group_info.name {
-        ldap_modify_group(&name, &group, &appstate.pool).await;
+    if before.name != group.name {
+        ldap_modify_group(&before.name, &group, &appstate.pool).await;
     }
 
     let affected_users = members
@@ -576,35 +562,38 @@ pub(crate) async fn delete_group(
     session: SessionInfo,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path(name): Path<String>,
+    Path(id): Path<i64>,
 ) -> ApiResult {
-    debug!("User {} deletes group {name}", &session.user.username);
-    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+    debug!("User {} deletes group {id}", &session.user.username);
+    if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
         // Prevent removing the last admin group
         if group.is_admin {
             let admin_group_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
                 .await?
                 .len();
             if admin_group_count == 1 {
-                error!("Cannot delete the last admin group: {name}");
+                error!("Cannot delete the last admin group: {}", group.name);
                 return Ok(ApiResponse::with_status(StatusCode::BAD_REQUEST));
             }
         }
         group.clone().delete(&appstate.pool).await?;
-        ldap_delete_group(&name, &appstate.pool).await;
+        ldap_delete_group(&group.name, &appstate.pool).await;
 
         // sync allowed devices for all locations
         let mut conn = appstate.pool.acquire().await?;
         sync_all_networks(&mut conn, &appstate.wireguard_tx).await?;
 
-        info!("User {} deleted group {name}", &session.user.username);
+        info!(
+            "User {} deleted group {}",
+            &session.user.username, group.name
+        );
         appstate.emit_event(ApiEvent {
             context,
             event: Box::new(ApiEventType::GroupRemoved { group }),
         })?;
         Ok(ApiResponse::default())
     } else {
-        let msg = format!("Failed to find group {name}");
+        let msg = format!("Failed to find group {id}");
         error!(msg);
         Err(WebError::ObjectNotFound(msg))
     }
@@ -639,10 +628,10 @@ pub(crate) async fn add_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path(name): Path<String>,
+    Path(id): Path<i64>,
     Json(data): Json<Username>,
 ) -> ApiResult {
-    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+    if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
         if let Some(mut user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
@@ -664,7 +653,7 @@ pub(crate) async fn add_group_member(
             )))
         }
     } else {
-        let msg = format!("Group {name} not found");
+        let msg = format!("Group {id} not found");
         error!(msg);
         Err(WebError::ObjectNotFound(msg))
     }
@@ -699,9 +688,9 @@ pub(crate) async fn remove_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path((name, username)): Path<(String, String)>,
+    Path((id, username)): Path<(i64, String)>,
 ) -> ApiResult {
-    if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+    if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
         if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
             debug!(
                 "Removing user: {} from group: {}",
@@ -725,7 +714,7 @@ pub(crate) async fn remove_group_member(
             Err(WebError::ObjectNotFound(msg))
         }
     } else {
-        error!("Group {name} not found");
-        Err(WebError::ObjectNotFound(format!("Group {name} not found",)))
+        error!("Group {id} not found");
+        Err(WebError::ObjectNotFound(format!("Group {id} not found")))
     }
 }

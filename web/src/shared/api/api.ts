@@ -168,9 +168,8 @@ const api = {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),
     getGroups: () => fetchAllPages<string>('/group'),
     getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
-    editGroup: ({ originalName, ...data }: EditGroupRequest) =>
-      client.put(`/group/${originalName ?? data.name}`, data),
-    deleteGroup: (name: string) => client.delete(`/group/${name}`),
+    editGroup: ({ id, ...data }: EditGroupRequest) => client.put(`/group/${id}`, data),
+    deleteGroup: (id: number) => client.delete(`/group/${id}`),
     addUsersToGroups: (data: AddUsersToGroupsRequest) =>
       client.post(`/groups-assign`, data),
   },

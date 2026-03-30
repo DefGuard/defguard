@@ -173,7 +173,7 @@ export interface UsersListItem extends User {
 }
 
 export interface EditGroupRequest extends CreateGroupRequest {
-  originalName?: string;
+  id: number;
 }
 
 export interface CreateGroupRequest {
