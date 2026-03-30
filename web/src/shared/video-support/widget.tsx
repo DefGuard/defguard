@@ -55,13 +55,14 @@ interface VideoOverlayProps {
   video: VideoSupport | null;
   isOpen: boolean;
   onClose: () => void;
+  afterClose: () => void;
 }
 
-const VideoOverlay = ({ video, isOpen, onClose }: VideoOverlayProps) => (
+const VideoOverlay = ({ video, isOpen, onClose, afterClose }: VideoOverlayProps) => (
   <ModalFoundation
     isOpen={isOpen}
     contentClassName="video-support-modal-container"
-    afterClose={onClose}
+    afterClose={afterClose}
   >
     <IconButton icon="close" className="video-support-modal-close" onClick={onClose} />
     <div className="video-support-modal">
@@ -82,12 +83,14 @@ export const VideoSupportWidget = () => {
   const videos = useResolvedVideoSupport();
   const routeKey = useVideoSupportRouteKey();
   const [panelOpen, setPanelOpen] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoSupport | null>(null);
 
   // Reset UI state when the route changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: routeKey is the trigger, not used in body
   useEffect(() => {
     setPanelOpen(false);
+    setOverlayOpen(false);
     setSelectedVideo(null);
   }, [routeKey]);
 
@@ -95,6 +98,7 @@ export const VideoSupportWidget = () => {
 
   const handleCardClick = (video: VideoSupport) => {
     setSelectedVideo(video);
+    setOverlayOpen(true);
     setPanelOpen(false);
   };
 
@@ -134,8 +138,9 @@ export const VideoSupportWidget = () => {
 
       <VideoOverlay
         video={selectedVideo}
-        isOpen={selectedVideo !== null}
-        onClose={() => setSelectedVideo(null)}
+        isOpen={overlayOpen}
+        onClose={() => setOverlayOpen(false)}
+        afterClose={() => setSelectedVideo(null)}
       />
     </>
   );
