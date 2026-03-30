@@ -1,5 +1,6 @@
 import './style.scss';
 import { useEffect, useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { m } from '../../paraglide/messages';
 import { Icon } from '../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
@@ -22,7 +23,7 @@ const Thumbnail = ({ url, title }: ThumbnailProps) => {
 
   return (
     <div className="video-support-thumbnail">
-      {!loaded && <div className="skeleton" />}
+      {!loaded && <Skeleton width={106} height={60} />}
       <img
         src={url}
         alt={title}
