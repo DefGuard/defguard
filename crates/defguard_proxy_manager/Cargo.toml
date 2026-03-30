@@ -33,3 +33,4 @@ tracing.workspace = true
 
 [dev-dependencies]
 hyper-util = "0.1"
+ipnetwork.workspace = true

@@ -11,7 +11,7 @@ use std::{
 
 use defguard_common::db::{
     Id, NoId,
-    models::{proxy::Proxy, settings::initialize_current_settings},
+    models::{proxy::Proxy, settings::{Settings, initialize_current_settings}},
     setup_pool,
 };
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
@@ -367,6 +367,13 @@ impl HandlerTestContext {
         initialize_current_settings(&pool)
             .await
             .expect("failed to initialize global settings for proxy handler tests");
+        Settings::initialize_runtime_defaults(&pool)
+            .await
+            .expect("failed to initialize runtime default settings for proxy handler tests");
+        // Reload settings after runtime defaults have been applied.
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to reload settings after runtime defaults");
 
         let proxy = create_proxy(&pool).await;
 

@@ -1577,6 +1577,7 @@ dependencies = [
  "defguard_version",
  "hyper-rustls",
  "hyper-util",
+ "ipnetwork",
  "openidconnect",
  "reqwest",
  "semver",
