@@ -98,8 +98,7 @@ export const videoSupportQueryOptions = queryOptions({
     updateServiceClient
       .get<z.input<typeof mappingsSchema>>(videoSupportPath)
       .then((r) => parseVideoSupport(r.data)),
-  // Video support mappings don't change at runtime — fetch once per session.
-  // When migrating to a remote API, change this to an appropriate cache window.
+  // Mappings are version-tied and won't meaningfully change within a session.
   staleTime: Infinity,
   // Silent failure: if the fetch or parse fails, the widget simply won't appear.
   retry: false,
