@@ -99,6 +99,21 @@ pub enum SupportType {
     DirectEnterprise,
 }
 
+impl TryFrom<SupportTypeProto> for SupportType {
+    type Error = LicenseError;
+
+    fn try_from(value: SupportTypeProto) -> Result<Self, Self::Error> {
+        match value {
+            SupportTypeProto::Unspecified => Ok(Self::Unspecified),
+            SupportTypeProto::Free => Ok(Self::Free),
+            SupportTypeProto::Basic => Ok(Self::Basic),
+            SupportTypeProto::Direct => Ok(Self::Direct),
+            SupportTypeProto::BasicEnterprise => Ok(Self::BasicEnterprise),
+            SupportTypeProto::DirectEnterprise => Ok(Self::DirectEnterprise),
+        }
+    }
+}
+
 impl fmt::Display for LicenseTier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -183,23 +198,6 @@ impl License {
         }
     }
 
-    fn decode_support_type(value: i32) -> Result<SupportType, LicenseError> {
-        match SupportTypeProto::try_from(value) {
-            Ok(SupportTypeProto::Unspecified) => Ok(SupportType::Unspecified),
-            Ok(SupportTypeProto::Free) => Ok(SupportType::Free),
-            Ok(SupportTypeProto::Basic) => Ok(SupportType::Basic),
-            Ok(SupportTypeProto::Direct) => Ok(SupportType::Direct),
-            Ok(SupportTypeProto::BasicEnterprise) => Ok(SupportType::BasicEnterprise),
-            Ok(SupportTypeProto::DirectEnterprise) => Ok(SupportType::DirectEnterprise),
-            Err(err) => {
-                error!("Failed to read support type from license metadata: {err}");
-                Err(LicenseError::DecodeError(
-                    "Failed to decode support type metadata",
-                ))
-            }
-        }
-    }
-
     /// Deserialize the license object from a base64 encoded string.
     /// Also verifies the signature of the license
     pub(crate) fn from_base64(key: &str) -> Result<License, LicenseError> {
@@ -249,7 +247,12 @@ impl License {
                     }
                 };
 
-                let support_type = Self::decode_support_type(metadata.support_type)?;
+                let support_type = SupportTypeProto::try_from(metadata.support_type)
+                    .map_err(|err| {
+                        error!("Failed to read support type from license metadata: {err}");
+                        LicenseError::DecodeError("Failed to decode support type metadata")
+                    })
+                    .and_then(SupportType::try_from)?;
 
                 let license = License::new(
                     metadata.customer_id,
@@ -863,27 +866,27 @@ mod test {
     #[test]
     fn test_support_type_mapping() {
         assert_eq!(
-            License::decode_support_type(SupportTypeProto::Unspecified as i32).unwrap(),
+            SupportType::try_from(SupportTypeProto::Unspecified).unwrap(),
             SupportType::Unspecified
         );
         assert_eq!(
-            License::decode_support_type(SupportTypeProto::Free as i32).unwrap(),
+            SupportType::try_from(SupportTypeProto::Free).unwrap(),
             SupportType::Free
         );
         assert_eq!(
-            License::decode_support_type(SupportTypeProto::Basic as i32).unwrap(),
+            SupportType::try_from(SupportTypeProto::Basic).unwrap(),
             SupportType::Basic
         );
         assert_eq!(
-            License::decode_support_type(SupportTypeProto::Direct as i32).unwrap(),
+            SupportType::try_from(SupportTypeProto::Direct).unwrap(),
             SupportType::Direct
         );
         assert_eq!(
-            License::decode_support_type(SupportTypeProto::BasicEnterprise as i32).unwrap(),
+            SupportType::try_from(SupportTypeProto::BasicEnterprise).unwrap(),
             SupportType::BasicEnterprise
         );
         assert_eq!(
-            License::decode_support_type(SupportTypeProto::DirectEnterprise as i32).unwrap(),
+            SupportType::try_from(SupportTypeProto::DirectEnterprise).unwrap(),
             SupportType::DirectEnterprise
         );
     }
