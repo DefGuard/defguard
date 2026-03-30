@@ -256,7 +256,16 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
               <p>{m.acl_form_section_protocols_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField name="any_protocol">
+            <form.AppField
+              name="any_protocol"
+              listeners={{
+                onChange: ({ value, fieldApi }) => {
+                  if (value) {
+                    fieldApi.form.setFieldValue('protocols', new Set());
+                  }
+                },
+              }}
+            >
               {(field) => <field.FormToggle label={m.acl_destination_any_protocol()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_protocol}>
