@@ -18,7 +18,11 @@ import { MigrationWizardConfirmationStep } from './steps/MigrationWizardConfirma
 import { MigrationWizardEdgeAdoptionStep } from './steps/MigrationWizardEdgeAdoptionStep';
 import { MigrationWizardEdgeComponentStep } from './steps/MigrationWizardEdgeComponentStep';
 import { MigrationWizardEdgeDeploymentStepAdapter } from './steps/MigrationWizardEdgeDeploymentStepAdapter';
+import { MigrationWizardExternalUrlSettingsStep } from './steps/MigrationWizardExternalUrlSettingsStep';
+import { MigrationWizardExternalUrlSslConfigStep } from './steps/MigrationWizardExternalUrlSslConfigStep';
 import { MigrationWizardGeneralConfigurationStep } from './steps/MigrationWizardGeneralConfigurationStep';
+import { MigrationWizardInternalUrlSettingsStep } from './steps/MigrationWizardInternalUrlSettingsStep';
+import { MigrationWizardInternalUrlSslConfigStep } from './steps/MigrationWizardInternalUrlSslConfigStep';
 import { MigrationWizardStart } from './steps/MigrationWizardStart';
 import { useMigrationWizardStore } from './store/useMigrationWizardStore';
 import { MigrationWizardStep, type MigrationWizardStepValue } from './types';
@@ -81,9 +85,33 @@ export const MigrationWizardPage = () => {
         label: m.migration_wizard_step_edge_adoption_label(),
         description: m.migration_wizard_step_edge_adoption_description(),
       },
+      internalUrlSettings: {
+        id: MigrationWizardStep.InternalUrlSettings,
+        order: 7,
+        label: m.migration_wizard_step_internal_url_settings_label(),
+        description: m.migration_wizard_step_internal_url_settings_description(),
+      },
+      internalUrlSslConfig: {
+        id: MigrationWizardStep.InternalUrlSslConfig,
+        order: 8,
+        label: m.migration_wizard_step_internal_url_ssl_config_label(),
+        description: m.migration_wizard_step_internal_url_ssl_config_description(),
+      },
+      externalUrlSettings: {
+        id: MigrationWizardStep.ExternalUrlSettings,
+        order: 9,
+        label: m.migration_wizard_step_external_url_settings_label(),
+        description: m.migration_wizard_step_external_url_settings_description(),
+      },
+      externalUrlSslConfig: {
+        id: MigrationWizardStep.ExternalUrlSslConfig,
+        order: 10,
+        label: m.migration_wizard_step_external_url_ssl_config_label(),
+        description: m.migration_wizard_step_external_url_ssl_config_description(),
+      },
       confirmation: {
         id: MigrationWizardStep.Confirmation,
-        order: 7,
+        order: 11,
         label: m.migration_wizard_step_confirmation_label(),
         description: m.migration_wizard_step_confirmation_description(),
       },
@@ -94,6 +122,10 @@ export const MigrationWizardPage = () => {
   const stepsComponents = useMemo(
     (): Record<MigrationWizardStepValue, ReactNode> => ({
       general: <MigrationWizardGeneralConfigurationStep />,
+      internalUrlSettings: <MigrationWizardInternalUrlSettingsStep />,
+      internalUrlSslConfig: <MigrationWizardInternalUrlSslConfigStep />,
+      externalUrlSettings: <MigrationWizardExternalUrlSettingsStep />,
+      externalUrlSslConfig: <MigrationWizardExternalUrlSslConfigStep />,
       ca: <MigrationWizardCAStep />,
       caSummary: <MigrationWizardCASummaryStep />,
       edge: <MigrationWizardEdgeComponentStep />,
@@ -119,6 +151,9 @@ export const MigrationWizardPage = () => {
         defguard_url: settings.defguard_url,
         public_proxy_url: settings.public_proxy_url,
         ip_or_domain: settings.public_proxy_url,
+        default_admin_group_name: settings.default_admin_group_name,
+        authentication_period_days: settings.authentication_period_days,
+        mfa_code_timeout_seconds: settings.mfa_code_timeout_seconds,
       });
     }
   }, [settings]);

@@ -24,6 +24,7 @@ defguard_setup = { workspace = true }
 anyhow = { workspace = true }
 bytes = { workspace = true }
 dotenvy = "0.15"
+rustls = { workspace = true }
 secrecy = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

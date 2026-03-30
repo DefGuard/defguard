@@ -30,39 +30,37 @@ export const AutoAdoptionMfaSetupStep = () => {
 
   return (
     <WizardCard>
-      <div className="auto-adoption-mfa-step">
-        <InteractiveBlock
-          value={mfaMode === LocationMfaMode.Disabled}
-          onClick={() => setMfaMode(LocationMfaMode.Disabled)}
-          title={m.initial_setup_auto_adoption_mfa_option_disabled_title()}
-        />
-        <SizedBox height={ThemeSpacing.Xl} />
-        <InteractiveBlock
-          value={mfaMode === LocationMfaMode.Internal}
-          onClick={() => setMfaMode(LocationMfaMode.Internal)}
-          title={m.initial_setup_auto_adoption_mfa_option_internal_title()}
-          content={m.initial_setup_auto_adoption_mfa_option_internal_content()}
-        >
-          {mfaMode === LocationMfaMode.Internal && (
-            <>
-              <SizedBox height={ThemeSpacing.Sm} />
-              <InfoBanner
-                variant="warning"
-                icon="info-outlined"
-                text={m.initial_setup_auto_adoption_mfa_option_internal_warning()}
-              />
-            </>
-          )}
-        </InteractiveBlock>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <InteractiveBlock
-          value={false}
-          disabled
-          title={m.initial_setup_auto_adoption_mfa_option_external_title()}
-          content={m.initial_setup_auto_adoption_mfa_option_external_content()}
-          badge={businessBadgeProps}
-        ></InteractiveBlock>
-      </div>
+      <InteractiveBlock
+        value={mfaMode === LocationMfaMode.Disabled}
+        onClick={() => setMfaMode(LocationMfaMode.Disabled)}
+        title={m.initial_setup_auto_adoption_mfa_option_disabled_title()}
+      />
+      <SizedBox height={ThemeSpacing.Xl} />
+      <InteractiveBlock
+        value={mfaMode === LocationMfaMode.Internal}
+        onClick={() => setMfaMode(LocationMfaMode.Internal)}
+        title={m.initial_setup_auto_adoption_mfa_option_internal_title()}
+        content={m.initial_setup_auto_adoption_mfa_option_internal_content()}
+      >
+        {mfaMode === LocationMfaMode.Internal && (
+          <>
+            <SizedBox height={ThemeSpacing.Sm} />
+            <InfoBanner
+              variant="warning"
+              icon="info-outlined"
+              text={m.initial_setup_auto_adoption_mfa_option_internal_warning()}
+            />
+          </>
+        )}
+      </InteractiveBlock>
+      <SizedBox height={ThemeSpacing.Xl} />
+      <InteractiveBlock
+        value={false}
+        disabled
+        title={m.initial_setup_auto_adoption_mfa_option_external_title()}
+        content={m.initial_setup_auto_adoption_mfa_option_external_content()}
+        badge={businessBadgeProps}
+      ></InteractiveBlock>
       <Controls>
         <Button
           text={m.initial_setup_controls_back()}

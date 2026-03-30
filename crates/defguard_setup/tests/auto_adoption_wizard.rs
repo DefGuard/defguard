@@ -1,3 +1,5 @@
+use std::sync::Once;
+
 use defguard_common::{
     config::DefGuardConfig,
     db::{
@@ -21,7 +23,6 @@ use reqwest::{
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use std::sync::Once;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod common;
@@ -119,14 +120,27 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(user.email, "auto_admin@example.com");
 
     let resp = client
-        .post("/api/v1/initial_setup/auto_wizard/url_settings")
+        .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
         .json(&json!({
             "defguard_url": "https://auto.example.com",
-            "public_proxy_url": "https://proxy.auto.example.com"
+            "ssl_type": "none"
         }))
         .send()
         .await
-        .expect("Failed to set URL settings");
+        .expect("Failed to set internal URL settings");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::ExternalUrlSettings).await;
+
+    let resp = client
+        .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
+        .json(&json!({
+            "public_proxy_url": "https://proxy.auto.example.com",
+            "ssl_type": "none"
+        }))
+        .send()
+        .await
+        .expect("Failed to set external URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     assert_auto_adoption_step(&pool, AutoAdoptionWizardStep::VpnSettings).await;
@@ -251,20 +265,20 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
 
     let resp = unauthenticated_client
         .post(format!(
-            "{base_url}/api/v1/initial_setup/auto_wizard/url_settings"
+            "{base_url}/api/v1/initial_setup/auto_wizard/internal_url_settings"
         ))
         .json(&json!({
             "defguard_url": "https://example.com",
-            "public_proxy_url": "https://proxy.example.com"
+            "ssl_type": "none"
         }))
         .header(USER_AGENT, "test/0.0")
         .send()
         .await
-        .expect("Failed to POST url_settings");
+        .expect("Failed to POST internal_url_settings");
     assert_eq!(
         resp.status(),
         StatusCode::UNAUTHORIZED,
-        "url_settings should require auth after admin has been created"
+        "internal_url_settings should require auth after admin has been created"
     );
 
     // vpn_settings also blocked
@@ -317,18 +331,18 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
     assert_eq!(resp.status(), StatusCode::OK);
 
     let resp = client_with_session
-        .post("/api/v1/initial_setup/auto_wizard/url_settings")
+        .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
         .json(&json!({
             "defguard_url": "https://example.com",
-            "public_proxy_url": "https://proxy.example.com"
+            "ssl_type": "none"
         }))
         .send()
         .await
-        .expect("Failed to set URL settings after login");
+        .expect("Failed to set internal URL settings after login");
     assert_eq!(
         resp.status(),
         StatusCode::CREATED,
-        "url_settings should succeed after login"
+        "internal_url_settings should succeed after login"
     );
 }
 
@@ -365,14 +379,25 @@ async fn test_auto_adoption_vpn_settings_missing_network(
 
     // Set URL settings (requires auth — cookie jar carries session)
     let resp = client
-        .post("/api/v1/initial_setup/auto_wizard/url_settings")
+        .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
         .json(&json!({
             "defguard_url": "https://example.com",
-            "public_proxy_url": "https://proxy.example.com"
+            "ssl_type": "none"
         }))
         .send()
         .await
-        .expect("Failed to set URL settings");
+        .expect("Failed to set internal URL settings");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let resp = client
+        .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
+        .json(&json!({
+            "public_proxy_url": "https://proxy.example.com",
+            "ssl_type": "none"
+        }))
+        .send()
+        .await
+        .expect("Failed to set external URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     // VPN settings must fail because no network exists

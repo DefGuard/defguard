@@ -57,7 +57,7 @@ export const SetupEdgeAdoptionStep = () => {
   };
 
   const handleNext = async () => {
-    setActiveStep(SetupPageStep.Confirmation);
+    setActiveStep(SetupPageStep.InternalUrlSettings);
   };
 
   const steps: SetupStep[] = useMemo(

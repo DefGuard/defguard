@@ -23,8 +23,6 @@ use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::api::PaginatedApiResponse;
-
 use super::{
     TEST_SERVER_URL,
     common::{
@@ -32,6 +30,7 @@ use super::{
         make_client, make_test_client, setup_pool,
     },
 };
+use crate::api::PaginatedApiResponse;
 
 #[derive(Deserialize)]
 pub struct AuthenticationResponse<'r> {

@@ -2,11 +2,18 @@ import { omit } from 'lodash-es';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { LocationMfaMode, type LocationMfaModeValue } from '../../../shared/api/types';
-import { AutoAdoptionSetupStep, type AutoAdoptionSetupStepValue } from './types';
+import {
+  AutoAdoptionSetupStep,
+  type AutoAdoptionSetupStepValue,
+  type CertInfo,
+  type ExternalSslType,
+  type InternalSslType,
+} from './types';
 
 type StoreValues = {
   activeStep: AutoAdoptionSetupStepValue;
   isAutoAdoptionFlowStarted: boolean;
+  isFinishing: boolean;
   admin_first_name: string;
   admin_last_name: string;
   admin_username: string;
@@ -23,6 +30,12 @@ type StoreValues = {
   vpn_allowed_ips: string;
   vpn_dns_server_ip: string;
   vpn_mfa_mode: LocationMfaModeValue;
+  // Internal URL SSL configuration
+  internal_ssl_type: InternalSslType;
+  internal_ssl_cert_info: CertInfo | null;
+  // External URL SSL configuration
+  external_ssl_type: ExternalSslType;
+  external_ssl_cert_info: CertInfo | null;
 };
 
 type StoreMethods = {
@@ -34,6 +47,7 @@ type StoreMethods = {
 const defaults: StoreValues = {
   activeStep: AutoAdoptionSetupStep.AdminUser,
   isAutoAdoptionFlowStarted: false,
+  isFinishing: false,
   admin_first_name: '',
   admin_last_name: '',
   admin_username: '',
@@ -50,6 +64,10 @@ const defaults: StoreValues = {
   vpn_allowed_ips: '',
   vpn_dns_server_ip: '',
   vpn_mfa_mode: LocationMfaMode.Disabled,
+  internal_ssl_type: 'none',
+  internal_ssl_cert_info: null,
+  external_ssl_type: 'none',
+  external_ssl_cert_info: null,
 };
 
 export const useAutoAdoptionSetupWizardStore = create<StoreMethods & StoreValues>()(
@@ -67,7 +85,8 @@ export const useAutoAdoptionSetupWizardStore = create<StoreMethods & StoreValues
     {
       name: 'auto-adoption-setup-wizard-store',
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (state) => omit(state, ['reset', 'startFlow', 'setActiveStep']),
+      partialize: (state) =>
+        omit(state, ['reset', 'startFlow', 'setActiveStep', 'isFinishing']),
     },
   ),
 );

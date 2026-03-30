@@ -625,6 +625,8 @@ pub async fn run_event_logger(
 
 #[cfg(test)]
 mod tests {
+    use std::net::{IpAddr, Ipv4Addr};
+
     use chrono::Utc;
     use defguard_common::db::{
         NoId,
@@ -635,7 +637,6 @@ mod tests {
     };
     use ipnetwork::IpNetwork;
     use serde_json::Value;
-    use std::net::{IpAddr, Ipv4Addr};
 
     use super::*;
 

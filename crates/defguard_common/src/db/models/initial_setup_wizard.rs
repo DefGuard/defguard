@@ -9,6 +9,10 @@ pub enum InitialSetupStep {
     Welcome,
     AdminUser,
     GeneralConfiguration,
+    InternalUrlSettings,
+    InternalUrlSslConfig,
+    ExternalUrlSettings,
+    ExternalUrlSslConfig,
     Ca,
     CaSummary,
     // Adoption is not present, since the proxy is saved
