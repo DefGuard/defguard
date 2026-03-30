@@ -62,10 +62,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .unwrap()
         .id;
-    let response = client
-        .get(&format!("/api/v1/group/{admin_id}"))
-        .send()
-        .await;
+    let response = client.get(format!("/api/v1/group/{admin_id}")).send().await;
     let group_info: GroupInfo = response.json().await;
     assert_eq!(group_info.vpn_locations, vec!["network"]);
 
@@ -108,10 +105,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::NetworkModified(..));
 
     // check vpn locations for `admin` group
-    let response = client
-        .get(&format!("/api/v1/group/{admin_id}"))
-        .send()
-        .await;
+    let response = client.get(format!("/api/v1/group/{admin_id}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
     assert_eq!(group_info.vpn_locations, vec!["my network"]);
