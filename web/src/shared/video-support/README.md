@@ -26,18 +26,46 @@ overridable via `VITE_UPDATE_BASE_URL`) and the default path
 
 Both variables are read at build time and live in `web/.env.local` (git-ignored).
 
-### Redirect the entire update service to a local server
+### Serve a local file via the Vite dev server (recommended)
 
-The simplest approach for local development — redirects both the video support
-config and the client artifact checks to your local server:
+The simplest approach: place your test JSON at `web/public/content/video-support`
+(no file extension) or `web/public/content/video-support.json`. The Vite dev
+server serves everything in `web/public/` at the root, so the file is immediately
+available on the same origin — no extra process, no CORS issues.
+
+1. Create the directory and file:
+
+   ```bash
+   mkdir -p web/public/content
+   # create web/public/content/video-support with the JSON structure shown below
+   ```
+
+2. If you used no file extension, no env override is needed — the default path
+   `/content/video-support` already matches. If you used `.json`, set:
+
+   ```
+   # web/.env.local
+   VITE_VIDEO_SUPPORT_URL=/content/video-support.json
+   ```
+
+3. Start the dev server as usual (`pnpm dev`). The widget will pick up the file
+   on page load.
+
+> Do not commit the test file — `web/public/content/` is not git-ignored by
+> default, so add it to your local `.git/info/exclude` or a global gitignore
+> if you want to keep it permanently.
+
+### Redirect the entire update service to a separate local server
+
+Use this approach when you need to test the client artifact check alongside the
+video support fetch, or when you want to simulate a real remote server:
 
 ```
 # web/.env.local
 VITE_UPDATE_BASE_URL=http://localhost:4000
 ```
 
-Then serve a JSON file at `http://localhost:4000/content/video-support` (see
-[JSON structure](#json-structure) below for the expected format):
+Then serve a JSON file at `http://localhost:4000/content/video-support`:
 
 ```bash
 # example using Python's built-in server from the directory containing your file
@@ -45,7 +73,7 @@ python3 -m http.server 4000
 ```
 
 > The local server must respond with appropriate `Access-Control-Allow-Origin`
-> CORS headers if it runs on a different origin than the Vite dev server.
+> CORS headers since it runs on a different origin than the Vite dev server.
 
 ### Override only the video support path
 
