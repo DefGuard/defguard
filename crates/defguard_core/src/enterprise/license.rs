@@ -183,6 +183,23 @@ impl License {
         }
     }
 
+    fn decode_support_type(value: i32) -> Result<SupportType, LicenseError> {
+        match SupportTypeProto::try_from(value) {
+            Ok(SupportTypeProto::Unspecified) => Ok(SupportType::Unspecified),
+            Ok(SupportTypeProto::Free) => Ok(SupportType::Free),
+            Ok(SupportTypeProto::Basic) => Ok(SupportType::Basic),
+            Ok(SupportTypeProto::Direct) => Ok(SupportType::Direct),
+            Ok(SupportTypeProto::BasicEnterprise) => Ok(SupportType::BasicEnterprise),
+            Ok(SupportTypeProto::DirectEnterprise) => Ok(SupportType::DirectEnterprise),
+            Err(err) => {
+                error!("Failed to read support type from license metadata: {err}");
+                Err(LicenseError::DecodeError(
+                    "Failed to decode support type metadata",
+                ))
+            }
+        }
+    }
+
     /// Deserialize the license object from a base64 encoded string.
     /// Also verifies the signature of the license
     pub(crate) fn from_base64(key: &str) -> Result<License, LicenseError> {
@@ -232,20 +249,7 @@ impl License {
                     }
                 };
 
-                let support_type = match SupportTypeProto::try_from(metadata.support_type) {
-                    Ok(SupportTypeProto::Unspecified) => SupportType::Unspecified,
-                    Ok(SupportTypeProto::Free) => SupportType::Free,
-                    Ok(SupportTypeProto::Basic) => SupportType::Basic,
-                    Ok(SupportTypeProto::Direct) => SupportType::Unspecified,
-                    Ok(SupportTypeProto::BasicEnterprise) => SupportType::BasicEnterprise,
-                    Ok(SupportTypeProto::DirectEnterprise) => SupportType::DirectEnterprise,
-                    Err(err) => {
-                        error!("Failed to read support type from license metadata: {err}");
-                        return Err(LicenseError::DecodeError(
-                            "Failed to decode support type metadata",
-                        ));
-                    }
-                };
+                let support_type = Self::decode_support_type(metadata.support_type)?;
 
                 let license = License::new(
                     metadata.customer_id,
@@ -854,6 +858,34 @@ mod test {
         let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
         let enterprise_license = License::from_base64(enterprise_license).unwrap();
         assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
+    }
+
+    #[test]
+    fn test_support_type_mapping() {
+        assert_eq!(
+            License::decode_support_type(SupportTypeProto::Unspecified as i32).unwrap(),
+            SupportType::Unspecified
+        );
+        assert_eq!(
+            License::decode_support_type(SupportTypeProto::Free as i32).unwrap(),
+            SupportType::Free
+        );
+        assert_eq!(
+            License::decode_support_type(SupportTypeProto::Basic as i32).unwrap(),
+            SupportType::Basic
+        );
+        assert_eq!(
+            License::decode_support_type(SupportTypeProto::Direct as i32).unwrap(),
+            SupportType::Direct
+        );
+        assert_eq!(
+            License::decode_support_type(SupportTypeProto::BasicEnterprise as i32).unwrap(),
+            SupportType::BasicEnterprise
+        );
+        assert_eq!(
+            License::decode_support_type(SupportTypeProto::DirectEnterprise as i32).unwrap(),
+            SupportType::DirectEnterprise
+        );
     }
 
     #[sqlx::test]
