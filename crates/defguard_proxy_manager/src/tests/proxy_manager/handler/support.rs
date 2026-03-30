@@ -5,16 +5,20 @@ use defguard_common::db::{
     models::{
         Device, DeviceType, User, WireguardNetwork,
         polling_token::PollingToken,
+        vpn_client_session::VpnClientSession,
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
     enterprise::license::{License, LicenseTier, set_cached_license},
+    events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
+    grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo, EnrollmentStartRequest,
-    core_request, core_response,
+    AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
+    ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo,
+    EnrollmentStartRequest, MfaMethod, core_request, core_response,
 };
 use sqlx::PgPool;
 use ipnetwork::IpNetwork;
@@ -312,4 +316,235 @@ pub(crate) async fn start_enrollment_session(
             other.as_ref().map(|p| std::mem::discriminant(p))
         ),
     }
+}
+
+// ---------------------------------------------------------------------------
+// Factory helpers — MFA networks
+// ---------------------------------------------------------------------------
+
+/// Insert a WireGuard network with `LocationMfaMode::Internal`, returning the
+/// saved `WireguardNetwork<Id>`.  Use this for any test that exercises the MFA
+/// flow (the default `create_network` uses `LocationMfaMode::Disabled`).
+pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
+    WireguardNetwork::new(
+        format!("test-mfa-network-{n}"),
+        41820 + i32::try_from(n % 10_000).unwrap(),
+        "10.1.0.1".to_string(),
+        None,
+        Vec::<IpNetwork>::new(),
+        true,  // allow_all_groups
+        false, // acl_enabled
+        false, // acl_default_allow
+        LocationMfaMode::Internal,
+        ServiceLocationMode::default(),
+    )
+    .try_set_address("10.1.0.1/24")
+    .expect("failed to set mfa network address")
+    .save(pool)
+    .await
+    .expect("failed to save test mfa wireguard network")
+}
+
+/// Insert a WireGuard network with `LocationMfaMode::External`.
+pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
+    WireguardNetwork::new(
+        format!("test-ext-mfa-network-{n}"),
+        31820 + i32::try_from(n % 10_000).unwrap(),
+        "10.2.0.1".to_string(),
+        None,
+        Vec::<IpNetwork>::new(),
+        true,  // allow_all_groups
+        false, // acl_enabled
+        false, // acl_default_allow
+        LocationMfaMode::External,
+        ServiceLocationMode::default(),
+    )
+    .try_set_address("10.2.0.1/24")
+    .expect("failed to set ext mfa network address")
+    .save(pool)
+    .await
+    .expect("failed to save test external mfa wireguard network")
+}
+
+// ---------------------------------------------------------------------------
+// MFA user setup helpers
+// ---------------------------------------------------------------------------
+
+/// Enable email MFA for `user`, returning the currently-valid MFA code.
+///
+/// The code is valid immediately and can be passed directly to
+/// `ClientMfaFinishRequest::code`.
+pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> String {
+    user.new_email_secret(pool).await.expect("new_email_secret");
+    user.enable_email_mfa(pool).await.expect("enable_email_mfa");
+    // generate_email_mfa_code uses the in-memory secret; note that
+    // start_client_mfa_login also calls generate_email_mfa_code internally —
+    // the two calls will produce the same code because the in-memory secret
+    // hasn't changed. But we need the code *after* the start call, so the
+    // caller should call this helper before start and pass the code to finish.
+    user.generate_email_mfa_code().expect("generate_email_mfa_code")
+}
+
+// ---------------------------------------------------------------------------
+// MFA flow helpers
+// ---------------------------------------------------------------------------
+
+static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
+
+/// Send `ClientMfaStart` and return `(response_id, start_token)`.
+///
+/// Panics if the handler returns an error.
+pub(crate) async fn send_mfa_start(
+    context: &mut HandlerTestContext,
+    location_id: Id,
+    pubkey: &str,
+    method: MfaMethod,
+) -> (u64, String) {
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: None,
+        payload: Some(core_request::Payload::ClientMfaStart(ClientMfaStartRequest {
+            location_id,
+            pubkey: pubkey.to_string(),
+            method: method as i32,
+        })),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let token = match &response.payload {
+        Some(core_response::Payload::ClientMfaStart(r)) => r.token.clone(),
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "send_mfa_start: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "send_mfa_start: expected ClientMfaStart response, got: {:?}",
+            other.as_ref().map(|p| std::mem::discriminant(p))
+        ),
+    };
+    (id, token)
+}
+
+/// Send `ClientMfaFinish` and return `(response, preshared_key)`.
+///
+/// Requires `device_info` because the handler calls `parse_client_ip_agent`.
+/// Panics if the handler returns an error.
+pub(crate) async fn send_mfa_finish(
+    context: &mut HandlerTestContext,
+    token: &str,
+    code: Option<&str>,
+) -> (CoreResponse, String) {
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(ClientMfaFinishRequest {
+            token: token.to_string(),
+            code: code.map(str::to_string),
+            auth_pub_key: None,
+        })),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let psk = match &response.payload {
+        Some(core_response::Payload::ClientMfaFinish(r)) => r.preshared_key.clone(),
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "send_mfa_finish: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "send_mfa_finish: expected ClientMfaFinish response, got: {:?}",
+            other.as_ref().map(|p| std::mem::discriminant(p))
+        ),
+    };
+    (response, psk)
+}
+
+/// Send `ClientMfaTokenValidation` and return `token_valid`.
+pub(crate) async fn send_token_validation(
+    context: &mut HandlerTestContext,
+    token: &str,
+) -> bool {
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: None,
+        payload: Some(core_request::Payload::ClientMfaTokenValidation(
+            ClientMfaTokenValidationRequest { token: token.to_string() },
+        )),
+    });
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    match &response.payload {
+        Some(core_response::Payload::ClientMfaTokenValidation(r)) => r.token_valid,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "send_token_validation: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "send_token_validation: expected ClientMfaTokenValidation response, got: {:?}",
+            other.as_ref().map(|p| std::mem::discriminant(p))
+        ),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MFA assertion helpers
+// ---------------------------------------------------------------------------
+
+/// Assert that the next `GatewayEvent` broadcast is `MfaSessionAuthorized` and
+/// return `(location_id, device)`.
+pub(crate) async fn expect_gateway_mfa_authorized(
+    wireguard_tx: &tokio::sync::broadcast::Sender<GatewayEvent>,
+) -> Id {
+    use tokio::time::{timeout, Duration};
+    let mut rx = wireguard_tx.subscribe();
+    let event = timeout(Duration::from_secs(5), rx.recv())
+        .await
+        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
+        .expect("gateway event channel closed");
+    match event {
+        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
+        other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
+    }
+}
+
+/// Assert that the next `BidiStreamEvent` is `DesktopClientMfa(Success)` and
+/// return the location id from the event.
+pub(crate) async fn expect_bidi_mfa_success(
+    bidi_rx: &mut tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
+) -> Id {
+    use tokio::time::{timeout, Duration};
+    let event = timeout(Duration::from_secs(5), bidi_rx.recv())
+        .await
+        .expect("timed out waiting for BidiStreamEvent DesktopClientMfa(Success)")
+        .expect("bidi event channel closed");
+    match event.event {
+        BidiStreamEventType::DesktopClientMfa(e) => match *e {
+            DesktopClientMfaEvent::Success { location, .. } => location.id,
+            other => panic!("expected DesktopClientMfaEvent::Success, got: {other:?}"),
+        },
+        other => panic!("expected BidiStreamEventType::DesktopClientMfa, got: {other:?}"),
+    }
+}
+
+/// Assert that a `CoreResponse` carries a `CoreError` and return tonic code.
+/// Alias kept for backwards-compat with enrollment / polling tests.
+pub(crate) fn assert_mfa_error_response(response: &CoreResponse) -> tonic::Code {
+    assert_error_response(response)
+}
+
+/// Assert that the `VpnClientSession` for a given location and device exists in
+/// the DB and return it.
+pub(crate) async fn assert_vpn_session_exists(
+    pool: &PgPool,
+    location_id: Id,
+    device_id: Id,
+) -> VpnClientSession<Id> {
+    VpnClientSession::try_get_active_session(pool, location_id, device_id)
+        .await
+        .expect("db query failed")
+        .unwrap_or_else(|| {
+            panic!("expected active VpnClientSession for location={location_id} device={device_id}")
+        })
 }
