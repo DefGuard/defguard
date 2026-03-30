@@ -265,7 +265,7 @@ pub(crate) async fn get_group(
     _admin: AdminRole,
     _session: SessionInfo,
     State(appstate): State<AppState>,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("Retrieving group {id}");
     if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
@@ -406,7 +406,7 @@ pub(crate) async fn modify_group(
     _role: AdminRole,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
     Json(group_info): Json<EditGroupInfo>,
 ) -> ApiResult {
     debug!("Modifying group {id}");
@@ -562,7 +562,7 @@ pub(crate) async fn delete_group(
     session: SessionInfo,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deletes group {id}", &session.user.username);
     if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
@@ -628,7 +628,7 @@ pub(crate) async fn add_group_member(
     _role: AdminRole,
     State(appstate): State<AppState>,
     context: ApiRequestContext,
-    Path(id): Path<i64>,
+    Path(id): Path<Id>,
     Json(data): Json<Username>,
 ) -> ApiResult {
     if let Some(group) = Group::find_by_id(&appstate.pool, id).await? {
