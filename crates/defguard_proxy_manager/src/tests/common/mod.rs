@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     io,
+    net::TcpListener,
     path::PathBuf,
     sync::{
         Arc, Mutex,
@@ -669,4 +670,199 @@ pub(crate) fn build_proxy_with_enabled(enabled: bool) -> Proxy<NoId> {
     );
     proxy.enabled = enabled;
     proxy
+}
+
+// ---------------------------------------------------------------------------
+// MockOidcProvider — a minimal OIDC identity provider for tests
+// ---------------------------------------------------------------------------
+
+/// Shared state injected into axum route handlers.
+#[derive(Clone)]
+struct OidcProviderState {
+    /// PEM-encoded RSA-2048 private key used to sign ID tokens.
+    encoding_key: Arc<jsonwebtoken::EncodingKey>,
+    /// Base URL of this mock server, e.g. `http://127.0.0.1:PORT`.
+    base_url: String,
+    /// `client_id` the server expects in the `aud` claim.
+    client_id: String,
+    /// Base64Url(n) and Base64Url(e) of the RSA public key for the JWKS endpoint.
+    jwks_n: String,
+    jwks_e: String,
+}
+
+/// A mock OpenID Connect provider that handles the three endpoints that
+/// `user_from_claims` / `make_oidc_client` call:
+///
+/// * `GET  /.well-known/openid-configuration`  – provider discovery
+/// * `GET  /keys`                              – JWKS (RSA public key)
+/// * `POST /token`                             – exchange authorization code for ID token
+///
+/// ### Code format
+/// The authorization code must be `"{sub}:{email}:{nonce}"`.  The `/token`
+/// handler parses those three components and embeds them in the signed JWT.
+pub(crate) struct MockOidcProvider {
+    /// HTTP base URL of the mock server, e.g. `http://127.0.0.1:45321`.
+    pub(crate) base_url: String,
+    /// OAuth2 / OIDC `client_id`.
+    pub(crate) client_id: String,
+    /// OAuth2 / OIDC `client_secret`.
+    pub(crate) client_secret: String,
+    server_task: JoinHandle<()>,
+}
+
+impl MockOidcProvider {
+    /// Spawn a new mock OIDC provider on a random loopback port.
+    pub(crate) async fn start() -> Self {
+        use base64::Engine as _;
+        use jsonwebtoken::EncodingKey;
+        use rsa::{RsaPrivateKey, traits::PublicKeyParts};
+        use rsa::pkcs8::EncodePrivateKey;
+
+        // ---- generate RSA-2048 key pair ----
+        let mut rng = rand::thread_rng();
+        let private_key = RsaPrivateKey::new(&mut rng, 2048)
+            .expect("failed to generate RSA key");
+
+        // Export as PKCS#8 PEM for jsonwebtoken
+        let pem = private_key
+            .to_pkcs8_pem(rsa::pkcs8::LineEnding::LF)
+            .expect("failed to encode private key as PKCS#8 PEM");
+        let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes())
+            .expect("failed to build EncodingKey from PEM");
+
+        // ---- build JWKS n / e ----
+        let pub_key = private_key.to_public_key();
+        let n_bytes = pub_key.n().to_bytes_be();
+        let e_bytes = pub_key.e().to_bytes_be();
+        let jwks_n = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&n_bytes);
+        let jwks_e = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&e_bytes);
+
+        // ---- bind to random port ----
+        let tcp = TcpListener::bind("127.0.0.1:0")
+            .expect("failed to bind mock OIDC server");
+        let addr = tcp.local_addr().expect("no local addr");
+        let base_url = format!("http://{addr}");
+        let client_id = format!("test-client-{}", next_test_id());
+        let client_secret = "test-secret".to_string();
+
+        let state = OidcProviderState {
+            encoding_key: Arc::new(encoding_key),
+            base_url: base_url.clone(),
+            client_id: client_id.clone(),
+            jwks_n,
+            jwks_e,
+        };
+
+        // ---- build axum router ----
+        use axum::{Router, routing::get, routing::post};
+        let app = Router::new()
+            .route("/.well-known/openid-configuration", get(oidc_discovery))
+            .route("/keys", get(oidc_jwks))
+            .route("/token", post(oidc_token))
+            .with_state(state);
+
+        // Convert std TcpListener to tokio TcpListener
+        tcp.set_nonblocking(true).expect("set_nonblocking failed");
+        let tokio_listener = tokio::net::TcpListener::from_std(tcp)
+            .expect("failed to convert to tokio TcpListener");
+
+        let server_task = tokio::spawn(async move {
+            axum::serve(tokio_listener, app)
+                .await
+                .expect("mock OIDC server error");
+        });
+
+        Self {
+            base_url,
+            client_id,
+            client_secret,
+            server_task,
+        }
+    }
+}
+
+impl Drop for MockOidcProvider {
+    fn drop(&mut self) {
+        self.server_task.abort();
+    }
+}
+
+// ---- axum handlers ----
+
+async fn oidc_discovery(
+    axum::extract::State(state): axum::extract::State<OidcProviderState>,
+) -> axum::response::Json<serde_json::Value> {
+    let base = &state.base_url;
+    axum::response::Json(serde_json::json!({
+        "issuer": base,
+        "authorization_endpoint": format!("{base}/authorize"),
+        "token_endpoint": format!("{base}/token"),
+        "jwks_uri": format!("{base}/keys"),
+        "response_types_supported": ["code"],
+        "subject_types_supported": ["public"],
+        "id_token_signing_alg_values_supported": ["RS256"]
+    }))
+}
+
+async fn oidc_jwks(
+    axum::extract::State(state): axum::extract::State<OidcProviderState>,
+) -> axum::response::Json<serde_json::Value> {
+    axum::response::Json(serde_json::json!({
+        "keys": [{
+            "kty": "RSA",
+            "alg": "RS256",
+            "use": "sig",
+            "n": state.jwks_n,
+            "e": state.jwks_e
+        }]
+    }))
+}
+
+/// Parses the authorization code as `"{sub}:{email}:{nonce}"` and returns a
+/// signed RS256 ID token JWT.
+async fn oidc_token(
+    axum::extract::State(state): axum::extract::State<OidcProviderState>,
+    axum::extract::Form(params): axum::extract::Form<HashMap<String, String>>,
+) -> axum::response::Json<serde_json::Value> {
+    let code = params.get("code").cloned().unwrap_or_default();
+    // code format: "{sub}:{email}:{nonce}"
+    let mut parts = code.splitn(3, ':');
+    let sub   = parts.next().unwrap_or("unknown-sub").to_string();
+    let email = parts.next().unwrap_or("unknown@example.com").to_string();
+    let nonce = parts.next().unwrap_or("").to_string();
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    let claims = serde_json::json!({
+        "iss": state.base_url,
+        "sub": sub,
+        "aud": state.client_id,
+        "exp": now + 3600,
+        "iat": now,
+        "email": email,
+        "nonce": nonce,
+        "given_name": "Test",
+        "family_name": "OidcUser",
+        "name": "Test OidcUser",
+    });
+
+    let mut header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256);
+    header.kid = None;
+
+    let id_token = jsonwebtoken::encode(
+        &header,
+        &claims,
+        &state.encoding_key,
+    )
+    .expect("failed to sign ID token");
+
+    axum::response::Json(serde_json::json!({
+        "access_token": "dummy-access-token",
+        "token_type": "Bearer",
+        "id_token": id_token,
+        "expires_in": 3600
+    }))
 }
