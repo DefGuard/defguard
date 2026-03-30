@@ -235,9 +235,12 @@ export const EdgesTable = () => {
                   icon: 'delete',
                   variant: 'danger',
                   onClick: () => {
+                    const disconnected = !isConnected(rowData);
                     openModal(ModalName.ConfirmAction, {
                       title: m.modal_delete_edge_title(),
-                      contentMd: m.modal_delete_edge_body({ name: rowData.name }),
+                      contentMd: disconnected
+                        ? m.modal_delete_edge_disconnected_body({ name: rowData.name })
+                        : m.modal_delete_edge_body({ name: rowData.name }),
                       actionPromise: () => api.edge.deleteEdge(rowData.id),
                       invalidateKeys: [['edge']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },

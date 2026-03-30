@@ -44,7 +44,7 @@ const getFormSchema = (deviceNames: string[]) =>
         if (!result.success) {
           ctx.addIssue({
             code: 'custom',
-            message: result.error.message,
+            message: result.error.issues[0]?.message ?? m.form_error_required(),
             continue: false,
             path: ['publicKey'],
           });

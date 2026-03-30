@@ -154,24 +154,27 @@ const formSchema = z
     firewall: z.enum(LocationFirewall),
   })
   .superRefine((value, context) => {
-    if (value.location_mfa_mode === LocationMfaMode.Disabled) {
-      return;
+    if (value.location_mfa_mode !== LocationMfaMode.Disabled) {
+      if (value.peer_disconnect_threshold === null) {
+        context.addIssue({
+          code: 'custom',
+          path: ['peer_disconnect_threshold'],
+          message: m.form_error_required(),
+        });
+      } else if (value.peer_disconnect_threshold < peerDisconnectThresholdMinimum) {
+        context.addIssue({
+          code: 'custom',
+          path: ['peer_disconnect_threshold'],
+          message: m.form_error_min({ value: peerDisconnectThresholdMinimum }),
+        });
+      }
     }
 
-    if (value.peer_disconnect_threshold === null) {
+    if (!value.allow_all_groups && value.allowed_groups.length === 0) {
       context.addIssue({
         code: 'custom',
-        path: ['peer_disconnect_threshold'],
-        message: m.form_error_required(),
-      });
-      return;
-    }
-
-    if (value.peer_disconnect_threshold < peerDisconnectThresholdMinimum) {
-      context.addIssue({
-        code: 'custom',
-        path: ['peer_disconnect_threshold'],
-        message: m.form_error_min({ value: peerDisconnectThresholdMinimum }),
+        path: ['allowed_groups'],
+        message: m.location_access_required_groups(),
       });
     }
   });

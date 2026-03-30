@@ -333,13 +333,13 @@ pub fn build_webapp(
             // group
             .route("/group", get(list_groups).post(create_group))
             .route(
-                "/group/{name}",
+                "/group/{id}",
                 get(get_group)
                     .put(modify_group)
                     .delete(delete_group)
                     .post(add_group_member),
             )
-            .route("/group/{name}/user/{username}", delete(remove_group_member))
+            .route("/group/{id}/user/{username}", delete(remove_group_member))
             .route("/group-info", get(list_groups_info))
             .route("/groups-assign", post(bulk_assign_to_groups))
             // mail
