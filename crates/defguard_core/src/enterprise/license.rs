@@ -28,6 +28,7 @@ use tokio::time::sleep;
 use super::limits::Counts;
 use crate::grpc::proto::enterprise::license::{
     LicenseKey, LicenseLimits, LicenseMetadata, LicenseTier as LicenseTierProto,
+    SupportType as SupportTypeProto,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -85,6 +86,19 @@ pub enum LicenseTier {
     Enterprise,
 }
 
+/// Represents support types
+///
+/// Variant order must be maintained to reflect protos order
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum SupportType {
+    Unspecified,
+    Free,
+    Basic,
+    Direct,
+    BasicEnterprise,
+    DirectEnterprise,
+}
+
 impl fmt::Display for LicenseTier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -103,6 +117,7 @@ pub struct License {
     pub limits: Option<LicenseLimits>,
     pub version_date_limit: Option<DateTime<Utc>>,
     pub tier: LicenseTier,
+    pub support_type: SupportType,
 }
 
 impl License {
@@ -114,6 +129,7 @@ impl License {
         limits: Option<LicenseLimits>,
         version_date_limit: Option<DateTime<Utc>>,
         tier: LicenseTier,
+        support_type: SupportType,
     ) -> Self {
         Self {
             customer_id,
@@ -122,6 +138,7 @@ impl License {
             limits,
             version_date_limit,
             tier,
+            support_type,
         }
     }
 
@@ -215,6 +232,21 @@ impl License {
                     }
                 };
 
+                let support_type = match SupportTypeProto::try_from(metadata.support_type) {
+                    Ok(SupportTypeProto::Unspecified) => SupportType::Unspecified,
+                    Ok(SupportTypeProto::Free) => SupportType::Free,
+                    Ok(SupportTypeProto::Basic) => SupportType::Basic,
+                    Ok(SupportTypeProto::Direct) => SupportType::Unspecified,
+                    Ok(SupportTypeProto::BasicEnterprise) => SupportType::BasicEnterprise,
+                    Ok(SupportTypeProto::DirectEnterprise) => SupportType::DirectEnterprise,
+                    Err(err) => {
+                        error!("Failed to read support type from license metadata: {err}");
+                        return Err(LicenseError::DecodeError(
+                            "Failed to decode support type metadata",
+                        ));
+                    }
+                };
+
                 let license = License::new(
                     metadata.customer_id,
                     metadata.subscription,
@@ -222,6 +254,7 @@ impl License {
                     metadata.limits,
                     version_date_limit,
                     license_tier,
+                    support_type,
                 );
 
                 if license.requires_renewal() {
@@ -719,6 +752,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -730,6 +764,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -741,6 +776,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -752,6 +788,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -763,6 +800,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -781,6 +819,7 @@ mod test {
             }),
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -797,6 +836,7 @@ mod test {
             }),
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
     }

@@ -29,6 +29,7 @@ export const SettingsLicenseInfoSection = ({
   licenseState,
 }: Props) => {
   const licenseTier = license.tier;
+  const supportType = license.support_type
   const isGracePeriod = licenseState === 'gracePeriod';
   const isExpired = licenseState === 'expiredLicense';
   const isValid = licenseState === 'validBusiness' || licenseState === 'validEnterprise';
@@ -72,7 +73,7 @@ export const SettingsLicenseInfoSection = ({
           </p>
         </PropertyInfo>
         <PropertyInfo title={m.settings_license_support_type_title()}>
-          <p>{m.settings_license_support_type_value()}</p>
+          <p>{supportType}</p>
         </PropertyInfo>
         {isPresent(license.valid_until) && (
           <PropertyInfo title={m.settings_license_valid_until_title()}>
