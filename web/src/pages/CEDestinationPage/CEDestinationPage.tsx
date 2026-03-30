@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useRouter } from '@tanstack/react-router';
-import { omit } from 'radashi';
+import { cloneDeep, omit } from 'radashi';
 import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
@@ -140,17 +140,25 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const toSend = { ...value, protocols: Array.from(value.protocols) };
+      const toSend = cloneDeep(value);
+      if (toSend.any_address) toSend.addresses = '';
+      if (toSend.any_port) toSend.ports = '';
+      if (toSend.any_protocol) toSend.protocols = new Set();
+
+      const payload = {
+        ...toSend,
+        protocols: Array.from(toSend.protocols),
+      };
 
       try {
         if (isPresent(destination)) {
           await editDestination({
-            ...toSend,
+            ...payload,
             id: destination.id,
           });
           Snackbar.default(m.acl_destination_updated_pending());
         } else {
-          await addDestination(toSend);
+          await addDestination(payload);
           Snackbar.default(m.acl_destination_created());
         }
 
@@ -207,16 +215,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
               <p>{m.acl_form_section_addresses_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField
-              name="any_address"
-              listeners={{
-                onChange: ({ value, fieldApi }) => {
-                  if (value) {
-                    fieldApi.form.setFieldValue('addresses', '');
-                  }
-                },
-              }}
-            >
+            <form.AppField name="any_address">
               {(field) => <field.FormToggle label={m.acl_destination_any_address()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_address}>
@@ -241,16 +240,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
               <p>{m.acl_form_section_ports_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField
-              name="any_port"
-              listeners={{
-                onChange: ({ value, fieldApi }) => {
-                  if (value) {
-                    fieldApi.form.setFieldValue('ports', '');
-                  }
-                },
-              }}
-            >
+            <form.AppField name="any_port">
               {(field) => <field.FormToggle label={m.acl_destination_any_port()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_port}>
@@ -274,16 +264,7 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
               <p>{m.acl_form_section_protocols_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField
-              name="any_protocol"
-              listeners={{
-                onChange: ({ value, fieldApi }) => {
-                  if (value) {
-                    fieldApi.form.setFieldValue('protocols', new Set());
-                  }
-                },
-              }}
-            >
+            <form.AppField name="any_protocol">
               {(field) => <field.FormToggle label={m.acl_destination_any_protocol()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_protocol}>
