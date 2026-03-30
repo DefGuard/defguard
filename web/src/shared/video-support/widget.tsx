@@ -1,9 +1,10 @@
 import './style.scss';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { m } from '../../paraglide/messages';
 import { Icon } from '../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../defguard-ui/components/ModalFoundation/ModalFoundation';
-import { useResolvedVideoSupport } from './resolved';
+import { useResolvedVideoSupport, useVideoSupportRouteKey } from './resolved';
 import type { VideoSupport } from './types';
 
 interface ThumbnailProps {
@@ -51,38 +52,44 @@ const VideoCard = ({ video, onClick }: VideoCardProps) => (
 );
 
 interface VideoOverlayProps {
-  video: VideoSupport;
+  video: VideoSupport | null;
+  isOpen: boolean;
   onClose: () => void;
 }
 
-const VideoOverlay = ({ video, onClose }: VideoOverlayProps) => (
-  <ModalFoundation isOpen contentClassName="video-support-modal-container">
+const VideoOverlay = ({ video, isOpen, onClose }: VideoOverlayProps) => (
+  <ModalFoundation
+    isOpen={isOpen}
+    contentClassName="video-support-modal-container"
+    afterClose={onClose}
+  >
     <IconButton icon="close" className="video-support-modal-close" onClick={onClose} />
     <div className="video-support-modal">
-      <iframe
-        src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?autoplay=1`}
-        title={video.title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
+      {video && (
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?autoplay=1`}
+          title={video.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+        />
+      )}
     </div>
   </ModalFoundation>
 );
 
 export const VideoSupportWidget = () => {
   const videos = useResolvedVideoSupport();
+  const routeKey = useVideoSupportRouteKey();
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoSupport | null>(null);
-  const prevVideosRef = useRef(videos);
 
-  // Reset UI state when the video set changes (i.e. route changed)
+  // Reset UI state when the route changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: routeKey is the trigger, not used in body
   useEffect(() => {
-    if (prevVideosRef.current !== videos) {
-      setPanelOpen(false);
-      setSelectedVideo(null);
-      prevVideosRef.current = videos;
-    }
-  }, [videos]);
+    setPanelOpen(false);
+    setSelectedVideo(null);
+  }, [routeKey]);
 
   if (videos.length === 0) return null;
 
@@ -95,7 +102,10 @@ export const VideoSupportWidget = () => {
     <>
       <div className="video-support-widget">
         {panelOpen && (
-          <ul className="video-support-list" aria-label="Video tutorials">
+          <ul
+            className="video-support-list"
+            aria-label={m.cmp_video_support_list_label()}
+          >
             {videos.map((v) => (
               <li key={v.youtubeVideoId}>
                 <VideoCard video={v} onClick={() => handleCardClick(v)} />
@@ -114,17 +124,19 @@ export const VideoSupportWidget = () => {
             type="button"
             className="video-support-launcher"
             onClick={() => setPanelOpen(true)}
-            aria-label="Video support"
+            aria-label={m.cmp_video_support_launcher()}
           >
             <Icon icon="tutorial" size={18} staticColor="var(--fg-action)" />
-            <span>Video support</span>
+            <span>{m.cmp_video_support_launcher()}</span>
           </button>
         )}
       </div>
 
-      {selectedVideo && (
-        <VideoOverlay video={selectedVideo} onClose={() => setSelectedVideo(null)} />
-      )}
+      <VideoOverlay
+        video={selectedVideo}
+        isOpen={selectedVideo !== null}
+        onClose={() => setSelectedVideo(null)}
+      />
     </>
   );
 };

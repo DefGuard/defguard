@@ -6,7 +6,8 @@ import { resolveVideoSupport } from './resolver';
 import { canonicalizeRouteKey } from './route-key';
 import type { VideoSupport } from './types';
 
-const SHELL_ROUTE_PREFIX = '/_authorized/_default/';
+// Matches routes defined under src/routes/_authorized/_default.tsx
+const CONTENT_ROUTE_PREFIX = '/_authorized/_default/';
 
 // Stable empty reference — avoids triggering effects/memos that depend on this value.
 const EMPTY_VIDEO_SUPPORT: VideoSupport[] = [];
@@ -16,12 +17,12 @@ const EMPTY_VIDEO_SUPPORT: VideoSupport[] = [];
  * matches, skipping pathless shell/layout routes.
  * Returns null if no content route is active.
  */
-function useVideoSupportRouteKey(): string | null {
+export function useVideoSupportRouteKey(): string | null {
   const matches = useMatches();
   // Find the deepest match that belongs to the authorized default shell
   const contentMatch = [...matches]
     .reverse()
-    .find((m) => m.routeId.startsWith(SHELL_ROUTE_PREFIX));
+    .find((m) => m.routeId.startsWith(CONTENT_ROUTE_PREFIX));
   if (!contentMatch) return null;
   return canonicalizeRouteKey(contentMatch.fullPath);
 }

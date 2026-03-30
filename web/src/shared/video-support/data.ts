@@ -9,8 +9,8 @@ import type { VideoSupportMappings } from './types';
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the path (relative to the update service base URL) to load the
- * video support mapping from.
+ * Path (relative to the update service base URL) to load the video support
+ * mapping from. Resolved by Vite at build time.
  *
  * The shared updateServiceClient resolves this against its baseURL
  * (VITE_UPDATE_BASE_URL ?? 'https://pkgs.defguard.net/api'), so the
@@ -20,19 +20,14 @@ import type { VideoSupportMappings } from './types';
  * or VITE_UPDATE_BASE_URL to redirect all update-service calls to a local
  * server for development.
  */
-export function resolveSource(): string {
-  return import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/content/video-support';
-}
+const videoSupportPath: string =
+  import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/content/video-support';
 
 // ---------------------------------------------------------------------------
 // Fetch layer
 // ---------------------------------------------------------------------------
 
-/**
- * Fetches raw (unvalidated) data from the given path via the shared
- * update-service axios client.
- */
-export async function fetchRawData(path: string): Promise<unknown> {
+async function fetchRawData(path: string): Promise<unknown> {
   const response = await updateServiceClient.get<unknown>(path);
   return response.data;
 }
@@ -54,6 +49,9 @@ const videoSupportSchema = z
   .strip();
 
 const routeMapSchema = z.record(
+  // The schema enforces leading "/" as a contract requirement for JSON authors.
+  // canonicalizeRouteKey() adds it at runtime for widget use, but the JSON
+  // must supply it explicitly — keeping authoring intent unambiguous.
   z.string().regex(/^\//, 'route key must start with "/"'),
   z.array(videoSupportSchema),
 );
@@ -105,7 +103,7 @@ export function parseVideoSupport(raw: unknown): VideoSupportMappings {
 
 export const videoSupportQueryOptions = queryOptions({
   queryKey: ['video-support'],
-  queryFn: () => fetchRawData(resolveSource()).then(parseVideoSupport),
+  queryFn: () => fetchRawData(videoSupportPath).then(parseVideoSupport),
   // Video support mappings don't change at runtime — fetch once per session.
   // When migrating to a remote API, change this to an appropriate cache window.
   staleTime: Infinity,

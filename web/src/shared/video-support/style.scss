@@ -7,7 +7,7 @@
   position: fixed;
   bottom: var(--spacing-xl);
   right: var(--spacing-xl);
-  z-index: 3;
+  z-index: 3; // above navigation (1) and top-bar (2); below modal (4) and snackbar (6)
   display: flex;
   flex-direction: column;
   align-items: flex-end;
