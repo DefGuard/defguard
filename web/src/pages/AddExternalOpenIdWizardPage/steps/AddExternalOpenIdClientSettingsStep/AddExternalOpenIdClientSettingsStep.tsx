@@ -86,7 +86,7 @@ export const AddExternalOpenIdClientSettingsStep = () => {
               ctx.addIssue({
                 code: 'custom',
                 continue: true,
-                message: result.error.message,
+                message: result.error.issues[0]?.message ?? m.form_error_required(),
                 path: ['microsoftTenantId'],
               });
             }

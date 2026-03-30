@@ -95,7 +95,7 @@ const EnrollmentStep = () => {
               ctx.addIssue({
                 code: 'custom',
                 path: ['email'],
-                message: result.error.message,
+                message: result.error.issues[0]?.message ?? m.form_error_required(),
               });
             }
           }
