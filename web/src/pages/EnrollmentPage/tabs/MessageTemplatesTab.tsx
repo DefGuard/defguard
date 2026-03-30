@@ -49,11 +49,11 @@ const messageTemplatesHelpMarkdown = [
 
 const messageTemplatesFormSchema = z.object({
   enrollment_display_welcome_message: z.boolean(),
-  enrollment_welcome_message: z.string(),
+  enrollment_welcome_message: z.string(m.form_error_required()),
   enrollment_send_welcome_email: z.boolean(),
   enrollment_welcome_email_subject: z.string().min(1, m.form_error_required()),
   enrollment_use_welcome_message_as_email: z.boolean(),
-  enrollment_welcome_email: z.string(),
+  enrollment_welcome_email: z.string(m.form_error_required()),
 });
 
 type MessageTemplatesFormFields = z.infer<typeof messageTemplatesFormSchema>;
