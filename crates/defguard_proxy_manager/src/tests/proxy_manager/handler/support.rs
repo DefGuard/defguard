@@ -393,6 +393,28 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
     user.generate_email_mfa_code().expect("generate_email_mfa_code")
 }
 
+/// Enable TOTP for `user` and persist the secret.  Call `generate_totp_code`
+/// just before `send_mfa_finish` to produce a fresh code from the stored secret.
+pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
+    user.new_totp_secret(pool).await.expect("new_totp_secret");
+    user.enable_totp(pool).await.expect("enable_totp");
+}
+
+/// Generate a valid 6-digit TOTP code for `user` using the current timestamp.
+///
+/// Mirrors the logic in `User::verify_totp_code`.  Call this immediately before
+/// `send_mfa_finish` so the code is within the current 30-second window.
+pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
+    use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
+    use totp_lite::{Sha1, totp_custom};
+    let secret = user.totp_secret.as_ref().expect("totp_secret must be set after setup_user_totp_mfa");
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .expect("system time before epoch")
+        .as_secs();
+    totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, secret, ts)
+}
+
 // ---------------------------------------------------------------------------
 // MFA flow helpers
 // ---------------------------------------------------------------------------

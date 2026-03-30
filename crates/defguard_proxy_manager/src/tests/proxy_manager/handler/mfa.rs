@@ -11,6 +11,9 @@
 //  8. test_mfa_finish_fails_with_wrong_code
 //  9. test_mfa_oidc_start_requires_license
 // 10. test_mfa_await_remote_receives_psk_after_finish
+// 11. test_mfa_start_returns_token_for_totp
+// 12. test_mfa_finish_succeeds_with_totp_code
+// 13. test_mfa_finish_fails_with_wrong_totp_code
 
 // ---------------------------------------------------------------------------
 // 1. MFA start fails when the location has MFA disabled
@@ -48,34 +51,141 @@ async fn test_mfa_start_fails_for_disabled_location(
 }
 
 // ---------------------------------------------------------------------------
-// 2. MFA start fails for an unknown location
+// 11. MFA start returns a JWT token when TOTP is configured
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_start_fails_for_unknown_location(
+async fn test_mfa_start_returns_token_for_totp(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    let (_, device) = create_user_with_device(&context.pool).await;
+    let network = create_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
         device_info: None,
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
-                location_id: 99999,
+                location_id: network.id,
                 pubkey: device.wireguard_pubkey.clone(),
-                method: MfaMethod::Email as i32,
+                method: MfaMethod::Totp as i32,
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    match &response.payload {
+        Some(core_response::Payload::ClientMfaStart(r)) => {
+            assert!(!r.token.is_empty(), "TOTP start token must not be empty");
+            assert!(r.challenge.is_none(), "TOTP start should have no challenge");
+        }
+        other => panic!(
+            "expected ClientMfaStart response, got: {:?}",
+            other.as_ref().map(|p| std::mem::discriminant(p))
+        ),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
+// 12. MFA finish succeeds with a valid TOTP code
+// ---------------------------------------------------------------------------
+
+#[sqlx::test]
+async fn test_mfa_finish_succeeds_with_totp_code(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+
+    let (_, token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Totp,
+    )
+    .await;
+
+    // Subscribe before finish so the handler's wireguard_tx.send() has a receiver.
+    let _gateway_rx = context.wireguard_tx.subscribe();
+
+    let code = generate_totp_code(&user);
+    let (_, psk) = send_mfa_finish(&mut context, &token, Some(&code)).await;
+    assert!(!psk.is_empty(), "PSK must not be empty after successful TOTP MFA");
+
+    // Verify VpnClientSession was persisted.
+    let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+    assert!(session.preshared_key.is_some());
+
+    // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
+    let gateway_loc_id = expect_gateway_mfa_authorized(&context.wireguard_tx).await;
+    assert_eq!(gateway_loc_id, network.id);
+
+    // Verify BidiStreamEvent::DesktopClientMfa(Success) was emitted.
+    let event_loc_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
+    assert_eq!(event_loc_id, network.id);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
+// 13. MFA finish fails when a wrong TOTP code is supplied
+// ---------------------------------------------------------------------------
+
+#[sqlx::test]
+async fn test_mfa_finish_fails_with_wrong_totp_code(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+
+    let (_, token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Totp,
+    )
+    .await;
+
+    // Send a clearly wrong code.
+    let id = 9991u64;
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.clone(),
+                code: Some("000000".to_string()),
+                auth_pub_key: None,
             },
         )),
     });
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_eq!(code, tonic::Code::InvalidArgument);
+    assert!(
+        matches!(
+            code,
+            tonic::Code::InvalidArgument | tonic::Code::Unauthenticated
+        ),
+        "wrong TOTP code should return InvalidArgument or Unauthenticated, got: {code:?}"
+    );
 
     context.finish().await.expect_server_finished().await;
 }

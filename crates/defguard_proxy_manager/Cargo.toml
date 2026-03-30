@@ -41,4 +41,5 @@ rand.workspace = true
 rsa.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+totp-lite.workspace = true
 
