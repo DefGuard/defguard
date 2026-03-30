@@ -7,6 +7,8 @@ import { SelectionSection } from '../../../shared/components/SelectionSection/Se
 import type { SelectionOption } from '../../../shared/components/SelectionSection/type';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { FieldError } from '../../../shared/defguard-ui/components/FieldError/FieldError';
+import { Fold } from '../../../shared/defguard-ui/components/Fold/Fold';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Toggle } from '../../../shared/defguard-ui/components/Toggle/Toggle';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
@@ -20,6 +22,7 @@ export const AddLocationAccessStep = () => {
   const [selected, setSelected] = useState<Set<string>>(
     new Set(useAddLocationStore.getState().allowed_groups),
   );
+  const [groupError, setGroupError] = useState<string | undefined>(undefined);
 
   const { data: groups } = useQuery({
     queryFn: api.group.getGroups,
@@ -51,18 +54,21 @@ export const AddLocationAccessStep = () => {
         onClick={() => {
           const value = !allowAllGroups;
           setAllowAllGroups(value);
+          setGroupError(undefined);
         }}
       />
-      {!allowAllGroups && (
-        <>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <SelectionSection
-            options={selectionOptions}
-            selection={selected}
-            onChange={setSelected}
-          />
-        </>
-      )}
+      <Fold open={!allowAllGroups}>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <SelectionSection
+          options={selectionOptions}
+          selection={selected}
+          onChange={(val) => {
+            setSelected(val);
+            if (val.size > 0) setGroupError(undefined);
+          }}
+        />
+        <FieldError error={groupError} />
+      </Fold>
       <Controls>
         <Button
           variant="outlined"
@@ -79,6 +85,10 @@ export const AddLocationAccessStep = () => {
             text={m.controls_continue()}
             testId="acl-continue"
             onClick={() => {
+              if (!allowAllGroups && selected.size === 0) {
+                setGroupError(m.location_access_required_groups());
+                return;
+              }
               saveChanges(selected, allowAllGroups);
               useAddLocationStore.setState({
                 activeStep: AddLocationPageStep.Firewall,

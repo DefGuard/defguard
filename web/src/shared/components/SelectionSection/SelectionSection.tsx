@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import './style.scss';
 import clsx from 'clsx';
 import { m } from '../../../paraglide/messages';
@@ -146,10 +146,9 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
                 handleSelect(option, selected, selection);
               };
               return (
-                <>
+                <Fragment key={option.id}>
                   <div
                     className="item"
-                    key={option.id}
                     style={{
                       minHeight: itemHeight,
                     }}
@@ -175,7 +174,7 @@ export const SelectionSection = <T extends SelectionKey, M = unknown>({
                       <SizedBox height={itemGap} />
                     </>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </div>

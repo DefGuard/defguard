@@ -95,6 +95,7 @@
   "location_access_selected_group_count_other": "+{count} groups",
   "location_access_edit_groups": "Edit groups",
   "location_access_select_allowed_groups": "Select allowed groups",
+  "location_access_required_groups": "At least one group must be selected",
   "network_device_delete_success": "Network device deleted",
   "network_device_delete_failed": "Failed to delete network device",
   "network_device_add_error": "Failed to load network data for adding device",
