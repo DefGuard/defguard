@@ -368,7 +368,6 @@ export const LicenseTier = {
 } as const;
 
 export const SupportType = {
-  Unspecified: 'Unspecified',
   Free: 'Free',
   Basic: 'Basic',
   Direct: 'Direct',

@@ -49,8 +49,6 @@ export const getLicenseState = (
 
 export const getSupportTypeLabel = (supportType: SupportTypeValue): string => {
   switch (supportType) {
-    case SupportType.Unspecified:
-      return m.license_support_type_unspecified();
     case SupportType.Free:
       return m.license_support_type_free();
     case SupportType.Basic:

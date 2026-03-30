@@ -86,12 +86,23 @@ pub enum LicenseTier {
     Enterprise,
 }
 
+impl TryFrom<LicenseTierProto> for LicenseTier {
+    type Error = LicenseError;
+
+    fn try_from(value: LicenseTierProto) -> Result<Self, Self::Error> {
+        match value {
+            LicenseTierProto::Enterprise => Ok(LicenseTier::Enterprise),
+            // fall back to Business tier for legacy licenses
+            LicenseTierProto::Business | LicenseTierProto::Unspecified => Ok(LicenseTier::Business),
+        }
+    }
+}
+
 /// Represents support types
 ///
 /// Variant order must be maintained to reflect protos order
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum SupportType {
-    Unspecified,
     Free,
     Basic,
     Direct,
@@ -104,8 +115,7 @@ impl TryFrom<SupportTypeProto> for SupportType {
 
     fn try_from(value: SupportTypeProto) -> Result<Self, Self::Error> {
         match value {
-            SupportTypeProto::Unspecified => Ok(Self::Unspecified),
-            SupportTypeProto::Free => Ok(Self::Free),
+            SupportTypeProto::Unspecified | SupportTypeProto::Free => Ok(Self::Free),
             SupportTypeProto::Basic => Ok(Self::Basic),
             SupportTypeProto::Direct => Ok(Self::Direct),
             SupportTypeProto::BasicEnterprise => Ok(Self::BasicEnterprise),
@@ -233,19 +243,12 @@ impl License {
                     None => None,
                 };
 
-                let license_tier = match LicenseTierProto::try_from(metadata.tier) {
-                    Ok(LicenseTierProto::Enterprise) => LicenseTier::Enterprise,
-                    // fall back to Business tier for legacy licenses
-                    Ok(LicenseTierProto::Business | LicenseTierProto::Unspecified) => {
-                        LicenseTier::Business
-                    }
-                    Err(err) => {
+                let license_tier = LicenseTierProto::try_from(metadata.tier)
+                    .map_err(|err| {
                         error!("Failed to read license tier from license metadata: {err}");
-                        return Err(LicenseError::DecodeError(
-                            "Failed to decode license tier metadata",
-                        ));
-                    }
-                };
+                        LicenseError::DecodeError("Failed to decode license tier metadata")
+                    })
+                    .and_then(LicenseTier::try_from)?;
 
                 let support_type = SupportTypeProto::try_from(metadata.support_type)
                     .map_err(|err| {
@@ -867,7 +870,7 @@ mod test {
     fn test_support_type_mapping() {
         assert_eq!(
             SupportType::try_from(SupportTypeProto::Unspecified).unwrap(),
-            SupportType::Unspecified
+            SupportType::Free
         );
         assert_eq!(
             SupportType::try_from(SupportTypeProto::Free).unwrap(),
@@ -888,6 +891,22 @@ mod test {
         assert_eq!(
             SupportType::try_from(SupportTypeProto::DirectEnterprise).unwrap(),
             SupportType::DirectEnterprise
+        );
+    }
+
+    #[test]
+    fn test_license_tier_mapping() {
+        assert_eq!(
+            LicenseTier::try_from(LicenseTierProto::Unspecified).unwrap(),
+            LicenseTier::Business
+        );
+        assert_eq!(
+            LicenseTier::try_from(LicenseTierProto::Business).unwrap(),
+            LicenseTier::Business
+        );
+        assert_eq!(
+            LicenseTier::try_from(LicenseTierProto::Enterprise).unwrap(),
+            LicenseTier::Enterprise
         );
     }
 
