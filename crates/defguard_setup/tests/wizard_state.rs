@@ -93,7 +93,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
         .json()
         .await
         .expect("Failed to parse wizard state");
-    assert_eq!(state["initial_setup_state"]["step"], "ca");
+    assert_eq!(state["initial_setup_state"]["step"], "internal_url_settings");
 
     let resp = client
         .post("/api/v1/initial_setup/ca")
