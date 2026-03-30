@@ -207,7 +207,16 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
               <p>{m.acl_form_section_addresses_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField name="any_address">
+            <form.AppField
+              name="any_address"
+              listeners={{
+                onChange: ({ value, fieldApi }) => {
+                  if (value) {
+                    fieldApi.form.setFieldValue('addresses', '');
+                  }
+                },
+              }}
+            >
               {(field) => <field.FormToggle label={m.acl_destination_any_address()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_address}>
@@ -232,7 +241,16 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
               <p>{m.acl_form_section_ports_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <form.AppField name="any_port">
+            <form.AppField
+              name="any_port"
+              listeners={{
+                onChange: ({ value, fieldApi }) => {
+                  if (value) {
+                    fieldApi.form.setFieldValue('ports', '');
+                  }
+                },
+              }}
+            >
               {(field) => <field.FormToggle label={m.acl_destination_any_port()} />}
             </form.AppField>
             <form.Subscribe selector={(s) => !s.values.any_port}>
