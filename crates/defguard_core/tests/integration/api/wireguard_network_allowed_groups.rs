@@ -968,7 +968,15 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 
     // remove an allowed group
-    let response = client.delete("/api/v1/group/allowed%20group").send().await;
+    let allowed_group_id = Group::find_by_name(&client_state.pool, "allowed group")
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let response = client
+        .delete(&format!("/api/v1/group/{allowed_group_id}"))
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // network configuration was created only for the admin device

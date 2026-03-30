@@ -122,8 +122,8 @@ const UsersStep = ({ users, startForm, groupInfo, isEdit, setModalState }: StepP
         ...startForm,
         members: members,
       };
-      if (isEdit) {
-        editGroup(requestData);
+      if (groupInfo) {
+        editGroup({ ...requestData, id: groupInfo.id });
       } else {
         addGroup(requestData);
       }
