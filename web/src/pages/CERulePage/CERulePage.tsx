@@ -566,9 +566,6 @@ const Content = ({ rule: initialRule, tab }: Props) => {
         toSend.deny_all_network_devices = false;
         toSend.denied_network_devices = [];
       }
-      if (toSend.any_address) toSend.addresses = '';
-      if (toSend.any_port) toSend.ports = '';
-      if (toSend.any_protocol) toSend.protocols = new Set();
       if (isPresent(initialRule)) {
         await editRule({
           ...toSend,
