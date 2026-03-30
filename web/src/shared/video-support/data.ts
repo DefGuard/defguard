@@ -24,15 +24,6 @@ const videoSupportPath: string =
   import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/content/video-support';
 
 // ---------------------------------------------------------------------------
-// Fetch layer
-// ---------------------------------------------------------------------------
-
-async function fetchRawData(path: string): Promise<unknown> {
-  const response = await updateServiceClient.get<unknown>(path);
-  return response.data;
-}
-
-// ---------------------------------------------------------------------------
 // Zod schema + parser
 // ---------------------------------------------------------------------------
 
@@ -103,7 +94,10 @@ export function parseVideoSupport(raw: unknown): VideoSupportMappings {
 
 export const videoSupportQueryOptions = queryOptions({
   queryKey: ['video-support'],
-  queryFn: () => fetchRawData(videoSupportPath).then(parseVideoSupport),
+  queryFn: () =>
+    updateServiceClient
+      .get<z.input<typeof mappingsSchema>>(videoSupportPath)
+      .then((r) => parseVideoSupport(r.data)),
   // Video support mappings don't change at runtime — fetch once per session.
   // When migrating to a remote API, change this to an appropriate cache window.
   staleTime: Infinity,

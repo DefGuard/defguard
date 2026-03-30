@@ -22,13 +22,10 @@ export function resolveVideoSupport(
 
   // Collect and sort eligible version keys (newest first)
   const eligibleVersions = Object.keys(mappings)
-    .map((key) => ({ key, parsed: parseVersion(key) }))
-    .filter(
-      (
-        entry,
-      ): entry is { key: string; parsed: NonNullable<ReturnType<typeof parseVersion>> } =>
-        entry.parsed !== null && compareVersions(entry.parsed, appVersion) <= 0,
-    )
+    .flatMap((key) => {
+      const parsed = parseVersion(key);
+      return parsed && compareVersions(parsed, appVersion) <= 0 ? [{ key, parsed }] : [];
+    })
     .sort((a, b) => compareVersions(b.parsed, a.parsed));
 
   for (const { key } of eligibleVersions) {
