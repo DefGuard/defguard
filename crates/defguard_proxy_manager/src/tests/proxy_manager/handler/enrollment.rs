@@ -77,6 +77,62 @@ async fn test_new_device_creates_device_and_returns_configs(
 }
 
 // ---------------------------------------------------------------------------
+// 14. NewDevice creates a PollingToken row and returns the token string
+// ---------------------------------------------------------------------------
+
+/// A successful `NewDevice` enrollment must:
+///  - return a non-empty `token` in the `DeviceConfigResponse`, and
+///  - have that token persisted as a `PollingToken` row in the DB.
+#[sqlx::test]
+async fn test_new_device_creates_polling_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let _network = create_network(&context.pool).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let pubkey = "BB1bKzSCUmupeZLQnLn3x0Ee7wfGF5sROR0WY3y6iqN=";
+    context.mock_proxy().send_request(CoreRequest {
+        id: 50,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::NewDevice(NewDevice {
+            name: "Polling Test Laptop".to_string(),
+            pubkey: pubkey.to_string(),
+            token: Some(token.id.clone()),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let cfg = assert_device_config_response(&response);
+
+    let polling_token_str = cfg
+        .token
+        .as_ref()
+        .expect("DeviceConfigResponse.token must be present after NewDevice");
+    assert!(
+        !polling_token_str.is_empty(),
+        "polling token string must not be empty"
+    );
+
+    // The token must exist in the DB.
+    let in_db = PollingToken::find(&context.pool, polling_token_str)
+        .await
+        .expect("DB query for PollingToken failed");
+    assert!(
+        in_db.is_some(),
+        "PollingToken row should exist in DB after NewDevice enrollment"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
 // ActivateUser tests
 // ---------------------------------------------------------------------------
 

@@ -600,3 +600,99 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
 
     context.finish().await.expect_server_finished().await;
 }
+
+// ---------------------------------------------------------------------------
+// 14. Second MFA finish replaces old session and emits MfaSessionDisconnected
+// ---------------------------------------------------------------------------
+
+/// When a second MFA cycle completes for the same device+location the handler
+/// must:
+///  - disconnect the first `VpnClientSession` (state → Disconnected),
+///  - emit `GatewayEvent::MfaSessionDisconnected` for the first session, and
+///  - create a new active `VpnClientSession`.
+#[sqlx::test]
+async fn test_mfa_finish_replaces_existing_session_disconnects_old(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let network = create_mfa_network(&context.pool).await;
+    let (mut user, device) = create_user_with_device(&context.pool).await;
+    setup_user_totp_mfa(&context.pool, &mut user).await;
+
+    // ---- First MFA cycle ----
+    // Must subscribe before finish so the send has a receiver.
+    let _gw_rx1 = context.wireguard_tx.subscribe();
+
+    let (_, token1) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Totp,
+    )
+    .await;
+
+    let code1 = generate_totp_code(&user);
+    let (_, psk1) = send_mfa_finish(&mut context, &token1, Some(&code1)).await;
+    assert!(!psk1.is_empty(), "first MFA cycle must return a non-empty PSK");
+
+    // First session must exist in the DB.
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+
+    // ---- Second MFA cycle ----
+    let (_, token2) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Totp,
+    )
+    .await;
+
+    // Subscribe before finish so both MfaSessionDisconnected and
+    // MfaSessionAuthorized have an active receiver.
+    let mut gw_rx2 = context.wireguard_tx.subscribe();
+
+    // Wait a moment so the TOTP window advances past the first code.
+    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+    let code2 = generate_totp_code(&user);
+    let (_, psk2) = send_mfa_finish(&mut context, &token2, Some(&code2)).await;
+    assert!(!psk2.is_empty(), "second MFA cycle must return a non-empty PSK");
+
+    // Receive events from the gateway broadcast channel.  The handler sends
+    // MfaSessionDisconnected (for the old session) and then MfaSessionAuthorized
+    // (for the new session) in that order.
+    let mut got_disconnected = false;
+    let mut got_authorized = false;
+    for _ in 0..2u8 {
+        let event = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            gw_rx2.recv(),
+        )
+        .await
+        .expect("timed out waiting for gateway event after second MFA finish")
+        .expect("gateway event channel closed");
+
+        match event {
+            GatewayEvent::MfaSessionDisconnected(loc_id, ref dev) => {
+                assert_eq!(loc_id, network.id, "disconnected session location mismatch");
+                assert_eq!(dev.id, device.id, "disconnected session device mismatch");
+                got_disconnected = true;
+            }
+            GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => {
+                assert_eq!(loc_id, network.id, "authorized session location mismatch");
+                got_authorized = true;
+            }
+            other => panic!("unexpected gateway event: {other:?}"),
+        }
+    }
+    assert!(got_disconnected, "MfaSessionDisconnected must be emitted");
+    assert!(got_authorized, "MfaSessionAuthorized must be emitted");
+
+    // New session must exist in the DB.
+    assert_vpn_session_exists(&context.pool, network.id, device.id).await;
+
+    context.finish().await.expect_server_finished().await;
+}

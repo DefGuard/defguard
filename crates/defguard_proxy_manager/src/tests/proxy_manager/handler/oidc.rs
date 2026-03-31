@@ -34,8 +34,9 @@ use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 use super::support::{
     assert_error_response, assert_vpn_session_exists, clear_test_license,
     complete_proxy_handshake, create_external_mfa_network, create_oidc_provider,
-    create_user_with_device, expect_bidi_mfa_success, make_device_info, make_oidc_code,
-    send_mfa_finish, send_mfa_start, set_public_proxy_url, set_test_license_business,
+    create_user, create_user_with_device, expect_bidi_mfa_success, make_device_info,
+    make_oidc_code, send_mfa_finish, send_mfa_start, set_public_proxy_url,
+    set_test_license_business,
 };
 
 // ---------------------------------------------------------------------------
@@ -382,6 +383,78 @@ async fn test_mfa_oidc_full_flow(
     // Verify BidiStreamEvent::DesktopClientMfa(Success) was emitted.
     let location_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
     assert_eq!(location_id, network.id);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
+// 2. AuthCallback matches existing user by email and returns enrollment token
+// ---------------------------------------------------------------------------
+
+/// When the OIDC code's email matches a pre-existing user the handler must
+/// return a valid enrollment token bound to that user (not create a new one).
+#[sqlx::test]
+async fn test_auth_callback_exchanges_code_for_enrollment_token(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+    set_test_license_business();
+
+    // Create a user whose email will be matched by the OIDC callback.
+    let user = create_user(&context.pool).await;
+
+    // Spin up mock OIDC provider and register it in the DB.
+    let mock = MockOidcProvider::start().await;
+    let _provider = create_oidc_provider(&context.pool, &mock).await;
+    set_public_proxy_url(&context.pool, &mock.base_url).await;
+
+    // Build an OIDC code whose email matches the pre-existing user.
+    let raw_nonce = "test-nonce-existing-user";
+    let code = make_oidc_code(&user.email, &user.email, raw_nonce);
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 11,
+        device_info: None,
+        payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
+            code: code.clone(),
+            nonce: raw_nonce.to_string(),
+            callback_url: String::new(),
+        })),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let auth_cb = match &response.payload {
+        Some(core_response::Payload::AuthCallback(r)) => r,
+        Some(core_response::Payload::CoreError(e)) => panic!(
+            "test_auth_callback_exchanges_code_for_enrollment_token: got CoreError status={} msg={}",
+            e.status_code, e.message
+        ),
+        other => panic!(
+            "expected AuthCallback response, got: {:?}",
+            other.as_ref().map(|p| std::mem::discriminant(p))
+        ),
+    };
+
+    assert!(
+        !auth_cb.token.is_empty(),
+        "expected non-empty enrollment token id"
+    );
+    assert!(
+        !auth_cb.url.is_empty(),
+        "expected non-empty proxy public URL"
+    );
+
+    // The enrollment token must exist in the DB and be bound to the existing user.
+    let token = Token::find_by_id(&context.pool, &auth_cb.token)
+        .await
+        .expect("db query failed for enrollment token");
+
+    assert_eq!(
+        token.user_id, user.id,
+        "enrollment token must belong to the pre-existing user"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
