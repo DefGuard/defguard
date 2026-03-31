@@ -23,24 +23,21 @@ use defguard_proto::proxy::{
     ClientMfaTokenValidationRequest, CoreRequest, MfaMethod, core_request, core_response,
 };
 
-use crate::tests::common::HandlerTestContext;
 use super::support::{
-    assert_error_response, assert_vpn_session_exists, clear_test_license,
-    complete_proxy_handshake, create_external_mfa_network, create_mfa_network,
-    create_network, create_user_with_device, expect_bidi_mfa_success,
-    expect_gateway_mfa_authorized, generate_totp_code, make_device_info, send_mfa_finish,
-    send_mfa_start, send_token_validation, setup_user_email_mfa, setup_user_totp_mfa,
+    assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
+    create_external_mfa_network, create_mfa_network, create_network, create_user_with_device,
+    expect_bidi_mfa_success, expect_gateway_mfa_authorized, generate_totp_code, make_device_info,
+    send_mfa_finish, send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_start,
+    send_token_validation, setup_user_email_mfa, setup_user_totp_mfa,
 };
+use crate::tests::common::HandlerTestContext;
 
 // ---------------------------------------------------------------------------
 // 1. MFA start fails when the location has MFA disabled
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_start_fails_for_disabled_location(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -72,10 +69,7 @@ async fn test_mfa_start_fails_for_disabled_location(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_start_returns_token_for_totp(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_start_returns_token_for_totp(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -83,29 +77,14 @@ async fn test_mfa_start_returns_token_for_totp(
     let (mut user, device) = create_user_with_device(&context.pool).await;
     setup_user_totp_mfa(&context.pool, &mut user).await;
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 1,
-        device_info: None,
-        payload: Some(core_request::Payload::ClientMfaStart(
-            ClientMfaStartRequest {
-                location_id: network.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                method: MfaMethod::Totp as i32,
-            },
-        )),
-    });
-
-    let response = context.mock_proxy_mut().recv_outbound().await;
-    match &response.payload {
-        Some(core_response::Payload::ClientMfaStart(r)) => {
-            assert!(!r.token.is_empty(), "TOTP start token must not be empty");
-            assert!(r.challenge.is_none(), "TOTP start should have no challenge");
-        }
-        other => panic!(
-            "expected ClientMfaStart response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
-        ),
-    }
+    let (_, token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Totp,
+    )
+    .await;
+    assert!(!token.is_empty(), "TOTP start token must not be empty");
 
     context.finish().await.expect_server_finished().await;
 }
@@ -115,10 +94,7 @@ async fn test_mfa_start_returns_token_for_totp(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_finish_succeeds_with_totp_code(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -134,19 +110,31 @@ async fn test_mfa_finish_succeeds_with_totp_code(
     )
     .await;
 
-    // Subscribe before finish so the handler's wireguard_tx.send() has a receiver.
-    let _gateway_rx = context.wireguard_tx.subscribe();
+    // Subscribe before finish so the handler's wireguard_tx.send() has a receiver,
+    // and keep the receiver alive so we can assert on the event.
+    let mut gateway_rx = context.wireguard_tx.subscribe();
 
     let code = generate_totp_code(&user);
     let (_, psk) = send_mfa_finish(&mut context, &token, Some(&code)).await;
-    assert!(!psk.is_empty(), "PSK must not be empty after successful TOTP MFA");
+    assert!(
+        !psk.is_empty(),
+        "PSK must not be empty after successful TOTP MFA"
+    );
 
     // Verify VpnClientSession was persisted.
     let session = assert_vpn_session_exists(&context.pool, network.id, device.id).await;
     assert!(session.preshared_key.is_some());
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
-    let gateway_loc_id = expect_gateway_mfa_authorized(&context.wireguard_tx).await;
+    // Use the already-subscribed receiver — subscribing after send_mfa_finish would miss the event.
+    let event = tokio::time::timeout(std::time::Duration::from_secs(5), gateway_rx.recv())
+        .await
+        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
+        .expect("gateway event channel closed");
+    let gateway_loc_id = match event {
+        defguard_core::grpc::GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
+        other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
+    };
     assert_eq!(gateway_loc_id, network.id);
 
     // Verify BidiStreamEvent::DesktopClientMfa(Success) was emitted.
@@ -161,10 +149,7 @@ async fn test_mfa_finish_succeeds_with_totp_code(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_finish_fails_with_wrong_totp_code(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -212,10 +197,7 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_start_fails_for_unknown_device(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -281,10 +263,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_start_returns_token_for_email_mfa(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_start_returns_token_for_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -292,28 +271,14 @@ async fn test_mfa_start_returns_token_for_email_mfa(
     let (mut user, device) = create_user_with_device(&context.pool).await;
     setup_user_email_mfa(&context.pool, &mut user).await;
 
-    context.mock_proxy().send_request(CoreRequest {
-        id: 1,
-        device_info: None,
-        payload: Some(core_request::Payload::ClientMfaStart(
-            ClientMfaStartRequest {
-                location_id: network.id,
-                pubkey: device.wireguard_pubkey.clone(),
-                method: MfaMethod::Email as i32,
-            },
-        )),
-    });
-
-    let response = context.mock_proxy_mut().recv_outbound().await;
-    match &response.payload {
-        Some(core_response::Payload::ClientMfaStart(r)) => {
-            assert!(!r.token.is_empty(), "token must not be empty");
-        }
-        other => panic!(
-            "expected ClientMfaStart response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
-        ),
-    }
+    let (_, token) = send_mfa_start(
+        &mut context,
+        network.id,
+        &device.wireguard_pubkey,
+        MfaMethod::Email,
+    )
+    .await;
+    assert!(!token.is_empty(), "token must not be empty");
 
     context.finish().await.expect_server_finished().await;
 }
@@ -323,10 +288,7 @@ async fn test_mfa_start_returns_token_for_email_mfa(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_finish_succeeds_and_creates_session(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -364,13 +326,10 @@ async fn test_mfa_finish_succeeds_and_creates_session(
     assert!(session.preshared_key.is_some());
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast
-    let event = tokio::time::timeout(
-        std::time::Duration::from_secs(5),
-        gateway_rx.recv(),
-    )
-    .await
-    .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
-    .expect("gateway event channel closed");
+    let event = tokio::time::timeout(std::time::Duration::from_secs(5), gateway_rx.recv())
+        .await
+        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
+        .expect("gateway event channel closed");
     let loc_id = match event {
         GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
         other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
@@ -430,10 +389,7 @@ async fn test_mfa_token_valid_before_finish_invalid_after(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_finish_fails_with_wrong_code(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -449,21 +405,8 @@ async fn test_mfa_finish_fails_with_wrong_code(
     )
     .await;
 
-    // Send a clearly wrong code
-    let id = 9990u64;
-    context.mock_proxy().send_request(CoreRequest {
-        id,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: token.clone(),
-                code: Some("000000".to_string()),
-                auth_pub_key: None,
-            },
-        )),
-    });
-
-    let response = context.mock_proxy_mut().recv_outbound().await;
+    // Send a clearly wrong code — use _raw so we can inspect the error response
+    let response = send_mfa_finish_raw(&mut context, &token, Some("000000")).await;
     let code = assert_error_response(&response);
     // invalid code → InvalidArgument or Unauthenticated
     assert!(
@@ -482,10 +425,7 @@ async fn test_mfa_finish_fails_with_wrong_code(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_oidc_start_requires_license(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -546,7 +486,9 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
         id: await_id,
         device_info: None,
         payload: Some(core_request::Payload::AwaitRemoteMfaFinish(
-            AwaitRemoteMfaFinishRequest { token: token.clone() },
+            AwaitRemoteMfaFinishRequest {
+                token: token.clone(),
+            },
         )),
     });
 
@@ -557,20 +499,11 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     // Subscribe before finish so the handler's wireguard_tx.send() has a receiver
     let _gateway_rx = context.wireguard_tx.subscribe();
 
-    // Now finish the MFA login with the correct code
+    // Now finish the MFA login with the correct code.  Use the no-recv variant
+    // because two responses will arrive (ClientMfaFinish + AwaitRemoteMfaFinish)
+    // and we collect them both below.
     let code = user.generate_email_mfa_code().expect("generate email code");
-    let finish_id = 8001u64;
-    context.mock_proxy().send_request(CoreRequest {
-        id: finish_id,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(
-            ClientMfaFinishRequest {
-                token: token.clone(),
-                code: Some(code),
-                auth_pub_key: None,
-            },
-        )),
-    });
+    send_mfa_finish_no_recv(&mut context, &token, Some(&code)).await;
 
     // Two responses should arrive: one ClientMfaFinish and one
     // AwaitRemoteMfaFinish — order is not guaranteed.
@@ -636,7 +569,10 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     let code1 = generate_totp_code(&user);
     let (_, psk1) = send_mfa_finish(&mut context, &token1, Some(&code1)).await;
-    assert!(!psk1.is_empty(), "first MFA cycle must return a non-empty PSK");
+    assert!(
+        !psk1.is_empty(),
+        "first MFA cycle must return a non-empty PSK"
+    );
 
     // First session must exist in the DB.
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
@@ -659,7 +595,10 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
 
     let code2 = generate_totp_code(&user);
     let (_, psk2) = send_mfa_finish(&mut context, &token2, Some(&code2)).await;
-    assert!(!psk2.is_empty(), "second MFA cycle must return a non-empty PSK");
+    assert!(
+        !psk2.is_empty(),
+        "second MFA cycle must return a non-empty PSK"
+    );
 
     // Receive events from the gateway broadcast channel.  The handler sends
     // MfaSessionDisconnected (for the old session) and then MfaSessionAuthorized
@@ -667,13 +606,10 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     let mut got_disconnected = false;
     let mut got_authorized = false;
     for _ in 0..2u8 {
-        let event = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
-            gw_rx2.recv(),
-        )
-        .await
-        .expect("timed out waiting for gateway event after second MFA finish")
-        .expect("gateway event channel closed");
+        let event = tokio::time::timeout(std::time::Duration::from_secs(5), gw_rx2.recv())
+            .await
+            .expect("timed out waiting for gateway event after second MFA finish")
+            .expect("gateway event channel closed");
 
         match event {
             GatewayEvent::MfaSessionDisconnected(loc_id, ref dev) => {

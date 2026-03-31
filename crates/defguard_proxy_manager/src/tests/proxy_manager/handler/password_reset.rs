@@ -6,19 +6,18 @@
 /// case.  For the `PasswordResetStart` / `PasswordReset` paths we manually
 /// insert a `PASSWORD_RESET` token via `create_password_reset_token`, which
 /// bypasses the need for SMTP entirely.
-
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_common::db::models::User;
 use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
 use defguard_proto::proxy::core_response;
 
-use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 use super::support::{
     STRONG_PASSWORD, assert_error_response, complete_proxy_handshake, create_enrollment_token,
     create_password_reset_token, create_user, send_password_reset, send_password_reset_init,
     send_password_reset_start,
 };
+use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
 // ---------------------------------------------------------------------------
 // Test 1: PasswordResetInit with unknown email returns Empty silently
@@ -39,7 +38,10 @@ async fn test_password_reset_init_silent_success_for_unknown_email(
 
     match &response.payload {
         Some(core_response::Payload::Empty(())) => {}
-        _ => panic!("expected Empty response for unknown email, got: {:?}", response.payload.as_ref().map(|p| std::mem::discriminant(p))),
+        _ => panic!(
+            "expected Empty response for unknown email, got: {:?}",
+            response.payload.as_ref().map(|p| std::mem::discriminant(p))
+        ),
     }
 
     context.finish().await.expect_server_finished().await;
@@ -53,17 +55,16 @@ async fn test_password_reset_init_silent_success_for_unknown_email(
 /// activated user must return `PasswordResetStartResponse { deadline_timestamp > 0 }`
 /// and emit a `BidiStreamEvent::PasswordReset(PasswordResetStarted)` event.
 #[sqlx::test]
-async fn test_password_reset_start_returns_deadline(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_password_reset_start_returns_deadline(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
     // Create a user and give them a password so `has_password()` is true.
     let mut user = create_user(&context.pool).await;
     user.set_password(STRONG_PASSWORD);
-    user.save(&context.pool).await.expect("failed to save user with password");
+    user.save(&context.pool)
+        .await
+        .expect("failed to save user with password");
 
     // Manually insert a PASSWORD_RESET token.
     let token = create_password_reset_token(&context.pool, &user).await;
@@ -103,23 +104,25 @@ async fn test_password_reset_start_returns_deadline(
 /// The handler must return `Empty`, the user's password hash must change in
 /// the DB, and a `PasswordResetCompleted` event must be emitted.
 #[sqlx::test]
-async fn test_password_reset_completes_successfully(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
     let mut user = create_user(&context.pool).await;
     user.set_password(STRONG_PASSWORD);
-    user.save(&context.pool).await.expect("failed to save user with password");
+    user.save(&context.pool)
+        .await
+        .expect("failed to save user with password");
 
     let token = create_password_reset_token(&context.pool, &user).await;
 
     // Start the session (consumes the PasswordResetStarted event).
     let start_response = send_password_reset_start(&mut context, &token.id).await;
     assert!(
-        matches!(start_response.payload, Some(core_response::Payload::PasswordResetStart(_))),
+        matches!(
+            start_response.payload,
+            Some(core_response::Payload::PasswordResetStart(_))
+        ),
         "start must succeed"
     );
     let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
@@ -141,11 +144,13 @@ async fn test_password_reset_completes_successfully(
         .await
         .expect("db query failed")
         .expect("user not found");
-    assert!(updated.has_password(), "user must still have a password hash");
+    assert!(
+        updated.has_password(),
+        "user must still have a password hash"
+    );
     // The new hash must differ from the original (old STRONG_PASSWORD hash stored before).
     assert_ne!(
-        updated.password_hash,
-        user.password_hash,
+        updated.password_hash, user.password_hash,
         "password hash must have changed after reset"
     );
 
@@ -181,14 +186,19 @@ async fn test_password_reset_weak_password_returns_error(
 
     let mut user = create_user(&context.pool).await;
     user.set_password(STRONG_PASSWORD);
-    user.save(&context.pool).await.expect("failed to save user with password");
+    user.save(&context.pool)
+        .await
+        .expect("failed to save user with password");
 
     let token = create_password_reset_token(&context.pool, &user).await;
 
     // Start the session.
     let start_response = send_password_reset_start(&mut context, &token.id).await;
     assert!(
-        matches!(start_response.payload, Some(core_response::Payload::PasswordResetStart(_))),
+        matches!(
+            start_response.payload,
+            Some(core_response::Payload::PasswordResetStart(_))
+        ),
         "start must succeed"
     );
     let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;

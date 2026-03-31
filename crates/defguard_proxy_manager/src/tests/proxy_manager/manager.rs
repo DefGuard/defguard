@@ -40,7 +40,10 @@ async fn test_manager_starts_all_enabled_proxies_on_startup(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(is_connected, "enabled proxy should be connected after manager startup");
+    assert!(
+        is_connected,
+        "enabled proxy should be connected after manager startup"
+    );
 
     context.finish().await;
 }
@@ -88,8 +91,16 @@ async fn test_two_proxies_connect_independently(_: PgPoolOptions, options: PgCon
     assert!(connected_b, "proxy B should be connected after startup");
 
     // Each mock must have received exactly one connection.
-    assert_eq!(mock_a.connection_count(), 1, "proxy A mock should have exactly one connection");
-    assert_eq!(mock_b.connection_count(), 1, "proxy B mock should have exactly one connection");
+    assert_eq!(
+        mock_a.connection_count(),
+        1,
+        "proxy A mock should have exactly one connection"
+    );
+    assert_eq!(
+        mock_b.connection_count(),
+        1,
+        "proxy B mock should have exactly one connection"
+    );
 
     context.finish().await;
 }
@@ -102,10 +113,7 @@ async fn test_two_proxies_connect_independently(_: PgPoolOptions, options: PgCon
 /// is disabled.  When it is enabled and `StartConnection` is sent at runtime,
 /// the manager spawns a new handler and all three proxies are connected.
 #[sqlx::test]
-async fn test_start_connection_adds_proxy_at_runtime(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_start_connection_adds_proxy_at_runtime(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
 
     // Two proxies that connect at startup.
@@ -140,7 +148,10 @@ async fn test_start_connection_adds_proxy_at_runtime(
     // Enable proxy C in the DB and send StartConnection.
     let mut proxy_c_db = reload_proxy(&context.pool, proxy_c.id).await;
     proxy_c_db.enabled = true;
-    proxy_c_db.save(&context.pool).await.expect("failed to enable proxy C");
+    proxy_c_db
+        .save(&context.pool)
+        .await
+        .expect("failed to enable proxy C");
 
     context
         .proxy_control_tx
@@ -148,7 +159,9 @@ async fn test_start_connection_adds_proxy_at_runtime(
         .await
         .expect("failed to send StartConnection for proxy C");
 
-    context.wait_for_handler_spawn_attempt_count(proxy_c.id, 1).await;
+    context
+        .wait_for_handler_spawn_attempt_count(proxy_c.id, 1)
+        .await;
     complete_manager_proxy_handshake(&mut mock_c).await;
 
     let after_c = wait_for_proxy_connection_state(&context.pool, proxy_c.id, true).await;
@@ -157,7 +170,10 @@ async fn test_start_connection_adds_proxy_at_runtime(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(connected_c, "proxy C should be connected after StartConnection at runtime");
+    assert!(
+        connected_c,
+        "proxy C should be connected after StartConnection at runtime"
+    );
 
     // The original two proxies must still be connected.
     let still_a = wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
@@ -166,7 +182,10 @@ async fn test_start_connection_adds_proxy_at_runtime(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(still_connected_a, "proxy A must still be connected after C joins");
+    assert!(
+        still_connected_a,
+        "proxy A must still be connected after C joins"
+    );
 
     let still_b = wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
     let still_connected_b = match (still_b.connected_at, still_b.disconnected_at) {
@@ -174,7 +193,10 @@ async fn test_start_connection_adds_proxy_at_runtime(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(still_connected_b, "proxy B must still be connected after C joins");
+    assert!(
+        still_connected_b,
+        "proxy B must still be connected after C joins"
+    );
 
     context.finish().await;
 }
@@ -208,7 +230,9 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
     context.register_proxy_mock(&proxy_b, &mock_b);
 
     context.start().await;
-    context.wait_for_handler_spawn_attempt_count(proxy_a.id, 1).await;
+    context
+        .wait_for_handler_spawn_attempt_count(proxy_a.id, 1)
+        .await;
 
     // First mock for proxy A — will be closed to trigger a reconnect.
     let mut mock_a1 = MockProxyHarness::start_at(socket_a.clone()).await;
@@ -259,7 +283,6 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
     context.finish().await;
 }
 
-
 // ---------------------------------------------------------------------------
 // Control messages: StartConnection
 // ---------------------------------------------------------------------------
@@ -304,7 +327,10 @@ async fn test_start_connection_spawns_new_handler(_: PgPoolOptions, options: PgC
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(is_connected, "proxy should be connected after StartConnection");
+    assert!(
+        is_connected,
+        "proxy should be connected after StartConnection"
+    );
 
     context.finish().await;
 }
@@ -340,7 +366,10 @@ async fn test_shutdown_control_message_disconnects_without_purge(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(!is_connected, "proxy should be disconnected after ShutdownConnection");
+    assert!(
+        !is_connected,
+        "proxy should be disconnected after ShutdownConnection"
+    );
 
     // Verify purge() was NOT called.
     assert_eq!(
@@ -357,10 +386,7 @@ async fn test_shutdown_control_message_disconnects_without_purge(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_purge_control_message_calls_purge_rpc(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
     let proxy = create_proxy(&context.pool).await;
     let mut mock_proxy = MockProxyHarness::start().await;
@@ -512,8 +538,7 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
 
     // The retained proxy must still be connected — license expiry must not
     // affect proxies that are allowed to remain.
-    let after_keep =
-        wait_for_proxy_connection_state(&context.pool, proxy_keep.id, true).await;
+    let after_keep = wait_for_proxy_connection_state(&context.pool, proxy_keep.id, true).await;
     let still_connected = match (after_keep.connected_at, after_keep.disconnected_at) {
         (Some(c), Some(d)) => c > d,
         (Some(_), None) => true,

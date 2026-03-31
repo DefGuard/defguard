@@ -28,8 +28,8 @@ use defguard_proto::proxy::{
     EnrollmentStartRequest, MfaMethod, PasswordResetInitializeRequest, PasswordResetRequest,
     PasswordResetStartRequest, core_request, core_response,
 };
-use sqlx::PgPool;
 use ipnetwork::IpNetwork;
+use sqlx::PgPool;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 
@@ -217,7 +217,10 @@ pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device
     let n = DEV_CTR.fetch_add(1, Ordering::Relaxed);
     // Use a pre-generated valid 32-byte base64 WireGuard public key.
     let pubkey = DEVICE_PUBKEYS[n as usize % DEVICE_PUBKEYS.len()].to_string();
-    let mut conn = pool.acquire().await.expect("failed to acquire DB connection");
+    let mut conn = pool
+        .acquire()
+        .await
+        .expect("failed to acquire DB connection");
     let device = Device::new(
         format!("test-device-{n}"),
         pubkey,
@@ -258,7 +261,11 @@ pub(crate) async fn create_user_with_device(pool: &PgPool) -> (User<Id>, Device<
 /// `{{ admin_first_name }}` etc., so Tera will fail to render it when those
 /// variables are absent.  Pass `Some(user_id)` to populate those fields
 /// (using the user as their own admin is fine for tests).
-pub(crate) async fn create_enrollment_token(pool: &PgPool, user_id: Id, admin_id: Option<Id>) -> Token {
+pub(crate) async fn create_enrollment_token(
+    pool: &PgPool,
+    user_id: Id,
+    admin_id: Option<Id>,
+) -> Token {
     let token = Token::new(
         user_id,
         admin_id,
@@ -300,10 +307,7 @@ pub(crate) async fn create_polling_token(pool: &PgPool, device_id: Id) -> String
 /// The function sends a single `EnrollmentStartRequest` with the given token
 /// ID and waits for the `EnrollmentStartResponse` (or any payload — panicking
 /// if the stream closes without a response).
-pub(crate) async fn start_enrollment_session(
-    context: &mut HandlerTestContext,
-    token_id: &str,
-) {
+pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, token_id: &str) {
     static ENROLL_CTR: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1000);
     let id = ENROLL_CTR.fetch_add(1, Ordering::Relaxed);
 
@@ -400,7 +404,8 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
     // the two calls will produce the same code because the in-memory secret
     // hasn't changed. But we need the code *after* the start call, so the
     // caller should call this helper before start and pass the code to finish.
-    user.generate_email_mfa_code().expect("generate_email_mfa_code")
+    user.generate_email_mfa_code()
+        .expect("generate_email_mfa_code")
 }
 
 /// Enable TOTP for `user` and persist the secret.  Call `generate_totp_code`
@@ -417,7 +422,10 @@ pub(crate) async fn setup_user_totp_mfa(pool: &PgPool, user: &mut User<Id>) {
 pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
     use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
     use totp_lite::{Sha1, totp_custom};
-    let secret = user.totp_secret.as_ref().expect("totp_secret must be set after setup_user_totp_mfa");
+    let secret = user
+        .totp_secret
+        .as_ref()
+        .expect("totp_secret must be set after setup_user_totp_mfa");
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .expect("system time before epoch")
@@ -430,11 +438,8 @@ pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
 pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
     use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
     use totp_lite::{Sha1, totp_custom};
-    let secret = base32::decode(
-        base32::Alphabet::Rfc4648 { padding: false },
-        base32_secret,
-    )
-    .expect("invalid base32 TOTP secret from CodeMfaSetupStartResponse");
+    let secret = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, base32_secret)
+        .expect("invalid base32 TOTP secret from CodeMfaSetupStartResponse");
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .expect("system time before epoch")
@@ -461,11 +466,13 @@ pub(crate) async fn send_mfa_start(
     context.mock_proxy().send_request(CoreRequest {
         id,
         device_info: None,
-        payload: Some(core_request::Payload::ClientMfaStart(ClientMfaStartRequest {
-            location_id,
-            pubkey: pubkey.to_string(),
-            method: method as i32,
-        })),
+        payload: Some(core_request::Payload::ClientMfaStart(
+            ClientMfaStartRequest {
+                location_id,
+                pubkey: pubkey.to_string(),
+                method: method as i32,
+            },
+        )),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     let token = match &response.payload {
@@ -495,11 +502,13 @@ pub(crate) async fn send_mfa_finish(
     context.mock_proxy().send_request(CoreRequest {
         id,
         device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::ClientMfaFinish(ClientMfaFinishRequest {
-            token: token.to_string(),
-            code: code.map(str::to_string),
-            auth_pub_key: None,
-        })),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.to_string(),
+                code: code.map(str::to_string),
+                auth_pub_key: None,
+            },
+        )),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
     let psk = match &response.payload {
@@ -516,17 +525,66 @@ pub(crate) async fn send_mfa_finish(
     (response, psk)
 }
 
-/// Send `ClientMfaTokenValidation` and return `token_valid`.
-pub(crate) async fn send_token_validation(
+/// Send `ClientMfaFinish` *without* waiting for a response.
+///
+/// Use this when the caller needs to collect multiple responses (e.g. when
+/// an `AwaitRemoteMfaFinish` response is also expected after the finish).
+/// The global settings are re-synced before the request is sent so that the
+/// handler can verify the JWT with the correct secret key.
+pub(crate) async fn send_mfa_finish_no_recv(
     context: &mut HandlerTestContext,
     token: &str,
-) -> bool {
+    code: Option<&str>,
+) {
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.to_string(),
+                code: code.map(str::to_string),
+                auth_pub_key: None,
+            },
+        )),
+    });
+}
+
+/// Send `ClientMfaFinish` and return the raw `CoreResponse`.
+///
+/// Like `send_mfa_finish` but does not panic on error — the caller is
+/// responsible for inspecting `response.payload`.  Use this for error-path
+/// tests where an error response is expected.
+pub(crate) async fn send_mfa_finish_raw(
+    context: &mut HandlerTestContext,
+    token: &str,
+    code: Option<&str>,
+) -> CoreResponse {
+    let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ClientMfaFinish(
+            ClientMfaFinishRequest {
+                token: token.to_string(),
+                code: code.map(str::to_string),
+                auth_pub_key: None,
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send `ClientMfaTokenValidation` and return `token_valid`.
+pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, token: &str) -> bool {
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
         device_info: None,
         payload: Some(core_request::Payload::ClientMfaTokenValidation(
-            ClientMfaTokenValidationRequest { token: token.to_string() },
+            ClientMfaTokenValidationRequest {
+                token: token.to_string(),
+            },
         )),
     });
     let response = context.mock_proxy_mut().recv_outbound().await;
@@ -552,7 +610,7 @@ pub(crate) async fn send_token_validation(
 pub(crate) async fn expect_gateway_mfa_authorized(
     wireguard_tx: &tokio::sync::broadcast::Sender<GatewayEvent>,
 ) -> Id {
-    use tokio::time::{timeout, Duration};
+    use tokio::time::{Duration, timeout};
     let mut rx = wireguard_tx.subscribe();
     let event = timeout(Duration::from_secs(5), rx.recv())
         .await
@@ -569,7 +627,7 @@ pub(crate) async fn expect_gateway_mfa_authorized(
 pub(crate) async fn expect_bidi_mfa_success(
     bidi_rx: &mut tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
 ) -> Id {
-    use tokio::time::{timeout, Duration};
+    use tokio::time::{Duration, timeout};
     let event = timeout(Duration::from_secs(5), bidi_rx.recv())
         .await
         .expect("timed out waiting for BidiStreamEvent DesktopClientMfa(Success)")

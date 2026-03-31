@@ -3,7 +3,6 @@
 /// These tests use `HandlerTestContext` (single `run_once` handler) and inject
 /// `CoreRequest` messages through the mock proxy harness, asserting on the
 /// `CoreResponse` payloads that come back.
-
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_common::db::models::{Device, User, polling_token::PollingToken};
@@ -13,11 +12,10 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    ActivateUserRequest, CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest,
-    CoreRequest, ExistingDevice, MfaMethod, NewDevice, core_request, core_response,
+    ActivateUserRequest, CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, CoreRequest,
+    ExistingDevice, MfaMethod, NewDevice, core_request, core_response,
 };
 
-use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,
     complete_proxy_handshake, create_device_for_user, create_enrollment_token, create_network,
@@ -25,6 +23,7 @@ use super::support::{
     send_activate_user, send_code_mfa_setup_finish, send_code_mfa_setup_start,
     start_enrollment_session, totp_code_from_base32_secret,
 };
+use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
 #[sqlx::test]
 async fn test_new_device_creates_device_and_returns_configs(
@@ -61,7 +60,10 @@ async fn test_new_device_creates_device_and_returns_configs(
     // The handler should respond with a DeviceConfig.
     let response = context.mock_proxy_mut().recv_outbound().await;
     let cfg = assert_device_config_response(&response);
-    assert!(cfg.device.is_some(), "DeviceConfigResponse should contain device");
+    assert!(
+        cfg.device.is_some(),
+        "DeviceConfigResponse should contain device"
+    );
     assert!(
         !cfg.configs.is_empty(),
         "DeviceConfigResponse should contain at least one network config"
@@ -71,7 +73,10 @@ async fn test_new_device_creates_device_and_returns_configs(
     let devices = Device::find_by_pubkey(&context.pool, pubkey)
         .await
         .expect("DB query failed");
-    assert!(devices.is_some(), "device should exist in DB after NewDevice");
+    assert!(
+        devices.is_some(),
+        "device should exist in DB after NewDevice"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
@@ -84,10 +89,7 @@ async fn test_new_device_creates_device_and_returns_configs(
 ///  - return a non-empty `token` in the `DeviceConfigResponse`, and
 ///  - have that token persisted as a `PollingToken` row in the DB.
 #[sqlx::test]
-async fn test_new_device_creates_polling_token(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_new_device_creates_polling_token(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -97,7 +99,7 @@ async fn test_new_device_creates_polling_token(
     let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
-    let pubkey = "BB1bKzSCUmupeZLQnLn3x0Ee7wfGF5sROR0WY3y6iqN=";
+    let pubkey = "BB1bKzSCUmupeZLQnLn3x0Ee7wfGF5sROR0WY3y6iqM=";
     context.mock_proxy().send_request(CoreRequest {
         id: 50,
         device_info: Some(make_device_info()),
@@ -146,8 +148,11 @@ async fn test_activate_user_happy_path(_: PgPoolOptions, options: PgConnectOptio
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
+    // `start_enrollment_session` emits an `EnrollmentStarted` bidi event; drain
+    // it so that the subsequent assertion only sees `EnrollmentCompleted`.
+    let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     let response = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
 
@@ -162,7 +167,10 @@ async fn test_activate_user_happy_path(_: PgPoolOptions, options: PgConnectOptio
         .await
         .expect("db query failed")
         .expect("user not found");
-    assert!(updated.has_password(), "user must have a password hash after activation");
+    assert!(
+        updated.has_password(),
+        "user must have a password hash after activation"
+    );
     assert!(
         !updated.enrollment_pending,
         "enrollment_pending must be false after activation"
@@ -195,7 +203,7 @@ async fn test_activate_user_weak_password_returns_error(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     let response = send_activate_user(&mut context, &token.id, "weak", None).await;
@@ -221,7 +229,7 @@ async fn test_activate_user_already_activated_returns_error(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     // First activation — must succeed.
@@ -234,7 +242,7 @@ async fn test_activate_user_already_activated_returns_error(
     let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Create a fresh enrollment token (old one is now used), start a new session.
-    let token2 = create_enrollment_token(&context.pool, user.id, None).await;
+    let token2 = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token2.id).await;
 
     // Second activation — must fail with InvalidArgument.
@@ -296,10 +304,7 @@ async fn test_new_device_sends_gateway_device_created_event(
 }
 
 #[sqlx::test]
-async fn test_new_device_invalid_token_returns_error(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_new_device_invalid_token_returns_error(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -317,7 +322,11 @@ async fn test_new_device_invalid_token_returns_error(
     let response = context.mock_proxy_mut().recv_outbound().await;
     // The handler should return an error response.
     let code = assert_error_response(&response);
-    assert_ne!(code, tonic::Code::Ok, "expected error code for invalid token");
+    assert_ne!(
+        code,
+        tonic::Code::Ok,
+        "expected error code for invalid token"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
@@ -367,7 +376,10 @@ async fn test_existing_device_returns_config_and_rotates_polling_token(
     let old_in_db = PollingToken::find(&context.pool, &old_token)
         .await
         .expect("DB query failed");
-    assert!(old_in_db.is_none(), "old polling token should be deleted after rotation");
+    assert!(
+        old_in_db.is_none(),
+        "old polling token should be deleted after rotation"
+    );
 
     // The new token should exist.
     let new_in_db = PollingToken::find(&context.pool, new_token_str)
@@ -407,7 +419,11 @@ async fn test_existing_device_wrong_user_returns_error(
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_ne!(code, tonic::Code::Ok, "expected error when token owner ≠ device owner");
+    assert_ne!(
+        code,
+        tonic::Code::Ok,
+        "expected error when token owner ≠ device owner"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
@@ -427,14 +443,17 @@ async fn test_code_mfa_setup_start_totp_returns_secret(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     let response = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Totp).await;
 
     match &response.payload {
         Some(core_response::Payload::CodeMfaSetupStartResponse(r)) => {
-            let secret = r.totp_secret.as_deref().expect("TOTP start must include a secret");
+            let secret = r
+                .totp_secret
+                .as_deref()
+                .expect("TOTP start must include a secret");
             assert!(!secret.is_empty(), "TOTP secret must be non-empty");
             // Must be valid base32 (decodable).
             assert!(
@@ -460,7 +479,7 @@ async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     // Start: get the base32 TOTP secret.
@@ -490,7 +509,10 @@ async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
         _ => {
             // Show the error code if it came back as CoreError.
             if let Some(core_response::Payload::CoreError(e)) = &finish_resp.payload {
-                panic!("expected CodeMfaSetupFinishResponse, got CoreError: {:?}", e.message);
+                panic!(
+                    "expected CodeMfaSetupFinishResponse, got CoreError: {:?}",
+                    e.message
+                );
             }
             panic!("expected CodeMfaSetupFinishResponse");
         }
@@ -501,8 +523,14 @@ async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
         .await
         .expect("db query failed")
         .expect("user not found");
-    assert!(updated.totp_enabled, "totp_enabled must be true after CodeMfaSetupFinish");
-    assert!(updated.mfa_enabled, "mfa_enabled must be true after CodeMfaSetupFinish");
+    assert!(
+        updated.totp_enabled,
+        "totp_enabled must be true after CodeMfaSetupFinish"
+    );
+    assert!(
+        updated.mfa_enabled,
+        "mfa_enabled must be true after CodeMfaSetupFinish"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
@@ -522,7 +550,7 @@ async fn test_code_mfa_setup_start_email_enters_email_path(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     let response = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Email).await;
@@ -550,7 +578,7 @@ async fn test_code_mfa_setup_finish_wrong_totp_code_returns_error(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     // Start to generate the secret (must succeed first).
@@ -581,7 +609,7 @@ async fn test_code_mfa_setup_unsupported_method_returns_error(
     complete_proxy_handshake(&mut context).await;
 
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
     let response = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Oidc).await;

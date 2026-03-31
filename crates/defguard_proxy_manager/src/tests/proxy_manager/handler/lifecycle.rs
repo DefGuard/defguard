@@ -4,17 +4,13 @@
 /// of a single `ProxyHandler` instance (using `HandlerTestContext` and
 /// `run_once`). Reconnect retry and control-message tests live in `manager.rs`
 /// because they require the full `ProxyManager` supervision loop.
-
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::tests::common::{HandlerTestContext, reload_proxy};
 use super::support::complete_proxy_handshake;
+use crate::tests::common::{HandlerTestContext, reload_proxy};
 
 #[sqlx::test]
-async fn test_proxy_marked_connected_after_handshake(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_proxy_marked_connected_after_handshake(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
 
     let proxy_before = context.reload_proxy().await;
@@ -24,7 +20,10 @@ async fn test_proxy_marked_connected_after_handshake(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(!is_connected_before, "proxy should not be connected before handshake");
+    assert!(
+        !is_connected_before,
+        "proxy should not be connected before handshake"
+    );
 
     complete_proxy_handshake(&mut context).await;
 
@@ -34,8 +33,14 @@ async fn test_proxy_marked_connected_after_handshake(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(is_connected_after, "proxy should be connected after handshake");
-    assert!(proxy_after.connected_at.is_some(), "connected_at should be set");
+    assert!(
+        is_connected_after,
+        "proxy should be connected after handshake"
+    );
+    assert!(
+        proxy_after.connected_at.is_some(),
+        "connected_at should be set"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
@@ -59,7 +64,10 @@ async fn test_proxy_marked_disconnected_when_stream_closes(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(!is_connected_after, "proxy should be disconnected after stream closes");
+    assert!(
+        !is_connected_after,
+        "proxy should be disconnected after stream closes"
+    );
     assert!(
         proxy_after.disconnected_at.is_some(),
         "disconnected_at should be set after stream close"
@@ -91,7 +99,10 @@ async fn test_proxy_marked_disconnected_when_stream_errors(
         (Some(_), None) => true,
         _ => false,
     };
-    assert!(!is_connected_after, "proxy should be disconnected after stream error");
+    assert!(
+        !is_connected_after,
+        "proxy should be disconnected after stream error"
+    );
     assert!(
         proxy_after.disconnected_at.is_some(),
         "disconnected_at should be set after stream error"

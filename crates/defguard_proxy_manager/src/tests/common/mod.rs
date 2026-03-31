@@ -12,7 +12,10 @@ use std::{
 
 use defguard_common::db::{
     Id, NoId,
-    models::{proxy::Proxy, settings::{Settings, initialize_current_settings}},
+    models::{
+        proxy::Proxy,
+        settings::{Settings, initialize_current_settings},
+    },
     setup_pool,
 };
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
@@ -715,13 +718,12 @@ impl MockOidcProvider {
     pub(crate) async fn start() -> Self {
         use base64::Engine as _;
         use jsonwebtoken::EncodingKey;
-        use rsa::{RsaPrivateKey, traits::PublicKeyParts};
         use rsa::pkcs8::EncodePrivateKey;
+        use rsa::{RsaPrivateKey, traits::PublicKeyParts};
 
         // ---- generate RSA-2048 key pair ----
         let mut rng = rand::thread_rng();
-        let private_key = RsaPrivateKey::new(&mut rng, 2048)
-            .expect("failed to generate RSA key");
+        let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate RSA key");
 
         // Export as PKCS#8 PEM for jsonwebtoken
         let pem = private_key
@@ -738,8 +740,7 @@ impl MockOidcProvider {
         let jwks_e = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&e_bytes);
 
         // ---- bind to random port ----
-        let tcp = TcpListener::bind("127.0.0.1:0")
-            .expect("failed to bind mock OIDC server");
+        let tcp = TcpListener::bind("127.0.0.1:0").expect("failed to bind mock OIDC server");
         let addr = tcp.local_addr().expect("no local addr");
         let base_url = format!("http://{addr}");
         let client_id = format!("test-client-{}", next_test_id());
@@ -763,8 +764,8 @@ impl MockOidcProvider {
 
         // Convert std TcpListener to tokio TcpListener
         tcp.set_nonblocking(true).expect("set_nonblocking failed");
-        let tokio_listener = tokio::net::TcpListener::from_std(tcp)
-            .expect("failed to convert to tokio TcpListener");
+        let tokio_listener =
+            tokio::net::TcpListener::from_std(tcp).expect("failed to convert to tokio TcpListener");
 
         let server_task = tokio::spawn(async move {
             axum::serve(tokio_listener, app)
@@ -827,7 +828,7 @@ async fn oidc_token(
     let code = params.get("code").cloned().unwrap_or_default();
     // code format: "{sub}:{email}:{nonce}"
     let mut parts = code.splitn(3, ':');
-    let sub   = parts.next().unwrap_or("unknown-sub").to_string();
+    let sub = parts.next().unwrap_or("unknown-sub").to_string();
     let email = parts.next().unwrap_or("unknown@example.com").to_string();
     let nonce = parts.next().unwrap_or("").to_string();
 
@@ -852,12 +853,8 @@ async fn oidc_token(
     let mut header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256);
     header.kid = None;
 
-    let id_token = jsonwebtoken::encode(
-        &header,
-        &claims,
-        &state.encoding_key,
-    )
-    .expect("failed to sign ID token");
+    let id_token = jsonwebtoken::encode(&header, &claims, &state.encoding_key)
+        .expect("failed to sign ID token");
 
     axum::response::Json(serde_json::json!({
         "access_token": "dummy-access-token",

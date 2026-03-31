@@ -30,14 +30,13 @@ use defguard_proto::proxy::{
     CoreRequest, MfaMethod, core_request, core_response,
 };
 
-use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 use super::support::{
-    assert_error_response, assert_vpn_session_exists, clear_test_license,
-    complete_proxy_handshake, create_external_mfa_network, create_oidc_provider,
-    create_user, create_user_with_device, expect_bidi_mfa_success, make_device_info,
-    make_oidc_code, send_mfa_finish, send_mfa_start, set_public_proxy_url,
-    set_test_license_business,
+    assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
+    create_external_mfa_network, create_oidc_provider, create_user, create_user_with_device,
+    expect_bidi_mfa_success, make_device_info, make_oidc_code, send_mfa_finish, send_mfa_start,
+    set_public_proxy_url, set_test_license_business,
 };
+use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 
 // ---------------------------------------------------------------------------
 // 1. AuthCallback creates a new user when sub/email are unknown
@@ -156,7 +155,10 @@ async fn test_auth_info_enrollment_returns_authorize_url(
     };
 
     // The URL must be non-empty and point at the mock OIDC authorization endpoint.
-    assert!(!auth_info.url.is_empty(), "expected non-empty authorization URL");
+    assert!(
+        !auth_info.url.is_empty(),
+        "expected non-empty authorization URL"
+    );
     assert!(
         auth_info.url.starts_with(&mock.base_url),
         "authorization URL should start with mock base URL; got: {}",
@@ -164,7 +166,10 @@ async fn test_auth_info_enrollment_returns_authorize_url(
     );
 
     // CSRF token and nonce must be non-empty.
-    assert!(!auth_info.csrf_token.is_empty(), "expected non-empty csrf_token");
+    assert!(
+        !auth_info.csrf_token.is_empty(),
+        "expected non-empty csrf_token"
+    );
     assert!(!auth_info.nonce.is_empty(), "expected non-empty nonce");
 
     // The button display name must match the provider's display name.
@@ -182,10 +187,7 @@ async fn test_auth_info_enrollment_returns_authorize_url(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_auth_info_mfa_returns_authorize_url(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     set_test_license_business();
@@ -217,13 +219,19 @@ async fn test_auth_info_mfa_returns_authorize_url(
         ),
     };
 
-    assert!(!auth_info.url.is_empty(), "expected non-empty authorization URL");
+    assert!(
+        !auth_info.url.is_empty(),
+        "expected non-empty authorization URL"
+    );
     assert!(
         auth_info.url.starts_with(&mock.base_url),
         "authorization URL should start with mock base URL; got: {}",
         auth_info.url
     );
-    assert!(!auth_info.csrf_token.is_empty(), "expected non-empty csrf_token");
+    assert!(
+        !auth_info.csrf_token.is_empty(),
+        "expected non-empty csrf_token"
+    );
     assert!(!auth_info.nonce.is_empty(), "expected non-empty nonce");
 
     context.finish().await.expect_server_finished().await;
@@ -234,10 +242,7 @@ async fn test_auth_info_mfa_returns_authorize_url(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_auth_info_requires_license(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_auth_info_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
@@ -270,10 +275,7 @@ async fn test_auth_info_requires_license(
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_auth_info_requires_oidc_provider(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     set_test_license_business();
@@ -303,16 +305,12 @@ async fn test_auth_info_requires_oidc_provider(
     context.finish().await.expect_server_finished().await;
 }
 
-
 // ---------------------------------------------------------------------------
 // 3. Full OIDC MFA flow: Start → OidcAuthenticate → Finish
 // ---------------------------------------------------------------------------
 
 #[sqlx::test]
-async fn test_mfa_oidc_full_flow(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
     set_test_license_business();
@@ -343,11 +341,10 @@ async fn test_mfa_oidc_full_flow(
 
     // ---- Step 2: ClientMfaOidcAuthenticate ----
     // Build the `state` field by encoding the mfa_token inside it.
-    let state = defguard_core::enterprise::handlers::openid_login::build_state(Some(
-        mfa_token.clone(),
-    ))
-    .secret()
-    .clone();
+    let state =
+        defguard_core::enterprise::handlers::openid_login::build_state(Some(mfa_token.clone()))
+            .secret()
+            .clone();
 
     let raw_nonce = "mfa-oidc-nonce";
     let code = make_oidc_code(&user.email, &user.email, raw_nonce);
@@ -375,7 +372,10 @@ async fn test_mfa_oidc_full_flow(
 
     // ---- Step 3: ClientMfaFinish (no TOTP code — session is OIDC-completed) ----
     let (_, psk) = send_mfa_finish(&mut context, &mfa_token, None).await;
-    assert!(!psk.is_empty(), "expected non-empty PSK after OIDC MFA finish");
+    assert!(
+        !psk.is_empty(),
+        "expected non-empty PSK after OIDC MFA finish"
+    );
 
     // Verify VpnClientSession was created.
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
