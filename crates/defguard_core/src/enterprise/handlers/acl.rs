@@ -151,7 +151,7 @@ impl EditAclRule {
                             bool_or(array_length(addresses, 1) > 0), \
                             bool_or(array_length(ports, 1) > 0), \
                             bool_or(array_length(protocols, 1) > 0) \
-                        FROM aclalias WHERE id = ANY($1)",
+                        FROM aclalias WHERE id = ANY($1) AND kind = 'component'::aclalias_kind",
                     )
                     .bind(&self.aliases)
                     .fetch_one(&mut *conn)
