@@ -176,5 +176,6 @@
   "acl_rule_error_permissions_required": "Configure at least one allowed user, group, or network device.",
   "acl_rule_error_manual_destination_required": "Manual destination settings are enabled. Provide a value or enable Any.",
   "cmp_video_support_launcher": "Video support",
-  "cmp_video_support_list_label": "Video tutorials"
+  "cmp_video_support_list_label": "Video tutorials",
+  "cmp_video_support_overlay_error": "Video unavailable"
 }

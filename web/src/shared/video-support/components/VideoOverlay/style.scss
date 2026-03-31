@@ -23,6 +23,38 @@
     aspect-ratio: 16 / 9;
     border: none;
     border-radius: var(--radius-sm);
+
+    &:not(.loaded) {
+      display: none;
+    }
+  }
+}
+
+// Skeleton shown while the iframe is loading.
+// aspect-ratio matches the iframe so the modal does not resize on swap.
+// overflow: hidden clips the skeleton shimmer to the rounded corners.
+
+.video-support-overlay-skeleton {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  line-height: 1;
+}
+
+.video-support-overlay-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+
+  // Match the iframe's 16/9 aspect-ratio so the modal does not resize on error.
+  aspect-ratio: 16 / 9;
+
+  p {
+    color: var(--fg-disabled);
+    margin: 0;
   }
 }
 
