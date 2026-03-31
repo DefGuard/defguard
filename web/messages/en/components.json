@@ -177,5 +177,6 @@
   "acl_rule_error_manual_destination_required": "Manual destination settings are enabled. Provide a value or enable Any.",
   "cmp_video_support_launcher": "Video support",
   "cmp_video_support_list_label": "Video tutorials",
-  "cmp_video_support_overlay_error": "Video unavailable"
+  "cmp_video_support_overlay_error": "Video unavailable",
+  "cmp_video_support_overlay_watch_on_youtube": "Watch on YouTube:"
 }

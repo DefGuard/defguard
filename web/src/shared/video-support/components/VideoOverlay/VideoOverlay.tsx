@@ -5,7 +5,6 @@ import * as m from '../../../../paraglide/messages';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
-import { ThemeVariable } from '../../../defguard-ui/types';
 import type { VideoSupport } from '../../types';
 
 const LOAD_TIMEOUT_MS = 8_000;
@@ -64,8 +63,27 @@ export const VideoOverlay = ({
         {video &&
           (errored ? (
             <div className="video-support-overlay-error">
-              <Icon icon="tutorial" size={40} staticColor={ThemeVariable.FgDisabled} />
-              <p>{m.cmp_video_support_overlay_error()}</p>
+              <div className="video-support-overlay-error-icon-group">
+                <div className="video-support-overlay-error-badge">
+                  <Icon icon="tutorial-not-available" size={48} />
+                </div>
+                <p className="video-support-overlay-error-title">
+                  {m.cmp_video_support_overlay_error()}
+                </p>
+              </div>
+              <div className="video-support-overlay-error-link-group">
+                <p className="video-support-overlay-error-label">
+                  {m.cmp_video_support_overlay_watch_on_youtube()}
+                </p>
+                <a
+                  className="video-support-overlay-error-url"
+                  href={`https://www.youtube.com/watch?v=${video.youtubeVideoId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {`https://www.youtube.com/watch?v=${video.youtubeVideoId}`}
+                </a>
+              </div>
             </div>
           ) : (
             <>
@@ -76,7 +94,7 @@ export const VideoOverlay = ({
               )}
               <iframe
                 className={loaded ? 'loaded' : undefined}
-                src={`https://www.youtube-noocookie.com/embed/${video.youtubeVideoId}?autoplay=1`}
+                src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?autoplay=1`}
                 title={video.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
