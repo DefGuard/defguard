@@ -16,7 +16,9 @@ export const Thumbnail = ({ url, title }: ThumbnailProps) => {
   if (errored) {
     return (
       <div className="video-support-thumbnail placeholder" aria-label={title}>
-        <Icon icon="tutorial" size={24} staticColor={ThemeVariable.FgDisabled} />
+        <div className="video-support-thumbnail-icon-badge">
+          <Icon icon="tutorial" size={20} staticColor={ThemeVariable.FgDisabled} />
+        </div>
       </div>
     );
   }

@@ -22,5 +22,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    .video-support-thumbnail-icon-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background-color: var(--bg-default);
+      border-radius: var(--radius-full);
+      box-shadow: 0 4px 12px 0 rgb(0 0 0 / 7%);
+    }
   }
 }
