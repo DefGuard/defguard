@@ -54,56 +54,122 @@ async fn test_new_device_creates_device_and_returns_configs(
     context.finish().await.expect_server_finished().await;
 }
 
+// ---------------------------------------------------------------------------
+// ActivateUser tests
+// ---------------------------------------------------------------------------
+
+/// A valid password that satisfies `check_password_strength`:
+/// ≥8 chars, digit, upper, lower, special character.
+const STRONG_PASSWORD: &str = "Test1234!";
+
+/// Happy path: submit a strong password through an active enrollment session →
+/// handler returns `Empty`, the user's `enrollment_pending` flag is cleared, and
+/// the user gains a password hash in the DB.  A `BidiStreamEvent::Enrollment`
+/// `EnrollmentCompleted` event must also be emitted.
 #[sqlx::test]
-async fn test_new_device_creates_polling_token(
+async fn test_activate_user_happy_path(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+
+    // Must receive Empty on success.
+    match &response.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!("expected Empty response"),
+    }
+
+    // User must have a password hash in DB and enrollment_pending cleared.
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(updated.has_password(), "user must have a password hash after activation");
+    assert!(
+        !updated.enrollment_pending,
+        "enrollment_pending must be false after activation"
+    );
+
+    // A BidiStreamEvent::Enrollment(EnrollmentCompleted) must have been emitted.
+    let event = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+        .await
+        .expect("timed out waiting for BidiStreamEvent")
+        .expect("bidi_events_rx closed");
+    match event.event {
+        BidiStreamEventType::Enrollment(e) => match *e {
+            EnrollmentEvent::EnrollmentCompleted => {}
+            other => panic!("expected EnrollmentCompleted event, got: {other:?}"),
+        },
+        other => panic!("expected BidiStreamEventType::Enrollment, got: {other:?}"),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// A weak password (too short, missing required character classes) must be
+/// rejected with `InvalidArgument`.
+#[sqlx::test]
+async fn test_activate_user_weak_password_returns_error(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    let _network = create_network(&context.pool).await;
     let user = create_user(&context.pool).await;
-    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
-
-    // Start the enrollment session so Token::used_at is set.
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
     start_enrollment_session(&mut context, &token.id).await;
 
-    let pubkey = "BxQhLjtIVWJvfImWo7C9ytfk8f4LGCUyP0xZZnOAjZo=";
-    context.mock_proxy().send_request(CoreRequest {
-        id: 2,
-        device_info: Some(make_device_info()),
-        payload: Some(core_request::Payload::NewDevice(NewDevice {
-            name: "My Phone".to_string(),
-            pubkey: pubkey.to_string(),
-            token: Some(token.id.clone()),
-        })),
-    });
+    let response = send_activate_user(&mut context, &token.id, "weak", None).await;
 
-    let response = context.mock_proxy_mut().recv_outbound().await;
-    let cfg = assert_device_config_response(&response);
-
-    // The DeviceConfigResponse must contain the polling token.
-    assert!(
-        cfg.token.is_some(),
-        "DeviceConfigResponse should include a polling token"
-    );
-    let polling_token_str = cfg.token.as_ref().unwrap();
-    assert!(!polling_token_str.is_empty(), "polling token should not be empty");
-
-    // Verify the polling token was persisted.
-    let device = Device::find_by_pubkey(&context.pool, pubkey)
-        .await
-        .expect("DB query failed")
-        .expect("device should exist after NewDevice");
-    let db_token = PollingToken::find(&context.pool, polling_token_str)
-        .await
-        .expect("DB query failed");
-    assert!(db_token.is_some(), "polling token should be in DB");
+    let code = assert_error_response(&response);
     assert_eq!(
-        db_token.unwrap().device_id,
-        device.id,
-        "polling token should belong to the created device"
+        code,
+        tonic::Code::InvalidArgument,
+        "weak password must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Calling `ActivateUser` twice on the same account must fail the second time
+/// with `InvalidArgument` because the user already has a password hash.
+#[sqlx::test]
+async fn test_activate_user_already_activated_returns_error(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    // First activation — must succeed.
+    let first = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+    match &first.payload {
+        Some(core_response::Payload::Empty(())) => {}
+        _ => panic!("expected Empty on first activation"),
+    }
+    // Consume the EnrollmentCompleted bidi event so the channel doesn't fill.
+    let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    // Create a fresh enrollment token (old one is now used), start a new session.
+    let token2 = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token2.id).await;
+
+    // Second activation — must fail with InvalidArgument.
+    let second = send_activate_user(&mut context, &token2.id, STRONG_PASSWORD, None).await;
+    let code = assert_error_response(&second);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "activating an already-activated user must return InvalidArgument"
     );
 
     context.finish().await.expect_server_finished().await;

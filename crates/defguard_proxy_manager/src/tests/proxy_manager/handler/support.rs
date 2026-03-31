@@ -22,9 +22,10 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
-    ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo,
-    EnrollmentStartRequest, MfaMethod, core_request, core_response,
+    ActivateUserRequest, AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest,
+    ClientMfaStartRequest, ClientMfaTokenValidationRequest, CoreRequest, CoreResponse,
+    DeviceConfigResponse, DeviceInfo, EnrollmentStartRequest, MfaMethod, core_request,
+    core_response,
 };
 use sqlx::PgPool;
 use ipnetwork::IpNetwork;
@@ -628,4 +629,30 @@ pub(crate) async fn set_public_proxy_url(pool: &PgPool, url: &str) {
 /// endpoint.  Format: `"{sub}:{email}:{nonce}"`.
 pub(crate) fn make_oidc_code(sub: &str, email: &str, nonce: &str) -> String {
     format!("{sub}:{email}:{nonce}")
+}
+
+// ---------------------------------------------------------------------------
+// ActivateUser helpers
+// ---------------------------------------------------------------------------
+
+/// Send an `ActivateUser` request through the handler and return the raw
+/// `CoreResponse`.  The caller must have already started an enrollment session.
+pub(crate) async fn send_activate_user(
+    context: &mut HandlerTestContext,
+    token: &str,
+    password: &str,
+    phone: Option<&str>,
+) -> CoreResponse {
+    static ACT_CTR: AtomicU64 = AtomicU64::new(2000);
+    let id = ACT_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::ActivateUser(ActivateUserRequest {
+            token: Some(token.to_string()),
+            password: password.to_string(),
+            phone_number: phone.map(str::to_string),
+        })),
+    });
+    context.mock_proxy_mut().recv_outbound().await
 }
