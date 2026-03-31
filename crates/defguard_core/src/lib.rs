@@ -38,8 +38,8 @@ use handlers::{
     component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
-        add_network_device, check_ip_availability, download_network_device_config,
-        find_available_ips, get_network_device, list_network_devices, modify_network_device,
+        add_network_device, check_ip_availability, find_available_ips, get_network_device,
+        list_network_devices, modify_network_device, network_device_configs,
         start_network_device_setup, start_network_device_setup_for_device,
     },
     session_info::get_session_info,
@@ -535,7 +535,7 @@ pub fn build_webapp(
             )
             .route(
                 "/device/network/{device_id}/config",
-                get(download_network_device_config),
+                get(network_device_configs),
             )
             .route(
                 "/device/network/start_cli",

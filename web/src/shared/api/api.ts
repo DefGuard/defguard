@@ -406,8 +406,15 @@ const api = {
     editDevice: (device: Device) => client.put<Device>(`/device/${device.id}`, device),
     getDevice: (deviceId: number) => client.get<Device>(`/device/${deviceId}`),
     getDevices: () => client.get<Device[]>('/device'),
-    getDeviceConfig: ({ deviceId, networkId }: { networkId: number; deviceId: number }) =>
-      client.get<string>(`/network/${networkId}/device/${deviceId}/config`),
+    getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
+      const { data: configs } = await client.get<AddDeviceResponseConfig[]>(
+        `/device/network/${device.id}/config`,
+      );
+      return {
+        configs,
+        device,
+      };
+    },
     getUserDeviceIps: (username: string) =>
       client.get<LocationDevicesResponse>(`/device/user/${username}/ip`),
     getDeviceIps: (username: string, deviceId: number) =>
@@ -416,25 +423,25 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
-    getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
-      const networkConfigurations: AddDeviceResponseConfig[] = [];
-      for (const network of device.networks) {
-        const { data: config } = await api.device.getDeviceConfig({
-          deviceId: device.id,
-          networkId: network.network_id,
-        });
-        networkConfigurations.push({
-          config: config,
-          network_id: network.network_id,
-          network_name: network.network_name,
-        });
-      }
+    // getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
+    //   const networkConfigurations: AddDeviceResponseConfig[] = [];
+    //   for (const network of device.networks) {
+    //     const { data: config } = await api.device.getDeviceConfig({
+    //       deviceId: device.id,
+    //       networkId: network.network_id,
+    //     });
+    //     networkConfigurations.push({
+    //       config: config,
+    //       network_id: network.network_id,
+    //       network_name: network.network_name,
+    //     });
+    //   }
 
-      return {
-        configs: networkConfigurations,
-        device,
-      };
-    },
+    //   return {
+    //     configs: networkConfigurations,
+    //     device,
+    //   };
+    // },
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
