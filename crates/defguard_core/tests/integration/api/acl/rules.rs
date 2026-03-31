@@ -350,24 +350,12 @@ async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: P
     let (mut client, _) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-
-    // Creates an alias via the API and returns its id.
-    // Aliases created via POST /api/v1/acl/alias always land in Applied state.
-    macro_rules! create_alias {
-        ($alias:expr) => {{
-            let resp = client.post("/api/v1/acl/alias").json(&$alias).send().await;
-            assert_eq!(resp.status(), StatusCode::CREATED);
-            resp.json::<Value>().await["id"].as_i64().unwrap()
-        }};
-    }
-
     // ── Case A ────────────────────────────────────────────────────────────────
     // Alias provides address only; port and protocol are still unsatisfied → 400.
     let mut addr_only_alias = make_alias();
     addr_only_alias.ports = String::new();
     addr_only_alias.protocols = Vec::new();
-    let addr_only_id = create_alias!(addr_only_alias);
+    let addr_only_id = create_alias(&mut client, addr_only_alias).await;
 
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
@@ -387,7 +375,7 @@ async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: P
 
     // ── Case B ────────────────────────────────────────────────────────────────
     // Alias provides all three fields; direct rule fields are empty → 201.
-    let full_alias_id = create_alias!(make_alias());
+    let full_alias_id = create_alias(&mut client, make_alias()).await;
 
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
@@ -412,11 +400,11 @@ async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: P
     let mut alias_ports = make_alias();
     alias_ports.addresses = String::new();
     alias_ports.protocols = Vec::new();
-    let alias_ports_id = create_alias!(alias_ports);
+    let alias_ports_id = create_alias(&mut client, alias_ports).await;
 
     let mut alias_addrs_proto = make_alias();
     alias_addrs_proto.ports = String::new();
-    let alias_addrs_proto_id = create_alias!(alias_addrs_proto);
+    let alias_addrs_proto_id = create_alias(&mut client, alias_addrs_proto).await;
 
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
@@ -478,6 +466,51 @@ async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: P
         response.status(),
         StatusCode::OK,
         "updating a rule to rely on alias fields only should succeed"
+    );
+
+    // ── Case F ────────────────────────────────────────────────────────────────
+    // Alias whose address is expressed as a range only (e.g. "10.0.0.1-10.0.0.10").
+    // Such ranges are stored in aclaliasdestinationrange, not in the addresses array.
+    // The rule should still be accepted because the range satisfies the address requirement.
+    let mut range_only_alias = make_alias();
+    range_only_alias.addresses = "10.0.0.1-10.0.0.10".to_string();
+    let range_only_id = create_alias(&mut client, range_only_alias).await;
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    rule.aliases = vec![range_only_id];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "range-only alias covers address but not port+protocol, so rule should be rejected"
+    );
+
+    // Combine the range-only alias (address) with an alias providing port+protocol → 201.
+    let mut port_proto_alias = make_alias();
+    port_proto_alias.addresses = String::new();
+    let port_proto_id = create_alias(&mut client, port_proto_alias).await;
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    rule.aliases = vec![range_only_id, port_proto_id];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::CREATED,
+        "range-only alias + port+protocol alias should together satisfy all requirements"
     );
 }
 

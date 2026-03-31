@@ -148,7 +148,13 @@ impl EditAclRule {
             } else {
                 let row = query_as::<_, (Option<bool>, Option<bool>, Option<bool>)>(
                     "SELECT \
-                            bool_or(array_length(addresses, 1) > 0), \
+                            bool_or(array_length(addresses, 1) > 0) \
+                                OR EXISTS ( \
+                                    SELECT 1 FROM aclaliasdestinationrange dr \
+                                    JOIN aclalias a ON a.id = dr.alias_id \
+                                    WHERE a.id = ANY($1) \
+                                      AND a.kind = 'component'::aclalias_kind \
+                                ), \
                             bool_or(array_length(ports, 1) > 0), \
                             bool_or(array_length(protocols, 1) > 0) \
                         FROM aclalias WHERE id = ANY($1) AND kind = 'component'::aclalias_kind",
@@ -376,16 +382,15 @@ pub(crate) async fn create_acl_rule(
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
 
-    // validate submitted ACL rule
-    let mut conn = appstate.pool.acquire().await?;
-    data.validate(&mut conn).await?;
-
-    let rule = AclRule::create_from_api(&appstate.pool, &data, &session.user.username)
+    let mut tx = appstate.pool.begin().await?;
+    data.validate(&mut tx).await?;
+    let rule = AclRule::create_from_api(&mut tx, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error creating ACL rule {data:?}: {err}");
             err
         })?;
+    tx.commit().await?;
     info!(
         "User {} created ACL rule {}",
         session.user.username, rule.id
@@ -416,16 +421,15 @@ pub(crate) async fn update_acl_rule(
 ) -> ApiResult {
     debug!("User {} updating ACL rule {data:?}", session.user.username);
 
-    // validate submitted ACL rule
-    let mut conn = appstate.pool.acquire().await?;
-    data.validate(&mut conn).await?;
-
-    let rule = AclRule::update_from_api(&appstate.pool, id, &data, &session.user.username)
+    let mut tx = appstate.pool.begin().await?;
+    data.validate(&mut tx).await?;
+    let rule = AclRule::update_from_api(&mut tx, id, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error updating ACL rule {data:?}: {err}");
             err
         })?;
+    tx.commit().await?;
     info!("User {} updated ACL rule", session.user.username);
     Ok(ApiResponse::json(rule, StatusCode::OK))
 }
