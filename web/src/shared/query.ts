@@ -1,8 +1,9 @@
 import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
-import { updateServiceApi } from './api/update-service';
+import { updateServiceApi, updateServiceClient } from './api/update-service';
 import { resourceDisplayMap } from './utils/resourceById';
+import { parseVideoSupport, videoSupportPath } from './video-support/data';
 
 export const getExternalProviderQueryOptions = queryOptions({
   queryFn: api.openIdProvider.getOpenIdProvider,
@@ -114,6 +115,16 @@ export const clientArtifactsQueryOptions = queryOptions({
   refetchOnWindowFocus: false,
   refetchOnMount: true,
   refetchOnReconnect: true,
+});
+
+export const videoSupportQueryOptions = queryOptions({
+  queryKey: ['update-service', 'video-support'],
+  queryFn: () => updateServiceClient.get<unknown>(videoSupportPath),
+  select: (resp) => parseVideoSupport(resp.data),
+  // Mappings are version-tied and won't meaningfully change within a session.
+  staleTime: Infinity,
+  // Silent failure: if the fetch or parse fails, the widget simply won't appear.
+  retry: false,
 });
 
 export const getUserAuthKeysQueryOptions = (username: string) =>
