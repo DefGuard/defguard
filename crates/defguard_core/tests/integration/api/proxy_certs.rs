@@ -25,7 +25,7 @@ use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     db::AppEvent,
-    enterprise::license::{License, LicenseTier, set_cached_license},
+    enterprise::license::{License, LicenseTier, SupportType, set_cached_license},
     events::ApiEvent,
     grpc::{GatewayEvent, WorkerState},
     handlers::Auth,
@@ -107,6 +107,7 @@ async fn make_test_client_with_proxy_rx(
         None,
         None,
         LicenseTier::Business,
+		SupportType::Basic,
     );
     set_cached_license(Some(license));
 
