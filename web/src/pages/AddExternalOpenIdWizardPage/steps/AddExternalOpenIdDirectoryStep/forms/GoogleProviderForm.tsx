@@ -113,6 +113,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   options={directorySyncTargetOptions}
                   required
                   label={m.settings_openid_provider_label_sync_target()}
+                  helper={m.settings_openid_provider_helper_sync_target()}
                 />
               )}
             </form.AppField>
@@ -122,6 +123,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   type="number"
                   required
                   label={m.settings_openid_provider_label_sync_interval()}
+                  helper={m.settings_openid_provider_helper_sync_interval()}
                 />
               )}
             </form.AppField>
@@ -134,6 +136,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   required
                   label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_user_behavior()}
                 />
               )}
             </form.AppField>
@@ -143,6 +146,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   required
                   label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_admin_behavior()}
                 />
               )}
             </form.AppField>
@@ -153,6 +157,7 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
               <field.FormInput
                 required
                 label={m.settings_openid_provider_label_admin_email()}
+                helper={m.settings_openid_provider_helper_admin_email()}
               />
             )}
           </form.AppField>

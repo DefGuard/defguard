@@ -9,6 +9,11 @@ pub enum ProxyControlMessage {
     StartConnection(Id),
     ShutdownConnection(Id),
     Purge(Id),
+    /// Broadcast an already-provisioned certificate to all connected proxies.
+    BroadcastHttpsCerts {
+        cert_pem: String,
+        key_pem: String,
+    },
 }
 
 #[derive(ToSchema, Serialize)]

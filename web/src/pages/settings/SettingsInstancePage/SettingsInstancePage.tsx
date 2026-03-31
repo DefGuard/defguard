@@ -262,13 +262,18 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormInput
                 required
                 label={m.settings_instance_label_defguard_url()}
+                helper={m.settings_instance_helper_defguard_url()}
               />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="instance_name">
             {(field) => (
-              <field.FormInput required label={m.settings_instance_label_name()} />
+              <field.FormInput
+                required
+                label={m.settings_instance_label_name()}
+                helper={m.settings_instance_helper_name()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -277,6 +282,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormInput
                 required
                 label={m.settings_instance_label_public_proxy_url()}
+                helper={m.settings_instance_helper_public_proxy_url()}
               />
             )}
           </form.AppField>
@@ -286,6 +292,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_instance_label_session_duration()}
+                helper={m.settings_instance_helper_session_duration()}
                 options={sessionDurationSelectOptions}
               />
             )}
@@ -312,6 +319,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                           <field.FormSelect
                             required
                             label={m.settings_vpn_stats_label_purge_frequency()}
+                            helper={m.settings_vpn_stats_helper_purge_frequency()}
                             options={statsPurgeFrequencySelectOptions}
                           />
                         )}
@@ -322,6 +330,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                           <field.FormSelect
                             required
                             label={m.settings_vpn_stats_label_purge_threshold()}
+                            helper={m.settings_vpn_stats_helper_purge_threshold()}
                             options={statsPurgeThresholdSelectOptions}
                           />
                         )}
@@ -344,6 +353,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_enrollment_label_password_reset_token_validity()}
+                helper={m.settings_enrollment_helper_password_reset_token_validity()}
                 options={passwordResetTokenTimeoutOptions}
               />
             )}
@@ -354,6 +364,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_instance_label_password_reset_session_expiration()}
+                helper={m.settings_instance_helper_password_reset_session_expiration()}
                 options={passwordResetSessionTimeoutOptions}
               />
             )}

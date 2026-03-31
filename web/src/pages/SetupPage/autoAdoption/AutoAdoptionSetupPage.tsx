@@ -9,14 +9,18 @@ import { WizardPage } from '../../../shared/components/wizard/WizardPage/WizardP
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { CodeCard } from '../../../shared/defguard-ui/components/CodeCard/CodeCard';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
+import { ExternalLink } from '../../../shared/defguard-ui/components/ExternalLink/ExternalLink';
 import { Icon } from '../../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import worldMap from '../assets/world-map.png';
 import { AutoAdoptionAdminUserStep } from './steps/AutoAdoptionAdminUserStep';
+import { AutoAdoptionExternalUrlSettingsStep } from './steps/AutoAdoptionExternalUrlSettingsStep';
+import { AutoAdoptionExternalUrlSslConfigStep } from './steps/AutoAdoptionExternalUrlSslConfigStep';
+import { AutoAdoptionInternalUrlSettingsStep } from './steps/AutoAdoptionInternalUrlSettingsStep';
+import { AutoAdoptionInternalUrlSslConfigStep } from './steps/AutoAdoptionInternalUrlSslConfigStep';
 import { AutoAdoptionMfaSetupStep } from './steps/AutoAdoptionMfaSetupStep';
 import { AutoAdoptionSummaryStep } from './steps/AutoAdoptionSummaryStep';
-import { AutoAdoptionUrlSettingsStep } from './steps/AutoAdoptionUrlSettingsStep';
 import { AutoAdoptionVpnSettingsStep } from './steps/AutoAdoptionVpnSettingsStep';
 import { AutoAdoptionSetupStep, type AutoAdoptionSetupStepValue } from './types';
 import { useAutoAdoptionSetupWizardStore } from './useAutoAdoptionSetupWizardStore';
@@ -116,13 +120,9 @@ const AutoAdoptionFailedWelcomeContent = ({
           <Icon icon="config" />
           <p>
             {m.initial_setup_auto_adoption_failed_support_community_prefix()}{' '}
-            <a
-              href="https://github.com/DefGuard/defguard/discussions"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <ExternalLink href="https://github.com/DefGuard/defguard/discussions">
               {m.initial_setup_auto_adoption_failed_support_community_link()}
-            </a>
+            </ExternalLink>
           </p>
         </div>
       </div>
@@ -140,7 +140,7 @@ const AutoAdoptionSuccessWelcomeContent = ({
   <div className="auto-adoption-welcome-content">
     <Divider spacing={ThemeSpacing.Lg} />
     <p>{m.initial_setup_auto_adoption_success_guide_intro()}</p>
-    <br />
+    <SizedBox height={ThemeSpacing.Md} />
     <p>{m.initial_setup_auto_adoption_success_guide_description()}</p>
     <SizedBox height={ThemeSpacing.Xl} />
     <Controls>
@@ -160,12 +160,13 @@ export const AutoAdoptionSetupPage = () => {
     (s) => s.isAutoAdoptionFlowStarted,
   );
   const startFlow = useAutoAdoptionSetupWizardStore((s) => s.startFlow);
+  const isFinishing = useAutoAdoptionSetupWizardStore((s) => s.isFinishing);
 
   const { data: statusData } = useQuery({
     queryKey: ['initial_setup', 'auto_adoption', 'status'],
     queryFn: api.initial_setup.getAutoAdoptionResult,
     select: (response) => response.data,
-    refetchInterval: 3000,
+    refetchInterval: isFinishing ? false : 3000,
   });
 
   const results = statusData?.adoption_result;
@@ -182,27 +183,49 @@ export const AutoAdoptionSetupPage = () => {
         label: m.initial_setup_auto_adoption_step_admin_user_label(),
         description: m.initial_setup_auto_adoption_step_admin_user_description(),
       },
-      urlSettings: {
-        id: AutoAdoptionSetupStep.UrlSettings,
+      internalUrlSettings: {
+        id: AutoAdoptionSetupStep.InternalUrlSettings,
         order: 2,
-        label: m.initial_setup_auto_adoption_step_url_settings_label(),
-        description: m.initial_setup_auto_adoption_step_url_settings_description(),
+        label: m.initial_setup_auto_adoption_step_internal_url_settings_label(),
+        description:
+          m.initial_setup_auto_adoption_step_internal_url_settings_description(),
+      },
+      internalUrlSslConfig: {
+        id: AutoAdoptionSetupStep.InternalUrlSslConfig,
+        order: 3,
+        label: m.initial_setup_auto_adoption_step_internal_url_ssl_config_label(),
+        description:
+          m.initial_setup_auto_adoption_step_internal_url_ssl_config_description(),
+      },
+      externalUrlSettings: {
+        id: AutoAdoptionSetupStep.ExternalUrlSettings,
+        order: 4,
+        label: m.initial_setup_auto_adoption_step_external_url_settings_label(),
+        description:
+          m.initial_setup_auto_adoption_step_external_url_settings_description(),
+      },
+      externalUrlSslConfig: {
+        id: AutoAdoptionSetupStep.ExternalUrlSslConfig,
+        order: 5,
+        label: m.initial_setup_auto_adoption_step_external_url_ssl_config_label(),
+        description:
+          m.initial_setup_auto_adoption_step_external_url_ssl_config_description(),
       },
       vpnSettings: {
         id: AutoAdoptionSetupStep.VpnSettings,
-        order: 3,
+        order: 6,
         label: m.initial_setup_auto_adoption_step_vpn_settings_label(),
         description: m.initial_setup_auto_adoption_step_vpn_settings_description(),
       },
       mfaSetup: {
         id: AutoAdoptionSetupStep.MfaSetup,
-        order: 4,
+        order: 7,
         label: m.initial_setup_auto_adoption_step_mfa_setup_label(),
         description: m.initial_setup_auto_adoption_step_mfa_setup_description(),
       },
       summary: {
         id: AutoAdoptionSetupStep.Summary,
-        order: 5,
+        order: 8,
         label: m.initial_setup_auto_adoption_step_summary_label(),
         description: m.initial_setup_auto_adoption_step_summary_description(),
       },
@@ -213,7 +236,10 @@ export const AutoAdoptionSetupPage = () => {
   const stepsComponents = useMemo(
     (): Record<AutoAdoptionSetupStepValue, ReactNode> => ({
       adminUser: <AutoAdoptionAdminUserStep />,
-      urlSettings: <AutoAdoptionUrlSettingsStep />,
+      internalUrlSettings: <AutoAdoptionInternalUrlSettingsStep />,
+      internalUrlSslConfig: <AutoAdoptionInternalUrlSslConfigStep />,
+      externalUrlSettings: <AutoAdoptionExternalUrlSettingsStep />,
+      externalUrlSslConfig: <AutoAdoptionExternalUrlSslConfigStep />,
       vpnSettings: <AutoAdoptionVpnSettingsStep />,
       mfaSetup: <AutoAdoptionMfaSetupStep />,
       summary: <AutoAdoptionSummaryStep />,
@@ -225,7 +251,7 @@ export const AutoAdoptionSetupPage = () => {
     ? m.initial_setup_auto_adoption_welcome_subtitle_failed()
     : m.initial_setup_auto_adoption_welcome_subtitle_success();
 
-  if (!results) {
+  if (!results && !isFinishing) {
     return null;
   }
 
@@ -240,11 +266,12 @@ export const AutoAdoptionSetupPage = () => {
       welcomePageConfig={{
         title: m.initial_setup_auto_adoption_welcome_title(),
         subtitle,
-        content: hasFailedResult ? (
-          <AutoAdoptionFailedWelcomeContent results={results} />
-        ) : (
-          <AutoAdoptionSuccessWelcomeContent onStartFlow={startFlow} />
-        ),
+        content:
+          hasFailedResult && results ? (
+            <AutoAdoptionFailedWelcomeContent results={results} />
+          ) : (
+            <AutoAdoptionSuccessWelcomeContent onStartFlow={startFlow} />
+          ),
         media: <img src={worldMap} alt="World map" />,
         displayDocs: false,
       }}

@@ -93,7 +93,7 @@ export const userProfileQueryOptions = (username: string) =>
     queryFn: () => api.user.getUser(username),
     select: ({ data }) => {
       const res: UserProfile = {
-        devices: data.devices.map((device) => ({
+        devices: data.user.devices.map((device) => ({
           ...device,
           biometry_enabled: data.biometric_enabled_devices.includes(device.id),
         })),
@@ -144,7 +144,7 @@ export const getUsersQueryOptions = queryOptions({
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({
-  queryFn: api.getUsersOverview,
+  queryFn: api.user.getUsers,
   queryKey: ['user-overview'],
   refetchOnMount: true,
   refetchOnReconnect: true,

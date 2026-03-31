@@ -14,6 +14,11 @@ use sqlx::PgPool;
 use tokio::sync::oneshot;
 use tracing::info;
 
+use crate::handlers::auto_wizard::{
+    ExternalUrlSettingsConfig, InternalUrlSettingsConfig, apply_external_url_settings,
+    apply_internal_url_settings,
+};
+
 pub async fn get_migration_state(
     _: AdminOrSetupRole,
     Extension(pool): Extension<PgPool>,
@@ -70,4 +75,32 @@ pub async fn finish_setup(
     }
 
     Ok(ApiResponse::with_status(StatusCode::OK))
+}
+
+pub async fn migration_set_internal_url_settings(
+    _: AdminOrSetupRole,
+    Extension(pool): Extension<PgPool>,
+    Json(config): Json<InternalUrlSettingsConfig>,
+) -> ApiResult {
+    info!("Applying migration wizard internal URL settings");
+    let cert_info = apply_internal_url_settings(&pool, config).await?;
+    info!("Migration wizard internal URL settings applied");
+    Ok(ApiResponse::new(
+        json!({ "cert_info": cert_info }),
+        StatusCode::CREATED,
+    ))
+}
+
+pub async fn migration_set_external_url_settings(
+    _: AdminOrSetupRole,
+    Extension(pool): Extension<PgPool>,
+    Json(config): Json<ExternalUrlSettingsConfig>,
+) -> ApiResult {
+    info!("Applying migration wizard external URL settings");
+    let cert_info = apply_external_url_settings(&pool, config).await?;
+    info!("Migration wizard external URL settings applied");
+    Ok(ApiResponse::new(
+        json!({ "cert_info": cert_info }),
+        StatusCode::CREATED,
+    ))
 }

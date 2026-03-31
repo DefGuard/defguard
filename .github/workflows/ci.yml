@@ -86,13 +86,13 @@ jobs:
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Run cargo deny
-        run: |
-          cargo install cargo-deny
-          cargo deny check
+      - name: Install cargo extensions
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-nextest
 
-      - name: Install nextest
-        uses: taiki-e/install-action@nextest
+      - name: Run cargo deny
+        run: cargo deny check
 
       - name: Run tests
         run: cargo nextest run --locked --no-fail-fast

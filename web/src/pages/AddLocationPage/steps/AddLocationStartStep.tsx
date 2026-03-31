@@ -86,7 +86,11 @@ export const AddLocationStartStep = () => {
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="endpoint">
             {(field) => (
-              <field.FormInput required label={m.add_location_start_label_endpoint()} />
+              <field.FormInput
+                required
+                label={m.add_location_start_label_endpoint()}
+                helper={m.add_location_start_helper_endpoint()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -95,6 +99,7 @@ export const AddLocationStartStep = () => {
               <field.FormInput
                 required
                 label={m.add_location_start_label_port()}
+                helper={m.add_location_start_helper_port()}
                 type="number"
               />
             )}

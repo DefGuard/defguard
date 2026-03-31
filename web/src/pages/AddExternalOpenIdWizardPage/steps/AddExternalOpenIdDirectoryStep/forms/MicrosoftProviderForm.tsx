@@ -72,6 +72,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   options={directorySyncTargetOptions}
                   required
                   label={m.settings_openid_provider_label_sync_target()}
+                  helper={m.settings_openid_provider_helper_sync_target()}
                 />
               )}
             </form.AppField>
@@ -81,6 +82,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   type="number"
                   required
                   label={m.settings_openid_provider_label_sync_interval()}
+                  helper={m.settings_openid_provider_helper_sync_interval()}
                 />
               )}
             </form.AppField>
@@ -93,6 +95,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   required
                   label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_user_behavior()}
                 />
               )}
             </form.AppField>
@@ -102,6 +105,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
                   required
                   label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_admin_behavior()}
                 />
               )}
             </form.AppField>
@@ -111,6 +115,7 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
             {(field) => (
               <field.FormInput
                 label={m.settings_openid_provider_label_sync_only_matching_groups()}
+                helper={m.settings_openid_provider_helper_microsoft_group_match()}
               />
             )}
           </form.AppField>

@@ -8,6 +8,14 @@ pub enum MigrationWizardStep {
     Welcome,
     #[serde(rename = "general")]
     General,
+    #[serde(rename = "internalUrlSettings")]
+    InternalUrlSettings,
+    #[serde(rename = "internalUrlSslConfig")]
+    InternalUrlSslConfig,
+    #[serde(rename = "externalUrlSettings")]
+    ExternalUrlSettings,
+    #[serde(rename = "externalUrlSslConfig")]
+    ExternalUrlSslConfig,
     #[serde(rename = "ca")]
     Ca,
     #[serde(rename = "caSummary")]
