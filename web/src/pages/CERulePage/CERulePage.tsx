@@ -485,22 +485,14 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                 message,
               });
             }
-            if (
-              !vals.any_port &&
-              vals.ports.trim().length === 0 &&
-              !aliasHasPort
-            ) {
+            if (!vals.any_port && vals.ports.trim().length === 0 && !aliasHasPort) {
               ctx.addIssue({
                 path: ['ports'],
                 code: 'custom',
                 message,
               });
             }
-            if (
-              !vals.any_protocol &&
-              vals.protocols.size === 0 &&
-              !aliasHasProtocol
-            ) {
+            if (!vals.any_protocol && vals.protocols.size === 0 && !aliasHasProtocol) {
               ctx.addIssue({
                 path: ['protocols'],
                 code: 'custom',
