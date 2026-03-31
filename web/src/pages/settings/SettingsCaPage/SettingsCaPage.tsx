@@ -1,19 +1,24 @@
 import './style.scss';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { useCallback } from 'react';
 import { m } from '../../../paraglide/messages';
+import api from '../../../shared/api/api';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
-import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { ActionableSection } from '../../../shared/defguard-ui/components/ActionableSection/ActionableSection';
 import { ActionableSectionVariant } from '../../../shared/defguard-ui/components/ActionableSection/types';
-import caIconSrc from '../../SetupPage/assets/ca.png';
+import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { downloadFile } from '../../../shared/utils/download';
+import caIconSrc from '../../SetupPage/assets/ca.png';
 
 const breadcrumbs = [
   <Link
@@ -53,6 +58,20 @@ export const SettingsCaPage = () => {
 };
 
 const Content = () => {
+  const { data: caData, isFetching } = useQuery({
+    queryKey: ['core', 'cert', 'ca'],
+    queryFn: api.core.getCA,
+    select: (resp) => resp.data,
+  });
+
+  const handleDownloadCA = useCallback(() => {
+    const caPem = caData?.ca_cert_pem;
+    if (!isPresent(caPem)) return;
+    const blob = new Blob([caPem], {
+      type: 'application/x-pem-file;charset=utf-8',
+    });
+    downloadFile(blob, 'defguard-ca', 'pem');
+  }, [caData?.ca_cert_pem]);
   return (
     <ActionableSection
       variant={ActionableSectionVariant.Secondary}
@@ -61,17 +80,24 @@ const Content = () => {
       imageSrc={caIconSrc}
     >
       <SizedBox height={ThemeSpacing.Xl3} />
-      <p className='ca-info-title'>{m.settings_certs_ca_information_extracted()}</p>
-      <Divider spacing={ThemeSpacing.Md}/>
-      <div className='ca-info-grid'>
-        <div className='ca-info-label'>{m.settings_certs_ca_email()}</div>
-        <div className='ca-info-value'>TODO</div>
-        <div className='ca-info-label'>{m.settings_certs_ca_valid_until()}</div>
-        <div className='ca-info-value'>TODO</div>
+      <p className="ca-info-title">{m.settings_certs_ca_information_extracted()}</p>
+      <Divider spacing={ThemeSpacing.Md} />
+      <div className="ca-info-grid">
+        <div className="ca-info-label">{m.settings_certs_ca_email()}</div>
+        <div className="ca-info-value">TODO</div>
+        <div className="ca-info-label">{m.settings_certs_ca_valid_until()}</div>
+        <div className="ca-info-value">TODO</div>
       </div>
-      <Divider spacing={ThemeSpacing.Md}/>
+      <Divider spacing={ThemeSpacing.Md} />
       <SizedBox height={ThemeSpacing.Xl2} />
-      <Button variant='outlined' text={m.settings_certs_ca_download()} iconLeft='download'/>
+      <Button
+        variant="outlined"
+        iconLeft="download"
+        text={m.settings_certs_ca_download()}
+        onClick={handleDownloadCA}
+        loading={isFetching}
+        disabled={!isPresent(caData?.ca_cert_pem) || isFetching}
+      />
     </ActionableSection>
   );
 };

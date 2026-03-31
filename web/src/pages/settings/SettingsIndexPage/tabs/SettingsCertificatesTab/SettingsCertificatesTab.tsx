@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
-import { SettingsLayout } from "../../../../../shared/components/SettingsLayout/SettingsLayout";
-import { SectionSelect } from "../../../../../shared/defguard-ui/components/SectionSelect/SectionSelect";
+import { Link } from '@tanstack/react-router';
 import { m } from '../../../../../paraglide/messages';
-import { SizedBox } from "../../../../../shared/defguard-ui/components/SizedBox/SizedBox";
-import { ThemeSpacing } from "../../../../../shared/defguard-ui/types";
+import { SettingsLayout } from '../../../../../shared/components/SettingsLayout/SettingsLayout';
+import { SectionSelect } from '../../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
+import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 
 export const SettingsCertificatesTab = () => {
   return (
@@ -25,4 +25,4 @@ export const SettingsCertificatesTab = () => {
       </Link>
     </SettingsLayout>
   );
-}
+};

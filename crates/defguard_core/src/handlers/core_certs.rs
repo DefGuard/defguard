@@ -1,6 +1,8 @@
-use axum::{Json, extract::State, http::StatusCode};
-use defguard_certs::{CertificateAuthority, Csr, DnType, generate_key_pair};
+use axum::{Extension, Json, extract::State, http::StatusCode};
+use serde_json::json;
+use defguard_certs::{CertificateAuthority, CertificateInfo, Csr, DnType, der_to_pem, generate_key_pair};
 use defguard_common::db::models::{Certificates, CoreCertSource};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use crate::{
@@ -159,4 +161,52 @@ pub(crate) async fn core_cert_self_signed(
         session.user.username, data.san
     );
     Ok(ApiResponse::default())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/core/cert/ca",
+    responses(
+        (status = 200, description = "Self-signed certificate provisioned.", body = ApiResponse),
+        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse),
+        (status = 403, description = "Forbidden.", body = ApiResponse),
+        (status = 500, description = "Internal server error.", body = ApiResponse)
+    ),
+    security(("cookie" = []), ("api_token" = []))
+)]
+pub(crate) async fn get_ca(
+    _role: AdminRole,
+    session: SessionInfo,
+	Extension(pool): Extension<PgPool>,
+) -> ApiResult {
+    debug!("Fetching certificate authority details");
+    let certs = Certificates::get_or_default(&pool)
+        .await
+        .map_err(WebError::from)?;
+    if let Some(ca_cert_der) = certs.ca_cert_der {
+        let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
+        let info = CertificateInfo::from_der(&ca_cert_der)?;
+        let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+
+        debug!(
+            "Certificate authority details prepared: subject_common_name={}, valid_for_days={}",
+            info.subject_common_name, valid_for_days
+        );
+
+        Ok(ApiResponse::new(
+            json!({
+				"ca_cert_pem": ca_pem,
+				"subject_common_name": info.subject_common_name,
+				"not_before": info.not_before,
+				"not_after": info.not_after,
+				"valid_for_days": valid_for_days
+			}),
+            StatusCode::OK,
+        ))
+    } else {
+        Err(WebError::ObjectNotFound(
+            "CA certificate not found".to_string(),
+        ))
+    }
 }

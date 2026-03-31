@@ -481,6 +481,7 @@ const api = {
       client.post('/core/cert/self-signed', data),
     certUpload: (data: { cert_pem: string; key_pem: string }) =>
       client.post('/core/cert/upload', data),
+    getCA: () => client.get<GetCAResponse>('/core/cert/ca'),
   },
   acl: {
     destination: {
