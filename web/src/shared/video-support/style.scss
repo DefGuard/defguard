@@ -57,70 +57,6 @@
   width: 300px;
 }
 
-// Individual video card
-
-.video-support-card {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-  width: 100%;
-  padding: var(--spacing-md);
-  background-color: var(--bg-default);
-  border: var(--border-1) solid var(--border-disabled);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 5%);
-  cursor: pointer;
-  text-align: left;
-
-  @include animate(box-shadow);
-
-  &:hover {
-    box-shadow: 0 4px 16px 0 rgb(0 0 0 / 10%);
-  }
-}
-
-.video-support-thumbnail {
-  flex-shrink: 0;
-  width: 106px;
-  height: 60px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background-color: var(--bg-emphasis);
-  position: relative;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: none;
-
-    &.loaded {
-      display: block;
-    }
-  }
-
-  &.placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-}
-
-.video-support-card-info {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.video-support-card-title {
-  font: var(--t-body-xs-400);
-  color: var(--fg-default);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 // Close button — replaces launcher when panel is open.
 // Uses IconButton; overrides border-radius token to circular and adds background/border.
 
@@ -131,50 +67,6 @@
   border: var(--border-1) solid var(--border-muted);
   box-shadow: 0 2px 12px 0 rgb(0 0 0 / 7%);
   align-self: flex-end;
-
-  @include animate(box-shadow);
-}
-
-// ---------------------------------------------------------------------------
-// Video modal
-// ModalFoundation provides the backdrop and portal; we style the content here.
-// ---------------------------------------------------------------------------
-
-.video-support-modal-container {
-  position: relative;
-  display: inline-block;
-  padding-top: var(--size-2xl);
-}
-
-.video-support-modal {
-  background: var(--bg-default);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 6px 30px 0 rgb(0 0 0 / 9%);
-  padding: var(--spacing-xl);
-  width: 920px;
-  max-width: 90vw;
-
-  iframe {
-    display: block;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border: none;
-    border-radius: var(--radius-sm);
-  }
-}
-
-// Modal close button — floats outside the modal card (top-right).
-// Uses IconButton; overrides border-radius token to circular and adds background/shadow.
-
-.video-support-modal-close {
-  --button-border-radius-sm: var(--radius-full);
-
-  position: absolute;
-  top: var(--spacing-xs);
-  right: calc(-1 * var(--size-2xl));
-  background-color: var(--bg-default);
-  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 10%);
-  z-index: 1;
 
   @include animate(box-shadow);
 }

@@ -1,0 +1,36 @@
+// Individual video card
+
+.video-support-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  width: 100%;
+  padding: var(--spacing-md);
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-disabled);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 5%);
+  cursor: pointer;
+  text-align: left;
+
+  @include animate(box-shadow);
+
+  &:hover {
+    box-shadow: 0 4px 16px 0 rgb(0 0 0 / 10%);
+  }
+}
+
+.video-support-card-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.video-support-card-title {
+  font: var(--t-body-xs-400);
+  color: var(--fg-default);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
