@@ -423,25 +423,6 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
-    // getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
-    //   const networkConfigurations: AddDeviceResponseConfig[] = [];
-    //   for (const network of device.networks) {
-    //     const { data: config } = await api.device.getDeviceConfig({
-    //       deviceId: device.id,
-    //       networkId: network.network_id,
-    //     });
-    //     networkConfigurations.push({
-    //       config: config,
-    //       network_id: network.network_id,
-    //       network_name: network.network_name,
-    //     });
-    //   }
-
-    //   return {
-    //     configs: networkConfigurations,
-    //     device,
-    //   };
-    // },
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
