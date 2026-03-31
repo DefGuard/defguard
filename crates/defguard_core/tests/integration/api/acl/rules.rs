@@ -226,6 +226,120 @@ async fn test_rule_requires_destination(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+/// Mirrors `test_destination_requires_any_or_values` for ACL rules.
+/// When `use_manual_destination_settings = true`, each of address / port / protocol
+/// must independently be satisfied by either a non-empty direct value or its `any_*` flag.
+#[sqlx::test]
+async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // all fields empty, all any_* false → 400
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // port and protocol set, address missing, any_address false → 400
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = "22, 443".to_string();
+    rule.protocols = vec![6];
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // address and protocol set, port missing, any_port false → 400
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = "10.0.0.1".to_string();
+    rule.ports = String::new();
+    rule.protocols = vec![6];
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // address and port set, protocol missing, any_protocol false → 400
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = "10.0.0.1".to_string();
+    rule.ports = "80".to_string();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // all three direct fields set → 201; capture for update tests
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = "10.0.0.1".to_string();
+    rule.ports = "80".to_string();
+    rule.protocols = vec![6];
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created_rule: ApiAclRule = response.json().await;
+
+    // update: all fields empty, all any_* false → 400
+    let mut invalid_update = created_rule.clone();
+    invalid_update.addresses = String::new();
+    invalid_update.ports = String::new();
+    invalid_update.protocols = Vec::new();
+    invalid_update.any_address = false;
+    invalid_update.any_port = false;
+    invalid_update.any_protocol = false;
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .json(&invalid_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // update: address missing, port+protocol set, any_address false → 400
+    let mut invalid_update = created_rule.clone();
+    invalid_update.addresses = String::new();
+    invalid_update.ports = "5432".to_string();
+    invalid_update.protocols = vec![6];
+    invalid_update.any_address = false;
+    invalid_update.any_port = false;
+    invalid_update.any_protocol = false;
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created_rule.id))
+        .json(&invalid_update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // all any_* flags true, fields empty → 201
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = true;
+    rule.any_port = true;
+    rule.any_protocol = true;
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
 /// Tests that alias data is taken into account when validating manual destination settings.
 /// Each of address / port / protocol must be satisfied by either the direct field value,
 /// an `any_*` flag, or by at least one selected component alias providing that field.
@@ -426,10 +540,12 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
 
-    // rule
+    // rule — empty address and port strings are parse-safe; use any_* flags so validation passes
     let mut rule = make_rule();
     rule.addresses = String::new();
     rule.ports = String::new();
+    rule.any_address = true;
+    rule.any_port = true;
 
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
