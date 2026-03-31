@@ -18,7 +18,7 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { downloadFile } from '../../../shared/utils/download';
-import caIconSrc from '../../SetupPage/assets/ca.png';
+import caIconSrc from './assets/ca.png';
 import { displayDate } from '../../../shared/utils/displayDate';
 
 const breadcrumbs = [
