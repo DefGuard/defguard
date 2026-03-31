@@ -10,7 +10,7 @@ use defguard_common::{
     db::{
         init_db,
         models::{
-            ActiveWizard, Settings, Wizard, gateway::Gateway, proxy::Proxy,
+            ActiveWizard, Certificates, Settings, Wizard, gateway::Gateway, proxy::Proxy,
             settings::initialize_current_settings,
         },
     },
@@ -55,6 +55,10 @@ extern crate tracing;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .ok();
+
     if dotenvy::from_filename(".env.local").is_err() {
         dotenvy::dotenv().ok();
     }
@@ -119,7 +123,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
             Command::GatewayConfig(args) => {
                 let config = gateway_config(&pool, args).await?;
-                println!("{config:#?}");
+                println!("{config:?}");
             }
         }
 
@@ -134,7 +138,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
     let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
-    let mut ini_server_config = true;
 
     Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {
@@ -146,6 +149,12 @@ async fn main() -> Result<(), anyhow::Error> {
                         warn!("Failed to store startup auto-adoption states: {err}");
                     }
                 }
+
+                config.initialize_post_settings();
+                SERVER_CONFIG
+                    .set(config.clone())
+                    .expect("Failed to initialize server config.");
+
                 if let Err(err) =
                     run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
                         .await
@@ -161,8 +170,6 @@ async fn main() -> Result<(), anyhow::Error> {
                     .set(config.clone())
                     .expect("Failed to initialize server config.");
 
-                ini_server_config = false;
-
                 if let Err(err) = run_migration_web_server(
                     pool.clone(),
                     config.http_bind_address,
@@ -176,13 +183,10 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    if ini_server_config {
-        config.initialize_post_settings();
-
-        SERVER_CONFIG
-            .set(config.clone())
-            .expect("Failed to initialize server config.");
-    }
+    // Only set SERVER_CONFIG if it has not already been set (e.g. by the setup
+    // path above).
+    config.initialize_post_settings();
+    SERVER_CONFIG.set(config.clone()).ok();
 
     let settings = Settings::get_current_settings();
 
@@ -207,8 +211,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let incompatible_components: Arc<RwLock<IncompatibleComponents>> = Arc::default();
 
-    if settings.ca_cert_der.is_none() || settings.ca_key_der.is_none() {
-        anyhow::bail!("CA certificate or key were not found in settings, despite completing setup.")
+    let certs = Certificates::get_or_default(&pool).await?;
+    if certs.ca_cert_der.is_none() || certs.ca_key_der.is_none() {
+        anyhow::bail!("CA certificate or key were not found, despite completing setup.")
     }
 
     // read grpc TLS cert and key from legacy config values

@@ -1,5 +1,4 @@
 use defguard_common::db::{models::WireguardNetwork, setup_pool};
-
 use rand::thread_rng;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

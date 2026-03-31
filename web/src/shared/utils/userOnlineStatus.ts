@@ -1,7 +1,6 @@
-import type { Device, UsersListItem } from '../api/types';
+import type { Device, User } from '../api/types';
 
 export const isDeviceOnline = (device: Device): boolean =>
   device.networks.some((network) => network.is_active);
 
-export const isUserOnline = (user: UsersListItem): boolean =>
-  user.devices.some(isDeviceOnline);
+export const isUserOnline = (user: User): boolean => user.devices.some(isDeviceOnline);

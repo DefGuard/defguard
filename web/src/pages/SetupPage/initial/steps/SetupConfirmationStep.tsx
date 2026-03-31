@@ -1,5 +1,4 @@
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
@@ -12,38 +11,18 @@ import { Icon } from '../../../../shared/defguard-ui/components/Icon';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import location from '../../assets/location.png';
 import { useSetupWizardStore } from '../useSetupWizardStore';
 
 export const SetupConfirmationStep = () => {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const defguardUrl = useSetupWizardStore((s) => s.defguard_url);
 
-  const waitForSettingsEssentials = async ({
-    timeoutMs = 60_000,
-    intervalMs = 500,
-  }: {
-    timeoutMs?: number;
-    intervalMs?: number;
-  }) => {
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < timeoutMs) {
-      try {
-        const response = await api.getSessionInfo();
-
-        if (isPresent(response.data) && response.data.active_wizard === null) {
-          return;
-        }
-      } catch (_error) {
-        // Ignore errors while API restarts.
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-    }
-
-    throw new Error('Timed out waiting for settings essentials.');
+  const redirectAfterFinish = (path: string) => {
+    const base = defguardUrl ? defguardUrl.replace(/\/$/, '') : window.location.origin;
+    window.onbeforeunload = null;
+    useSetupWizardStore.getState().reset();
+    window.location.replace(`${base}${path}`);
   };
 
   const handleFinish = async () => {
@@ -51,16 +30,12 @@ export const SetupConfirmationStep = () => {
       setIsSubmitting(true);
       useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
-      await waitForSettingsEssentials({});
-      await navigate({ to: '/add-location', replace: true });
-      setTimeout(() => {
-        useSetupWizardStore.getState().reset();
-      }, 100);
+      await new Promise((r) => setTimeout(r, 2000));
+      redirectAfterFinish('/add-location');
     } catch (error) {
       console.error('Failed to finish setup flow:', error);
       useSetupWizardStore.setState({ isFinishing: false });
       Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -70,16 +45,12 @@ export const SetupConfirmationStep = () => {
       setIsSubmitting(true);
       useSetupWizardStore.setState({ isFinishing: true });
       await finishSetup();
-      await waitForSettingsEssentials({});
-      await navigate({ to: '/vpn-overview', replace: true });
-      setTimeout(() => {
-        useSetupWizardStore.getState().reset();
-      }, 100);
+      await new Promise((r) => setTimeout(r, 2000));
+      redirectAfterFinish('/vpn-overview');
     } catch (error) {
       console.error('Failed to finish setup flow:', error);
       useSetupWizardStore.setState({ isFinishing: false });
       Snackbar.error(m.initial_setup_confirmation_error_finish_failed());
-    } finally {
       setIsSubmitting(false);
     }
   };

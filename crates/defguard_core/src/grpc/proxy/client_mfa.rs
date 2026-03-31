@@ -182,10 +182,12 @@ impl ClientMfaServer {
             error!("Failed to find user with ID {}", device.user_id);
             return Err(Status::invalid_argument("user not found"));
         };
-        let user_info = UserInfo::from_user(&self.pool, &user).await.map_err(|_| {
-            error!("Failed to fetch user info for {}", user.username);
-            Status::internal("unexpected error")
-        })?;
+        let user_info = UserInfo::from_user(&self.pool, user.clone())
+            .await
+            .map_err(|_| {
+                error!("Failed to fetch user info for {}", user.username);
+                Status::internal("unexpected error")
+            })?;
 
         // validate user is allowed to connect to a given location
         Self::validate_location_access(&self.pool, &location, &user_info).await?;

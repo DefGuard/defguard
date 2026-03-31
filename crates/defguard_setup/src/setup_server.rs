@@ -14,7 +14,8 @@ use defguard_core::{
     auth::failed_login::FailedLoginMap,
     handle_404,
     handlers::{
-        component_setup::setup_proxy_tls_stream, resource_display::get_locations_display,
+        component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
+        resource_display::get_locations_display,
         settings::get_settings_essentials,
     },
     health_check,
@@ -22,11 +23,14 @@ use defguard_core::{
 use defguard_web_ui::{index, svg, web_asset};
 use semver::Version;
 use sqlx::PgPool;
-use tokio::{net::TcpListener, sync::oneshot::Sender};
+use tokio::{net::TcpListener, sync::oneshot::Sender as OneshotSender};
 use tracing::{info, instrument};
 
 use crate::handlers::{
-    auto_wizard::{get_auto_adoption_result, set_mfa_settings, set_url_settings, set_vpn_settings},
+    auto_wizard::{
+        get_auto_adoption_result, get_external_ssl_info, get_internal_ssl_info,
+        set_external_url_settings, set_internal_url_settings, set_mfa_settings, set_vpn_settings,
+    },
     initial_wizard::{
         create_admin, create_ca, finish_setup, get_ca, get_wizard_state, set_general_config,
         setup_login, setup_session, upload_ca,
@@ -34,7 +38,11 @@ use crate::handlers::{
     session_info::get_session_info,
 };
 
-pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sender<()>) -> Router {
+pub fn build_setup_webapp(
+    pool: PgPool,
+    version: Version,
+    setup_shutdown_tx: OneshotSender<()>,
+) -> Router {
     let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
     Router::<()>::new()
         .route("/", get(index))
@@ -51,6 +59,7 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
                 .route("/network/display", get(get_locations_display))
                 .route("/wizard", get(get_wizard_state))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+                .route("/proxy/acme/stream", get(stream_proxy_acme))
                 .nest(
                     "/initial_setup",
                     Router::<()>::new()
@@ -62,7 +71,14 @@ pub fn build_setup_webapp(pool: PgPool, version: Version, setup_shutdown_tx: Sen
                         .route("/session", get(setup_session))
                         // .route("/step", post(advance_setup_step))
                         .route("/auto_adoption", get(get_auto_adoption_result))
-                        .route("/auto_wizard/url_settings", post(set_url_settings))
+                        .route(
+                            "/auto_wizard/internal_url_settings",
+                            post(set_internal_url_settings).get(get_internal_ssl_info),
+                        )
+                        .route(
+                            "/auto_wizard/external_url_settings",
+                            post(set_external_url_settings).get(get_external_ssl_info),
+                        )
                         .route("/auto_wizard/vpn_settings", post(set_vpn_settings))
                         .route("/auto_wizard/mfa_settings", post(set_mfa_settings))
                         .route("/finish", post(finish_setup)),

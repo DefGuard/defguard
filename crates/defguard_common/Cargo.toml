@@ -33,6 +33,7 @@ sqlx.workspace = true
 struct-patch.workspace = true
 thiserror.workspace = true
 tonic.workspace = true
+tokio.workspace = true
 totp-lite.workspace = true
 tracing.workspace = true
 utoipa.workspace = true

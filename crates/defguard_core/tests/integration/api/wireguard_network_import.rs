@@ -224,25 +224,25 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
 
     // assert user devices
     let user_info = fetch_user_details(&client, "admin").await;
-    assert_eq!(user_info.devices.len(), 4);
-    assert_eq!(user_info.devices[0].device.name, "test device");
+    assert_eq!(user_info.user.devices.len(), 4);
+    assert_eq!(user_info.user.devices[0].device.name, "test device");
     assert_eq!(
-        user_info.devices[0].networks[1].device_wireguard_ips,
+        user_info.user.devices[0].networks[1].device_wireguard_ips,
         vec!["10.0.0.12"]
     );
-    assert_eq!(user_info.devices[1].device.name, "another test device");
+    assert_eq!(user_info.user.devices[1].device.name, "another test device");
     assert_eq!(
-        user_info.devices[1].networks[1].device_wireguard_ips,
+        user_info.user.devices[1].networks[1].device_wireguard_ips,
         vec!["10.0.0.2"]
     );
-    assert_eq!(user_info.devices[2].device.name, "device_1");
+    assert_eq!(user_info.user.devices[2].device.name, "device_1");
     assert_eq!(
-        user_info.devices[2].networks[1].device_wireguard_ips,
+        user_info.user.devices[2].networks[1].device_wireguard_ips,
         vec!["10.0.0.10"]
     );
-    assert_eq!(user_info.devices[3].device.name, "device_2");
+    assert_eq!(user_info.user.devices[3].device.name, "device_2");
     assert_eq!(
-        user_info.devices[3].networks[1].device_wireguard_ips,
+        user_info.user.devices[3].networks[1].device_wireguard_ips,
         vec!["10.0.0.11"]
     );
 }
