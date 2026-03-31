@@ -226,6 +226,154 @@ async fn test_rule_requires_destination(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+/// Tests that alias data is taken into account when validating manual destination settings.
+/// Each of address / port / protocol must be satisfied by either the direct field value,
+/// an `any_*` flag, or by at least one selected component alias providing that field.
+#[sqlx::test]
+async fn test_rule_requires_destination_alias_aware(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, _) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    // Creates an alias via the API and returns its id.
+    // Aliases created via POST /api/v1/acl/alias always land in Applied state.
+    macro_rules! create_alias {
+        ($alias:expr) => {{
+            let resp = client
+                .post("/api/v1/acl/alias")
+                .json(&$alias)
+                .send()
+                .await;
+            assert_eq!(resp.status(), StatusCode::CREATED);
+            resp.json::<Value>().await["id"].as_i64().unwrap()
+        }};
+    }
+
+    // ── Case A ────────────────────────────────────────────────────────────────
+    // Alias provides address only; port and protocol are still unsatisfied → 400.
+    let mut addr_only_alias = make_alias();
+    addr_only_alias.ports = String::new();
+    addr_only_alias.protocols = Vec::new();
+    let addr_only_id = create_alias!(addr_only_alias);
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    rule.aliases = vec![addr_only_id];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "alias with address only should not satisfy port+protocol requirements"
+    );
+
+    // ── Case B ────────────────────────────────────────────────────────────────
+    // Alias provides all three fields; direct rule fields are empty → 201.
+    let full_alias_id = create_alias!(make_alias());
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    rule.aliases = vec![full_alias_id];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::CREATED,
+        "alias covering all three fields should satisfy manual destination requirements"
+    );
+
+    // ── Case C ────────────────────────────────────────────────────────────────
+    // Two aliases whose union covers all three fields → 201.
+    // alias_ports: ports only.
+    // alias_addrs_proto: addresses + protocols only.
+    let mut alias_ports = make_alias();
+    alias_ports.addresses = String::new();
+    alias_ports.protocols = Vec::new();
+    let alias_ports_id = create_alias!(alias_ports);
+
+    let mut alias_addrs_proto = make_alias();
+    alias_addrs_proto.ports = String::new();
+    let alias_addrs_proto_id = create_alias!(alias_addrs_proto);
+
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = true;
+    rule.addresses = String::new();
+    rule.ports = String::new();
+    rule.protocols = Vec::new();
+    rule.any_address = false;
+    rule.any_port = false;
+    rule.any_protocol = false;
+    rule.aliases = vec![alias_ports_id, alias_addrs_proto_id];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::CREATED,
+        "union of two aliases that together cover all fields should satisfy requirements"
+    );
+
+    // ── Case D ────────────────────────────────────────────────────────────────
+    // use_manual_destination_settings = false, no destination aliases, only
+    // component aliases → 400. Component aliases do not count as destinations.
+    let mut rule = make_rule();
+    rule.use_manual_destination_settings = false;
+    rule.aliases = vec![full_alias_id];
+    rule.destinations = Vec::new();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "component aliases must not satisfy the destination-alias requirement"
+    );
+
+    // ── Case E ────────────────────────────────────────────────────────────────
+    // Update an existing rule: clear direct fields, attach a full alias → 200.
+    // First create a valid rule with direct fields.
+    let base_rule = make_rule();
+    let create_resp = client
+        .post("/api/v1/acl/rule")
+        .json(&base_rule)
+        .send()
+        .await;
+    assert_eq!(create_resp.status(), StatusCode::CREATED);
+    let created: ApiAclRule = create_resp.json().await;
+
+    // Now update it: remove direct fields, rely solely on the full alias.
+    let mut updated = created.clone();
+    updated.addresses = String::new();
+    updated.ports = String::new();
+    updated.protocols = Vec::new();
+    updated.any_address = false;
+    updated.any_port = false;
+    updated.any_protocol = false;
+    updated.aliases = vec![full_alias_id];
+    let response = client
+        .put(format!("/api/v1/acl/rule/{}", created.id))
+        .json(&updated)
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "updating a rule to rely on alias fields only should succeed"
+    );
+}
+
 #[sqlx::test]
 async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
