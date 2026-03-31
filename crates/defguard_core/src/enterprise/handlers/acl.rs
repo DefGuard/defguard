@@ -9,7 +9,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use defguard_common::db::Id;
 use serde_json::{Value, json};
-use sqlx::query_as;
+use sqlx::{PgConnection, query_as};
 use utoipa::ToSchema;
 
 use super::LicenseInfo;
@@ -137,17 +137,46 @@ pub struct EditAclRule {
 }
 
 impl EditAclRule {
-    pub fn validate(&self) -> Result<(), WebError> {
-        let manual_configured = self.any_address
-            || self.any_port
-            || self.any_protocol
-            || !self.addresses.trim().is_empty()
-            || !self.ports.trim().is_empty()
-            || !self.protocols.is_empty();
+    pub async fn validate(&self, conn: &mut PgConnection) -> Result<(), WebError> {
         if self.use_manual_destination_settings {
-            if !manual_configured {
+            // Determine what the selected component aliases collectively contribute.
+            // Note: Component-kind aliases always have any_address/any_port/any_protocol = false,
+            // so we only check whether they have non-empty arrays.
+            let (alias_has_address, alias_has_port, alias_has_protocol) =
+                if self.aliases.is_empty() {
+                    (false, false, false)
+                } else {
+                    let row = query_as::<_, (Option<bool>, Option<bool>, Option<bool>)>(
+                        "SELECT \
+                            bool_or(array_length(addresses, 1) > 0), \
+                            bool_or(array_length(ports, 1) > 0), \
+                            bool_or(array_length(protocols, 1) > 0) \
+                        FROM aclalias WHERE id = ANY($1)",
+                    )
+                    .bind(&self.aliases)
+                    .fetch_one(&mut *conn)
+                    .await
+                    .map_err(WebError::from)?;
+                    (
+                        row.0.unwrap_or(false),
+                        row.1.unwrap_or(false),
+                        row.2.unwrap_or(false),
+                    )
+                };
+
+            if !self.any_address && self.addresses.trim().is_empty() && !alias_has_address {
                 return Err(WebError::BadRequest(
-                    "Must provide manual destination settings".to_string(),
+                    "Must provide destination address, or enable any address".to_string(),
+                ));
+            }
+            if !self.any_port && self.ports.trim().is_empty() && !alias_has_port {
+                return Err(WebError::BadRequest(
+                    "Must provide destination port, or enable any port".to_string(),
+                ));
+            }
+            if !self.any_protocol && self.protocols.is_empty() && !alias_has_protocol {
+                return Err(WebError::BadRequest(
+                    "Must provide destination protocol, or enable any protocol".to_string(),
                 ));
             }
         } else if self.destinations.is_empty() {
@@ -348,7 +377,8 @@ pub(crate) async fn create_acl_rule(
     debug!("User {} creating ACL rule {data:?}", session.user.username);
 
     // validate submitted ACL rule
-    data.validate()?;
+    let mut conn = appstate.pool.acquire().await?;
+    data.validate(&mut conn).await?;
 
     let rule = AclRule::create_from_api(&appstate.pool, &data, &session.user.username)
         .await
@@ -387,7 +417,8 @@ pub(crate) async fn update_acl_rule(
     debug!("User {} updating ACL rule {data:?}", session.user.username);
 
     // validate submitted ACL rule
-    data.validate()?;
+    let mut conn = appstate.pool.acquire().await?;
+    data.validate(&mut conn).await?;
 
     let rule = AclRule::update_from_api(&appstate.pool, id, &data, &session.user.username)
         .await
