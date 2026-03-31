@@ -10,7 +10,7 @@ export const SettingsCertificatesTab = () => {
     <SettingsLayout id="certificates-settings">
       <Link to="/settings/ca">
         <SectionSelect
-          image="customization"
+          image="certificate-authority"
           title={m.settings_certs_ca_title()}
           content={m.settings_certs_ca_description()}
         />
@@ -18,7 +18,7 @@ export const SettingsCertificatesTab = () => {
       <SizedBox height={ThemeSpacing.Xl} />
       <Link to="/settings/certs">
         <SectionSelect
-          image="customization"
+          image="certificates"
           title={m.settings_certs_certs_title()}
           content={m.settings_certs_certs_description()}
         />
