@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// Video Support Widget
+// Video Tutorials Widget
 // Floating launcher button + expandable panel (bottom-right corner)
 // ---------------------------------------------------------------------------
 
-.video-support-widget {
+.video-tutorials-widget {
   position: fixed;
   bottom: var(--spacing-xl);
   right: var(--spacing-xl);
@@ -16,7 +16,7 @@
 
 // Launcher pill button
 
-.video-support-launcher {
+.video-tutorials-launcher {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
@@ -47,7 +47,7 @@
 
 // Floating panel — no background, just stacks the cards
 
-.video-support-list {
+.video-tutorials-list {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -60,7 +60,7 @@
 // Close button — replaces launcher when panel is open.
 // Uses IconButton; overrides border-radius token to circular and adds background/border.
 
-.video-support-close-btn {
+.video-tutorials-close-btn {
   --button-border-radius-sm: var(--radius-full);
 
   background-color: var(--bg-default);

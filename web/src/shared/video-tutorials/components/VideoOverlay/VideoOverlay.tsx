@@ -5,19 +5,19 @@ import * as m from '../../../../paraglide/messages';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
-import type { VideoSupport } from '../../types';
+import type { VideoTutorial } from '../../types';
 
 const LOAD_TIMEOUT_MS = 8_000;
 
 export interface VideoOverlayProps {
-  video: VideoSupport | null;
+  video: VideoTutorial | null;
   isOpen: boolean;
   onClose: () => void;
   afterClose: () => void;
 }
 
 interface VideoOverlayContentProps {
-  video: VideoSupport;
+  video: VideoTutorial;
   onClose: () => void;
 }
 
@@ -49,24 +49,28 @@ const VideoOverlayContent = ({ video, onClose }: VideoOverlayContentProps) => {
 
   return (
     <>
-      <IconButton icon="close" className="video-support-modal-close" onClick={onClose} />
-      <div className="video-support-modal">
+      <IconButton
+        icon="close"
+        className="video-tutorials-modal-close"
+        onClick={onClose}
+      />
+      <div className="video-tutorials-modal">
         {errored ? (
-          <div className="video-support-overlay-error">
-            <div className="video-support-overlay-error-icon-group">
-              <div className="video-support-overlay-error-badge">
+          <div className="video-tutorials-overlay-error">
+            <div className="video-tutorials-overlay-error-icon-group">
+              <div className="video-tutorials-overlay-error-badge">
                 <Icon icon="tutorial-not-available" size={48} />
               </div>
-              <p className="video-support-overlay-error-title">
-                {m.cmp_video_support_overlay_error()}
+              <p className="video-tutorials-overlay-error-title">
+                {m.cmp_video_tutorials_overlay_error()}
               </p>
             </div>
-            <div className="video-support-overlay-error-link-group">
-              <p className="video-support-overlay-error-label">
-                {m.cmp_video_support_overlay_watch_on_youtube()}
+            <div className="video-tutorials-overlay-error-link-group">
+              <p className="video-tutorials-overlay-error-label">
+                {m.cmp_video_tutorials_overlay_watch_on_youtube()}
               </p>
               <a
-                className="video-support-overlay-error-url"
+                className="video-tutorials-overlay-error-url"
                 href={`https://www.youtube.com/watch?v=${video.youtubeVideoId}`}
                 target="_blank"
                 rel="noreferrer"
@@ -78,7 +82,7 @@ const VideoOverlayContent = ({ video, onClose }: VideoOverlayContentProps) => {
         ) : (
           <>
             {!loaded && (
-              <div className="video-support-overlay-skeleton">
+              <div className="video-tutorials-overlay-skeleton">
                 <Skeleton width="100%" height="100%" />
               </div>
             )}
@@ -107,7 +111,7 @@ export const VideoOverlay = ({
   return (
     <ModalFoundation
       isOpen={isOpen}
-      contentClassName="video-support-modal-container"
+      contentClassName="video-tutorials-modal-container"
       afterClose={afterClose}
     >
       {video && <VideoOverlayContent video={video} onClose={onClose} />}

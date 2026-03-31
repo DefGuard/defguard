@@ -1,31 +1,31 @@
 import { z } from 'zod';
 import { canonicalizeRouteKey } from './route-key';
-import type { VideoSupportMappings } from './types';
+import type { VideoTutorialsMappings } from './types';
 
 // ---------------------------------------------------------------------------
 // Source resolution
 // ---------------------------------------------------------------------------
 
 /**
- * Path (relative to the update service base URL) to load the video support
+ * Path (relative to the update service base URL) to load the video tutorials
  * mapping from. Resolved by Vite at build time.
  *
  * The shared updateServiceClient resolves this against its baseURL
  * (VITE_UPDATE_BASE_URL ?? 'https://pkgs.defguard.net/api'), so the
- * production URL is https://pkgs.defguard.net/api/content/video-support.
+ * production URL is https://pkgs.defguard.net/api/content/video-tutorials.
  *
- * Override VITE_VIDEO_SUPPORT_URL to use a different path on the same server,
+ * Override VITE_VIDEO_TUTORIALS_URL to use a different path on the same server,
  * or VITE_UPDATE_BASE_URL to redirect all update-service calls to a local
  * server for development.
  */
-export const videoSupportPath: string =
-  import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/content/video-support';
+export const videoTutorialsPath: string =
+  import.meta.env.VITE_VIDEO_TUTORIALS_URL ?? '/content/video-tutorials';
 
 // ---------------------------------------------------------------------------
 // Zod schema + parser
 // ---------------------------------------------------------------------------
 
-const videoSupportSchema = z
+const videoTutorialsSchema = z
   .object({
     youtubeVideoId: z
       .string()
@@ -42,7 +42,7 @@ const routeMapSchema = z.record(
   // canonicalizeRouteKey() adds it at runtime for widget use, but the JSON
   // must supply it explicitly — keeping authoring intent unambiguous.
   z.string().regex(/^\//, 'route key must start with "/"'),
-  z.array(videoSupportSchema),
+  z.array(videoTutorialsSchema),
 );
 
 const mappingsSchema = z.object({
@@ -58,17 +58,17 @@ const mappingsSchema = z.object({
 });
 
 /**
- * Validates raw JSON against the video support mapping contract and returns a
- * trusted VideoSupportMappings object with canonicalized route keys.
+ * Validates raw JSON against the video tutorials mapping contract and returns a
+ * trusted VideoTutorialsMappings object with canonicalized route keys.
  * Throws a ZodError if the contract is violated.
  */
-export function parseVideoSupport(raw: unknown): VideoSupportMappings {
+export function parseVideoTutorials(raw: unknown): VideoTutorialsMappings {
   const parsed = mappingsSchema.parse(raw);
 
-  const result: VideoSupportMappings = {};
+  const result: VideoTutorialsMappings = {};
 
   for (const [versionKey, routeMap] of Object.entries(parsed.versions)) {
-    const canonicalRouteMap: Record<string, VideoSupportMappings[string][string]> = {};
+    const canonicalRouteMap: Record<string, VideoTutorialsMappings[string][string]> = {};
 
     for (const [routeKey, videos] of Object.entries(routeMap)) {
       const canonical = canonicalizeRouteKey(routeKey);

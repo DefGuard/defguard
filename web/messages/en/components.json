@@ -175,9 +175,9 @@
   "acl_rule_error_allow_deny_conflict": "The same entry cannot be both allowed and restricted.",
   "acl_rule_error_permissions_required": "Configure at least one allowed user, group, or network device.",
   "acl_rule_error_manual_destination_required": "Manual destination settings are enabled. Provide a value or enable Any.",
-  "cmp_video_support_launcher": "Video support",
-  "cmp_video_support_list_label": "Video tutorials",
-  "cmp_video_support_overlay_error": "Video unavailable",
-  "cmp_video_support_overlay_watch_on_youtube": "Watch on YouTube:",
-  "cmp_nav_item_tutorials": "Tutorials"
+   "cmp_video_tutorials_launcher": "Video support",
+   "cmp_video_tutorials_list_label": "Video support",
+   "cmp_video_tutorials_overlay_error": "Video unavailable",
+   "cmp_video_tutorials_overlay_watch_on_youtube": "Watch on YouTube:",
+   "cmp_nav_item_tutorials": "Tutorials"
 }

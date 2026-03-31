@@ -1,7 +1,7 @@
-# Video Support
+# Video Tutorials
 
-The video support widget displays route-specific YouTube video tutorials inside
-the authenticated app shell. A floating "Video support" button appears in the
+The video tutorials widget displays route-specific YouTube video tutorials inside
+the authenticated app shell. A floating "Video tutorials" button appears in the
 bottom-right corner when videos are available for the current route. Clicking
 it opens a panel listing the relevant videos; clicking a video opens a full-screen
 overlay with an embedded YouTube player.
@@ -16,14 +16,14 @@ skeleton placeholder is shown; if the video fails to load within 8 seconds, a
 ## Module structure
 
 ```
-video-support/
-├── VideoSupportWidget.tsx   — root component; mounted in _default.tsx
-├── resolved.tsx             — useResolvedVideoSupport, useVideoSupportRouteKey hooks
-├── data.ts                  — Zod schema, parseVideoSupport(), videoSupportPath
-├── resolver.ts              — resolveVideoSupport() — version/route resolution logic
+video-tutorials/
+├── VideoTutorialsWidget.tsx   — root component; mounted in _default.tsx
+├── resolved.tsx             — useResolvedVideoTutorials, useVideoTutorialsRouteKey hooks
+├── data.ts                  — Zod schema, parseVideoTutorials(), videoTutorialsPath
+├── resolver.ts              — resolveVideoTutorials() — version/route resolution logic
 ├── route-key.ts             — canonicalizeRouteKey()
 ├── version.ts               — parseVersion(), compareVersions()
-├── types.ts                 — VideoSupport, VideoSupportMappings types
+├── types.ts                 — VideoTutorial, VideoTutorialsMappings types
 ├── style.scss               — widget, launcher, and panel styles
 └── components/
     ├── Thumbnail/           — thumbnail with skeleton while loading and icon on error
@@ -39,19 +39,19 @@ In production the widget fetches its video mapping via the shared update-service
 axios client. The default URL is:
 
 ```
-https://pkgs.defguard.net/api/content/video-support
+https://pkgs.defguard.net/api/content/video-tutorials
 ```
 
 This is composed from the client's base URL (`https://pkgs.defguard.net/api`,
 overridable via `VITE_UPDATE_BASE_URL`) and the default path
-(`/content/video-support`, overridable via `VITE_VIDEO_SUPPORT_URL`).
+(`/content/video-tutorials`, overridable via `VITE_VIDEO_TUTORIALS_URL`).
 
 Both variables are read at build time and live in `web/.env.local` (git-ignored).
 
 ### Serve a local file via the Vite dev server (recommended)
 
-The simplest approach: place your test JSON at `web/public/content/video-support`
-(no file extension) or `web/public/content/video-support.json`. The Vite dev
+The simplest approach: place your test JSON at `web/public/content/video-tutorials`
+(no file extension) or `web/public/content/video-tutorials.json`. The Vite dev
 server serves everything in `web/public/` at the root, so the file is immediately
 available on the same origin — no extra process, no CORS issues.
 
@@ -59,15 +59,15 @@ available on the same origin — no extra process, no CORS issues.
 
    ```bash
    mkdir -p web/public/content
-   # create web/public/content/video-support with the JSON structure shown below
+   # create web/public/content/video-tutorials with the JSON structure shown below
    ```
 
 2. If you used no file extension, no env override is needed — the default path
-   `/content/video-support` already matches. If you used `.json`, set:
+   `/content/video-tutorials` already matches. If you used `.json`, set:
 
    ```
    # web/.env.local
-   VITE_VIDEO_SUPPORT_URL=/content/video-support.json
+   VITE_VIDEO_TUTORIALS_URL=/content/video-tutorials.json
    ```
 
 3. Start the dev server as usual (`pnpm dev`). The widget will pick up the file
@@ -80,14 +80,14 @@ available on the same origin — no extra process, no CORS issues.
 ### Redirect the entire update service to a separate local server
 
 Use this approach when you need to test the client artifact check alongside the
-video support fetch, or when you want to simulate a real remote server:
+video tutorials fetch, or when you want to simulate a real remote server:
 
 ```
 # web/.env.local
 VITE_UPDATE_BASE_URL=http://localhost:4000
 ```
 
-Then serve a JSON file at `http://localhost:4000/content/video-support`:
+Then serve a JSON file at `http://localhost:4000/content/video-tutorials`:
 
 ```bash
 # example using Python's built-in server from the directory containing your file
@@ -97,14 +97,14 @@ python3 -m http.server 4000
 > The local server must respond with appropriate `Access-Control-Allow-Origin`
 > CORS headers since it runs on a different origin than the Vite dev server.
 
-### Override only the video support path
+### Override only the video tutorials path
 
-To redirect just the video support fetch without affecting other update-service
+To redirect just the video tutorials fetch without affecting other update-service
 calls, override the path only:
 
 ```
 # web/.env.local
-VITE_VIDEO_SUPPORT_URL=/content/my-test-config
+VITE_VIDEO_TUTORIALS_URL=/content/my-test-config
 ```
 
 The path is still resolved against `VITE_UPDATE_BASE_URL` (or the default

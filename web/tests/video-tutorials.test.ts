@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseVideoSupport } from '../src/shared/video-support/data';
-import { resolveVideoSupport } from '../src/shared/video-support/resolver';
-import { canonicalizeRouteKey } from '../src/shared/video-support/route-key';
-import { parseVersion } from '../src/shared/video-support/version';
-import type { VideoSupportMappings } from '../src/shared/video-support/types';
+import { parseVideoTutorials } from '../src/shared/video-tutorials/data';
+import { resolveVideoTutorials } from '../src/shared/video-tutorials/resolver';
+import { canonicalizeRouteKey } from '../src/shared/video-tutorials/route-key';
+import { parseVersion } from '../src/shared/video-tutorials/version';
+import type { VideoTutorialsMappings } from '../src/shared/video-tutorials/types';
 
 // ---------------------------------------------------------------------------
 // canonicalizeRouteKey
@@ -82,10 +82,10 @@ describe('parseVersion', () => {
 });
 
 // ---------------------------------------------------------------------------
-// resolveVideoSupport
+// resolveVideoTutorials
 // ---------------------------------------------------------------------------
 
-const makeMappings = (): VideoSupportMappings => ({
+const makeMappings = (): VideoTutorialsMappings => ({
   '2.0': {
     '/users': [{ youtubeVideoId: 'usrGuide200', title: 'Users 2.0' }],
   },
@@ -95,60 +95,60 @@ const makeMappings = (): VideoSupportMappings => ({
   },
 });
 
-describe('resolveVideoSupport', () => {
+describe('resolveVideoTutorials', () => {
   it('should return videos for an exact version match', () => {
-    const result = resolveVideoSupport(makeMappings(), '2.2', '/users');
+    const result = resolveVideoTutorials(makeMappings(), '2.2', '/users');
     expect(result).toHaveLength(1);
     expect(result[0].youtubeVideoId).toBe('usrGuide220');
   });
 
   it('should return the most recent eligible version when the exact version defines the route', () => {
-    const result = resolveVideoSupport(makeMappings(), '2.2', '/users');
+    const result = resolveVideoTutorials(makeMappings(), '2.2', '/users');
     // 2.2 defines /users, so we get the 2.2 entry (not the older 2.0 entry)
     expect(result[0].youtubeVideoId).toBe('usrGuide220');
   });
 
   it('should fall back to 2.0 for a route only defined there when running 2.2', () => {
-    const mappings: VideoSupportMappings = {
+    const mappings: VideoTutorialsMappings = {
       '2.0': { '/users': [{ youtubeVideoId: 'usrGuide200', title: 'Users 2.0' }] },
       '2.2': { '/settings': [{ youtubeVideoId: 'setGuide220', title: 'Settings 2.2' }] },
     };
-    const result = resolveVideoSupport(mappings, '2.2', '/users');
+    const result = resolveVideoTutorials(mappings, '2.2', '/users');
     expect(result[0].youtubeVideoId).toBe('usrGuide200');
   });
 
   it('should not use a version newer than the runtime version', () => {
-    const result = resolveVideoSupport(makeMappings(), '2.0', '/settings');
+    const result = resolveVideoTutorials(makeMappings(), '2.0', '/settings');
     expect(result).toHaveLength(0);
   });
 
   it('should preserve an explicit empty array without falling back', () => {
-    const mappings: VideoSupportMappings = {
+    const mappings: VideoTutorialsMappings = {
       '2.0': { '/users': [{ youtubeVideoId: 'usrGuide200', title: 'Users 2.0' }] },
       '2.2': { '/users': [] },
     };
-    const result = resolveVideoSupport(mappings, '2.2', '/users');
+    const result = resolveVideoTutorials(mappings, '2.2', '/users');
     expect(result).toHaveLength(0);
   });
 
   it('should return empty array when no version defines the route', () => {
-    const result = resolveVideoSupport(makeMappings(), '2.2', '/nonexistent');
+    const result = resolveVideoTutorials(makeMappings(), '2.2', '/nonexistent');
     expect(result).toHaveLength(0);
   });
 
   it('should return empty array for an unparseable app version', () => {
-    const result = resolveVideoSupport(makeMappings(), '', '/users');
+    const result = resolveVideoTutorials(makeMappings(), '', '/users');
     expect(result).toHaveLength(0);
   });
 
   it('should strip prerelease from runtime version before resolving', () => {
-    const result = resolveVideoSupport(makeMappings(), '2.2.0-beta', '/users');
+    const result = resolveVideoTutorials(makeMappings(), '2.2.0-beta', '/users');
     expect(result[0].youtubeVideoId).toBe('usrGuide220');
   });
 });
 
 // ---------------------------------------------------------------------------
-// parseVideoSupport
+// parseVideoTutorials
 // ---------------------------------------------------------------------------
 
 const validRaw = {
@@ -164,9 +164,9 @@ const validRaw = {
   },
 };
 
-describe('parseVideoSupport', () => {
+describe('parseVideoTutorials', () => {
   it('should accept a valid contract', () => {
-    const result = parseVideoSupport(validRaw);
+    const result = parseVideoTutorials(validRaw);
     expect(result['2.2']['/users']).toHaveLength(1);
     expect(result['2.2']['/users'][0].youtubeVideoId).toBe('abcDEFghiJK');
   });
@@ -179,7 +179,7 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    const result = parseVideoSupport(raw);
+    const result = parseVideoTutorials(raw);
     expect(result['2.0']['/settings']).toBeDefined();
     expect(result['2.0']['/settings/']).toBeUndefined();
   });
@@ -192,7 +192,7 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    expect(() => parseVideoSupport(raw)).toThrow();
+    expect(() => parseVideoTutorials(raw)).toThrow();
   });
 
   it('should reject an empty title', () => {
@@ -203,7 +203,7 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    expect(() => parseVideoSupport(raw)).toThrow();
+    expect(() => parseVideoTutorials(raw)).toThrow();
   });
 
   it('should reject duplicate route keys after canonicalization', () => {
@@ -215,7 +215,7 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    expect(() => parseVideoSupport(raw)).toThrow(/[Dd]uplicate/);
+    expect(() => parseVideoTutorials(raw)).toThrow(/[Dd]uplicate/);
   });
 
   it('should reject a route key missing a leading slash', () => {
@@ -226,7 +226,7 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    expect(() => parseVideoSupport(raw)).toThrow();
+    expect(() => parseVideoTutorials(raw)).toThrow();
   });
 
   it('should reject an invalid version key format', () => {
@@ -237,7 +237,7 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    expect(() => parseVideoSupport(raw)).toThrow();
+    expect(() => parseVideoTutorials(raw)).toThrow();
   });
 
   it('should strip unknown fields from videos', () => {
@@ -248,15 +248,15 @@ describe('parseVideoSupport', () => {
         },
       },
     };
-    const result = parseVideoSupport(raw);
+    const result = parseVideoTutorials(raw);
     expect((result['2.2']['/users'][0] as Record<string, unknown>)['unknownField']).toBeUndefined();
   });
 
   it('should reject null input', () => {
-    expect(() => parseVideoSupport(null)).toThrow();
+    expect(() => parseVideoTutorials(null)).toThrow();
   });
 
   it('should reject missing versions key', () => {
-    expect(() => parseVideoSupport({})).toThrow();
+    expect(() => parseVideoTutorials({})).toThrow();
   });
 });

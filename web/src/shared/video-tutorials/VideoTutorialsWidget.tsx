@@ -6,15 +6,15 @@ import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
 import { ThemeVariable } from '../defguard-ui/types';
 import { VideoCard } from './components/VideoCard/VideoCard';
 import { VideoOverlay } from './components/VideoOverlay/VideoOverlay';
-import { useResolvedVideoSupport, useVideoSupportRouteKey } from './resolved';
-import type { VideoSupport } from './types';
+import { useResolvedVideoTutorials, useVideoTutorialsRouteKey } from './resolved';
+import type { VideoTutorial } from './types';
 
-export const VideoSupportWidget = () => {
-  const videos = useResolvedVideoSupport();
-  const routeKey = useVideoSupportRouteKey();
+export const VideoTutorialsWidget = () => {
+  const videos = useResolvedVideoTutorials();
+  const routeKey = useVideoTutorialsRouteKey();
   const [panelOpen, setPanelOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<VideoSupport | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
 
   // Reset UI state when the route changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: routeKey is the trigger, not used in body
@@ -26,7 +26,7 @@ export const VideoSupportWidget = () => {
 
   if (videos.length === 0) return null;
 
-  const handleCardClick = (video: VideoSupport) => {
+  const handleCardClick = (video: VideoTutorial) => {
     setSelectedVideo(video);
     setOverlayOpen(true);
     setPanelOpen(false);
@@ -34,11 +34,11 @@ export const VideoSupportWidget = () => {
 
   return (
     <>
-      <div className="video-support-widget">
+      <div className="video-tutorials-widget">
         {panelOpen && (
           <ul
-            className="video-support-list"
-            aria-label={m.cmp_video_support_list_label()}
+            className="video-tutorials-list"
+            aria-label={m.cmp_video_tutorials_list_label()}
           >
             {videos.map((v) => (
               <li key={v.youtubeVideoId}>
@@ -50,18 +50,18 @@ export const VideoSupportWidget = () => {
         {panelOpen ? (
           <IconButton
             icon="close"
-            className="video-support-close-btn"
+            className="video-tutorials-close-btn"
             onClick={() => setPanelOpen(false)}
           />
         ) : (
           <button
             type="button"
-            className="video-support-launcher"
+            className="video-tutorials-launcher"
             onClick={() => setPanelOpen(true)}
-            aria-label={m.cmp_video_support_launcher()}
+            aria-label={m.cmp_video_tutorials_launcher()}
           >
             <Icon icon="tutorial" size={18} staticColor={ThemeVariable.FgAction} />
-            <span>{m.cmp_video_support_launcher()}</span>
+            <span>{m.cmp_video_tutorials_launcher()}</span>
           </button>
         )}
       </div>

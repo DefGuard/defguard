@@ -3,7 +3,7 @@ import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
 import { updateServiceApi, updateServiceClient } from './api/update-service';
 import { resourceDisplayMap } from './utils/resourceById';
-import { parseVideoSupport, videoSupportPath } from './video-support/data';
+import { parseVideoTutorials, videoTutorialsPath } from './video-tutorials/data';
 
 export const getExternalProviderQueryOptions = queryOptions({
   queryFn: api.openIdProvider.getOpenIdProvider,
@@ -117,10 +117,10 @@ export const clientArtifactsQueryOptions = queryOptions({
   refetchOnReconnect: true,
 });
 
-export const videoSupportQueryOptions = queryOptions({
-  queryKey: ['update-service', 'video-support'],
-  queryFn: () => updateServiceClient.get<unknown>(videoSupportPath),
-  select: (resp) => parseVideoSupport(resp.data),
+export const videoTutorialsQueryOptions = queryOptions({
+  queryKey: ['update-service', 'video-tutorials'],
+  queryFn: () => updateServiceClient.get<unknown>(videoTutorialsPath),
+  select: (resp) => parseVideoTutorials(resp.data),
   // Mappings are version-tied and won't meaningfully change within a session.
   staleTime: Infinity,
   // Silent failure: if the fetch or parse fails, the widget simply won't appear.

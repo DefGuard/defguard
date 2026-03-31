@@ -15,8 +15,8 @@ export const Thumbnail = ({ url, title }: ThumbnailProps) => {
 
   if (errored) {
     return (
-      <div className="video-support-thumbnail placeholder" aria-label={title}>
-        <div className="video-support-thumbnail-icon-badge">
+      <div className="video-tutorials-thumbnail placeholder" aria-label={title}>
+        <div className="video-tutorials-thumbnail-icon-badge">
           <Icon icon="tutorial" size={20} staticColor={ThemeVariable.FgDisabled} />
         </div>
       </div>
@@ -24,7 +24,7 @@ export const Thumbnail = ({ url, title }: ThumbnailProps) => {
   }
 
   return (
-    <div className="video-support-thumbnail">
+    <div className="video-tutorials-thumbnail">
       {!loaded && <Skeleton width={106} height={60} />}
       <img
         src={url}

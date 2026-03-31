@@ -1,6 +1,6 @@
 // Individual video card
 
-.video-support-card {
+.video-tutorials-card {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
@@ -20,13 +20,13 @@
   }
 }
 
-.video-support-card-info {
+.video-tutorials-card-info {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.video-support-card-title {
+.video-tutorials-card-title {
   font: var(--t-body-xs-400);
   color: var(--fg-default);
   display: -webkit-box;
