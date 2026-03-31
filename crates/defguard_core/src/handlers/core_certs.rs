@@ -167,7 +167,7 @@ pub(crate) async fn core_cert_self_signed(
     post,
     path = "/api/v1/core/cert/ca",
     responses(
-        (status = 200, description = "Self-signed certificate provisioned.", body = ApiResponse),
+        (status = 200, description = "CA cert data", body = ApiResponse),
         (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiResponse),
         (status = 401, description = "Unauthorized.", body = ApiResponse),
         (status = 403, description = "Forbidden.", body = ApiResponse),
@@ -177,7 +177,6 @@ pub(crate) async fn core_cert_self_signed(
 )]
 pub(crate) async fn get_ca(
     _role: AdminRole,
-    session: SessionInfo,
 	Extension(pool): Extension<PgPool>,
 ) -> ApiResult {
     debug!("Fetching certificate authority details");
@@ -200,7 +199,9 @@ pub(crate) async fn get_ca(
 				"subject_common_name": info.subject_common_name,
 				"not_before": info.not_before,
 				"not_after": info.not_after,
-				"valid_for_days": valid_for_days
+				"valid_for_days": valid_for_days,
+				"ca_expiry": certs.ca_expiry,
+				"subject_email": info.subject_email,
 			}),
             StatusCode::OK,
         ))

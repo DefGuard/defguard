@@ -1,15 +1,19 @@
 use std::str::FromStr;
 
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::NaiveDateTime;
 use rcgen::{
-    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
-    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
+    string::Ia5String, BasicConstraints, Certificate, CertificateParams,
+    CertificateSigningRequestParams, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
+    KeyUsagePurpose, SigningKey,
 };
-use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
+use rustls_pki_types::{pem::PemObject, CertificateDer, CertificateSigningRequestDer};
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
-use x509_parser::parse_x509_certificate;
+use x509_parser::{
+    extensions::{GeneralName, ParsedExtension},
+    parse_x509_certificate,
+};
 
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
@@ -144,6 +148,7 @@ impl CertificateAuthority<'_> {
 
 pub struct CertificateInfo {
     pub subject_common_name: String,
+    pub subject_email: Option<String>,
     pub not_before: NaiveDateTime,
     pub not_after: NaiveDateTime,
     pub serial: String,
@@ -158,6 +163,17 @@ impl CertificateInfo {
 
         let subject = &parsed.tbs_certificate.subject;
         let serial = parsed.raw_serial_as_string();
+        let subject_email = parsed.tbs_certificate.extensions().iter().find_map(|ext| {
+            match ext.parsed_extension() {
+                ParsedExtension::SubjectAlternativeName(san) => {
+                    san.general_names.iter().find_map(|name| match name {
+                        GeneralName::RFC822Name(email) => Some(email.to_string()),
+                        _ => None,
+                    })
+                }
+                _ => None,
+            }
+        });
 
         let cn = subject
             .iter_common_name()
@@ -174,6 +190,7 @@ impl CertificateInfo {
 
         Ok(Self {
             subject_common_name: cn.to_string(),
+            subject_email,
             not_before: chrono::DateTime::from_timestamp(not_before.unix_timestamp(), 0)
                 .ok_or_else(|| {
                     CertificateError::ParsingError(format!(
@@ -425,30 +442,15 @@ mod tests {
 
     #[test]
     fn test_ca_email() {
-        use x509_parser::parse_x509_certificate;
-
         let expected_email = "contact@defguard.net";
         let ca = CertificateAuthority::new("Test CA", expected_email, 365).unwrap();
 
-        let (_rem, parsed) = parse_x509_certificate(ca.cert_der()).unwrap();
+        let info = CertificateInfo::from_der(ca.cert_der()).unwrap();
 
-        let san_ext = parsed
-            .tbs_certificate
-            .extensions()
-            .iter()
-            .find(|ext| ext.oid == x509_parser::oid_registry::OID_X509_EXT_SUBJECT_ALT_NAME)
-            .expect("Subject Alternative Name extension not found");
-
-        let san_value = san_ext.value;
-
-        let email_bytes = expected_email.as_bytes();
-        let email_found = san_value
-            .windows(email_bytes.len())
-            .any(|window| window == email_bytes);
-
-        assert!(
-            email_found,
-            "Email '{expected_email}' should be present in Subject Alternative Names"
+        assert_eq!(
+            info.subject_email.as_deref(),
+            Some(expected_email),
+            "Email should be parsed from Subject Alternative Names"
         );
     }
 

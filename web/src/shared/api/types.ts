@@ -49,6 +49,8 @@ export interface GetCAResponse {
   not_before: string;
   not_after: string;
   valid_for_days: number;
+  ca_expiry: string;
+  subject_email: string | null;
 }
 
 export interface UploadCARequest {
