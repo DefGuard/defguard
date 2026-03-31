@@ -462,21 +462,45 @@ const Content = ({ rule: initialRule, tab }: Props) => {
 
           if (vals.use_manual_destination_settings) {
             const message = m.acl_rule_error_manual_destination_required();
-            if (!vals.any_address && vals.addresses.trim().length === 0) {
+            const selectedAliasesList = (aliases ?? []).filter((a) =>
+              vals.aliases.has(a.id),
+            );
+            const aliasHasAddress = selectedAliasesList.some(
+              (a) => a.addresses.trim().length > 0,
+            );
+            const aliasHasPort = selectedAliasesList.some(
+              (a) => a.ports.trim().length > 0,
+            );
+            const aliasHasProtocol = selectedAliasesList.some(
+              (a) => a.protocols.length > 0,
+            );
+            if (
+              !vals.any_address &&
+              vals.addresses.trim().length === 0 &&
+              !aliasHasAddress
+            ) {
               ctx.addIssue({
                 path: ['addresses'],
                 code: 'custom',
                 message,
               });
             }
-            if (!vals.any_port && vals.ports.trim().length === 0) {
+            if (
+              !vals.any_port &&
+              vals.ports.trim().length === 0 &&
+              !aliasHasPort
+            ) {
               ctx.addIssue({
                 path: ['ports'],
                 code: 'custom',
                 message,
               });
             }
-            if (!vals.any_protocol && vals.protocols.size === 0) {
+            if (
+              !vals.any_protocol &&
+              vals.protocols.size === 0 &&
+              !aliasHasProtocol
+            ) {
               ctx.addIssue({
                 path: ['protocols'],
                 code: 'custom',
@@ -499,7 +523,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
             });
           }
         }),
-    [hasPredefinedDestinations, restrictDevices, restrictGroups, restrictUsers],
+    [hasPredefinedDestinations, restrictDevices, restrictGroups, restrictUsers, aliases],
   );
 
   type FormFields = z.infer<typeof formSchema>;
