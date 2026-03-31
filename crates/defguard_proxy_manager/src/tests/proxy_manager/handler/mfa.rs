@@ -15,6 +15,23 @@
 // 12. test_mfa_finish_succeeds_with_totp_code
 // 13. test_mfa_finish_fails_with_wrong_totp_code
 
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use defguard_core::grpc::GatewayEvent;
+use defguard_proto::proxy::{
+    AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
+    ClientMfaTokenValidationRequest, CoreRequest, MfaMethod, core_request, core_response,
+};
+
+use crate::tests::common::HandlerTestContext;
+use super::support::{
+    assert_error_response, assert_vpn_session_exists, clear_test_license,
+    complete_proxy_handshake, create_external_mfa_network, create_mfa_network,
+    create_network, create_user_with_device, expect_bidi_mfa_success,
+    expect_gateway_mfa_authorized, generate_totp_code, make_device_info, send_mfa_finish,
+    send_mfa_start, send_token_validation, setup_user_email_mfa, setup_user_totp_mfa,
+};
+
 // ---------------------------------------------------------------------------
 // 1. MFA start fails when the location has MFA disabled
 // ---------------------------------------------------------------------------

@@ -5,6 +5,11 @@
 /// `run_once`). Reconnect retry and control-message tests live in `manager.rs`
 /// because they require the full `ProxyManager` supervision loop.
 
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::tests::common::{HandlerTestContext, reload_proxy};
+use super::support::complete_proxy_handshake;
+
 #[sqlx::test]
 async fn test_proxy_marked_connected_after_handshake(
     _: PgPoolOptions,

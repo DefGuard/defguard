@@ -3,6 +3,18 @@
 /// Tests the `InstanceInfoRequest` handler, which serves periodic config
 /// updates to already-enrolled desktop clients via `PollingToken`.
 
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use defguard_common::db::models::Device;
+use defguard_proto::proxy::{CoreRequest, InstanceInfoRequest, core_request, core_response};
+
+use crate::tests::common::HandlerTestContext;
+use super::support::{
+    assert_error_response, clear_test_license, complete_proxy_handshake,
+    create_device_for_user, create_network, create_polling_token, create_user,
+    create_user_with_device, set_test_license_business,
+};
+
 #[sqlx::test]
 async fn test_polling_returns_updated_device_config(
     _: PgPoolOptions,

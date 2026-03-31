@@ -34,6 +34,14 @@ use ipnetwork::IpNetwork;
 use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 
 // ---------------------------------------------------------------------------
+// Shared test constants
+// ---------------------------------------------------------------------------
+
+/// A strong password satisfying all `check_password_strength` requirements:
+/// ≥8 chars, digit, upper, lower, special character.
+pub(crate) const STRONG_PASSWORD: &str = "Test1234!";
+
+// ---------------------------------------------------------------------------
 // Per-module counters (separate from the global TEST_ID in common/mod.rs)
 // ---------------------------------------------------------------------------
 

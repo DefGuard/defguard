@@ -22,6 +22,22 @@
 //  7. test_auth_info_requires_oidc_provider
 //     — valid license, no provider in DB → NotFound error
 
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use defguard_core::db::models::enrollment::Token;
+use defguard_proto::proxy::{
+    AuthCallbackRequest, AuthFlowType, AuthInfoRequest, ClientMfaOidcAuthenticateRequest,
+    CoreRequest, MfaMethod, core_request, core_response,
+};
+
+use crate::tests::common::{HandlerTestContext, MockOidcProvider};
+use super::support::{
+    assert_error_response, assert_vpn_session_exists, clear_test_license,
+    complete_proxy_handshake, create_external_mfa_network, create_oidc_provider,
+    create_user_with_device, expect_bidi_mfa_success, make_device_info, make_oidc_code,
+    send_mfa_finish, send_mfa_start, set_public_proxy_url, set_test_license_business,
+};
+
 // ---------------------------------------------------------------------------
 // 1. AuthCallback creates a new user when sub/email are unknown
 // ---------------------------------------------------------------------------

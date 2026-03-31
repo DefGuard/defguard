@@ -7,6 +7,19 @@
 /// insert a `PASSWORD_RESET` token via `create_password_reset_token`, which
 /// bypasses the need for SMTP entirely.
 
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use defguard_common::db::models::User;
+use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
+use defguard_proto::proxy::core_response;
+
+use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
+use super::support::{
+    STRONG_PASSWORD, assert_error_response, complete_proxy_handshake, create_enrollment_token,
+    create_password_reset_token, create_user, send_password_reset, send_password_reset_init,
+    send_password_reset_start,
+};
+
 // ---------------------------------------------------------------------------
 // Test 1: PasswordResetInit with unknown email returns Empty silently
 // ---------------------------------------------------------------------------
