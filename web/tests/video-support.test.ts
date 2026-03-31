@@ -102,9 +102,9 @@ describe('resolveVideoSupport', () => {
     expect(result[0].youtubeVideoId).toBe('usrGuide220');
   });
 
-  it('should fall back to an older version when newer does not define the route', () => {
+  it('should return the most recent eligible version when the exact version defines the route', () => {
     const result = resolveVideoSupport(makeMappings(), '2.2', '/users');
-    // Sanity: 2.2 defines /users, so we get 2.2 entry
+    // 2.2 defines /users, so we get the 2.2 entry (not the older 2.0 entry)
     expect(result[0].youtubeVideoId).toBe('usrGuide220');
   });
 

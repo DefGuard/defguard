@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMatches } from '@tanstack/react-router';
 import { useApp } from '../hooks/useApp';
-import { videoSupportQueryOptions } from './data';
+import { videoSupportQueryOptions } from '../query';
 import { resolveVideoSupport } from './resolver';
 import { canonicalizeRouteKey } from './route-key';
 import type { VideoSupport } from './types';

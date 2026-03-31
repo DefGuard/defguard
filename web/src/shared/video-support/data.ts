@@ -1,6 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
-import { updateServiceClient } from '../api/update-service';
 import { canonicalizeRouteKey } from './route-key';
 import type { VideoSupportMappings } from './types';
 
@@ -20,7 +18,7 @@ import type { VideoSupportMappings } from './types';
  * or VITE_UPDATE_BASE_URL to redirect all update-service calls to a local
  * server for development.
  */
-const videoSupportPath: string =
+export const videoSupportPath: string =
   import.meta.env.VITE_VIDEO_SUPPORT_URL ?? '/content/video-support';
 
 // ---------------------------------------------------------------------------
@@ -87,19 +85,3 @@ export function parseVideoSupport(raw: unknown): VideoSupportMappings {
 
   return result;
 }
-
-// ---------------------------------------------------------------------------
-// React Query integration
-// ---------------------------------------------------------------------------
-
-export const videoSupportQueryOptions = queryOptions({
-  queryKey: ['video-support'],
-  queryFn: () =>
-    updateServiceClient
-      .get<z.input<typeof mappingsSchema>>(videoSupportPath)
-      .then((r) => parseVideoSupport(r.data)),
-  // Mappings are version-tied and won't meaningfully change within a session.
-  staleTime: Infinity,
-  // Silent failure: if the fetch or parse fails, the widget simply won't appear.
-  retry: false,
-});
