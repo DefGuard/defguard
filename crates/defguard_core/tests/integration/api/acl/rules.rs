@@ -474,6 +474,8 @@ async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: P
     // The rule should still be accepted because the range satisfies the address requirement.
     let mut range_only_alias = make_alias();
     range_only_alias.addresses = "10.0.0.1-10.0.0.10".to_string();
+    range_only_alias.ports = String::new();
+    range_only_alias.protocols = Vec::new();
     let range_only_id = create_alias(&mut client, range_only_alias).await;
 
     let mut rule = make_rule();
