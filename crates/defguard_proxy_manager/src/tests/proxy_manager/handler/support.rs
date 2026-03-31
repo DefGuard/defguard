@@ -11,7 +11,7 @@ use defguard_common::db::{
     },
 };
 use defguard_core::{
-    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token},
+    db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE, Token},
     enterprise::{
         db::models::openid_provider::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
@@ -23,9 +23,10 @@ use defguard_core::{
 };
 use defguard_proto::proxy::{
     ActivateUserRequest, AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest,
-    ClientMfaStartRequest, ClientMfaTokenValidationRequest, CoreRequest, CoreResponse,
-    DeviceConfigResponse, DeviceInfo, EnrollmentStartRequest, MfaMethod, core_request,
-    core_response,
+    ClientMfaStartRequest, ClientMfaTokenValidationRequest, CodeMfaSetupFinishRequest,
+    CodeMfaSetupStartRequest, CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo,
+    EnrollmentStartRequest, MfaMethod, PasswordResetInitializeRequest, PasswordResetRequest,
+    PasswordResetStartRequest, core_request, core_response,
 };
 use sqlx::PgPool;
 use ipnetwork::IpNetwork;
@@ -416,6 +417,23 @@ pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
     totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, secret, ts)
 }
 
+/// Generate a TOTP code from a **base32-encoded** secret string (as returned
+/// by `CodeMfaSetupStartResponse.totp_secret`).
+pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
+    use defguard_common::db::models::user::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD};
+    use totp_lite::{Sha1, totp_custom};
+    let secret = base32::decode(
+        base32::Alphabet::Rfc4648 { padding: false },
+        base32_secret,
+    )
+    .expect("invalid base32 TOTP secret from CodeMfaSetupStartResponse");
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .expect("system time before epoch")
+        .as_secs();
+    totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, &secret, ts)
+}
+
 // ---------------------------------------------------------------------------
 // MFA flow helpers
 // ---------------------------------------------------------------------------
@@ -653,6 +671,133 @@ pub(crate) async fn send_activate_user(
             password: password.to_string(),
             phone_number: phone.map(str::to_string),
         })),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+// ---------------------------------------------------------------------------
+// CodeMfaSetup helpers
+// ---------------------------------------------------------------------------
+
+/// Send a `CodeMfaSetupStart` request for the given method and return the raw
+/// `CoreResponse`.
+pub(crate) async fn send_code_mfa_setup_start(
+    context: &mut HandlerTestContext,
+    token: &str,
+    method: MfaMethod,
+) -> CoreResponse {
+    static MFA_START_CTR: AtomicU64 = AtomicU64::new(3000);
+    let id = MFA_START_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::CodeMfaSetupStart(
+            CodeMfaSetupStartRequest {
+                method: method as i32,
+                token: token.to_string(),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+// ---------------------------------------------------------------------------
+// PasswordReset helpers
+// ---------------------------------------------------------------------------
+
+/// Insert a `PASSWORD_RESET` token for the given user, valid for 1 hour.
+pub(crate) async fn create_password_reset_token(pool: &PgPool, user: &User<Id>) -> Token {
+    let token = Token::new(
+        user.id,
+        None,
+        Some(user.email.clone()),
+        3600, // 1 hour
+        Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+    );
+    token
+        .save(pool)
+        .await
+        .expect("failed to save password reset token");
+    token
+}
+
+/// Send a `PasswordResetInit` request and return the raw `CoreResponse`.
+pub(crate) async fn send_password_reset_init(
+    context: &mut HandlerTestContext,
+    email: &str,
+) -> CoreResponse {
+    static PR_INIT_CTR: AtomicU64 = AtomicU64::new(4000);
+    let id = PR_INIT_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::PasswordResetInit(
+            PasswordResetInitializeRequest {
+                email: email.to_string(),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send a `PasswordResetStart` request and return the raw `CoreResponse`.
+pub(crate) async fn send_password_reset_start(
+    context: &mut HandlerTestContext,
+    token: &str,
+) -> CoreResponse {
+    static PR_START_CTR: AtomicU64 = AtomicU64::new(4500);
+    let id = PR_START_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::PasswordResetStart(
+            PasswordResetStartRequest {
+                token: token.to_string(),
+            },
+        )),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send a `PasswordReset` request and return the raw `CoreResponse`.
+pub(crate) async fn send_password_reset(
+    context: &mut HandlerTestContext,
+    token: &str,
+    password: &str,
+) -> CoreResponse {
+    static PR_CTR: AtomicU64 = AtomicU64::new(5000);
+    let id = PR_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::PasswordReset(PasswordResetRequest {
+            password: password.to_string(),
+            token: Some(token.to_string()),
+        })),
+    });
+    context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Send a `CodeMfaSetupFinish` request for the given method and code and
+/// return the raw `CoreResponse`.
+pub(crate) async fn send_code_mfa_setup_finish(
+    context: &mut HandlerTestContext,
+    token: &str,
+    method: MfaMethod,
+    code: &str,
+) -> CoreResponse {
+    static MFA_FINISH_CTR: AtomicU64 = AtomicU64::new(3500);
+    let id = MFA_FINISH_CTR.fetch_add(1, Ordering::Relaxed);
+    context.mock_proxy().send_request(CoreRequest {
+        id,
+        device_info: Some(make_device_info()),
+        payload: Some(core_request::Payload::CodeMfaSetupFinish(
+            CodeMfaSetupFinishRequest {
+                code: code.to_string(),
+                token: token.to_string(),
+                method: method as i32,
+            },
+        )),
     });
     context.mock_proxy_mut().recv_outbound().await
 }

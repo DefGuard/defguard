@@ -337,3 +337,187 @@ async fn test_existing_device_wrong_user_returns_error(
 
     context.finish().await.expect_server_finished().await;
 }
+
+// ---------------------------------------------------------------------------
+// CodeMfaSetupStart / CodeMfaSetupFinish tests
+// ---------------------------------------------------------------------------
+
+/// `CodeMfaSetupStart` with `MfaMethod::Totp` must return a non-empty
+/// base32-encoded TOTP secret in the response.
+#[sqlx::test]
+async fn test_code_mfa_setup_start_totp_returns_secret(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Totp).await;
+
+    match &response.payload {
+        Some(core_response::Payload::CodeMfaSetupStartResponse(r)) => {
+            let secret = r.totp_secret.as_deref().expect("TOTP start must include a secret");
+            assert!(!secret.is_empty(), "TOTP secret must be non-empty");
+            // Must be valid base32 (decodable).
+            assert!(
+                base32::decode(base32::Alphabet::Rfc4648 { padding: false }, secret).is_some(),
+                "TOTP secret must be valid RFC 4648 base32"
+            );
+        }
+        _ => panic!("expected CodeMfaSetupStartResponse"),
+    }
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// After `CodeMfaSetupStart(Totp)` returns the secret, submitting the correct
+/// TOTP code in `CodeMfaSetupFinish` must return non-empty recovery codes and
+/// enable TOTP + MFA on the user account in the DB.
+#[sqlx::test]
+async fn test_code_mfa_setup_finish_totp_returns_recovery_codes(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    // Start: get the base32 TOTP secret.
+    let start_resp = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Totp).await;
+    let totp_secret_b32 = match &start_resp.payload {
+        Some(core_response::Payload::CodeMfaSetupStartResponse(r)) => r
+            .totp_secret
+            .clone()
+            .expect("TOTP start must include a secret"),
+        _ => panic!("expected CodeMfaSetupStartResponse"),
+    };
+
+    // Generate a valid code from the returned secret.
+    let code = totp_code_from_base32_secret(&totp_secret_b32);
+
+    // Finish: submit the code.
+    let finish_resp =
+        send_code_mfa_setup_finish(&mut context, &token.id, MfaMethod::Totp, &code).await;
+
+    match &finish_resp.payload {
+        Some(core_response::Payload::CodeMfaSetupFinishResponse(r)) => {
+            assert!(
+                !r.recovery_codes.is_empty(),
+                "finish must return at least one recovery code"
+            );
+        }
+        _ => {
+            // Show the error code if it came back as CoreError.
+            if let Some(core_response::Payload::CoreError(e)) = &finish_resp.payload {
+                panic!("expected CodeMfaSetupFinishResponse, got CoreError: {:?}", e.message);
+            }
+            panic!("expected CodeMfaSetupFinishResponse");
+        }
+    }
+
+    // DB: user must now have totp_enabled = true and mfa_enabled = true.
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(updated.totp_enabled, "totp_enabled must be true after CodeMfaSetupFinish");
+    assert!(updated.mfa_enabled, "mfa_enabled must be true after CodeMfaSetupFinish");
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// `CodeMfaSetupStart` with `MfaMethod::Email` must return a response with no
+/// TOTP secret (email flow does not expose a secret to the client).
+///
+/// Note: SMTP is not configured in tests, so the activation mail will fail and
+/// the handler returns `Internal("SMTP not configured")`.  We assert that error
+/// code to confirm the Email path was entered, not the TOTP path.
+#[sqlx::test]
+async fn test_code_mfa_setup_start_email_enters_email_path(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Email).await;
+
+    // Without SMTP configured the handler fails with Internal (not InvalidArgument),
+    // which proves the Email branch was entered (TOTP would succeed).
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::Internal,
+        "Email MFA start without SMTP must return Internal"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Submitting a wrong TOTP code in `CodeMfaSetupFinish` must return
+/// `InvalidArgument`.
+#[sqlx::test]
+async fn test_code_mfa_setup_finish_wrong_totp_code_returns_error(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    // Start to generate the secret (must succeed first).
+    let _ = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Totp).await;
+
+    // Finish with a deliberately wrong code.
+    let response =
+        send_code_mfa_setup_finish(&mut context, &token.id, MfaMethod::Totp, "000000").await;
+
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "wrong TOTP code must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// Requesting `CodeMfaSetupStart` with an unsupported method (e.g. `Oidc`)
+/// must be rejected with `InvalidArgument`.
+#[sqlx::test]
+async fn test_code_mfa_setup_unsupported_method_returns_error(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, None).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    let response = send_code_mfa_setup_start(&mut context, &token.id, MfaMethod::Oidc).await;
+
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "unsupported MFA method must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}

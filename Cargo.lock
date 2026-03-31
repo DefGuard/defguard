@@ -1568,6 +1568,7 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "axum-extra",
+ "base32",
  "base64 0.22.1",
  "defguard_certs",
  "defguard_common",

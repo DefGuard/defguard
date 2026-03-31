@@ -32,6 +32,7 @@ tower.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+base32.workspace = true
 base64.workspace = true
 hyper-util = "0.1"
 ipnetwork.workspace = true
