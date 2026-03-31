@@ -7,21 +7,19 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_common::db::models::{Device, User, polling_token::PollingToken};
 use defguard_core::{
-    db::models::enrollment::Token,
     events::{BidiStreamEventType, EnrollmentEvent},
     grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    ActivateUserRequest, CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, CoreRequest,
-    ExistingDevice, MfaMethod, NewDevice, core_request, core_response,
+    CoreRequest, ExistingDevice, MfaMethod, NewDevice, core_request, core_response,
 };
 
 use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,
-    complete_proxy_handshake, create_device_for_user, create_enrollment_token, create_network,
-    create_polling_token, create_user, create_user_with_device, make_device_info,
-    send_activate_user, send_code_mfa_setup_finish, send_code_mfa_setup_start,
-    start_enrollment_session, totp_code_from_base32_secret,
+    complete_proxy_handshake, create_enrollment_token, create_network, create_polling_token,
+    create_user, create_user_with_device, make_device_info, send_activate_user,
+    send_code_mfa_setup_finish, send_code_mfa_setup_start, start_enrollment_session,
+    totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 

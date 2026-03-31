@@ -40,7 +40,7 @@ async fn test_password_reset_init_silent_success_for_unknown_email(
         Some(core_response::Payload::Empty(())) => {}
         _ => panic!(
             "expected Empty response for unknown email, got: {:?}",
-            response.payload.as_ref().map(|p| std::mem::discriminant(p))
+            response.payload.as_ref().map(std::mem::discriminant)
         ),
     }
 
@@ -75,7 +75,7 @@ async fn test_password_reset_start_returns_deadline(_: PgPoolOptions, options: P
         Some(core_response::Payload::PasswordResetStart(r)) => r.deadline_timestamp,
         _ => panic!(
             "expected PasswordResetStart response, got: {:?}",
-            response.payload.as_ref().map(|p| std::mem::discriminant(p))
+            response.payload.as_ref().map(std::mem::discriminant)
         ),
     };
     assert!(deadline > 0, "deadline_timestamp must be positive");
@@ -135,7 +135,7 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
         Some(core_response::Payload::Empty(())) => {}
         _ => panic!(
             "expected Empty on successful password reset, got: {:?}",
-            response.payload.as_ref().map(|p| std::mem::discriminant(p))
+            response.payload.as_ref().map(std::mem::discriminant)
         ),
     }
 

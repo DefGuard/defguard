@@ -178,6 +178,7 @@ pub(crate) struct MockProxyHarness {
     outbound_rx: UnboundedReceiver<CoreResponse>,
     connected_rx: oneshot::Receiver<()>,
     server_task: Option<JoinHandle<Result<(), io::Error>>>,
+    #[allow(dead_code)]
     next_message_id: AtomicU64,
 }
 
@@ -312,6 +313,7 @@ impl MockProxyHarness {
     }
 
     /// Assert that no outbound response arrives within a short window.
+    #[allow(dead_code)]
     pub(crate) async fn expect_no_outbound(&mut self) {
         if let Ok(Some(_message)) =
             timeout(Duration::from_millis(200), self.outbound_rx.recv()).await
@@ -362,6 +364,7 @@ pub(crate) struct HandlerTestContext {
     pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
+    #[allow(dead_code)]
     shutdown_tx: Option<oneshot::Sender<bool>>,
 }
 

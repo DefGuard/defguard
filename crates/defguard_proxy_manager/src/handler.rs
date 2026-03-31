@@ -888,6 +888,7 @@ impl ProxyHandler {
 
 #[cfg(test)]
 impl ProxyHandler {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_with_test_socket(
         pool: PgPool,
         url: Url,

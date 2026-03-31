@@ -113,6 +113,7 @@ impl ProxyManagerTestSupport {
             .expect("Failed to lock ProxyManager retry delay override") = Some(retry_delay);
     }
 
+    #[allow(dead_code)]
     pub(crate) fn manager_reconnect_delay(&self) -> Duration {
         self.retry_delay_override
             .lock()

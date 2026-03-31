@@ -22,6 +22,7 @@
 //  7. test_auth_info_requires_oidc_provider
 //     — valid license, no provider in DB → NotFound error
 
+#![allow(deprecated)]
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_core::db::models::enrollment::Token;
@@ -83,7 +84,7 @@ async fn test_auth_callback_creates_new_user_on_first_login(
         ),
         other => panic!(
             "expected AuthCallback response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     };
 
@@ -150,7 +151,7 @@ async fn test_auth_info_enrollment_returns_authorize_url(
         ),
         other => panic!(
             "expected AuthInfo response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     };
 
@@ -215,7 +216,7 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
         ),
         other => panic!(
             "expected AuthInfo response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     };
 
@@ -367,7 +368,7 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(
         matches!(response.payload, Some(core_response::Payload::Empty(()))),
         "expected Empty after OidcAuthenticate, got: {:?}",
-        response.payload.as_ref().map(|p| std::mem::discriminant(p))
+        response.payload.as_ref().map(std::mem::discriminant)
     );
 
     // ---- Step 3: ClientMfaFinish (no TOTP code — session is OIDC-completed) ----
@@ -433,7 +434,7 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
         ),
         other => panic!(
             "expected AuthCallback response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     };
 

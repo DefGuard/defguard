@@ -22,11 +22,11 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    ActivateUserRequest, AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest,
-    ClientMfaStartRequest, ClientMfaTokenValidationRequest, CodeMfaSetupFinishRequest,
-    CodeMfaSetupStartRequest, CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo,
-    EnrollmentStartRequest, MfaMethod, PasswordResetInitializeRequest, PasswordResetRequest,
-    PasswordResetStartRequest, core_request, core_response,
+    ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
+    ClientMfaTokenValidationRequest, CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest,
+    CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo, EnrollmentStartRequest, MfaMethod,
+    PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest, core_request,
+    core_response,
 };
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
@@ -60,7 +60,7 @@ pub(crate) fn assert_initial_info_received(response: &CoreResponse) {
             Some(core_response::Payload::InitialInfo(_))
         ),
         "expected InitialInfo as first response from handler, got: {:?}",
-        response.payload.as_ref().map(|p| std::mem::discriminant(p))
+        response.payload.as_ref().map(std::mem::discriminant)
     );
 }
 
@@ -79,7 +79,7 @@ pub(crate) fn assert_device_config_response(response: &CoreResponse) -> &DeviceC
         Some(core_response::Payload::DeviceConfig(cfg)) => cfg,
         other => panic!(
             "expected DeviceConfig response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     }
 }
@@ -91,7 +91,7 @@ pub(crate) fn assert_error_response(response: &CoreResponse) -> tonic::Code {
         Some(core_response::Payload::CoreError(err)) => tonic::Code::from_i32(err.status_code),
         other => panic!(
             "expected CoreError response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     }
 }
@@ -333,7 +333,7 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
         }
         other => panic!(
             "start_enrollment_session: expected EnrollmentStart response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     }
 }
@@ -483,7 +483,7 @@ pub(crate) async fn send_mfa_start(
         ),
         other => panic!(
             "send_mfa_start: expected ClientMfaStart response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     };
     (id, token)
@@ -519,7 +519,7 @@ pub(crate) async fn send_mfa_finish(
         ),
         other => panic!(
             "send_mfa_finish: expected ClientMfaFinish response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     };
     (response, psk)
@@ -596,7 +596,7 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
         ),
         other => panic!(
             "send_token_validation: expected ClientMfaTokenValidation response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     }
 }
@@ -607,6 +607,7 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
 
 /// Assert that the next `GatewayEvent` broadcast is `MfaSessionAuthorized` and
 /// return `(location_id, device)`.
+#[allow(dead_code)]
 pub(crate) async fn expect_gateway_mfa_authorized(
     wireguard_tx: &tokio::sync::broadcast::Sender<GatewayEvent>,
 ) -> Id {
@@ -643,6 +644,7 @@ pub(crate) async fn expect_bidi_mfa_success(
 
 /// Assert that a `CoreResponse` carries a `CoreError` and return tonic code.
 /// Alias kept for backwards-compat with enrollment / polling tests.
+#[allow(dead_code)]
 pub(crate) fn assert_mfa_error_response(response: &CoreResponse) -> tonic::Code {
     assert_error_response(response)
 }

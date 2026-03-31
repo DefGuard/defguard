@@ -19,16 +19,16 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_core::grpc::GatewayEvent;
 use defguard_proto::proxy::{
-    AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
-    ClientMfaTokenValidationRequest, CoreRequest, MfaMethod, core_request, core_response,
+    AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest, CoreRequest,
+    MfaMethod, core_request, core_response,
 };
 
 use super::support::{
     assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
     create_external_mfa_network, create_mfa_network, create_network, create_user_with_device,
-    expect_bidi_mfa_success, expect_gateway_mfa_authorized, generate_totp_code, make_device_info,
-    send_mfa_finish, send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_start,
-    send_token_validation, setup_user_email_mfa, setup_user_totp_mfa,
+    expect_bidi_mfa_success, generate_totp_code, make_device_info, send_mfa_finish,
+    send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_start, send_token_validation,
+    setup_user_email_mfa, setup_user_totp_mfa,
 };
 use crate::tests::common::HandlerTestContext;
 
@@ -524,7 +524,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
             }
             other => panic!(
                 "unexpected response payload: {:?}",
-                other.as_ref().map(|p| std::mem::discriminant(p))
+                other.as_ref().map(std::mem::discriminant)
             ),
         }
     }

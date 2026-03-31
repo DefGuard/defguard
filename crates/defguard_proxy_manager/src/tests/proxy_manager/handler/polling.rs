@@ -4,7 +4,6 @@
 /// updates to already-enrolled desktop clients via `PollingToken`.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use defguard_common::db::models::Device;
 use defguard_proto::proxy::{CoreRequest, InstanceInfoRequest, core_request, core_response};
 
 use super::support::{
@@ -44,7 +43,7 @@ async fn test_polling_returns_updated_device_config(_: PgPoolOptions, options: P
         }
         other => panic!(
             "expected InstanceInfo response, got: {:?}",
-            other.as_ref().map(|p| std::mem::discriminant(p))
+            other.as_ref().map(std::mem::discriminant)
         ),
     }
 
