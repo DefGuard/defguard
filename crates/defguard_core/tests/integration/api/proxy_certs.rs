@@ -107,7 +107,7 @@ async fn make_test_client_with_proxy_rx(
         None,
         None,
         LicenseTier::Business,
-		SupportType::Basic,
+        SupportType::Basic,
     );
     set_cached_license(Some(license));
 
