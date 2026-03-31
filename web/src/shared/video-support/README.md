@@ -7,7 +7,29 @@ it opens a panel listing the relevant videos; clicking a video opens a full-scre
 overlay with an embedded YouTube player.
 
 The widget is mounted in `src/routes/_authorized/_default.tsx` and is therefore
-available across the entire authenticated layout.
+available across the entire authenticated layout. While a video is loading a
+skeleton placeholder is shown; if the video fails to load within 8 seconds, a
+"Video unavailable" message is displayed instead.
+
+---
+
+## Module structure
+
+```
+video-support/
+├── VideoSupportWidget.tsx   — root component; mounted in _default.tsx
+├── resolved.tsx             — useResolvedVideoSupport, useVideoSupportRouteKey hooks
+├── data.ts                  — Zod schema, parseVideoSupport(), videoSupportPath
+├── resolver.ts              — resolveVideoSupport() — version/route resolution logic
+├── route-key.ts             — canonicalizeRouteKey()
+├── version.ts               — parseVersion(), compareVersions()
+├── types.ts                 — VideoSupport, VideoSupportMappings types
+├── style.scss               — widget, launcher, and panel styles
+└── components/
+    ├── Thumbnail/           — thumbnail with skeleton while loading and icon on error
+    ├── VideoCard/           — clickable card shown in the panel list
+    └── VideoOverlay/        — modal with iframe, skeleton while loading, and error placeholder
+```
 
 ---
 
