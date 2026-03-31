@@ -29,10 +29,16 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enrollment_management::start_desktop_configuration,
-    enterprise::{firewall::try_get_location_firewall_config, limits::update_counts},
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        firewall::try_get_location_firewall_config, limits::update_counts,
+    },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
-    handlers::pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+    handlers::{
+        device_for_admin_or_self,
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+    },
 };
 
 #[derive(Serialize)]
@@ -109,36 +115,58 @@ impl NetworkDeviceInfo {
     }
 }
 
-pub(crate) async fn download_network_device_config(
-    _admin_role: AdminRole,
+#[derive(Serialize)]
+struct DeviceWireGuardConfig {
+    network_id: Id,
+    network_name: String,
+    config: String,
+}
+
+/// For a given device, retrieve all WireGuard configuations for all networks.
+///
+/// GET /device/network/{device_id}/config
+pub(crate) async fn network_device_configs(
+    session: SessionInfo,
     State(appstate): State<AppState>,
     Path(device_id): Path<Id>,
-) -> Result<String, WebError> {
+) -> ApiResult {
     debug!("Creating a WireGuard config for network device {device_id}.");
-    let device =
-        Device::find_by_id(&appstate.pool, device_id)
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to download device config, but manual device management is disabled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden("Manual device management is disabled"));
+    }
+
+    let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    let networks =
+        WireguardNetwork::find_network_device_networks(&appstate.pool, device_id).await?;
+
+    let mut result = Vec::new();
+    for network in networks {
+        let network_device = WireguardNetworkDevice::find(&appstate.pool, device_id, network.id)
             .await?
             .ok_or(WebError::ObjectNotFound(format!(
-                "Network device with ID {device_id} not found"
+                "No IP address found for device: {}({})",
+                device.name, device.id
             )))?;
-    let network = WireguardNetwork::find_network_device_networks(&appstate.pool, device_id)
-        .await?
-        .pop()
-        .ok_or(WebError::ObjectNotFound(format!(
-            "No network found for network device: {}({})",
-            device.name, device.id
-        )))?;
-    let network_device = WireguardNetworkDevice::find(&appstate.pool, device_id, network.id)
-        .await?
-        .ok_or(WebError::ObjectNotFound(format!(
-            "No IP address found for device: {}({})",
-            device.name, device.id
-        )))?;
-    debug!(
-        "Created a WireGuard config for network device {device_id} in network {}.",
-        network.name
-    );
-    Ok(Device::create_config(&network, &network_device))
+        debug!(
+            "Created a WireGuard config for network device {device_id} in network {}.",
+            network.name
+        );
+        let config = Device::create_config(&network, &network_device);
+        let device_config = DeviceWireGuardConfig {
+            network_id: network.id,
+            network_name: network.name,
+            config,
+        };
+        result.push(device_config);
+    }
+
+    Ok(ApiResponse::json(result, StatusCode::OK))
 }
 
 pub(crate) async fn get_network_device(

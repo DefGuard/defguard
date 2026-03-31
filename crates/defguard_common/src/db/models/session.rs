@@ -16,8 +16,7 @@ pub enum SessionState {
     ApiTokenVerified,
 }
 
-// Representation of a Defguard server user session
-// derived from session cookies
+/// Representation of a Defguard server user session derived from session cookies.
 #[derive(Clone)]
 pub struct Session {
     pub id: String,
@@ -61,7 +60,8 @@ impl Session {
     pub async fn find_by_id(pool: &PgPool, id: &str) -> sqlx::Result<Option<Self>> {
         query_as!(
             Self,
-            "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, \
+            "SELECT id, user_id, state \"state: SessionState\", created, expires, \
+            webauthn_challenge, \
             ip_address, device_info FROM session WHERE id = $1",
             id
         )
@@ -71,7 +71,8 @@ impl Session {
 
     pub async fn save(&self, pool: &PgPool) -> sqlx::Result<()> {
         query!(
-            "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, ip_address, device_info) \
+            "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, \
+            ip_address, device_info) \
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             self.id,
             self.user_id,
@@ -181,7 +182,7 @@ impl Session {
         Ok(())
     }
 
-    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: i64) -> sqlx::Result<()>
+    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: Id) -> sqlx::Result<()>
     where
         E: PgExecutor<'e>,
     {

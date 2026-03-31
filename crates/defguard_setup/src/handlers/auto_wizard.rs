@@ -115,7 +115,7 @@ pub(crate) async fn apply_internal_url_settings(
             // Extract hostname from defguard_url for the SAN.
             let hostname = reqwest::Url::parse(&config.defguard_url)
                 .ok()
-                .and_then(|u| u.host_str().map(|h| h.to_string()))
+                .and_then(|u| u.host_str().map(ToString::to_string))
                 .unwrap_or_else(|| config.defguard_url.clone());
 
             // CA must already be present at this point.
@@ -326,7 +326,7 @@ pub(crate) async fn apply_external_url_settings(
         ExternalSslType::LetsEncrypt => {
             let hostname = reqwest::Url::parse(&config.public_proxy_url)
                 .ok()
-                .and_then(|u| u.host_str().map(|h| h.to_string()))
+                .and_then(|u| u.host_str().map(ToString::to_string))
                 .unwrap_or_else(|| config.public_proxy_url.clone());
             certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
             certs.acme_domain = Some(hostname);
@@ -339,7 +339,7 @@ pub(crate) async fn apply_external_url_settings(
         ExternalSslType::DefguardCa => {
             let hostname = reqwest::Url::parse(&config.public_proxy_url)
                 .ok()
-                .and_then(|u| u.host_str().map(|h| h.to_string()))
+                .and_then(|u| u.host_str().map(ToString::to_string))
                 .unwrap_or_else(|| config.public_proxy_url.clone());
 
             // CA must already be present at this point.
