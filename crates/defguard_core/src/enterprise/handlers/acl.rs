@@ -142,27 +142,27 @@ impl EditAclRule {
             // Determine what the selected component aliases collectively contribute.
             // Note: Component-kind aliases always have any_address/any_port/any_protocol = false,
             // so we only check whether they have non-empty arrays.
-            let (alias_has_address, alias_has_port, alias_has_protocol) =
-                if self.aliases.is_empty() {
-                    (false, false, false)
-                } else {
-                    let row = query_as::<_, (Option<bool>, Option<bool>, Option<bool>)>(
-                        "SELECT \
+            let (alias_has_address, alias_has_port, alias_has_protocol) = if self.aliases.is_empty()
+            {
+                (false, false, false)
+            } else {
+                let row = query_as::<_, (Option<bool>, Option<bool>, Option<bool>)>(
+                    "SELECT \
                             bool_or(array_length(addresses, 1) > 0), \
                             bool_or(array_length(ports, 1) > 0), \
                             bool_or(array_length(protocols, 1) > 0) \
                         FROM aclalias WHERE id = ANY($1) AND kind = 'component'::aclalias_kind",
-                    )
-                    .bind(&self.aliases)
-                    .fetch_one(&mut *conn)
-                    .await
-                    .map_err(WebError::from)?;
-                    (
-                        row.0.unwrap_or(false),
-                        row.1.unwrap_or(false),
-                        row.2.unwrap_or(false),
-                    )
-                };
+                )
+                .bind(&self.aliases)
+                .fetch_one(&mut *conn)
+                .await
+                .map_err(WebError::from)?;
+                (
+                    row.0.unwrap_or(false),
+                    row.1.unwrap_or(false),
+                    row.2.unwrap_or(false),
+                )
+            };
 
             if !self.any_address && self.addresses.trim().is_empty() && !alias_has_address {
                 return Err(WebError::BadRequest(

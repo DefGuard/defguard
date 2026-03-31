@@ -344,10 +344,7 @@ async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOp
 /// Each of address / port / protocol must be satisfied by either the direct field value,
 /// an `any_*` flag, or by at least one selected component alias providing that field.
 #[sqlx::test]
-async fn test_rule_requires_destination_alias_aware(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
+async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let (mut client, _) = make_test_client(pool).await;
@@ -359,11 +356,7 @@ async fn test_rule_requires_destination_alias_aware(
     // Aliases created via POST /api/v1/acl/alias always land in Applied state.
     macro_rules! create_alias {
         ($alias:expr) => {{
-            let resp = client
-                .post("/api/v1/acl/alias")
-                .json(&$alias)
-                .send()
-                .await;
+            let resp = client.post("/api/v1/acl/alias").json(&$alias).send().await;
             assert_eq!(resp.status(), StatusCode::CREATED);
             resp.json::<Value>().await["id"].as_i64().unwrap()
         }};
