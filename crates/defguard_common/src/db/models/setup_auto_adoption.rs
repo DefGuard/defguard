@@ -17,7 +17,14 @@ pub enum AutoAdoptionWizardStep {
     #[default]
     Welcome,
     AdminUser,
+    /// Internal URL settings step (defguard URL + SSL type). Replaces the old UrlSettings step.
     UrlSettings,
+    /// SSL configuration result step for the internal URL.
+    InternalUrlSslConfig,
+    /// External (proxy) URL settings step.
+    ExternalUrlSettings,
+    /// SSL configuration result step for the external (proxy) URL.
+    ExternalUrlSslConfig,
     VpnSettings,
     MfaSettings,
     Summary,

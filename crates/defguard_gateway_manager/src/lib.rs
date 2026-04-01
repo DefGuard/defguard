@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-
 #[cfg(test)]
 use std::{
     path::PathBuf,
@@ -18,14 +17,13 @@ use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::gateway_client::GatewayClient;
 use defguard_version::client::ClientVersionInterceptor;
 use sqlx::{PgPool, postgres::PgListener};
+#[cfg(test)]
+use tokio::sync::Notify;
 use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
     task::{AbortHandle, JoinSet},
 };
 use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
-
-#[cfg(test)]
-use tokio::sync::Notify;
 
 use crate::{error::GatewayError, handler::GatewayHandler};
 

@@ -1,8 +1,9 @@
 import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
-import { updateServiceApi } from './api/update-service';
+import { updateServiceApi, updateServiceClient } from './api/update-service';
 import { resourceDisplayMap } from './utils/resourceById';
+import { parseVideoSupport, videoSupportPath } from './video-support/data';
 
 export const getExternalProviderQueryOptions = queryOptions({
   queryFn: api.openIdProvider.getOpenIdProvider,
@@ -93,7 +94,7 @@ export const userProfileQueryOptions = (username: string) =>
     queryFn: () => api.user.getUser(username),
     select: ({ data }) => {
       const res: UserProfile = {
-        devices: data.devices.map((device) => ({
+        devices: data.user.devices.map((device) => ({
           ...device,
           biometry_enabled: data.biometric_enabled_devices.includes(device.id),
         })),
@@ -114,6 +115,16 @@ export const clientArtifactsQueryOptions = queryOptions({
   refetchOnWindowFocus: false,
   refetchOnMount: true,
   refetchOnReconnect: true,
+});
+
+export const videoSupportQueryOptions = queryOptions({
+  queryKey: ['update-service', 'video-support'],
+  queryFn: () => updateServiceClient.get<unknown>(videoSupportPath),
+  select: (resp) => parseVideoSupport(resp.data),
+  // Mappings are version-tied and won't meaningfully change within a session.
+  staleTime: Infinity,
+  // Silent failure: if the fetch or parse fails, the widget simply won't appear.
+  retry: false,
 });
 
 export const getUserAuthKeysQueryOptions = (username: string) =>
@@ -144,7 +155,7 @@ export const getUsersQueryOptions = queryOptions({
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({
-  queryFn: api.getUsersOverview,
+  queryFn: api.user.getUsers,
   queryKey: ['user-overview'],
   refetchOnMount: true,
   refetchOnReconnect: true,

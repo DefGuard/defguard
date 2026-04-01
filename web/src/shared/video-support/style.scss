@@ -1,0 +1,72 @@
+// ---------------------------------------------------------------------------
+// Video Support Widget
+// Floating launcher button + expandable panel (bottom-right corner)
+// ---------------------------------------------------------------------------
+
+.video-support-widget {
+  position: fixed;
+  bottom: var(--spacing-xl);
+  right: var(--spacing-xl);
+  z-index: 3; // above navigation (1) and top-bar (2); below modal (4) and snackbar (6)
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+}
+
+// Launcher pill button
+
+.video-support-launcher {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background-color: var(--bg-default);
+  color: var(--fg-action);
+  border: var(--border-1) solid var(--border-muted);
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 7%);
+  cursor: pointer;
+  font: var(--t-body-sm-500);
+  white-space: nowrap;
+
+  @include animate(box-shadow);
+
+  &:hover {
+    box-shadow: 0 4px 16px 0 rgb(0 0 0 / 12%);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  span {
+    color: inherit;
+  }
+}
+
+// Floating panel — no background, just stacks the cards
+
+.video-support-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 70vh;
+  overflow-y: auto;
+  width: 300px;
+}
+
+// Close button — replaces launcher when panel is open.
+// Uses IconButton; overrides border-radius token to circular and adds background/border.
+
+.video-support-close-btn {
+  --button-border-radius-sm: var(--radius-full);
+
+  background-color: var(--bg-default);
+  border: var(--border-1) solid var(--border-muted);
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 7%);
+  align-self: flex-end;
+
+  @include animate(box-shadow);
+}

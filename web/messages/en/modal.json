@@ -25,6 +25,7 @@
   "modal_delete_user_error": "Failed to delete user",
   "modal_delete_edge_title": "Delete edge",
   "modal_delete_edge_body": "Are you sure you want to delete edge {name}? This action cannot be undone.",
+  "modal_delete_edge_disconnected_body": "Edge **{name}** is currently **disconnected**. Deleting it now will make it permanently unusable. Are you sure you want to proceed?",
   "modal_delete_edge_success": "Edge deleted",
   "modal_delete_edge_error": "Failed to delete edge",
   "modal_delete_group_title": "Delete group",

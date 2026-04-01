@@ -9,11 +9,12 @@ use std::{
 use std::path::PathBuf;
 
 use axum_extra::extract::cookie::Key;
+use chrono::NaiveDateTime;
 use defguard_common::{
     VERSION,
     db::{
         Id,
-        models::{Settings, proxy::Proxy},
+        models::{Certificates, Settings, proxy::Proxy},
     },
     types::AuthFlowType,
 };
@@ -39,7 +40,8 @@ use defguard_core::{
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::proxy::{
     AuthCallbackResponse, AuthFlowType as ProtoAuthFlowType, AuthInfoResponse, CoreError,
-    CoreRequest, CoreResponse, InitialInfo, core_request, core_response, proxy_client::ProxyClient,
+    CoreRequest, CoreResponse, HttpsCerts, InitialInfo, core_request, core_response,
+    proxy_client::ProxyClient,
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
@@ -67,7 +69,7 @@ use tonic::{
 };
 
 use crate::{
-    ProxyError, ProxyTxSet, TEN_SECS,
+    HandlerTxMap, ProxyError, ProxyTxSet, TEN_SECS,
     servers::{EnrollmentServer, PasswordResetServer},
 };
 
@@ -102,8 +104,6 @@ impl ProxyTestTransport {
 /// A `ProxyHandler` is responsible for establishing and maintaining a gRPC
 /// bidirectional stream to one proxy instance, handling incoming requests
 /// from that proxy, and forwarding responses back through the same stream.
-/// Each `ProxyHandler` runs independently and is supervised by the
-/// `ProxyManager`.
 pub(super) struct ProxyHandler {
     pool: PgPool,
     /// gRPC servers
@@ -114,6 +114,9 @@ pub(super) struct ProxyHandler {
     proxy_id: Id,
     proxy_cookie_key: Key,
     client: Option<ProxyClient<InterceptedService<Channel, ClientVersionInterceptor>>>,
+    /// Shared map used to register this handler's active stream sender so the manager
+    /// can push messages to a specific proxy.
+    handler_tx_map: HandlerTxMap,
     #[cfg(test)]
     test_transport: ProxyTestTransport,
     #[cfg(test)]
@@ -131,6 +134,7 @@ impl ProxyHandler {
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_id: Id,
         proxy_cookie_key: Key,
+        handler_tx_map: HandlerTxMap,
     ) -> Self {
         // Instantiate gRPC servers.
         let services = ProxyServices::new(&pool, tx, remote_mfa_responses, sessions);
@@ -143,6 +147,7 @@ impl ProxyHandler {
             proxy_id,
             proxy_cookie_key,
             client: None,
+            handler_tx_map,
             #[cfg(test)]
             test_transport: ProxyTestTransport::default(),
             #[cfg(test)]
@@ -150,6 +155,7 @@ impl ProxyHandler {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn from_proxy(
         proxy: &Proxy<Id>,
         pool: PgPool,
@@ -158,6 +164,7 @@ impl ProxyHandler {
         sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         shutdown_signal: Arc<Mutex<ShutdownReceiver>>,
         proxy_cookie_key: Key,
+        handler_tx_map: HandlerTxMap,
     ) -> Result<Self, ProxyError> {
         let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))?;
         let proxy_id = proxy.id;
@@ -170,6 +177,7 @@ impl ProxyHandler {
             shutdown_signal,
             proxy_id,
             proxy_cookie_key,
+            handler_tx_map,
         ))
     }
 
@@ -230,18 +238,25 @@ impl ProxyHandler {
         Ok(endpoint)
     }
 
-    fn connect_tls_channel(
+    async fn connect_tls_channel(
         &self,
         endpoint: &Endpoint,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Channel, ProxyError> {
-        let settings = Settings::get_current_settings();
-        let Some(ref ca_cert_der) = settings.ca_cert_der else {
-            return Err(ProxyError::MissingConfiguration(
+        let certs = Certificates::get(&self.pool)
+            .await
+            .map_err(ProxyError::SqlxError)?
+            .ok_or_else(|| {
+                ProxyError::MissingConfiguration(
+                    "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
+                )
+            })?;
+        let ca_cert_der = certs.ca_cert_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(
                 "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
-            ));
-        };
-        let tls_config = tls_certs::client_config(ca_cert_der, certs_rx, self.proxy_id)
+            )
+        })?;
+        let tls_config = tls_certs::client_config(&ca_cert_der, certs_rx, self.proxy_id)
             .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
         let connector = HttpsConnectorBuilder::new()
             .with_tls_config(tls_config)
@@ -253,12 +268,12 @@ impl ProxyHandler {
     }
 
     #[cfg(not(test))]
-    fn connect_channel(
+    async fn connect_channel(
         &self,
         endpoint: &Endpoint,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Channel, ProxyError> {
-        self.connect_tls_channel(endpoint, certs_rx)
+        self.connect_tls_channel(endpoint, certs_rx).await
     }
 
     /// Establishes and maintains a gRPC bidirectional stream to the proxy.
@@ -275,7 +290,8 @@ impl ProxyHandler {
         let parsed_version = Version::parse(VERSION)?;
         loop {
             let endpoint = self.endpoint()?;
-            let channel = match self.connect_channel(&endpoint, certs_rx.clone()) {
+
+            let channel = match self.connect_channel(&endpoint, certs_rx.clone()).await {
                 Ok(ch) => ch,
                 Err(err) => {
                     error!(
@@ -294,6 +310,12 @@ impl ProxyHandler {
             let mut client = ProxyClient::with_interceptor(channel, interceptor);
             self.client = Some(client.clone());
             let (tx, rx) = mpsc::unbounded_channel();
+
+            // Register this handler's sender so the manager can push messages to this proxy.
+            if let Ok(mut map) = self.handler_tx_map.write() {
+                map.insert(self.proxy_id, tx.clone());
+            }
+
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
                 Err(err) => {
@@ -314,6 +336,10 @@ impl ProxyHandler {
                                 self.retry_delay()
                             );
                         }
+                    }
+                    // Deregister tx on connection failure.
+                    if let Ok(mut map) = self.handler_tx_map.write() {
+                        map.remove(&self.proxy_id);
                     }
                     self.mark_disconnected().await?;
                     sleep(self.retry_delay()).await;
@@ -358,6 +384,33 @@ impl ProxyHandler {
                 payload: Some(core_response::Payload::InitialInfo(initial_info)),
             });
 
+            // If a certificate has already been provisioned, push it to the newly-connected
+            // proxy immediately so it can start serving HTTPS without a manual trigger.
+            // The active source determines which cert/key pair to send.
+            match Certificates::get(&self.pool).await {
+                Ok(Some(certs)) => {
+                    if let Some((cert_pem, key_pem)) = certs.proxy_http_cert_pair() {
+                        info!(
+                            "Sending stored {:?} certificate to proxy {} on connect",
+                            certs.proxy_http_cert_source, self.proxy_id
+                        );
+                        let _ = tx.send(CoreResponse {
+                            id: 0,
+                            payload: Some(core_response::Payload::HttpsCerts(HttpsCerts {
+                                cert_pem: cert_pem.to_string(),
+                                key_pem: key_pem.to_string(),
+                            })),
+                        });
+                    }
+                }
+                Ok(None) => {
+                    warn!("Certificates row not found; skipping cert push on connect");
+                }
+                Err(err) => {
+                    error!("Failed to load certificates for cert push on connect: {err}");
+                }
+            }
+
             let shutdown_signal = Arc::clone(&self.shutdown_signal);
             select! {
                 res = self.message_loop(tx, tx_set.wireguard.clone(), &mut resp_stream) => {
@@ -365,6 +418,9 @@ impl ProxyHandler {
                         error!("Proxy message loop ended with error: {err}, reconnecting in {:?}", self.retry_delay());
                     } else {
                         info!("Proxy message loop ended, reconnecting in {:?}", self.retry_delay());
+                    }
+                    if let Ok(mut map) = self.handler_tx_map.write() {
+                        map.remove(&self.proxy_id);
                     }
                     self.mark_disconnected().await?;
                     sleep(self.retry_delay()).await;
@@ -387,6 +443,9 @@ impl ProxyHandler {
                                 }
                             }
                         }
+                    }
+                    if let Ok(mut map) = self.handler_tx_map.write() {
+                        map.remove(&self.proxy_id);
                     }
                     self.mark_disconnected().await?;
                     break;
@@ -864,6 +923,51 @@ impl ProxyHandler {
                         }
                         // Reply without payload.
                         None => None,
+                        // rpc AcmeCertificate: proxy completed ACME issuance.
+                        Some(core_request::Payload::AcmeCertificate(cert)) => {
+                            info!("Received AcmeCertificate from proxy, saving and broadcasting");
+                            // Parse the cert expiry from the PEM so we can store it.
+                            let acme_cert_expiry = parse_cert_expiry(&cert.cert_pem);
+                            // Load current certificates row, patch ACME fields, and save.
+                            match Certificates::get_or_default(&pool).await {
+                                Ok(mut certs) => {
+                                    certs.proxy_http_cert_pem = Some(cert.cert_pem.clone());
+                                    certs.proxy_http_cert_key_pem = Some(cert.key_pem.clone());
+                                    certs.acme_account_credentials =
+                                        Some(cert.account_credentials_json.clone());
+                                    certs.proxy_http_cert_expiry = acme_cert_expiry;
+                                    certs.proxy_http_cert_source =
+                                        defguard_common::db::models::ProxyCertSource::LetsEncrypt;
+                                    if let Err(err) = certs.save(&pool).await {
+                                        error!(
+                                            "Failed to save ACME certificate to certificates: {err}"
+                                        );
+                                    } else {
+                                        info!("ACME certificate saved to certificates");
+                                        // Broadcast HttpsCerts to ALL connected proxies.
+                                        let https_certs = CoreResponse {
+                                            id: 0,
+                                            payload: Some(core_response::Payload::HttpsCerts(
+                                                HttpsCerts {
+                                                    cert_pem: cert.cert_pem,
+                                                    key_pem: cert.key_pem,
+                                                },
+                                            )),
+                                        };
+                                        if let Ok(map) = self.handler_tx_map.read() {
+                                            for (pid, handler_tx) in map.iter() {
+                                                debug!("Broadcasting HttpsCerts to proxy {pid}");
+                                                let _ = handler_tx.send(https_certs.clone());
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(err) => {
+                                    error!("Failed to load certificates for ACME save: {err}");
+                                }
+                            }
+                            None
+                        }
                     };
 
                     if let Some(payload) = payload {
@@ -900,6 +1004,7 @@ impl ProxyHandler {
         proxy_cookie_key: Key,
         socket_path: PathBuf,
     ) -> Self {
+        let handler_tx_map: HandlerTxMap = Arc::new(std::sync::RwLock::new(HashMap::new()));
         let mut handler = Self::new(
             pool,
             url,
@@ -909,6 +1014,7 @@ impl ProxyHandler {
             shutdown_signal,
             proxy_id,
             proxy_cookie_key,
+            handler_tx_map,
         );
         handler.test_transport = ProxyTestTransport::with_socket_path(socket_path);
         handler
@@ -924,7 +1030,7 @@ impl ProxyHandler {
             .map_or(TEN_SECS, ProxyManagerTestSupport::handler_reconnect_delay)
     }
 
-    fn connect_channel(
+    async fn connect_channel(
         &self,
         endpoint: &Endpoint,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
@@ -942,7 +1048,7 @@ impl ProxyHandler {
             )));
         }
 
-        self.connect_tls_channel(endpoint, certs_rx)
+        self.connect_tls_channel(endpoint, certs_rx).await
     }
 
     /// Single-iteration version of `run()` for use in tests.
@@ -958,7 +1064,7 @@ impl ProxyHandler {
     ) -> Result<(), ProxyError> {
         let parsed_version = Version::parse(VERSION)?;
         let endpoint = self.endpoint()?;
-        let channel = self.connect_channel(&endpoint, certs_rx)?;
+        let channel = self.connect_channel(&endpoint, certs_rx).await?;
 
         debug!(
             "Connecting to proxy at {} (test, single iteration)",
@@ -1055,4 +1161,20 @@ impl ProxyServices {
             polling,
         }
     }
+}
+
+/// Parse the `not_after` expiry timestamp from a PEM-encoded certificate.
+///
+/// Returns `None` if the PEM is unparseable (e.g. empty or malformed), so the
+/// caller can still proceed without a stored expiry.
+fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+    use defguard_certs::{CertificateInfo, parse_pem_certificate};
+
+    let der = parse_pem_certificate(cert_pem)
+        .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
+        .ok()?;
+    CertificateInfo::from_der(&der)
+        .map(|info| info.not_after)
+        .map_err(|e| warn!("Failed to extract expiry from ACME cert: {e}"))
+        .ok()
 }

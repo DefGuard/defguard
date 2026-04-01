@@ -7,10 +7,7 @@ use axum::{
 use defguard_common::{
     db::{
         Id,
-        models::{
-            BiometricAuth, OAuth2AuthorizedApp, Settings, User, WebAuthn, device::UserDevice,
-            user::SecurityKey,
-        },
+        models::{BiometricAuth, OAuth2AuthorizedApp, Settings, User, WebAuthn, user::SecurityKey},
     },
     types::{group_diff::GroupDiff, user_info::UserInfo},
 };
@@ -96,7 +93,6 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
 
     Ok(())
 }
-
 pub fn check_password_strength(password: &str) -> Result<(), WebError> {
     if !(8..=128).contains(&password.len()) {
         return Err(WebError::Serialization("Incorrect password length".into()));
@@ -123,19 +119,16 @@ pub fn check_password_strength(password: &str) -> Result<(), WebError> {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct UserDetails {
     pub user: UserInfo,
-    #[serde(default)]
-    pub devices: Vec<UserDevice>,
     pub biometric_enabled_devices: Vec<i64>,
     #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
 }
 
 impl UserDetails {
-    pub(crate) async fn from_user(pool: &PgPool, user: &User<Id>) -> sqlx::Result<Self> {
-        let devices = user.user_devices(pool).await?;
+    pub(crate) async fn from_user(pool: &PgPool, user: User<Id>) -> sqlx::Result<Self> {
         let security_keys = user.security_keys(pool).await?;
         let biometric_enabled_devices = BiometricAuth::find_by_user_id(pool, user.id)
             .await?
@@ -144,7 +137,6 @@ impl UserDetails {
             .collect::<Vec<_>>();
         Ok(Self {
             user: UserInfo::from_user(pool, user).await?,
-            devices,
             security_keys,
             biometric_enabled_devices,
         })
@@ -214,7 +206,7 @@ pub(crate) async fn list_users(
     // TODO: too many queries – optimise.
     let mut users = Vec::with_capacity(all_users.len());
     for user in all_users {
-        users.push(UserInfo::from_user(&appstate.pool, &user).await?);
+        users.push(UserInfo::from_user(&appstate.pool, user).await?);
     }
 
     let count = User::count(&appstate.pool).await?;
@@ -278,7 +270,7 @@ pub(crate) async fn get_user(
     Path(username): Path<String>,
 ) -> ApiResult {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
+    let user_details = UserDetails::from_user(&appstate.pool, user).await?;
     Ok(ApiResponse::json(user_details, StatusCode::OK))
 }
 
@@ -398,7 +390,7 @@ pub(crate) async fn add_user(
         ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
     }
 
-    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
     info!("User {} added user {username}", session.user.username);
     if !user_info.enrolled {
@@ -721,7 +713,9 @@ pub(crate) async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    let groups_before = UserInfo::from_user(&appstate.pool, &user).await?.groups;
+    let groups_before = UserInfo::from_user(&appstate.pool, user.clone())
+        .await?
+        .groups;
 
     // store user before mods
     let before = user.clone();
@@ -798,7 +792,7 @@ pub(crate) async fn modify_user(
     }
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
-    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
 
     if ldap_sync_allowed {
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
@@ -1267,7 +1261,7 @@ pub(crate) async fn delete_security_key(
     )
 )]
 pub(crate) async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
-    let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
+    let user_info = UserInfo::from_user(&appstate.pool, session.user).await?;
     Ok(ApiResponse::json(user_info, StatusCode::OK))
 }
 

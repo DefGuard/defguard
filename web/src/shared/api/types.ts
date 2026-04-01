@@ -55,6 +55,10 @@ export interface UploadCARequest {
   cert_file: string;
 }
 
+export interface CoreSelfSignedCertRequest {
+  san: string[];
+}
+
 export interface CreateAdminRequest {
   first_name: string;
   last_name: string;
@@ -65,11 +69,9 @@ export interface CreateAdminRequest {
 }
 
 export interface SetGeneralConfigRequest {
-  defguard_url: string;
   default_admin_group_name: string;
   default_authentication: number;
   default_mfa_code_lifetime: number;
-  public_proxy_url: string;
   admin_username: string;
 }
 
@@ -79,9 +81,45 @@ export interface MigrationGeneralConfigRequest {
   public_proxy_url: string;
 }
 
-export interface SetAutoAdoptionUrlSettingsRequest {
+export type InternalSslType = 'none' | 'defguard_ca' | 'own_cert';
+
+export interface SetAutoAdoptionInternalUrlSettingsRequest {
   defguard_url: string;
+  ssl_type: InternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export interface CertInfo {
+  common_name: string;
+  valid_for_days: number;
+  not_before: string;
+  not_after: string;
+}
+
+export interface SetAutoAdoptionInternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
+export interface SetAutoAdoptionExternalUrlSettingsRequest {
   public_proxy_url: string;
+  ssl_type: ExternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export type ExternalSslType = 'none' | 'lets_encrypt' | 'defguard_ca' | 'own_cert';
+
+export interface SetAutoAdoptionExternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
+export interface GetExternalSslInfoResponse {
+  ca_cert_pem: string | null;
+}
+
+export interface GetInternalSslInfoResponse {
+  ca_cert_pem: string | null;
 }
 
 export interface SetAutoAdoptionVpnSettingsRequest {
@@ -167,13 +205,8 @@ export interface GroupInfo {
   is_admin: boolean;
 }
 
-export interface UsersListItem extends User {
-  name: string;
-  devices: Device[];
-}
-
 export interface EditGroupRequest extends CreateGroupRequest {
-  originalName?: string;
+  id: number;
 }
 
 export interface CreateGroupRequest {
@@ -202,6 +235,7 @@ export interface User {
   username: string;
   first_name: string;
   last_name: string;
+  name: string;
   mfa_method: UserMfaMethodValue;
   mfa_enabled: boolean;
   totp_enabled: boolean;
@@ -214,6 +248,7 @@ export interface User {
   ldap_pass_requires_change: boolean;
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
+  devices: Device[];
 }
 
 export interface LoginRequest {
@@ -800,13 +835,20 @@ export type InitialSetupStepValue =
   | 'ca'
   | 'ca_summary'
   | 'edge_component'
+  | 'internal_url_settings'
+  | 'internal_url_ssl_config'
+  | 'external_url_settings'
+  | 'external_url_ssl_config'
   | 'confirmation'
   | 'finished';
 
 export type AutoAdoptionAdoptionStepValue =
   | 'welcome'
   | 'admin_user'
-  | 'url_settings'
+  | 'internal_url_settings'
+  | 'internal_url_ssl_config'
+  | 'external_url_settings'
+  | 'external_url_ssl_config'
   | 'vpn_settings'
   | 'mfa_settings'
   | 'summary'

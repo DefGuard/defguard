@@ -12,7 +12,6 @@ base64.workspace = true
 chrono.workspace = true
 rcgen.workspace = true
 rustls-pki-types.workspace = true
-sqlx.workspace = true
 thiserror.workspace = true
 time.workspace = true
 x509-parser.workspace = true

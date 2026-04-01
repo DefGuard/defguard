@@ -239,7 +239,8 @@ impl UserDevice {
         // fetch device config and connection info for all allowed networks
         let result = query!(
             "SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", latest_successful_stats.endpoint \"device_endpoint?\", \
+	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
+				latest_successful_stats.endpoint \"device_endpoint?\", \
 	            latest_successful_session.connected_at \"last_connected_at?\", \
 	            latest_successful_session.state \"state?: VpnClientSessionState\" \
             FROM wireguard_network_device wnd \
@@ -247,7 +248,8 @@ impl UserDevice {
             LEFT JOIN LATERAL ( \
 				SELECT id, state, connected_at \
 				FROM vpn_client_session \
-				WHERE location_id = n.id AND device_id = $1 AND connected_at IS NOT NULL \
+				WHERE location_id = n.id AND device_id = wnd.device_id \
+				AND connected_at IS NOT NULL \
 				ORDER BY connected_at DESC, id DESC \
 				LIMIT 1 \
 	            ) latest_successful_session ON true \
@@ -264,7 +266,7 @@ impl UserDevice {
         .fetch_all(pool)
         .await?;
 
-        let networks_info: Vec<UserDeviceNetworkInfo> = result
+        let networks_info = result
             .into_iter()
             .map(|r| {
                 // extract latest public IP from stats endpoint
@@ -297,7 +299,7 @@ impl UserDevice {
                     is_active,
                 }
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         Ok(Some(Self {
             device,
@@ -461,8 +463,7 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
+            "SELECT device_id, wireguard_network_id, wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
@@ -549,8 +550,7 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, \
-                wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
+            "SELECT device_id, wireguard_network_id, wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1 AND device_id IN \
             (SELECT id FROM device WHERE user_id = $2 AND device_type = 'user'::device_type)",

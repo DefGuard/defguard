@@ -16,7 +16,7 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { Device, UsersListItem } from '../../shared/api/types';
+import type { Device, User } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -50,7 +50,7 @@ import { displayDate } from '../../shared/utils/displayDate';
 import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
-type RowData = UsersListItem;
+type RowData = User;
 
 const columnHelper = createColumnHelper<RowData>();
 

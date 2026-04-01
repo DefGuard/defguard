@@ -73,7 +73,7 @@ impl fmt::Display for MFAMethod {
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct SecurityKey {
     pub id: Id,
     pub name: String,
@@ -231,7 +231,7 @@ impl User {
             openid_sub: None,
             from_ldap: false,
             ldap_pass_randomized: false,
-            ldap_rdn: Some(username.clone()),
+            ldap_rdn: Some(username),
             ldap_user_path: None,
             enrollment_pending: false,
         }
@@ -869,7 +869,8 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         query_scalar!(
-            "SELECT \"group\".name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+            "SELECT \"group\".name FROM \"group\" \
+            JOIN group_user ON \"group\".id = group_user.group_id \
             WHERE group_user.user_id = $1",
             self.id
         )
@@ -883,7 +884,8 @@ impl User<Id> {
     {
         query_as!(
             Group,
-            "SELECT id, name, is_admin FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+            "SELECT id, name, is_admin FROM \"group\" \
+            JOIN group_user ON \"group\".id = group_user.group_id \
             WHERE group_user.user_id = $1",
             self.id
         )
@@ -933,8 +935,7 @@ impl User<Id> {
     {
         query_as!(
             OAuth2AuthorizedAppInfo,
-            "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\", \
-            oauth2authorizedapp.user_id \"user_id\" \
+            "SELECT oauth2client.id \"oauth2client_id!\", oauth2client.name \"oauth2client_name\" \
             FROM oauth2authorizedapp \
             JOIN oauth2client ON oauth2client.id = oauth2authorizedapp.oauth2client_id \
             WHERE oauth2authorizedapp.user_id = $1",
@@ -1112,10 +1113,14 @@ impl User<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_scalar!("SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
-        WHERE is_admin AND user_id = $1) \"bool!\"", self.id)
-            .fetch_one(executor)
-            .await
+        query_scalar!(
+            "SELECT EXISTS (SELECT 1 FROM group_user gu \
+            LEFT JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE is_admin AND user_id = $1) \"bool!\"",
+            self.id
+        )
+        .fetch_one(executor)
+        .await
     }
 
     /// Find all users that are admins and are active.
@@ -1125,10 +1130,10 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "
-            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, \
+            u.is_active, u.openid_sub, \
             from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \

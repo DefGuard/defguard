@@ -19,7 +19,7 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
-use defguard_proto::proxy::{CoreRequest, CoreResponse, InitialInfo, core_response, proxy_server};
+use defguard_proto::proxy::{AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response, proxy_server};
 use defguard_version::server::DefguardVersionLayer;
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
@@ -162,6 +162,16 @@ impl proxy_server::Proxy for MockProxyService {
     async fn purge(&self, _request: Request<()>) -> Result<Response<()>, Status> {
         self.state.note_purge();
         Ok(Response::new(()))
+    }
+
+    type TriggerAcmeStream =
+        std::pin::Pin<Box<dyn tokio_stream::Stream<Item = Result<AcmeIssueEvent, Status>> + Send>>;
+
+    async fn trigger_acme(
+        &self,
+        _request: Request<AcmeChallenge>,
+    ) -> Result<Response<Self::TriggerAcmeStream>, Status> {
+        Err(Status::unimplemented("trigger_acme not implemented in mock"))
     }
 }
 

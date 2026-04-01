@@ -70,10 +70,16 @@ async fn test_two_proxies_connect_independently(_: PgPoolOptions, options: PgCon
 
     // Both proxies must be recorded as connected in the DB.
     let after_a = wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
-    assert!(after_a.is_connected(), "proxy A should be connected after startup");
+    assert!(
+        after_a.is_connected(),
+        "proxy A should be connected after startup"
+    );
 
     let after_b = wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
-    assert!(after_b.is_connected(), "proxy B should be connected after startup");
+    assert!(
+        after_b.is_connected(),
+        "proxy B should be connected after startup"
+    );
 
     // Each mock must have received exactly one connection.
     assert_eq!(
@@ -361,7 +367,10 @@ async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: P
     mock_proxy.wait_purged().await;
 
     let proxy_after = wait_for_proxy_connection_state(&context.pool, proxy.id, false).await;
-    assert!(!proxy_after.is_connected(), "proxy should be disconnected after Purge");
+    assert!(
+        !proxy_after.is_connected(),
+        "proxy should be disconnected after Purge"
+    );
 
     context.finish().await;
 }

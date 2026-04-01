@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useRouter } from '@tanstack/react-router';
-import { omit } from 'radashi';
+import { cloneDeep, omit } from 'radashi';
 import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
@@ -140,17 +140,25 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const toSend = { ...value, protocols: Array.from(value.protocols) };
+      const toSend = cloneDeep(value);
+      if (toSend.any_address) toSend.addresses = '';
+      if (toSend.any_port) toSend.ports = '';
+      if (toSend.any_protocol) toSend.protocols = new Set();
+
+      const payload = {
+        ...toSend,
+        protocols: Array.from(toSend.protocols),
+      };
 
       try {
         if (isPresent(destination)) {
           await editDestination({
-            ...toSend,
+            ...payload,
             id: destination.id,
           });
           Snackbar.default(m.acl_destination_updated_pending());
         } else {
-          await addDestination(toSend);
+          await addDestination(payload);
           Snackbar.default(m.acl_destination_created());
         }
 

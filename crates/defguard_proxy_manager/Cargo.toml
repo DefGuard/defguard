@@ -19,6 +19,7 @@ defguard_grpc_tls.workspace = true
 
 axum.workspace = true
 axum-extra.workspace = true
+chrono.workspace = true
 semver.workspace = true
 hyper-rustls.workspace = true
 openidconnect.workspace = true
