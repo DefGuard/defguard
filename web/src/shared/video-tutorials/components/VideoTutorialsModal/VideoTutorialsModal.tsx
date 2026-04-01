@@ -7,7 +7,7 @@ import { Fold } from '../../../defguard-ui/components/Fold/Fold';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
-import { Direction, ThemeVariable } from '../../../defguard-ui/types';
+import { Direction } from '../../../defguard-ui/types';
 import { useApp } from '../../../hooks/useApp';
 import { useAllVideoTutorialsSections, useVideoTutorialsRouteKey } from '../../resolved';
 import { getRouteLabel } from '../../route-label';
@@ -155,8 +155,15 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
       .filter((s) => s.videos.length > 0);
   }, [sections, search]);
 
-  const handleSectionToggle = (index: number) => {
-    setOpenSectionIndex((prev) => (prev === index ? null : index));
+  const handleSectionToggle = (index: number, section: VideoTutorialsSection) => {
+    setOpenSectionIndex((prev) => {
+      if (prev === index) return null;
+      // Opening a new section — select its first video
+      if (section.videos.length > 0) {
+        onSelect(section.videos[0]);
+      }
+      return index;
+    });
   };
 
   return (
@@ -180,7 +187,7 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
               <button
                 type="button"
                 className="tutorials-modal-section-header"
-                onClick={() => handleSectionToggle(index)}
+                onClick={() => handleSectionToggle(index, section)}
               >
                 {section.name}
               </button>
@@ -196,13 +203,7 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
                           className={`tutorials-modal-video-row${isSelected ? ' selected' : ''}`}
                           onClick={() => onSelect(video)}
                         >
-                          <Icon
-                            icon={isSelected ? 'play-filled' : 'play'}
-                            size={16}
-                            staticColor={
-                              isSelected ? ThemeVariable.FgAction : ThemeVariable.FgMuted
-                            }
-                          />
+                          <Icon icon={isSelected ? 'play-filled' : 'play'} size={16} />
                           <span>{video.title}</span>
                         </button>
                       </li>

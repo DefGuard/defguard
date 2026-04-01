@@ -127,7 +127,7 @@
   @include animate(background-color);
 
   &:hover {
-    background: var(--bg-hover);
+    background: var(--bg-muted);
   }
 }
 
@@ -157,19 +157,33 @@
   cursor: pointer;
   text-align: left;
   font: var(--t-body-sm-400);
-  color: var(--fg-muted);
+  color: var(--fg-neutral);
   border-radius: var(--radius-lg);
 
   @include animate(background-color, color);
 
+  .icon path {
+    fill: var(--fg-neutral);
+
+    @include animate(fill);
+  }
+
   &:hover {
-    background: var(--bg-hover);
-    color: var(--fg-default);
+    background: var(--bg-muted);
+    color: var(--fg-action);
+
+    .icon path {
+      fill: var(--fg-action);
+    }
   }
 
   &.selected {
+    background: var(--bg-muted);
     color: var(--fg-action);
-    font: var(--t-body-sm-500);
+
+    .icon path {
+      fill: var(--fg-action);
+    }
   }
 
   span {
@@ -177,6 +191,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: inherit;
   }
 }
 
