@@ -76,7 +76,11 @@ export const AddLocationStartStep = () => {
         <form.AppForm>
           <form.AppField name="name">
             {(field) => (
-              <field.FormInput required label={m.profile_devices_col_location_name()} />
+              <field.FormInput
+                required
+                label={m.profile_devices_col_location_name()}
+                helper={m.profile_devices_col_location_helper()}
+              />
             )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />

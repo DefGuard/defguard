@@ -95,6 +95,7 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_auto_adoption_external_url_settings_label()}
+                helper={m.initial_setup_auto_adoption_external_url_settings_helper()}
                 type="text"
               />
             )}

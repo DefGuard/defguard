@@ -107,7 +107,13 @@ const ModalContent = ({ id, name, username, reservedNames }: OpenAuthKeyRenameMo
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput label={m.form_label_name()} required />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_name()}
+                helper={m.form_helper_name()}
+                required
+              />
+            )}
           </form.AppField>
         </form.AppForm>
       </form>
