@@ -14,6 +14,7 @@
 // 11. test_mfa_start_returns_token_for_totp
 // 12. test_mfa_finish_succeeds_with_totp_code
 // 13. test_mfa_finish_fails_with_wrong_totp_code
+// 14. test_mfa_finish_replaces_existing_session_disconnects_old
 
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -60,6 +61,45 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
     assert_eq!(code, tonic::Code::InvalidArgument);
+
+    context.finish().await.expect_server_finished().await;
+}
+
+// ---------------------------------------------------------------------------
+// 2. MFA start fails when the location ID does not exist in the DB
+// ---------------------------------------------------------------------------
+
+#[sqlx::test]
+async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Create a device so the pubkey lookup succeeds — the handler checks the
+    // location_id first, but using a real pubkey avoids masking the error.
+    let (_, device) = create_user_with_device(&context.pool).await;
+
+    // Use an ID that is guaranteed not to correspond to any WireguardNetwork row.
+    let nonexistent_location_id: defguard_common::db::Id = i64::MAX;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 2,
+        device_info: None,
+        payload: Some(core_request::Payload::ClientMfaStart(
+            ClientMfaStartRequest {
+                location_id: nonexistent_location_id,
+                pubkey: device.wireguard_pubkey.clone(),
+                method: MfaMethod::Email as i32,
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "unknown location_id must return InvalidArgument"
+    );
 
     context.finish().await.expect_server_finished().await;
 }
@@ -492,9 +532,9 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
         )),
     });
 
-    // Give the handler a moment to register the oneshot receiver before we
-    // proceed with the finish call.
-    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+    // Give the handler one poll cycle to register the oneshot receiver before
+    // we proceed with the finish call.
+    tokio::task::yield_now().await;
 
     // Subscribe before finish so the handler's wireguard_tx.send() has a receiver
     let _gateway_rx = context.wireguard_tx.subscribe();
@@ -577,6 +617,16 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     // First session must exist in the DB.
     assert_vpn_session_exists(&context.pool, network.id, device.id).await;
 
+    // Rotate to a fresh TOTP secret before the second cycle.
+    // This guarantees the second code is different from the first without
+    // waiting for the 30-second window to advance.
+    user.new_totp_secret(&context.pool)
+        .await
+        .expect("new_totp_secret (second cycle)");
+    user.enable_totp(&context.pool)
+        .await
+        .expect("enable_totp (second cycle)");
+
     // ---- Second MFA cycle ----
     let (_, token2) = send_mfa_start(
         &mut context,
@@ -589,9 +639,6 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     // Subscribe before finish so both MfaSessionDisconnected and
     // MfaSessionAuthorized have an active receiver.
     let mut gw_rx2 = context.wireguard_tx.subscribe();
-
-    // Wait a moment so the TOTP window advances past the first code.
-    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
     let code2 = generate_totp_code(&user);
     let (_, psk2) = send_mfa_finish(&mut context, &token2, Some(&code2)).await;

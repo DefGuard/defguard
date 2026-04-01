@@ -639,13 +639,7 @@ pub(crate) async fn wait_for_proxy_connection_state(
     timeout(TEST_TIMEOUT, async {
         loop {
             let proxy = reload_proxy(pool, proxy_id).await;
-            // Proxy is considered connected when connected_at > disconnected_at.
-            let is_connected = match (proxy.connected_at, proxy.disconnected_at) {
-                (Some(connected), Some(disconnected)) => connected > disconnected,
-                (Some(_), None) => true,
-                _ => false,
-            };
-            if is_connected == expected_connected {
+            if proxy.is_connected() == expected_connected {
                 return proxy;
             }
             tokio::time::sleep(Duration::from_millis(20)).await;

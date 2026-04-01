@@ -35,13 +35,8 @@ async fn test_manager_starts_all_enabled_proxies_on_startup(
     complete_manager_proxy_handshake(&mut mock_proxy).await;
 
     let proxy_after = wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
-    let is_connected = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        is_connected,
+        proxy_after.is_connected(),
         "enabled proxy should be connected after manager startup"
     );
 
@@ -75,20 +70,10 @@ async fn test_two_proxies_connect_independently(_: PgPoolOptions, options: PgCon
 
     // Both proxies must be recorded as connected in the DB.
     let after_a = wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
-    let connected_a = match (after_a.connected_at, after_a.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
-    assert!(connected_a, "proxy A should be connected after startup");
+    assert!(after_a.is_connected(), "proxy A should be connected after startup");
 
     let after_b = wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
-    let connected_b = match (after_b.connected_at, after_b.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
-    assert!(connected_b, "proxy B should be connected after startup");
+    assert!(after_b.is_connected(), "proxy B should be connected after startup");
 
     // Each mock must have received exactly one connection.
     assert_eq!(
@@ -165,36 +150,21 @@ async fn test_start_connection_adds_proxy_at_runtime(_: PgPoolOptions, options: 
     complete_manager_proxy_handshake(&mut mock_c).await;
 
     let after_c = wait_for_proxy_connection_state(&context.pool, proxy_c.id, true).await;
-    let connected_c = match (after_c.connected_at, after_c.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        connected_c,
+        after_c.is_connected(),
         "proxy C should be connected after StartConnection at runtime"
     );
 
     // The original two proxies must still be connected.
     let still_a = wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
-    let still_connected_a = match (still_a.connected_at, still_a.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        still_connected_a,
+        still_a.is_connected(),
         "proxy A must still be connected after C joins"
     );
 
     let still_b = wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
-    let still_connected_b = match (still_b.connected_at, still_b.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        still_connected_b,
+        still_b.is_connected(),
         "proxy B must still be connected after C joins"
     );
 
@@ -265,13 +235,8 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
 
     // Proxy B must have remained connected throughout the reconnect of A.
     let after_b = wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
-    let still_connected_b = match (after_b.connected_at, after_b.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        still_connected_b,
+        after_b.is_connected(),
         "proxy B must remain connected while proxy A reconnects"
     );
     assert_eq!(
@@ -322,13 +287,8 @@ async fn test_start_connection_spawns_new_handler(_: PgPoolOptions, options: PgC
 
     complete_manager_proxy_handshake(&mut mock_proxy).await;
     let proxy_after = wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
-    let is_connected = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        is_connected,
+        proxy_after.is_connected(),
         "proxy should be connected after StartConnection"
     );
 
@@ -361,13 +321,8 @@ async fn test_shutdown_control_message_disconnects_without_purge(
         .expect("failed to send ShutdownConnection");
 
     let proxy_after = wait_for_proxy_connection_state(&context.pool, proxy.id, false).await;
-    let is_connected = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        !is_connected,
+        !proxy_after.is_connected(),
         "proxy should be disconnected after ShutdownConnection"
     );
 
@@ -406,12 +361,7 @@ async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: P
     mock_proxy.wait_purged().await;
 
     let proxy_after = wait_for_proxy_connection_state(&context.pool, proxy.id, false).await;
-    let is_connected = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
-    assert!(!is_connected, "proxy should be disconnected after Purge");
+    assert!(!proxy_after.is_connected(), "proxy should be disconnected after Purge");
 
     context.finish().await;
 }
@@ -519,13 +469,8 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
     // The excess proxy must become disconnected.
     let after_shutdown =
         wait_for_proxy_connection_state(&context.pool, proxy_shutdown.id, false).await;
-    let is_connected = match (after_shutdown.connected_at, after_shutdown.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        !is_connected,
+        !after_shutdown.is_connected(),
         "proxy targeted by ShutdownConnection should be disconnected after license expiry"
     );
 
@@ -539,13 +484,8 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
     // The retained proxy must still be connected — license expiry must not
     // affect proxies that are allowed to remain.
     let after_keep = wait_for_proxy_connection_state(&context.pool, proxy_keep.id, true).await;
-    let still_connected = match (after_keep.connected_at, after_keep.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        still_connected,
+        after_keep.is_connected(),
         "proxy not targeted by ShutdownConnection must remain connected after license expiry"
     );
 

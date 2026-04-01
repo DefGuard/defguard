@@ -19,7 +19,6 @@ use defguard_core::{
         license::{License, LicenseTier, set_cached_license},
     },
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
     ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
@@ -191,6 +190,8 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
 
 /// Pre-generated valid 32-byte WireGuard public keys (base64, 44 chars each).
 /// Used by `create_device_for_user` so that `Device::validate_pubkey` passes.
+/// 64 entries — enough headroom so `DEV_CTR % 64` doesn't wrap in a single
+/// test run and cause unique-key constraint violations.
 static DEVICE_PUBKEYS: &[&str] = &[
     "HCk2Q1BdaneEkZ6ruMXS3+z5BhMgLTpHVGFue4iVoq8=",
     "IzA9SldkcX6LmKWyv8zZ5vMADRonNEFOW2h1go+cqbY=",
@@ -208,6 +209,54 @@ static DEVICE_PUBKEYS: &[&str] = &[
     "d4SRnqu4xdLf7PkGEyAtOkdUYW57iJWir7zJ1uPw/Qo=",
     "fouYpbK/zNnm8wANGic0QU5baHWCj5yptsPQ3er3BBE=",
     "hZKfrLnG0+Dt+gcUIS47SFVib3yJlqOwvcrX5PH+Cxg=",
+    "BALTZXNWTYd8/T3/ZGVLj2iq6rx1CisTaFsDI51tJm0=",
+    "H1aOtxVg192/w3swLDEhOLiJeJAApDbkeCesBgj1FoY=",
+    "dDManXe/OByKTnnX3nasuIW5v90v4AMVcduB8UeaVeg=",
+    "se750mhTJC9OZ/IEuumicbisYJD4LFD0Pg5fNMe5WCU=",
+    "DHn1t2Jl72NlGn5Ibh+8NhhwHk2rsBXFxwrTmoq+7i4=",
+    "u0TYPFOzXYMdyK1nzubNC1hZkgCWgbobZcTbXvB00hk=",
+    "yhOHQUCJ8cvyO6AOFLmhZAIKdaX1XvlblYINlusra44=",
+    "3JSkHHX/ZvXQpE/m1GTNX7FlbaWEw4ErzZvG4mb4Ovg=",
+    "xPJIs5HIbJvyHOez+tq/Q6K+7pqmf3K9A79dUzRBiLc=",
+    "f8QhJe5WZxGmUoOz2RV6/ZDvrLafDyXcU+NIsBikquI=",
+    "fE/yFFbtTJCPBZ2f26nwdF1CDm9zsYi1S3LrKhM9RDU=",
+    "HKTCZa/89kBFJ1Q4xR1V2zCHA3JJnJ+e3xXw8oMJymc=",
+    "LTSZo8kxFV9b/174q4AO7tzLk2V/QU2m0z3FfCU6AT0=",
+    "WdkIQ+1pEapTNuuB2cq6Vb7rDnQrBKLfHOrE6uo4KXs=",
+    "SwH9VK1JLqpY0psx7THvZwM8iPpW8wGADrGDuGOywd8=",
+    "tM2P8nETawOUhgddCbXKvcVQ73S34fOz3evdTeOanJI=",
+    "iAOwFGTBUbNypdt2takUIRnLWifokGdop3kEJBUQEhM=",
+    "IDI2TGHSXqEGzfM0ibKyPgzpjU5xwX1Ornk/mdrF5kk=",
+    "Y3cUACqjlpd7/UUQXOU72qU3a/oDh8WvlmCf68qRb0E=",
+    "w0yZWWMo7w4lfz2FCvLZcbrstA5+v2lUadqN7ir6EXM=",
+    "ifKNzCMHCON2DyAyOfNsrSEOCnFE3qdoGorJW9sa5W8=",
+    "Fvi0QbQozpt0bZHOSJ7sYSdiHulJQ8tUKrs2YCUnIZA=",
+    "msRifZswNWKMIO1qdRDcO5X3k289zlPQCwfv7rBahiA=",
+    "LHvi83xB+/8mbicwZS5tzJHzM56zeuRsJ/vmWX+t9HY=",
+    "L/86snIUXvjcySSOGjPhaCQkdKkif/wLHa+SAZO4Wuw=",
+    "1MqpOu+S87nknf2fuxWDOUpTSnF8XkhLqYkb1WvVHMw=",
+    "bzxQu7xoN3pUYJyD9Pov9US+Cb4kq9jQRMPEWElUoBY=",
+    "DdWzrXQnnwsKbGmemiI1dNJMfEwcXDzhvBScEyLOTSs=",
+    "pMo98Ie2k8NP2EvIfAVPKzz1pDIKe6+2n7V/6eOnoAk=",
+    "NHcI0uMRZMtqmfUm66EnHki+vU4DuVj6W4Guil2y/NY=",
+    "AAzN1n0B2pRAyiGatkP4y7JUHr2YLoChXosM6StNiBQ=",
+    "aUsgBY2Jj9HQMH6WBCKoS7Mmgs79muEg+98EiQlYUOI=",
+    "K5SuhK1V5cWhKJMaF8dNpCumXJslGkdKhFNZdqDa25Q=",
+    "qGiBPZvI/p1AwfgkeDku6fRzARKpC4Ll2g/3xgn3LE0=",
+    "EpGq3Za69I7RRYVJPmNBWugO21w+V12YQmNrdoN/ghA=",
+    "xJuGi59oh1ayfTDnt+JFeTndrJ0kFGsMCsaQYZIj/JE=",
+    "3k40iWezVdRKQ24xY6/9A4R5VYY8kZYxCiSsgCJTHug=",
+    "L7bAYyoImfbJVD5Btrr+NRz1tWqfbivgs8l9chOZ3fw=",
+    "8cWXPbsCHMAT+e1KyMLMehPMBz+eKfTjsOVfTI91I9Q=",
+    "KBM38E7TnwbERyrhTTMDHGTh7QiM8aE23Mm1Jls+Dlo=",
+    "yD1BILYgBTCwyt/n03BzulbnuqwATzIt3Mfe4aRYTHQ=",
+    "27rOt2Q+dXzts+yH+EcVPGmek+lnTVoT/tTMUixbkto=",
+    "+O6PPJIZ5PFRYNpSRQtTdJ3MwZsch4nx3pXcLs1fzhI=",
+    "fUZXuNTWaDV8k/fenhQ3X3xEEE+Vfci5Wlz5v8FxmBg=",
+    "DQulk3Vk+ZVJVPB6MYbjEs+j3WBWUInGIoA45LpS6LE=",
+    "ByEtu8Pyhh0GcLfZU8vaBAuXFpHjFRXs/pow2WhPnMM=",
+    "CESlSirNlVnpdaRpSGytDLZf7Og1MGCK3aXlwAdi818=",
+    "m7BLtL2MfMNClD80MhYFa8BC9nfrDnLtGpCJnX+lZV4=",
 ];
 
 /// Insert a test device for the given user, returning the saved `Device<Id>`.
@@ -605,24 +654,6 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
 // MFA assertion helpers
 // ---------------------------------------------------------------------------
 
-/// Assert that the next `GatewayEvent` broadcast is `MfaSessionAuthorized` and
-/// return `(location_id, device)`.
-#[allow(dead_code)]
-pub(crate) async fn expect_gateway_mfa_authorized(
-    wireguard_tx: &tokio::sync::broadcast::Sender<GatewayEvent>,
-) -> Id {
-    use tokio::time::{Duration, timeout};
-    let mut rx = wireguard_tx.subscribe();
-    let event = timeout(Duration::from_secs(5), rx.recv())
-        .await
-        .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
-        .expect("gateway event channel closed");
-    match event {
-        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
-        other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
-    }
-}
-
 /// Assert that the next `BidiStreamEvent` is `DesktopClientMfa(Success)` and
 /// return the location id from the event.
 pub(crate) async fn expect_bidi_mfa_success(
@@ -640,13 +671,6 @@ pub(crate) async fn expect_bidi_mfa_success(
         },
         other => panic!("expected BidiStreamEventType::DesktopClientMfa, got: {other:?}"),
     }
-}
-
-/// Assert that a `CoreResponse` carries a `CoreError` and return tonic code.
-/// Alias kept for backwards-compat with enrollment / polling tests.
-#[allow(dead_code)]
-pub(crate) fn assert_mfa_error_response(response: &CoreResponse) -> tonic::Code {
-    assert_error_response(response)
 }
 
 /// Assert that the `VpnClientSession` for a given location and device exists in

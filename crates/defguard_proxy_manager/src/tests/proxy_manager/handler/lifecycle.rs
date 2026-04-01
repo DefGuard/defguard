@@ -15,26 +15,16 @@ async fn test_proxy_marked_connected_after_handshake(_: PgPoolOptions, options: 
 
     let proxy_before = context.reload_proxy().await;
     // Proxy not yet connected: connected_at must be None or older than disconnected_at.
-    let is_connected_before = match (proxy_before.connected_at, proxy_before.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        !is_connected_before,
+        !proxy_before.is_connected(),
         "proxy should not be connected before handshake"
     );
 
     complete_proxy_handshake(&mut context).await;
 
     let proxy_after = context.reload_proxy().await;
-    let is_connected_after = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        is_connected_after,
+        proxy_after.is_connected(),
         "proxy should be connected after handshake"
     );
     assert!(
@@ -59,13 +49,8 @@ async fn test_proxy_marked_disconnected_when_stream_closes(
     let mock_proxy = context.finish().await;
 
     let proxy_after = reload_proxy(&pool, proxy_id).await;
-    let is_connected_after = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        !is_connected_after,
+        !proxy_after.is_connected(),
         "proxy should be disconnected after stream closes"
     );
     assert!(
@@ -94,13 +79,8 @@ async fn test_proxy_marked_disconnected_when_stream_errors(
     let mock_proxy = context.finish_after_error().await;
 
     let proxy_after = reload_proxy(&pool, proxy_id).await;
-    let is_connected_after = match (proxy_after.connected_at, proxy_after.disconnected_at) {
-        (Some(c), Some(d)) => c > d,
-        (Some(_), None) => true,
-        _ => false,
-    };
     assert!(
-        !is_connected_after,
+        !proxy_after.is_connected(),
         "proxy should be disconnected after stream error"
     );
     assert!(

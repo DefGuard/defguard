@@ -112,6 +112,7 @@ async fn test_auth_callback_creates_new_user_on_first_login(
         "enrollment token email mismatch"
     );
 
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
 
@@ -180,6 +181,7 @@ async fn test_auth_info_enrollment_returns_authorize_url(
         "button_display_name should match provider display_name"
     );
 
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
 
@@ -235,6 +237,7 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
     );
     assert!(!auth_info.nonce.is_empty(), "expected non-empty nonce");
 
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
 
@@ -303,6 +306,7 @@ async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConn
         "expected NotFound when no OIDC provider configured"
     );
 
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
 
@@ -326,10 +330,6 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Subscribe to gateway events before sending MFA finish.
     let _gateway_rx = context.wireguard_tx.subscribe();
-
-    // Ensure the business license is still active immediately before the MFA
-    // start call (another concurrent test might have cleared it).
-    set_test_license_business();
 
     // ---- Step 1: ClientMfaStart with Oidc method ----
     let (_, mfa_token) = send_mfa_start(
@@ -385,6 +385,7 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let location_id = expect_bidi_mfa_success(&mut context.bidi_events_rx).await;
     assert_eq!(location_id, network.id);
 
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
 
@@ -457,5 +458,6 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
         "enrollment token must belong to the pre-existing user"
     );
 
+    clear_test_license();
     context.finish().await.expect_server_finished().await;
 }

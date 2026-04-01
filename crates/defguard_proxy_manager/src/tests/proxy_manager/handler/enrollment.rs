@@ -320,10 +320,10 @@ async fn test_new_device_invalid_token_returns_error(_: PgPoolOptions, options: 
     let response = context.mock_proxy_mut().recv_outbound().await;
     // The handler should return an error response.
     let code = assert_error_response(&response);
-    assert_ne!(
+    assert_eq!(
         code,
-        tonic::Code::Ok,
-        "expected error code for invalid token"
+        tonic::Code::Unauthenticated,
+        "invalid/nonexistent token must return Unauthenticated"
     );
 
     context.finish().await.expect_server_finished().await;
@@ -417,10 +417,10 @@ async fn test_existing_device_wrong_user_returns_error(
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_ne!(
+    assert_eq!(
         code,
-        tonic::Code::Ok,
-        "expected error when token owner ≠ device owner"
+        tonic::Code::Unauthenticated,
+        "token owner ≠ device owner must return Unauthenticated"
     );
 
     context.finish().await.expect_server_finished().await;

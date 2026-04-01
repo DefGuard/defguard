@@ -98,10 +98,10 @@ async fn test_polling_invalid_token_returns_error(_: PgPoolOptions, options: PgC
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_ne!(
+    assert_eq!(
         code,
-        tonic::Code::Ok,
-        "invalid polling token should return an error"
+        tonic::Code::PermissionDenied,
+        "invalid polling token should return PermissionDenied"
     );
 
     clear_test_license();
@@ -135,10 +135,10 @@ async fn test_polling_inactive_user_returns_error(_: PgPoolOptions, options: PgC
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_ne!(
+    assert_eq!(
         code,
-        tonic::Code::Ok,
-        "polling for inactive user should return an error"
+        tonic::Code::PermissionDenied,
+        "polling for inactive user should return PermissionDenied"
     );
 
     clear_test_license();
