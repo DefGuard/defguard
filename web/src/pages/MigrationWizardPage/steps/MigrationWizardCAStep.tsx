@@ -137,6 +137,7 @@ export const MigrationWizardCAStep = () => {
               <field.FormSelect
                 required
                 label={m.migration_wizard_ca_label_validity()}
+                helper={m.migration_wizard_ca_helper_validity()}
                 options={validityOptions}
               />
             )}
