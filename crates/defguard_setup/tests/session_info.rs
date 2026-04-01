@@ -1,11 +1,14 @@
-use defguard_common::db::{
-    models::{
-        User,
-        group::Group,
-        settings::initialize_current_settings,
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            User,
+            group::Group,
+            settings::initialize_current_settings,
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -20,7 +23,7 @@ async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOpti
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to initialize wizard");
 
@@ -85,7 +88,7 @@ async fn test_session_info_auto_adoption_wizard(_: PgPoolOptions, options: PgCon
         .await
         .expect("Failed to initialize settings");
     // has_auto_adopt_flags = true (both flags provided): AutoAdoption wizard
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to initialize wizard");
 
@@ -133,7 +136,7 @@ async fn test_session_info_migration_server(_: PgPoolOptions, options: PgConnect
         .await
         .expect("Failed to add user to admin group");
 
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to initialize wizard");
 

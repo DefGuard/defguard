@@ -100,7 +100,6 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_PROXY_URL")]
     #[serde(skip_serializing)]
-    #[deprecated(since = "2.0.0", note = "Proxy now have individual adresses")]
     pub proxy_url: Option<String>,
 
     #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT")]

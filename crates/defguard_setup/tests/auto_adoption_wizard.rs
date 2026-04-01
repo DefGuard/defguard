@@ -85,7 +85,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
     // Auto-adoption requires a pre-existing network to configure
     let network = seed_wireguard_network(&pool).await;
 
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -227,7 +227,7 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
         .await
         .expect("Failed to initialize settings");
     seed_wireguard_network(&pool).await;
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -356,7 +356,7 @@ async fn test_auto_adoption_vpn_settings_missing_network(
         .await
         .expect("Failed to initialize settings");
 
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -478,7 +478,7 @@ async fn test_attempt_auto_adoption_persists_actionable_edge_failure_logs(
         .await
         .expect("Failed to initialize settings");
 
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -535,7 +535,7 @@ async fn test_attempt_auto_adoption_persists_actionable_gateway_failure_logs(
         .await
         .expect("Failed to initialize settings");
 
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
