@@ -82,7 +82,7 @@ support team at `}
           href="mailto:support@defguard.net"
         >{`support@defguard.net`}</AppText>
       </AppText>
-      <LicenseModalControls modalName={modalNameKey} />
+      <LicenseModalControls linkText={`Renew license`} modalName={modalNameKey} />
     </>
   );
 };
