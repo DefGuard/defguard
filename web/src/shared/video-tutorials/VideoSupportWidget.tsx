@@ -9,7 +9,7 @@ import { VideoOverlay } from './components/widget/VideoOverlay/VideoOverlay';
 import { useResolvedVideoTutorials, useVideoTutorialsRouteKey } from './resolved';
 import type { VideoTutorial } from './types';
 
-export const VideoTutorialsWidget = () => {
+export const VideoSupportWidget = () => {
   const videos = useResolvedVideoTutorials();
   const routeKey = useVideoTutorialsRouteKey();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -34,11 +34,11 @@ export const VideoTutorialsWidget = () => {
 
   return (
     <>
-      <div className="video-tutorials-widget">
+      <div className="video-support-widget">
         {panelOpen && (
           <ul
-            className="video-tutorials-list"
-            aria-label={m.cmp_video_tutorials_list_label()}
+            className="video-support-list"
+            aria-label={m.cmp_video_support_list_label()}
           >
             {videos.map((v) => (
               <li key={v.youtubeVideoId}>
@@ -50,18 +50,18 @@ export const VideoTutorialsWidget = () => {
         {panelOpen ? (
           <IconButton
             icon="close"
-            className="video-tutorials-close-btn"
+            className="video-support-close-btn"
             onClick={() => setPanelOpen(false)}
           />
         ) : (
           <button
             type="button"
-            className="video-tutorials-launcher"
+            className="video-support-launcher"
             onClick={() => setPanelOpen(true)}
-            aria-label={m.cmp_video_tutorials_launcher()}
+            aria-label={m.cmp_video_support_launcher()}
           >
             <Icon icon="tutorial" size={18} staticColor={ThemeVariable.FgAction} />
-            <span>{m.cmp_video_tutorials_launcher()}</span>
+            <span>{m.cmp_video_support_launcher()}</span>
           </button>
         )}
       </div>
