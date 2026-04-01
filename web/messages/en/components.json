@@ -179,5 +179,9 @@
    "cmp_video_tutorials_list_label": "Video support",
    "cmp_video_tutorials_overlay_error": "Video unavailable",
    "cmp_video_tutorials_overlay_watch_on_youtube": "Watch on YouTube:",
-   "cmp_nav_item_tutorials": "Tutorials"
+   "cmp_nav_item_tutorials": "Tutorials",
+   "cmp_video_tutorials_modal_title": "Video tutorials",
+   "cmp_video_tutorials_modal_search_placeholder": "Search",
+   "cmp_video_tutorials_modal_go_to": "Go to {page}",
+   "cmp_video_tutorials_modal_learn_more": "Learn more in Documentation"
 }

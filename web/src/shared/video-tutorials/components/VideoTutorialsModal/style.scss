@@ -1,0 +1,280 @@
+// ---------------------------------------------------------------------------
+// VideoTutorialsModal
+// Two-panel modal: left list + right player.
+// ModalFoundation provides the backdrop, portal, and animation.
+// ---------------------------------------------------------------------------
+
+.tutorials-modal-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.tutorials-modal {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 30px 0 rgb(0 0 0 / 12%);
+  width: 960px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow: hidden;
+}
+
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
+.tutorials-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.tutorials-modal-title {
+  font: var(--t-title-h4);
+  color: var(--fg-default);
+  margin: 0;
+}
+
+.tutorials-modal-close {
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Body: two panels side by side
+// ---------------------------------------------------------------------------
+
+.tutorials-modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ---------------------------------------------------------------------------
+// Left panel: search + section list (350px)
+// ---------------------------------------------------------------------------
+
+.tutorials-modal-list-panel {
+  display: flex;
+  flex-direction: column;
+  width: 350px;
+  min-width: 280px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+.tutorials-modal-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+
+  // Icon color
+  color: var(--fg-muted);
+}
+
+.tutorials-modal-search {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: var(--t-body-sm-400);
+  color: var(--fg-default);
+
+  &::placeholder {
+    color: var(--fg-muted);
+  }
+
+  // Remove default browser search cancel button
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+}
+
+.tutorials-modal-sections {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm) 0;
+}
+
+.tutorials-modal-section {
+  padding: var(--spacing-sm) 0;
+}
+
+.tutorials-modal-section-name {
+  font: var(--t-body-xs-600);
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--spacing-xs) var(--spacing-lg);
+  margin: 0;
+}
+
+.tutorials-modal-section-videos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tutorials-modal-video-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-lg);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: var(--t-body-sm-400);
+  color: var(--fg-muted);
+
+  @include animate(background-color, color);
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--fg-default);
+  }
+
+  &.selected {
+    color: var(--fg-action);
+    font: var(--t-body-sm-500);
+  }
+
+  span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Right panel: video player + info (fills remaining space)
+// ---------------------------------------------------------------------------
+
+.tutorials-modal-player {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-lg);
+}
+
+// iframe wrapper maintains 16/9 aspect ratio
+.tutorials-modal-iframe-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-emphasis);
+  flex-shrink: 0;
+
+  iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+
+    &:not(.loaded) {
+      display: none;
+    }
+  }
+}
+
+// Skeleton while iframe loads
+.tutorials-modal-iframe-skeleton {
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+}
+
+// Error state
+.tutorials-modal-iframe-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  height: 100%;
+  color: var(--fg-muted);
+
+  p {
+    font: var(--t-body-sm-400);
+    margin: 0;
+    text-align: center;
+  }
+
+  a {
+    font: var(--t-body-xs-400);
+    color: var(--fg-faded);
+    word-break: break-all;
+    text-align: center;
+    text-decoration: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Video info: title, description, links
+// ---------------------------------------------------------------------------
+
+.tutorials-modal-video-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.tutorials-modal-video-title {
+  font: var(--t-title-h5);
+  color: var(--fg-default);
+  margin: 0;
+}
+
+.tutorials-modal-video-description {
+  font: var(--t-body-sm-400);
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+.tutorials-modal-video-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.tutorials-modal-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  text-decoration: none;
+  font: var(--t-body-sm-500);
+
+  @include animate(opacity);
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &--internal {
+    color: var(--fg-action);
+  }
+
+  &--external {
+    color: var(--fg-muted);
+  }
+}

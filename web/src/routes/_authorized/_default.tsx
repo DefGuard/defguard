@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { Navigation } from '../../shared/components/Navigation/Navigation';
+import { VideoTutorialsModal } from '../../shared/video-tutorials/components/VideoTutorialsModal/VideoTutorialsModal';
 import { VideoTutorialsWidget } from '../../shared/video-tutorials/VideoTutorialsWidget';
 
 export const Route = createFileRoute('/_authorized/_default')({
@@ -12,6 +13,7 @@ function RouteComponent() {
       <Outlet />
       <Navigation />
       <VideoTutorialsWidget />
+      <VideoTutorialsModal />
     </>
   );
 }
