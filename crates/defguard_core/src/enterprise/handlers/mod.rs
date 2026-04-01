@@ -102,6 +102,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
                 "expired": license.is_max_overdue(),
                 "limits_exceeded": counts.is_over_license_limits(license),
                 "tier": license.tier,
+                "support_type": license.support_type,
                 "limits": limits_info,
             })
         });
