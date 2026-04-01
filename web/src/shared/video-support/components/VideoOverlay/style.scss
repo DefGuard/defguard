@@ -1,0 +1,126 @@
+// ---------------------------------------------------------------------------
+// Video modal
+// ModalFoundation provides the backdrop and portal; we style the content here.
+// ---------------------------------------------------------------------------
+
+.video-support-modal-container {
+  position: relative;
+  display: inline-block;
+  padding-top: var(--size-2xl);
+}
+
+.video-support-modal {
+  background: var(--bg-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 30px 0 rgb(0 0 0 / 9%);
+  padding: var(--spacing-xl);
+  width: 920px;
+  max-width: 90vw;
+
+  iframe {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    border-radius: var(--radius-sm);
+
+    &:not(.loaded) {
+      display: none;
+    }
+  }
+}
+
+// Skeleton shown while the iframe is loading.
+// aspect-ratio matches the iframe so the modal does not resize on swap.
+// overflow: hidden clips the skeleton shimmer to the rounded corners.
+
+.video-support-overlay-skeleton {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  line-height: 1;
+}
+
+.video-support-overlay-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-emphasis);
+
+  // Match the iframe's 16/9 aspect-ratio so the modal does not resize on error.
+  aspect-ratio: 16 / 9;
+
+  // Figma: 48px gap between icon-group and link-group
+  gap: 48px;
+}
+
+.video-support-overlay-error-icon-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  // Figma: 20px gap between badge and title
+  gap: 20px;
+}
+
+.video-support-overlay-error-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Figma: 32px padding, full pill, drop shadow
+  padding: 32px;
+  background-color: var(--bg-default);
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 7%);
+}
+
+.video-support-overlay-error-title {
+  font: var(--t-title-h5);
+  color: var(--fg-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.video-support-overlay-error-link-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+  // Figma: 8px gap between label and URL
+  gap: 8px;
+}
+
+.video-support-overlay-error-label {
+  font: var(--t-body-xxs-500);
+  color: var(--fg-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.video-support-overlay-error-url {
+  font: var(--t-body-sm-400);
+  color: var(--fg-faded);
+  text-align: center;
+  word-break: break-all;
+  text-decoration: none;
+}
+
+// Modal close button — floats outside the modal card (top-right).
+// Uses IconButton; overrides border-radius token to circular and adds background/shadow.
+
+.video-support-modal-close {
+  --button-border-radius-sm: var(--radius-full);
+
+  position: absolute;
+  top: var(--spacing-xs);
+  right: calc(-1 * var(--size-2xl));
+  background-color: var(--bg-default);
+  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 10%);
+  z-index: 1;
+
+  @include animate(box-shadow);
+}

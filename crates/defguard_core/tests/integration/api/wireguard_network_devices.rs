@@ -85,6 +85,13 @@ struct SplitIp {
     ip: IpAddr,
 }
 
+#[derive(Deserialize)]
+struct DeviceWireGuardConfig {
+    network_id: Id,
+    network_name: String,
+    config: String,
+}
+
 #[sqlx::test]
 async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -200,8 +207,11 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     // download WG config
     let response = client.get("/api/v1/device/network/1/config").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_config = response.text().await;
-    assert_eq!(response_config, config_text);
+    let response_configs = response.json::<Vec<DeviceWireGuardConfig>>().await;
+    assert_eq!(response_configs.len(), 1);
+    assert_eq!(response_configs[0].config, config_text);
+    assert_eq!(response_configs[0].network_id, network_1.id);
+    assert_eq!(response_configs[0].network_name, network_1.name);
 
     // edit the device
     let modify_device = json!({

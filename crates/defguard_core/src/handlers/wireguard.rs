@@ -1329,7 +1329,7 @@ pub(crate) async fn download_config(
     let settings = EnterpriseSettings::get(&appstate.pool).await?;
     if settings.only_client_activation && !session.is_admin {
         warn!(
-            "User {} tried to download device config, but manual device management is disaled",
+            "User {} tried to download device config, but manual device management is disabled",
             session.user.username
         );
         return Err(WebError::Forbidden("Manual device management is disabled"));

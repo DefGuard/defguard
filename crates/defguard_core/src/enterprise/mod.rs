@@ -47,7 +47,7 @@ mod test {
     use crate::{
         enterprise::{
             is_business_license_active, is_enterprise_license_active,
-            license::{License, LicenseTier, set_cached_license},
+            license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{Counts, set_counts},
         },
         grpc::proto::enterprise::license::LicenseLimits,
@@ -89,6 +89,7 @@ mod test {
             Some(limits),
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         set_cached_license(Some(license));
 
@@ -114,6 +115,7 @@ mod test {
             Some(limits),
             None,
             LicenseTier::Enterprise,
+            SupportType::Basic,
         );
         set_cached_license(Some(license));
 

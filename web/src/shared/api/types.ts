@@ -404,7 +404,16 @@ export const LicenseTier = {
   Enterprise: 'Enterprise',
 } as const;
 
+export const SupportType = {
+  Free: 'Free',
+  Basic: 'Basic',
+  Direct: 'Direct',
+  BasicEnterprise: 'BasicEnterprise',
+  DirectEnterprise: 'DirectEnterprise',
+} as const;
+
 export type LicenseTierValue = (typeof LicenseTier)[keyof typeof LicenseTier];
+export type SupportTypeValue = (typeof SupportType)[keyof typeof SupportType];
 
 export interface LicenseInfo {
   subscription: boolean;
@@ -412,6 +421,7 @@ export interface LicenseInfo {
   expired: boolean;
   limits_exceeded: boolean;
   tier: LicenseTierValue;
+  support_type: SupportTypeValue;
   limits: LicenseLimitsInfo | null;
 }
 

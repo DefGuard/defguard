@@ -9,7 +9,7 @@ use defguard_core::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
         },
         handlers::openid_providers::AddProviderData,
-        license::{License, LicenseTier, set_cached_license},
+        license::{License, LicenseTier, SupportType, set_cached_license},
     },
     handlers::{Auth, openid_clients::NewOpenIDClient},
 };
@@ -100,6 +100,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         None,
         None,
         LicenseTier::Business,
+        SupportType::Basic,
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
