@@ -120,7 +120,17 @@ export const clientArtifactsQueryOptions = queryOptions({
 export const videoTutorialsQueryOptions = queryOptions({
   queryKey: ['update-service', 'video-tutorials'],
   queryFn: () => updateServiceClient.get<unknown>(videoTutorialsPath),
-  select: (resp) => parseVideoTutorials(resp.data),
+  select: (resp) => {
+    try {
+      return parseVideoTutorials(resp.data);
+    } catch (err) {
+      console.error(
+        '[video-tutorials] Fetched successfully but failed to parse response:',
+        err,
+      );
+      throw err;
+    }
+  },
   // Mappings are version-tied and won't meaningfully change within a session.
   staleTime: Infinity,
   // Silent failure: if the fetch or parse fails, the widget simply won't appear.
