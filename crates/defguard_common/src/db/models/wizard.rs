@@ -180,7 +180,6 @@ impl Wizard {
                 }),
                 Err(_) => None,
             },
-
             None => None,
         }
     }
