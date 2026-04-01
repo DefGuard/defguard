@@ -16,7 +16,7 @@ import { MarkedSectionHeader } from '../../shared/defguard-ui/components/MarkedS
 import docIllustration from '../../shared/defguard-ui/components/SectionSelect/assets/manual-user.png';
 import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
-import { downloadFile, downloadText } from '../../shared/utils/download';
+import { downloadFile } from '../../shared/utils/download';
 
 export const SupportPage = () => {
   return (
@@ -102,14 +102,6 @@ export const SupportPage = () => {
                           });
                           const now = new Date().toISOString().replace(/[:.]/g, '-');
                           downloadFile(blob, `defguard-support-data-${now}`, 'json');
-                        },
-                      },
-                      {
-                        text: m.support_page_bug_btn_download_logs(),
-                        onClick: async () => {
-                          const res = await api.support.getLogs();
-                          const now = new Date().toISOString().replace(/[:.]/g, '-');
-                          downloadText(res.data, `defguard-logs-${now}`, 'txt');
                         },
                       },
                     ],
