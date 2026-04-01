@@ -27,7 +27,7 @@ use crate::enterprise::{
         AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
     },
     firewall::try_get_location_firewall_config,
-    license::{License, LicenseTier, set_cached_license},
+    license::{License, LicenseTier, SupportType, set_cached_license},
 };
 
 mod all_locations;
@@ -55,7 +55,7 @@ fn set_test_license_business() {
         customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
         limits: None,
         subscription: false,
-        support_type: crate::enterprise::license::SupportType::Basic,
+        support_type: SupportType::Basic,
         tier: LicenseTier::Business,
         valid_until: None,
         version_date_limit: None,
