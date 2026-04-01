@@ -1,8 +1,8 @@
 import './style.scss';
 import { useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { Icon } from '../../../defguard-ui/components/Icon/Icon';
-import { ThemeVariable } from '../../../defguard-ui/types';
+import { Icon } from '../../../../defguard-ui/components/Icon/Icon';
+import { ThemeVariable } from '../../../../defguard-ui/types';
 
 export interface ThumbnailProps {
   url: string;

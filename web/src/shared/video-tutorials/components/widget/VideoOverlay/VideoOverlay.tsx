@@ -1,8 +1,8 @@
 import './style.scss';
-import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
-import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
-import type { VideoTutorial } from '../../types';
-import { VideoPlayer } from '../VideoPlayer/VideoPlayer';
+import { IconButton } from '../../../../defguard-ui/components/IconButton/IconButton';
+import { ModalFoundation } from '../../../../defguard-ui/components/ModalFoundation/ModalFoundation';
+import type { VideoTutorial } from '../../../types';
+import { VideoPlayer } from '../../VideoPlayer/VideoPlayer';
 
 export interface VideoOverlayProps {
   video: VideoTutorial | null;

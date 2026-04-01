@@ -1,10 +1,10 @@
 import './style.scss';
 import { useEffect, useMemo, useState } from 'react';
-import { m } from '../../../../paraglide/messages';
-import { Fold } from '../../../defguard-ui/components/Fold/Fold';
-import { Icon } from '../../../defguard-ui/components/Icon/Icon';
-import { Search } from '../../../defguard-ui/components/Search/Search';
-import type { VideoTutorial, VideoTutorialsSection } from '../../types';
+import { m } from '../../../../../paraglide/messages';
+import { Fold } from '../../../../defguard-ui/components/Fold/Fold';
+import { Icon } from '../../../../defguard-ui/components/Icon/Icon';
+import { Search } from '../../../../defguard-ui/components/Search/Search';
+import type { VideoTutorial, VideoTutorialsSection } from '../../../types';
 
 export interface VideoListProps {
   sections: VideoTutorialsSection[];

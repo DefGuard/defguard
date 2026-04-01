@@ -4,8 +4,8 @@ import { m } from '../../paraglide/messages';
 import { Icon } from '../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
 import { ThemeVariable } from '../defguard-ui/types';
-import { VideoCard } from './components/VideoCard/VideoCard';
-import { VideoOverlay } from './components/VideoOverlay/VideoOverlay';
+import { VideoCard } from './components/widget/VideoCard/VideoCard';
+import { VideoOverlay } from './components/widget/VideoOverlay/VideoOverlay';
 import { useResolvedVideoTutorials, useVideoTutorialsRouteKey } from './resolved';
 import type { VideoTutorial } from './types';
 

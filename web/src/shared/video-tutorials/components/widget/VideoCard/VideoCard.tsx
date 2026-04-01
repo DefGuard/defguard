@@ -1,5 +1,5 @@
 import './style.scss';
-import type { VideoTutorial } from '../../types';
+import type { VideoTutorial } from '../../../types';
 import { Thumbnail } from '../Thumbnail/Thumbnail';
 
 export interface VideoCardProps {

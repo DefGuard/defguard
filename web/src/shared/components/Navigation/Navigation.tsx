@@ -24,7 +24,7 @@ import {
   videoTutorialsQueryOptions,
 } from '../../query';
 import { canUseBusinessFeature } from '../../utils/license';
-import { NavTutorialsButton } from '../../video-tutorials/components/NavTutorialsButton/NavTutorialsButton';
+import { NavTutorialsButton } from '../../video-tutorials/components/widget/NavTutorialsButton/NavTutorialsButton';
 
 interface NavGroupProps {
   id: string;
