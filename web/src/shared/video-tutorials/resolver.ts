@@ -1,5 +1,9 @@
-import type { VideoTutorial, VideoTutorialsMappings, VideoTutorialsSection } from './types';
 import { canonicalizeRouteKey } from './route-key';
+import type {
+  VideoTutorial,
+  VideoTutorialsMappings,
+  VideoTutorialsSection,
+} from './types';
 import { compareVersions, parseVersion } from './version';
 
 /**
@@ -8,12 +12,12 @@ import { compareVersions, parseVersion } from './version';
  */
 function eligibleVersionsSorted(
   mappings: VideoTutorialsMappings,
-  appVersion: ReturnType<typeof parseVersion>,
+  appVersion: NonNullable<ReturnType<typeof parseVersion>>,
 ): string[] {
   return Object.keys(mappings)
     .flatMap((key) => {
       const parsed = parseVersion(key);
-      return parsed && compareVersions(parsed, appVersion!) <= 0 ? [{ key, parsed }] : [];
+      return parsed && compareVersions(parsed, appVersion) <= 0 ? [{ key, parsed }] : [];
     })
     .sort((a, b) => compareVersions(b.parsed, a.parsed))
     .map(({ key }) => key);

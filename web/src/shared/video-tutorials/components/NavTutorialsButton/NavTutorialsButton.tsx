@@ -1,6 +1,6 @@
 import { m } from '../../../../paraglide/messages';
-import { useApp } from '../../../hooks/useApp';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
+import { useApp } from '../../../hooks/useApp';
 
 export const NavTutorialsButton = () => {
   return (

@@ -1,13 +1,13 @@
 import './style.scss';
+import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { Link } from '@tanstack/react-router';
 import { m } from '../../../../paraglide/messages';
-import { useApp } from '../../../hooks/useApp';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
-import { Direction } from '../../../defguard-ui/types';
+import { Direction, ThemeVariable } from '../../../defguard-ui/types';
+import { useApp } from '../../../hooks/useApp';
 import { useAllVideoTutorialsSections, useVideoTutorialsRouteKey } from '../../resolved';
 import { getRouteLabel } from '../../route-label';
 import type { VideoTutorial, VideoTutorialsSection } from '../../types';
@@ -80,7 +80,7 @@ const VideoPlayer = ({ video }: VideoPlayerProps) => {
             )}
             <iframe
               className={loaded ? 'loaded' : undefined}
-              src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?autoplay=1`}
+              src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}`}
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -139,8 +139,7 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
         ...section,
         videos: section.videos.filter(
           (v) =>
-            v.title.toLowerCase().includes(q) ||
-            section.name.toLowerCase().includes(q),
+            v.title.toLowerCase().includes(q) || section.name.toLowerCase().includes(q),
         ),
       }))
       .filter((s) => s.videos.length > 0);
@@ -173,7 +172,13 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
                       className={`tutorials-modal-video-row${isSelected ? ' selected' : ''}`}
                       onClick={() => onSelect(video)}
                     >
-                      <Icon icon="tutorial" size={16} />
+                      <Icon
+                        icon={isSelected ? 'play-filled' : 'play'}
+                        size={16}
+                        staticColor={
+                          isSelected ? ThemeVariable.FgAction : ThemeVariable.FgMuted
+                        }
+                      />
                       <span>{video.title}</span>
                     </button>
                   </li>
@@ -222,7 +227,11 @@ export const VideoTutorialsModal = () => {
       <div className="tutorials-modal">
         <div className="tutorials-modal-header">
           <h2 className="tutorials-modal-title">{m.cmp_video_tutorials_modal_title()}</h2>
-          <IconButton icon="close" className="tutorials-modal-close" onClick={handleClose} />
+          <IconButton
+            icon="close"
+            className="tutorials-modal-close"
+            onClick={handleClose}
+          />
         </div>
 
         <div className="tutorials-modal-body">
