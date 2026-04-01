@@ -227,9 +227,11 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
               text: m.network_devices_action_view_config(),
               icon: 'config',
               onClick: async () => {
-                const { data: config } = await api.network_device.getDeviceConfig(row.id);
+                const { data: configs } = await api.network_device.getDeviceConfig(
+                  row.id,
+                );
                 openModal(ModalName.NetworkDeviceConfig, {
-                  config,
+                  config: configs[0].config,
                   device: row,
                 });
               },
