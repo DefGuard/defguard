@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { canonicalizeRouteKey } from './route-key';
 import type { VideoTutorialsMappings } from './types';
 
 // ---------------------------------------------------------------------------
@@ -25,7 +24,7 @@ export const videoTutorialsPath: string =
 // Zod schema + parser
 // ---------------------------------------------------------------------------
 
-const videoTutorialsSchema = z
+const videoTutorialSchema = z
   .object({
     youtubeVideoId: z
       .string()
@@ -34,16 +33,18 @@ const videoTutorialsSchema = z
         'youtubeVideoId must be exactly 11 alphanumeric/-/_ chars',
       ),
     title: z.string().min(1, 'title must be non-empty'),
+    description: z.string().min(1, 'description must be non-empty'),
+    appRoute: z.string().regex(/^\//, 'appRoute must start with "/"'),
+    docsUrl: z.string().url('docsUrl must be a valid URL'),
   })
   .strip();
 
-const routeMapSchema = z.record(
-  // The schema enforces leading "/" as a contract requirement for JSON authors.
-  // canonicalizeRouteKey() adds it at runtime for widget use, but the JSON
-  // must supply it explicitly — keeping authoring intent unambiguous.
-  z.string().regex(/^\//, 'route key must start with "/"'),
-  z.array(videoTutorialsSchema),
-);
+const sectionSchema = z
+  .object({
+    name: z.string().min(1, 'section name must be non-empty'),
+    videos: z.array(videoTutorialSchema),
+  })
+  .strip();
 
 const mappingsSchema = z.object({
   versions: z.record(
@@ -53,35 +54,16 @@ const mappingsSchema = z.object({
         /^\d+\.\d+(\.\d+)?$/,
         'version key must be major.minor or major.minor.patch',
       ),
-    routeMapSchema,
+    z.array(sectionSchema),
   ),
 });
 
 /**
  * Validates raw JSON against the video tutorials mapping contract and returns a
- * trusted VideoTutorialsMappings object with canonicalized route keys.
+ * trusted VideoTutorialsMappings object.
  * Throws a ZodError if the contract is violated.
  */
 export function parseVideoTutorials(raw: unknown): VideoTutorialsMappings {
   const parsed = mappingsSchema.parse(raw);
-
-  const result: VideoTutorialsMappings = {};
-
-  for (const [versionKey, routeMap] of Object.entries(parsed.versions)) {
-    const canonicalRouteMap: Record<string, VideoTutorialsMappings[string][string]> = {};
-
-    for (const [routeKey, videos] of Object.entries(routeMap)) {
-      const canonical = canonicalizeRouteKey(routeKey);
-      if (canonical in canonicalRouteMap) {
-        throw new Error(
-          `Duplicate route key "${canonical}" in version "${versionKey}" after canonicalization`,
-        );
-      }
-      canonicalRouteMap[canonical] = videos;
-    }
-
-    result[versionKey] = canonicalRouteMap;
-  }
-
-  return result;
+  return parsed.versions;
 }
