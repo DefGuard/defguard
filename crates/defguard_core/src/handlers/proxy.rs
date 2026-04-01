@@ -324,15 +324,14 @@ pub(crate) async fn proxy_cert_self_signed(
             WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
         })?;
 
-    let (ca_cert_der, ca_key_der) = match (certs.ca_cert_der.clone(), certs.ca_key_der.clone()) {
-        (Some(c), Some(k)) => (c, k),
-        _ => {
-            warn!("CA not configured; cannot issue self-signed proxy cert");
-            return Ok(ApiResponse::json(
-                serde_json::json!({"msg": "Core CA is not configured"}),
-                StatusCode::BAD_REQUEST,
-            ));
-        }
+    let (Some(ca_cert_der), Some(ca_key_der)) =
+        (certs.ca_cert_der.clone(), certs.ca_key_der.clone())
+    else {
+        warn!("CA not configured; cannot issue self-signed proxy cert");
+        return Ok(ApiResponse::json(
+            serde_json::json!({"msg": "Core CA is not configured"}),
+            StatusCode::BAD_REQUEST,
+        ));
     };
 
     // Build CA from stored DER blobs.
