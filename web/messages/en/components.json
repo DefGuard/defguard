@@ -179,7 +179,6 @@
   "cmp_video_support_list_label": "Video tutorials",
   "cmp_video_support_overlay_error": "Video unavailable",
   "cmp_video_support_overlay_watch_on_youtube": "Watch on YouTube:",
-  "overview_period_select_helper": "",
-  "search_helper": "",
-  "form_helper_assigned_ip": ""
+  "cmp_helper_overview_period_select": "",
+  "cmp_helper_search": ""
 }
