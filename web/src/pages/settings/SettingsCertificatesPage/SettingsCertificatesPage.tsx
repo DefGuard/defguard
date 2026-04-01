@@ -29,7 +29,7 @@ export const SettingsCertificatesPage = () => {
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
-          icon="customize"
+          icon="aliases"
           title={m.settings_certs_certs_title()}
           subtitle={m.settings_certs_certs_description()}
         />

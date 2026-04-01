@@ -42,7 +42,7 @@ export const SettingsCaPage = () => {
       <Breadcrumbs links={breadcrumbs} />
       <SettingsLayout>
         <SettingsHeader
-          icon="customize"
+          icon="aliases"
           title={m.settings_certs_ca_title()}
           subtitle={m.settings_certs_ca_description()}
         />
