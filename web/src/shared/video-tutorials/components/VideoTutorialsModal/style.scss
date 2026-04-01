@@ -18,9 +18,10 @@
   background: var(--bg-default);
   border-radius: var(--radius-lg);
   box-shadow: 0 6px 30px 0 rgb(0 0 0 / 12%);
-  width: 960px;
+  width: 1014px;
   max-width: 95vw;
-  max-height: 85vh;
+  height: 625px;
+  max-height: 95vh;
   overflow: hidden;
 }
 
@@ -55,8 +56,10 @@
 
 .tutorials-modal-body {
   display: flex;
+  align-items: stretch;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   padding: var(--spacing-xl);
   gap: var(--spacing-2xl);
 }
@@ -70,6 +73,8 @@
   flex-direction: column;
   width: 350px;
   flex-shrink: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .tutorials-modal-search-separator {
@@ -82,6 +87,7 @@
   flex-direction: column;
   gap: var(--spacing-md);
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
