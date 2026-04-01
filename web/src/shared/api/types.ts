@@ -27,7 +27,7 @@ export interface MigrationWizardProxyUrl {
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
   location_state: MigrationWizardLocationState | null;
-  proxy_url: MigrationWizardProxyUrl | null;
+  proxy_url?: MigrationWizardProxyUrl | null;
 }
 
 export interface SessionInfo {
