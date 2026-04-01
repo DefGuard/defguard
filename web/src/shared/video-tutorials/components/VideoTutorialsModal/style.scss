@@ -270,12 +270,18 @@
 .tutorials-modal-video-info {
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+.tutorials-modal-video-text {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
 }
 
 .tutorials-modal-video-title {
-  font: var(--t-title-h5);
-  color: var(--fg-default);
+  font: var(--t-body-primary-600);
+  color: var(--fg-faded);
   margin: 0;
 }
 
@@ -288,8 +294,8 @@
 .tutorials-modal-video-links {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-xs);
+  gap: 12px;
+  margin-top: 0;
 }
 
 .tutorials-modal-link {
@@ -298,6 +304,14 @@
   gap: var(--spacing-xs);
   text-decoration: none;
   font: var(--t-body-sm-500);
+
+  .icon path {
+    fill: var(--fg-action);
+  }
+
+  span {
+    color: inherit;
+  }
 
   @include animate(opacity);
 
@@ -310,6 +324,6 @@
   }
 
   &--external {
-    color: var(--fg-muted);
+    color: var(--fg-action);
   }
 }

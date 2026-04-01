@@ -93,8 +93,10 @@ const VideoPlayer = ({ video }: VideoPlayerProps) => {
       </div>
 
       <div className="tutorials-modal-video-info">
-        <h3 className="tutorials-modal-video-title">{video.title}</h3>
-        <p className="tutorials-modal-video-description">{video.description}</p>
+        <div className="tutorials-modal-video-text">
+          <h3 className="tutorials-modal-video-title">{video.title}</h3>
+          <p className="tutorials-modal-video-description">{video.description}</p>
+        </div>
         <div className="tutorials-modal-video-links">
           <Link
             to={video.appRoute}
@@ -110,8 +112,9 @@ const VideoPlayer = ({ video }: VideoPlayerProps) => {
             rel="noreferrer"
             className="tutorials-modal-link tutorials-modal-link--external"
           >
-            <Icon icon="open-in-new-window" size={16} />
+            <Icon icon="arrow-small" size={16} rotationDirection={Direction.RIGHT} />
             <span>{m.cmp_video_tutorials_modal_learn_more()}</span>
+            <Icon icon="open-in-new-window" size={16} />
           </a>
         </div>
       </div>
