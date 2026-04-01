@@ -55,6 +55,7 @@ fn set_test_license_business() {
         customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
         limits: None,
         subscription: false,
+        support_type: crate::enterprise::license::SupportType::Basic,
         tier: LicenseTier::Business,
         valid_until: None,
         version_date_limit: None,

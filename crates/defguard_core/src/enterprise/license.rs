@@ -28,6 +28,7 @@ use tokio::time::sleep;
 use super::limits::Counts;
 use crate::grpc::proto::enterprise::license::{
     LicenseKey, LicenseLimits, LicenseMetadata, LicenseTier as LicenseTierProto,
+    SupportType as SupportTypeProto,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -85,6 +86,44 @@ pub enum LicenseTier {
     Enterprise,
 }
 
+impl TryFrom<LicenseTierProto> for LicenseTier {
+    type Error = LicenseError;
+
+    fn try_from(value: LicenseTierProto) -> Result<Self, Self::Error> {
+        match value {
+            LicenseTierProto::Enterprise => Ok(LicenseTier::Enterprise),
+            // fall back to Business tier for legacy licenses
+            LicenseTierProto::Business | LicenseTierProto::Unspecified => Ok(LicenseTier::Business),
+        }
+    }
+}
+
+/// Represents support types
+///
+/// Variant order must be maintained to reflect protos order
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum SupportType {
+    Free,
+    Basic,
+    Direct,
+    BasicEnterprise,
+    DirectEnterprise,
+}
+
+impl TryFrom<SupportTypeProto> for SupportType {
+    type Error = LicenseError;
+
+    fn try_from(value: SupportTypeProto) -> Result<Self, Self::Error> {
+        match value {
+            SupportTypeProto::Unspecified | SupportTypeProto::Free => Ok(Self::Free),
+            SupportTypeProto::Basic => Ok(Self::Basic),
+            SupportTypeProto::Direct => Ok(Self::Direct),
+            SupportTypeProto::BasicEnterprise => Ok(Self::BasicEnterprise),
+            SupportTypeProto::DirectEnterprise => Ok(Self::DirectEnterprise),
+        }
+    }
+}
+
 impl fmt::Display for LicenseTier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -103,6 +142,7 @@ pub struct License {
     pub limits: Option<LicenseLimits>,
     pub version_date_limit: Option<DateTime<Utc>>,
     pub tier: LicenseTier,
+    pub support_type: SupportType,
 }
 
 impl License {
@@ -114,6 +154,7 @@ impl License {
         limits: Option<LicenseLimits>,
         version_date_limit: Option<DateTime<Utc>>,
         tier: LicenseTier,
+        support_type: SupportType,
     ) -> Self {
         Self {
             customer_id,
@@ -122,6 +163,7 @@ impl License {
             limits,
             version_date_limit,
             tier,
+            support_type,
         }
     }
 
@@ -201,19 +243,19 @@ impl License {
                     None => None,
                 };
 
-                let license_tier = match LicenseTierProto::try_from(metadata.tier) {
-                    Ok(LicenseTierProto::Enterprise) => LicenseTier::Enterprise,
-                    // fall back to Business tier for legacy licenses
-                    Ok(LicenseTierProto::Business | LicenseTierProto::Unspecified) => {
-                        LicenseTier::Business
-                    }
-                    Err(err) => {
+                let license_tier = LicenseTierProto::try_from(metadata.tier)
+                    .map_err(|err| {
                         error!("Failed to read license tier from license metadata: {err}");
-                        return Err(LicenseError::DecodeError(
-                            "Failed to decode license tier metadata",
-                        ));
-                    }
-                };
+                        LicenseError::DecodeError("Failed to decode license tier metadata")
+                    })
+                    .and_then(LicenseTier::try_from)?;
+
+                let support_type = SupportTypeProto::try_from(metadata.support_type)
+                    .map_err(|err| {
+                        error!("Failed to read support type from license metadata: {err}");
+                        LicenseError::DecodeError("Failed to decode support type metadata")
+                    })
+                    .and_then(SupportType::try_from)?;
 
                 let license = License::new(
                     metadata.customer_id,
@@ -222,6 +264,7 @@ impl License {
                     metadata.limits,
                     version_date_limit,
                     license_tier,
+                    support_type,
                 );
 
                 if license.requires_renewal() {
@@ -719,6 +762,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -730,6 +774,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -741,6 +786,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -752,6 +798,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -763,6 +810,7 @@ mod test {
             None,
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
 
@@ -781,6 +829,7 @@ mod test {
             }),
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_err());
 
@@ -797,6 +846,7 @@ mod test {
             }),
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         assert!(validate_license(Some(&license), &counts, LicenseTier::Business).is_ok());
     }
@@ -814,6 +864,50 @@ mod test {
         let enterprise_license = "Ci4KJDRiYjMzZTUyLWUzNGMtNGQyMS1iNDVhLTkxY2EzYTMzNGMwORiy7KTKBjACErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCaT/7sgAKCRCohGwBApqEhIMzBACGd7vIyLaRVGV/MAD8bpgWURG1x1tlxD9ehaSNkk01GkfZc+6+QwiTUBUOSp0MKPtuLmow5AIRKS9M75CQQ4bGtjLWO5cXJm1sduRpTvXwPLXNkRFPSxhjHmo4yjFFHMHMySqQE2WUjcz/b5dMT/WNqWYg7tSfT72eiK18eSVFTA==";
         let enterprise_license = License::from_base64(enterprise_license).unwrap();
         assert_eq!(enterprise_license.tier, LicenseTier::Enterprise);
+    }
+
+    #[test]
+    fn test_support_type_mapping() {
+        assert_eq!(
+            SupportType::try_from(SupportTypeProto::Unspecified).unwrap(),
+            SupportType::Free
+        );
+        assert_eq!(
+            SupportType::try_from(SupportTypeProto::Free).unwrap(),
+            SupportType::Free
+        );
+        assert_eq!(
+            SupportType::try_from(SupportTypeProto::Basic).unwrap(),
+            SupportType::Basic
+        );
+        assert_eq!(
+            SupportType::try_from(SupportTypeProto::Direct).unwrap(),
+            SupportType::Direct
+        );
+        assert_eq!(
+            SupportType::try_from(SupportTypeProto::BasicEnterprise).unwrap(),
+            SupportType::BasicEnterprise
+        );
+        assert_eq!(
+            SupportType::try_from(SupportTypeProto::DirectEnterprise).unwrap(),
+            SupportType::DirectEnterprise
+        );
+    }
+
+    #[test]
+    fn test_license_tier_mapping() {
+        assert_eq!(
+            LicenseTier::try_from(LicenseTierProto::Unspecified).unwrap(),
+            LicenseTier::Business
+        );
+        assert_eq!(
+            LicenseTier::try_from(LicenseTierProto::Business).unwrap(),
+            LicenseTier::Business
+        );
+        assert_eq!(
+            LicenseTier::try_from(LicenseTierProto::Enterprise).unwrap(),
+            LicenseTier::Enterprise
+        );
     }
 
     #[sqlx::test]

@@ -14,6 +14,15 @@ enum LicenseTier {
   LICENSE_TIER_ENTERPRISE = 2;
 }
 
+enum SupportType {
+  SUPPORT_TYPE_UNSPECIFIED = 0;
+  SUPPORT_TYPE_FREE = 1;
+  SUPPORT_TYPE_BASIC = 2;
+  SUPPORT_TYPE_DIRECT = 3;
+  SUPPORT_TYPE_BASIC_ENTERPRISE = 4;
+  SUPPORT_TYPE_DIRECT_ENTERPRISE = 5;
+}
+
 message LicenseMetadata {
     string customer_id = 1;
     bool subscription = 2;
@@ -21,6 +30,7 @@ message LicenseMetadata {
     LicenseLimits limits = 4;
     optional int64 version_date_limit = 5;
     LicenseTier tier = 6;
+    SupportType support_type = 7;
 }
 
 message LicenseKey {
