@@ -5,13 +5,14 @@
 /// `CoreResponse` payloads that come back.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use defguard_common::db::models::{Device, User, polling_token::PollingToken};
+use defguard_common::db::models::{Device, User, biometric_auth::BiometricAuth, polling_token::PollingToken};
 use defguard_core::{
     events::{BidiStreamEventType, EnrollmentEvent},
     grpc::GatewayEvent,
 };
 use defguard_proto::proxy::{
-    CoreRequest, ExistingDevice, MfaMethod, NewDevice, core_request, core_response,
+    CoreRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest, core_request,
+    core_response,
 };
 
 use super::support::{
@@ -596,8 +597,142 @@ async fn test_code_mfa_setup_finish_wrong_totp_code_returns_error(
     context.finish().await.expect_server_finished().await;
 }
 
-/// Requesting `CodeMfaSetupStart` with an unsupported method (e.g. `Oidc`)
-/// must be rejected with `InvalidArgument`.
+// ---------------------------------------------------------------------------
+// RegisterMobileAuth tests
+// ---------------------------------------------------------------------------
+
+/// A valid `auth_pub_key` for tests: 32 zero bytes, base64-encoded.
+/// `BiometricAuth::validate_pubkey` checks only that base64-decode yields
+/// exactly `ed25519_dalek::PUBLIC_KEY_LENGTH` (32) bytes.
+const VALID_ED25519_PUBKEY_B64: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+/// `RegisterMobileAuth` with a valid enrollment session, a known WireGuard
+/// device, and a valid ed25519 public key must return `Empty` and persist a
+/// `BiometricAuth` row in the database.
+#[sqlx::test]
+async fn test_register_mobile_auth_happy_path(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let (user, device) = create_user_with_device(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 300,
+        device_info: None,
+        payload: Some(core_request::Payload::RegisterMobileAuth(
+            RegisterMobileAuthRequest {
+                token: token.id.clone(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_string(),
+                device_pub_key: device.wireguard_pubkey.clone(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    assert!(
+        matches!(response.payload, Some(core_response::Payload::Empty(()))),
+        "RegisterMobileAuth with valid data must return Empty, got: {:?}",
+        response.payload.as_ref().map(std::mem::discriminant)
+    );
+
+    // The handler must have created a BiometricAuth row for the device.
+    let bio_auth = BiometricAuth::find_by_device_id(&context.pool, device.id)
+        .await
+        .expect("DB query for BiometricAuth failed")
+        .expect("expected a BiometricAuth row after RegisterMobileAuth");
+    assert_eq!(
+        bio_auth.pub_key, VALID_ED25519_PUBKEY_B64,
+        "BiometricAuth.pub_key must equal the submitted auth_pub_key"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// `RegisterMobileAuth` with a `device_pub_key` that is not a valid WireGuard
+/// public key (fails `Device::validate_pubkey`) must return `InvalidArgument`.
+#[sqlx::test]
+async fn test_register_mobile_auth_invalid_device_pubkey(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 301,
+        device_info: None,
+        payload: Some(core_request::Payload::RegisterMobileAuth(
+            RegisterMobileAuthRequest {
+                token: token.id.clone(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_string(),
+                // Not a valid WireGuard public key.
+                device_pub_key: "not-a-valid-wireguard-pubkey".to_string(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "invalid device pubkey must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// `RegisterMobileAuth` with a valid `device_pub_key` that does not correspond
+/// to any device in the database must return `InvalidArgument`
+/// ("Device with given public key doesn't exist").
+///
+/// Note: `BiometricAuth::validate_pubkey` in the server validates
+/// `device_pub_key` (not `auth_pub_key`), and WireGuard keys are 32 bytes so
+/// the check always passes for syntactically valid WireGuard keys.  The first
+/// error path that exercises `auth_pub_key` rejection would require a key
+/// whose WireGuard decode fails — but a valid WireGuard key passes both
+/// `Device::validate_pubkey` and `BiometricAuth::validate_pubkey`.  The
+/// interesting third error path is therefore "key valid but no device found".
+#[sqlx::test]
+async fn test_register_mobile_auth_device_not_found(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+
+    // A syntactically valid WireGuard pubkey that has not been inserted into the DB.
+    let unknown_pubkey = "HCk2Q1BdaneEkZ6ruMXS3+z5BhMgLTpHVGFue4iVoq8=";
+
+    context.mock_proxy().send_request(CoreRequest {
+        id: 302,
+        device_info: None,
+        payload: Some(core_request::Payload::RegisterMobileAuth(
+            RegisterMobileAuthRequest {
+                token: token.id.clone(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_string(),
+                device_pub_key: unknown_pubkey.to_string(),
+            },
+        )),
+    });
+
+    let response = context.mock_proxy_mut().recv_outbound().await;
+    let code = assert_error_response(&response);
+    assert_eq!(
+        code,
+        tonic::Code::InvalidArgument,
+        "device_pub_key not in DB must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
 #[sqlx::test]
 async fn test_code_mfa_setup_unsupported_method_returns_error(
     _: PgPoolOptions,

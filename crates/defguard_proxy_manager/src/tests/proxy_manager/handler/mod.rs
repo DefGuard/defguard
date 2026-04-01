@@ -1,5 +1,6 @@
 mod support;
 
+mod acme;
 mod enrollment;
 mod lifecycle;
 mod mfa;

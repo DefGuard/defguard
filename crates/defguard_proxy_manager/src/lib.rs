@@ -212,23 +212,11 @@ impl ProxyManager {
             let url = reqwest::Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))
                 .map_err(ProxyError::from)?;
             let url_str = url.to_string();
-            if let Some(socket_path) = test_support.socket_path_for_url(&url_str) {
-                let mut handler = ProxyHandler::new_with_test_socket(
-                    self.pool.clone(),
-                    url,
-                    &self.tx,
-                    remote_mfa_responses,
-                    sessions,
-                    shutdown_rx,
-                    proxy.id,
-                    proxy_cookie_key,
-                    socket_path,
-                );
-                handler.attach_test_support(test_support);
-                return Ok(handler);
-            }
-            // Fall through to normal construction if no socket registered.
-            // Attach test_support anyway.
+            let socket_path = test_support.socket_path_for_url(&url_str);
+
+            // Always construct with the shared handler_tx_map so that
+            // BroadcastHttpsCerts (and any other manager-level broadcasts) can
+            // reach this handler.
             let mut handler = ProxyHandler::from_proxy(
                 proxy,
                 self.pool.clone(),
@@ -239,6 +227,10 @@ impl ProxyManager {
                 proxy_cookie_key,
                 handler_tx_map,
             )?;
+
+            if let Some(path) = socket_path {
+                handler.set_test_socket_path(path);
+            }
             handler.attach_test_support(test_support);
             return Ok(handler);
         }

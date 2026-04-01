@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use defguard_common::types::proxy::ProxyControlMessage;
+use defguard_proto::proxy::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::tests::common::{
@@ -497,6 +498,64 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
         after_keep.is_connected(),
         "proxy not targeted by ShutdownConnection must remain connected after license expiry"
     );
+
+    context.finish().await;
+}
+
+// ---------------------------------------------------------------------------
+// BroadcastHttpsCerts
+// ---------------------------------------------------------------------------
+
+/// `ProxyControlMessage::BroadcastHttpsCerts` must deliver an `HttpsCerts`
+/// `CoreResponse` to every proxy handler that is currently registered in
+/// `handler_tx_map` (i.e. every handler whose bidi stream is live).
+///
+/// Setup: one enabled proxy, connected and past handshake.  Send the control
+/// message and assert the mock proxy receives the matching `HttpsCerts`.
+#[sqlx::test]
+async fn test_broadcast_https_certs_reaches_proxy(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = ManagerTestContext::new(options).await;
+
+    let proxy = create_proxy(&context.pool).await;
+    let mut mock_proxy = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy, &mock_proxy);
+
+    context.start().await;
+    complete_manager_proxy_handshake(&mut mock_proxy).await;
+
+    // Ensure the handler is connected (and therefore registered in handler_tx_map).
+    wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
+
+    let cert_pem = "-----BEGIN CERTIFICATE-----\nTESTCERT\n-----END CERTIFICATE-----\n".to_string();
+    let key_pem = "-----BEGIN PRIVATE KEY-----\nTESTKEY\n-----END PRIVATE KEY-----\n".to_string();
+
+    context
+        .proxy_control_tx
+        .send(ProxyControlMessage::BroadcastHttpsCerts {
+            cert_pem: cert_pem.clone(),
+            key_pem: key_pem.clone(),
+        })
+        .await
+        .expect("failed to send BroadcastHttpsCerts control message");
+
+    // The mock proxy must receive an HttpsCerts response from the handler.
+    let response = mock_proxy.recv_outbound().await;
+    match response.payload {
+        Some(core_response::Payload::HttpsCerts(h)) => {
+            assert_eq!(
+                h.cert_pem, cert_pem,
+                "broadcast cert_pem must match the value sent in BroadcastHttpsCerts"
+            );
+            assert_eq!(
+                h.key_pem, key_pem,
+                "broadcast key_pem must match the value sent in BroadcastHttpsCerts"
+            );
+        }
+        other => panic!(
+            "expected HttpsCerts response, got: {:?}",
+            other.as_ref().map(std::mem::discriminant)
+        ),
+    }
 
     context.finish().await;
 }

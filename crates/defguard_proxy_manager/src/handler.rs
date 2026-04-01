@@ -1024,6 +1024,15 @@ impl ProxyHandler {
         self.test_support = Some(test_support);
     }
 
+    /// Override the transport to connect via a Unix socket instead of TLS.
+    ///
+    /// Used in manager-level tests where the handler must share the manager's
+    /// `handler_tx_map` (constructed via `from_proxy`) but still reach a mock
+    /// proxy over a Unix socket.
+    pub(crate) fn set_test_socket_path(&mut self, socket_path: PathBuf) {
+        self.test_transport = ProxyTestTransport::with_socket_path(socket_path);
+    }
+
     fn handler_retry_delay(&self) -> Duration {
         self.test_support
             .as_ref()
