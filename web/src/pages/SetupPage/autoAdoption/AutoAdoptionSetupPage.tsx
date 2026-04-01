@@ -51,7 +51,7 @@ const AutoAdoptionFailedWelcomeContent = ({
 }: AutoAdoptionWelcomeContentProps) => {
   return (
     <div className="auto-adoption-welcome-content">
-      <Divider spacing={ThemeSpacing.Xl} />
+      <Divider spacing={ThemeSpacing.Xl2} />
       <div className="summary">
         <p className="summary-title">
           {m.initial_setup_auto_adoption_failed_summary_title()}
@@ -138,7 +138,7 @@ const AutoAdoptionSuccessWelcomeContent = ({
   onStartFlow,
 }: AutoAdoptionSuccessWelcomeContentProps) => (
   <div className="auto-adoption-welcome-content">
-    <Divider spacing={ThemeSpacing.Lg} />
+    <Divider spacing={ThemeSpacing.Xl2} />
     <p>{m.initial_setup_auto_adoption_success_guide_intro()}</p>
     <SizedBox height={ThemeSpacing.Md} />
     <p>{m.initial_setup_auto_adoption_success_guide_description()}</p>
