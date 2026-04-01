@@ -2,15 +2,9 @@
 // VideoTutorialsModal
 // Two-panel modal: left list + right player.
 // ModalFoundation provides the backdrop, portal, and animation.
+// List-panel styles live in VideoList/style.scss.
+// Player/skeleton/error styles live in VideoPlayer/style.scss.
 // ---------------------------------------------------------------------------
-
-.tutorials-modal-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
 
 .tutorials-modal {
   display: flex;
@@ -65,121 +59,6 @@
 }
 
 // ---------------------------------------------------------------------------
-// Left panel: search + section list (350px)
-// ---------------------------------------------------------------------------
-
-.tutorials-modal-list-panel {
-  display: flex;
-  flex-direction: column;
-  width: 350px;
-  flex-shrink: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.tutorials-modal-search-separator {
-  padding-bottom: var(--spacing-md);
-  flex-shrink: 0;
-}
-
-.tutorials-modal-sections {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.tutorials-modal-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.tutorials-modal-section-header {
-  display: flex;
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font: var(--t-body-sm-600);
-  color: var(--fg-default);
-  text-align: left;
-  border-radius: var(--radius-md);
-
-  @include animate(background-color);
-
-  &:hover {
-    background: var(--bg-muted);
-  }
-}
-
-.tutorials-modal-section-videos {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-// Override Fold's default padding-bottom/left that exists to fix a single-button edge case
-.tutorials-modal-section-videos-fold {
-  padding-bottom: 0;
-  padding-left: 0;
-}
-
-.tutorials-modal-video-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  width: 100%;
-  padding: var(--spacing-sm);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  font: var(--t-body-sm-400);
-  color: var(--fg-neutral);
-  border-radius: var(--radius-lg);
-
-  @include animate(background-color, color);
-
-  .icon path {
-    fill: var(--fg-neutral);
-
-    @include animate(fill);
-  }
-
-  &:hover {
-    background: var(--bg-muted);
-    color: var(--fg-action);
-
-    .icon path {
-      fill: var(--fg-action);
-    }
-  }
-
-  &.selected {
-    background: var(--bg-muted);
-    color: var(--fg-action);
-
-    .icon path {
-      fill: var(--fg-action);
-    }
-  }
-
-  span {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: inherit;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Right panel: video player + info (fills remaining space)
 // ---------------------------------------------------------------------------
 
@@ -210,39 +89,6 @@
     &:not(.loaded) {
       display: none;
     }
-  }
-}
-
-// Skeleton while iframe loads
-.tutorials-modal-iframe-skeleton {
-  width: 100%;
-  height: 100%;
-  line-height: 1;
-}
-
-// Error state
-.tutorials-modal-iframe-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  width: 100%;
-  height: 100%;
-  color: var(--fg-muted);
-
-  p {
-    font: var(--t-body-sm-400);
-    margin: 0;
-    text-align: center;
-  }
-
-  a {
-    font: var(--t-body-xs-400);
-    color: var(--fg-faded);
-    word-break: break-all;
-    text-align: center;
-    text-decoration: none;
   }
 }
 

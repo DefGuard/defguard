@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------------------
-// Video modal
+// VideoOverlay
 // ModalFoundation provides the backdrop and portal; we style the content here.
+// Error/skeleton/iframe styles live in VideoPlayer/style.scss.
 // ---------------------------------------------------------------------------
 
 .video-tutorials-modal-container {
@@ -17,6 +18,7 @@
   width: 920px;
   max-width: 90vw;
 
+  // The shared VideoPlayer renders the iframe directly; size it here.
   iframe {
     display: block;
     width: 100%;
@@ -28,85 +30,16 @@
       display: none;
     }
   }
-}
 
-// Skeleton shown while the iframe is loading.
-// aspect-ratio matches the iframe so the modal does not resize on swap.
-// overflow: hidden clips the skeleton shimmer to the rounded corners.
+  // Overlay skeleton needs the aspect-ratio wrapper so the modal does not resize.
+  .video-player-skeleton {
+    aspect-ratio: 16 / 9;
+  }
 
-.video-tutorials-overlay-skeleton {
-  aspect-ratio: 16 / 9;
-  width: 100%;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  line-height: 1;
-}
-
-.video-tutorials-overlay-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-emphasis);
-
-  // Match the iframe's 16/9 aspect-ratio so the modal does not resize on error.
-  aspect-ratio: 16 / 9;
-
-  // Figma: 48px gap between icon-group and link-group
-  gap: 48px;
-}
-
-.video-tutorials-overlay-error-icon-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  // Figma: 20px gap between badge and title
-  gap: 20px;
-}
-
-.video-tutorials-overlay-error-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  // Figma: 32px padding, full pill, drop shadow
-  padding: 32px;
-  background-color: var(--bg-default);
-  border-radius: var(--radius-full);
-  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 7%);
-}
-
-.video-tutorials-overlay-error-title {
-  font: var(--t-title-h5);
-  color: var(--fg-muted);
-  text-align: center;
-  margin: 0;
-}
-
-.video-tutorials-overlay-error-link-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-
-  // Figma: 8px gap between label and URL
-  gap: 8px;
-}
-
-.video-tutorials-overlay-error-label {
-  font: var(--t-body-xxs-500);
-  color: var(--fg-muted);
-  text-align: center;
-  margin: 0;
-}
-
-.video-tutorials-overlay-error-url {
-  font: var(--t-body-sm-400);
-  color: var(--fg-faded);
-  text-align: center;
-  word-break: break-all;
-  text-decoration: none;
+  // Overlay error fills the same 16/9 area.
+  .video-player-error-overlay {
+    aspect-ratio: 16 / 9;
+  }
 }
 
 // Modal close button — floats outside the modal card (top-right).
