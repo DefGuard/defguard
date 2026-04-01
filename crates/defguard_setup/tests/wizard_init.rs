@@ -1,10 +1,13 @@
-use defguard_common::db::{
-    models::{
-        User,
-        settings::initialize_current_settings,
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            User,
+            settings::initialize_current_settings,
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -16,7 +19,7 @@ async fn test_wizard_init_fresh_db(_: PgPoolOptions, options: PgConnectOptions) 
         .expect("Failed to initialize settings");
 
     // Fresh DB + no auto-adopt flags: Initial wizard
-    let wizard = Wizard::init(&pool, false)
+    let wizard = Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -47,7 +50,7 @@ async fn test_wizard_init_auto_adopt_flags(_: PgPoolOptions, options: PgConnectO
         .expect("Failed to initialize settings");
 
     // Fresh DB + both auto-adopt flags provided: AutoAdoption wizard
-    let wizard = Wizard::init(&pool, true)
+    let wizard = Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -90,7 +93,7 @@ async fn test_wizard_init_existing_data(_: PgPoolOptions, options: PgConnectOpti
     .expect("Failed to save user");
 
     // Existing data + no auto-adopt flags: Migration wizard
-    let wizard = Wizard::init(&pool, false)
+    let wizard = Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to init wizard");
 
@@ -116,12 +119,12 @@ async fn test_wizard_init_idempotent(_: PgPoolOptions, options: PgConnectOptions
         .await
         .expect("Failed to initialize settings");
 
-    let first = Wizard::init(&pool, false)
+    let first = Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to first init");
     assert_eq!(first.active_wizard, ActiveWizard::Initial);
 
-    let second = Wizard::init(&pool, false)
+    let second = Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to second init");
     assert_eq!(
@@ -130,7 +133,7 @@ async fn test_wizard_init_idempotent(_: PgPoolOptions, options: PgConnectOptions
         "Second init should resume the already-active wizard"
     );
 
-    let third = Wizard::init(&pool, true)
+    let third = Wizard::init(&pool, true, &DefGuardConfig::default())
         .await
         .expect("Failed to third init");
     assert_eq!(
@@ -146,7 +149,7 @@ async fn test_wizard_init_idempotent(_: PgPoolOptions, options: PgConnectOptions
     wizard.save(&pool).await.expect("Failed to save wizard");
 
     // Init after completion: completed flag is respected, nothing changes
-    let after_completion = Wizard::init(&pool, false)
+    let after_completion = Wizard::init(&pool, false, &DefGuardConfig::default())
         .await
         .expect("Failed to init after completion");
     assert!(
