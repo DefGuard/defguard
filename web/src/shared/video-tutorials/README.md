@@ -1,15 +1,20 @@
 # Video Tutorials
 
-The video tutorials widget displays route-specific YouTube video tutorials inside
-the authenticated app shell. A floating "Video tutorials" button appears in the
-bottom-right corner when videos are available for the current route. Clicking
-it opens a panel listing the relevant videos; clicking a video opens a full-screen
-overlay with an embedded YouTube player.
+The video tutorials module displays YouTube video tutorials inside the
+authenticated app shell. A floating "Video tutorials" button appears in the
+bottom-right corner. Clicking it opens a two-panel modal: the left panel shows
+a searchable, collapsible list of all tutorial sections; the right panel shows
+the selected video in an embedded YouTube player with its title, description,
+and links to the relevant app page and documentation.
 
-The widget is mounted in `src/routes/_authorized/_default.tsx` and is therefore
+The module is mounted in `src/routes/_authorized/_default.tsx` and is therefore
 available across the entire authenticated layout. While a video is loading a
 skeleton placeholder is shown; if the video fails to load within 8 seconds, a
 "Video unavailable" message is displayed instead.
+
+A separate floating launcher button (`NavTutorialsButton`) is shown in the
+navigation when at least one video is available for the current route. Clicking
+it also opens the modal.
 
 ---
 
@@ -17,25 +22,23 @@ skeleton placeholder is shown; if the video fails to load within 8 seconds, a
 
 ```
 video-tutorials/
-├── VideoTutorialsWidget.tsx   — root component; mounted in _default.tsx
-├── resolved.tsx             — useResolvedVideoTutorials, useVideoTutorialsRouteKey hooks
+├── types.ts                 — VideoTutorial, VideoTutorialsSection, VideoTutorialsMappings types
 ├── data.ts                  — Zod schema, parseVideoTutorials(), videoTutorialsPath
-├── resolver.ts              — resolveVideoTutorials() — version/route resolution logic
+├── resolver.ts              — resolveVideoTutorials(), resolveAllSections() — version/route resolution logic
+├── resolved.tsx             — useResolvedVideoTutorials, useAllVideoTutorialsSections, useVideoTutorialsRouteKey hooks
 ├── route-key.ts             — canonicalizeRouteKey()
 ├── version.ts               — parseVersion(), compareVersions()
-├── types.ts                 — VideoTutorial, VideoTutorialsMappings types
-├── style.scss               — widget, launcher, and panel styles
 └── components/
-    ├── Thumbnail/           — thumbnail with skeleton while loading and icon on error
-    ├── VideoCard/           — clickable card shown in the panel list
-    └── VideoOverlay/        — modal with iframe, skeleton while loading, and error placeholder
+    ├── NavTutorialsButton/  — floating launcher button shown in navigation
+    ├── VideoOverlay/        — full-screen overlay player (route-contextual, legacy)
+    └── VideoTutorialsModal/ — two-panel modal: searchable section list + inline player
 ```
 
 ---
 
 ## Testing without remote API access
 
-In production the widget fetches its video mapping via the shared update-service
+In production the module fetches its video mapping via the shared update-service
 axios client. The default URL is:
 
 ```
@@ -70,7 +73,7 @@ available on the same origin — no extra process, no CORS issues.
    VITE_VIDEO_TUTORIALS_URL=/content/video-tutorials.json
    ```
 
-3. Start the dev server as usual (`pnpm dev`). The widget will pick up the file
+3. Start the dev server as usual (`pnpm dev`). The module will pick up the file
    on page load.
 
 > Do not commit the test file — `web/public/content/` is not git-ignored by
@@ -119,42 +122,69 @@ endpoint on the same server.
 {
   "versions": {
     // Version key: "major.minor" or "major.minor.patch"
-    "2.2": {
-      // Route key: must start with "/". Use route templates, not runtime URLs.
-      // Trailing slashes are stripped (except for the root "/").
-      "/settings": [
-        {
-          // Required. Exactly 11-character YouTube video ID (from the video URL).
-          "youtubeVideoId": "abc123DEF45",
+    "2.2": [
+      // Each entry is a named section shown as a collapsible group in the modal.
+      {
+        "name": "Getting Started",
+        "videos": [
+          {
+            // Required. Exactly 11-character YouTube video ID (from ?v= or short URL).
+            "youtubeVideoId": "abc123DEF45",
 
-          // Required. Non-empty display title shown on the card.
-          "title": "Configuring settings"
-        }
-      ],
+            // Required. Non-empty display title shown in the list and above the player.
+            "title": "Defguard overview",
 
-      // A route can have multiple videos.
-      "/users": [
-        { "youtubeVideoId": "xyz987GHI12", "title": "Managing users" },
-        { "youtubeVideoId": "lmn456JKL78", "title": "User roles overview" }
-      ],
+            // Required. Non-empty description shown below the player.
+            "description": "A high-level walkthrough of Defguard.",
 
-      // Dynamic route segments use TanStack Router template syntax.
-      "/vpn-overview/$locationId": [
-        { "youtubeVideoId": "pqr321MNO65", "title": "VPN location walkthrough" }
-      ],
+            // Required. In-app route this video is associated with.
+            // Must start with "/". Use TanStack Router template paths.
+            "appRoute": "/vpn-overview",
 
-      // An explicit empty array suppresses fallback to older versions for this
-      // route — the widget will not appear on this route for version 2.2 users.
-      "/legacy-page": []
-    },
+            // Required. External documentation URL shown as a link below the player.
+            "docsUrl": "https://docs.defguard.net/introduction"
+          },
+          {
+            "youtubeVideoId": "xyz987GHI12",
+            "title": "Initial setup wizard",
+            "description": "Configure your first location and gateway.",
+            "appRoute": "/locations",
+            "docsUrl": "https://docs.defguard.net/admin-and-features/initial-setup"
+          }
+        ]
+      },
+      {
+        "name": "VPN & Firewall",
+        "videos": [
+          {
+            "youtubeVideoId": "pqr321MNO65",
+            "title": "Firewall rules explained",
+            "description": "How ACL rules control traffic between VPN peers.",
+            // Dynamic route segments use TanStack Router template syntax.
+            "appRoute": "/acl/rules",
+            "docsUrl": "https://docs.defguard.net/admin-and-features/firewall/rules"
+          }
+        ]
+      }
+    ],
 
-    // Older version. Only consulted when the current app version is older than
-    // 2.2, or when 2.2 does not define the route being looked up.
-    "2.0": {
-      "/settings": [
-        { "youtubeVideoId": "old000SET00", "title": "Settings (legacy)" }
-      ]
-    }
+    // Older version. Only consulted by resolveVideoTutorials() for the floating
+    // launcher button when the current route has no match in a newer version.
+    // resolveAllSections() (used by the modal) always uses the newest eligible version only.
+    "2.0": [
+      {
+        "name": "Getting Started",
+        "videos": [
+          {
+            "youtubeVideoId": "old000OVR00",
+            "title": "Defguard overview (legacy)",
+            "description": "Legacy overview video.",
+            "appRoute": "/vpn-overview",
+            "docsUrl": "https://docs.defguard.net/introduction"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -164,28 +194,49 @@ endpoint on the same server.
 | Field | Required | Description |
 |---|---|---|
 | `youtubeVideoId` | Yes | Exactly 11 characters: letters, digits, `-`, `_`. Found in any YouTube video URL after `?v=` or in the short URL path. |
-| `title` | Yes | Non-empty string. Displayed on the video card. |
+| `title` | Yes | Non-empty string. Displayed in the section list and as the heading above the player. |
+| `description` | Yes | Non-empty string. Displayed as body text below the player. |
+| `appRoute` | Yes | Must start with `/`. Use TanStack Router template paths (e.g. `/vpn-overview/$locationId`), not runtime URLs. Trailing slashes are stripped during canonicalization. |
+| `docsUrl` | Yes | Valid URL. Shown as a "Learn more in Documentation" link below the player. |
 
-### Route key rules
+### Section structure
 
-- Must start with `/`.
-- Use **route template paths** (e.g. `/vpn-overview/$locationId`), not runtime
-  URLs with actual parameter values. The widget matches against TanStack Router's
-  `fullPath` template, not the resolved pathname.
-- Trailing slashes are stripped during parsing, so `/settings/` and `/settings`
-  are treated as the same key. Duplicates after normalisation are rejected.
+Each version value is an **ordered array of sections**. Sections are displayed
+in the order they appear in the array; videos within a section are displayed in
+their array order.
+
+There is no concept of a per-section `appRoute` — route association is set
+per-video via the `appRoute` field. A section can contain videos for multiple
+different routes.
 
 ---
 
 ## Version resolution
 
-When looking up videos for the current route, the resolver iterates mapped
-versions from **newest to oldest** and returns the video list from the first
-version that defines the current route key.
+The module uses two different resolution strategies depending on the context:
+
+### Modal (all sections)
+
+`resolveAllSections()` returns the **complete section list** from the single
+newest version whose key is ≤ the runtime app version. It does **not** fall back
+to older versions — the modal always shows one version's worth of content.
+
+### Floating launcher button (route-specific videos)
+
+`resolveVideoTutorials()` walks eligible versions from **newest to oldest** and
+returns the videos from the first version that has at least one video whose
+`appRoute` matches the current route:
+
+- Only version keys that are ≤ the runtime app version are eligible.
+- Eligible versions are walked newest-to-oldest.
+- The first version with a matching `appRoute` video wins; all matching videos
+  from that version (across all sections) are returned.
+- If no version has a matching video for the current route, the launcher button
+  is not shown.
+
+### Common rules (both strategies)
 
 - If the runtime app version has a prerelease or build suffix (e.g. `2.2.0-rc.1`)
   the suffix is stripped before matching, so `2.2.0-rc.1` resolves as `2.2.0`.
-- If a version defines a route with an **explicit empty array**, that empty result
-  is returned and older versions are **not** consulted — this is intentional and
-  allows suppressing the widget on a specific route for a given version.
-- If no version defines the current route, the widget does not appear.
+- If the app version string cannot be parsed, or no eligible version exists,
+  both functions return an empty result.
