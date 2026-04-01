@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import './style.scss';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
@@ -18,6 +19,11 @@ export const LocationsOverviewPage = () => {
   const navigate = useNavigate();
   const { data: locations } = useSuspenseQuery(getLocationsQueryOptions);
   const { period } = useSearch({ from: '/_authorized/_default/vpn-overview/' });
+
+  const sortedLocations = useMemo(
+    () => [...locations].sort((a, b) => a.name.localeCompare(b.name)),
+    [locations],
+  );
 
   const { data: allStats } = useQuery({
     queryFn: () => api.location.getLocationsSummary(period),
@@ -69,7 +75,7 @@ export const LocationsOverviewPage = () => {
             </OverviewCard>
           </li>
         )}
-        {locations.map((location) => (
+        {sortedLocations.map((location) => (
           <li key={location.id}>
             <LocationOverviewCard
               location={location}
