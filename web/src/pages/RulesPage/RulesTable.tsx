@@ -202,7 +202,11 @@ export const RulesTable = ({
 
           return (
             <TableCell>
-              {row.any_address ? <span>{m.acl_destination_any_address()}</span> : hasManualAddresses && <span>{manualAddresses}</span>}
+              {row.any_address ? (
+                <span>{m.acl_destination_any_address()}</span>
+              ) : (
+                hasManualAddresses && <span>{manualAddresses}</span>
+              )}
               {row.aliases.map((aliasId) => {
                 const alias = aliases[aliasId];
                 if (!alias) return null;

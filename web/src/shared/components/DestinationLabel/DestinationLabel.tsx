@@ -1,10 +1,10 @@
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import './style.scss';
+import { m } from '../../../paraglide/messages';
 import { Icon } from '../../defguard-ui/components/Icon';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
 import type { DestinationLabelProps } from './types';
-import { m } from '../../../paraglide/messages';
 
 export const DestinationLabel = ({
   name,
@@ -43,7 +43,9 @@ export const DestinationLabel = ({
         <>
           <Icon icon="ip-suggest" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
-          <span className="info wrap">{anyAddress ? m.acl_destination_any_address() : addresses}</span>
+          <span className="info wrap">
+            {anyAddress ? m.acl_destination_any_address() : addresses}
+          </span>
         </>
       )}
     </div>
