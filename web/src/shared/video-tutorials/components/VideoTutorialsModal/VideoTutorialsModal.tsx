@@ -7,6 +7,7 @@ import { Fold } from '../../../defguard-ui/components/Fold/Fold';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
+import { Search } from '../../../defguard-ui/components/Search/Search';
 import { Direction } from '../../../defguard-ui/types';
 import { useApp } from '../../../hooks/useApp';
 import { useAllVideoTutorialsSections, useVideoTutorialsRouteKey } from '../../resolved';
@@ -171,14 +172,11 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
 
   return (
     <div className="tutorials-modal-list-panel">
-      <div className="tutorials-modal-search-wrapper">
-        <Icon icon="search" size={16} />
-        <input
-          type="search"
-          className="tutorials-modal-search"
-          placeholder={m.cmp_video_tutorials_modal_search_placeholder()}
+      <div className="tutorials-modal-search-separator">
+        <Search
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={setSearch}
+          placeholder={m.cmp_video_tutorials_modal_search_placeholder()}
         />
       </div>
 

@@ -32,13 +32,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  box-sizing: border-box;
+  height: 52px;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .tutorials-modal-title {
-  font: var(--t-title-h4);
+  font: var(--t-body-primary-600);
   color: var(--fg-default);
   margin: 0;
 }
@@ -55,7 +57,8 @@
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-2xl);
 }
 
 // ---------------------------------------------------------------------------
@@ -66,50 +69,25 @@
   display: flex;
   flex-direction: column;
   width: 350px;
-  min-width: 280px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border-default);
-  overflow: hidden;
 }
 
-.tutorials-modal-search-wrapper {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border-default);
+.tutorials-modal-search-separator {
+  padding-bottom: var(--spacing-md);
   flex-shrink: 0;
-
-  // Icon color
-  color: var(--fg-muted);
-}
-
-.tutorials-modal-search {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font: var(--t-body-sm-400);
-  color: var(--fg-default);
-
-  &::placeholder {
-    color: var(--fg-muted);
-  }
-
-  // Remove default browser search cancel button
-  &::-webkit-search-cancel-button {
-    display: none;
-  }
 }
 
 .tutorials-modal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-sm) 0;
 }
 
 .tutorials-modal-section {
-  padding: var(--spacing-sm) 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .tutorials-modal-section-header {
@@ -205,8 +183,7 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: var(--spacing-xl);
-  gap: var(--spacing-lg);
+  gap: var(--spacing-2xl);
 }
 
 // iframe wrapper maintains 16/9 aspect ratio
@@ -301,9 +278,9 @@
 .tutorials-modal-link {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   text-decoration: none;
-  font: var(--t-body-sm-500);
+  font: var(--t-body-sm-400);
 
   .icon path {
     fill: var(--fg-action);
