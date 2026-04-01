@@ -112,19 +112,38 @@
   padding: var(--spacing-sm) 0;
 }
 
-.tutorials-modal-section-name {
-  font: var(--t-body-xs-600);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: var(--spacing-xs) var(--spacing-lg);
-  margin: 0;
+.tutorials-modal-section-header {
+  display: flex;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: var(--t-body-sm-600);
+  color: var(--fg-default);
+  text-align: left;
+  border-radius: var(--radius-md);
+
+  @include animate(background-color);
+
+  &:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .tutorials-modal-section-videos {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Override Fold's default padding-bottom/left that exists to fix a single-button edge case
+.tutorials-modal-section-videos-fold {
+  padding-bottom: 0;
+  padding-left: 0;
 }
 
 .tutorials-modal-video-row {
@@ -132,13 +151,14 @@
   align-items: center;
   gap: var(--spacing-sm);
   width: 100%;
-  padding: var(--spacing-xs) var(--spacing-lg);
+  padding: var(--spacing-sm);
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
   font: var(--t-body-sm-400);
   color: var(--fg-muted);
+  border-radius: var(--radius-lg);
 
   @include animate(background-color, color);
 

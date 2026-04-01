@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { m } from '../../../../paraglide/messages';
+import { Fold } from '../../../defguard-ui/components/Fold/Fold';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../defguard-ui/components/IconButton/IconButton';
 import { ModalFoundation } from '../../../defguard-ui/components/ModalFoundation/ModalFoundation';
@@ -130,6 +131,15 @@ interface VideoListProps {
 
 const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
   const [search, setSearch] = useState('');
+  const [openSectionIndex, setOpenSectionIndex] = useState<number | null>(0);
+
+  // When sections change (modal opens/data reloads), reset accordion to first section.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset intentional on sections identity change
+  useEffect(() => {
+    setOpenSectionIndex(0);
+  }, [sections]);
+
+  const isSearching = search.trim().length > 0;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -145,6 +155,10 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
       .filter((s) => s.videos.length > 0);
   }, [sections, search]);
 
+  const handleSectionToggle = (index: number) => {
+    setOpenSectionIndex((prev) => (prev === index ? null : index));
+  };
+
   return (
     <div className="tutorials-modal-list-panel">
       <div className="tutorials-modal-search-wrapper">
@@ -159,34 +173,46 @@ const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps) => {
       </div>
 
       <div className="tutorials-modal-sections">
-        {filtered.map((section) => (
-          <div key={section.name} className="tutorials-modal-section">
-            <p className="tutorials-modal-section-name">{section.name}</p>
-            <ul className="tutorials-modal-section-videos">
-              {section.videos.map((video) => {
-                const isSelected = selectedVideo?.youtubeVideoId === video.youtubeVideoId;
-                return (
-                  <li key={video.youtubeVideoId}>
-                    <button
-                      type="button"
-                      className={`tutorials-modal-video-row${isSelected ? ' selected' : ''}`}
-                      onClick={() => onSelect(video)}
-                    >
-                      <Icon
-                        icon={isSelected ? 'play-filled' : 'play'}
-                        size={16}
-                        staticColor={
-                          isSelected ? ThemeVariable.FgAction : ThemeVariable.FgMuted
-                        }
-                      />
-                      <span>{video.title}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+        {filtered.map((section, index) => {
+          const isOpen = isSearching || openSectionIndex === index;
+          return (
+            <div key={section.name} className="tutorials-modal-section">
+              <button
+                type="button"
+                className="tutorials-modal-section-header"
+                onClick={() => handleSectionToggle(index)}
+              >
+                {section.name}
+              </button>
+              <Fold open={isOpen} contentClassName="tutorials-modal-section-videos-fold">
+                <ul className="tutorials-modal-section-videos">
+                  {section.videos.map((video) => {
+                    const isSelected =
+                      selectedVideo?.youtubeVideoId === video.youtubeVideoId;
+                    return (
+                      <li key={video.youtubeVideoId}>
+                        <button
+                          type="button"
+                          className={`tutorials-modal-video-row${isSelected ? ' selected' : ''}`}
+                          onClick={() => onSelect(video)}
+                        >
+                          <Icon
+                            icon={isSelected ? 'play-filled' : 'play'}
+                            size={16}
+                            staticColor={
+                              isSelected ? ThemeVariable.FgAction : ThemeVariable.FgMuted
+                            }
+                          />
+                          <span>{video.title}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Fold>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
