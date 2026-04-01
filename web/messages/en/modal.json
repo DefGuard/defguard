@@ -137,6 +137,7 @@
   "modal_network_device_manual_config_content": "Use the provided configuration file by importing it into your device's WireGuard app.",
   "modal_network_device_manual_config_download": "Download config file",
   "modal_network_device_manual_config_warning": "Defguard doesn't store private keys. Keys are generated in your browser — only the public key is saved. Download the configuration now; the private key won't be available later.",
+  "modal_user_device_config_warning": "Defguard doesn't store private keys. This configuration excludes them and is not intended for client import or setup.",
   "modal_add_vector_destination_title": "Add Vector destination",
   "modal_add_logstash_destination_title": "Add Logstash destination",
   "modal_logstash_destination_title": "Logstash",
