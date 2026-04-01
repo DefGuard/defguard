@@ -7,6 +7,9 @@ import { SettingsHeader } from '../../../shared/components/SettingsHeader/Settin
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
+import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 
 const breadcrumbs = [
   <Link
@@ -34,7 +37,6 @@ export const SettingsCertificatesPage = () => {
           subtitle={m.settings_certs_certs_description()}
         />
         <SettingsCard>
-          <SizedBox height={ThemeSpacing.Xl2} />
           <Content />
         </SettingsCard>
       </SettingsLayout>
@@ -43,5 +45,21 @@ export const SettingsCertificatesPage = () => {
 };
 
 const Content = () => {
-  return <div>TODO</div>;
+  return (
+    <>
+      <MarkedSection icon="authorised-app">
+        <MarkedSectionHeader
+          title={m.settings_certs_certs_core_title()}
+          description=''
+        />
+      </MarkedSection>
+      <Divider spacing={ThemeSpacing.Xl2} />
+      <MarkedSection icon="globe">
+        <MarkedSectionHeader
+          title={m.settings_instance_section_core()}
+          description=''
+        />
+      </MarkedSection>
+    </>
+  );
 };
