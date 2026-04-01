@@ -5,7 +5,9 @@
 /// `CoreResponse` payloads that come back.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use defguard_common::db::models::{Device, User, biometric_auth::BiometricAuth, polling_token::PollingToken};
+use defguard_common::db::models::{
+    Device, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+};
 use defguard_core::{
     events::{BidiStreamEventType, EnrollmentEvent},
     grpc::GatewayEvent,

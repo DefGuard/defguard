@@ -19,7 +19,10 @@ use defguard_common::db::{
     setup_pool,
 };
 use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent};
-use defguard_proto::proxy::{AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response, proxy_server};
+use defguard_proto::proxy::{
+    AcmeChallenge, AcmeIssueEvent, CoreRequest, CoreResponse, InitialInfo, core_response,
+    proxy_server,
+};
 use defguard_version::server::DefguardVersionLayer;
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
@@ -171,7 +174,9 @@ impl proxy_server::Proxy for MockProxyService {
         &self,
         _request: Request<AcmeChallenge>,
     ) -> Result<Response<Self::TriggerAcmeStream>, Status> {
-        Err(Status::unimplemented("trigger_acme not implemented in mock"))
+        Err(Status::unimplemented(
+            "trigger_acme not implemented in mock",
+        ))
     }
 }
 

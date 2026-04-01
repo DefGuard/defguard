@@ -301,85 +301,85 @@ impl ProxyManager {
 
         loop {
             select! {
-                            result = tasks.join_next(), if !tasks.is_empty() => {
-                                match result {
-                                    Some(Ok(Ok(()))) => error!("Proxy task returned prematurely"),
-                                    Some(Ok(Err(err))) => error!("Proxy task returned with error: {err}"),
-                                    Some(Err(err)) => error!("Proxy task execution failed: {err}"),
-                                    None => {
-                                        debug!("All proxy tasks completed");
-                                    }
+                result = tasks.join_next(), if !tasks.is_empty() => {
+                    match result {
+                        Some(Ok(Ok(()))) => error!("Proxy task returned prematurely"),
+                        Some(Ok(Err(err))) => error!("Proxy task returned with error: {err}"),
+                        Some(Err(err)) => error!("Proxy task execution failed: {err}"),
+                        None => {
+                            debug!("All proxy tasks completed");
+                        }
+                    }
+                }
+                msg = self.proxy_control.recv() => {
+                    match msg {
+                        Some(ProxyControlMessage::StartConnection(id)) => {
+                            debug!("Starting proxy with ID: {id}");
+                            if let Ok(Some(proxy_model)) = Proxy::find_by_id(&self.pool, id).await {
+                                if !proxy_model.enabled {
+                                    debug!("Proxy ID {id} is disabled; connecting abandoned");
+                                    continue;
                                 }
+                                let (shutdown_tx, shutdown_rx) =
+                                    tokio::sync::oneshot::channel::<bool>();
+                                shutdown_channels.insert(id, shutdown_tx);
+                                match self.build_handler(
+                                    &proxy_model,
+                                    Arc::clone(&remote_mfa_responses),
+                                    Arc::clone(&sessions),
+                                    Arc::clone(&handler_tx_map),
+                                    Arc::new(Mutex::new(shutdown_rx)),
+                                    self.proxy_cookie_key.clone(),
+                                ) {
+                                    Ok(proxy) => {
+                                        debug!("Spawning proxy task for proxy {}", proxy.url);
+                                        tasks.spawn(proxy.run(self.tx.clone(),
+                                            self.incompatible_components.clone(), certs_rx.clone()));
+                                    }
+                                    Err(err) => error!("Failed to create proxy server: {err}"),
+                                }
+                            } else {
+                                error!("Failed to find proxy with ID: {id}");
                             }
-                            msg = self.proxy_control.recv() => {
-                                match msg {
-                                    Some(ProxyControlMessage::StartConnection(id)) => {
-                                        debug!("Starting proxy with ID: {id}");
-                                        if let Ok(Some(proxy_model)) = Proxy::find_by_id(&self.pool, id).await {
-                                            if !proxy_model.enabled {
-                                                debug!("Proxy ID {id} is disabled; connecting abandoned");
-                                                continue;
-                                            }
-                                            let (shutdown_tx, shutdown_rx) =
-                                                tokio::sync::oneshot::channel::<bool>();
-                                            shutdown_channels.insert(id, shutdown_tx);
-                                            match self.build_handler(
-                                                &proxy_model,
-                                                Arc::clone(&remote_mfa_responses),
-                                                Arc::clone(&sessions),
-                                                Arc::clone(&handler_tx_map),
-                                                Arc::new(Mutex::new(shutdown_rx)),
-                                                self.proxy_cookie_key.clone(),
-                                            ) {
-                                                Ok(proxy) => {
-                                                    debug!("Spawning proxy task for proxy {}", proxy.url);
-                                                    tasks.spawn(proxy.run(self.tx.clone(),
-                                                        self.incompatible_components.clone(), certs_rx.clone()));
-                                                }
-                                                Err(err) => error!("Failed to create proxy server: {err}"),
-                                            }
-                                        } else {
-                                            error!("Failed to find proxy with ID: {id}");
-                                        }
-                                    }
-                                    Some(ProxyControlMessage::ShutdownConnection(id)) => {
-                                        debug!("Shutting down proxy with ID: {id}");
-                                        if let Some(shutdown_tx) = shutdown_channels.remove(&id) {
-                                            let _ = shutdown_tx.send(false);
-                                        } else {
-                                            warn!("No shutdown channel found for proxy ID: {id}");
-                                        }
-                                    }
-                                    Some(ProxyControlMessage::Purge(id)) => {
-                                        debug!("Purging proxy with ID: {id}");
-                                        if let Some(shutdown_tx) = shutdown_channels.remove(&id) {
-                                            let _ = shutdown_tx.send(true);
-                                        } else {
-                                            warn!("No shutdown channel found for proxy ID: {id}");
-                                        }
-                                    }
-                                    Some(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem }) => {
-                                        debug!("Broadcasting HttpsCerts to all connected proxies");
-                                        let msg = CoreResponse {
-                                            id: 0,
-                                            payload: Some(core_response::Payload::HttpsCerts(
-                                                defguard_proto::proxy::HttpsCerts { cert_pem, key_pem },
-                                            )),
-                                        };
-                                        if let Ok(map) = handler_tx_map.read() {
-                                            for (pid, tx) in map.iter() {
-                                                debug!("Sending HttpsCerts to proxy {pid}");
-                                                let _ = tx.send(msg.clone());
-                                            }
-                                        }
-                                    }
-                                    None => {
-                                        debug!("Proxy control channel closed");
-                                        break;
-                                    }
+                        }
+                        Some(ProxyControlMessage::ShutdownConnection(id)) => {
+                            debug!("Shutting down proxy with ID: {id}");
+                            if let Some(shutdown_tx) = shutdown_channels.remove(&id) {
+                                let _ = shutdown_tx.send(false);
+                            } else {
+                                warn!("No shutdown channel found for proxy ID: {id}");
+                            }
+                        }
+                        Some(ProxyControlMessage::Purge(id)) => {
+                            debug!("Purging proxy with ID: {id}");
+                            if let Some(shutdown_tx) = shutdown_channels.remove(&id) {
+                                let _ = shutdown_tx.send(true);
+                            } else {
+                                warn!("No shutdown channel found for proxy ID: {id}");
+                            }
+                        }
+                        Some(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem }) => {
+                            debug!("Broadcasting HttpsCerts to all connected proxies");
+                            let msg = CoreResponse {
+                                id: 0,
+                                payload: Some(core_response::Payload::HttpsCerts(
+                                    defguard_proto::proxy::HttpsCerts { cert_pem, key_pem },
+                                )),
+                            };
+                            if let Ok(map) = handler_tx_map.read() {
+                                for (pid, tx) in map.iter() {
+                                    debug!("Sending HttpsCerts to proxy {pid}");
+                                    let _ = tx.send(msg.clone());
                                 }
                             }
                         }
+                        None => {
+                            debug!("Proxy control channel closed");
+                            break;
+                        }
+                    }
+                }
+            }
         }
         Ok(())
     }

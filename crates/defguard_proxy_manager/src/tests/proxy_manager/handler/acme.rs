@@ -31,7 +31,8 @@ use crate::tests::common::{
 
 /// A minimal but syntactically valid PEM certificate block (content is
 /// arbitrary bytes — the handler stores it verbatim without parsing).
-const TEST_CERT_PEM: &str = "-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJ\n-----END CERTIFICATE-----\n";
+const TEST_CERT_PEM: &str =
+    "-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJ\n-----END CERTIFICATE-----\n";
 const TEST_KEY_PEM: &str =
     "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2Vw\n-----END PRIVATE KEY-----\n";
 const TEST_ACCOUNT_JSON: &str = r#"{"account_url":"https://acme.example/account/1"}"#;
