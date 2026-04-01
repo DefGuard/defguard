@@ -234,7 +234,7 @@ export const PlaygroundPage = () => {
       <Card>
         <DestinationLabel
           name="Scanner_Brother-Warsaw-office"
-          ips="192.168.1.12, 192.168.1.12, 192.168.1.12 192.168.1.129 192.168.1.12,"
+          addresses="192.168.1.12, 192.168.1.12, 192.168.1.12 192.168.1.129 192.168.1.12,"
           ports="All ports"
           protocols="UPD, ICMP"
         />
@@ -246,7 +246,7 @@ export const PlaygroundPage = () => {
             Snackbar.default('Clicked');
           }}
           name="Scanner_Brother-Warsaw-office"
-          ips="192.168.1.12, 192.168.1.12, 192.168.1.12 192.168.1.129 192.168.1.12,"
+          addresses="192.168.1.12, 192.168.1.12, 192.168.1.12 192.168.1.129 192.168.1.12,"
           ports="All ports"
           protocols="UPD, ICMP"
         />

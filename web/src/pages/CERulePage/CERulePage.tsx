@@ -106,11 +106,14 @@ const renderDestinationSelectionItem: SelectionSectionCustomRender<
     {isPresent(option.meta) && (
       <DestinationLabel
         name={option.meta.name}
-        ips={option.meta.addresses}
+        addresses={option.meta.addresses}
         ports={option.meta.ports}
         protocols={option.meta.protocols
           .map((protocol) => AclProtocolName[protocol])
           .join(',')}
+        anyAddress={option.meta.any_address}
+        anyPort={option.meta.any_port}
+        anyProtocol={option.meta.any_protocol}
       />
     )}
   </div>
@@ -709,11 +712,14 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                             <DestinationDismissibleBox
                               key={destination.id}
                               name={destination.name}
-                              ips={destination.addresses}
+                              addresses={destination.addresses}
                               ports={destination.ports}
                               protocols={destination.protocols
                                 .map((p) => AclProtocolName[p])
                                 .join(',')}
+                              anyAddress={destination.any_address}
+                              anyPort={destination.any_port}
+                              anyProtocol={destination.any_protocol}
                               onClick={() => {
                                 const newValue = new Set(field.state.value);
                                 newValue.delete(destination.id);
