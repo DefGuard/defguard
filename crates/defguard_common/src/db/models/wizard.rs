@@ -3,10 +3,16 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgExecutor, Type};
 use tracing::info;
+use url::Url;
 
 use super::setup_auto_adoption::AutoAdoptionWizardStep;
-use crate::db::models::{
-    InitialSetupState, InitialSetupStep, setup_auto_adoption::AutoAdoptionWizardState,
+use crate::{
+    config::DefGuardConfig,
+    db::models::{
+        InitialSetupState, InitialSetupStep,
+        migration_wizard::{MigrationWizardState, ProxyUrl},
+        setup_auto_adoption::AutoAdoptionWizardState,
+    },
 };
 
 /// Which wizard is currently active. Stored as a PostgreSQL enum column.
@@ -91,7 +97,11 @@ impl Wizard {
     /// - Existing data (users/networks/devices) = `Migration`
     /// - Fresh install with auto-adoption CLI flags = `AutoAdoption`
     /// - Fresh install without flags = `Initial`
-    pub async fn init<'e, E>(executor: E, has_auto_adopt_flags: bool) -> Result<Self, sqlx::Error>
+    pub async fn init<'e, E>(
+        executor: E,
+        has_auto_adopt_flags: bool,
+        config: &DefGuardConfig,
+    ) -> Result<Self, sqlx::Error>
     where
         E: PgExecutor<'e> + Copy,
     {
@@ -104,6 +114,15 @@ impl Wizard {
 
         if wizard.active_wizard != ActiveWizard::None {
             info!("Resuming {} wizard", wizard.active_wizard);
+            if wizard.active_wizard == ActiveWizard::Migration {
+                let mut state = MigrationWizardState::get(executor)
+                    .await?
+                    .unwrap_or_default();
+                if state.proxy_url.is_none() {
+                    state.proxy_url = Self::get_proxy_url(config);
+                    state.save(executor).await?;
+                }
+            }
             return Ok(wizard);
         }
 
@@ -136,12 +155,34 @@ impl Wizard {
             AutoAdoptionWizardState::default().save(executor).await?;
         }
 
+        if active_wizard == ActiveWizard::Migration {
+            let state = MigrationWizardState {
+                proxy_url: Self::get_proxy_url(config),
+                ..Default::default()
+            };
+            state.save(executor).await?;
+        }
+
         Ok(wizard)
     }
 
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.active_wizard != ActiveWizard::None
+    }
+
+    pub fn get_proxy_url(config: &DefGuardConfig) -> Option<ProxyUrl> {
+        match config.proxy_url {
+            Some(ref url) => match Url::parse(url) {
+                Ok(url) => Some(ProxyUrl {
+                    domain: url.domain().unwrap_or_default().to_string(),
+                    port: url.port().unwrap_or(0),
+                }),
+                Err(_) => None,
+            },
+
+            None => None,
+        }
     }
 
     /// Returns `true` when the current wizard state requires authentication.

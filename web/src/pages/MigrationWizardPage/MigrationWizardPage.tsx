@@ -140,7 +140,13 @@ export const MigrationWizardPage = () => {
   // sync wizard state
   useEffect(() => {
     if (wizardState) {
-      useMigrationWizardStore.setState(wizardState);
+      useMigrationWizardStore.setState({
+        ...wizardState,
+        ...(wizardState.proxy_url && {
+          ip_or_domain: wizardState.proxy_url.domain,
+          grpc_port: wizardState.proxy_url.port,
+        }),
+      });
     }
   }, [wizardState]);
 
@@ -150,7 +156,6 @@ export const MigrationWizardPage = () => {
       useMigrationWizardStore.setState({
         defguard_url: settings.defguard_url,
         public_proxy_url: settings.public_proxy_url,
-        ip_or_domain: settings.public_proxy_url,
         default_admin_group_name: settings.default_admin_group_name,
         authentication_period_days: settings.authentication_period_days,
         mfa_code_timeout_seconds: settings.mfa_code_timeout_seconds,

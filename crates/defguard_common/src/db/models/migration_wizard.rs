@@ -36,10 +36,17 @@ pub struct MigrationWizardLocationState {
     pub(crate) current_location: i64,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ProxyUrl {
+    pub domain: String,
+    pub port: u16,
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct MigrationWizardState {
     pub current_step: MigrationWizardStep,
     pub location_state: Option<MigrationWizardLocationState>,
+    pub proxy_url: Option<ProxyUrl>,
 }
 
 impl MigrationWizardState {
