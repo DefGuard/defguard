@@ -23,7 +23,7 @@ async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOpti
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -88,7 +88,7 @@ async fn test_session_info_auto_adoption_wizard(_: PgPoolOptions, options: PgCon
         .await
         .expect("Failed to initialize settings");
     // has_auto_adopt_flags = true (both flags provided): AutoAdoption wizard
-    Wizard::init(&pool, true, &DefGuardConfig::default())
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -136,7 +136,7 @@ async fn test_session_info_migration_server(_: PgPoolOptions, options: PgConnect
         .await
         .expect("Failed to add user to admin group");
 
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 

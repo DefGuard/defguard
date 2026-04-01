@@ -52,7 +52,7 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -109,7 +109,7 @@ async fn test_create_admin_with_automatic_group_assignment(
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -156,7 +156,7 @@ async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnect
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -206,7 +206,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -275,7 +275,7 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -325,7 +325,7 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -373,7 +373,7 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -427,7 +427,7 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -479,7 +479,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 

@@ -31,7 +31,7 @@ const SESSION_COOKIE_NAME: &str = "defguard_session";
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,
 ) -> (common::TestClient, tokio::sync::oneshot::Receiver<()>) {
-    Wizard::init(pool, true, &DefGuardConfig::default())
+    Wizard::init(pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
@@ -397,7 +397,7 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
 async fn test_url_settings_endpoints_require_auth(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool).await.unwrap();
-    Wizard::init(&pool, true, &DefGuardConfig::default())
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
         .await
         .unwrap();
 
@@ -450,7 +450,7 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool).await.unwrap();
     seed_wireguard_network(&pool).await;
-    Wizard::init(&pool, true, &DefGuardConfig::default())
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
         .await
         .unwrap();
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;

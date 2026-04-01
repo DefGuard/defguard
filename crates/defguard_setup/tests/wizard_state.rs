@@ -23,7 +23,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false, &DefGuardConfig::default())
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
@@ -162,7 +162,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .await
         .expect("Failed to seed wireguard network");
 
-    Wizard::init(&pool, true, &DefGuardConfig::default())
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
