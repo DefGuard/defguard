@@ -316,24 +316,19 @@ impl<I> AclRule<I> {
 impl AclRule {
     /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
     pub(crate) async fn create_from_api(
-        pool: &PgPool,
+        conn: &mut PgConnection,
         api_rule: &EditAclRule,
         actor: &str,
     ) -> Result<ApiAclRule, AclError> {
-        let mut transaction = pool.begin().await?;
-
         // save the rule
         let mut rule: AclRule = api_rule.clone().try_into()?;
         rule.stamp_modified(actor);
-        let rule = rule.save(&mut *transaction).await?;
+        let rule = rule.save(&mut *conn).await?;
 
         // create related objects
-        rule.create_related_objects(&mut transaction, api_rule)
-            .await?;
+        rule.create_related_objects(conn, api_rule).await?;
 
-        let result = ApiAclRule::from(rule.to_info(&mut transaction).await?);
-
-        transaction.commit().await?;
+        let result = ApiAclRule::from(rule.to_info(&mut *conn).await?);
 
         Ok(result)
     }
@@ -355,21 +350,18 @@ impl AclRule {
     /// and performed appropriate operations, only that the next time configuration
     /// is being sent it will include this rule.
     pub(crate) async fn update_from_api(
-        pool: &PgPool,
+        conn: &mut PgConnection,
         id: Id,
         api_rule: &EditAclRule,
         actor: &str,
     ) -> Result<ApiAclRule, AclError> {
         debug!("Updating rule ID {id} with {api_rule:?}");
-        let mut transaction = pool.begin().await?;
 
         // find the existing rule
-        let existing_rule = AclRule::find_by_id(&mut *transaction, id)
-            .await?
-            .ok_or_else(|| {
-                warn!("Update of nonexistent rule ({id}) failed");
-                AclError::RuleNotFoundError(id)
-            })?;
+        let existing_rule = AclRule::find_by_id(&mut *conn, id).await?.ok_or_else(|| {
+            warn!("Update of nonexistent rule ({id}) failed");
+            AclError::RuleNotFoundError(id)
+        })?;
 
         // convert API rule to model
         let mut rule: AclRule<NoId> = api_rule.clone().try_into()?;
@@ -385,7 +377,7 @@ impl AclRule {
                 );
                 // remove old modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
-                    .execute(&mut *transaction)
+                    .execute(&mut *conn)
                     .await?;
                 debug!(
                     "Removed {} old modifications of rule {id}",
@@ -395,11 +387,10 @@ impl AclRule {
                 // save as a new rule with appropriate parent_id and state
                 rule.state = RuleState::Modified;
                 rule.parent_id = Some(id);
-                let rule = rule.save(&mut *transaction).await?;
+                let rule = rule.save(&mut *conn).await?;
 
                 // create related objects
-                rule.create_related_objects(&mut transaction, api_rule)
-                    .await?;
+                rule.create_related_objects(conn, api_rule).await?;
 
                 rule
             }
@@ -416,20 +407,17 @@ impl AclRule {
                 let mut rule = rule.with_id(id);
                 rule.parent_id = existing_rule.parent_id;
                 rule.state = existing_rule.state;
-                rule.save(&mut *transaction).await?;
+                rule.save(&mut *conn).await?;
 
                 // recreate related objects
-                rule.delete_related_objects(&mut transaction).await?;
-                rule.create_related_objects(&mut transaction, api_rule)
-                    .await?;
+                rule.delete_related_objects(conn).await?;
+                rule.create_related_objects(conn, api_rule).await?;
 
                 rule
             }
         };
 
-        let rule_details = rule.to_info(&mut transaction).await?.into();
-
-        transaction.commit().await?;
+        let rule_details = rule.to_info(&mut *conn).await?.into();
 
         info!("Successfully updated rule {rule_details:?}");
         Ok(rule_details)

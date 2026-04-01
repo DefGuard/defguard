@@ -1,5 +1,6 @@
 import { isPresent } from '../../defguard-ui/utils/isPresent';
 import './style.scss';
+import { m } from '../../../paraglide/messages';
 import { Icon } from '../../defguard-ui/components/Icon';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
@@ -7,9 +8,12 @@ import type { DestinationLabelProps } from './types';
 
 export const DestinationLabel = ({
   name,
-  ips,
+  addresses,
   ports,
   protocols,
+  anyAddress,
+  anyPort,
+  anyProtocol,
 }: DestinationLabelProps) => {
   return (
     <div className="destination-label">
@@ -17,29 +21,31 @@ export const DestinationLabel = ({
       <SizedBox height={1} width={ThemeSpacing.Sm} />
       <span className="separator">{`•`}</span>
       <SizedBox height={1} width={ThemeSpacing.Sm} />
-      {isPresent(ports) && (
+      {(isPresent(ports) || anyPort) && (
         <>
           <Icon icon="globe" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
-          <span className="info">{ports.length > 0 ? ports : `All ports`}</span>
+          <span className="info">{anyPort ? m.acl_destination_any_port() : ports}</span>
           <SizedBox height={1} width={ThemeSpacing.Md} />
         </>
       )}
-      {isPresent(protocols) && (
+      {(isPresent(protocols) || anyProtocol) && (
         <>
           <Icon icon="activity-notes" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
           <span className="info">
-            {protocols.length > 0 ? protocols : `All protocols`}
+            {anyProtocol ? m.acl_destination_any_protocol() : protocols}
           </span>
           <SizedBox height={1} width={ThemeSpacing.Md} />
         </>
       )}
-      {isPresent(ips) && (
+      {(isPresent(addresses) || anyAddress) && (
         <>
           <Icon icon="ip-suggest" />
           <SizedBox height={1} width={ThemeSpacing.Xs} />
-          <span className="info wrap">{ips.length > 0 ? ips : `Any IP address`}</span>
+          <span className="info wrap">
+            {anyAddress ? m.acl_destination_any_address() : addresses}
+          </span>
         </>
       )}
     </div>

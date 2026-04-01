@@ -1,6 +1,9 @@
 export interface DestinationLabelProps {
   name: string;
-  protocols?: string;
+  addresses?: string;
   ports?: string;
-  ips?: string;
+  protocols?: string;
+  anyAddress?: boolean;
+  anyPort?: boolean;
+  anyProtocol?: boolean;
 }
