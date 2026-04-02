@@ -18,19 +18,19 @@
   &:hover {
     box-shadow: 0 4px 16px 0 rgb(0 0 0 / 10%);
   }
-}
 
-.video-tutorials-card-info {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+  .info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-.video-tutorials-card-title {
-  font: var(--t-body-xs-400);
-  color: var(--fg-default);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  .title {
+    font: var(--t-body-xs-400);
+    color: var(--fg-default);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

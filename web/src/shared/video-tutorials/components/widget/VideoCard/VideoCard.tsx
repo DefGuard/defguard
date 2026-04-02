@@ -13,8 +13,8 @@ export const VideoCard = ({ video, onClick }: VideoCardProps) => (
       url={`https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg`}
       title={video.title}
     />
-    <div className="video-tutorials-card-info">
-      <span className="video-tutorials-card-title">{video.title}</span>
+    <div className="info">
+      <span className="title">{video.title}</span>
     </div>
   </button>
 );

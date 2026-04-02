@@ -27,7 +27,7 @@ export const VideoOverlay = ({
         <>
           <IconButton
             icon="close"
-            className="video-tutorials-modal-close"
+            className="video-tutorials-modal-container-close"
             onClick={onClose}
           />
           <div className="video-tutorials-modal">
