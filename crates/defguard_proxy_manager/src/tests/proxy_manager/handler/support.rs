@@ -32,17 +32,9 @@ use sqlx::PgPool;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 
-// ---------------------------------------------------------------------------
-// Shared test constants
-// ---------------------------------------------------------------------------
-
 /// A strong password satisfying all `check_password_strength` requirements:
 /// ≥8 chars, digit, upper, lower, special character.
 pub(crate) const STRONG_PASSWORD: &str = "Test1234!";
-
-// ---------------------------------------------------------------------------
-// Assertion helpers
-// ---------------------------------------------------------------------------
 
 pub(crate) fn assert_initial_info_received(response: &CoreResponse) {
     assert!(
@@ -87,10 +79,6 @@ pub(crate) fn assert_error_response(response: &CoreResponse) -> tonic::Code {
     }
 }
 
-// ---------------------------------------------------------------------------
-// License helpers
-// ---------------------------------------------------------------------------
-
 /// Install a Business-tier license into the global cache for the duration of a
 /// test.
 pub(crate) fn set_test_license_business() {
@@ -112,10 +100,6 @@ pub(crate) fn clear_test_license() {
     set_cached_license(None);
 }
 
-// ---------------------------------------------------------------------------
-// Misc. helpers
-// ---------------------------------------------------------------------------
-
 /// Return a minimal `DeviceInfo` suitable for test requests.
 ///
 /// `parse_client_ip_agent` in the enrollment server requires a non-`None`
@@ -129,10 +113,6 @@ pub(crate) fn make_device_info() -> DeviceInfo {
         platform: None,
     }
 }
-
-// ---------------------------------------------------------------------------
-// Factory helpers — Users
-// ---------------------------------------------------------------------------
 
 /// Insert a test user, returning the saved `User<Id>`.
 pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
@@ -151,10 +131,6 @@ pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
     .await
     .expect("failed to save test user")
 }
-
-// ---------------------------------------------------------------------------
-// Factory helpers — Networks
-// ---------------------------------------------------------------------------
 
 /// Insert a minimal WireGuard network, returning the saved `WireguardNetwork<Id>`.
 pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
@@ -178,10 +154,6 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
     .await
     .expect("failed to save test wireguard network")
 }
-
-// ---------------------------------------------------------------------------
-// Factory helpers — Devices
-// ---------------------------------------------------------------------------
 
 /// Pre-generated valid 32-byte WireGuard public keys (base64, 44 chars each).
 /// Used by `create_device_for_user` so that `Device::validate_pubkey` passes.
@@ -293,10 +265,6 @@ pub(crate) async fn create_user_with_device(pool: &PgPool) -> (User<Id>, Device<
     (user, device)
 }
 
-// ---------------------------------------------------------------------------
-// Factory helpers — Enrollment tokens
-// ---------------------------------------------------------------------------
-
 /// Insert a valid enrollment token for the given user.
 ///
 /// The token expires in one hour, so it is always valid in tests.
@@ -325,10 +293,6 @@ pub(crate) async fn create_enrollment_token(
     token
 }
 
-// ---------------------------------------------------------------------------
-// Factory helpers — Polling tokens
-// ---------------------------------------------------------------------------
-
 /// Insert a polling token for the given device, returning the raw token string.
 pub(crate) async fn create_polling_token(pool: &PgPool, device_id: Id) -> String {
     PollingToken::new(device_id)
@@ -337,10 +301,6 @@ pub(crate) async fn create_polling_token(pool: &PgPool, device_id: Id) -> String
         .expect("failed to save polling token")
         .token
 }
-
-// ---------------------------------------------------------------------------
-// Enrollment session helpers
-// ---------------------------------------------------------------------------
 
 /// Send an `EnrollmentStart` request to the handler and consume the response.
 ///
@@ -382,10 +342,6 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
         ),
     }
 }
-
-// ---------------------------------------------------------------------------
-// Factory helpers — MFA networks
-// ---------------------------------------------------------------------------
 
 /// Insert a WireGuard network with `LocationMfaMode::Internal`, returning the
 /// saved `WireguardNetwork<Id>`.  Use this for any test that exercises the MFA
@@ -434,10 +390,6 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     .await
     .expect("failed to save test external mfa wireguard network")
 }
-
-// ---------------------------------------------------------------------------
-// MFA user setup helpers
-// ---------------------------------------------------------------------------
 
 /// Enable email MFA for `user`, returning the currently-valid MFA code.
 ///
@@ -493,10 +445,6 @@ pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
         .as_secs();
     totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, &secret, ts)
 }
-
-// ---------------------------------------------------------------------------
-// MFA flow helpers
-// ---------------------------------------------------------------------------
 
 /// Send `ClientMfaStart` and return `(response_id, start_token)`.
 ///
@@ -651,10 +599,6 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
     }
 }
 
-// ---------------------------------------------------------------------------
-// MFA assertion helpers
-// ---------------------------------------------------------------------------
-
 /// Assert that the next `BidiStreamEvent` is `DesktopClientMfa(Success)` and
 /// return the location id from the event.
 pub(crate) async fn expect_bidi_mfa_success(
@@ -688,10 +632,6 @@ pub(crate) async fn assert_vpn_session_exists(
             panic!("expected active VpnClientSession for location={location_id} device={device_id}")
         })
 }
-
-// ---------------------------------------------------------------------------
-// OIDC helpers
-// ---------------------------------------------------------------------------
 
 /// Insert a test `OpenIdProvider` backed by the given mock into the database.
 pub(crate) async fn create_oidc_provider(
@@ -742,10 +682,6 @@ pub(crate) fn make_oidc_code(sub: &str, email: &str, nonce: &str) -> String {
     format!("{sub}:{email}:{nonce}")
 }
 
-// ---------------------------------------------------------------------------
-// ActivateUser helpers
-// ---------------------------------------------------------------------------
-
 /// Send an `ActivateUser` request through the handler and return the raw
 /// `CoreResponse`.  The caller must have already started an enrollment session.
 pub(crate) async fn send_activate_user(
@@ -768,10 +704,6 @@ pub(crate) async fn send_activate_user(
     context.mock_proxy_mut().recv_outbound().await
 }
 
-// ---------------------------------------------------------------------------
-// CodeMfaSetup helpers
-// ---------------------------------------------------------------------------
-
 /// Send a `CodeMfaSetupStart` request for the given method and return the raw
 /// `CoreResponse`.
 pub(crate) async fn send_code_mfa_setup_start(
@@ -793,10 +725,6 @@ pub(crate) async fn send_code_mfa_setup_start(
     });
     context.mock_proxy_mut().recv_outbound().await
 }
-
-// ---------------------------------------------------------------------------
-// PasswordReset helpers
-// ---------------------------------------------------------------------------
 
 /// Insert a `PASSWORD_RESET` token for the given user, valid for 1 hour.
 pub(crate) async fn create_password_reset_token(pool: &PgPool, user: &User<Id>) -> Token {

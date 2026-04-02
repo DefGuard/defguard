@@ -5,8 +5,8 @@ use defguard_proto::proxy::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::tests::common::{
-    ManagerTestContext, MockProxyHarness, create_proxy, create_proxy_with_enabled, reload_proxy,
-    mock_proxy_socket_path, wait_for_proxy_connection_state,
+    ManagerTestContext, MockProxyHarness, create_proxy, create_proxy_with_enabled,
+    mock_proxy_socket_path, reload_proxy, wait_for_proxy_connection_state,
 };
 
 const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
@@ -17,10 +17,6 @@ async fn complete_manager_proxy_handshake(mock_proxy: &mut MockProxyHarness) {
     mock_proxy.wait_connected().await;
     mock_proxy.recv_initial_info().await;
 }
-
-// ---------------------------------------------------------------------------
-// Startup / discovery
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_manager_starts_all_enabled_proxies_on_startup(
@@ -43,10 +39,6 @@ async fn test_manager_starts_all_enabled_proxies_on_startup(
 
     context.finish().await;
 }
-
-// ---------------------------------------------------------------------------
-// Multi-proxy: simultaneous connections
-// ---------------------------------------------------------------------------
 
 /// Two enabled proxies at startup — both complete their handshake and both
 /// appear as connected in the DB.  Verifies that the manager spawns independent
@@ -96,10 +88,6 @@ async fn test_two_proxies_connect_independently(_: PgPoolOptions, options: PgCon
 
     context.finish().await;
 }
-
-// ---------------------------------------------------------------------------
-// Multi-proxy: StartConnection adds a third proxy at runtime
-// ---------------------------------------------------------------------------
 
 /// Two proxies are connected at startup.  A third proxy exists in the DB but
 /// is disabled.  When it is enabled and `StartConnection` is sent at runtime,
@@ -178,10 +166,6 @@ async fn test_start_connection_adds_proxy_at_runtime(_: PgPoolOptions, options: 
     context.finish().await;
 }
 
-// ---------------------------------------------------------------------------
-// Multi-proxy: one proxy reconnects while the other stays connected
-// ---------------------------------------------------------------------------
-
 /// One proxy's stream closes and reconnects to a replacement mock server at the
 /// same socket path.  The other proxy must remain connected throughout — the
 /// reconnect must be fully isolated to the affected handler task.
@@ -255,10 +239,6 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
     context.finish().await;
 }
 
-// ---------------------------------------------------------------------------
-// Control messages: StartConnection
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_start_connection_spawns_new_handler(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
@@ -302,10 +282,6 @@ async fn test_start_connection_spawns_new_handler(_: PgPoolOptions, options: PgC
     context.finish().await;
 }
 
-// ---------------------------------------------------------------------------
-// Control messages: ShutdownConnection (without purge)
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_shutdown_control_message_disconnects_without_purge(
     _: PgPoolOptions,
@@ -343,10 +319,6 @@ async fn test_shutdown_control_message_disconnects_without_purge(
     context.finish().await;
 }
 
-// ---------------------------------------------------------------------------
-// Control messages: Purge
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
@@ -375,10 +347,6 @@ async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: P
 
     context.finish().await;
 }
-
-// ---------------------------------------------------------------------------
-// Reconnect behaviour (single handler supervisor)
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_manager_retries_after_stream_close_single_supervisor(
@@ -427,10 +395,6 @@ async fn test_manager_retries_after_stream_close_single_supervisor(
 
     context.finish().await;
 }
-
-// ---------------------------------------------------------------------------
-// License expiry: ShutdownConnection disconnects the affected proxy only
-// ---------------------------------------------------------------------------
 
 /// Simulates what `trim_gateways_and_edges` does when a license expires with
 /// two proxies connected:
@@ -501,10 +465,6 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
 
     context.finish().await;
 }
-
-// ---------------------------------------------------------------------------
-// BroadcastHttpsCerts
-// ---------------------------------------------------------------------------
 
 /// `ProxyControlMessage::BroadcastHttpsCerts` must deliver an `HttpsCerts`
 /// `CoreResponse` to every proxy handler that is currently registered in

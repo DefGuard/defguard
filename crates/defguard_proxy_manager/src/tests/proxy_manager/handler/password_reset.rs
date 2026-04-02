@@ -1,11 +1,3 @@
-/// Password-reset flow tests.
-///
-/// Because SMTP is not configured in the test environment, the
-/// `PasswordResetInit` (= `request_password_reset`) code path that requires a
-/// real user + SMTP can only be tested for the "unknown email → silent Empty"
-/// case.  For the `PasswordResetStart` / `PasswordReset` paths we manually
-/// insert a `PASSWORD_RESET` token via `create_password_reset_token`, which
-/// bypasses the need for SMTP entirely.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_common::db::models::User;
@@ -18,10 +10,6 @@ use super::support::{
     send_password_reset_start,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
-
-// ---------------------------------------------------------------------------
-// Test 1: PasswordResetInit with unknown email returns Empty silently
-// ---------------------------------------------------------------------------
 
 /// `PasswordResetInit` for a completely unknown email must return `Empty`
 /// (the server intentionally hides whether the address exists).
@@ -46,10 +34,6 @@ async fn test_password_reset_init_silent_success_for_unknown_email(
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// Test 2: PasswordResetStart with a valid token returns a deadline
-// ---------------------------------------------------------------------------
 
 /// `PasswordResetStart` with a manually-inserted PASSWORD_RESET token for an
 /// activated user must return `PasswordResetStartResponse { deadline_timestamp > 0 }`
@@ -95,10 +79,6 @@ async fn test_password_reset_start_returns_deadline(_: PgPoolOptions, options: P
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// Test 3: Full password-reset flow succeeds
-// ---------------------------------------------------------------------------
 
 /// Full flow: insert token → start → reset with a strong password.
 /// The handler must return `Empty`, the user's password hash must change in
@@ -170,10 +150,6 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// Test 4: Weak password in PasswordReset returns InvalidArgument
-// ---------------------------------------------------------------------------
-
 /// Submitting a weak password to `PasswordReset` (after a valid start) must
 /// return `InvalidArgument`.
 #[sqlx::test]
@@ -215,10 +191,6 @@ async fn test_password_reset_weak_password_returns_error(
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// Test 5: PasswordResetStart with enrollment token returns PermissionDenied
-// ---------------------------------------------------------------------------
 
 /// Using an enrollment token (wrong type) in `PasswordResetStart` must be
 /// rejected with `PermissionDenied`.

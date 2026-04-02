@@ -1,21 +1,3 @@
-// Phase 4: MFA handler tests
-//
-// Covers:
-//  1. test_mfa_start_fails_for_disabled_location
-//  2. test_mfa_start_fails_for_unknown_location
-//  3. test_mfa_start_fails_for_unknown_device
-//  4. test_mfa_start_fails_when_email_mfa_not_enabled
-//  5. test_mfa_start_returns_token_for_email_mfa
-//  6. test_mfa_finish_succeeds_and_creates_session
-//  7. test_mfa_token_valid_before_finish_invalid_after
-//  8. test_mfa_finish_fails_with_wrong_code
-//  9. test_mfa_oidc_start_requires_license
-// 10. test_mfa_await_remote_receives_psk_after_finish
-// 11. test_mfa_start_returns_token_for_totp
-// 12. test_mfa_finish_succeeds_with_totp_code
-// 13. test_mfa_finish_fails_with_wrong_totp_code
-// 14. test_mfa_finish_replaces_existing_session_disconnects_old
-
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_core::grpc::GatewayEvent;
@@ -32,10 +14,6 @@ use super::support::{
     setup_user_email_mfa, setup_user_totp_mfa,
 };
 use crate::tests::common::HandlerTestContext;
-
-// ---------------------------------------------------------------------------
-// 1. MFA start fails when the location has MFA disabled
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: PgConnectOptions) {
@@ -64,10 +42,6 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 2. MFA start fails when the location ID does not exist in the DB
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: PgConnectOptions) {
@@ -104,10 +78,6 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 11. MFA start returns a JWT token when TOTP is configured
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_start_returns_token_for_totp(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -128,10 +98,6 @@ async fn test_mfa_start_returns_token_for_totp(_: PgPoolOptions, options: PgConn
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 12. MFA finish succeeds with a valid TOTP code
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgConnectOptions) {
@@ -184,10 +150,6 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 13. MFA finish fails when a wrong TOTP code is supplied
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -232,10 +194,6 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 3. MFA start fails when the device is unknown
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -261,10 +219,6 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 4. MFA start fails when the user has not enabled email MFA
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_start_fails_when_email_mfa_not_enabled(
@@ -298,10 +252,6 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 5. MFA start returns a JWT token for a properly configured email-MFA user
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_start_returns_token_for_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -322,10 +272,6 @@ async fn test_mfa_start_returns_token_for_email_mfa(_: PgPoolOptions, options: P
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 6. MFA finish succeeds, persists VpnClientSession, emits gateway & bidi events
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options: PgConnectOptions) {
@@ -383,10 +329,6 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 7. Token is valid after start, invalid after finish
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_token_valid_before_finish_invalid_after(
     _: PgPoolOptions,
@@ -424,10 +366,6 @@ async fn test_mfa_token_valid_before_finish_invalid_after(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 8. MFA finish fails with a wrong code
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -460,10 +398,6 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 9. MFA start with OIDC method fails without a business license
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -495,10 +429,6 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 10. AwaitRemoteMfaFinish receives the PSK after ClientMfaFinish completes
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_await_remote_receives_psk_after_finish(
@@ -573,10 +503,6 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 14. Second MFA finish replaces old session and emits MfaSessionDisconnected
-// ---------------------------------------------------------------------------
 
 /// When a second MFA cycle completes for the same device+location the handler
 /// must:

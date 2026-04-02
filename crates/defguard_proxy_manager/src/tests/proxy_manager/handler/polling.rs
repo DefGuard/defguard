@@ -1,7 +1,3 @@
-/// Desktop client config polling tests.
-///
-/// Tests the `InstanceInfoRequest` handler, which serves periodic config
-/// updates to already-enrolled desktop clients via `PollingToken`.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_proto::proxy::{CoreRequest, InstanceInfoRequest, core_request, core_response};

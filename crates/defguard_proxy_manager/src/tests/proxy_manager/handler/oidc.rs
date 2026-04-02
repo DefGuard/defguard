@@ -1,27 +1,3 @@
-// Phase 5: OIDC handler tests
-//
-// AuthCallback tests (Phase 5b):
-//  1. test_auth_callback_creates_new_user_on_first_login
-//     — no pre-existing user; code contains unknown sub/email; verifies core
-//       creates the user and returns an enrollment token
-//  2. test_auth_callback_exchanges_code_for_enrollment_token
-//     — pre-existing user; verifies the handler matches by email and returns
-//       a valid enrollment token id
-//  3. test_mfa_oidc_full_flow
-//     — ClientMfaStart (OIDC) → ClientMfaOidcAuthenticate → ClientMfaFinish
-//       → PSK + GatewayEvent + BidiEvent + VpnClientSession in DB
-//
-// AuthInfo tests (Phase 5c):
-//  4. test_auth_info_enrollment_returns_authorize_url
-//     — valid license + provider; AuthFlowType::Enrollment returns an OIDC
-//       authorization URL pointing at the mock provider
-//  5. test_auth_info_mfa_returns_authorize_url
-//     — same as above but AuthFlowType::Mfa
-//  6. test_auth_info_requires_license
-//     — no license → FailedPrecondition error
-//  7. test_auth_info_requires_oidc_provider
-//     — valid license, no provider in DB → NotFound error
-
 #![allow(deprecated)]
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -38,10 +14,6 @@ use super::support::{
     set_public_proxy_url, set_test_license_business,
 };
 use crate::tests::common::{HandlerTestContext, MockOidcProvider};
-
-// ---------------------------------------------------------------------------
-// 1. AuthCallback creates a new user when sub/email are unknown
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_auth_callback_creates_new_user_on_first_login(
@@ -116,10 +88,6 @@ async fn test_auth_callback_creates_new_user_on_first_login(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 4. AuthInfo with Enrollment flow type returns a valid OIDC authorization URL
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_auth_info_enrollment_returns_authorize_url(
     _: PgPoolOptions,
@@ -185,10 +153,6 @@ async fn test_auth_info_enrollment_returns_authorize_url(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 5. AuthInfo with Mfa flow type returns a valid OIDC authorization URL
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -241,10 +205,6 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 6. AuthInfo requires a business license
-// ---------------------------------------------------------------------------
-
 #[sqlx::test]
 async fn test_auth_info_requires_license(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = HandlerTestContext::new(options).await;
@@ -273,10 +233,6 @@ async fn test_auth_info_requires_license(_: PgPoolOptions, options: PgConnectOpt
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 7. AuthInfo returns NotFound when no OIDC provider is configured
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConnectOptions) {
@@ -309,10 +265,6 @@ async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConn
     clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 3. Full OIDC MFA flow: Start → OidcAuthenticate → Finish
-// ---------------------------------------------------------------------------
 
 #[sqlx::test]
 async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
@@ -388,10 +340,6 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
     clear_test_license();
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// 2. AuthCallback matches existing user by email and returns enrollment token
-// ---------------------------------------------------------------------------
 
 /// When the OIDC code's email matches a pre-existing user the handler must
 /// return a valid enrollment token bound to that user (not create a new one).

@@ -1,18 +1,3 @@
-/// Tests for the `AcmeCertificate` CoreRequest handler.
-///
-/// The handler saves the received certificate data to the `certificates` DB
-/// table (updating `proxy_http_cert_pem`, `proxy_http_cert_key_pem`,
-/// `acme_account_credentials`, and `proxy_http_cert_source`) and then
-/// broadcasts an `HttpsCerts` response to every proxy handler registered in
-/// `handler_tx_map`.
-///
-/// The first two tests use `HandlerTestContext` / `run_once` and verify only
-/// the DB side-effect (because `run_once` never registers the handler in
-/// `handler_tx_map`, so the broadcast map is empty and no outbound message is
-/// produced).
-///
-/// The third test uses `ManagerTestContext` (full `run()` loop) to verify
-/// that the broadcast reaches the connected proxy.
 use defguard_common::db::models::{Certificates, ProxyCertSource};
 use defguard_proto::proxy::{
     AcmeCertificate as AcmeCertPayload, CoreRequest, core_request, core_response,
@@ -24,10 +9,6 @@ use super::support::complete_proxy_handshake;
 use crate::tests::common::{
     HandlerTestContext, ManagerTestContext, MockProxyHarness, create_proxy,
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 /// A minimal but syntactically valid PEM certificate block (content is
 /// arbitrary bytes — the handler stores it verbatim without parsing).
@@ -66,10 +47,6 @@ async fn complete_manager_handshake(mock_proxy: &mut MockProxyHarness) {
     mock_proxy.wait_connected().await;
     mock_proxy.recv_initial_info().await;
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 /// Sending `AcmeCertificate` causes the handler to persist the certificate
 /// data in the `certificates` DB table.  No outbound `CoreResponse` is

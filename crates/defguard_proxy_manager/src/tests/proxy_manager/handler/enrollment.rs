@@ -1,8 +1,3 @@
-/// New device enrollment and existing device network-info tests.
-///
-/// These tests use `HandlerTestContext` (single `run_once` handler) and inject
-/// `CoreRequest` messages through the mock proxy harness, asserting on the
-/// `CoreResponse` payloads that come back.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_common::db::models::{
@@ -82,10 +77,6 @@ async fn test_new_device_creates_device_and_returns_configs(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// 14. NewDevice creates a PollingToken row and returns the token string
-// ---------------------------------------------------------------------------
-
 /// A successful `NewDevice` enrollment must:
 ///  - return a non-empty `token` in the `DeviceConfigResponse`, and
 ///  - have that token persisted as a `PollingToken` row in the DB.
@@ -134,10 +125,6 @@ async fn test_new_device_creates_polling_token(_: PgPoolOptions, options: PgConn
 
     context.finish().await.expect_server_finished().await;
 }
-
-// ---------------------------------------------------------------------------
-// ActivateUser tests
-// ---------------------------------------------------------------------------
 
 /// Happy path: submit a strong password through an active enrollment session →
 /// handler returns `Empty`, the user's `enrollment_pending` flag is cleared, and
@@ -429,10 +416,6 @@ async fn test_existing_device_wrong_user_returns_error(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// CodeMfaSetupStart / CodeMfaSetupFinish tests
-// ---------------------------------------------------------------------------
-
 /// `CodeMfaSetupStart` with `MfaMethod::Totp` must return a non-empty
 /// base32-encoded TOTP secret in the response.
 #[sqlx::test]
@@ -599,10 +582,6 @@ async fn test_code_mfa_setup_finish_wrong_totp_code_returns_error(
     context.finish().await.expect_server_finished().await;
 }
 
-// ---------------------------------------------------------------------------
-// RegisterMobileAuth tests
-// ---------------------------------------------------------------------------
-
 /// A valid `auth_pub_key` for tests: 32 zero bytes, base64-encoded.
 /// `BiometricAuth::validate_pubkey` checks only that base64-decode yields
 /// exactly `ed25519_dalek::PUBLIC_KEY_LENGTH` (32) bytes.
@@ -735,6 +714,7 @@ async fn test_register_mobile_auth_device_not_found(_: PgPoolOptions, options: P
 
     context.finish().await.expect_server_finished().await;
 }
+
 #[sqlx::test]
 async fn test_code_mfa_setup_unsupported_method_returns_error(
     _: PgPoolOptions,

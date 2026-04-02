@@ -1,9 +1,3 @@
-/// Handler-level lifecycle tests.
-///
-/// These test connection establishment and disconnection from the perspective
-/// of a single `ProxyHandler` instance (using `HandlerTestContext` and
-/// `run_once`). Reconnect retry and control-message tests live in `manager.rs`
-/// because they require the full `ProxyManager` supervision loop.
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::support::complete_proxy_handshake;
