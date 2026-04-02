@@ -39,10 +39,20 @@ const formSchema = z.object({
     .string()
     .trim()
     .min(1, m.form_error_required())
-    .refine(
-      (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
-      m.initial_setup_auto_adoption_vpn_error_invalid_value(),
-    ),
+    .superRefine((val, ctx) => {
+      if (!Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: m.initial_setup_auto_adoption_vpn_error_invalid_value(),
+        });
+        return;
+      }
+      if (Validate.isNetworkAddress(val)) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_network_address() });
+      } else if (Validate.isBroadcastAddress(val)) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_broadcast_address() });
+      }
+    }),
   vpn_allowed_ips: z
     .string()
     .trim()

@@ -174,11 +174,6 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
       <SizedBox height={ThemeSpacing.Xl3} />
       <Divider />
       <Controls>
-        <Button
-          text={m.initial_setup_controls_back()}
-          variant="outlined"
-          onClick={() => setActiveStep(AutoAdoptionSetupStep.AdminUser)}
-        />
         <div className="right">
           <Button
             text={m.initial_setup_controls_continue()}
