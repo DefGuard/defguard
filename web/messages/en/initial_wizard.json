@@ -77,6 +77,7 @@
   "initial_setup_general_config_helper_public_proxy_url": "",
   "initial_setup_general_config_error_save_failed": "Failed to save settings. Please try again.",
   "initial_setup_general_config_error_public_proxy_url_invalid": "Public Proxy URL must be a valid URL",
+  "initial_setup_general_config_error_public_url_invalid": "Public URL must be a valid URL",
   "initial_setup_general_config_error_public_proxy_url_required": "Public Proxy URL is required",
   "initial_setup_auto_adoption_component_edge": "Edge",
   "initial_setup_auto_adoption_component_gateway": "Gateway",

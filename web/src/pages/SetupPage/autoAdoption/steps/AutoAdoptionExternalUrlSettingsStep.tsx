@@ -24,7 +24,7 @@ export const AutoAdoptionExternalUrlSettingsStep = () => {
 
   const formSchema = z.object({
     public_proxy_url: z
-      .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
+      .url(m.initial_setup_general_config_error_public_url_invalid())
       .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
     ssl_type: z.custom<ExternalSslType>(),
     cert_pem_file: z.custom<File | null>().nullable(),
