@@ -184,7 +184,10 @@ async fn test_acme_certificate_broadcasts_to_connected_proxy(
 
     // The handler must broadcast HttpsCerts to ALL registered proxies — both
     // the sender (proxy A) and the bystander (proxy B).
-    for (label, mock) in [("proxy A (sender)", &mut mock_a), ("proxy B (bystander)", &mut mock_b)] {
+    for (label, mock) in [
+        ("proxy A (sender)", &mut mock_a),
+        ("proxy B (bystander)", &mut mock_b),
+    ] {
         let response = timeout(Duration::from_secs(5), mock.recv_outbound())
             .await
             .unwrap_or_else(|_| panic!("timed out waiting for HttpsCerts broadcast on {label}"));
