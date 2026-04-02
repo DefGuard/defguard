@@ -97,6 +97,8 @@ import type {
   SetAutoAdoptionVpnSettingsRequest,
   SetCoreInternalUrlSettingsRequest,
   SetCoreInternalUrlSettingsResponse,
+  SetEdgeExternalUrlSettingsRequest,
+  SetEdgeExternalUrlSettingsResponse,
   SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
@@ -455,6 +457,11 @@ const api = {
     getEdge: (edgeId: number | string) => client.get<Edge>(`/proxy/${edgeId}`),
     editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
+    setExternalUrlSettings: (data: SetEdgeExternalUrlSettingsRequest) =>
+      client.post<SetEdgeExternalUrlSettingsResponse>(
+        '/proxy/cert/external_url_settings',
+        data,
+      ),
   },
   gateway: {
     getGateways: () => client.get<GatewayInfo[]>('/gateway'),

@@ -33,6 +33,7 @@ import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
 import { Route as WizardMigrationLocationsRouteImport } from './routes/_wizard/migration/locations'
 import { Route as AuthorizedWizardSetupEdgeRouteImport } from './routes/_authorized/_wizard/setup-edge'
+import { Route as AuthorizedWizardSettingsEdgeCertificateRouteImport } from './routes/_authorized/_wizard/settings-edge-certificate'
 import { Route as AuthorizedWizardSettingsCoreCertificateRouteImport } from './routes/_authorized/_wizard/settings-core-certificate'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
@@ -190,6 +191,12 @@ const AuthorizedWizardSetupEdgeRoute =
   AuthorizedWizardSetupEdgeRouteImport.update({
     id: '/_wizard/setup-edge',
     path: '/setup-edge',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
+const AuthorizedWizardSettingsEdgeCertificateRoute =
+  AuthorizedWizardSettingsEdgeCertificateRouteImport.update({
+    id: '/_wizard/settings-edge-certificate',
+    path: '/settings-edge-certificate',
     getParentRoute: () => AuthorizedRoute,
   } as any)
 const AuthorizedWizardSettingsCoreCertificateRoute =
@@ -445,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
+  '/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
   '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
@@ -506,6 +514,7 @@ export interface FileRoutesByTo {
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
   '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
+  '/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
   '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
@@ -571,6 +580,7 @@ export interface FileRoutesById {
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
   '/_authorized/_wizard/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
+  '/_authorized/_wizard/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/_authorized/_wizard/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
   '/_wizard/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
@@ -635,6 +645,7 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/settings-core-certificate'
+    | '/settings-edge-certificate'
     | '/setup-edge'
     | '/migration/locations'
     | '/auth/mfa/email'
@@ -696,6 +707,7 @@ export interface FileRouteTypes {
     | '/add-external-openid'
     | '/add-location'
     | '/settings-core-certificate'
+    | '/settings-edge-certificate'
     | '/setup-edge'
     | '/migration/locations'
     | '/auth/mfa/email'
@@ -760,6 +772,7 @@ export interface FileRouteTypes {
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
     | '/_authorized/_wizard/settings-core-certificate'
+    | '/_authorized/_wizard/settings-edge-certificate'
     | '/_authorized/_wizard/setup-edge'
     | '/_wizard/migration/locations'
     | '/auth/mfa/email'
@@ -978,6 +991,13 @@ declare module '@tanstack/react-router' {
       path: '/setup-edge'
       fullPath: '/setup-edge'
       preLoaderRoute: typeof AuthorizedWizardSetupEdgeRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
+    '/_authorized/_wizard/settings-edge-certificate': {
+      id: '/_authorized/_wizard/settings-edge-certificate'
+      path: '/settings-edge-certificate'
+      fullPath: '/settings-edge-certificate'
+      preLoaderRoute: typeof AuthorizedWizardSettingsEdgeCertificateRouteImport
       parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/settings-core-certificate': {
@@ -1343,6 +1363,7 @@ interface AuthorizedRouteChildren {
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
   AuthorizedWizardSettingsCoreCertificateRoute: typeof AuthorizedWizardSettingsCoreCertificateRoute
+  AuthorizedWizardSettingsEdgeCertificateRoute: typeof AuthorizedWizardSettingsEdgeCertificateRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
 }
 
@@ -1354,6 +1375,8 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
   AuthorizedWizardSettingsCoreCertificateRoute:
     AuthorizedWizardSettingsCoreCertificateRoute,
+  AuthorizedWizardSettingsEdgeCertificateRoute:
+    AuthorizedWizardSettingsEdgeCertificateRoute,
   AuthorizedWizardSetupEdgeRoute: AuthorizedWizardSetupEdgeRoute,
 }
 

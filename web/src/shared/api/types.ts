@@ -137,6 +137,16 @@ export interface SetCoreInternalUrlSettingsResponse {
   cert_info: CertInfo | null;
 }
 
+export interface SetEdgeExternalUrlSettingsRequest {
+  ssl_type: ExternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export interface SetEdgeExternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
 export interface SetAutoAdoptionExternalUrlSettingsRequest {
   public_proxy_url: string;
   ssl_type: ExternalSslType;

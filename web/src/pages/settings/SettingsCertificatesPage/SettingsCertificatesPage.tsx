@@ -139,7 +139,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_none_add_certificate()}
-              onClick={() => {}}
+              onClick={() => void navigate({ to: '/settings-edge-certificate' })}
               loading={false}
               disabled={false}
             />
@@ -169,7 +169,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_custom_change()}
-              onClick={() => {}}
+              onClick={() => void navigate({ to: '/settings-edge-certificate' })}
               loading={false}
               disabled={false}
             />
