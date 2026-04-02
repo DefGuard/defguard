@@ -48,8 +48,8 @@ use tracing::{debug, error, info, warn};
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const STARTUP_ADOPTION_TIMEOUT: Duration = Duration::from_secs(10);
-const AUTO_ADOPTION_CA_COMMON_NAME: &str = "Defguard Automatic Setup CA";
-const AUTO_ADOPTION_CA_EMAIL: &str = "auto-adoption@defguard.local";
+const AUTO_ADOPTION_CA_COMMON_NAME: &str = "Defguard Root CA";
+const AUTO_ADOPTION_CA_EMAIL: &str = "root-ca@defguard.local";
 const AUTO_ADOPTION_CA_VALIDITY_DAYS: u32 = 3650;
 const GATEWAY_NAME: &str = "Gateway";
 const PROXY_NAME: &str = "Edge";
