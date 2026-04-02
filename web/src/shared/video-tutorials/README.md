@@ -1,20 +1,30 @@
 # Video Tutorials
 
 The video tutorials module displays YouTube video tutorials inside the
-authenticated app shell. A floating "Video tutorials" button appears in the
-bottom-right corner. Clicking it opens a two-panel modal: the left panel shows
+authenticated app shell.
+
+The configuration for the module (list of videos for specific app version) is fetched
+as static JSON from 'https://pkgs.defguard.net/api/content/video-tutorials.
+
+A launcher button (`NavTutorialsButton`) is shown in the
+navigation bar if the JSON config is successfully fetched and parsed.
+Clicking it opens a two-panel modal: the left panel shows
 a searchable, collapsible list of all tutorial sections; the right panel shows
 the selected video in an embedded YouTube player with its title, description,
 and links to the relevant app page and documentation.
 
-The module is mounted in `src/routes/_authorized/_default.tsx` and is therefore
-available across the entire authenticated layout. While a video is loading a
-skeleton placeholder is shown; if the video fails to load within 8 seconds, a
-"Video unavailable" message is displayed instead.
+A separate floating "Video support" button appears in the
+bottom-right corner when at least one video is available for the current route.
+Clicking it opens a floating list of video cards with thumbnails and titles.
+Clicking on a specific card opens a modal with an embedded YouTube player.
 
-A separate floating launcher button (`NavTutorialsButton`) is shown in the
-navigation when at least one video is available for the current route. Clicking
-it also opens the modal.
+The module is mounted in `src/routes/_authorized/_default.tsx` and is therefore
+available across the entire authenticated layout.
+
+While a video is loading a
+skeleton placeholder is shown; if the video fails to load within 8 seconds, a
+"Video unavailable" message is displayed instead with a clickable YouTube link.
+
 
 ---
 
