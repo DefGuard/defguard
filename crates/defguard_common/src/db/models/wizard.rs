@@ -1,3 +1,4 @@
+use core::error;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -181,6 +182,7 @@ impl Wizard {
                             port,
                         });
                     }
+                    error!("Could not extract domain/port from {url}");
                     None
                 }
                 Err(err) => {
