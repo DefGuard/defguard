@@ -38,7 +38,6 @@ iframe.loaded ~ .video-player-skeleton {
 .video-player-error-overlay {
   background-color: var(--bg-emphasis);
 
-  // Figma: 48px gap between icon-group and link-group
   gap: var(--spacing-5xl);
 }
 
@@ -47,7 +46,6 @@ iframe.loaded ~ .video-player-skeleton {
   flex-direction: column;
   align-items: center;
 
-  // Figma: 20px gap between badge and title
   gap: var(--spacing-xl);
 }
 
@@ -56,7 +54,6 @@ iframe.loaded ~ .video-player-skeleton {
   align-items: center;
   justify-content: center;
 
-  // Figma: 32px padding, full pill, drop shadow
   padding: var(--spacing-3xl);
   background-color: var(--bg-default);
   border-radius: var(--radius-full);
@@ -76,7 +73,6 @@ iframe.loaded ~ .video-player-skeleton {
   align-items: center;
   width: 100%;
 
-  // Figma: 8px gap between label and URL
   gap: var(--spacing-sm);
 }
 
