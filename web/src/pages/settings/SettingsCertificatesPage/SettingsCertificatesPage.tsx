@@ -80,7 +80,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_core_none_add_certificate()}
-              onClick={handleDownloadCA}
+              onClick={() => {}}
               loading={false}
               disabled={false}
             />
@@ -91,13 +91,28 @@ const Content = () => {
             <DescriptionBlock title={m.settings_certs_certs_core_internal_title()}>
               <p>{m.settings_certs_certs_core_internal_description()}</p>
             </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
-              iconLeft="download"
               text={m.settings_certs_ca_download()}
               onClick={handleDownloadCA}
               loading={isFetching}
               disabled={!isPresent(certsData?.core_http_cert_pem) || isFetching}
+            />
+          </>
+        )}
+        {certsData?.core_http_cert_source === 'Custom' && (
+          <>
+            <DescriptionBlock title={m.settings_certs_certs_core_custom_title()}>
+              <p>{m.settings_certs_certs_core_custom_description()}</p>
+            </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <Button
+              variant="primary"
+              text={m.settings_certs_certs_core_custom_change()}
+              onClick={() => {}}
+              loading={false}
+              disabled={false}
             />
           </>
         )}
