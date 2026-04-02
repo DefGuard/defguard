@@ -43,7 +43,7 @@ use crate::{ProxyManager, ProxyManagerTestSupport, ProxyTxSet, handler::ProxyHan
 pub(crate) const TEST_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Minimum proxy version that passes `is_proxy_version_supported()`.
-const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(1, 6, 0);
+const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(2, 0, 0);
 
 macro_rules! assert_some {
     ($expr:expr, $message:literal) => {
