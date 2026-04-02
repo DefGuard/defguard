@@ -111,6 +111,8 @@ const formSchema = z.object({
   ldap_uses_ad: z.boolean(),
   ldap_user_rdn_attr: z.string().trim().nullable(),
   ldap_sync_groups: z.string().trim().nullable(),
+  ldap_remote_enrollment_enabled: z.boolean(),
+  ldap_remote_enrollment_send_invite: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -149,6 +151,8 @@ const PageForm = () => {
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
       ldap_sync_groups: settings?.ldap_sync_groups.join(', ') || null,
+      ldap_remote_enrollment_enabled: settings?.ldap_remote_enrollment_enabled ?? false,
+      ldap_remote_enrollment_send_invite: settings?.ldap_remote_enrollment_send_invite ?? false,
     };
   }, [settings]);
 
