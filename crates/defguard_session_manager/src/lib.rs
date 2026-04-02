@@ -73,7 +73,7 @@ pub async fn run_session_manager_iteration(
         biased;
         message_count = peer_stats_rx.recv_many(&mut message_buffer, MESSAGE_LIMIT) => message_count,
         _ = session_update_timer.tick() => {
-            debug!("No wireguard peer stats updates received in last {SESSION_UPDATE_INTERVAL}. Triggering session status update to disconnect inactive clients.");
+            debug!("No WireGuard peer stats updates received in last {SESSION_UPDATE_INTERVAL}. Triggering session status update to disconnect inactive clients.");
             session_manager.update_inactive_session_status().await?;
 
             return Ok(IterationOutcome::TickNoMessages);
