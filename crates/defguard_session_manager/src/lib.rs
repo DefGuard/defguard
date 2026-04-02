@@ -18,7 +18,7 @@ use tokio::{
     },
     time::{Duration, Interval, interval},
 };
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, trace};
 
 use crate::{
     error::SessionManagerError,
@@ -73,7 +73,7 @@ pub async fn run_session_manager_iteration(
         biased;
         message_count = peer_stats_rx.recv_many(&mut message_buffer, MESSAGE_LIMIT) => message_count,
         _ = session_update_timer.tick() => {
-            warn!("No wireguard peer stats updates received in last {SESSION_UPDATE_INTERVAL}. Triggering session status update to disconnect inactive clients.");
+            debug!("No wireguard peer stats updates received in last {SESSION_UPDATE_INTERVAL}. Triggering session status update to disconnect inactive clients.");
             session_manager.update_inactive_session_status().await?;
 
             return Ok(IterationOutcome::TickNoMessages);
@@ -204,7 +204,7 @@ impl SessionManager {
     /// has elapsed since the last registered handshake has ocurred.
     /// This threshold is specified per location.
     async fn update_inactive_session_status(&self) -> Result<(), SessionManagerError> {
-        info!("Disconnecting inactive VPN sessions");
+        debug!("Disconnecting inactive VPN sessions");
 
         // begin DB transaction
         let mut transaction = self.pool.begin().await?;
