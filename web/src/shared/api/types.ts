@@ -53,6 +53,29 @@ export interface GetCAResponse {
   subject_email: string | null;
 }
 
+export const CoreCertSource = {
+  None: 'None',
+  SelfSigned: 'SelfSigned',
+  Custom: 'Custom',
+} as const;
+export type CoreCertSourceValue = (typeof CoreCertSource)[keyof typeof CoreCertSource];
+
+export const EdgeCertSource = {
+  None: 'None',
+  SelfSigned: 'SelfSigned',
+  LetsEncrypt: 'LetsEncrypt',
+  Custom: 'Custom',
+} as const;
+export type EdgeCertSourceValue = (typeof EdgeCertSource)[keyof typeof EdgeCertSource];
+
+export interface GetCertsResponse {
+  core_http_cert_pem: string;
+  core_http_cert_source: CoreCertSourceValue;
+  core_http_cert_expiry: string;
+  proxy_http_cert_source: EdgeCertSourceValue;
+  proxy_http_cert_expiry: string;
+}
+
 export interface UploadCARequest {
   cert_file: string;
 }

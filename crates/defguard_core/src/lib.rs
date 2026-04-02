@@ -117,7 +117,7 @@ use crate::{
             webauthn_start,
         },
         component_setup::setup_gateway_tls_stream,
-        core_certs::{core_cert_self_signed, core_cert_upload, get_ca},
+        core_certs::{core_cert_self_signed, core_cert_upload, get_ca, get_certs},
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         group::{
@@ -386,6 +386,7 @@ pub fn build_webapp(
             .route("/core/cert/upload", post(core_cert_upload))
             .route("/core/cert/self-signed", post(core_cert_self_signed))
 			.route("/core/cert/ca", get(get_ca))
+			.route("/core/cert/certs", get(get_certs))
             // Gateway routes
             .route("/gateway", get(gateway_list))
             .route(

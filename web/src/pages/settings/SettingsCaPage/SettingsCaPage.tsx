@@ -17,9 +17,9 @@ import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider'
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { displayDate } from '../../../shared/utils/displayDate';
 import { downloadFile } from '../../../shared/utils/download';
 import caIconSrc from './assets/ca.png';
-import { displayDate } from '../../../shared/utils/displayDate';
 
 const breadcrumbs = [
   <Link
@@ -73,6 +73,7 @@ const Content = () => {
     });
     downloadFile(blob, 'defguard-ca', 'pem');
   }, [caData?.ca_cert_pem]);
+
   return (
     <ActionableSection
       variant={ActionableSectionVariant.Secondary}
@@ -87,7 +88,9 @@ const Content = () => {
         <div className="ca-info-label">{m.settings_certs_ca_email()}</div>
         <div className="ca-info-value">{caData?.subject_email}</div>
         <div className="ca-info-label">{m.settings_certs_ca_valid_until()}</div>
-        <div className="ca-info-value">{caData?.ca_expiry ? displayDate(caData?.ca_expiry) : '-'}</div>
+        <div className="ca-info-value">
+          {caData?.ca_expiry ? displayDate(caData?.ca_expiry) : '-'}
+        </div>
       </div>
       <Divider spacing={ThemeSpacing.Md} />
       <SizedBox height={ThemeSpacing.Xl2} />

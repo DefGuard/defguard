@@ -59,6 +59,7 @@ import type {
   Gateway,
   GatewayInfo,
   GetCAResponse,
+  GetCertsResponse,
   GetExternalSslInfoResponse,
   GetInternalSslInfoResponse,
   GroupInfo,
@@ -470,6 +471,7 @@ const api = {
     certUpload: (data: { cert_pem: string; key_pem: string }) =>
       client.post('/core/cert/upload', data),
     getCA: () => client.get<GetCAResponse>('/core/cert/ca'),
+    getCerts: () => client.get<GetCertsResponse>('/core/cert/certs'),
   },
   acl: {
     destination: {

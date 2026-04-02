@@ -1,7 +1,9 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
-use serde_json::json;
-use defguard_certs::{CertificateAuthority, CertificateInfo, Csr, DnType, der_to_pem, generate_key_pair};
+use defguard_certs::{
+    CertificateAuthority, CertificateInfo, Csr, DnType, der_to_pem, generate_key_pair,
+};
 use defguard_common::db::models::{Certificates, CoreCertSource};
+use serde_json::json;
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
@@ -175,10 +177,7 @@ pub(crate) async fn core_cert_self_signed(
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
-pub(crate) async fn get_ca(
-    _role: AdminRole,
-	Extension(pool): Extension<PgPool>,
-) -> ApiResult {
+pub(crate) async fn get_ca(_role: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Fetching certificate authority details");
     let certs = Certificates::get_or_default(&pool)
         .await
@@ -195,14 +194,14 @@ pub(crate) async fn get_ca(
 
         Ok(ApiResponse::new(
             json!({
-				"ca_cert_pem": ca_pem,
-				"subject_common_name": info.subject_common_name,
-				"not_before": info.not_before,
-				"not_after": info.not_after,
-				"valid_for_days": valid_for_days,
-				"ca_expiry": certs.ca_expiry,
-				"subject_email": info.subject_email,
-			}),
+                "ca_cert_pem": ca_pem,
+                "subject_common_name": info.subject_common_name,
+                "not_before": info.not_before,
+                "not_after": info.not_after,
+                "valid_for_days": valid_for_days,
+                "ca_expiry": certs.ca_expiry,
+                "subject_email": info.subject_email,
+            }),
             StatusCode::OK,
         ))
     } else {
@@ -210,4 +209,33 @@ pub(crate) async fn get_ca(
             "CA certificate not found".to_string(),
         ))
     }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/core/cert/certs",
+    responses(
+        (status = 200, description = "Core & edge cert data", body = ApiResponse),
+        (status = 400, description = "Invalid request (e.g. CA not configured).", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse),
+        (status = 403, description = "Forbidden.", body = ApiResponse),
+        (status = 500, description = "Internal server error.", body = ApiResponse)
+    ),
+    security(("cookie" = []), ("api_token" = []))
+)]
+pub(crate) async fn get_certs(_role: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+    debug!("Fetching certificate authority details");
+    let certs = Certificates::get_or_default(&pool)
+        .await
+        .map_err(WebError::from)?;
+    Ok(ApiResponse::new(
+		json!({
+			"core_http_cert_pem": certs.core_http_cert_pem,
+			"core_http_cert_source": certs.core_http_cert_source,
+			"core_http_cert_expiry": certs.core_http_cert_expiry,
+			"proxy_http_cert_source": certs.proxy_http_cert_source,
+			"proxy_http_cert_expiry": certs.proxy_http_cert_expiry,
+		}),
+		StatusCode::OK
+	))
 }
