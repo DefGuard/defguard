@@ -34,8 +34,8 @@ skeleton placeholder is shown; if the video fails to load within 8 seconds, a
 video-tutorials/
 ├── types.ts                     — VideoTutorial, VideoTutorialsSection, VideoTutorialsMappings types
 ├── data.ts                      — Zod schema, parseVideoTutorials(), videoTutorialsPath
-├── resolver.ts                  — resolveVideoTutorials(), resolveAllSections()
-├── resolved.tsx                 — useResolvedVideoTutorials, useAllVideoTutorialsSections, useVideoTutorialsRouteKey
+├── resolver.ts                  — resolveVersion()
+├── resolved.tsx                 — useResolvedVideoTutorials, useVideoTutorialsSections, useVideoTutorialsRouteKey
 ├── route-key.ts                 — canonicalizeRouteKey(), getNavRoot()
 ├── route-label.ts               — getRouteLabel() — maps known routes to translated nav label strings
 ├── store.ts                     — useVideoTutorialsModal Zustand store (isOpen)
@@ -190,9 +190,9 @@ endpoint on the same server.
       }
     ],
 
-    // Older version. Only consulted by resolveVideoTutorials() for the floating
-    // launcher button when the current route has no match in a newer version.
-    // resolveAllSections() (used by the modal) always uses the newest eligible version only.
+    // Older version — only consulted if its key is the newest one ≤ the runtime
+    // app version. Both the modal and the floating widget always use the same
+    // single version; there is no per-route fallback to older versions.
     "2.0": [
       {
         "name": "Getting Started",
@@ -235,33 +235,20 @@ different routes.
 
 ## Version resolution
 
-The module uses two different resolution strategies depending on the context:
+`resolveVersion()` returns the **complete section list** from the single newest
+version whose key is ≤ the runtime app version. Both the modal and the floating
+widget use this same resolved version — there is no per-route fallback to older
+versions. If the newest eligible version has no video for the current route, the
+floating widget is simply not shown.
 
-### Modal (all sections)
-
-`resolveAllSections()` returns the **complete section list** from the single
-newest version whose key is ≤ the runtime app version. It does **not** fall back
-to older versions — the modal always shows one version's worth of content.
-
-### Floating launcher button (route-specific videos)
-
-`resolveVideoTutorials()` walks eligible versions from **newest to oldest** and
-returns the videos from the first version that has at least one video whose
-`appRoute` matches the current route:
+### Rules
 
 - Only version keys that are ≤ the runtime app version are eligible.
-- Eligible versions are walked newest-to-oldest.
-- The first version with a matching `appRoute` video wins; all matching videos
-  from that version (across all sections) are returned.
-- If no version has a matching video for the current route, the launcher button
-  is not shown.
-
-### Common rules (both strategies)
-
+- The single newest eligible version is selected; its full section list is returned.
 - If the runtime app version has a prerelease or build suffix (e.g. `2.2.0-rc.1`)
   the suffix is stripped before matching, so `2.2.0-rc.1` resolves as `2.2.0`.
 - If the app version string cannot be parsed, or no eligible version exists,
-  both functions return an empty result.
+  `resolveVersion()` returns an empty array.
 
 ---
 

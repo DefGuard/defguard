@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react';
 import { ModalFoundation } from '../defguard-ui/components/ModalFoundation/ModalFoundation';
 import { isPresent } from '../defguard-ui/utils/isPresent';
 import { ModalContent } from './components/modal/ModalContent/ModalContent';
-import { useAllVideoTutorialsSections, useVideoTutorialsRouteKey } from './resolved';
+import { useVideoTutorialsRouteKey, useVideoTutorialsSections } from './resolved';
 import { useVideoTutorialsModal } from './store';
 import type { VideoTutorial } from './types';
 
 export const VideoTutorialsModal = () => {
   const isOpen = useVideoTutorialsModal((s) => s.isOpen);
-  const sections = useAllVideoTutorialsSections();
+  const sections = useVideoTutorialsSections();
   const routeKey = useVideoTutorialsRouteKey();
 
   const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);

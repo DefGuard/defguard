@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMatches } from '@tanstack/react-router';
 import { useApp } from '../hooks/useApp';
 import { videoTutorialsQueryOptions } from '../query';
-import { resolveAllSections, resolveVideoTutorials } from './resolver';
+import { resolveVersion } from './resolver';
 import { canonicalizeRouteKey } from './route-key';
 import type { VideoTutorial, VideoTutorialsSection } from './types';
 
@@ -29,27 +29,30 @@ export function useVideoTutorialsRouteKey(): string | null {
 }
 
 /**
- * Returns the resolved video tutorials list for the current page and app version.
- * Returns an empty array when data is loading, errored, or no videos match.
- */
-export function useResolvedVideoTutorials(): VideoTutorial[] {
-  const { data } = useQuery(videoTutorialsQueryOptions);
-  const appVersion = useApp((s) => s.appInfo.version);
-  const routeKey = useVideoTutorialsRouteKey();
-
-  if (!data || !appVersion || !routeKey) return EMPTY_VIDEO_TUTORIALS;
-  return resolveVideoTutorials(data, appVersion, routeKey);
-}
-
-/**
  * Returns all sections from the newest eligible version for the current app version.
- * Used by VideoTutorialsModal to display the full content list.
+ * Used by both VideoTutorialsModal and VideoSupportWidget — both display content
+ * from the same single version with no fallback to older versions.
  * Returns an empty array when data is loading, errored, or no eligible version exists.
  */
-export function useAllVideoTutorialsSections(): VideoTutorialsSection[] {
+export function useVideoTutorialsSections(): VideoTutorialsSection[] {
   const { data } = useQuery(videoTutorialsQueryOptions);
   const appVersion = useApp((s) => s.appInfo.version);
 
   if (!data || !appVersion) return EMPTY_SECTIONS;
-  return resolveAllSections(data, appVersion);
+  return resolveVersion(data, appVersion);
+}
+
+/**
+ * Returns the video tutorials for the current page, filtered from the newest
+ * eligible version. Returns an empty array when data is loading, errored, no
+ * eligible version exists, or no videos match the current route.
+ */
+export function useResolvedVideoTutorials(): VideoTutorial[] {
+  const sections = useVideoTutorialsSections();
+  const routeKey = useVideoTutorialsRouteKey();
+
+  if (!routeKey) return EMPTY_VIDEO_TUTORIALS;
+  return sections
+    .flatMap((s) => s.videos)
+    .filter((v) => canonicalizeRouteKey(v.appRoute) === routeKey);
 }
