@@ -265,7 +265,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to fetch group membership");
     assert!(groups.contains(&"admins".to_string()));
 
-    assert_setup_step(&pool, InitialSetupStep::InternalUrlSettings).await;
+    assert_setup_step(&pool, InitialSetupStep::Ca).await;
 }
 
 #[sqlx::test]
