@@ -147,17 +147,3 @@
     row-gap: var(--spacing-xxs);
   }
 }
-
-.navigation .nav-controls {
-  display: flex;
-  flex-flow: row nowrap;
-  column-gap: var(--spacing-md);
-  flex-basis: 100%;
-
-  .right {
-    display: flex;
-    flex-flow: row nowrap;
-    column-gap: var(--spacing-md);
-    margin-left: auto;
-  }
-}

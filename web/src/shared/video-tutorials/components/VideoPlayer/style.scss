@@ -39,7 +39,7 @@ iframe.loaded ~ .video-player-skeleton {
   background-color: var(--bg-emphasis);
 
   // Figma: 48px gap between icon-group and link-group
-  gap: 48px;
+  gap: var(--spacing-5xl);
 }
 
 .video-player-error-icon-group {
@@ -48,7 +48,7 @@ iframe.loaded ~ .video-player-skeleton {
   align-items: center;
 
   // Figma: 20px gap between badge and title
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
 .video-player-error-badge {
@@ -57,10 +57,10 @@ iframe.loaded ~ .video-player-skeleton {
   justify-content: center;
 
   // Figma: 32px padding, full pill, drop shadow
-  padding: 32px;
+  padding: var(--spacing-3xl);
   background-color: var(--bg-default);
   border-radius: var(--radius-full);
-  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 7%);
+  box-shadow: var(--menu-shadow);
 }
 
 .video-player-error-title {
@@ -77,7 +77,7 @@ iframe.loaded ~ .video-player-skeleton {
   width: 100%;
 
   // Figma: 8px gap between label and URL
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .video-player-error-label {

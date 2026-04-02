@@ -30,7 +30,7 @@
   box-sizing: border-box;
   height: 52px;
   padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: var(--border-1) solid var(--border-default);
   flex-shrink: 0;
 }
 
@@ -123,7 +123,7 @@
 .tutorials-modal-video-links {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
   margin-top: 0;
 }
 

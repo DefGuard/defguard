@@ -55,7 +55,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 // Override Fold's default padding-bottom/left that exists to fix a single-button edge case
