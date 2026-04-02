@@ -13,7 +13,11 @@ import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snac
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
-import { isValidDefguardUrl } from '../../../../shared/utils/defguardUrl';
+import {
+  correctUrlProtocol,
+  ensureUrlScheme,
+  isValidDefguardUrl,
+} from '../../../../shared/utils/defguardUrl';
 import { AutoAdoptionSetupStep, type InternalSslType } from '../types';
 import { useAutoAdoptionSetupWizardStore } from '../useAutoAdoptionSetupWizardStore';
 import './style.scss';
@@ -28,6 +32,7 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
       .string({
         error: m.initial_setup_general_config_error_defguard_url_required(),
       })
+      .overwrite(ensureUrlScheme)
       .min(1, m.initial_setup_general_config_error_defguard_url_required())
       .url(m.initial_setup_general_config_error_invalid_url())
       .refine(
@@ -74,11 +79,12 @@ export const AutoAdoptionInternalUrlSettingsStep = () => {
         );
         return;
       }
+      const correctedUrl = correctUrlProtocol(value.defguard_url, value.ssl_type);
       useAutoAdoptionSetupWizardStore.setState({
-        defguard_url: value.defguard_url,
+        defguard_url: correctedUrl,
       });
       mutate({
-        defguard_url: value.defguard_url,
+        defguard_url: correctedUrl,
         ssl_type: value.ssl_type,
         cert_pem: value.cert_pem_file ? await value.cert_pem_file.text() : undefined,
         key_pem: value.key_pem_file ? await value.key_pem_file.text() : undefined,
