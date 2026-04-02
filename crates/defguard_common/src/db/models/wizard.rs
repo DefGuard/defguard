@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgExecutor, Type};
-use tracing::info;
+use tracing::{error, info};
 use url::Url;
 
 use super::setup_auto_adoption::AutoAdoptionWizardStep;
@@ -174,11 +174,19 @@ impl Wizard {
     pub fn get_proxy_url(config: &DefGuardConfig) -> Option<ProxyUrl> {
         match config.proxy_url {
             Some(ref url) => match Url::parse(url) {
-                Ok(url) => Some(ProxyUrl {
-                    domain: url.domain().unwrap_or_default().to_string(),
-                    port: url.port().unwrap_or(0),
-                }),
-                Err(_) => None,
+                Ok(url) => {
+                    if let (Some(domain), Some(port)) = (url.domain(), url.port()) {
+                        return Some(ProxyUrl {
+                            domain: domain.to_string(),
+                            port,
+                        });
+                    }
+                    None
+                }
+                Err(err) => {
+                    error!("Failed to parse proxy URL: {err}");
+                    None
+                }
             },
             None => None,
         }
