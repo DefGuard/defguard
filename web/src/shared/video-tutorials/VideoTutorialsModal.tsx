@@ -18,6 +18,9 @@ export const VideoTutorialsModal = () => {
   useEffect(() => {
     if (isOpen && sections.length > 0 && sections[0].videos.length > 0) {
       setSelectedVideo(sections[0].videos[0]);
+    } else {
+      // Clear selection when modal is closed or when there are no videos to show
+      setSelectedVideo(null);
     }
   }, [isOpen, sections]);
 
