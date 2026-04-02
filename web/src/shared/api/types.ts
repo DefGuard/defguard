@@ -72,6 +72,7 @@ export interface GetCertsResponse {
   core_http_cert_pem: string;
   core_http_cert_source: CoreCertSourceValue;
   core_http_cert_expiry: string;
+  proxy_http_cert_pem: string;
   proxy_http_cert_source: EdgeCertSourceValue;
   proxy_http_cert_expiry: string;
 }

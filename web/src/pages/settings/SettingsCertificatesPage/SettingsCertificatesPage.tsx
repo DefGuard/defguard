@@ -58,7 +58,7 @@ const Content = () => {
     select: (resp) => resp.data,
   });
 
-  const handleDownloadCA = useCallback(() => {
+  const downloadCoreCert = useCallback(() => {
     const corePem = certsData?.core_http_cert_pem;
     if (!isPresent(corePem)) return;
     const blob = new Blob([corePem], {
@@ -67,19 +67,28 @@ const Content = () => {
     downloadFile(blob, 'defguard-core', 'pem');
   }, [certsData?.core_http_cert_pem]);
 
+  const downloadEdgeCert = useCallback(() => {
+    const edgePem = certsData?.proxy_http_cert_pem;
+    if (!isPresent(edgePem)) return;
+    const blob = new Blob([edgePem], {
+      type: 'application/x-pem-file;charset=utf-8',
+    });
+    downloadFile(blob, 'defguard-edge', 'pem');
+  }, [certsData?.proxy_http_cert_pem]);
+
   return (
     <>
       <MarkedSection icon="authorised-app">
         <MarkedSectionHeader title={m.settings_certs_certs_core_title()} />
         {certsData?.core_http_cert_source === 'None' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_core_none_title()}>
-              <p>{m.settings_certs_certs_core_none_description()}</p>
+            <DescriptionBlock title={m.settings_certs_certs_none_title()}>
+              <p>{m.settings_certs_certs_none_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_core_none_add_certificate()}
+              text={m.settings_certs_certs_none_add_certificate()}
               onClick={() => {}}
               loading={false}
               disabled={false}
@@ -88,14 +97,14 @@ const Content = () => {
         )}
         {certsData?.core_http_cert_source === 'SelfSigned' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_core_internal_title()}>
-              <p>{m.settings_certs_certs_core_internal_description()}</p>
+            <DescriptionBlock title={m.settings_certs_certs_internal_title()}>
+              <p>{m.settings_certs_certs_internal_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
-              text={m.settings_certs_ca_download()}
-              onClick={handleDownloadCA}
+              text={m.settings_certs_certs_core_download()}
+              onClick={downloadCoreCert}
               loading={isFetching}
               disabled={!isPresent(certsData?.core_http_cert_pem) || isFetching}
             />
@@ -103,13 +112,13 @@ const Content = () => {
         )}
         {certsData?.core_http_cert_source === 'Custom' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_core_custom_title()}>
-              <p>{m.settings_certs_certs_core_custom_description()}</p>
+            <DescriptionBlock title={m.settings_certs_certs_custom_title()}>
+              <p>{m.settings_certs_certs_custom_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_core_custom_change()}
+              text={m.settings_certs_certs_custom_change()}
               onClick={() => {}}
               loading={false}
               disabled={false}
@@ -119,7 +128,52 @@ const Content = () => {
       </MarkedSection>
       <Divider spacing={ThemeSpacing.Xl2} />
       <MarkedSection icon="globe">
-        <MarkedSectionHeader title={m.settings_instance_section_core()} />
+        <MarkedSectionHeader title={m.settings_certs_certs_edge_title()} />
+        {certsData?.proxy_http_cert_source === 'None' && (
+          <>
+            <DescriptionBlock title={m.settings_certs_certs_none_title()}>
+              <p>{m.settings_certs_certs_none_description()}</p>
+            </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <Button
+              variant="primary"
+              text={m.settings_certs_certs_none_add_certificate()}
+              onClick={() => {}}
+              loading={false}
+              disabled={false}
+            />
+          </>
+        )}
+        {certsData?.proxy_http_cert_source === 'SelfSigned' && (
+          <>
+            <DescriptionBlock title={m.settings_certs_certs_internal_title()}>
+              <p>{m.settings_certs_certs_internal_description()}</p>
+            </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <Button
+              variant="outlined"
+              text={m.settings_certs_certs_edge_download()}
+              onClick={downloadEdgeCert}
+              loading={isFetching}
+              disabled={!isPresent(certsData?.proxy_http_cert_pem) || isFetching}
+            />
+          </>
+        )}
+        {certsData?.proxy_http_cert_source === 'Custom' && (
+          <>
+            <DescriptionBlock title={m.settings_certs_certs_custom_title()}>
+              <p>{m.settings_certs_certs_custom_description()}</p>
+            </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <Button
+              variant="primary"
+              text={m.settings_certs_certs_custom_change()}
+              onClick={() => {}}
+              loading={false}
+              disabled={false}
+            />
+          </>
+        )}
       </MarkedSection>
     </>
   );
