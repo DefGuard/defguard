@@ -5,7 +5,7 @@ use defguard_common::{
         settings::{initialize_current_settings, update_current_settings},
     },
 };
-use defguard_core::enterprise::license::{License, LicenseTier, set_cached_license};
+use defguard_core::enterprise::license::{License, LicenseTier, SupportType, set_cached_license};
 use sqlx::PgPool;
 
 fn set_test_license_business() {
@@ -13,6 +13,7 @@ fn set_test_license_business() {
         customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
         limits: None,
         subscription: false,
+        support_type: SupportType::Basic,
         tier: LicenseTier::Business,
         valid_until: None,
         version_date_limit: None,

@@ -89,6 +89,7 @@ export const AddLocationMfaStep = () => {
           <SizedBox height={ThemeSpacing.Xl2} />
           <Input
             label={m.location_mfa_label_client_disconnect_threshold()}
+            helper={m.location_mfa_helper_client_disconnect_threshold()}
             type="number"
             value={disconnect}
             onChange={(value) => setDisconnect(value as number | null)}

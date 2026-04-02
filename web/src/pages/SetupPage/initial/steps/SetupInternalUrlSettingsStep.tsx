@@ -104,6 +104,7 @@ export const SetupInternalUrlSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_general_config_label_defguard_url()}
+                helper={m.initial_setup_general_config_helper_defguard_url()}
                 type="text"
               />
             )}

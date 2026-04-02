@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     enterprise::{
-        license::{License, LicenseTier, set_cached_license},
+        license::{License, LicenseTier, SupportType, set_cached_license},
         limits::get_counts,
     },
     grpc::proto::enterprise::license::LicenseLimits,
@@ -49,6 +49,7 @@ fn set_test_license_business() {
         tier: LicenseTier::Enterprise,
         valid_until: None,
         version_date_limit: None,
+        support_type: SupportType::Basic,
     };
     set_cached_license(Some(license));
 }
@@ -2470,6 +2471,7 @@ async fn test_sync_ldap_to_defguard_does_not_exceed_user_license_limit(
         }),
         None,
         LicenseTier::Business,
+        SupportType::Basic,
     );
     set_cached_license(Some(license));
 
@@ -2526,6 +2528,7 @@ async fn test_ldap_login_does_not_create_user_when_user_license_limit_is_reached
         }),
         None,
         LicenseTier::Business,
+        SupportType::Basic,
     );
     set_cached_license(Some(license));
 

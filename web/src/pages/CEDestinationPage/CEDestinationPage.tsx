@@ -141,9 +141,6 @@ export const CEDestinationPage = ({ destination, tab }: Props) => {
     },
     onSubmit: async ({ value }) => {
       const toSend = cloneDeep(value);
-      if (toSend.any_address) toSend.addresses = '';
-      if (toSend.any_port) toSend.ports = '';
-      if (toSend.any_protocol) toSend.protocols = new Set();
 
       const payload = {
         ...toSend,

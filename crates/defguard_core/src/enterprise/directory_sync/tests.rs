@@ -21,7 +21,7 @@ mod test {
     use crate::{
         enterprise::{
             db::models::openid_provider::{DirectorySyncTarget, OpenIdProviderKind},
-            license::{License, LicenseTier, set_cached_license},
+            license::{License, LicenseTier, SupportType, set_cached_license},
             limits::{get_counts, update_counts},
         },
         grpc::proto::enterprise::license::LicenseLimits,
@@ -887,6 +887,7 @@ mod test {
             }),
             None,
             LicenseTier::Business,
+            SupportType::Basic,
         );
         set_cached_license(Some(license));
         update_counts(&pool).await.unwrap();

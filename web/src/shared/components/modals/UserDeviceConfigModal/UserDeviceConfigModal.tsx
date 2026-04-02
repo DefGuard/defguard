@@ -1,6 +1,8 @@
 import { m } from '../../../../paraglide/messages';
 import type { AddDeviceResponse } from '../../../api/types';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
+import { IconKind } from '../../../defguard-ui/components/Icon';
+import { InfoBanner } from '../../../defguard-ui/components/InfoBanner/InfoBanner';
 import { Modal } from '../../../defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../defguard-ui/components/ModalControls/ModalControls';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
@@ -50,6 +52,12 @@ export const UserDeviceConfigModal = () => {
 const ModalContent = ({ data }: { data: AddDeviceResponse }) => {
   return (
     <>
+      <InfoBanner
+        variant="warning"
+        icon={IconKind.WarningOutlined}
+        text={m.modal_user_device_config_warning()}
+      />
+      <Divider orientation="horizontal" />
       <ModalDeviceConfigSection data={data} />
       <Divider />
       <ModalControls
