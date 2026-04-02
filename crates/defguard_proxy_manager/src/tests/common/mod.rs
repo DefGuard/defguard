@@ -187,8 +187,6 @@ pub(crate) struct MockProxyHarness {
     outbound_rx: UnboundedReceiver<CoreResponse>,
     connected_rx: oneshot::Receiver<()>,
     server_task: Option<JoinHandle<Result<(), io::Error>>>,
-    #[allow(dead_code)]
-    next_message_id: AtomicU64,
 }
 
 impl MockProxyHarness {
@@ -234,7 +232,6 @@ impl MockProxyHarness {
             outbound_rx,
             connected_rx,
             server_task: Some(server_task),
-            next_message_id: AtomicU64::new(1),
         }
     }
 
@@ -322,7 +319,6 @@ impl MockProxyHarness {
     }
 
     /// Assert that no outbound response arrives within a short window.
-    #[allow(dead_code)]
     pub(crate) async fn expect_no_outbound(&mut self) {
         if let Ok(Some(_message)) =
             timeout(Duration::from_millis(200), self.outbound_rx.recv()).await
@@ -373,8 +369,9 @@ pub(crate) struct HandlerTestContext {
     pub(crate) bidi_events_rx: UnboundedReceiver<BidiStreamEvent>,
     pub(crate) mock_proxy: Option<MockProxyHarness>,
     handler_task: Option<JoinHandle<Result<(), crate::error::ProxyError>>>,
-    #[allow(dead_code)]
-    shutdown_tx: Option<oneshot::Sender<bool>>,
+    /// Keep-alive handle: holds the sender so the handler's shutdown receiver
+    /// does not see a premature cancellation.
+    _shutdown_tx: Option<oneshot::Sender<bool>>,
 }
 
 impl HandlerTestContext {
@@ -441,7 +438,7 @@ impl HandlerTestContext {
             bidi_events_rx,
             mock_proxy: Some(mock_proxy),
             handler_task: Some(handler_task),
-            shutdown_tx: Some(shutdown_tx),
+            _shutdown_tx: Some(shutdown_tx),
         }
     }
 
