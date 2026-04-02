@@ -29,7 +29,6 @@ thiserror.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true
-tower.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
@@ -43,5 +42,6 @@ rand.workspace = true
 rsa.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+tower.workspace = true
 totp-lite.workspace = true
 
