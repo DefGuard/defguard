@@ -63,7 +63,7 @@ export const VideoList = ({ sections, selectedVideo, onSelect }: VideoListProps)
         {filtered.map((section, index) => {
           const isOpen = isSearching || openSectionIndex === index;
           return (
-            <div key={section.name} className="tutorials-modal-section">
+            <div key={`${index}-${section.name}`} className="tutorials-modal-section">
               <button
                 type="button"
                 className="tutorials-modal-section-header"
