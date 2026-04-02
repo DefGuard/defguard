@@ -29,14 +29,14 @@ pub fn is_enterprise_license_active() -> bool {
 
 /// Shared logic for gating features to specific license tiers
 fn is_license_tier_active(tier: LicenseTier) -> bool {
-    debug!("Checking if features for {tier} license tier should be enabled");
+    trace!("Checking if features for {tier} license tier should be enabled");
 
     // get current object counts
     let counts = get_counts();
 
     let license = get_cached_license();
     let validation_result = validate_license(license.as_ref(), &counts, tier);
-    debug!("License validation result: {validation_result:?}");
+    trace!("License validation result: {validation_result:?}");
     validation_result.is_ok()
 }
 
