@@ -41,14 +41,6 @@ use crate::tests::common::{HandlerTestContext, MockOidcProvider};
 pub(crate) const STRONG_PASSWORD: &str = "Test1234!";
 
 // ---------------------------------------------------------------------------
-// Per-module counters (separate from the global TEST_ID in common/mod.rs)
-// ---------------------------------------------------------------------------
-
-static USER_CTR: AtomicU64 = AtomicU64::new(0);
-static NET_CTR: AtomicU64 = AtomicU64::new(0);
-static DEV_CTR: AtomicU64 = AtomicU64::new(0);
-
-// ---------------------------------------------------------------------------
 // Assertion helpers
 // ---------------------------------------------------------------------------
 
@@ -144,6 +136,7 @@ pub(crate) fn make_device_info() -> DeviceInfo {
 
 /// Insert a test user, returning the saved `User<Id>`.
 pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
+    static USER_CTR: AtomicU64 = AtomicU64::new(0);
     let n = USER_CTR.fetch_add(1, Ordering::Relaxed);
     let username = format!("test-user-{n}");
     User::new(
@@ -165,6 +158,7 @@ pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
 
 /// Insert a minimal WireGuard network, returning the saved `WireguardNetwork<Id>`.
 pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    static NET_CTR: AtomicU64 = AtomicU64::new(0);
     let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
     WireguardNetwork::new(
         format!("test-network-{n}"),
@@ -191,8 +185,8 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
 
 /// Pre-generated valid 32-byte WireGuard public keys (base64, 44 chars each).
 /// Used by `create_device_for_user` so that `Device::validate_pubkey` passes.
-/// 64 entries — enough headroom so `DEV_CTR % 64` doesn't wrap in a single
-/// test run and cause unique-key constraint violations.
+/// 64 entries — enough headroom so the per-function counter modulo never wraps
+/// within a single test and causes unique-key constraint violations.
 static DEVICE_PUBKEYS: &[&str] = &[
     "HCk2Q1BdaneEkZ6ruMXS3+z5BhMgLTpHVGFue4iVoq8=",
     "IzA9SldkcX6LmKWyv8zZ5vMADRonNEFOW2h1go+cqbY=",
@@ -264,6 +258,7 @@ static DEVICE_PUBKEYS: &[&str] = &[
 /// The device is automatically added to all existing networks so that
 /// `WireguardNetworkDevice` join records exist (required for config-building).
 pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device<Id> {
+    static DEV_CTR: AtomicU64 = AtomicU64::new(0);
     let n = DEV_CTR.fetch_add(1, Ordering::Relaxed);
     // Use a pre-generated valid 32-byte base64 WireGuard public key.
     let pubkey = DEVICE_PUBKEYS[n as usize % DEVICE_PUBKEYS.len()].to_string();
@@ -358,7 +353,7 @@ pub(crate) async fn create_polling_token(pool: &PgPool, device_id: Id) -> String
 /// ID and waits for the `EnrollmentStartResponse` (or any payload — panicking
 /// if the stream closes without a response).
 pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, token_id: &str) {
-    static ENROLL_CTR: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1000);
+    static ENROLL_CTR: AtomicU64 = AtomicU64::new(1000);
     let id = ENROLL_CTR.fetch_add(1, Ordering::Relaxed);
 
     context.mock_proxy().send_request(CoreRequest {
@@ -396,6 +391,7 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
 /// saved `WireguardNetwork<Id>`.  Use this for any test that exercises the MFA
 /// flow (the default `create_network` uses `LocationMfaMode::Disabled`).
 pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    static NET_CTR: AtomicU64 = AtomicU64::new(0);
     let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
     WireguardNetwork::new(
         format!("test-mfa-network-{n}"),
@@ -418,6 +414,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
 
 /// Insert a WireGuard network with `LocationMfaMode::External`.
 pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
+    static NET_CTR: AtomicU64 = AtomicU64::new(0);
     let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
     WireguardNetwork::new(
         format!("test-ext-mfa-network-{n}"),
@@ -501,8 +498,6 @@ pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
 // MFA flow helpers
 // ---------------------------------------------------------------------------
 
-static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
-
 /// Send `ClientMfaStart` and return `(response_id, start_token)`.
 ///
 /// Panics if the handler returns an error.
@@ -512,6 +507,7 @@ pub(crate) async fn send_mfa_start(
     pubkey: &str,
     method: MfaMethod,
 ) -> (u64, String) {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
@@ -548,6 +544,7 @@ pub(crate) async fn send_mfa_finish(
     token: &str,
     code: Option<&str>,
 ) -> (CoreResponse, String) {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
@@ -586,6 +583,7 @@ pub(crate) async fn send_mfa_finish_no_recv(
     token: &str,
     code: Option<&str>,
 ) {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
@@ -610,6 +608,7 @@ pub(crate) async fn send_mfa_finish_raw(
     token: &str,
     code: Option<&str>,
 ) -> CoreResponse {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,
@@ -627,6 +626,7 @@ pub(crate) async fn send_mfa_finish_raw(
 
 /// Send `ClientMfaTokenValidation` and return `token_valid`.
 pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, token: &str) -> bool {
+    static MFA_CTR: AtomicU64 = AtomicU64::new(2000);
     let id = MFA_CTR.fetch_add(1, Ordering::Relaxed);
     context.mock_proxy().send_request(CoreRequest {
         id,

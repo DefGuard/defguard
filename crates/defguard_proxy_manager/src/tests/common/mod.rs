@@ -54,26 +54,20 @@ macro_rules! assert_some {
     };
 }
 
-static TEST_ID: AtomicU64 = AtomicU64::new(0);
-
-fn next_test_id() -> u64 {
-    TEST_ID.fetch_add(1, Ordering::Relaxed)
-}
-
-fn unique_name(prefix: &str) -> String {
-    format!("{prefix}-{}", next_test_id())
-}
-
-fn unique_socket_path() -> PathBuf {
+/// Returns a per-process unique Unix socket path for a mock proxy.
+/// Returns a unique socket path for a mock proxy harness instance.
+///
+/// With `cargo nextest` each test runs in its own process, so combining the
+/// PID with a per-process counter gives a unique path for every harness
+/// created within the same test.
+pub(crate) fn mock_proxy_socket_path() -> PathBuf {
+    static SOCK_CTR: AtomicU64 = AtomicU64::new(0);
+    let n = SOCK_CTR.fetch_add(1, Ordering::Relaxed);
     PathBuf::from(format!(
         "/tmp/defguard-proxy-manager-{}-{}.sock",
         std::process::id(),
-        next_test_id()
+        n,
     ))
-}
-
-pub(crate) fn unique_mock_proxy_socket_path() -> PathBuf {
-    unique_socket_path()
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +193,7 @@ pub(crate) struct MockProxyHarness {
 
 impl MockProxyHarness {
     pub(crate) async fn start() -> Self {
-        Self::start_at(unique_socket_path()).await
+        Self::start_at(mock_proxy_socket_path()).await
     }
 
     pub(crate) async fn start_at(socket_path: PathBuf) -> Self {
@@ -676,9 +670,11 @@ pub(crate) async fn create_proxy_with_enabled(pool: &PgPool, enabled: bool) -> P
 }
 
 pub(crate) fn build_proxy_with_enabled(enabled: bool) -> Proxy<NoId> {
-    let port = 50_000 + i32::try_from(next_test_id() % 15_000).expect("port offset fits in i32");
+    static PORT_CTR: AtomicU64 = AtomicU64::new(0);
+    let n = PORT_CTR.fetch_add(1, Ordering::Relaxed);
+    let port = 50051 + i32::try_from(n).expect("port counter overflow");
     let mut proxy = Proxy::new(
-        unique_name("proxy"),
+        format!("proxy-{n}"),
         "127.0.0.1".to_string(),
         port,
         "test-admin".to_string(),
@@ -755,7 +751,7 @@ impl MockOidcProvider {
         let tcp = TcpListener::bind("127.0.0.1:0").expect("failed to bind mock OIDC server");
         let addr = tcp.local_addr().expect("no local addr");
         let base_url = format!("http://{addr}");
-        let client_id = format!("test-client-{}", next_test_id());
+        let client_id = "test-client".to_string();
         let client_secret = "test-secret".to_string();
 
         let state = OidcProviderState {

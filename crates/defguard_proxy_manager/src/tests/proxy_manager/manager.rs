@@ -6,7 +6,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use crate::tests::common::{
     ManagerTestContext, MockProxyHarness, create_proxy, create_proxy_with_enabled, reload_proxy,
-    unique_mock_proxy_socket_path, wait_for_proxy_connection_state,
+    mock_proxy_socket_path, wait_for_proxy_connection_state,
 };
 
 const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
@@ -195,7 +195,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
 
     // Proxy A: reconnects — use a fixed socket path so we can start a replacement.
     let proxy_a = create_proxy(&context.pool).await;
-    let socket_a = unique_mock_proxy_socket_path();
+    let socket_a = mock_proxy_socket_path();
     context.register_proxy_socket_path(
         format!("http://{}:{}/", proxy_a.address, proxy_a.port),
         socket_a.clone(),
@@ -389,7 +389,7 @@ async fn test_manager_retries_after_stream_close_single_supervisor(
     context.set_retry_delay(FAST_RETRY_DELAY);
 
     let proxy = create_proxy(&context.pool).await;
-    let socket_path = unique_mock_proxy_socket_path();
+    let socket_path = mock_proxy_socket_path();
     context.register_proxy_socket_path(
         format!("http://{}:{}/", proxy.address, proxy.port),
         socket_path.clone(),
