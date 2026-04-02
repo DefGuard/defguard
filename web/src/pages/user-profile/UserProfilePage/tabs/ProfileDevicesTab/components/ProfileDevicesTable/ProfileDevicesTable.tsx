@@ -153,8 +153,8 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
           },
         });
       }
-      items.push(
-        {
+      if (row.networks.length > 0) {
+        items.push({
           text: m.profile_devices_menu_show_config(),
           onClick: () => {
             api.device.getDeviceConfigs(row).then((modalData) => {
@@ -162,24 +162,24 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             });
           },
           icon: 'config',
+        });
+      }
+      items.push({
+        text: m.controls_delete(),
+        onClick: () => {
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_delete_user_device_title(),
+            contentMd: m.modal_delete_user_device_body({ name: row.name }),
+            actionPromise: () => api.device.deleteDevice(row.id),
+            invalidateKeys: [['user-overview'], ['user', username], ['network']],
+            submitProps: { text: m.controls_delete(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+            onError: () => Snackbar.error(m.user_device_delete_failed()),
+          });
         },
-        {
-          text: m.controls_delete(),
-          onClick: () => {
-            openModal(ModalName.ConfirmAction, {
-              title: m.modal_delete_user_device_title(),
-              contentMd: m.modal_delete_user_device_body({ name: row.name }),
-              actionPromise: () => api.device.deleteDevice(row.id),
-              invalidateKeys: [['user-overview'], ['user', username], ['network']],
-              submitProps: { text: m.controls_delete(), variant: 'critical' },
-              onSuccess: () => Snackbar.default(m.user_device_delete_success()),
-              onError: () => Snackbar.error(m.user_device_delete_failed()),
-            });
-          },
-          variant: 'danger',
-          icon: 'delete',
-        },
-      );
+        variant: 'danger',
+        icon: 'delete',
+      });
       return [{ items }];
     },
     [reservedNames, username, isAdmin, reservedPubkeys],

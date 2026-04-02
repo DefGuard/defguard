@@ -26,7 +26,10 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
-import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
+import type {
+  MenuItemProps,
+  MenuItemsGroup,
+} from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -520,69 +523,73 @@ export const UsersTable = () => {
       username: string,
       reservedDeviceNames: string[],
       reservedPubkeys: string[],
-    ): MenuItemsGroup[] => [
-      {
-        items: [
-          {
-            text: m.controls_edit(),
-            icon: 'edit',
-            onClick: () => {
-              openModal(ModalName.EditUserDevice, {
-                device,
-                reservedNames: reservedDeviceNames,
-                reservedPubkeys,
-                username,
-              });
-            },
+    ): MenuItemsGroup[] => {
+      const items: MenuItemProps[] = [
+        {
+          text: m.controls_edit(),
+          icon: 'edit',
+          onClick: () => {
+            openModal(ModalName.EditUserDevice, {
+              device,
+              reservedNames: reservedDeviceNames,
+              reservedPubkeys,
+              username,
+            });
           },
-          {
-            text: m.profile_devices_menu_ip_settings(),
-            icon: 'gateway',
-            testId: 'assign-device-ip',
-            onClick: () => {
-              api.device
-                .getDeviceIps(username, device.id)
-                .then(({ data: locationData }) => {
-                  openModal(ModalName.AssignUserDeviceIP, {
-                    device,
-                    username,
-                    locationData,
-                  });
-                })
-                .catch((error) => {
-                  Snackbar.error(m.profile_devices_ip_settings_load_failed());
-                  console.error(error);
+        },
+        {
+          text: m.profile_devices_menu_ip_settings(),
+          icon: 'gateway',
+          testId: 'assign-device-ip',
+          onClick: () => {
+            api.device
+              .getDeviceIps(username, device.id)
+              .then(({ data: locationData }) => {
+                openModal(ModalName.AssignUserDeviceIP, {
+                  device,
+                  username,
+                  locationData,
                 });
-            },
-          },
-          {
-            text: m.profile_devices_menu_show_config(),
-            onClick: () => {
-              api.device.getDeviceConfigs(device).then((modalData) => {
-                openModal(ModalName.UserDeviceConfig, modalData);
+              })
+              .catch((error) => {
+                Snackbar.error(m.profile_devices_ip_settings_load_failed());
+                console.error(error);
               });
-            },
-            icon: 'config',
           },
-          {
-            text: m.controls_delete(),
-            onClick: () => {
-              openModal(ModalName.ConfirmAction, {
-                title: m.modal_delete_user_device_title(),
-                contentMd: m.modal_delete_user_device_body({ name: device.name }),
-                actionPromise: () => api.device.deleteDevice(device.id),
-                invalidateKeys: [['user-overview'], ['user'], ['network']],
-                submitProps: { text: m.controls_delete(), variant: 'critical' },
-                onSuccess: () => Snackbar.default(m.user_device_delete_success()),
-                onError: () => Snackbar.error(m.user_device_delete_failed()),
-              });
-            },
-            variant: 'danger',
-            icon: 'delete',
+        },
+      ];
+
+      if (device.networks.length > 0) {
+        items.push({
+          text: m.profile_devices_menu_show_config(),
+          onClick: () => {
+            api.device.getDeviceConfigs(device).then((modalData) => {
+              openModal(ModalName.UserDeviceConfig, modalData);
+            });
           },
-        ],
-      },
-    ],
+          icon: 'config',
+        });
+      }
+
+      items.push({
+        text: m.controls_delete(),
+        onClick: () => {
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_delete_user_device_title(),
+            contentMd: m.modal_delete_user_device_body({ name: device.name }),
+            actionPromise: () => api.device.deleteDevice(device.id),
+            invalidateKeys: [['user-overview'], ['user'], ['network']],
+            submitProps: { text: m.controls_delete(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+            onError: () => Snackbar.error(m.user_device_delete_failed()),
+          });
+        },
+        variant: 'danger',
+        icon: 'delete',
+      });
+
+      return [{ items }];
+    },
     [],
   );
 
