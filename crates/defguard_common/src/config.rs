@@ -98,6 +98,10 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
     pub enrollment_url: Option<Url>,
 
+    #[arg(long, env = "DEFGUARD_PROXY_URL")]
+    #[serde(skip_serializing)]
+    pub proxy_url: Option<String>,
+
     #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT")]
     #[serde(skip_serializing)]
     #[deprecated(
@@ -260,6 +264,7 @@ impl DefGuardConfig {
             disable_stats_purge: None,
             stats_purge_frequency: None,
             stats_purge_threshold: None,
+            proxy_url: None,
             enrollment_url: None,
             enrollment_token_timeout: None,
             mfa_code_timeout: None,

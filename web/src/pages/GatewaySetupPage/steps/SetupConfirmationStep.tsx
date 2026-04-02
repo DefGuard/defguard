@@ -66,6 +66,7 @@ export const SetupConfirmationStep = () => {
       await api.migration.state.updateMigrationState({
         current_step: MigrationWizardStep.Confirmation,
         location_state: locationState,
+        proxy_url: useMigrationWizardStore.getState().proxy_url,
       });
       await queryClient.invalidateQueries({
         queryKey: getMigrationStateQueryOptions.queryKey,

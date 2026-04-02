@@ -1,15 +1,18 @@
 use defguard_certs::{CertificateAuthority, Csr, PemLabel, der_to_pem, generate_key_pair};
-use defguard_common::db::{
-    Id,
-    models::{
-        Certificates, WireguardNetwork,
-        certificates::{CoreCertSource, ProxyCertSource},
-        settings::initialize_current_settings,
-        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-        wireguard::{LocationMfaMode, ServiceLocationMode},
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        Id,
+        models::{
+            Certificates, WireguardNetwork,
+            certificates::{CoreCertSource, ProxyCertSource},
+            settings::initialize_current_settings,
+            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use ipnetwork::IpNetwork;
 use rcgen::DnType;
@@ -28,7 +31,7 @@ const SESSION_COOKIE_NAME: &str = "defguard_session";
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,
 ) -> (common::TestClient, tokio::sync::oneshot::Receiver<()>) {
-    Wizard::init(pool, true)
+    Wizard::init(pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
@@ -394,7 +397,9 @@ async fn test_get_external_ssl_info(_: PgPoolOptions, options: PgConnectOptions)
 async fn test_url_settings_endpoints_require_auth(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool).await.unwrap();
-    Wizard::init(&pool, true).await.unwrap();
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
+        .await
+        .unwrap();
 
     let (authed_client, _shutdown_rx) = make_setup_test_client(pool.clone()).await;
     let base_url = authed_client.base_url();
@@ -445,7 +450,9 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
     let pool = setup_pool(options).await;
     initialize_current_settings(&pool).await.unwrap();
     seed_wireguard_network(&pool).await;
-    Wizard::init(&pool, true).await.unwrap();
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
+        .await
+        .unwrap();
     let (client, shutdown_rx) = make_setup_test_client(pool.clone()).await;
 
     let resp = client

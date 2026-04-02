@@ -19,9 +19,15 @@ export interface MigrationWizardLocationState {
   locations: number[];
   current_location: number;
 }
+export interface MigrationWizardProxyUrl {
+  domain: string;
+  port: number;
+}
+
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
   location_state: MigrationWizardLocationState | null;
+  proxy_url: MigrationWizardProxyUrl | null;
 }
 
 export interface SessionInfo {

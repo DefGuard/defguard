@@ -1,10 +1,13 @@
-use defguard_common::db::{
-    models::{
-        Certificates, Settings,
-        migration_wizard::MigrationWizardState,
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            Certificates, Settings,
+            migration_wizard::MigrationWizardState,
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use reqwest::{
     Client, StatusCode,
@@ -37,7 +40,7 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     seed_admin_user(&pool, "migration_admin", "Passw0rd!").await;
 
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
@@ -181,7 +184,7 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
     init_settings_with_secret_key(&pool).await;
 
     seed_admin_user(&pool, "auth_migration_admin", "Passw0rd!").await;
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
