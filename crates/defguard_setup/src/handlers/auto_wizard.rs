@@ -1,12 +1,8 @@
 use axum::{Extension, Json};
-use defguard_certs::{
-    CertificateAuthority, CertificateInfo, Csr, PemLabel, der_to_pem, generate_key_pair,
-    parse_pem_certificate,
-};
+use defguard_certs::{PemLabel, der_to_pem};
 use defguard_common::{
     db::models::{
         Certificates, WireguardNetwork,
-        certificates::ProxyCertSource,
         initial_setup_wizard::InitialSetupStep,
         settings::update_current_settings,
         setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
@@ -21,7 +17,6 @@ use defguard_core::{
     handlers::{ApiResponse, ApiResult, core_certs},
 };
 use reqwest::StatusCode;
-use rcgen::DnType;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{PgPool, query_scalar};
@@ -139,19 +134,7 @@ pub async fn get_internal_ssl_info(
 }
 
 /// SSL configuration type for the external (proxy) web server.
-#[derive(Default, Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum ExternalSslType {
-    /// No SSL - plain HTTP, user manages reverse proxy / SSL termination themselves.
-    #[default]
-    None,
-    /// Obtain certificate via ACME / Let's Encrypt.
-    LetsEncrypt,
-    /// Generate certificate using Defguard's internal Certificate Authority.
-    DefguardCa,
-    /// Upload a custom certificate and private key.
-    OwnCert,
-}
+pub use core_certs::ExternalSslType;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ExternalUrlSettingsConfig {
@@ -198,115 +181,20 @@ pub(crate) async fn apply_external_url_settings(
     pool: &PgPool,
     config: ExternalUrlSettingsConfig,
 ) -> Result<Option<CertInfoResponse>, WebError> {
-    debug!(
-        "External URL settings received: public_proxy_url={}, ssl_type={:?}",
-        config.public_proxy_url, config.ssl_type,
-    );
-
     let mut settings = defguard_common::db::models::Settings::get_current_settings();
     settings.public_proxy_url = config.public_proxy_url.clone();
     update_current_settings(pool, settings).await?;
 
-    let mut certs = Certificates::get_or_default(pool)
-        .await
-        .map_err(WebError::from)?;
-
-    let cert_info = match config.ssl_type {
-        ExternalSslType::None => {
-            certs.proxy_http_cert_source = ProxyCertSource::None;
-            certs.proxy_http_cert_pem = None;
-            certs.proxy_http_cert_key_pem = None;
-            certs.proxy_http_cert_expiry = None;
-            certs.save(pool).await.map_err(WebError::from)?;
-            None
-        }
-        ExternalSslType::LetsEncrypt => {
-            let hostname = reqwest::Url::parse(&config.public_proxy_url)
-                .ok()
-                .and_then(|u| u.host_str().map(ToString::to_string))
-                .unwrap_or_else(|| config.public_proxy_url.clone());
-            certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
-            certs.acme_domain = Some(hostname);
-            certs.proxy_http_cert_pem = None;
-            certs.proxy_http_cert_key_pem = None;
-            certs.proxy_http_cert_expiry = None;
-            certs.save(pool).await.map_err(WebError::from)?;
-            None
-        }
-        ExternalSslType::DefguardCa => {
-            let hostname = reqwest::Url::parse(&config.public_proxy_url)
-                .ok()
-                .and_then(|u| u.host_str().map(ToString::to_string))
-                .unwrap_or_else(|| config.public_proxy_url.clone());
-
-            // CA must already be present at this point.
-            if certs.ca_cert_der.is_none() {
-                return Err(WebError::BadRequest(
-                    "CA certificate is not present; generate a CA first".to_string(),
-                ));
-            }
-
-            let ca_cert_der = certs.ca_cert_der.as_ref().expect("CA cert must be present");
-            let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
-                WebError::BadRequest("CA private key not available for signing".to_string())
-            })?;
-
-            let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
-            let key_pair = generate_key_pair()?;
-            let san = vec![hostname.clone()];
-            let dn = vec![(DnType::CommonName, hostname.as_str())];
-            let csr = Csr::new(&key_pair, &san, dn)?;
-            let server_cert = ca.sign_csr(&csr)?;
-
-            let cert_der = server_cert.der().to_vec();
-            let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
-            let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)?;
-            let info = CertificateInfo::from_der(&cert_der)?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
-            let expiry = info.not_after;
-
-            certs.proxy_http_cert_source = ProxyCertSource::SelfSigned;
-            certs.proxy_http_cert_pem = Some(cert_pem);
-            certs.proxy_http_cert_key_pem = Some(key_pem);
-            certs.proxy_http_cert_expiry = Some(expiry);
-            certs.save(pool).await.map_err(WebError::from)?;
-
-            Some(CertInfoResponse {
-                common_name: info.subject_common_name,
-                valid_for_days,
-                not_before: info.not_before.to_string(),
-                not_after: info.not_after.to_string(),
-            })
-        }
-        ExternalSslType::OwnCert => {
-            let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                WebError::BadRequest("cert_pem is required for own_cert".to_string())
-            })?;
-            let key_pem_str = config.key_pem.ok_or_else(|| {
-                WebError::BadRequest("key_pem is required for own_cert".to_string())
-            })?;
-
-            let cert_der = parse_pem_certificate(&cert_pem_str)?;
-            let info = CertificateInfo::from_der(cert_der.as_ref())?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
-            let expiry = info.not_after;
-
-            certs.proxy_http_cert_source = ProxyCertSource::Custom;
-            certs.proxy_http_cert_pem = Some(cert_pem_str);
-            certs.proxy_http_cert_key_pem = Some(key_pem_str);
-            certs.proxy_http_cert_expiry = Some(expiry);
-            certs.save(pool).await.map_err(WebError::from)?;
-
-            Some(CertInfoResponse {
-                common_name: info.subject_common_name.clone(),
-                valid_for_days,
-                not_before: info.not_before.to_string(),
-                not_after: info.not_after.to_string(),
-            })
-        }
-    };
-
-    Ok(cert_info)
+    core_certs::apply_external_url_settings(
+        pool,
+        &config.public_proxy_url,
+        core_certs::ExternalUrlSettingsConfig {
+            ssl_type: config.ssl_type,
+            cert_pem: config.cert_pem,
+            key_pem: config.key_pem,
+        },
+    )
+    .await
 }
 
 /// Returns external SSL certificate info (for the "Download CA certificate" step).

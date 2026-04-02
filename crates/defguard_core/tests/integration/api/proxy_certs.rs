@@ -12,11 +12,14 @@ use std::{
 };
 
 use axum_extra::extract::cookie::Key;
-use defguard_certs::CertificateAuthority;
+use defguard_certs::{CertificateAuthority, Csr, DnType, PemLabel, der_to_pem, generate_key_pair};
 use defguard_common::{
     VERSION,
     db::{
-        models::{Certificates, ProxyCertSource, Settings, settings::initialize_current_settings},
+        models::{
+            Certificates, ProxyCertSource, Settings,
+            settings::{initialize_current_settings, update_current_settings},
+        },
         setup_pool,
     },
     types::proxy::ProxyControlMessage,
@@ -150,6 +153,18 @@ async fn seed_ca(pool: &PgPool) {
         ..Default::default()
     };
     certs.save(pool).await.unwrap();
+}
+
+fn generate_test_cert_pem(common_name: &str) -> (String, String) {
+    let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
+    let key_pair = generate_key_pair().unwrap();
+    let san = vec![common_name.to_string()];
+    let dn = vec![(DnType::CommonName, common_name)];
+    let csr = Csr::new(&key_pair, &san, dn).unwrap();
+    let cert = ca.sign_csr(&csr).unwrap();
+    let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
+    let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
+    (cert_pem, key_pem)
 }
 
 /// Authenticate as admin and discard the login event from the capture queue.
@@ -477,4 +492,99 @@ async fn test_proxy_cert_pair_none_by_default(_: PgPoolOptions, opts: PgConnectO
         certs.proxy_http_cert_pair().is_none(),
         "No cert must be configured by default"
     );
+}
+
+#[sqlx::test]
+async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOptions) {
+    let pool = setup_pool(opts).await;
+    let (mut client, _capture, pool) = make_test_client_with_proxy_rx(pool).await;
+    login_admin(&mut client).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = "https://edge.example.com".into();
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({ "ssl_type": "none" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let saved = Certificates::get(&pool).await.unwrap().unwrap();
+    assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::None);
+    assert!(saved.proxy_http_cert_pem.is_none());
+    assert!(saved.proxy_http_cert_key_pem.is_none());
+    assert!(saved.proxy_http_cert_expiry.is_none());
+    assert!(saved.acme_domain.is_none());
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({ "ssl_type": "lets_encrypt" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let body: serde_json::Value = response.json().await;
+    assert!(body["cert_info"].is_null());
+
+    let saved = Certificates::get(&pool).await.unwrap().unwrap();
+    assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::LetsEncrypt);
+    assert_eq!(saved.acme_domain.as_deref(), Some("edge.example.com"));
+    assert!(saved.proxy_http_cert_pem.is_none());
+
+    seed_ca(&pool).await;
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({ "ssl_type": "defguard_ca" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let body: serde_json::Value = response.json().await;
+    assert!(!body["cert_info"].is_null());
+    assert_eq!(body["cert_info"]["common_name"], "edge.example.com");
+
+    let saved = Certificates::get(&pool).await.unwrap().unwrap();
+    assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::SelfSigned);
+    assert!(saved.proxy_http_cert_expiry.is_some());
+    assert!(
+        saved
+            .proxy_http_cert_pem
+            .as_deref()
+            .unwrap_or("")
+            .contains("BEGIN CERTIFICATE")
+    );
+    assert!(saved.acme_domain.is_none());
+
+    let (cert_pem, key_pem) = generate_test_cert_pem("uploaded-edge.example.com");
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": cert_pem,
+            "key_pem": key_pem
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["cert_info"]["common_name"], "uploaded-edge.example.com");
+
+    let saved = Certificates::get(&pool).await.unwrap().unwrap();
+    assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::Custom);
+    assert!(saved.proxy_http_cert_expiry.is_some());
+    assert!(saved.acme_domain.is_none());
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n"
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

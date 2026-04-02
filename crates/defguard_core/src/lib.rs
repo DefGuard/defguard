@@ -119,7 +119,7 @@ use crate::{
         component_setup::setup_gateway_tls_stream,
         core_certs::{
             core_cert_self_signed, core_cert_upload, get_ca, get_certs,
-            set_internal_url_settings,
+            set_external_url_settings, set_internal_url_settings,
         },
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
@@ -385,12 +385,16 @@ pub fn build_webapp(
             )
             .route("/proxy/cert/upload", post(proxy_cert_upload))
             .route("/proxy/cert/self-signed", post(proxy_cert_self_signed))
+            .route(
+                "/proxy/cert/external_url_settings",
+                post(set_external_url_settings),
+            )
             // Core HTTPS cert routes
             .route("/core/cert/upload", post(core_cert_upload))
             .route("/core/cert/self-signed", post(core_cert_self_signed))
-			.route("/core/cert/internal_url_settings", post(set_internal_url_settings))
-			.route("/core/cert/ca", get(get_ca))
-			.route("/core/cert/certs", get(get_certs))
+            .route("/core/cert/internal_url_settings", post(set_internal_url_settings))
+            .route("/core/cert/ca", get(get_ca))
+            .route("/core/cert/certs", get(get_certs))
             // Gateway routes
             .route("/gateway", get(gateway_list))
             .route(
