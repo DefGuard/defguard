@@ -197,6 +197,12 @@ fn edit_alias_data_into_api_response(
     }
 }
 
+async fn create_alias(client: &mut TestClient, alias: EditAclAlias) -> i64 {
+    let resp = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    resp.json::<Value>().await["id"].as_i64().unwrap()
+}
+
 fn edit_destination_data_into_api_response(
     data: EditAclDestination,
     id: Id,

@@ -159,6 +159,7 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
       >
         <Select
           label={m.form_label_location()}
+          helper={m.form_helper_location()}
           value={locationOption}
           options={[locationOption]}
           onChange={() => {}}

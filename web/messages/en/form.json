@@ -83,5 +83,7 @@
   "form_helper_assigned_ip_address": "",
   "form_helper_description": "",
   "form_helper_secret_token": "",
-  "form_helper_webhook_url": ""
+  "form_helper_webhook_url": "",
+  "form_helper_location": "",
+  "form_helper_type": ""
 }

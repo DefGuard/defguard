@@ -83,6 +83,7 @@
   "migration_wizard_ca_helper_email": "Each certificate authority (or any certificate) has a contact email field. Can be your email or general IT email.",
   "migration_wizard_ca_placeholder_email": "email@example.com",
   "migration_wizard_ca_label_validity": "Validity Period",
+  "migration_wizard_ca_helper_validity": "",
   "migration_wizard_ca_generated_title": "Certificate Authority Generated",
   "migration_wizard_ca_generated_subtitle": "The system created all required certificate files, including the root certificate and private key. You can download these files and continue with the configuration.",
   "migration_wizard_ca_download_button": "Download CA certificate",

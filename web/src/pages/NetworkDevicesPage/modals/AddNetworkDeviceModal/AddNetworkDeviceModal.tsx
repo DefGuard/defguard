@@ -458,6 +458,7 @@ const FormStep = ({
             value={selected}
             onChange={handleLocationChange}
             label={m.form_label_location()}
+            helper={m.form_helper_location()}
             required
           />
           <form.AppField name="name">

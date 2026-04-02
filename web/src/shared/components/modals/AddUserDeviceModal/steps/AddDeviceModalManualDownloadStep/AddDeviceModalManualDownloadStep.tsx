@@ -1,5 +1,7 @@
 import { m } from '../../../../../../paraglide/messages';
 import { Divider } from '../../../../../defguard-ui/components/Divider/Divider';
+import { IconKind } from '../../../../../defguard-ui/components/Icon';
+import { InfoBanner } from '../../../../../defguard-ui/components/InfoBanner/InfoBanner';
 import { ModalControls } from '../../../../../defguard-ui/components/ModalControls/ModalControls';
 import { useAddUserDeviceModal } from '../../store/useAddUserDeviceModal';
 import './style.scss';
@@ -14,8 +16,11 @@ export const AddDeviceModalManualDownloadStep = () => {
 
   return (
     <div id="add-user-device-manual-download">
-      <p>{m.modal_add_user_device_manual_download_warn_title()}</p>
-      <p>{m.modal_add_user_device_manual_download_warn_content()}</p>
+      <InfoBanner
+        variant="warning"
+        icon={IconKind.WarningOutlined}
+        text={m.modal_network_device_manual_config_warning()}
+      />
       <Divider orientation="horizontal" />
       <ModalDeviceConfigSection data={response} privateKey={keys.privateKey} />
       <Divider />
