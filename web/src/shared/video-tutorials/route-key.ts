@@ -14,3 +14,22 @@ export function canonicalizeRouteKey(raw: string): string {
   }
   return key;
 }
+
+/**
+ * Strips dynamic segments from a canonical route path, returning the longest
+ * static prefix that can be used for navigation and label lookup.
+ *
+ * Dynamic segments use TanStack Router's "$param" convention. Everything from
+ * the first "/$"-prefixed segment onward is removed.
+ *
+ * @example
+ *   getNavRoot('/vpn-overview')              // → '/vpn-overview'
+ *   getNavRoot('/vpn-overview/$locationId')  // → '/vpn-overview'
+ *   getNavRoot('/acl/rules/$ruleId/edit')    // → '/acl/rules'
+ *   getNavRoot('/$id')                       // → '/'
+ */
+export function getNavRoot(route: string): string {
+  const canonical = canonicalizeRouteKey(route);
+  const paramIdx = canonical.indexOf('/$');
+  return paramIdx === -1 ? canonical : canonical.slice(0, paramIdx) || '/';
+}

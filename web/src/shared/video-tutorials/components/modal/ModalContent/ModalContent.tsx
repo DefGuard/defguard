@@ -3,6 +3,7 @@ import { m } from '../../../../../paraglide/messages';
 import { Icon } from '../../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../../defguard-ui/components/IconButton/IconButton';
 import { Direction } from '../../../../defguard-ui/types';
+import { getNavRoot } from '../../../route-key';
 import { getRouteLabel } from '../../../route-label';
 import { useVideoTutorialsModal } from '../../../store';
 import type { VideoTutorial, VideoTutorialsSection } from '../../../types';
@@ -22,6 +23,8 @@ export const ModalContent = ({
   onSelect,
   handleClose,
 }: ModalContentProps) => {
+  const navRoot = getNavRoot(selectedVideo.appRoute);
+  const label = getRouteLabel(navRoot) ?? navRoot;
   return (
     <>
       <div className="tutorials-modal-header">
@@ -53,14 +56,14 @@ export const ModalContent = ({
             </div>
             <div className="tutorials-modal-video-links">
               <Link
-                to={selectedVideo.appRoute}
+                to={navRoot}
                 className="tutorials-modal-link tutorials-modal-link--internal"
                 onClick={() => useVideoTutorialsModal.setState({ isOpen: false })}
               >
                 <Icon icon="arrow-small" size={16} rotationDirection={Direction.RIGHT} />
                 <span>
                   {m.cmp_video_tutorials_modal_go_to({
-                    page: getRouteLabel(selectedVideo.appRoute) ?? selectedVideo.appRoute,
+                    page: label,
                   })}
                 </span>
               </Link>
