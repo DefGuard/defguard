@@ -16,7 +16,7 @@ use defguard_core::{
         db::models::openid_provider::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProvider, OpenIdProviderKind,
         },
-        license::{License, LicenseTier, set_cached_license},
+        license::{License, LicenseTier, SupportType, set_cached_license},
     },
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
 };
@@ -109,6 +109,7 @@ pub(crate) fn set_test_license_business() {
         limits: None,
         version_date_limit: None,
         tier: LicenseTier::Business,
+        support_type: SupportType::Basic,
     };
     set_cached_license(Some(license));
 }
