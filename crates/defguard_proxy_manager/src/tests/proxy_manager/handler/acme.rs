@@ -150,11 +150,12 @@ async fn test_acme_certificate_overwrites_existing(_: PgPoolOptions, options: Pg
     context.finish().await.expect_server_finished().await;
 }
 
-/// When the full `ProxyManager` loop is running (not `run_once`), the handler
-/// registers itself in `handler_tx_map`.  After processing `AcmeCertificate`,
-/// it broadcasts `HttpsCerts` to all registered handlers, which forward it to
-/// their respective proxy streams.  This test verifies that the connected mock
-/// proxy receives the `HttpsCerts` response.
+/// When the full `ProxyManager` loop is running, the handler registers itself
+/// in `handler_tx_map`.  After processing `AcmeCertificate`, it broadcasts
+/// `HttpsCerts` to ALL registered handlers, which forward it to their
+/// respective proxy streams.  This test verifies that every connected mock
+/// proxy receives the `HttpsCerts` response — including proxies other than the
+/// one that sent the certificate.
 #[sqlx::test]
 async fn test_acme_certificate_broadcasts_to_connected_proxy(
     _: PgPoolOptions,
@@ -162,41 +163,48 @@ async fn test_acme_certificate_broadcasts_to_connected_proxy(
 ) {
     let mut context = ManagerTestContext::new(options).await;
 
-    let proxy = create_proxy(&context.pool).await;
-    let mut mock_proxy = MockProxyHarness::start().await;
-    context.register_proxy_mock(&proxy, &mock_proxy);
+    let proxy_a = create_proxy(&context.pool).await;
+    let mut mock_a = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_a, &mock_a);
+
+    let proxy_b = create_proxy(&context.pool).await;
+    let mut mock_b = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_b, &mock_b);
 
     context.start().await;
-    complete_manager_handshake(&mut mock_proxy).await;
+    complete_manager_handshake(&mut mock_a).await;
+    complete_manager_handshake(&mut mock_b).await;
 
-    // Inject an AcmeCertificate request from the mock proxy into the running handler.
-    mock_proxy.send_request(make_acme_certificate_request(
+    // Inject an AcmeCertificate request from proxy A into the running handler.
+    mock_a.send_request(make_acme_certificate_request(
         TEST_CERT_PEM,
         TEST_KEY_PEM,
         TEST_ACCOUNT_JSON,
     ));
 
-    // The handler broadcasts HttpsCerts back to ALL registered proxies
-    // (including the sender, since it is registered in handler_tx_map).
-    let response = timeout(Duration::from_secs(5), mock_proxy.recv_outbound())
-        .await
-        .expect("timed out waiting for HttpsCerts broadcast after AcmeCertificate");
+    // The handler must broadcast HttpsCerts to ALL registered proxies — both
+    // the sender (proxy A) and the bystander (proxy B).
+    for (label, mock) in [("proxy A (sender)", &mut mock_a), ("proxy B (bystander)", &mut mock_b)] {
+        let response = timeout(Duration::from_secs(5), mock.recv_outbound())
+            .await
+            .unwrap_or_else(|_| panic!("timed out waiting for HttpsCerts broadcast on {label}"));
 
-    match response.payload {
-        Some(core_response::Payload::HttpsCerts(h)) => {
-            assert_eq!(
-                h.cert_pem, TEST_CERT_PEM,
-                "broadcast cert_pem should match the submitted certificate"
-            );
-            assert_eq!(
-                h.key_pem, TEST_KEY_PEM,
-                "broadcast key_pem should match the submitted key"
-            );
+        match response.payload {
+            Some(core_response::Payload::HttpsCerts(h)) => {
+                assert_eq!(
+                    h.cert_pem, TEST_CERT_PEM,
+                    "{label}: broadcast cert_pem should match the submitted certificate"
+                );
+                assert_eq!(
+                    h.key_pem, TEST_KEY_PEM,
+                    "{label}: broadcast key_pem should match the submitted key"
+                );
+            }
+            other => panic!(
+                "{label}: expected HttpsCerts response from AcmeCertificate broadcast, got: {:?}",
+                other.as_ref().map(std::mem::discriminant)
+            ),
         }
-        other => panic!(
-            "expected HttpsCerts response from AcmeCertificate broadcast, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
-        ),
     }
 
     context.finish().await;

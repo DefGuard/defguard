@@ -250,6 +250,10 @@ impl MockProxyHarness {
         self.state.connection_count.load(Ordering::Relaxed)
     }
 
+    pub(crate) fn purge_count(&self) -> u64 {
+        self.state.purge_count.load(Ordering::Relaxed)
+    }
+
     pub(crate) async fn wait_for_connection_count(&self, expected_count: u64) {
         timeout(TEST_TIMEOUT, async {
             loop {

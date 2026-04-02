@@ -322,27 +322,47 @@ async fn test_shutdown_control_message_disconnects_without_purge(
 #[sqlx::test]
 async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
-    let proxy = create_proxy(&context.pool).await;
-    let mut mock_proxy = MockProxyHarness::start().await;
-    context.register_proxy_mock(&proxy, &mock_proxy);
+
+    // Two proxies connected at startup.
+    let proxy_a = create_proxy(&context.pool).await;
+    let mut mock_a = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_a, &mock_a);
+
+    let proxy_b = create_proxy(&context.pool).await;
+    let mut mock_b = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_b, &mock_b);
 
     context.start().await;
-    complete_manager_proxy_handshake(&mut mock_proxy).await;
-    wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
+    complete_manager_proxy_handshake(&mut mock_a).await;
+    complete_manager_proxy_handshake(&mut mock_b).await;
+    wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
+    wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
 
-    // Send Purge — purge() RPC MUST be called.
+    // Send Purge targeting proxy A only — purge() RPC MUST be called on A.
     context
         .proxy_control_tx
-        .send(ProxyControlMessage::Purge(proxy.id))
+        .send(ProxyControlMessage::Purge(proxy_a.id))
         .await
         .expect("failed to send Purge");
 
-    mock_proxy.wait_purged().await;
+    mock_a.wait_purged().await;
 
-    let proxy_after = wait_for_proxy_connection_state(&context.pool, proxy.id, false).await;
+    let proxy_a_after = wait_for_proxy_connection_state(&context.pool, proxy_a.id, false).await;
     assert!(
-        !proxy_after.is_connected(),
-        "proxy should be disconnected after Purge"
+        !proxy_a_after.is_connected(),
+        "proxy A should be disconnected after Purge"
+    );
+
+    // Proxy B must be completely unaffected — not purged, still connected.
+    assert_eq!(
+        mock_b.purge_count(),
+        0,
+        "proxy B must not be purged by a Purge message targeting proxy A"
+    );
+    let proxy_b_after = wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
+    assert!(
+        proxy_b_after.is_connected(),
+        "proxy B must remain connected after proxy A is purged"
     );
 
     context.finish().await;
@@ -470,21 +490,28 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
 /// `CoreResponse` to every proxy handler that is currently registered in
 /// `handler_tx_map` (i.e. every handler whose bidi stream is live).
 ///
-/// Setup: one enabled proxy, connected and past handshake.  Send the control
-/// message and assert the mock proxy receives the matching `HttpsCerts`.
+/// Setup: two enabled proxies, both connected and past handshake.  Send the
+/// control message and assert that both mock proxies receive the matching
+/// `HttpsCerts` response.
 #[sqlx::test]
 async fn test_broadcast_https_certs_reaches_proxy(_: PgPoolOptions, options: PgConnectOptions) {
     let mut context = ManagerTestContext::new(options).await;
 
-    let proxy = create_proxy(&context.pool).await;
-    let mut mock_proxy = MockProxyHarness::start().await;
-    context.register_proxy_mock(&proxy, &mock_proxy);
+    let proxy_a = create_proxy(&context.pool).await;
+    let mut mock_a = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_a, &mock_a);
+
+    let proxy_b = create_proxy(&context.pool).await;
+    let mut mock_b = MockProxyHarness::start().await;
+    context.register_proxy_mock(&proxy_b, &mock_b);
 
     context.start().await;
-    complete_manager_proxy_handshake(&mut mock_proxy).await;
+    complete_manager_proxy_handshake(&mut mock_a).await;
+    complete_manager_proxy_handshake(&mut mock_b).await;
 
-    // Ensure the handler is connected (and therefore registered in handler_tx_map).
-    wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
+    // Ensure both handlers are connected (and therefore registered in handler_tx_map).
+    wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
+    wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
 
     let cert_pem = "-----BEGIN CERTIFICATE-----\nTESTCERT\n-----END CERTIFICATE-----\n".to_string();
     let key_pem = "-----BEGIN PRIVATE KEY-----\nTESTKEY\n-----END PRIVATE KEY-----\n".to_string();
@@ -498,23 +525,25 @@ async fn test_broadcast_https_certs_reaches_proxy(_: PgPoolOptions, options: PgC
         .await
         .expect("failed to send BroadcastHttpsCerts control message");
 
-    // The mock proxy must receive an HttpsCerts response from the handler.
-    let response = mock_proxy.recv_outbound().await;
-    match response.payload {
-        Some(core_response::Payload::HttpsCerts(h)) => {
-            assert_eq!(
-                h.cert_pem, cert_pem,
-                "broadcast cert_pem must match the value sent in BroadcastHttpsCerts"
-            );
-            assert_eq!(
-                h.key_pem, key_pem,
-                "broadcast key_pem must match the value sent in BroadcastHttpsCerts"
-            );
+    // Both mock proxies must receive an HttpsCerts response.
+    for (label, mock) in [("proxy A", &mut mock_a), ("proxy B", &mut mock_b)] {
+        let response = mock.recv_outbound().await;
+        match response.payload {
+            Some(core_response::Payload::HttpsCerts(h)) => {
+                assert_eq!(
+                    h.cert_pem, cert_pem,
+                    "{label}: broadcast cert_pem must match the value sent in BroadcastHttpsCerts"
+                );
+                assert_eq!(
+                    h.key_pem, key_pem,
+                    "{label}: broadcast key_pem must match the value sent in BroadcastHttpsCerts"
+                );
+            }
+            other => panic!(
+                "{label}: expected HttpsCerts response, got: {:?}",
+                other.as_ref().map(std::mem::discriminant)
+            ),
         }
-        other => panic!(
-            "expected HttpsCerts response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
-        ),
     }
 
     context.finish().await;
