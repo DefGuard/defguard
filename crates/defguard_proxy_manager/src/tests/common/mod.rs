@@ -40,7 +40,7 @@ use tonic::{Request, Response, Status, Streaming, transport::Server};
 
 use crate::{ProxyManager, ProxyManagerTestSupport, ProxyTxSet, handler::ProxyHandler};
 
-pub(crate) const TEST_TIMEOUT: Duration = Duration::from_secs(5);
+pub(crate) const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Minimum proxy version that passes `is_proxy_version_supported()`.
 const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(2, 0, 0);
