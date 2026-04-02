@@ -1,15 +1,21 @@
 use std::{
     collections::HashMap,
+    env::temp_dir,
     io,
-    net::TcpListener,
     path::PathBuf,
+    process,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicU16, Ordering},
     },
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use axum::{
+    extract::{Form, State},
+    response::Json,
+};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use defguard_common::db::{
     Id, NoId,
     models::{
@@ -24,9 +30,11 @@ use defguard_proto::proxy::{
     proxy_server,
 };
 use defguard_version::server::DefguardVersionLayer;
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey, traits::PublicKeyParts};
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
-    net::UnixListener,
+    net::{TcpListener, UnixListener},
     sync::{
         Notify, broadcast,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -41,6 +49,10 @@ use tonic::{Request, Response, Status, Streaming, transport::Server};
 use crate::{ProxyManager, ProxyManagerTestSupport, ProxyTxSet, handler::ProxyHandler};
 
 pub(crate) const TEST_TIMEOUT: Duration = Duration::from_secs(10);
+
+pub(crate) const CORE_RESPONSE_TIMEOUT: Duration = Duration::from_millis(200);
+
+pub(crate) const PROXY_CONNECT_DELAY: Duration = Duration::from_millis(20);
 
 /// Minimum proxy version that passes `is_proxy_version_supported()`.
 const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(2, 0, 0);
@@ -61,12 +73,13 @@ macro_rules! assert_some {
 /// PID with a per-process counter gives a unique path for every harness
 /// created within the same test.
 pub(crate) fn mock_proxy_socket_path() -> PathBuf {
-    static SOCK_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = SOCK_CTR.fetch_add(1, Ordering::Relaxed);
+    static SOCK_CTR: AtomicU16 = AtomicU16::new(0);
+    let socket_number = SOCK_CTR.fetch_add(1, Ordering::Relaxed);
     PathBuf::from(format!(
-        "/tmp/defguard-proxy-manager-{}-{}.sock",
-        std::process::id(),
-        n,
+        "{}/defguard-proxy-manager-{}-{}.sock",
+        temp_dir().display(),
+        process::id(),
+        socket_number,
     ))
 }
 
@@ -88,9 +101,9 @@ struct MockProxyState {
     inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
     /// One-shot notifier that fires once on the first connection.
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
-    connection_count: AtomicU64,
+    connection_count: AtomicU16,
     connection_notify: Notify,
-    purge_count: AtomicU64,
+    purge_count: AtomicU16,
     purge_notify: Notify,
 }
 
@@ -206,9 +219,9 @@ impl MockProxyHarness {
             outbound_tx,
             inbound_rx: Mutex::new(Some(inbound_rx)),
             connected_tx: Mutex::new(Some(connected_tx)),
-            connection_count: AtomicU64::new(0),
+            connection_count: AtomicU16::new(0),
             connection_notify: Notify::new(),
-            purge_count: AtomicU64::new(0),
+            purge_count: AtomicU16::new(0),
             purge_notify: Notify::new(),
         });
         let service = MockProxyService {
@@ -246,15 +259,15 @@ impl MockProxyHarness {
             .expect("mock proxy connection notifier dropped");
     }
 
-    pub(crate) fn connection_count(&self) -> u64 {
+    pub(crate) fn connection_count(&self) -> u16 {
         self.state.connection_count.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn purge_count(&self) -> u64 {
+    pub(crate) fn purge_count(&self) -> u16 {
         self.state.purge_count.load(Ordering::Relaxed)
     }
 
-    pub(crate) async fn wait_for_connection_count(&self, expected_count: u64) {
+    pub(crate) async fn wait_for_connection_count(&self, expected_count: u16) {
         timeout(TEST_TIMEOUT, async {
             loop {
                 if self.connection_count() >= expected_count {
@@ -324,9 +337,7 @@ impl MockProxyHarness {
 
     /// Assert that no outbound response arrives within a short window.
     pub(crate) async fn expect_no_outbound(&mut self) {
-        if let Ok(Some(_message)) =
-            timeout(Duration::from_millis(200), self.outbound_rx.recv()).await
-        {
+        if let Ok(Some(_message)) = timeout(CORE_RESPONSE_TIMEOUT, self.outbound_rx.recv()).await {
             panic!("unexpected outbound response");
         }
     }
@@ -652,7 +663,7 @@ pub(crate) async fn wait_for_proxy_connection_state(
             if proxy.is_connected() == expected_connected {
                 return proxy;
             }
-            tokio::time::sleep(Duration::from_millis(20)).await;
+            tokio::time::sleep(PROXY_CONNECT_DELAY).await;
         }
     })
     .await
@@ -671,11 +682,11 @@ pub(crate) async fn create_proxy_with_enabled(pool: &PgPool, enabled: bool) -> P
 }
 
 pub(crate) fn build_proxy_with_enabled(enabled: bool) -> Proxy<NoId> {
-    static PORT_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = PORT_CTR.fetch_add(1, Ordering::Relaxed);
-    let port = 50051 + i32::try_from(n).expect("port counter overflow");
+    static PORT_CTR: AtomicU16 = AtomicU16::new(0);
+    let port_number = PORT_CTR.fetch_add(1, Ordering::Relaxed);
+    let port = 50051 + i32::from(port_number);
     let mut proxy = Proxy::new(
-        format!("proxy-{n}"),
+        format!("proxy-{port_number}"),
         "127.0.0.1".to_string(),
         port,
         "test-admin".to_string(),
@@ -725,12 +736,7 @@ pub(crate) struct MockOidcProvider {
 impl MockOidcProvider {
     /// Spawn a new mock OIDC provider on a random loopback port.
     pub(crate) async fn start() -> Self {
-        use base64::Engine as _;
-        use jsonwebtoken::EncodingKey;
-        use rsa::pkcs8::EncodePrivateKey;
-        use rsa::{RsaPrivateKey, traits::PublicKeyParts};
-
-        // ---- generate RSA-2048 key pair ----
+        // generate RSA-2048 key pair
         let mut rng = rand::thread_rng();
         let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate RSA key");
 
@@ -741,16 +747,18 @@ impl MockOidcProvider {
         let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes())
             .expect("failed to build EncodingKey from PEM");
 
-        // ---- build JWKS n / e ----
+        // build JWKS n / e
         let pub_key = private_key.to_public_key();
         let n_bytes = pub_key.n().to_bytes_be();
         let e_bytes = pub_key.e().to_bytes_be();
-        let jwks_n = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&n_bytes);
-        let jwks_e = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&e_bytes);
+        let jwks_n = URL_SAFE_NO_PAD.encode(&n_bytes);
+        let jwks_e = URL_SAFE_NO_PAD.encode(&e_bytes);
 
-        // ---- bind to random port ----
-        let tcp = TcpListener::bind("127.0.0.1:0").expect("failed to bind mock OIDC server");
-        let addr = tcp.local_addr().expect("no local addr");
+        // bind to random port
+        let tcp_listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("failed to bind mock OIDC server");
+        let addr = tcp_listener.local_addr().expect("no local addr");
         let base_url = format!("http://{addr}");
         let client_id = "test-client".to_string();
         let client_secret = "test-secret".to_string();
@@ -763,7 +771,7 @@ impl MockOidcProvider {
             jwks_e,
         };
 
-        // ---- build axum router ----
+        // build axum router
         use axum::{Router, routing::get, routing::post};
         let app = Router::new()
             .route("/.well-known/openid-configuration", get(oidc_discovery))
@@ -771,13 +779,8 @@ impl MockOidcProvider {
             .route("/token", post(oidc_token))
             .with_state(state);
 
-        // Convert std TcpListener to tokio TcpListener
-        tcp.set_nonblocking(true).expect("set_nonblocking failed");
-        let tokio_listener =
-            tokio::net::TcpListener::from_std(tcp).expect("failed to convert to tokio TcpListener");
-
         let server_task = tokio::spawn(async move {
-            axum::serve(tokio_listener, app)
+            axum::serve(tcp_listener, app)
                 .await
                 .expect("mock OIDC server error");
         });
@@ -797,13 +800,11 @@ impl Drop for MockOidcProvider {
     }
 }
 
-// ---- axum handlers ----
+// axum handlers
 
-async fn oidc_discovery(
-    axum::extract::State(state): axum::extract::State<OidcProviderState>,
-) -> axum::response::Json<serde_json::Value> {
+async fn oidc_discovery(State(state): State<OidcProviderState>) -> Json<serde_json::Value> {
     let base = &state.base_url;
-    axum::response::Json(serde_json::json!({
+    Json(serde_json::json!({
         "issuer": base,
         "authorization_endpoint": format!("{base}/authorize"),
         "token_endpoint": format!("{base}/token"),
@@ -814,10 +815,8 @@ async fn oidc_discovery(
     }))
 }
 
-async fn oidc_jwks(
-    axum::extract::State(state): axum::extract::State<OidcProviderState>,
-) -> axum::response::Json<serde_json::Value> {
-    axum::response::Json(serde_json::json!({
+async fn oidc_jwks(State(state): State<OidcProviderState>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
         "keys": [{
             "kty": "RSA",
             "alg": "RS256",
@@ -831,9 +830,9 @@ async fn oidc_jwks(
 /// Parses the authorization code as `"{sub}:{email}:{nonce}"` and returns a
 /// signed RS256 ID token JWT.
 async fn oidc_token(
-    axum::extract::State(state): axum::extract::State<OidcProviderState>,
-    axum::extract::Form(params): axum::extract::Form<HashMap<String, String>>,
-) -> axum::response::Json<serde_json::Value> {
+    State(state): State<OidcProviderState>,
+    Form(params): Form<HashMap<String, String>>,
+) -> Json<serde_json::Value> {
     let code = params.get("code").cloned().unwrap_or_default();
     // code format: "{sub}:{email}:{nonce}"
     let mut parts = code.splitn(3, ':');
@@ -841,8 +840,8 @@ async fn oidc_token(
     let email = parts.next().unwrap_or("unknown@example.com").to_string();
     let nonce = parts.next().unwrap_or("").to_string();
 
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
 
@@ -859,13 +858,12 @@ async fn oidc_token(
         "name": "Test OidcUser",
     });
 
-    let mut header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256);
+    let mut header = Header::new(Algorithm::RS256);
     header.kid = None;
 
-    let id_token = jsonwebtoken::encode(&header, &claims, &state.encoding_key)
-        .expect("failed to sign ID token");
+    let id_token = encode(&header, &claims, &state.encoding_key).expect("failed to sign ID token");
 
-    axum::response::Json(serde_json::json!({
+    Json(serde_json::json!({
         "access_token": "dummy-access-token",
         "token_type": "Bearer",
         "id_token": id_token,

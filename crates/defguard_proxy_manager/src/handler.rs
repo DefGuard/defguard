@@ -1004,7 +1004,7 @@ impl ProxyHandler {
         proxy_cookie_key: Key,
         socket_path: PathBuf,
     ) -> Self {
-        let handler_tx_map: HandlerTxMap = Arc::new(std::sync::RwLock::new(HashMap::new()));
+        let handler_tx_map: HandlerTxMap = Arc::new(RwLock::new(HashMap::new()));
         let mut handler = Self::new(
             pool,
             url,

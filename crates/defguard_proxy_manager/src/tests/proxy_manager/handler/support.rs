@@ -1,11 +1,15 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    mem::discriminant,
+    sync::atomic::{AtomicU16, AtomicU64, Ordering},
+    time::{Duration, SystemTime},
+};
 
 use defguard_common::db::{
     Id, NoId,
     models::{
         Device, DeviceType, User, WireguardNetwork,
         polling_token::PollingToken,
-        settings::Settings,
+        settings::{Settings, update_current_settings},
         vpn_client_session::VpnClientSession,
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
@@ -29,8 +33,12 @@ use defguard_proto::proxy::{
 };
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
+use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
+use tonic::Code;
 
 use crate::tests::common::{HandlerTestContext, MockOidcProvider};
+
+const BIDI_RECEIVE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// A strong password satisfying all `check_password_strength` requirements:
 /// ≥8 chars, digit, upper, lower, special character.
@@ -43,7 +51,7 @@ pub(crate) fn assert_initial_info_received(response: &CoreResponse) {
             Some(core_response::Payload::InitialInfo(_))
         ),
         "expected InitialInfo as first response from handler, got: {:?}",
-        response.payload.as_ref().map(std::mem::discriminant)
+        response.payload.as_ref().map(discriminant)
     );
 }
 
@@ -62,19 +70,19 @@ pub(crate) fn assert_device_config_response(response: &CoreResponse) -> &DeviceC
         Some(core_response::Payload::DeviceConfig(cfg)) => cfg,
         other => panic!(
             "expected DeviceConfig response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
+            other.as_ref().map(discriminant)
         ),
     }
 }
 
 /// Assert that a `CoreResponse` carries a `CoreError` payload and return the
 /// tonic status code.
-pub(crate) fn assert_error_response(response: &CoreResponse) -> tonic::Code {
+pub(crate) fn assert_error_response(response: &CoreResponse) -> Code {
     match &response.payload {
-        Some(core_response::Payload::CoreError(err)) => tonic::Code::from_i32(err.status_code),
+        Some(core_response::Payload::CoreError(err)) => Code::from_i32(err.status_code),
         other => panic!(
             "expected CoreError response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
+            other.as_ref().map(discriminant)
         ),
     }
 }
@@ -116,9 +124,9 @@ pub(crate) fn make_device_info() -> DeviceInfo {
 
 /// Insert a test user, returning the saved `User<Id>`.
 pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
-    static USER_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = USER_CTR.fetch_add(1, Ordering::Relaxed);
-    let username = format!("test-user-{n}");
+    static USER_CTR: AtomicU16 = AtomicU16::new(0);
+    let user_number = USER_CTR.fetch_add(1, Ordering::Relaxed);
+    let username = format!("test-user-{user_number}");
     User::new(
         username.clone(),
         None,
@@ -134,11 +142,11 @@ pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
 
 /// Insert a minimal WireGuard network, returning the saved `WireguardNetwork<Id>`.
 pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
-    static NET_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
+    static NET_CTR: AtomicU16 = AtomicU16::new(0);
+    let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
     WireguardNetwork::new(
-        format!("test-network-{n}"),
-        51820 + i32::try_from(n % 10_000).unwrap(),
+        format!("test-network-{network_number}"),
+        51820 + i32::from(network_number % 10_000),
         "10.0.0.1".to_string(),
         None,
         Vec::<IpNetwork>::new(),
@@ -230,16 +238,16 @@ static DEVICE_PUBKEYS: &[&str] = &[
 /// The device is automatically added to all existing networks so that
 /// `WireguardNetworkDevice` join records exist (required for config-building).
 pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device<Id> {
-    static DEV_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = DEV_CTR.fetch_add(1, Ordering::Relaxed);
+    static DEV_CTR: AtomicU16 = AtomicU16::new(0);
+    let device_number = DEV_CTR.fetch_add(1, Ordering::Relaxed);
     // Use a pre-generated valid 32-byte base64 WireGuard public key.
-    let pubkey = DEVICE_PUBKEYS[n as usize % DEVICE_PUBKEYS.len()].to_string();
+    let pubkey = DEVICE_PUBKEYS[device_number as usize % DEVICE_PUBKEYS.len()].to_string();
     let mut conn = pool
         .acquire()
         .await
         .expect("failed to acquire DB connection");
     let device = Device::new(
-        format!("test-device-{n}"),
+        format!("test-device-{device_number}"),
         pubkey,
         user_id,
         DeviceType::User,
@@ -338,7 +346,7 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
         }
         other => panic!(
             "start_enrollment_session: expected EnrollmentStart response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
+            other.as_ref().map(discriminant)
         ),
     }
 }
@@ -347,11 +355,11 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
 /// saved `WireguardNetwork<Id>`.  Use this for any test that exercises the MFA
 /// flow (the default `create_network` uses `LocationMfaMode::Disabled`).
 pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
-    static NET_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
+    static NET_CTR: AtomicU16 = AtomicU16::new(0);
+    let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
     WireguardNetwork::new(
-        format!("test-mfa-network-{n}"),
-        41820 + i32::try_from(n % 10_000).unwrap(),
+        format!("test-mfa-network-{network_number}"),
+        41820 + i32::from(network_number % 10_000),
         "10.1.0.1".to_string(),
         None,
         Vec::<IpNetwork>::new(),
@@ -370,11 +378,11 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
 
 /// Insert a WireGuard network with `LocationMfaMode::External`.
 pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
-    static NET_CTR: AtomicU64 = AtomicU64::new(0);
-    let n = NET_CTR.fetch_add(1, Ordering::Relaxed);
+    static NET_CTR: AtomicU16 = AtomicU16::new(0);
+    let network_number = NET_CTR.fetch_add(1, Ordering::Relaxed);
     WireguardNetwork::new(
-        format!("test-ext-mfa-network-{n}"),
-        31820 + i32::try_from(n % 10_000).unwrap(),
+        format!("test-ext-mfa-network-{network_number}"),
+        31820 + i32::from(network_number % 10_000),
         "10.2.0.1".to_string(),
         None,
         Vec::<IpNetwork>::new(),
@@ -425,8 +433,8 @@ pub(crate) fn generate_totp_code(user: &User<Id>) -> String {
         .totp_secret
         .as_ref()
         .expect("totp_secret must be set after setup_user_totp_mfa");
-    let ts = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+    let ts = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
         .expect("system time before epoch")
         .as_secs();
     totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, secret, ts)
@@ -439,8 +447,8 @@ pub(crate) fn totp_code_from_base32_secret(base32_secret: &str) -> String {
     use totp_lite::{Sha1, totp_custom};
     let secret = base32::decode(base32::Alphabet::Rfc4648 { padding: false }, base32_secret)
         .expect("invalid base32 TOTP secret from CodeMfaSetupStartResponse");
-    let ts = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+    let ts = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
         .expect("system time before epoch")
         .as_secs();
     totp_custom::<Sha1>(TOTP_CODE_VALIDITY_PERIOD, TOTP_CODE_DIGITS, &secret, ts)
@@ -477,7 +485,7 @@ pub(crate) async fn send_mfa_start(
         ),
         other => panic!(
             "send_mfa_start: expected ClientMfaStart response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
+            other.as_ref().map(discriminant)
         ),
     };
     (id, token)
@@ -514,7 +522,7 @@ pub(crate) async fn send_mfa_finish(
         ),
         other => panic!(
             "send_mfa_finish: expected ClientMfaFinish response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
+            other.as_ref().map(discriminant)
         ),
     };
     (response, psk)
@@ -594,7 +602,7 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
         ),
         other => panic!(
             "send_token_validation: expected ClientMfaTokenValidation response, got: {:?}",
-            other.as_ref().map(std::mem::discriminant)
+            other.as_ref().map(discriminant)
         ),
     }
 }
@@ -602,10 +610,9 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
 /// Assert that the next `BidiStreamEvent` is `DesktopClientMfa(Success)` and
 /// return the location id from the event.
 pub(crate) async fn expect_bidi_mfa_success(
-    bidi_rx: &mut tokio::sync::mpsc::UnboundedReceiver<BidiStreamEvent>,
+    bidi_rx: &mut UnboundedReceiver<BidiStreamEvent>,
 ) -> Id {
-    use tokio::time::{Duration, timeout};
-    let event = timeout(Duration::from_secs(5), bidi_rx.recv())
+    let event = timeout(BIDI_RECEIVE_TIMEOUT, bidi_rx.recv())
         .await
         .expect("timed out waiting for BidiStreamEvent DesktopClientMfa(Success)")
         .expect("bidi event channel closed");
@@ -656,7 +663,7 @@ pub(crate) async fn create_oidc_provider(
         directory_sync_target: DirectorySyncTarget::All,
         okta_private_jwk: None,
         okta_dirsync_client_id: None,
-        directory_sync_group_match: vec![],
+        directory_sync_group_match: Vec::new(),
         jumpcloud_api_key: None,
         prefetch_users: false,
     }
@@ -668,7 +675,6 @@ pub(crate) async fn create_oidc_provider(
 /// Set `Settings.public_proxy_url` in the DB (and in the global cache) so
 /// that `edge_callback_url` returns a valid URL during tests.
 pub(crate) async fn set_public_proxy_url(pool: &PgPool, url: &str) {
-    use defguard_common::db::models::settings::update_current_settings;
     let mut settings = Settings::get_current_settings();
     settings.public_proxy_url = url.to_string();
     update_current_settings(pool, settings)

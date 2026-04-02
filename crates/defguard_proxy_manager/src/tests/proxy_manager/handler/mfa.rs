@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use defguard_common::db::Id;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use defguard_core::grpc::GatewayEvent;
@@ -5,6 +8,8 @@ use defguard_proto::proxy::{
     AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest, CoreRequest,
     MfaMethod, core_request, core_response,
 };
+use tokio::{task, time::timeout};
+use tonic::Code;
 
 use super::support::{
     assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,
@@ -14,6 +19,10 @@ use super::support::{
     setup_user_email_mfa, setup_user_totp_mfa,
 };
 use crate::tests::common::HandlerTestContext;
+
+const EVENT_RECEIVE_TIMEOUT: Duration = Duration::from_secs(5);
+const WRONG_REQUEST_ID: u64 = 9991;
+const AWAIT_ID: u64 = 8000;
 
 #[sqlx::test]
 async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: PgConnectOptions) {
@@ -38,7 +47,7 @@ async fn test_mfa_start_fails_for_disabled_location(_: PgPoolOptions, options: P
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_eq!(code, tonic::Code::InvalidArgument);
+    assert_eq!(code, Code::InvalidArgument);
 
     context.finish().await.expect_server_finished().await;
 }
@@ -53,7 +62,7 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
     let (_, device) = create_user_with_device(&context.pool).await;
 
     // Use an ID that is guaranteed not to correspond to any WireguardNetwork row.
-    let nonexistent_location_id: defguard_common::db::Id = i64::MAX;
+    let nonexistent_location_id = Id::MAX;
 
     context.mock_proxy().send_request(CoreRequest {
         id: 2,
@@ -71,7 +80,7 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
     let code = assert_error_response(&response);
     assert_eq!(
         code,
-        tonic::Code::InvalidArgument,
+        Code::InvalidArgument,
         "unknown location_id must return InvalidArgument"
     );
 
@@ -133,12 +142,12 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
     // Use the already-subscribed receiver — subscribing after send_mfa_finish would miss the event.
-    let event = tokio::time::timeout(std::time::Duration::from_secs(5), gateway_rx.recv())
+    let event = timeout(EVENT_RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
         .expect("gateway event channel closed");
     let gateway_loc_id = match event {
-        defguard_core::grpc::GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
+        GatewayEvent::MfaSessionAuthorized(loc_id, _, _) => loc_id,
         other => panic!("expected MfaSessionAuthorized, got: {other:?}"),
     };
     assert_eq!(gateway_loc_id, network.id);
@@ -168,9 +177,8 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
     .await;
 
     // Send a clearly wrong code.
-    let id = 9991u64;
     context.mock_proxy().send_request(CoreRequest {
-        id,
+        id: WRONG_REQUEST_ID,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
@@ -184,10 +192,7 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
     assert!(
-        matches!(
-            code,
-            tonic::Code::InvalidArgument | tonic::Code::Unauthenticated
-        ),
+        matches!(code, Code::InvalidArgument | Code::Unauthenticated),
         "wrong TOTP code should return InvalidArgument or Unauthenticated, got: {code:?}"
     );
 
@@ -215,7 +220,7 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_eq!(code, tonic::Code::InvalidArgument);
+    assert_eq!(code, Code::InvalidArgument);
 
     context.finish().await.expect_server_finished().await;
 }
@@ -247,7 +252,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_eq!(code, tonic::Code::InvalidArgument);
+    assert_eq!(code, Code::InvalidArgument);
 
     context.finish().await.expect_server_finished().await;
 }
@@ -312,7 +317,7 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     assert!(session.preshared_key.is_some());
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast
-    let event = tokio::time::timeout(std::time::Duration::from_secs(5), gateway_rx.recv())
+    let event = timeout(EVENT_RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
         .expect("gateway event channel closed");
@@ -388,10 +393,7 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
     let code = assert_error_response(&response);
     // invalid code → InvalidArgument or Unauthenticated
     assert!(
-        matches!(
-            code,
-            tonic::Code::InvalidArgument | tonic::Code::Unauthenticated
-        ),
+        matches!(code, Code::InvalidArgument | Code::Unauthenticated),
         "expected InvalidArgument or Unauthenticated, got: {code:?}"
     );
 
@@ -425,7 +427,7 @@ async fn test_mfa_oidc_start_requires_license(_: PgPoolOptions, options: PgConne
 
     let response = context.mock_proxy_mut().recv_outbound().await;
     let code = assert_error_response(&response);
-    assert_eq!(code, tonic::Code::InvalidArgument);
+    assert_eq!(code, Code::InvalidArgument);
 
     context.finish().await.expect_server_finished().await;
 }
@@ -451,9 +453,8 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     .await;
 
     // Send AwaitRemoteMfaFinish first — no immediate response expected
-    let await_id = 8000u64;
     context.mock_proxy().send_request(CoreRequest {
-        id: await_id,
+        id: AWAIT_ID,
         device_info: None,
         payload: Some(core_request::Payload::AwaitRemoteMfaFinish(
             AwaitRemoteMfaFinishRequest {
@@ -464,7 +465,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
 
     // Give the handler one poll cycle to register the oneshot receiver before
     // we proceed with the finish call.
-    tokio::task::yield_now().await;
+    task::yield_now().await;
 
     // Subscribe before finish so the handler's wireguard_tx.send() has a receiver
     let _gateway_rx = context.wireguard_tx.subscribe();
@@ -578,8 +579,8 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     // (for the new session) in that order.
     let mut got_disconnected = false;
     let mut got_authorized = false;
-    for _ in 0..2u8 {
-        let event = tokio::time::timeout(std::time::Duration::from_secs(5), gw_rx2.recv())
+    for _ in 0..2 {
+        let event = timeout(EVENT_RECEIVE_TIMEOUT, gw_rx2.recv())
             .await
             .expect("timed out waiting for gateway event after second MFA finish")
             .expect("gateway event channel closed");

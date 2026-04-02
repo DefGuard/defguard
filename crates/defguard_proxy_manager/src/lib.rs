@@ -12,8 +12,12 @@ use defguard_common::{
     db::{Id, models::proxy::Proxy},
     types::proxy::ProxyControlMessage,
 };
-use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
-use defguard_proto::proxy::{CoreResponse, core_response};
+use defguard_core::{
+    events::BidiStreamEvent,
+    grpc::{GatewayEvent, proxy::client_mfa::ClientLoginSession},
+    version::IncompatibleComponents,
+};
+use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
 use sqlx::PgPool;
 use tokio::{
     select,
@@ -21,9 +25,10 @@ use tokio::{
         Mutex,
         broadcast::Sender,
         mpsc::{Receiver, UnboundedSender},
-        watch,
+        oneshot, watch,
     },
     task::JoinSet,
+    time::sleep,
 };
 
 #[cfg(test)]
@@ -193,23 +198,19 @@ impl ProxyManager {
     fn build_handler(
         &self,
         proxy: &Proxy<Id>,
-        remote_mfa_responses: Arc<
-            std::sync::RwLock<HashMap<String, tokio::sync::oneshot::Sender<String>>>,
-        >,
-        sessions: Arc<
-            std::sync::RwLock<
-                HashMap<String, defguard_core::grpc::proxy::client_mfa::ClientLoginSession>,
-            >,
-        >,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
         handler_tx_map: HandlerTxMap,
-        shutdown_rx: Arc<Mutex<tokio::sync::oneshot::Receiver<bool>>>,
+        shutdown_rx: Arc<Mutex<oneshot::Receiver<bool>>>,
         proxy_cookie_key: Key,
     ) -> Result<ProxyHandler, ProxyError> {
         #[cfg(test)]
         if let Some(test_support) = self.test_support.clone() {
+            use reqwest::Url;
+
             test_support.note_handler_spawn_attempt(proxy.id);
 
-            let url = reqwest::Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))
+            let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))
                 .map_err(ProxyError::from)?;
             let url_str = url.to_string();
             let socket_path = test_support.socket_path_for_url(&url_str);
@@ -261,7 +262,7 @@ impl ProxyManager {
         tokio::spawn(async move {
             loop {
                 refresh_certs(&refresh_pool, &certs_tx).await;
-                tokio::time::sleep(TEN_SECS).await;
+                sleep(TEN_SECS).await;
             }
         });
 
@@ -274,7 +275,7 @@ impl ProxyManager {
             .await?
             .iter()
             .map(|proxy| {
-                let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<bool>();
+                let (shutdown_tx, shutdown_rx) = oneshot::channel::<bool>();
                 shutdown_channels.insert(proxy.id, shutdown_tx);
                 self.build_handler(
                     proxy,
@@ -321,7 +322,7 @@ impl ProxyManager {
                                     continue;
                                 }
                                 let (shutdown_tx, shutdown_rx) =
-                                    tokio::sync::oneshot::channel::<bool>();
+                                    oneshot::channel::<bool>();
                                 shutdown_channels.insert(id, shutdown_tx);
                                 match self.build_handler(
                                     &proxy_model,
@@ -363,7 +364,7 @@ impl ProxyManager {
                             let msg = CoreResponse {
                                 id: 0,
                                 payload: Some(core_response::Payload::HttpsCerts(
-                                    defguard_proto::proxy::HttpsCerts { cert_pem, key_pem },
+                                    HttpsCerts { cert_pem, key_pem },
                                 )),
                             };
                             if let Ok(map) = handler_tx_map.read() {
