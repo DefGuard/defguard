@@ -236,7 +236,7 @@ export const Navigation = () => {
       </div>
       <div className="bottom">
         {videoTutorialsData && (
-          <div className="nav-tutorials">
+          <div className="nav-group">
             <NavTutorialsButton />
           </div>
         )}

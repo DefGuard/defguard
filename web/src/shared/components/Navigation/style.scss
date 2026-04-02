@@ -45,29 +45,20 @@
     width: 100%;
     margin-top: auto;
     box-sizing: border-box;
+    padding: var(--spacing-sm) var(--spacing-lg);
     display: flex;
-    flex-flow: column;
-    align-items: flex-start;
+    flex-flow: row nowrap;
+    align-items: center;
     justify-content: flex-start;
     flex: none;
     border-top: var(--border-1) solid var(--border-disabled);
-
-    .nav-tutorials {
-      box-sizing: border-box;
-      padding: var(--spacing-sm) var(--spacing-lg);
-      width: 100%;
-      border-bottom: var(--border-1) solid var(--border-disabled);
-    }
-
-    .nav-controls {
-      padding: var(--spacing-md);
-      width: 100%;
-    }
+    column-gap: var(--spacing-md);
   }
 }
 
 .navigation .nav-group {
   user-select: none;
+  width: 100%;
 
   & > .track {
     display: flex;
@@ -98,7 +89,7 @@
   }
 }
 
-.navigation .nav-item {
+.nav-group .nav-item {
   --bg-color: var(--bg-default);
   --color: var(--fg-neutral);
 
