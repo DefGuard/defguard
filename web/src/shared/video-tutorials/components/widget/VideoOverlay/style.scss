@@ -4,7 +4,7 @@
 // Error/skeleton/iframe styles live in VideoPlayer/style.scss.
 // ---------------------------------------------------------------------------
 
-.video-tutorials-modal-container {
+.video-support-modal-container {
   position: relative;
   display: inline-block;
   padding-top: var(--size-2xl);
@@ -25,7 +25,7 @@
   }
 }
 
-.video-tutorials-modal {
+.video-support-modal {
   background: var(--bg-default);
   border-radius: var(--radius-lg);
   box-shadow: 0 6px 30px 0 rgb(0 0 0 / 9%);

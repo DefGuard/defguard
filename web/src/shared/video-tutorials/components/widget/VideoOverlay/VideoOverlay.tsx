@@ -20,17 +20,17 @@ export const VideoOverlay = ({
   return (
     <ModalFoundation
       isOpen={isOpen}
-      contentClassName="video-tutorials-modal-container"
+      contentClassName="video-support-modal-container"
       afterClose={afterClose}
     >
       {video && (
         <>
           <IconButton
             icon="close"
-            className="video-tutorials-modal-container-close"
+            className="video-support-modal-container-close"
             onClick={onClose}
           />
-          <div className="video-tutorials-modal">
+          <div className="video-support-modal">
             <VideoPlayer video={video} errorVariant="overlay" />
           </div>
         </>

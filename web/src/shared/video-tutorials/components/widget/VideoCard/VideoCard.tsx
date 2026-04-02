@@ -8,7 +8,7 @@ export interface VideoCardProps {
 }
 
 export const VideoCard = ({ video, onClick }: VideoCardProps) => (
-  <button type="button" className="video-tutorials-card" onClick={onClick}>
+  <button type="button" className="video-support-card" onClick={onClick}>
     <Thumbnail
       url={`https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg`}
       title={video.title}
