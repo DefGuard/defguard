@@ -1,8 +1,9 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use defguard_certs::{
-    CertificateAuthority, CertificateInfo, Csr, DnType, der_to_pem, generate_key_pair,
+    CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem,
+    generate_key_pair, parse_pem_certificate,
 };
-use defguard_common::db::models::{Certificates, CoreCertSource};
+use defguard_common::db::models::{Certificates, CoreCertSource, settings::update_current_settings};
 use serde_json::json;
 use sqlx::PgPool;
 use utoipa::ToSchema;
@@ -13,6 +14,137 @@ use crate::{
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
+
+/// SSL configuration type for Defguard's internal (core) web server.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum InternalSslType {
+    /// No SSL - plain HTTP, user manages reverse proxy / SSL termination themselves.
+    None,
+    /// Generate certificates using Defguard's internal Certificate Authority.
+    DefguardCa,
+    /// Upload a custom certificate and private key.
+    OwnCert,
+}
+
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
+pub struct InternalUrlSettingsConfig {
+    pub ssl_type: InternalSslType,
+    pub cert_pem: Option<String>,
+    pub key_pem: Option<String>,
+}
+
+#[derive(Serialize, Debug, ToSchema)]
+pub struct CertInfoResponse {
+    pub common_name: String,
+    pub valid_for_days: i64,
+    pub not_before: String,
+    pub not_after: String,
+}
+
+/// Core logic for applying internal URL certificate settings using the current Defguard URL.
+/// Returns cert info if a certificate was generated/uploaded, `None` for `ssl_type = None`.
+pub async fn apply_internal_url_settings(
+    pool: &PgPool,
+    defguard_url: &str,
+    config: InternalUrlSettingsConfig,
+) -> Result<Option<CertInfoResponse>, WebError> {
+    debug!(
+        "Internal URL certificate settings received: defguard_url={}, ssl_type={:?}",
+        defguard_url, config.ssl_type,
+    );
+
+    let mut settings = defguard_common::db::models::Settings::get_current_settings();
+    settings.defguard_url = defguard_url.to_string();
+    update_current_settings(pool, settings).await?;
+
+    let mut certs = Certificates::get_or_default(pool)
+        .await
+        .map_err(WebError::from)?;
+
+    let cert_info = match config.ssl_type {
+        InternalSslType::None => {
+            certs.core_http_cert_source = CoreCertSource::None;
+            certs.core_http_cert_pem = None;
+            certs.core_http_cert_key_pem = None;
+            certs.core_http_cert_expiry = None;
+            certs.save(pool).await.map_err(WebError::from)?;
+            None
+        }
+        InternalSslType::DefguardCa => {
+            let hostname = reqwest::Url::parse(defguard_url)
+                .ok()
+                .and_then(|u| u.host_str().map(ToString::to_string))
+                .unwrap_or_else(|| defguard_url.to_string());
+
+            if certs.ca_cert_der.is_none() {
+                return Err(WebError::BadRequest(
+                    "CA certificate is not present; generate a CA first".to_string(),
+                ));
+            }
+
+            let ca_cert_der = certs.ca_cert_der.as_ref().expect("CA cert must be present");
+            let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
+                WebError::BadRequest("CA private key not available for signing".to_string())
+            })?;
+
+            let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+            let key_pair = generate_key_pair()?;
+            let san = vec![hostname.clone()];
+            let dn = vec![(DnType::CommonName, hostname.as_str())];
+            let csr = Csr::new(&key_pair, &san, dn)?;
+            let server_cert = ca.sign_csr(&csr)?;
+
+            let cert_der = server_cert.der().to_vec();
+            let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
+            let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)?;
+            let info = CertificateInfo::from_der(&cert_der)?;
+            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+            let expiry = info.not_after;
+
+            certs.core_http_cert_source = CoreCertSource::SelfSigned;
+            certs.core_http_cert_pem = Some(cert_pem);
+            certs.core_http_cert_key_pem = Some(key_pem);
+            certs.core_http_cert_expiry = Some(expiry);
+            certs.save(pool).await.map_err(WebError::from)?;
+
+            Some(CertInfoResponse {
+                common_name: info.subject_common_name,
+                valid_for_days,
+                not_before: info.not_before.to_string(),
+                not_after: info.not_after.to_string(),
+            })
+        }
+        InternalSslType::OwnCert => {
+            let cert_pem_str = config.cert_pem.ok_or_else(|| {
+                WebError::BadRequest("cert_pem is required for own_cert".to_string())
+            })?;
+            let key_pem_str = config.key_pem.ok_or_else(|| {
+                WebError::BadRequest("key_pem is required for own_cert".to_string())
+            })?;
+
+            let cert_der = parse_pem_certificate(&cert_pem_str)?;
+            let info = CertificateInfo::from_der(cert_der.as_ref())?;
+            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+            let expiry = info.not_after;
+
+            certs.core_http_cert_source = CoreCertSource::Custom;
+            certs.core_http_cert_pem = Some(cert_pem_str);
+            certs.core_http_cert_key_pem = Some(key_pem_str);
+            certs.core_http_cert_expiry = Some(expiry);
+            certs.save(pool).await.map_err(WebError::from)?;
+
+            Some(CertInfoResponse {
+                common_name: info.subject_common_name,
+                valid_for_days,
+                not_before: info.not_before.to_string(),
+                not_after: info.not_after.to_string(),
+            })
+        }
+    };
+
+    Ok(cert_info)
+}
 
 /// Upload a custom PEM certificate + private key for core HTTPS.
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -163,6 +295,35 @@ pub(crate) async fn core_cert_self_signed(
         session.user.username, data.san
     );
     Ok(ApiResponse::default())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/core/cert/internal_url_settings",
+    request_body = InternalUrlSettingsConfig,
+    responses(
+        (status = 201, description = "Internal URL certificate settings applied.", body = ApiResponse),
+        (status = 400, description = "Invalid request.", body = ApiResponse),
+        (status = 401, description = "Unauthorized.", body = ApiResponse),
+        (status = 403, description = "Forbidden.", body = ApiResponse),
+        (status = 500, description = "Internal server error.", body = ApiResponse)
+    ),
+    security(("cookie" = []), ("api_token" = []))
+)]
+pub(crate) async fn set_internal_url_settings(
+    _role: AdminRole,
+    Extension(pool): Extension<PgPool>,
+    Json(config): Json<InternalUrlSettingsConfig>,
+) -> ApiResult {
+    info!("Applying core internal URL certificate settings");
+    let settings = defguard_common::db::models::Settings::get_current_settings();
+    let cert_info = apply_internal_url_settings(&pool, &settings.defguard_url, config).await?;
+    info!("Core internal URL certificate settings applied");
+
+    Ok(ApiResponse::new(
+        json!({ "cert_info": cert_info }),
+        StatusCode::CREATED,
+    ))
 }
 
 #[utoipa::path(
