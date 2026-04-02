@@ -182,6 +182,8 @@ pub struct Settings {
     // The attribute which is used to map LDAP usernames to Defguard usernames
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
+    pub ldap_remote_enrollment_enabled: bool,
+    pub ldap_remote_enrollment_send_invite: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
@@ -405,7 +407,7 @@ impl Settings {
             ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_user_rdn_attr, ldap_sync_groups, \
+            ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
