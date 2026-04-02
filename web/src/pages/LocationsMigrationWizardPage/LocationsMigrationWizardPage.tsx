@@ -94,6 +94,7 @@ const Content = () => {
     updateWizardState({
       current_step: MigrationWizardStep.Confirmation,
       location_state: state,
+      proxy_url: useMigrationWizardStore.getState().proxy_url,
     });
   }, [locationsState, updateWizardState, finish]);
 
