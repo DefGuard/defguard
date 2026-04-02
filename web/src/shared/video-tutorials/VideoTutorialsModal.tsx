@@ -2,13 +2,13 @@ import './VideoTutorialsModal.scss';
 import { useEffect, useState } from 'react';
 import { ModalFoundation } from '../defguard-ui/components/ModalFoundation/ModalFoundation';
 import { isPresent } from '../defguard-ui/utils/isPresent';
-import { useApp } from '../hooks/useApp';
 import { ModalContent } from './components/modal/ModalContent/ModalContent';
 import { useAllVideoTutorialsSections, useVideoTutorialsRouteKey } from './resolved';
+import { useVideoTutorialsModal } from './store';
 import type { VideoTutorial } from './types';
 
 export const VideoTutorialsModal = () => {
-  const isOpen = useApp((s) => s.tutorialsModalOpen);
+  const isOpen = useVideoTutorialsModal((s) => s.isOpen);
   const sections = useAllVideoTutorialsSections();
   const routeKey = useVideoTutorialsRouteKey();
 
@@ -24,10 +24,10 @@ export const VideoTutorialsModal = () => {
   // Close modal on route change.
   // biome-ignore lint/correctness/useExhaustiveDependencies: routeKey is the trigger, not used in body
   useEffect(() => {
-    useApp.setState({ tutorialsModalOpen: false });
+    useVideoTutorialsModal.setState({ isOpen: false });
   }, [routeKey]);
 
-  const handleClose = () => useApp.setState({ tutorialsModalOpen: false });
+  const handleClose = () => useVideoTutorialsModal.setState({ isOpen: false });
 
   return (
     <ModalFoundation

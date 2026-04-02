@@ -3,7 +3,6 @@ import type { ApplicationInfo, SettingsEssentials, WizardState } from '../api/ty
 
 type StoreValues = {
   navigationOpen: boolean;
-  tutorialsModalOpen: boolean;
   appInfo: ApplicationInfo;
   settingsEssentials?: SettingsEssentials;
   wizardState?: WizardState;
@@ -13,7 +12,6 @@ type Store = StoreValues;
 
 const defaults: StoreValues = {
   navigationOpen: true,
-  tutorialsModalOpen: false,
   appInfo: {
     external_openid_enabled: false,
     ldap_info: {

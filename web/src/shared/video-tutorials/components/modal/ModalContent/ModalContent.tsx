@@ -3,8 +3,8 @@ import { m } from '../../../../../paraglide/messages';
 import { Icon } from '../../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../../defguard-ui/components/IconButton/IconButton';
 import { Direction } from '../../../../defguard-ui/types';
-import { useApp } from '../../../../hooks/useApp';
 import { getRouteLabel } from '../../../route-label';
+import { useVideoTutorialsModal } from '../../../store';
 import type { VideoTutorial, VideoTutorialsSection } from '../../../types';
 import { VideoPlayer } from '../../VideoPlayer/VideoPlayer';
 import { VideoList } from '../VideoList/VideoList';
@@ -55,7 +55,7 @@ export const ModalContent = ({
               <Link
                 to={selectedVideo.appRoute}
                 className="tutorials-modal-link tutorials-modal-link--internal"
-                onClick={() => useApp.setState({ tutorialsModalOpen: false })}
+                onClick={() => useVideoTutorialsModal.setState({ isOpen: false })}
               >
                 <Icon icon="arrow-small" size={16} rotationDirection={Direction.RIGHT} />
                 <span>
