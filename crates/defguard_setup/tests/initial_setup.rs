@@ -555,7 +555,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to set general config");
     assert_eq!(response.status(), StatusCode::CREATED);
-    assert_setup_step(&pool, InitialSetupStep::InternalUrlSettings).await;
+    assert_setup_step(&pool, InitialSetupStep::Ca).await;
 
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/ca"))
