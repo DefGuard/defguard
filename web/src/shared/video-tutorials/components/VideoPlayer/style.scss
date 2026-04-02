@@ -37,7 +37,6 @@ iframe.loaded ~ .video-player-skeleton {
 // Overlay variant — richer layout with icon-group / link-group
 .video-player-error-overlay {
   background-color: var(--bg-emphasis);
-
   gap: var(--spacing-5xl);
 }
 
@@ -45,7 +44,6 @@ iframe.loaded ~ .video-player-skeleton {
   display: flex;
   flex-direction: column;
   align-items: center;
-
   gap: var(--spacing-xl);
 }
 
@@ -53,7 +51,6 @@ iframe.loaded ~ .video-player-skeleton {
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: var(--spacing-3xl);
   background-color: var(--bg-default);
   border-radius: var(--radius-full);
@@ -72,7 +69,6 @@ iframe.loaded ~ .video-player-skeleton {
   flex-direction: column;
   align-items: center;
   width: 100%;
-
   gap: var(--spacing-sm);
 }
 
