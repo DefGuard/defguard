@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useCallback } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
@@ -13,10 +13,10 @@ import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
 import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/MarkedSectionHeader/MarkedSectionHeader';
+import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { downloadFile } from '../../../shared/utils/download';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 
 const breadcrumbs = [
   <Link
@@ -52,6 +52,7 @@ export const SettingsCertificatesPage = () => {
 };
 
 const Content = () => {
+  const navigate = useNavigate();
   const { data: certsData, isFetching } = useQuery({
     queryKey: ['core', 'cert', 'certs'],
     queryFn: api.core.getCerts,
@@ -89,7 +90,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_none_add_certificate()}
-              onClick={() => {}}
+              onClick={() => void navigate({ to: '/settings-core-certificate' })}
               loading={false}
               disabled={false}
             />
@@ -119,7 +120,7 @@ const Content = () => {
             <Button
               variant="primary"
               text={m.settings_certs_certs_custom_change()}
-              onClick={() => {}}
+              onClick={() => void navigate({ to: '/settings-core-certificate' })}
               loading={false}
               disabled={false}
             />

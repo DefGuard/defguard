@@ -33,6 +33,7 @@ import { Route as AuthMfaRecoveryRouteImport } from './routes/auth/mfa/recovery'
 import { Route as AuthMfaEmailRouteImport } from './routes/auth/mfa/email'
 import { Route as WizardMigrationLocationsRouteImport } from './routes/_wizard/migration/locations'
 import { Route as AuthorizedWizardSetupEdgeRouteImport } from './routes/_authorized/_wizard/setup-edge'
+import { Route as AuthorizedWizardSettingsCoreCertificateRouteImport } from './routes/_authorized/_wizard/settings-core-certificate'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
@@ -189,6 +190,12 @@ const AuthorizedWizardSetupEdgeRoute =
   AuthorizedWizardSetupEdgeRouteImport.update({
     id: '/_wizard/setup-edge',
     path: '/setup-edge',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
+const AuthorizedWizardSettingsCoreCertificateRoute =
+  AuthorizedWizardSettingsCoreCertificateRouteImport.update({
+    id: '/_wizard/settings-core-certificate',
+    path: '/settings-core-certificate',
     getParentRoute: () => AuthorizedRoute,
   } as any)
 const AuthorizedWizardAddLocationRoute =
@@ -437,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
   '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
@@ -497,6 +505,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
   '/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
@@ -561,6 +570,7 @@ export interface FileRoutesById {
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/_authorized/_wizard/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/_authorized/_wizard/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
   '/_wizard/migration/locations': typeof WizardMigrationLocationsRoute
   '/auth/mfa/email': typeof AuthMfaEmailRoute
@@ -624,6 +634,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/settings-core-certificate'
     | '/setup-edge'
     | '/migration/locations'
     | '/auth/mfa/email'
@@ -684,6 +695,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/settings-core-certificate'
     | '/setup-edge'
     | '/migration/locations'
     | '/auth/mfa/email'
@@ -747,6 +759,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
+    | '/_authorized/_wizard/settings-core-certificate'
     | '/_authorized/_wizard/setup-edge'
     | '/_wizard/migration/locations'
     | '/auth/mfa/email'
@@ -965,6 +978,13 @@ declare module '@tanstack/react-router' {
       path: '/setup-edge'
       fullPath: '/setup-edge'
       preLoaderRoute: typeof AuthorizedWizardSetupEdgeRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
+    '/_authorized/_wizard/settings-core-certificate': {
+      id: '/_authorized/_wizard/settings-core-certificate'
+      path: '/settings-core-certificate'
+      fullPath: '/settings-core-certificate'
+      preLoaderRoute: typeof AuthorizedWizardSettingsCoreCertificateRouteImport
       parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/add-location': {
@@ -1322,6 +1342,7 @@ interface AuthorizedRouteChildren {
   AuthorizedPlaygroundRoute: typeof AuthorizedPlaygroundRoute
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
+  AuthorizedWizardSettingsCoreCertificateRoute: typeof AuthorizedWizardSettingsCoreCertificateRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
 }
 
@@ -1331,6 +1352,8 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddExternalOpenidRoute:
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
+  AuthorizedWizardSettingsCoreCertificateRoute:
+    AuthorizedWizardSettingsCoreCertificateRoute,
   AuthorizedWizardSetupEdgeRoute: AuthorizedWizardSetupEdgeRoute,
 }
 

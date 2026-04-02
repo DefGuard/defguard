@@ -95,6 +95,8 @@ import type {
   SetAutoAdoptionInternalUrlSettingsResponse,
   SetAutoAdoptionMfaSettingsRequest,
   SetAutoAdoptionVpnSettingsRequest,
+  SetCoreInternalUrlSettingsRequest,
+  SetCoreInternalUrlSettingsResponse,
   SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
@@ -470,6 +472,11 @@ const api = {
       client.post('/core/cert/self-signed', data),
     certUpload: (data: { cert_pem: string; key_pem: string }) =>
       client.post('/core/cert/upload', data),
+    setInternalUrlSettings: (data: SetCoreInternalUrlSettingsRequest) =>
+      client.post<SetCoreInternalUrlSettingsResponse>(
+        '/core/cert/internal_url_settings',
+        data,
+      ),
     getCA: () => client.get<GetCAResponse>('/core/cert/ca'),
     getCerts: () => client.get<GetCertsResponse>('/core/cert/certs'),
   },

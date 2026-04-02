@@ -127,6 +127,16 @@ export interface SetAutoAdoptionInternalUrlSettingsResponse {
   cert_info: CertInfo | null;
 }
 
+export interface SetCoreInternalUrlSettingsRequest {
+  ssl_type: InternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export interface SetCoreInternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
 export interface SetAutoAdoptionExternalUrlSettingsRequest {
   public_proxy_url: string;
   ssl_type: ExternalSslType;
