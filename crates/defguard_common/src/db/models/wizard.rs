@@ -114,15 +114,6 @@ impl Wizard {
 
         if wizard.active_wizard != ActiveWizard::None {
             info!("Resuming {} wizard", wizard.active_wizard);
-            if wizard.active_wizard == ActiveWizard::Migration {
-                let mut state = MigrationWizardState::get(executor)
-                    .await?
-                    .unwrap_or_default();
-                if state.proxy_url.is_none() {
-                    state.proxy_url = Self::get_proxy_url(config);
-                    state.save(executor).await?;
-                }
-            }
             return Ok(wizard);
         }
 
