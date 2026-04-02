@@ -505,17 +505,23 @@ const PageForm = () => {
               />
             )}
           </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="ldap_remote_enrollment_send_invite">
-            {(field) => (
-              <field.FormInteractiveBlock
-                variant={'checkbox'}
-                value={true}
-                title={m.settings_ldap_label_remote_enrollment_send_invite()}
-                content={m.settings_ldap_helper_remote_enrollment_send_invite()}
-              />
+          <form.Subscribe selector={(s) => s.values.ldap_remote_enrollment_enabled}>
+            {(remoteEnrollmentEnabled) => (
+              <Fold open={remoteEnrollmentEnabled}>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <form.AppField name="ldap_remote_enrollment_send_invite">
+                  {(field) => (
+                    <field.FormInteractiveBlock
+                      variant={'checkbox'}
+                      value={true}
+                      title={m.settings_ldap_label_remote_enrollment_send_invite()}
+                      content={m.settings_ldap_helper_remote_enrollment_send_invite()}
+                    />
+                  )}
+                </form.AppField>
+              </Fold>
             )}
-          </form.AppField>
+          </form.Subscribe>
         </MarkedSection>
         <Controls>
           <form.AppField name="ldap_enabled">
