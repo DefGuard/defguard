@@ -88,6 +88,7 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
     { onMessage: handleAcmeEvent },
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
   useEffect(() => {
     if (sslType !== 'lets_encrypt') return;
     setAcmeState(defaultAcmeState);
@@ -95,15 +96,16 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
     return () => {
       sse.stop();
     };
-  }, [sslType, sse]);
+  }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
   useEffect(() => {
     if (sslType === null) {
       useSettingsEdgeCertificateWizardStore.setState({
         activeStep: SettingsEdgeCertificateWizardStep.ExternalUrlSettings,
       });
     }
-  }, [sslType]);
+  }, []);
 
   const stepDone = useCallback(
     (stepId: AcmeStepId): boolean => {
