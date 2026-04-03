@@ -641,6 +641,25 @@ impl Settings {
             && self.smtp_sender != Some(String::new())
     }
 
+    /// Check if all required LDAP options are configured.
+    ///
+    /// Meant to be used to check if LDAP integration can be enabled.
+    #[must_use]
+    pub fn ldap_configured(&self) -> bool {
+        let non_empty = |opt: &Option<String>| opt.as_deref().is_some_and(|s| !s.is_empty());
+        non_empty(&self.ldap_url)
+            && non_empty(&self.ldap_bind_username)
+            && self.ldap_bind_password.is_some()  // just check the presence, don't expose the secret
+            && non_empty(&self.ldap_username_attr)
+            && non_empty(&self.ldap_user_search_base)
+            && non_empty(&self.ldap_user_obj_class)
+            && non_empty(&self.ldap_member_attr)
+            && non_empty(&self.ldap_groupname_attr)
+            && non_empty(&self.ldap_group_obj_class)
+            && non_empty(&self.ldap_group_member_attr)
+            && non_empty(&self.ldap_group_search_base)
+    }
+
     #[must_use]
     pub fn ldap_using_username_as_rdn(&self) -> bool {
         self.ldap_user_rdn_attr
