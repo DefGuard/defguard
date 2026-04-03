@@ -74,8 +74,7 @@ async fn test_ldap_settings_validation(_: PgPoolOptions, options: PgConnectOptio
     assert_eq!(response.status(), StatusCode::OK);
 
     // enabling LDAP without any fields configured must fail
-    let patch: SettingsPatch =
-        serde_json::from_str(r#"{ "ldap_enabled": true }"#).unwrap();
+    let patch: SettingsPatch = serde_json::from_str(r#"{ "ldap_enabled": true }"#).unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
     assert_eq!(
         response.status(),
@@ -128,9 +127,10 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
     );
 
     // configure LDAP fields (without SMTP)
-    let patch: SettingsPatch =
-        serde_json::from_str(&format!(r#"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"#))
-            .unwrap();
+    let patch: SettingsPatch = serde_json::from_str(&format!(
+        r#"{{ {VALID_LDAP_FIELDS_NO_URL}, {VALID_LDAP_URL} }}"#
+    ))
+    .unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
