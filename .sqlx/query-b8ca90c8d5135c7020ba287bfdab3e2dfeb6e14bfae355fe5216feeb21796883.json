@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \"user\".id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1",
+  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND NOT r.allow AND u.is_active",
   "describe": {
     "columns": [
       {
@@ -117,6 +117,11 @@
       },
       {
         "ordinal": 20,
+        "name": "ldap_remote_enrollment_completed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
         "name": "enrollment_pending",
         "type_info": "Bool"
       }
@@ -147,8 +152,9 @@
       false,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "5b9e2982325e824daab097a76e29c23d7e5d4ebac61f87d98c441a12e14e8774"
+  "hash": "b8ca90c8d5135c7020ba287bfdab3e2dfeb6e14bfae355fe5216feeb21796883"
 }

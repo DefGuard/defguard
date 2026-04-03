@@ -118,6 +118,9 @@ pub struct User<I = NoId> {
     pub ldap_rdn: Option<String>,
     /// Rest of the user's DN
     pub ldap_user_path: Option<String>,
+    /// Marks whether LDAP user has completed enrollment
+    /// Only relevant if `Settings::ldap_remote_enrollment_enabled` is set to `true`
+    pub ldap_remote_enrollment_completed: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -154,6 +157,7 @@ impl<I: fmt::Debug> fmt::Debug for User<I> {
             ldap_pass_randomized,
             ldap_rdn,
             ldap_user_path,
+            ldap_remote_enrollment_completed,
             openid_sub,
             totp_enabled,
             email_mfa_enabled,
@@ -177,6 +181,10 @@ impl<I: fmt::Debug> fmt::Debug for User<I> {
             .field("ldap_pass_randomized", ldap_pass_randomized)
             .field("ldap_rdn", ldap_rdn)
             .field("ldap_user_path", ldap_user_path) // sensitive data
+            .field(
+                "ldap_remote_enrollment_completed",
+                ldap_remote_enrollment_completed,
+            ) // sensitive data
             .field("openid_sub", openid_sub)
             .field("totp_enabled", totp_enabled)
             .field("email_mfa_enabled", email_mfa_enabled)
@@ -233,6 +241,7 @@ impl User {
             ldap_pass_randomized: false,
             ldap_rdn: Some(username),
             ldap_user_path: None,
+            ldap_remote_enrollment_completed: false,
             enrollment_pending: false,
         }
     }
@@ -623,7 +632,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" \
             WHERE is_active"
         )
@@ -642,7 +651,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -790,7 +799,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -807,7 +816,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -835,14 +844,16 @@ impl User<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as(
+        let emails: Vec<String> = emails.iter().map(ToString::to_string).collect();
+        query_as!(
+            Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
-            ldap_rdn, ldap_user_path, enrollment_pending \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
+            ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE email = ANY($1)",
+            &emails
         )
-        .bind(emails)
         .fetch_all(executor)
         .await
     }
@@ -856,7 +867,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed,enrollment_pending \
             FROM \"user\" WHERE openid_sub = $1",
             sub
         )
@@ -1080,7 +1091,7 @@ impl User<Id> {
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, \
-            u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, \
+            u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, \
             enrollment_pending \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
@@ -1101,7 +1112,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
-            ldap_rdn, ldap_user_path, enrollment_pending \
+            ldap_rdn, ldap_user_path, enrollment_pending, ldap_remote_enrollment_completed \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1134,7 +1145,7 @@ impl User<Id> {
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, \
             u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin AND user_id = u.id) AND u.is_active"
@@ -1184,6 +1195,7 @@ impl Distribution<User<Id>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            ldap_remote_enrollment_completed: false,
             enrollment_pending: false,
         }
     }
@@ -1224,6 +1236,7 @@ impl Distribution<User<NoId>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            ldap_remote_enrollment_completed: false,
             enrollment_pending: false,
         }
     }

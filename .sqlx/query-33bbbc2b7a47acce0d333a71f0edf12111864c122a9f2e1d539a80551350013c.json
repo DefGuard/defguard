@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" WHERE email ILIKE $1",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending FROM \"user\" WHERE is_active",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 10,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 11,
@@ -117,14 +117,17 @@
       },
       {
         "ordinal": 20,
+        "name": "ldap_remote_enrollment_completed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
         "name": "enrollment_pending",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -136,19 +139,20 @@
       true,
       false,
       false,
-      false,
       true,
-      true,
-      false,
-      false,
       false,
       true,
       false,
       false,
+      false,
+      true,
+      false,
+      false,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "c973c8ca54523b237b7b3b4c95d9603a13056d395734ba2399cd11c146f4d473"
+  "hash": "33bbbc2b7a47acce0d333a71f0edf12111864c122a9f2e1d539a80551350013c"
 }

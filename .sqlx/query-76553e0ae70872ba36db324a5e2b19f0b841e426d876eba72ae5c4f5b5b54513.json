@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" u JOIN \"device\" d ON u.id = d.user_id WHERE d.id = $1",
+  "query": "\n            SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending FROM \"user\" WHERE ldap_user_path IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -117,14 +117,17 @@
       },
       {
         "ordinal": 20,
+        "name": "ldap_remote_enrollment_completed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
         "name": "enrollment_pending",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -147,8 +150,9 @@
       false,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "afbebcf9d6784d63227376d154a35a002501d911b81f03ae5f969e69a9a4ffa5"
+  "hash": "76553e0ae70872ba36db324a5e2b19f0b841e426d876eba72ae5c4f5b5b54513"
 }
