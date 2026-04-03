@@ -13,7 +13,7 @@ import { ModalControls } from '../../../../../shared/defguard-ui/components/Moda
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
-import { fieldTransformOnBlur, useAppForm } from '../../../../../shared/form';
+import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
 import {
   subscribeCloseModal,
@@ -121,7 +121,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
         name: value.name,
         stream_type: modalData.stream_type,
         stream_config: {
-          url: value.url,
+          url: value.url.replace(/\s/g, ''),
           username: value.username,
           password: value.password,
           cert: certificateContent,
@@ -155,10 +155,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
 
           <SizedBox height={ThemeSpacing.Xl} />
 
-          <form.AppField
-            name="url"
-            listeners={fieldTransformOnBlur((v) => v.replace(/\s/g, ''))}
-          >
+          <form.AppField name="url">
             {(field) => (
               <field.FormInput
                 required
