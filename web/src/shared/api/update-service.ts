@@ -34,8 +34,7 @@ const updateServiceApi = {
       .get<ClientVersionCheck>('/update/artifacts', {
         params: {
           product: 'defguard-client',
-          //todo change to core
-          source: 'enrollment',
+          source: 'core',
         },
       })
       .then((response) => {

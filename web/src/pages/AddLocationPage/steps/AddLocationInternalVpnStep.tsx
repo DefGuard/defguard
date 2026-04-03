@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { toNumber } from 'lodash-es';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
@@ -13,20 +12,10 @@ import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackba
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { smallestNetworkCapacity } from '../../../shared/utils/network';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
-
-const networkSize = (network_address: string): number => {
-  let minimal_cidr = 32;
-  for (const address of network_address.split(',')) {
-    const cidr = toNumber(address.trim().split('/')[1]);
-    if (cidr < minimal_cidr) {
-      minimal_cidr = cidr;
-    }
-  }
-  return 2 ** (32 - minimal_cidr) - 3;
-};
 
 const formSchema = z.object({
   address: z
@@ -103,10 +92,10 @@ export const AddLocationInternalVpnStep = () => {
     },
     onSubmit: ({ value }) => {
       const deviceCount = Array.isArray(devices) ? devices.length : 0;
-      const network_size = networkSize(value.address);
+      const network_size = smallestNetworkCapacity(value.address);
       if (deviceCount > network_size) {
         Snackbar.error(
-          `The network is too small to accommodate all existing devices (network capacity: ${network_size}, total devices: ${deviceCount}).`,
+          m.location_error_network_too_small({ network_size, device_count: deviceCount }),
         );
         return;
       }

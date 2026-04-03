@@ -111,6 +111,7 @@
   "network_devices_action_generate_auth_token": "Generate auth token",
   "network_devices_action_view_config": "View config",
   "location_edit_failed": "Failed to update location",
+  "location_error_network_too_small": "The network is too small to accommodate all existing devices (network capacity: {network_size}, total devices: {device_count}).",
   "location_edit_addresses_rewrite_warning": "Changing the Gateway VPN IP address or netmask will automatically reassign any device addresses that fall outside the new network range to a randomly selected available IP address.",
   "location_edit_service_location_mfa_warning": "Service locations can't use MFA. To enforce MFA, select the \"Regular location\" type.",
   "location_edit_mfa_service_location_warning": "MFA-protected locations can't be set as service locations. Disable MFA to use service location mode. You can read more about service locations in our documentation.",
