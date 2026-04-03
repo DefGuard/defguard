@@ -121,7 +121,7 @@ const ModalContent = ({ modalData, setOpen }: ModalContentProps) => {
         name: value.name,
         stream_type: modalData.stream_type,
         stream_config: {
-          url: value.url.replace(/\s/g, ''),
+          url: value.url.trim(),
           username: value.username,
           password: value.password,
           cert: certificateContent,

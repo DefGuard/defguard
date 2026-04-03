@@ -172,7 +172,7 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
             ? ActivityLogStreamType.LogstashHttp
             : ActivityLogStreamType.VectorHttp,
         stream_config: {
-          url: value.url.replace(/\s/g, ''),
+          url: value.url.trim(),
           username: value.username,
           password: value.password,
           cert: certificateContent,
