@@ -567,7 +567,10 @@ const PageForm = () => {
         <Controls>
           <form.AppField name="ldap_enabled">
             {(field) => (
-              <field.FormToggle label={m.settings_ldap_toggle_enable_integration()} />
+              <field.FormToggle
+                label={m.settings_ldap_toggle_enable_integration()}
+                disabled={!requiredFieldsFilled}
+              />
             )}
           </form.AppField>
           <div className="right">
