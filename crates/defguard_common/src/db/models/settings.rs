@@ -56,6 +56,8 @@ pub enum SettingsValidationError {
         "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
     )]
     CannotEnableLdapRemoteEnrollmentInvite,
+    #[error("Cannot enable LDAP. Required LDAP fields are not configured")]
+    CannotEnableLdap,
     #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
     InvalidDefguardUrl(String),
 }
@@ -443,6 +445,12 @@ impl Settings {
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
+        }
+
+        // Check if LDAP can be enabled
+        if self.ldap_enabled && !self.ldap_configured() {
+            warn!("Cannot enable LDAP. Required fields are not configured.");
+            return Err(SettingsValidationError::CannotEnableLdap);
         }
 
         // Check if LDAP remote enrollment can be enabled
