@@ -50,6 +50,12 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
+    #[error("Cannot enable remote enrollment for LDAP. SMTP is not configured")]
+    CannotEnableLdapRemoteEnrollment,
+    #[error(
+        "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
+    )]
+    CannotEnableLdapRemoteEnrollmentInvite,
     #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
     InvalidDefguardUrl(String),
 }
@@ -431,11 +437,24 @@ impl Settings {
         }
         self.build_webauthn()
             .map_err(|_| SettingsValidationError::InvalidDefguardUrl(self.defguard_url.clone()))?;
+
         // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
         // configured.
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
+        }
+
+        // Check if LDAP remote enrollment can be enabled
+        if self.ldap_remote_enrollment_enabled && !self.smtp_configured() {
+            warn!("Cannot enable remote enrollment for LDAP. SMTP is not configured.");
+            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
+        }
+        if self.ldap_remote_enrollment_send_invite && !self.ldap_remote_enrollment_enabled {
+            warn!(
+                "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
+            );
+            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollmentInvite);
         }
 
         Ok(())
