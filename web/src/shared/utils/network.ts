@@ -1,6 +1,6 @@
 import { toNumber } from 'lodash-es';
 
-export const networkSize = (network_address: string): number => {
+export const smallestNetworkCapacity = (network_address: string): number => {
   let maximal_cidr = 0;
   for (const address of network_address.split(',')) {
     const cidr = toNumber(address.trim().split('/')[1]);

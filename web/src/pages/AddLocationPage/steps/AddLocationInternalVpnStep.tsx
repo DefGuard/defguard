@@ -12,7 +12,7 @@ import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackba
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { networkSize } from '../../../shared/utils/network';
+import { smallestNetworkCapacity } from '../../../shared/utils/network';
 import { Validate } from '../../../shared/validate';
 import { AddLocationPageStep } from '../types';
 import { useAddLocationStore } from '../useAddLocationStore';
@@ -92,7 +92,7 @@ export const AddLocationInternalVpnStep = () => {
     },
     onSubmit: ({ value }) => {
       const deviceCount = Array.isArray(devices) ? devices.length : 0;
-      const network_size = networkSize(value.address);
+      const network_size = smallestNetworkCapacity(value.address);
       if (deviceCount > network_size) {
         Snackbar.error(
           m.location_error_network_too_small({ network_size, device_count: deviceCount }),

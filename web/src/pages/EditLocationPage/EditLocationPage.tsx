@@ -33,7 +33,7 @@ import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
-import { networkSize } from '../../shared/utils/network';
+import { smallestNetworkCapacity } from '../../shared/utils/network';
 import { Validate } from '../../shared/validate';
 
 export const EditLocationPage = () => {
@@ -440,7 +440,7 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     },
     onSubmit: async ({ value }) => {
       const deviceCount = Array.isArray(devices) ? devices.length : 0;
-      const network_size = networkSize(value.address);
+      const network_size = smallestNetworkCapacity(value.address);
       if (deviceCount > network_size) {
         Snackbar.error(
           m.location_error_network_too_small({ network_size, device_count: deviceCount }),
