@@ -58,24 +58,20 @@ const Content = () => {
     queryFn: api.core.getCerts,
     select: (resp) => resp.data,
   });
+  const { data: caData, isFetching: isFetchingCa } = useQuery({
+    queryKey: ['core', 'cert', 'ca'],
+    queryFn: api.core.getCA,
+    select: (resp) => resp.data,
+  });
 
-  const downloadCoreCert = useCallback(() => {
-    const corePem = certsData?.core_http_cert_pem;
-    if (!isPresent(corePem)) return;
-    const blob = new Blob([corePem], {
+  const downloadCaCert = useCallback(() => {
+    const caPem = caData?.ca_cert_pem;
+    if (!isPresent(caPem)) return;
+    const blob = new Blob([caPem], {
       type: 'application/x-pem-file;charset=utf-8',
     });
-    downloadFile(blob, 'defguard-core', 'pem');
-  }, [certsData?.core_http_cert_pem]);
-
-  const downloadEdgeCert = useCallback(() => {
-    const edgePem = certsData?.proxy_http_cert_pem;
-    if (!isPresent(edgePem)) return;
-    const blob = new Blob([edgePem], {
-      type: 'application/x-pem-file;charset=utf-8',
-    });
-    downloadFile(blob, 'defguard-edge', 'pem');
-  }, [certsData?.proxy_http_cert_pem]);
+    downloadFile(blob, 'defguard-ca', 'pem');
+  }, [caData?.ca_cert_pem]);
 
   return (
     <>
@@ -104,10 +100,10 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
-              text={m.settings_certs_certs_core_download()}
-              onClick={downloadCoreCert}
-              loading={isFetching}
-              disabled={!isPresent(certsData?.core_http_cert_pem) || isFetching}
+              text={m.settings_certs_ca_download()}
+              onClick={downloadCaCert}
+              loading={isFetching || isFetchingCa}
+              disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
             />
           </>
         )}
@@ -153,10 +149,10 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
-              text={m.settings_certs_certs_edge_download()}
-              onClick={downloadEdgeCert}
-              loading={isFetching}
-              disabled={!isPresent(certsData?.proxy_http_cert_pem) || isFetching}
+              text={m.settings_certs_ca_download()}
+              onClick={downloadCaCert}
+              loading={isFetching || isFetchingCa}
+              disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
             />
           </>
         )}

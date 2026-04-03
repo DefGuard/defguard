@@ -569,14 +569,12 @@ pub(crate) async fn get_certs(_role: AdminRole, Extension(pool): Extension<PgPoo
         .await
         .map_err(WebError::from)?;
     Ok(ApiResponse::new(
-		json!({
-			"core_http_cert_pem": certs.core_http_cert_pem,
-			"core_http_cert_source": certs.core_http_cert_source,
-			"core_http_cert_expiry": certs.core_http_cert_expiry,
-			"proxy_http_cert_pem": certs.proxy_http_cert_pem,
-			"proxy_http_cert_source": certs.proxy_http_cert_source,
-			"proxy_http_cert_expiry": certs.proxy_http_cert_expiry,
-		}),
-		StatusCode::OK
-	))
+        json!({
+            "core_http_cert_source": certs.core_http_cert_source,
+            "core_http_cert_expiry": certs.core_http_cert_expiry,
+            "proxy_http_cert_source": certs.proxy_http_cert_source,
+            "proxy_http_cert_expiry": certs.proxy_http_cert_expiry,
+        }),
+        StatusCode::OK,
+    ))
 }
