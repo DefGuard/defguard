@@ -86,9 +86,9 @@ export const SettingsLdapPage = () => {
 };
 
 const formSchema = z.object({
-  ldap_bind_password: z.string().trim().nullable(),
-  ldap_bind_username: z.string().trim().nullable(),
-  ldap_url: z.string().trim(),
+  ldap_bind_password: z.string().trim().min(1, m.form_error_required()),
+  ldap_bind_username: z.string().trim().min(1, m.form_error_required()),
+  ldap_url: z.url(m.form_error_invalid()).min(1, m.form_error_required()),
   ldap_group_member_attr: z.string().trim().min(1, m.form_error_required()),
   ldap_group_obj_class: z.string().trim().min(1, m.form_error_required()),
   ldap_group_search_base: z.string().trim().min(1, m.form_error_required()),
@@ -216,7 +216,7 @@ const PageForm = () => {
   const requiredFieldsFilled = useStore(form.store, (s) => {
     const v = s.values;
     return (
-      v.ldap_url.trim().length > 0 &&
+      URL.canParse(v.ldap_url.trim()) &&
       v.ldap_bind_username !== null &&
       v.ldap_bind_username.trim().length > 0 &&
       v.ldap_bind_password !== null &&
