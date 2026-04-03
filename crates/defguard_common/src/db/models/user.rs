@@ -284,12 +284,27 @@ impl<I> User<I> {
     /// A user is treated as enrolled if:
     /// - The `enrollment_pending` flag is **not** set, i.e. enrollment was not requested by an
     ///   administrator (https://github.com/DefGuard/client/issues/647).
-    /// - They either have a password configured, have authenticated via an external OIDC provider
-    ///   or were synced from LDAP.
+    /// - They either have a password configured, have authenticated via an external OIDC provider,
+    ///   or were synced from LDAP (subject to the `ldap_remote_enrollment_enabled` setting).
     #[must_use]
     pub fn is_enrolled(&self) -> bool {
-        !self.enrollment_pending
-            && (self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap)
+        if self.enrollment_pending {
+            return false;
+        }
+        if self.password_hash.is_some() || self.openid_sub.is_some() {
+            return true;
+        }
+        if self.from_ldap {
+            let settings = Settings::get_current_settings();
+            if settings.ldap_remote_enrollment_enabled {
+                // When LDAP remote enrollment is enabled, an LDAP user is only considered
+                // enrolled after they have completed the self-enrollment process.
+                return self.ldap_remote_enrollment_completed;
+            }
+            // Feature disabled: all LDAP-synced users are implicitly enrolled (legacy behaviour).
+            return true;
+        }
+        false
     }
 
     #[must_use]
