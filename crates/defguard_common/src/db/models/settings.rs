@@ -678,7 +678,9 @@ impl Settings {
     #[must_use]
     pub fn ldap_configured(&self) -> bool {
         let non_empty = |opt: &Option<String>| opt.as_deref().is_some_and(|s| !s.is_empty());
-        non_empty(&self.ldap_url)
+        self.ldap_url
+            .as_deref()
+            .is_some_and(|s| Url::parse(s).is_ok())
             && non_empty(&self.ldap_bind_username)
             && self.ldap_bind_password.is_some()  // just check the presence, don't expose the secret
             && non_empty(&self.ldap_username_attr)
