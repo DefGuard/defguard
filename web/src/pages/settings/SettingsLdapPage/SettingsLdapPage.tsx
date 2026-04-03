@@ -418,31 +418,63 @@ const PageForm = () => {
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />
         <MarkedSection icon={IconKind.Sync}>
-          <MarkedSectionHeader
-            title={m.settings_ldap_section_sync_title()}
-            description={m.settings_ldap_section_sync_description()}
-          />
-          <form.AppField name="ldap_sync_enabled">
-            {(field) => (
-              <field.FormInteractiveBlock
-                variant={'radio'}
-                value={false}
-                title={m.settings_ldap_sync_one_way_title()}
-                content={m.settings_ldap_sync_one_way_content()}
-              />
+          <form.Subscribe
+            selector={(s) => {
+              const v = s.values;
+              return (
+                v.ldap_url.trim().length > 0 &&
+                v.ldap_bind_username !== null &&
+                v.ldap_bind_username.trim().length > 0 &&
+                v.ldap_bind_password !== null &&
+                v.ldap_bind_password.trim().length > 0 &&
+                v.ldap_username_attr.trim().length > 0 &&
+                v.ldap_user_search_base.trim().length > 0 &&
+                v.ldap_user_obj_class.trim().length > 0 &&
+                v.ldap_member_attr.trim().length > 0 &&
+                v.ldap_groupname_attr.trim().length > 0 &&
+                v.ldap_group_obj_class.trim().length > 0 &&
+                v.ldap_group_member_attr.trim().length > 0 &&
+                v.ldap_group_search_base.trim().length > 0
+              );
+            }}
+          >
+            {(requiredFieldsFilled) => (
+              <>
+                <MarkedSectionHeader
+                  title={m.settings_ldap_section_sync_title()}
+                  description={m.settings_ldap_section_sync_description()}
+                  warning={
+                    requiredFieldsFilled
+                      ? undefined
+                      : m.settings_ldap_section_sync_warning()
+                  }
+                />
+                <form.AppField name="ldap_sync_enabled">
+                  {(field) => (
+                    <field.FormInteractiveBlock
+                      variant={'radio'}
+                      value={false}
+                      disabled={!requiredFieldsFilled}
+                      title={m.settings_ldap_sync_one_way_title()}
+                      content={m.settings_ldap_sync_one_way_content()}
+                    />
+                  )}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <form.AppField name="ldap_sync_enabled">
+                  {(field) => (
+                    <field.FormInteractiveBlock
+                      variant={'radio'}
+                      value={true}
+                      disabled={!requiredFieldsFilled}
+                      title={m.settings_ldap_sync_two_way_title()}
+                      content={m.settings_ldap_sync_two_way_content()}
+                    />
+                  )}
+                </form.AppField>
+              </>
             )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <form.AppField name="ldap_sync_enabled">
-            {(field) => (
-              <field.FormInteractiveBlock
-                variant={'radio'}
-                value={true}
-                title={m.settings_ldap_sync_two_way_title()}
-                content={m.settings_ldap_sync_two_way_content()}
-              />
-            )}
-          </form.AppField>
+          </form.Subscribe>
           <form.Subscribe selector={(s) => s.values.ldap_sync_enabled}>
             {(syncEnabled) => (
               <>

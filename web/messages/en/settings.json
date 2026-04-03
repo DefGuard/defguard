@@ -222,6 +222,7 @@
   "settings_ldap_helper_group_search_base": "",
   "settings_ldap_section_sync_title": "LDAP synchronization",
   "settings_ldap_section_sync_description": "Control how Defguard synchronizes users with LDAP — disable sync, import users from LDAP, or keep both systems updated automatically.",
+  "settings_ldap_section_sync_warning": "To enable LDAP synchronization, please fill out the form above first.",
   "settings_ldap_sync_one_way_title": "One-way synchronization",
   "settings_ldap_sync_one_way_content": "Changes made to users in Defguard are propagated to your LDAP directory.",
   "settings_ldap_sync_two_way_title": "Two-way synchronization",
