@@ -152,7 +152,8 @@ const PageForm = () => {
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
       ldap_sync_groups: settings?.ldap_sync_groups.join(', ') || null,
       ldap_remote_enrollment_enabled: settings?.ldap_remote_enrollment_enabled ?? false,
-      ldap_remote_enrollment_send_invite: settings?.ldap_remote_enrollment_send_invite ?? false,
+      ldap_remote_enrollment_send_invite:
+        settings?.ldap_remote_enrollment_send_invite ?? false,
     };
   }, [settings]);
 
