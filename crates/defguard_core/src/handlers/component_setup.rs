@@ -10,6 +10,7 @@ use axum::{
     extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
+use chrono::NaiveDateTime;
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
@@ -1115,6 +1116,16 @@ fn acme_step_name(step: AcmeStep) -> &'static str {
     }
 }
 
+fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+    let der = defguard_certs::parse_pem_certificate(cert_pem)
+        .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
+        .ok()?;
+    defguard_certs::CertificateInfo::from_der(&der)
+        .map(|info| info.not_after)
+        .map_err(|e| warn!("Failed to extract expiry from ACME cert: {e}"))
+        .ok()
+}
+
 /// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
 ///
 /// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
@@ -1340,10 +1351,12 @@ pub async fn stream_proxy_acme(
         // Progress channel closed - collect the final result.
         match result_rx.await {
             Ok(Ok((cert_pem, key_pem, new_account_credentials_json))) => {
+                let acme_cert_expiry = parse_cert_expiry(&cert_pem);
                 match Certificates::get_or_default(&pool).await {
                     Ok(mut updated_certs) => {
                         updated_certs.proxy_http_cert_pem = Some(cert_pem.clone());
                         updated_certs.proxy_http_cert_key_pem = Some(key_pem.clone());
+                        updated_certs.proxy_http_cert_expiry = acme_cert_expiry;
                         updated_certs.acme_account_credentials =
                             Some(new_account_credentials_json);
                         updated_certs.proxy_http_cert_source =

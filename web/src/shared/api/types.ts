@@ -71,8 +71,10 @@ export type EdgeCertSourceValue = (typeof EdgeCertSource)[keyof typeof EdgeCertS
 export interface GetCertsResponse {
   core_http_cert_source: CoreCertSourceValue;
   core_http_cert_expiry: string;
+  core_http_cert_domain: string | null;
   proxy_http_cert_source: EdgeCertSourceValue;
   proxy_http_cert_expiry: string;
+  proxy_http_cert_domain: string | null;
 }
 
 export interface UploadCARequest {

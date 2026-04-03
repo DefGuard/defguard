@@ -296,6 +296,12 @@ pub async fn apply_external_url_settings(
     Ok(cert_info)
 }
 
+fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
+    let cert_der = parse_pem_certificate(cert_pem?).ok()?;
+    let cert_info = CertificateInfo::from_der(cert_der.as_ref()).ok()?;
+    Some(cert_info.subject_common_name)
+}
+
 /// Upload a custom PEM certificate + private key for core HTTPS.
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct CoreCustomCertUpload {
@@ -572,8 +578,10 @@ pub(crate) async fn get_certs(_role: AdminRole, Extension(pool): Extension<PgPoo
         json!({
             "core_http_cert_source": certs.core_http_cert_source,
             "core_http_cert_expiry": certs.core_http_cert_expiry,
+            "core_http_cert_domain": cert_common_name(certs.core_http_cert_pem.as_deref()),
             "proxy_http_cert_source": certs.proxy_http_cert_source,
             "proxy_http_cert_expiry": certs.proxy_http_cert_expiry,
+            "proxy_http_cert_domain": cert_common_name(certs.proxy_http_cert_pem.as_deref()),
         }),
         StatusCode::OK,
     ))

@@ -87,7 +87,7 @@ const Content = () => {
       <div className="ca-info-grid">
         <div className="ca-info-label">{m.settings_certs_ca_email()}</div>
         <div className="ca-info-value">{caData?.subject_email}</div>
-        <div className="ca-info-label">{m.settings_certs_ca_valid_until()}</div>
+        <div className="ca-info-label">{m.settings_certs_valid_until()}</div>
         <div className="ca-info-value">
           {caData?.ca_expiry ? displayDate(caData?.ca_expiry) : '-'}
         </div>

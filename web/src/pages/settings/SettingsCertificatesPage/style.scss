@@ -1,0 +1,10 @@
+.cert-info {
+  border-radius: 8px;
+  background: var(--bg-disabled);
+  font: var(--t-body-xs-400);
+  padding: var(--spacing-md);
+
+  .bold {
+    font: var(--t-body-xs-600);
+  }
+}

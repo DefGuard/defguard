@@ -1,3 +1,4 @@
+import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useCallback } from 'react';
@@ -17,6 +18,7 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { downloadFile } from '../../../shared/utils/download';
+import { displayDate } from '../../../shared/utils/displayDate';
 
 const breadcrumbs = [
   <Link
@@ -73,6 +75,7 @@ const Content = () => {
     downloadFile(blob, 'defguard-ca', 'pem');
   }, [caData?.ca_cert_pem]);
 
+  console.log(certsData);
   return (
     <>
       <MarkedSection icon="authorised-app">
@@ -98,6 +101,8 @@ const Content = () => {
               <p>{m.settings_certs_certs_internal_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
+            <CertInfo validUntil={certsData.core_http_cert_expiry} domain={certsData.core_http_cert_domain}/>
+            <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
               text={m.settings_certs_ca_download()}
@@ -112,6 +117,8 @@ const Content = () => {
             <DescriptionBlock title={m.settings_certs_certs_custom_title()}>
               <p>{m.settings_certs_certs_custom_description()}</p>
             </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <CertInfo validUntil={certsData.core_http_cert_expiry} domain={certsData.core_http_cert_domain}/>
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
@@ -147,6 +154,8 @@ const Content = () => {
               <p>{m.settings_certs_certs_internal_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
+            <CertInfo validUntil={certsData.proxy_http_cert_expiry} domain={certsData.proxy_http_cert_domain}/>
+            <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
               text={m.settings_certs_ca_download()}
@@ -162,6 +171,25 @@ const Content = () => {
               <p>{m.settings_certs_certs_custom_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
+            <CertInfo validUntil={certsData.proxy_http_cert_expiry} domain={certsData.proxy_http_cert_domain}/>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <Button
+              variant="primary"
+              text={m.settings_certs_certs_custom_change()}
+              onClick={() => void navigate({ to: '/settings-edge-certificate' })}
+              loading={false}
+              disabled={false}
+            />
+          </>
+        )}
+        {certsData?.proxy_http_cert_source === 'LetsEncrypt' && (
+          <>
+            <DescriptionBlock title={m.settings_certs_certs_letsencrypt_title()}>
+              <p>{m.settings_certs_certs_letsencrypt_description()}</p>
+            </DescriptionBlock>
+            <SizedBox height={ThemeSpacing.Lg} />
+            <CertInfo validUntil={certsData.proxy_http_cert_expiry} domain={certsData.proxy_http_cert_domain}/>
+            <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
               text={m.settings_certs_certs_custom_change()}
@@ -175,3 +203,22 @@ const Content = () => {
     </>
   );
 };
+
+
+type CertInfoProps = {
+  validUntil: string,
+  domain: string | null,
+}
+
+const CertInfo = ({validUntil, domain}: CertInfoProps) => ( 
+  <div className="cert-info">
+    <div>
+      {m.settings_certs_valid_until()}:
+      <span className="bold"> {displayDate(validUntil)}</span>
+    </div>
+    <div>
+      {m.settings_certs_domain()}:
+      <span className="bold"> {domain || '-'}</span>
+    </div>
+  </div>
+)
