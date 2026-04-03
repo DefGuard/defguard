@@ -120,6 +120,7 @@ type FormFields = z.infer<typeof formSchema>;
 
 const PageForm = () => {
   const isAppLdapEnabled = useApp((s) => s.appInfo.ldap_info.enabled);
+  const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
@@ -230,6 +231,17 @@ const PageForm = () => {
       v.ldap_group_search_base.trim().length > 0
     );
   });
+
+  const remoteEnrollmentSectionDisabled = !requiredFieldsFilled || !smtpEnabled;
+  const remoteEnrollmentWarning = useMemo(
+    () =>
+      !requiredFieldsFilled
+        ? m.settings_ldap_remote_enrollment_warning_no_sync_no_smtp()
+        : !smtpEnabled
+          ? m.settings_ldap_remote_enrollment_warning_no_smtp()
+          : undefined,
+    [requiredFieldsFilled, smtpEnabled],
+  );
 
   return (
     <form
@@ -520,12 +532,14 @@ const PageForm = () => {
           <MarkedSectionHeader
             title={m.settings_ldap_section_remote_enrollment_title()}
             description={m.settings_ldap_section_remote_enrollment_description()}
+            warning={remoteEnrollmentWarning}
           />
           <form.AppField name="ldap_remote_enrollment_enabled">
             {(field) => (
               <field.FormInteractiveBlock
                 variant={'checkbox'}
                 value={true}
+                disabled={remoteEnrollmentSectionDisabled}
                 title={m.settings_ldap_label_remote_enrollment_enabled()}
                 content={m.settings_ldap_helper_remote_enrollment_enabled()}
               />
@@ -533,13 +547,14 @@ const PageForm = () => {
           </form.AppField>
           <form.Subscribe selector={(s) => s.values.ldap_remote_enrollment_enabled}>
             {(remoteEnrollmentEnabled) => (
-              <Fold open={remoteEnrollmentEnabled}>
+              <Fold open={remoteEnrollmentEnabled && !remoteEnrollmentSectionDisabled}>
                 <SizedBox height={ThemeSpacing.Xl} />
                 <form.AppField name="ldap_remote_enrollment_send_invite">
                   {(field) => (
                     <field.FormInteractiveBlock
                       variant={'checkbox'}
                       value={true}
+                      disabled={remoteEnrollmentSectionDisabled}
                       title={m.settings_ldap_label_remote_enrollment_send_invite()}
                       content={m.settings_ldap_helper_remote_enrollment_send_invite()}
                     />

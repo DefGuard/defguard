@@ -244,6 +244,8 @@
   "settings_ldap_helper_remote_enrollment_enabled": "When Defguard is integrated with AD/LDAP, users can log in with their directory credentials and complete remote enrollment (including MFA) via the desktop client. When this switch is enabled, newly created users can be Enrolled.",
   "settings_ldap_label_remote_enrollment_send_invite": "Automatically invite new AD/LDAP users to enroll",
   "settings_ldap_helper_remote_enrollment_send_invite": "When users are synced via AD/LDAP, Defguard can automatically send an enrollment email for device setup and MFA. If disabled, enrollment must be started manually by an admin.",
+  "settings_ldap_remote_enrollment_warning_no_sync_no_smtp": "Please activate LDAP synchronization and set up the SMTP server first to enable this feature.",
+  "settings_ldap_remote_enrollment_warning_no_smtp": "Please configure the SMTP server to enable this feature.",
   "settings_client_subtitle": "Manage user permissions and configuration options for device control, WireGuard setup, and VPN routing.",
   "settings_client_section_permissions_title": "Permissions",
   "settings_client_permissions_description_title": "Client Configuration Permissions",
