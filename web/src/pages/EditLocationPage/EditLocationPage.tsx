@@ -33,6 +33,7 @@ import {
   canUseBusinessFeature,
   canUseEnterpriseFeature,
 } from '../../shared/utils/license';
+import { networkSize } from '../../shared/utils/network';
 import { Validate } from '../../shared/validate';
 
 export const EditLocationPage = () => {
@@ -367,6 +368,12 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
     );
   }, [firewallLocked]);
 
+  const { data: devices } = useQuery({
+    queryKey: ['device', 'all'],
+    queryFn: api.device.getDevices,
+    select: (resp) => resp.data,
+  });
+
   const { data: groupsOptions } = useQuery({
     queryFn: api.group.getGroups,
     queryKey: ['group'],
@@ -432,6 +439,15 @@ const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
+      const deviceCount = Array.isArray(devices) ? devices.length : 0;
+      const network_size = networkSize(value.address);
+      if (deviceCount > network_size) {
+        Snackbar.error(
+          m.location_error_network_too_small({ network_size, device_count: deviceCount }),
+        );
+        return;
+      }
+
       const changedFields = getDisconnectRelevantChangedFields(
         getDisconnectRelevantLocationData(
           buildLocationSubmissionData(defaultValues, location),
