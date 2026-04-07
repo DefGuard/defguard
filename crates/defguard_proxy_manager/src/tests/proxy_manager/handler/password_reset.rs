@@ -1,8 +1,7 @@
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use defguard_common::db::models::User;
 use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
 use defguard_proto::proxy::core_response;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::support::{
     STRONG_PASSWORD, assert_error_response, complete_proxy_handshake, create_enrollment_token,

@@ -600,7 +600,7 @@ impl User<Id> {
         let res = users
             .iter()
             .map(|u| UserDiagnostic {
-                mfa_method: u.mfa_method.clone(),
+                mfa_method: u.mfa_method,
                 totp_enabled: u.totp_enabled,
                 email_mfa_enabled: u.email_mfa_enabled,
                 mfa_enabled: u.mfa_enabled,

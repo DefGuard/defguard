@@ -144,6 +144,8 @@ struct MockProxyService {
 #[tonic::async_trait]
 impl proxy_server::Proxy for MockProxyService {
     type BidiStream = UnboundedReceiverStream<Result<CoreRequest, Status>>;
+    type TriggerAcmeStream =
+        std::pin::Pin<Box<dyn tokio_stream::Stream<Item = Result<AcmeIssueEvent, Status>> + Send>>;
 
     /// The bidi stream: Core sends `CoreResponse` messages; Proxy (mock) sends
     /// `CoreRequest` messages back.  We forward received `CoreResponse` items to
@@ -173,9 +175,6 @@ impl proxy_server::Proxy for MockProxyService {
         self.state.note_purge();
         Ok(Response::new(()))
     }
-
-    type TriggerAcmeStream =
-        std::pin::Pin<Box<dyn tokio_stream::Stream<Item = Result<AcmeIssueEvent, Status>> + Send>>;
 
     async fn trigger_acme(
         &self,
@@ -772,7 +771,10 @@ impl MockOidcProvider {
         };
 
         // build axum router
-        use axum::{Router, routing::get, routing::post};
+        use axum::{
+            Router,
+            routing::{get, post},
+        };
         let app = Router::new()
             .route("/.well-known/openid-configuration", get(oidc_discovery))
             .route("/keys", get(oidc_jwks))
