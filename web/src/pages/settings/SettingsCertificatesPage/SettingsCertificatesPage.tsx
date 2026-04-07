@@ -88,7 +88,7 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_none_add_certificate()}
+              text={m.settings_certs_certs_change()}
               onClick={() => void navigate({ to: '/settings-core-certificate' })}
               loading={false}
               disabled={false}
@@ -119,7 +119,7 @@ const Content = () => {
               <SizedBox width={ThemeSpacing.Md} height={ThemeSpacing.Xs} />
               <Button
                 variant="primary"
-                text={m.settings_certs_certs_custom_change()}
+                text={m.settings_certs_certs_change()}
                 onClick={() => void navigate({ to: '/settings-core-certificate' })}
                 loading={false}
                 disabled={false}
@@ -142,7 +142,7 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_custom_change()}
+              text={m.settings_certs_certs_change()}
               onClick={() => void navigate({ to: '/settings-core-certificate' })}
               loading={false}
               disabled={false}
@@ -161,7 +161,7 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_none_add_certificate()}
+              text={m.settings_certs_certs_change()}
               onClick={() => void navigate({ to: '/settings-edge-certificate' })}
               loading={false}
               disabled={false}
@@ -192,7 +192,7 @@ const Content = () => {
               <SizedBox width={ThemeSpacing.Md} height={ThemeSpacing.Xs} />
               <Button
                 variant="primary"
-                text={m.settings_certs_certs_custom_change()}
+                text={m.settings_certs_certs_change()}
                 onClick={() => void navigate({ to: '/settings-edge-certificate' })}
                 loading={false}
                 disabled={false}
@@ -215,7 +215,7 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_custom_change()}
+              text={m.settings_certs_certs_change()}
               onClick={() => void navigate({ to: '/settings-edge-certificate' })}
               loading={false}
               disabled={false}
@@ -237,7 +237,7 @@ const Content = () => {
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
-              text={m.settings_certs_certs_custom_change()}
+              text={m.settings_certs_certs_change()}
               onClick={() => void navigate({ to: '/settings-edge-certificate' })}
               loading={false}
               disabled={false}
