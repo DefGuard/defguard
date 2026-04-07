@@ -1,4 +1,7 @@
-use defguard_common::db::{Id, models::user::User};
+use defguard_common::db::{
+    Id,
+    models::{Settings, user::User},
+};
 use defguard_mail::templates::{desktop_start_mail, new_account_mail};
 use reqwest::Url;
 use sqlx::{PgConnection, PgExecutor};
@@ -6,7 +9,7 @@ use sqlx::{PgConnection, PgExecutor};
 use crate::db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, Token, TokenError};
 
 /// Start user enrollment process
-/// This creates a new enrollment token valid for 24h
+/// This creates a new enrollment token valid for the duration specified by `token_timeout_seconds`
 /// and optionally sends enrollment email notification to user
 pub async fn start_user_enrollment(
     user: &mut User<Id>,
@@ -193,13 +196,72 @@ pub async fn start_desktop_configuration(
 }
 
 // Remove unused tokens when triggering user enrollment
-pub async fn clear_unused_enrollment_tokens<'e, E>(
+pub async fn clear_unused_enrollment_tokens<'e, E: PgExecutor<'e>>(
     user: &User<Id>,
     executor: E,
-) -> Result<(), TokenError>
-where
-    E: PgExecutor<'e>,
-{
+) -> Result<(), TokenError> {
     info!("Removing unused tokens for user {}.", user.username);
     Token::delete_unused_user_tokens(executor, user.id).await
+}
+
+/// Sends an enrollment invitation to a newly-created LDAP user when both
+/// `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` settings are enabled.
+///
+/// Errors are logged and swallowed — this must not disrupt the caller's flow.
+pub async fn try_send_ldap_enrollment_invite(user: &mut User<Id>, conn: &mut PgConnection) {
+    let settings = Settings::get_current_settings();
+    if !settings.ldap_remote_enrollment_enabled || !settings.ldap_remote_enrollment_send_invite {
+        return;
+    }
+
+    let admins = match User::find_admins(&mut *conn).await {
+        Ok(a) => a,
+        Err(err) => {
+            error!(
+                "Failed to fetch admins while sending LDAP enrollment invite for user {user}: {err}",
+            );
+            return;
+        }
+    };
+
+    // Find first active admin
+    // This is required because the desktop client expects `AdminInfo` to be available
+    // and this action is triggered automatically, not by a specific admin
+    let Some(admin) = admins.into_iter().next() else {
+        error!(
+            "No active admin found; skipping enrollment invite for LDAP user {}",
+            user.username
+        );
+        return;
+    };
+
+    let enrollment_service_url = match settings.proxy_public_url() {
+        Ok(url) => url,
+        Err(err) => {
+            error!(
+                "Failed to get enrollment service URL while sending LDAP enrollment invite for \
+                user {user}: {err}",
+            );
+            return;
+        }
+    };
+
+    let token_timeout_seconds = settings.enrollment_token_timeout().as_secs();
+
+    if let Err(err) = start_user_enrollment(
+        user,
+        &mut *conn,
+        &admin,
+        Some(user.email.clone()),
+        token_timeout_seconds,
+        enrollment_service_url,
+        true,
+    )
+    .await
+    {
+        error!(
+            "Failed to send LDAP enrollment invite for user {}: {err}",
+            user.username
+        );
+    }
 }
