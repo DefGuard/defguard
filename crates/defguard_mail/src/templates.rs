@@ -296,9 +296,7 @@ pub async fn mfa_configured_mail(
 
     context.insert("mfa_method", &method);
 
-    let message = MailMessage::MFAConfigured {
-        method: method.clone(),
-    };
+    let message = MailMessage::MFAConfigured { method: *method };
     message.fill_context(conn, &mut context).await?;
     message.mail(&mut tera, &context, to)?.send_and_forget();
 

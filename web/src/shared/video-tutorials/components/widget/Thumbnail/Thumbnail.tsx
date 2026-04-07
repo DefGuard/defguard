@@ -1,8 +1,8 @@
 import './style.scss';
 import { useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { Icon } from '../../../defguard-ui/components/Icon/Icon';
-import { ThemeVariable } from '../../../defguard-ui/types';
+import { Icon } from '../../../../defguard-ui/components/Icon/Icon';
+import { ThemeVariable } from '../../../../defguard-ui/types';
 
 export interface ThumbnailProps {
   url: string;
@@ -16,7 +16,7 @@ export const Thumbnail = ({ url, title }: ThumbnailProps) => {
   if (errored) {
     return (
       <div className="video-support-thumbnail placeholder" aria-label={title}>
-        <div className="video-support-thumbnail-icon-badge">
+        <div className="icon-badge">
           <Icon icon="tutorial" size={20} staticColor={ThemeVariable.FgDisabled} />
         </div>
       </div>

@@ -1,5 +1,3 @@
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use defguard_common::db::models::{
     Device, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
 };
@@ -11,6 +9,7 @@ use defguard_proto::{
     client_types::{ExistingDevice, NewDevice},
     proxy::{CoreRequest, MfaMethod, RegisterMobileAuthRequest, core_request, core_response},
 };
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,

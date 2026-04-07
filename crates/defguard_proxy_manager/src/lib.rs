@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, RwLock},
     time::Duration,
 };
-
 #[cfg(test)]
 use std::{path::PathBuf, str::FromStr, sync::Mutex as StdMutex};
 
@@ -19,6 +18,8 @@ use defguard_core::{
 };
 use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
 use sqlx::PgPool;
+#[cfg(test)]
+use tokio::sync::Notify;
 use tokio::{
     select,
     sync::{
@@ -30,9 +31,6 @@ use tokio::{
     task::JoinSet,
     time::sleep,
 };
-
-#[cfg(test)]
-use tokio::sync::Notify;
 
 use crate::{certs::refresh_certs, error::ProxyError, handler::ProxyHandler};
 

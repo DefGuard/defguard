@@ -1,0 +1,108 @@
+// ---------------------------------------------------------------------------
+// VideoPlayer — shared iframe + skeleton + error styles
+// Used by VideoOverlay (errorVariant="overlay") and
+// VideoTutorialsModal (errorVariant="modal").
+// ---------------------------------------------------------------------------
+
+// Skeleton shown while the iframe is loading.
+// overflow: hidden clips the skeleton shimmer to the rounded corners.
+
+.video-player-skeleton {
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+// The iframe itself. Callers wrap it in a sized container.
+
+iframe.loaded ~ .video-player-skeleton {
+  display: none;
+}
+
+// ---------------------------------------------------------------------------
+// Error states
+// ---------------------------------------------------------------------------
+
+.video-player-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+// Overlay variant — richer layout with icon-group / link-group
+.video-player-error-overlay {
+  background-color: var(--bg-emphasis);
+  gap: var(--spacing-5xl);
+}
+
+.video-player-error-icon-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.video-player-error-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3xl);
+  background-color: var(--bg-default);
+  border-radius: var(--radius-full);
+  box-shadow: var(--menu-shadow);
+}
+
+.video-player-error-title {
+  font: var(--t-title-h5);
+  color: var(--fg-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.video-player-error-link-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: var(--spacing-sm);
+}
+
+.video-player-error-label {
+  font: var(--t-body-xxs-500);
+  color: var(--fg-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.video-player-error-url {
+  font: var(--t-body-sm-400);
+  color: var(--fg-faded);
+  text-align: center;
+  word-break: break-all;
+  text-decoration: none;
+}
+
+// Modal variant — compact inline layout
+.video-player-error-modal {
+  gap: var(--spacing-md);
+  color: var(--fg-muted);
+
+  p {
+    font: var(--t-body-sm-400);
+    margin: 0;
+    text-align: center;
+  }
+
+  a {
+    font: var(--t-body-xs-400);
+    color: var(--fg-faded);
+    word-break: break-all;
+    text-align: center;
+    text-decoration: none;
+  }
+}

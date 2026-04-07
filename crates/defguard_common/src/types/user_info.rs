@@ -133,23 +133,26 @@ impl UserInfo {
         Ok(group_diff)
     }
 
-    /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub fn into_user_safe_fields(self, user: &mut User<Id>) -> sqlx::Result<()> {
+    /// Copy fields over to the given [`User`].
+    /// Additional flags control which fields are copied over.
+    pub fn handle_update_user_fields(
+        self,
+        user: &mut User<Id>,
+        is_admin: bool,
+        is_updating_self: bool,
+    ) {
+        if is_admin {
+            user.username = self.username;
+            user.last_name = self.last_name;
+            user.first_name = self.first_name;
+            user.email = self.email;
+        }
+
+        if is_updating_self {
+            user.mfa_method = self.mfa_method;
+        }
+
         user.phone = self.phone;
-        user.mfa_method = self.mfa_method;
-
-        Ok(())
-    }
-
-    /// Copy fields to [`User`]. This function should be used by administrators.
-    pub fn into_user_all_fields(self, user: &mut User<Id>) -> sqlx::Result<()> {
-        user.phone = self.phone;
-        user.username = self.username;
-        user.last_name = self.last_name;
-        user.first_name = self.first_name;
-        user.email = self.email;
-
-        Ok(())
     }
 }
 
@@ -159,6 +162,18 @@ mod test {
 
     use super::*;
     use crate::db::setup_pool;
+
+    /// Build a minimal `UserInfo` from an existing saved `User<Id>`.
+    /// Only the fields exercised by `handle_update_user_fields` need to be set
+    /// here; the rest are left at their DB-loaded defaults.
+    async fn user_info_from_db(pool: &PgPool, username: &str) -> (UserInfo, User<Id>) {
+        let user = User::find_by_username(pool, username)
+            .await
+            .unwrap()
+            .unwrap();
+        let info = UserInfo::from_user(pool, user.clone()).await.unwrap();
+        (info, user)
+    }
 
     #[sqlx::test]
     async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {
@@ -198,12 +213,172 @@ mod test {
             .handle_user_groups(&mut transaction, &mut user)
             .await
             .unwrap();
-        user_info.into_user_all_fields(&mut user).unwrap();
+        // admin updating their own account: is_admin=true, is_updating_self=true
+        user_info.handle_update_user_fields(&mut user, true, true);
         transaction.commit().await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert_eq!(group3.member_usernames(&pool).await.unwrap(), ["hpotter"]);
         assert!(group2.member_usernames(&pool).await.unwrap().is_empty());
         assert!(group4.member_usernames(&pool).await.unwrap().is_empty());
+    }
+
+    // Admin updating another user must be able to change all profile
+    // fields (username, first/last name, email) and phone, but NOT mfa_method.
+    #[sqlx::test]
+    async fn test_handle_update_admin_updating_other_user(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let mut user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            Some("+48100200300".to_string()),
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let (mut info, _) = user_info_from_db(&pool, "hpotter").await;
+        info.username = "h_potter_new".into();
+        info.first_name = "UpdatedFirst".into();
+        info.last_name = "Pot".into();
+        info.email = "updated@hogwart.edu.uk".into();
+        info.phone = Some("+48999888777".into());
+        info.mfa_method = MFAMethod::OneTimePassword;
+
+        // is_admin=true, is_updating_self=false (admin editing someone else)
+        info.handle_update_user_fields(&mut user, true, false);
+
+        assert_eq!(user.username, "h_potter_new");
+        assert_eq!(user.first_name, "UpdatedFirst");
+        assert_eq!(user.last_name, "Pot");
+        assert_eq!(user.email, "updated@hogwart.edu.uk");
+        assert_eq!(user.phone, Some("+48999888777".into()));
+        // mfa_method must NOT change because is_updating_self=false
+        assert_eq!(user.mfa_method, MFAMethod::None);
+    }
+
+    // A regular user updating themselves may only change phone and
+    // mfa_method; name/email fields must be left untouched.
+    #[sqlx::test]
+    async fn test_handle_update_non_admin_updating_self(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let mut user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let (mut info, _) = user_info_from_db(&pool, "hpotter").await;
+        info.username = "changed_username".into();
+        info.first_name = "UpdatedFirst".into();
+        info.last_name = "UpdatedLast".into();
+        info.email = "updated@example.com".into();
+        info.phone = Some("+48111222333".into());
+        info.mfa_method = MFAMethod::OneTimePassword;
+
+        // is_admin=false, is_updating_self=true
+        info.handle_update_user_fields(&mut user, false, true);
+
+        // profile fields must remain unchanged
+        assert_eq!(user.username, "hpotter");
+        assert_eq!(user.first_name, "Harry");
+        assert_eq!(user.last_name, "Potter");
+        assert_eq!(user.email, "h.potter@hogwart.edu.uk");
+        // phone and mfa_method are always allowed
+        assert_eq!(user.phone, Some("+48111222333".into()));
+        assert_eq!(user.mfa_method, MFAMethod::OneTimePassword);
+    }
+
+    // A non-admin modifying ANOTHER user must not be able to change
+    // any protected field, and mfa_method must also stay unchanged because
+    // is_updating_self=false.
+    #[sqlx::test]
+    async fn test_handle_update_non_admin_updating_other_user(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let mut user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            Some("+48100200300".to_string()),
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let original_mfa = user.mfa_method;
+
+        let (mut info, _) = user_info_from_db(&pool, "hpotter").await;
+        info.username = "changed_username".into();
+        info.first_name = "UpdatedFirst".into();
+        info.last_name = "UpdatedLast".into();
+        info.email = "updated@example.com".into();
+        info.phone = Some("+48000000000".into());
+        info.mfa_method = MFAMethod::OneTimePassword;
+
+        // is_admin=false, is_updating_self=false
+        info.handle_update_user_fields(&mut user, false, false);
+
+        // only phone changes; everything else stays the same
+        assert_eq!(user.username, "hpotter");
+        assert_eq!(user.first_name, "Harry");
+        assert_eq!(user.last_name, "Potter");
+        assert_eq!(user.email, "h.potter@hogwart.edu.uk");
+        assert_eq!(user.phone, Some("+48000000000".into()));
+        assert_eq!(user.mfa_method, original_mfa);
+    }
+
+    // Admin updating their own account can change all fields
+    // including mfa_method.
+    #[sqlx::test]
+    async fn test_handle_update_admin_updating_self(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+        let mut user = User::new(
+            "admin",
+            Some("pass123"),
+            "Admin",
+            "Super",
+            "admin@defguard",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let (mut info, _) = user_info_from_db(&pool, "admin").await;
+        info.username = "admin_renamed".into();
+        info.first_name = "NewFirst".into();
+        info.last_name = "NewLast".into();
+        info.email = "new@defguard".into();
+        info.phone = Some("+48777888999".into());
+        info.mfa_method = MFAMethod::OneTimePassword;
+
+        // is_admin=true, is_updating_self=true
+        info.handle_update_user_fields(&mut user, true, true);
+
+        assert_eq!(user.username, "admin_renamed");
+        assert_eq!(user.first_name, "NewFirst");
+        assert_eq!(user.last_name, "NewLast");
+        assert_eq!(user.email, "new@defguard");
+        assert_eq!(user.phone, Some("+48777888999".into()));
+        assert_eq!(user.mfa_method, MFAMethod::OneTimePassword);
     }
 }

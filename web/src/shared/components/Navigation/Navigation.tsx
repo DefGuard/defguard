@@ -10,22 +10,21 @@ import { NavLogo } from './assets/NavLogo';
 import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { Link, type LinkProps } from '@tanstack/react-router';
-import clsx from 'clsx';
 import { type LicenseInfo, LicenseTier, type LicenseTierValue } from '../../api/types';
-import { externalLink } from '../../constants';
 import { Fold } from '../../defguard-ui/components/Fold/Fold';
 import { TooltipContent } from '../../defguard-ui/providers/tooltip/TooltipContent';
 import { TooltipProvider } from '../../defguard-ui/providers/tooltip/TooltipContext';
 import { TooltipTrigger } from '../../defguard-ui/providers/tooltip/TooltipTrigger';
 import { isPresent } from '../../defguard-ui/utils/isPresent';
-import { useTheme } from '../../hooks/theme/useTheme';
 import {
   getAliasesCountQueryOptions,
   getDestinationsCountQueryOptions,
   getLicenseInfoQueryOptions,
   getRulesCountQueryOptions,
+  videoTutorialsQueryOptions,
 } from '../../query';
 import { canUseBusinessFeature } from '../../utils/license';
+import { NavTutorialsButton } from '../../video-tutorials/components/widget/NavTutorialsButton/NavTutorialsButton';
 
 interface NavGroupProps {
   id: string;
@@ -196,6 +195,8 @@ export const Navigation = () => {
     enabled: isAdmin,
   });
 
+  const { data: videoTutorialsData } = useQuery(videoTutorialsQueryOptions);
+
   const navigationGroups = useMemo(() => {
     const pendingCounts = {
       rules: rulesCount?.pending,
@@ -234,7 +235,11 @@ export const Navigation = () => {
         ))}
       </div>
       <div className="bottom">
-        <NavControls />
+        {videoTutorialsData && (
+          <div className="nav-group">
+            <NavTutorialsButton />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -312,37 +317,5 @@ const NavItem = ({
         </div>
       )}
     </Link>
-  );
-};
-
-const NavControls = () => {
-  const { changeTheme, theme } = useTheme();
-
-  return (
-    <div className="nav-controls">
-      <IconButton
-        className={clsx({
-          active: theme === 'light',
-        })}
-        icon="light-theme"
-        onClick={() => {
-          changeTheme('light');
-        }}
-      />
-      <IconButton
-        className={clsx({
-          active: theme === 'dark',
-        })}
-        icon="dark-theme"
-        onClick={() => {
-          changeTheme('dark');
-        }}
-      />
-      <div className="right">
-        <a rel="noopener noreferrer" target="_blank" href={externalLink.defguard.docs}>
-          <IconButton icon="help" />
-        </a>
-      </div>
-    </div>
   );
 };
