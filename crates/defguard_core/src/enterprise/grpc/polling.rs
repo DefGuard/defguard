@@ -2,7 +2,10 @@ use defguard_common::db::{
     Id,
     models::{Device, polling_token::PollingToken, user::User},
 };
-use defguard_proto::proxy::{DeviceInfo, InstanceInfoRequest, InstanceInfoResponse};
+use defguard_proto::{
+    client_types::{InstanceInfoRequest, InstanceInfoResponse},
+    proxy::DeviceInfo,
+};
 use sqlx::PgPool;
 use tonic::Status;
 

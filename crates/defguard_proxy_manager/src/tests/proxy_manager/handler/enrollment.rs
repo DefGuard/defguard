@@ -7,9 +7,9 @@ use defguard_core::{
     events::{BidiStreamEventType, EnrollmentEvent},
     grpc::GatewayEvent,
 };
-use defguard_proto::proxy::{
-    CoreRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest, core_request,
-    core_response,
+use defguard_proto::{
+    client_types::{ExistingDevice, NewDevice},
+    proxy::{CoreRequest, MfaMethod, RegisterMobileAuthRequest, core_request, core_response},
 };
 
 use super::support::{
