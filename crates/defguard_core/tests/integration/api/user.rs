@@ -1132,3 +1132,144 @@ async fn test_unique_email(_: PgPoolOptions, options: PgConnectOptions) {
 
     client.verify_api_events(&[ApiEventType::UserAdded { user: test_user }]);
 }
+
+// Admin updating another user must be able to change all profile
+// fields (username, first/last name, email) and phone. The `mfa_method` must
+// NOT change because the admin is not updating themselves.
+#[sqlx::test]
+async fn test_modify_user_admin_updates_other_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    let old_user = get_db_user(&pool, "hpotter").await;
+
+    user_details.user.first_name = "UpdatedFirst".into();
+    user_details.user.last_name = "UpdatedLast".into();
+    user_details.user.email = "updated@hogwart.edu.uk".into();
+    user_details.user.phone = Some("+48999888777".into());
+    user_details.user.mfa_method = MFAMethod::OneTimePassword;
+
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated = get_db_user(&pool, "hpotter").await;
+
+    // Profile fields changed by admin
+    assert_eq!(updated.first_name, "UpdatedFirst");
+    assert_eq!(updated.last_name, "UpdatedLast");
+    assert_eq!(updated.email, "updated@hogwart.edu.uk");
+    assert_eq!(updated.phone, Some("+48999888777".into()));
+    // mfa_method must NOT have changed — admin is not updating self
+    assert_eq!(updated.mfa_method, old_user.mfa_method);
+
+    client.verify_api_events(&[ApiEventType::UserModified {
+        before: old_user,
+        after: updated,
+    }]);
+}
+
+// A non-admin user updating themselves may change phone and
+// mfa_method, but must NOT be able to change username, name, or email.
+#[sqlx::test]
+async fn test_modify_user_non_admin_updates_self(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("hpotter", "pass123").await;
+
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    let old_user = get_db_user(&pool, "hpotter").await;
+
+    // Non-admin tries to change protected fields
+    user_details.user.username = "newusername".into();
+    user_details.user.first_name = "UpdatedFirst".into();
+    user_details.user.last_name = "UpdatedLast".into();
+    user_details.user.email = "updated@example.com".into();
+    user_details.user.phone = Some("+48111222333".into());
+
+    let response = client
+        .put("/api/v1/user/hpotter")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated = get_db_user(&pool, "hpotter").await;
+
+    // Protected fields must be unchanged
+    assert_eq!(updated.username, "hpotter");
+    assert_eq!(updated.first_name, "Harry");
+    assert_eq!(updated.last_name, "Potter");
+    assert_eq!(updated.email, "h.potter@hogwart.edu.uk");
+    // Phone is allowed for self-updates
+    assert_eq!(updated.phone, Some("+48111222333".into()));
+
+    client.verify_api_events(&[ApiEventType::UserModified {
+        before: old_user,
+        after: updated,
+    }]);
+}
+
+// A non-admin user must not be able to modify another user's fields,
+// not even phone (the endpoint should return 403 via user_for_admin_or_self).
+#[sqlx::test]
+async fn test_modify_user_non_admin_updates_other_user(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _pool) = make_client_with_db(pool).await;
+    client.login_user("hpotter", "pass123").await;
+
+    // Fetch admin's profile and try to change it as hpotter
+    let mut user_details = fetch_user_details(&client, "hpotter").await;
+    user_details.user.phone = Some("+48000000000".into());
+
+    let response = client
+        .put("/api/v1/user/admin")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    client.assert_event_queue_is_empty();
+}
+
+// Admin updating their own account can change all fields including
+// mfa_method (is_admin=true AND is_updating_self=true).
+#[sqlx::test]
+async fn test_modify_user_admin_updates_self(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let mut user_details = fetch_user_details(&client, "admin").await;
+    let old_user = get_db_user(&pool, "admin").await;
+
+    user_details.user.first_name = "NewFirst".into();
+    user_details.user.last_name = "NewLast".into();
+    user_details.user.phone = Some("+48777888999".into());
+
+    let response = client
+        .put("/api/v1/user/admin")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let updated = get_db_user(&pool, "admin").await;
+
+    assert_eq!(updated.first_name, "NewFirst");
+    assert_eq!(updated.last_name, "NewLast");
+    assert_eq!(updated.phone, Some("+48777888999".into()));
+
+    client.verify_api_events(&[ApiEventType::UserModified {
+        before: old_user,
+        after: updated,
+    }]);
+}
