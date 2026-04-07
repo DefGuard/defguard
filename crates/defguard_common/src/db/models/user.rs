@@ -291,9 +291,6 @@ impl<I> User<I> {
         if self.enrollment_pending {
             return false;
         }
-        if self.password_hash.is_some() || self.openid_sub.is_some() {
-            return true;
-        }
         if self.from_ldap {
             let settings = Settings::get_current_settings();
             if settings.ldap_remote_enrollment_enabled {
@@ -302,6 +299,9 @@ impl<I> User<I> {
                 return self.ldap_remote_enrollment_completed;
             }
             // Feature disabled: all LDAP-synced users are implicitly enrolled (legacy behaviour).
+            return true;
+        }
+        if self.password_hash.is_some() || self.openid_sub.is_some() {
             return true;
         }
         false
