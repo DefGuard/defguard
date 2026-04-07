@@ -497,7 +497,7 @@ async fn test_proxy_cert_pair_none_by_default(_: PgPoolOptions, opts: PgConnectO
 #[sqlx::test]
 async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOptions) {
     let pool = setup_pool(opts).await;
-    let (mut client, _capture, pool) = make_test_client_with_proxy_rx(pool).await;
+    let (mut client, mut capture, pool) = make_test_client_with_proxy_rx(pool).await;
     login_admin(&mut client).await;
 
     let mut settings = Settings::get_current_settings();
@@ -517,6 +517,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_key_pem.is_none());
     assert!(saved.proxy_http_cert_expiry.is_none());
     assert!(saved.acme_domain.is_none());
+    assert!(capture.drain_broadcast_certs().await.is_empty());
 
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
@@ -532,6 +533,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::LetsEncrypt);
     assert_eq!(saved.acme_domain.as_deref(), Some("edge.example.com"));
     assert!(saved.proxy_http_cert_pem.is_none());
+    assert!(capture.drain_broadcast_certs().await.is_empty());
 
     seed_ca(&pool).await;
 
@@ -558,7 +560,14 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     );
     assert!(saved.acme_domain.is_none());
 
+    let broadcasts = capture.drain_broadcast_certs().await;
+    assert_eq!(broadcasts.len(), 1, "Expected exactly one broadcast");
+    assert!(broadcasts[0].0.contains("BEGIN CERTIFICATE"));
+    assert!(broadcasts[0].1.contains("BEGIN PRIVATE KEY"));
+
     let (cert_pem, key_pem) = generate_test_cert_pem("uploaded-edge.example.com");
+    let expected_cert_pem = cert_pem.clone();
+    let expected_key_pem = key_pem.clone();
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
         .json(&json!({
@@ -577,6 +586,11 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::Custom);
     assert!(saved.proxy_http_cert_expiry.is_some());
     assert!(saved.acme_domain.is_none());
+
+    let broadcasts = capture.drain_broadcast_certs().await;
+    assert_eq!(broadcasts.len(), 1, "Expected exactly one broadcast");
+    assert_eq!(broadcasts[0].0, expected_cert_pem);
+    assert_eq!(broadcasts[0].1, expected_key_pem);
 
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")

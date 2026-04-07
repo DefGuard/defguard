@@ -302,6 +302,19 @@ fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
     Some(cert_info.subject_common_name)
 }
 
+async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_pem: String) {
+    if let Err(err) = appstate
+        .proxy_control_tx
+        .send(defguard_common::types::proxy::ProxyControlMessage::BroadcastHttpsCerts {
+            cert_pem,
+            key_pem,
+        })
+        .await
+    {
+        error!("Failed to broadcast HttpsCerts to proxies: {err:?}");
+    }
+}
+
 /// Upload a custom PEM certificate + private key for core HTTPS.
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct CoreCustomCertUpload {
@@ -496,13 +509,25 @@ pub(crate) async fn set_internal_url_settings(
     security(("cookie" = []), ("api_token" = []))
 )]
 pub(crate) async fn set_external_url_settings(
+    State(appstate): State<AppState>,
     _role: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<ExternalUrlSettingsConfig>,
 ) -> ApiResult {
     info!("Applying proxy external URL certificate settings");
     let settings = defguard_common::db::models::Settings::get_current_settings();
+    let ssl_type = config.ssl_type.clone();
     let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;
+
+    if matches!(ssl_type, ExternalSslType::DefguardCa | ExternalSslType::OwnCert) {
+        let certs = Certificates::get_or_default(&pool)
+            .await
+            .map_err(WebError::from)?;
+        if let Some((cert_pem, key_pem)) = certs.proxy_http_cert_pair() {
+            broadcast_proxy_https_certs(&appstate, cert_pem.to_owned(), key_pem.to_owned()).await;
+        }
+    }
+
     info!("Proxy external URL certificate settings applied");
 
     Ok(ApiResponse::new(
