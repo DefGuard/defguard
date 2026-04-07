@@ -478,6 +478,7 @@ impl EnrollmentServer {
 
         // Unset the enrollment-pending flag (https://github.com/DefGuard/client/issues/647).
         user.enrollment_pending = false;
+
         // If this is an LDAP user completing remote self-enrollment, mark it as done so that
         // `is_enrolled()` returns `true` when `ldap_remote_enrollment_enabled` is set.
         if user.from_ldap {

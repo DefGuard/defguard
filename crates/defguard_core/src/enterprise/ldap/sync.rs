@@ -82,6 +82,7 @@ use sqlx::{PgConnection, PgPool};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
+    enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
         ldap::model::{
             get_users_without_ldap_path, ldap_sync_allowed_for_user, update_from_ldap_user,
@@ -893,7 +894,8 @@ impl super::LDAPConnection {
                     }
                     continue;
                 }
-                user.save(&mut *transaction).await?;
+                let mut saved_user = user.save(&mut *transaction).await?;
+                try_send_ldap_enrollment_invite(&mut saved_user, &mut transaction).await;
                 user_count += 1;
             }
         }
