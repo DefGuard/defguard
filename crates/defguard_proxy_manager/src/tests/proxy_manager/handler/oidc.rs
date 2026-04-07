@@ -1,11 +1,10 @@
 #![allow(deprecated)]
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use defguard_core::db::models::enrollment::Token;
 use defguard_proto::proxy::{
     AuthCallbackRequest, AuthFlowType, AuthInfoRequest, ClientMfaOidcAuthenticateRequest,
     CoreRequest, MfaMethod, core_request, core_response,
 };
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::support::{
     assert_error_response, assert_vpn_session_exists, clear_test_license, complete_proxy_handshake,

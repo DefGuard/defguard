@@ -1,13 +1,12 @@
 use std::time::Duration;
 
 use defguard_common::db::Id;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use defguard_core::grpc::GatewayEvent;
 use defguard_proto::proxy::{
     AwaitRemoteMfaFinishRequest, ClientMfaFinishRequest, ClientMfaStartRequest, CoreRequest,
     MfaMethod, core_request, core_response,
 };
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{task, time::timeout};
 use tonic::Code;
 

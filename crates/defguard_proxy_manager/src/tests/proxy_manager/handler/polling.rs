@@ -1,6 +1,5 @@
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use defguard_proto::proxy::{CoreRequest, InstanceInfoRequest, core_request, core_response};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::support::{
     assert_error_response, clear_test_license, complete_proxy_handshake, create_device_for_user,
