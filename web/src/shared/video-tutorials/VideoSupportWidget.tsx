@@ -4,17 +4,17 @@ import { m } from '../../paraglide/messages';
 import { Icon } from '../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../defguard-ui/components/IconButton/IconButton';
 import { ThemeVariable } from '../defguard-ui/types';
-import { VideoCard } from './components/VideoCard/VideoCard';
-import { VideoOverlay } from './components/VideoOverlay/VideoOverlay';
-import { useResolvedVideoSupport, useVideoSupportRouteKey } from './resolved';
-import type { VideoSupport } from './types';
+import { VideoCard } from './components/widget/VideoCard/VideoCard';
+import { VideoOverlay } from './components/widget/VideoOverlay/VideoOverlay';
+import { useResolvedVideoTutorials, useVideoTutorialsRouteKey } from './resolved';
+import type { VideoTutorial } from './types';
 
 export const VideoSupportWidget = () => {
-  const videos = useResolvedVideoSupport();
-  const routeKey = useVideoSupportRouteKey();
+  const videos = useResolvedVideoTutorials();
+  const routeKey = useVideoTutorialsRouteKey();
   const [panelOpen, setPanelOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<VideoSupport | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
 
   // Reset UI state when the route changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: routeKey is the trigger, not used in body
@@ -26,7 +26,7 @@ export const VideoSupportWidget = () => {
 
   if (videos.length === 0) return null;
 
-  const handleCardClick = (video: VideoSupport) => {
+  const handleCardClick = (video: VideoTutorial) => {
     setSelectedVideo(video);
     setOverlayOpen(true);
     setPanelOpen(false);

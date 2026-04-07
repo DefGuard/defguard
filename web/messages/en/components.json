@@ -176,9 +176,14 @@
   "acl_rule_error_permissions_required": "Configure at least one allowed user, group, or network device.",
   "acl_rule_error_manual_destination_required": "Manual destination settings are enabled. Provide a value or enable Any.",
   "cmp_video_support_launcher": "Video support",
-  "cmp_video_support_list_label": "Video tutorials",
-  "cmp_video_support_overlay_error": "Video unavailable",
-  "cmp_video_support_overlay_watch_on_youtube": "Watch on YouTube:",
+  "cmp_video_support_list_label": "Video support",
+  "cmp_video_tutorials_overlay_error": "Video unavailable",
+  "cmp_video_tutorials_overlay_watch_on_youtube": "Watch on YouTube:",
+  "cmp_nav_item_tutorials": "Tutorials",
+  "cmp_video_tutorials_modal_title": "Video tutorials",
+  "cmp_video_tutorials_modal_search_placeholder": "Search",
+  "cmp_video_tutorials_modal_go_to": "Go to {page}",
+  "cmp_video_tutorials_modal_learn_more": "Learn more in Documentation",
   "cmp_helper_overview_period_select": "",
   "cmp_helper_search": ""
 }
