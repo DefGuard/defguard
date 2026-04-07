@@ -108,13 +108,23 @@ const Content = () => {
               domain={certsData.core_http_cert_domain}
             />
             <SizedBox height={ThemeSpacing.Lg} />
-            <Button
-              variant="outlined"
-              text={m.settings_certs_ca_download()}
-              onClick={downloadCaCert}
-              loading={isFetching || isFetchingCa}
-              disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
-            />
+            <div className="cert-footer">
+              <Button
+                variant="outlined"
+                text={m.settings_certs_ca_download()}
+                onClick={downloadCaCert}
+                loading={isFetching || isFetchingCa}
+                disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
+              />
+              <SizedBox width={ThemeSpacing.Md} height={ThemeSpacing.Xs} />
+              <Button
+                variant="primary"
+                text={m.settings_certs_certs_custom_change()}
+                onClick={() => void navigate({ to: '/settings-core-certificate' })}
+                loading={false}
+                disabled={false}
+              />
+            </div>
           </>
         )}
         {certsData?.core_http_cert_source === 'Custom' && (
@@ -171,13 +181,23 @@ const Content = () => {
               domain={certsData.proxy_http_cert_domain}
             />
             <SizedBox height={ThemeSpacing.Lg} />
-            <Button
-              variant="outlined"
-              text={m.settings_certs_ca_download()}
-              onClick={downloadCaCert}
-              loading={isFetching || isFetchingCa}
-              disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
-            />
+            <div className="cert-footer">
+              <Button
+                variant="outlined"
+                text={m.settings_certs_ca_download()}
+                onClick={downloadCaCert}
+                loading={isFetching || isFetchingCa}
+                disabled={!isPresent(caData?.ca_cert_pem) || isFetching || isFetchingCa}
+              />
+              <SizedBox width={ThemeSpacing.Md} height={ThemeSpacing.Xs} />
+              <Button
+                variant="primary"
+                text={m.settings_certs_certs_custom_change()}
+                onClick={() => void navigate({ to: '/settings-edge-certificate' })}
+                loading={false}
+                disabled={false}
+              />
+            </div>
           </>
         )}
         {certsData?.proxy_http_cert_source === 'Custom' && (
@@ -224,7 +244,7 @@ const Content = () => {
             />
           </>
         )}
-      </MarkedSection>
+      </MarkedSection >
     </>
   );
 };
@@ -279,7 +299,7 @@ export const CertHeader = ({ title, description, valid }: ValidDescriptionBlockP
     <div className="description-block">
       <div className="header">
         <div className="title">{title}</div>
-        <Badge text={badgeText} variant={badgeVariant}/>
+        <Badge text={badgeText} variant={badgeVariant} />
       </div>
       <SizedBox height={ThemeSpacing.Xs} />
       <div>
