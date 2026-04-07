@@ -1,6 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-use defguard_common::db::{models::settings::initialize_current_settings, setup_pool};
+use defguard_common::{
+    db::{
+        models::{group::Permission, settings::initialize_current_settings},
+        setup_pool,
+    },
+    secret::SecretStringWrapper,
+};
 use ldap3::SearchEntry;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -14,7 +20,9 @@ use super::{
     *,
 };
 use crate::{
+    db::models::enrollment::Token,
     enterprise::{
+        ldap::utils::login_through_ldap_with_connection,
         license::{License, LicenseTier, SupportType, set_cached_license},
         limits::get_counts,
     },
@@ -39,6 +47,38 @@ fn make_test_user(
     user.ldap_rdn = ldap_rdn;
     user.ldap_user_path = ldap_user_path;
     user
+}
+
+/// Save a user to Defguard and make them an active admin.
+async fn make_test_admin(pool: &sqlx::PgPool, username: &str) -> User<Id> {
+    let user = make_test_user(username, None, None)
+        .save(pool)
+        .await
+        .unwrap();
+    let group = Group::new("admins").save(pool).await.unwrap();
+    group
+        .set_permission(pool, Permission::IsAdmin, true)
+        .await
+        .unwrap();
+    user.add_to_group(pool, &group).await.unwrap();
+    user
+}
+
+fn configure_smtp_and_ldap(settings: &mut Settings) {
+    settings.smtp_server = Some("smtp.example.com".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_sender = Some("noreply@example.com".into());
+    settings.ldap_url = Some("ldap://localhost".into());
+    settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_username_attr = Some("uid".into());
+    settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
+    settings.ldap_user_obj_class = Some("inetOrgPerson".into());
+    settings.ldap_member_attr = Some("memberUid".into());
+    settings.ldap_groupname_attr = Some("cn".into());
+    settings.ldap_group_obj_class = Some("posixGroup".into());
+    settings.ldap_group_member_attr = Some("memberUid".into());
+    settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
 }
 
 fn set_test_license_business() {
@@ -3394,4 +3434,299 @@ async fn test_ldap_sync_allowed_all_conditions_false(_: PgPoolOptions, options: 
 
     let result = ldap_sync_allowed_for_user(&user, &pool).await.unwrap();
     assert!(!result);
+}
+
+/// When both `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` are
+/// disabled (the default), syncing new LDAP users must NOT create any enrollment tokens.
+#[sqlx::test]
+async fn test_sync_does_not_send_invite_when_flags_disabled(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    // Create an admin so find_admins() would have something to return — we want to prove
+    // the early-return on the flag guard, not the no-admin guard.
+    make_test_admin(&pool, "sync_admin_nodisabled").await;
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_user = make_test_user("sync_invite_disabled_user", None, None);
+    ldap_user.ldap_rdn = Some("sync_invite_disabled_user".into());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn.sync(&pool, false).await.unwrap();
+
+    // User must be saved to Defguard.
+    let saved = User::find_by_username(&pool, "sync_invite_disabled_user")
+        .await
+        .unwrap();
+    assert!(saved.is_some(), "User should have been synced to Defguard");
+
+    // No enrollment token should have been created.
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert!(
+        tokens.is_empty(),
+        "Expected no enrollment token when invite flags are disabled, got {tokens:?}"
+    );
+}
+
+/// When only `ldap_remote_enrollment_enabled` is on but `ldap_remote_enrollment_send_invite`
+/// is off, syncing new LDAP users must NOT create enrollment tokens.
+#[sqlx::test]
+async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = false;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    make_test_admin(&pool, "sync_admin_sendoff").await;
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_user = make_test_user("sync_invite_sendoff_user", None, None);
+    ldap_user.ldap_rdn = Some("sync_invite_sendoff_user".into());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn.sync(&pool, false).await.unwrap();
+
+    let saved = User::find_by_username(&pool, "sync_invite_sendoff_user")
+        .await
+        .unwrap();
+    assert!(saved.is_some(), "User should have been synced to Defguard");
+
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert!(
+        tokens.is_empty(),
+        "Expected no enrollment token when send_invite flag is disabled, got {tokens:?}"
+    );
+}
+
+/// When both `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` are on,
+/// syncing a new LDAP user must create an enrollment token and set `enrollment_pending = true`.
+///
+/// SMTP is configured in settings but no real SMTP server is reachable, so `new_account_mail`
+/// will fail — but the token and flag are persisted before the mail attempt, so the DB side
+/// effects are still observable.
+#[sqlx::test]
+async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = true;
+    // Provide a valid proxy URL so proxy_public_url() succeeds.
+    settings.public_proxy_url = "http://proxy.example.com".into();
+    update_current_settings(&pool, settings).await.unwrap();
+
+    make_test_admin(&pool, "sync_admin_invite").await;
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_user = make_test_user("sync_invite_user", None, None);
+    ldap_user.ldap_rdn = Some("sync_invite_user".into());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    ldap_conn.sync(&pool, false).await.unwrap();
+
+    let saved = User::find_by_username(&pool, "sync_invite_user")
+        .await
+        .unwrap()
+        .expect("User should have been synced to Defguard");
+
+    assert!(
+        saved.enrollment_pending,
+        "enrollment_pending should be true after invite is sent"
+    );
+
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert_eq!(
+        tokens.len(),
+        1,
+        "Expected exactly one enrollment token, got {tokens:?}"
+    );
+    assert_eq!(
+        tokens[0].user_id, saved.id,
+        "Token should belong to the synced user"
+    );
+}
+
+/// When both invite flags are on but there are no active admins in Defguard, the sync must
+/// succeed and the user must be saved — the invite is silently skipped with a logged error.
+#[sqlx::test]
+async fn test_sync_invite_skipped_when_no_admin_exists(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = true;
+    settings.public_proxy_url = "http://proxy.example.com".into();
+    update_current_settings(&pool, settings).await.unwrap();
+
+    // Deliberately do NOT create any admin user.
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_user = make_test_user("sync_invite_noadmin_user", None, None);
+    ldap_user.ldap_rdn = Some("sync_invite_noadmin_user".into());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    // Sync must succeed even with no admins.
+    ldap_conn.sync(&pool, false).await.unwrap();
+
+    // User must still be created.
+    let saved = User::find_by_username(&pool, "sync_invite_noadmin_user")
+        .await
+        .unwrap();
+    assert!(
+        saved.is_some(),
+        "User should have been synced to Defguard even when invite was skipped"
+    );
+
+    // No token should have been created.
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert!(
+        tokens.is_empty(),
+        "Expected no enrollment token when no admin exists, got {tokens:?}"
+    );
+}
+
+/// When both invite flags are on and a user logs in through LDAP for the first time (not yet
+/// in Defguard), an enrollment token must be created and `enrollment_pending` set to `true`.
+#[sqlx::test]
+async fn test_ldap_login_sends_invite_when_flags_enabled(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = true;
+    settings.public_proxy_url = "http://proxy.example.com".into();
+    update_current_settings(&pool, settings).await.unwrap();
+
+    make_test_admin(&pool, "login_admin_invite").await;
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    let mut ldap_user = make_test_user("login_invite_user", None, None);
+    ldap_user.ldap_rdn = Some("login_invite_user".into());
+    ldap_user.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&ldap_user, &config);
+
+    let result =
+        login_through_ldap_with_connection(&pool, &mut ldap_conn, "login_invite_user", PASSWORD)
+            .await;
+    assert!(result.is_ok(), "LDAP login should succeed: {result:?}");
+
+    let saved = User::find_by_username(&pool, "login_invite_user")
+        .await
+        .unwrap()
+        .expect("User should have been created in Defguard");
+
+    assert!(
+        saved.enrollment_pending,
+        "enrollment_pending should be true after login invite"
+    );
+
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert_eq!(
+        tokens.len(),
+        1,
+        "Expected exactly one enrollment token after first LDAP login, got {tokens:?}"
+    );
+    assert_eq!(
+        tokens[0].user_id, saved.id,
+        "Token should belong to the logged-in user"
+    );
+}
+
+/// When both invite flags are on but the LDAP user already exists in Defguard (returning user),
+/// no additional enrollment token must be created.
+#[sqlx::test]
+async fn test_ldap_login_does_not_send_invite_for_existing_user(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let _ = initialize_current_settings(&pool).await;
+
+    let mut settings = Settings::get_current_settings();
+    configure_smtp_and_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    settings.ldap_remote_enrollment_send_invite = true;
+    settings.public_proxy_url = "http://proxy.example.com".into();
+    update_current_settings(&pool, settings).await.unwrap();
+
+    make_test_admin(&pool, "login_admin_existing").await;
+
+    let mut ldap_conn = super::LDAPConnection::create().await.unwrap();
+    let config = ldap_conn.config.clone();
+
+    // Pre-create the user in Defguard (simulates a returning user).
+    let mut existing = make_test_user("login_existing_user", None, None);
+    existing.from_ldap = true;
+    existing.ldap_rdn = Some("login_existing_user".into());
+    existing.ldap_user_path = Some("ou=users,dc=example,dc=com".into());
+    existing.clone().save(&pool).await.unwrap();
+
+    ldap_conn
+        .test_client_mut()
+        .add_test_user(&existing, &config);
+
+    let result = super::utils::login_through_ldap_with_connection(
+        &pool,
+        &mut ldap_conn,
+        "login_existing_user",
+        PASSWORD,
+    )
+    .await;
+    assert!(
+        result.is_ok(),
+        "LDAP login for existing user should succeed: {result:?}"
+    );
+
+    // No enrollment token should be created for a returning user.
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert!(
+        tokens.is_empty(),
+        "Expected no enrollment token for a returning LDAP user, got {tokens:?}"
+    );
 }

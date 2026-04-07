@@ -20,35 +20,23 @@ pub async fn start_user_enrollment(
     enrollment_service_url: Url,
     send_user_notification: bool,
 ) -> Result<String, TokenError> {
-    info!(
-        "User {} started a new enrollment process for user {}.",
-        admin.username, user.username
-    );
-    debug!(
-        "Notify user by mail about the enrollment process: {}",
-        send_user_notification
-    );
-    debug!("Check if {} has a password.", user.username);
-    if user.has_password() {
-        debug!(
-            "User {} that you want to start enrollment process for already has a password.",
-            user.username
-        );
+    info!("User {admin} started a new enrollment process for user {user}.");
+    debug!("Notify user by mail about the enrollment process: {send_user_notification}");
+    debug!("Check if {user} is enrolled.");
+    if user.is_enrolled() {
+        debug!("User {user} that you want to start enrollment process for is already enrolled.");
         return Err(TokenError::AlreadyActive);
     }
 
-    debug!("Verify that {} is an active user.", user.username);
+    debug!("Verify that {user} is an active user.");
     if !user.is_active {
-        warn!(
-            "Can't create enrollment token for disabled user {}",
-            user.username
-        );
+        warn!("Can't create enrollment token for disabled user {user}");
         return Err(TokenError::UserDisabled);
     }
 
     clear_unused_enrollment_tokens(user, &mut *conn).await?;
 
-    debug!("Create a new enrollment token for user {}.", user.username);
+    debug!("Create a new enrollment token for user {user}.");
     let enrollment = Token::new(
         user.id,
         Some(admin.id),
@@ -56,11 +44,11 @@ pub async fn start_user_enrollment(
         token_timeout_seconds,
         Some(ENROLLMENT_TOKEN_TYPE.to_string()),
     );
-    debug!("Saving a new enrollment token...");
+    debug!("Saving a new enrollment token for user {user}");
     enrollment.save(&mut *conn).await?;
     debug!(
-        "Saved a new enrollment token with id {} for user {}.",
-        enrollment.id, user.username
+        "Saved a new enrollment token with ID {} for user {user}.",
+        enrollment.id
     );
 
     // Mark the user with enrollment-pending flag.
@@ -70,10 +58,7 @@ pub async fn start_user_enrollment(
 
     if send_user_notification {
         if let Some(email) = email {
-            debug!(
-                "Sending an enrollment mail for user {} to {email}.",
-                user.username
-            );
+            debug!("Sending an enrollment mail for user {user} to {email}.");
             let base_message_context = enrollment.get_welcome_message_context(&mut *conn).await?;
             let result = new_account_mail(
                 &email,
@@ -85,10 +70,7 @@ pub async fn start_user_enrollment(
             .await;
             match result {
                 Ok(()) => {
-                    info!(
-                        "Sent enrollment start mail for user {} to {email}",
-                        user.username
-                    );
+                    info!("Sent enrollment start mail for user {user} to {email}");
                 }
                 Err(err) => {
                     error!("Error sending mail: {err}");
@@ -97,10 +79,7 @@ pub async fn start_user_enrollment(
             }
         }
     }
-    info!(
-        "New enrollment token has been generated for {}.",
-        user.username
-    );
+    info!("New enrollment token has been generated for {user}.");
 
     Ok(enrollment.id)
 }
