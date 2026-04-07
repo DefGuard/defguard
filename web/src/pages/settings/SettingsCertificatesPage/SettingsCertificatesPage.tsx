@@ -119,9 +119,11 @@ const Content = () => {
         )}
         {certsData?.core_http_cert_source === 'Custom' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_custom_title()}>
-              <p>{m.settings_certs_certs_custom_description()}</p>
-            </DescriptionBlock>
+            <CertHeader
+              title={m.settings_certs_certs_custom_title()}
+              description={m.settings_certs_certs_custom_description()}
+              valid={certsData.core_http_cert_expiry}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <CertInfo
               validUntil={certsData.core_http_cert_expiry}
@@ -158,9 +160,11 @@ const Content = () => {
         )}
         {certsData?.proxy_http_cert_source === 'SelfSigned' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_internal_title()}>
-              <p>{m.settings_certs_certs_internal_description()}</p>
-            </DescriptionBlock>
+            <CertHeader
+              title={m.settings_certs_certs_internal_title()}
+              description={m.settings_certs_certs_internal_description()}
+              valid={certsData.proxy_http_cert_expiry}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <CertInfo
               validUntil={certsData.proxy_http_cert_expiry}
@@ -178,9 +182,11 @@ const Content = () => {
         )}
         {certsData?.proxy_http_cert_source === 'Custom' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_custom_title()}>
-              <p>{m.settings_certs_certs_custom_description()}</p>
-            </DescriptionBlock>
+            <CertHeader
+              title={m.settings_certs_certs_custom_title()}
+              description={m.settings_certs_certs_custom_description()}
+              valid={certsData.proxy_http_cert_expiry}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <CertInfo
               validUntil={certsData.proxy_http_cert_expiry}
@@ -198,9 +204,11 @@ const Content = () => {
         )}
         {certsData?.proxy_http_cert_source === 'LetsEncrypt' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_letsencrypt_title()}>
-              <p>{m.settings_certs_certs_letsencrypt_description()}</p>
-            </DescriptionBlock>
+            <CertHeader
+              title={m.settings_certs_certs_letsencrypt_title()}
+              description={m.settings_certs_certs_letsencrypt_description()}
+              valid={certsData.proxy_http_cert_expiry}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <CertInfo
               validUntil={certsData.proxy_http_cert_expiry}
