@@ -1,12 +1,11 @@
+#[cfg(test)]
+use std::path::PathBuf;
 use std::{
     collections::HashMap,
     str::FromStr,
     sync::{Arc, RwLock},
     time::Duration,
 };
-
-#[cfg(test)]
-use std::path::PathBuf;
 
 use axum_extra::extract::cookie::Key;
 use chrono::NaiveDateTime;
@@ -68,13 +67,12 @@ use tonic::{
     transport::{Channel, Endpoint},
 };
 
+#[cfg(test)]
+use crate::ProxyManagerTestSupport;
 use crate::{
     HandlerTxMap, ProxyError, ProxyTxSet, TEN_SECS,
     servers::{EnrollmentServer, PasswordResetServer},
 };
-
-#[cfg(test)]
-use crate::ProxyManagerTestSupport;
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
 

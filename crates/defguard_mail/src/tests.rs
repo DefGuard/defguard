@@ -19,7 +19,7 @@ use sqlx::{
 };
 use tera::Context;
 
-use super::{Attachment, templates};
+use super::{Attachment, mail::MailMessage, templates};
 
 #[test]
 fn dg25_8_server_side_template_injection() {
@@ -390,4 +390,37 @@ fn send_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Delay, so send_and_forget() can process the message.
     tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
+#[test]
+fn test_mfa_configured_subject_totp() {
+    // TOTP
+    let subject = MailMessage::MFAConfigured {
+        method: MFAMethod::OneTimePassword,
+    }
+    .subject();
+    assert!(
+        subject.contains("TOTP"),
+        "MFAConfigured subject for OneTimePassword must mention \"TOTP\", got: {subject:?}"
+    );
+
+    // WebAuthn
+    let subject = MailMessage::MFAConfigured {
+        method: MFAMethod::Webauthn,
+    }
+    .subject();
+    assert!(
+        subject.contains("WebAuthn"),
+        "MFAConfigured subject for Webauthn must mention \"WebAuthn\", got: {subject:?}"
+    );
+
+    // email
+    let subject = MailMessage::MFAConfigured {
+        method: MFAMethod::Email,
+    }
+    .subject();
+    assert!(
+        subject.contains("Email"),
+        "MFAConfigured subject for Email must mention \"Email\", got: {subject:?}"
+    );
 }

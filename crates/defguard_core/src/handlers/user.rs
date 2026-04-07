@@ -785,11 +785,11 @@ pub(crate) async fn modify_user(
                 token.delete(&mut *transaction).await?;
             }
         }
-
-        user_info.into_user_all_fields(&mut user)?;
-    } else {
-        user_info.into_user_safe_fields(&mut user)?;
     }
+
+    let updating_self = session.user.username == user.username;
+    user_info.handle_update_user_fields(&mut user, session.is_admin, updating_self);
+
     user.save(&mut *transaction).await?;
     transaction.commit().await?;
     let user_info = UserInfo::from_user(&appstate.pool, user.clone()).await?;
