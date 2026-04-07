@@ -2,6 +2,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{Arc, LazyLock, Mutex, RwLock},
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -118,8 +119,8 @@ use crate::{
         },
         component_setup::setup_gateway_tls_stream,
         core_certs::{
-            core_cert_self_signed, core_cert_upload, get_ca, get_certs,
-            set_external_url_settings, set_internal_url_settings,
+            core_cert_self_signed, core_cert_upload, get_ca, get_certs, set_external_url_settings,
+            set_internal_url_settings,
         },
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
@@ -228,6 +229,7 @@ pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    web_reload_tx: tokio::sync::broadcast::Sender<()>,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     key: Key,
@@ -392,7 +394,10 @@ pub fn build_webapp(
             // Core HTTPS cert routes
             .route("/core/cert/upload", post(core_cert_upload))
             .route("/core/cert/self-signed", post(core_cert_self_signed))
-            .route("/core/cert/internal_url_settings", post(set_internal_url_settings))
+            .route(
+                "/core/cert/internal_url_settings",
+                post(set_internal_url_settings),
+            )
             .route("/core/cert/ca", get(get_ca))
             .route("/core/cert/certs", get(get_certs))
             // Gateway routes
@@ -629,6 +634,7 @@ pub fn build_webapp(
             webhook_tx,
             webhook_rx,
             wireguard_tx,
+            web_reload_tx,
             key,
             failed_logins,
             event_tx,
@@ -658,6 +664,7 @@ pub async fn run_web_server(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
+    web_reload_tx: tokio::sync::broadcast::Sender<()>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
@@ -667,21 +674,13 @@ pub async fn run_web_server(
     let settings = Settings::get_current_settings();
     let key = Key::from(settings.secret_key_required()?.as_bytes());
 
-    // Read certs before build_webapp consumes the pool.
-    let tls_cert_pair = Certificates::get_or_default(&pool)
-        .await
-        .map(|c| {
-            c.core_http_cert_pair()
-                .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
-        })
-        .unwrap_or(None);
-
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
+        web_reload_tx.clone(),
         worker_state,
-        pool,
+        pool.clone(),
         key,
         failed_logins,
         event_tx,
@@ -698,19 +697,61 @@ pub async fn run_web_server(
         server_config.http_port,
     );
 
-    if let Some((cert_pem, key_pem)) = tls_cert_pair {
-        let tls_config = RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
+    let mut web_reload_rx = web_reload_tx.subscribe();
+
+    loop {
+        let handle = axum_server::Handle::new();
+        let handle_clone = handle.clone();
+        let app = webapp.clone().into_make_service_with_connect_info::<SocketAddr>();
+        let current_tls_cert_pair = Certificates::get_or_default(&pool)
             .await
-            .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
-        axum_server::bind_rustls(addr, tls_config)
-            .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
-            .await
-            .map_err(|err| anyhow!("Web server error: {err}"))
-    } else {
-        axum_server::bind(addr)
-            .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
-            .await
-            .map_err(|err| anyhow!("Web server error: {err}"))
+            .map(|c| c.core_http_cert_pair().map(|(cert, key)| (cert.to_owned(), key.to_owned())))
+            .unwrap_or(None);
+
+        let mut server_task = tokio::spawn(async move {
+            if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
+                let tls_config = RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
+                    .await
+                    .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
+                axum_server::bind_rustls(addr, tls_config)
+                    .handle(handle_clone.clone())
+                    .serve(app)
+                    .await
+                    .map_err(|err| anyhow!("Web server error: {err}"))
+            } else {
+                axum_server::bind(addr)
+                    .handle(handle_clone)
+                    .serve(app)
+                    .await
+                    .map_err(|err| anyhow!("Web server error: {err}"))
+            }
+        });
+
+        tokio::select! {
+            result = &mut server_task => {
+                match result {
+                    Ok(result) => return result,
+                    Err(err) => return Err(anyhow!("Web server task panicked: {err}")),
+                }
+            }
+            result = web_reload_rx.recv() => {
+                match result {
+                    Ok(()) => {
+                        info!("Received core web server reload request, restarting listener");
+                        handle.graceful_shutdown(Some(Duration::from_secs(30)));
+                        let _ = server_task.await;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        info!("Missed core web server reload signal, restarting listener");
+                        handle.graceful_shutdown(Some(Duration::from_secs(30)));
+                        let _ = server_task.await;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        return Err(anyhow!("Core web reload channel closed unexpectedly"));
+                    }
+                }
+            }
+        }
     }
 }
 

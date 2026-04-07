@@ -1,7 +1,7 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use defguard_certs::{
-    CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem,
-    generate_key_pair, parse_pem_certificate,
+    CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
+    parse_pem_certificate,
 };
 use defguard_common::db::models::{
     Certificates, CoreCertSource, ProxyCertSource, settings::update_current_settings,
@@ -186,8 +186,10 @@ pub async fn apply_external_url_settings(
         .await
         .map_err(WebError::from)?;
 
-    let hostname = if matches!(config.ssl_type, ExternalSslType::LetsEncrypt | ExternalSslType::DefguardCa)
-    {
+    let hostname = if matches!(
+        config.ssl_type,
+        ExternalSslType::LetsEncrypt | ExternalSslType::DefguardCa
+    ) {
         let url = public_proxy_url.trim();
         if url.is_empty() {
             return Err(WebError::BadRequest(
@@ -305,13 +307,31 @@ fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
 async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_pem: String) {
     if let Err(err) = appstate
         .proxy_control_tx
-        .send(defguard_common::types::proxy::ProxyControlMessage::BroadcastHttpsCerts {
-            cert_pem,
-            key_pem,
-        })
+        .send(
+            defguard_common::types::proxy::ProxyControlMessage::BroadcastHttpsCerts {
+                cert_pem,
+                key_pem,
+            },
+        )
         .await
     {
         error!("Failed to broadcast HttpsCerts to proxies: {err:?}");
+    }
+}
+
+async fn clear_proxy_https_certs(appstate: &AppState) {
+    if let Err(err) = appstate
+        .proxy_control_tx
+        .send(defguard_common::types::proxy::ProxyControlMessage::ClearHttpsCerts)
+        .await
+    {
+        error!("Failed to broadcast ClearHttpsCerts to proxies: {err:?}");
+    }
+}
+
+fn reload_core_web_server(appstate: &AppState) {
+    if let Err(err) = appstate.web_reload_tx.send(()) {
+        error!("Failed to trigger core web server reload: {err:?}");
     }
 }
 
@@ -360,6 +380,8 @@ pub(crate) async fn core_cert_upload(
         error!("Failed to save custom core cert: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
+
+    reload_core_web_server(&appstate);
 
     info!(
         "User {} uploaded custom core certificate",
@@ -459,6 +481,8 @@ pub(crate) async fn core_cert_self_signed(
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
     })?;
 
+    reload_core_web_server(&appstate);
+
     info!(
         "User {} provisioned self-signed core certificate (SAN: {:?})",
         session.user.username, data.san
@@ -480,6 +504,7 @@ pub(crate) async fn core_cert_self_signed(
     security(("cookie" = []), ("api_token" = []))
 )]
 pub(crate) async fn set_internal_url_settings(
+    State(appstate): State<AppState>,
     _role: AdminRole,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<InternalUrlSettingsConfig>,
@@ -487,6 +512,7 @@ pub(crate) async fn set_internal_url_settings(
     info!("Applying core internal URL certificate settings");
     let settings = defguard_common::db::models::Settings::get_current_settings();
     let cert_info = apply_internal_url_settings(&pool, &settings.defguard_url, config).await?;
+    reload_core_web_server(&appstate);
     info!("Core internal URL certificate settings applied");
 
     Ok(ApiResponse::new(
@@ -519,13 +545,18 @@ pub(crate) async fn set_external_url_settings(
     let ssl_type = config.ssl_type.clone();
     let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;
 
-    if matches!(ssl_type, ExternalSslType::DefguardCa | ExternalSslType::OwnCert) {
+    if matches!(
+        ssl_type,
+        ExternalSslType::DefguardCa | ExternalSslType::OwnCert
+    ) {
         let certs = Certificates::get_or_default(&pool)
             .await
             .map_err(WebError::from)?;
         if let Some((cert_pem, key_pem)) = certs.proxy_http_cert_pair() {
             broadcast_proxy_https_certs(&appstate, cert_pem.to_owned(), key_pem.to_owned()).await;
         }
+    } else if ssl_type == ExternalSslType::None {
+        clear_proxy_https_certs(&appstate).await;
     }
 
     info!("Proxy external URL certificate settings applied");

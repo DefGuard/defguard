@@ -131,11 +131,13 @@ pub(crate) async fn make_base_client(
             .unwrap()
             .as_bytes(),
     );
+    let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
 
     let webapp = build_webapp(
         tx,
         rx,
         wg_tx,
+        web_reload_tx,
         worker_state,
         pool,
         key,

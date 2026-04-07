@@ -1,13 +1,12 @@
 use std::str::FromStr;
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
 use rcgen::{
-    string::Ia5String, BasicConstraints, Certificate, CertificateParams,
-    CertificateSigningRequestParams, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
-    KeyUsagePurpose, SigningKey,
+    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
+    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
 };
-use rustls_pki_types::{pem::PemObject, CertificateDer, CertificateSigningRequestDer};
+use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 use x509_parser::{

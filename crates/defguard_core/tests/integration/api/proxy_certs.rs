@@ -73,6 +73,21 @@ impl ProxyBroadcastCapture {
         }
         results
     }
+
+    async fn drain_clear_https_certs(&mut self) -> usize {
+        let mut results = 0;
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        loop {
+            match self.rx.try_recv() {
+                Ok(ProxyControlMessage::ClearHttpsCerts) => {
+                    results += 1;
+                }
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        results
+    }
 }
 
 // Test client builder that exposes the proxy-control receiver.
@@ -120,11 +135,13 @@ async fn make_test_client_with_proxy_rx(
             .unwrap()
             .as_bytes(),
     );
+    let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
 
     let webapp = build_webapp(
         tx,
         rx,
         wg_tx,
+        web_reload_tx,
         worker_state,
         pool.clone(),
         key,
@@ -517,7 +534,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_key_pem.is_none());
     assert!(saved.proxy_http_cert_expiry.is_none());
     assert!(saved.acme_domain.is_none());
-    assert!(capture.drain_broadcast_certs().await.is_empty());
+    assert_eq!(capture.drain_clear_https_certs().await, 1);
 
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
@@ -580,7 +597,10 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let body: serde_json::Value = response.json().await;
-    assert_eq!(body["cert_info"]["common_name"], "uploaded-edge.example.com");
+    assert_eq!(
+        body["cert_info"]["common_name"],
+        "uploaded-edge.example.com"
+    );
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::Custom);
