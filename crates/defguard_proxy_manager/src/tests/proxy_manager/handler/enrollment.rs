@@ -1,7 +1,6 @@
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
 use defguard_common::db::models::{
-    Device, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+    Device, Settings, User, biometric_auth::BiometricAuth, polling_token::PollingToken,
+    settings::update_current_settings,
 };
 use defguard_core::{
     events::{BidiStreamEventType, EnrollmentEvent},
@@ -11,13 +10,15 @@ use defguard_proto::proxy::{
     CoreRequest, ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest, core_request,
     core_response,
 };
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::timeout;
 
 use super::support::{
     STRONG_PASSWORD, assert_device_config_response, assert_error_response,
-    complete_proxy_handshake, create_enrollment_token, create_network, create_polling_token,
-    create_user, create_user_with_device, make_device_info, send_activate_user,
-    send_code_mfa_setup_finish, send_code_mfa_setup_start, start_enrollment_session,
-    totp_code_from_base32_secret,
+    complete_proxy_handshake, configure_ldap, configure_smtp, create_enrollment_token,
+    create_network, create_polling_token, create_user, create_user_with_device, make_device_info,
+    send_activate_user, send_code_mfa_setup_finish, send_code_mfa_setup_start,
+    start_enrollment_session, totp_code_from_base32_secret,
 };
 use crate::tests::common::{HandlerTestContext, TEST_TIMEOUT};
 
@@ -140,7 +141,7 @@ async fn test_activate_user_happy_path(_: PgPoolOptions, options: PgConnectOptio
     start_enrollment_session(&mut context, &token.id).await;
     // `start_enrollment_session` emits an `EnrollmentStarted` bidi event; drain
     // it so that the subsequent assertion only sees `EnrollmentCompleted`.
-    let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     let response = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
 
@@ -165,7 +166,7 @@ async fn test_activate_user_happy_path(_: PgPoolOptions, options: PgConnectOptio
     );
 
     // A BidiStreamEvent::Enrollment(EnrollmentCompleted) must have been emitted.
-    let event = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+    let event = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
         .await
         .expect("timed out waiting for BidiStreamEvent")
         .expect("bidi_events_rx closed");
@@ -227,7 +228,7 @@ async fn test_activate_user_already_activated_returns_error(
         _ => panic!("expected Empty on first activation"),
     }
     // Consume the EnrollmentCompleted bidi event so the channel doesn't fill.
-    let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Create a fresh enrollment token (old one is now used), start a new session.
     let token2 = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
@@ -278,7 +279,7 @@ async fn test_new_device_sends_gateway_device_created_event(
     let _response = context.mock_proxy_mut().recv_outbound().await;
 
     // Check that a DeviceCreated event was broadcast.
-    let event = tokio::time::timeout(TEST_TIMEOUT, gateway_rx.recv())
+    let event = timeout(TEST_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayEvent::DeviceCreated")
         .expect("gateway event channel closed");
@@ -734,6 +735,138 @@ async fn test_code_mfa_setup_unsupported_method_returns_error(
         code,
         tonic::Code::InvalidArgument,
         "unsupported MFA method must return InvalidArgument"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// After a non-LDAP user completes the enrollment flow via the proxy handler,
+/// `is_enrolled()` must return `true` and `ldap_remote_enrollment_completed` must
+/// remain `false` (the flag is only set for LDAP users).
+#[sqlx::test]
+async fn test_activate_user_sets_is_enrolled(_: PgPoolOptions, options: PgConnectOptions) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    // Drain the EnrollmentStarted bidi event so the next assertion only sees EnrollmentCompleted.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        updated.is_enrolled(),
+        "non-LDAP user must be enrolled after completing activation"
+    );
+    assert!(
+        !updated.ldap_remote_enrollment_completed,
+        "ldap_remote_enrollment_completed must remain false for non-LDAP users"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// When `ldap_remote_enrollment_enabled` is set, an LDAP user who completes
+/// the enrollment flow must have `ldap_remote_enrollment_completed` set to `true`
+/// and `is_enrolled()` must return `true` afterwards.
+#[sqlx::test]
+async fn test_activate_ldap_user_sets_ldap_remote_enrollment_completed(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Enable LDAP remote enrollment in settings (bypasses HTTP validation).
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    configure_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+
+    // Create user then mark them as LDAP-sourced in the DB.
+    let mut user = create_user(&context.pool).await;
+    user.from_ldap = true;
+    user.save(&context.pool)
+        .await
+        .expect("failed to save LDAP user");
+
+    // Before activation the LDAP user must NOT be enrolled.
+    assert!(
+        !user.is_enrolled(),
+        "LDAP user should not be enrolled before completing remote enrollment"
+    );
+
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    // Drain EnrollmentStarted.
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        updated.ldap_remote_enrollment_completed,
+        "ldap_remote_enrollment_completed must be set to true after LDAP user completes enrollment"
+    );
+    assert!(
+        updated.is_enrolled(),
+        "LDAP user must be enrolled after completing the remote enrollment process"
+    );
+
+    context.finish().await.expect_server_finished().await;
+}
+
+/// When `ldap_remote_enrollment_enabled` is set, a non-LDAP user who completes
+/// activation must NOT have `ldap_remote_enrollment_completed` set — the flag is
+/// LDAP-specific and must remain `false`.
+#[sqlx::test]
+async fn test_activate_non_ldap_user_does_not_set_ldap_remote_enrollment_completed(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let mut context = HandlerTestContext::new(options).await;
+    complete_proxy_handshake(&mut context).await;
+
+    // Enable LDAP remote enrollment in settings (bypasses HTTP validation).
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    configure_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    update_current_settings(&context.pool, settings)
+        .await
+        .unwrap();
+
+    // Non-LDAP user (from_ldap stays false, the default).
+    let user = create_user(&context.pool).await;
+    let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
+    start_enrollment_session(&mut context, &token.id).await;
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+
+    send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
+
+    let updated = User::find_by_username(&context.pool, &user.username)
+        .await
+        .expect("db query failed")
+        .expect("user not found");
+    assert!(
+        !updated.ldap_remote_enrollment_completed,
+        "ldap_remote_enrollment_completed must not be set for non-LDAP users even when the feature is enabled"
+    );
+    assert!(
+        updated.is_enrolled(),
+        "non-LDAP user with password must be enrolled after activation"
     );
 
     context.finish().await.expect_server_finished().await;

@@ -1259,12 +1259,18 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
     use crate::{
         config::{DefGuardConfig, SERVER_CONFIG},
-        db::{models::settings::initialize_current_settings, setup_pool},
+        db::{
+            models::settings::{initialize_current_settings, update_current_settings},
+            setup_pool,
+        },
+        secret::SecretStringWrapper,
     };
 
     #[sqlx::test]
@@ -1615,6 +1621,9 @@ mod test {
     #[sqlx::test]
     async fn test_user_is_enrolled(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
+        // Populate the settings cache so that `is_enrolled()` can call
+        // `Settings::get_current_settings()` without panicking.
+        initialize_current_settings(&pool).await.unwrap();
         let user = User::new(
             "test",
             Some("31071980"),
@@ -1666,5 +1675,63 @@ mod test {
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
         assert!(!user.is_enrolled());
+
+        // Feature disabled (default), ldap_remote_enrollment_completed=false
+        // → LDAP user is still enrolled (legacy behaviour).
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = true;
+        user.ldap_remote_enrollment_completed = false;
+        user.save(&pool).await.unwrap();
+        assert!(
+            user.is_enrolled(),
+            "LDAP user should be enrolled when remote enrollment is disabled (legacy)"
+        );
+
+        // Feature enabled, ldap_remote_enrollment_completed=false
+        // → LDAP user is NOT yet enrolled.
+        let mut settings = Settings::get_current_settings();
+        settings.smtp_server = Some("smtp.example.com".into());
+        settings.smtp_port = Some(587);
+        settings.smtp_sender = Some("noreply@example.com".into());
+        settings.ldap_url = Some("ldap://localhost".into());
+        settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
+        settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+        settings.ldap_username_attr = Some("uid".into());
+        settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
+        settings.ldap_user_obj_class = Some("inetOrgPerson".into());
+        settings.ldap_member_attr = Some("memberUid".into());
+        settings.ldap_groupname_attr = Some("cn".into());
+        settings.ldap_group_obj_class = Some("posixGroup".into());
+        settings.ldap_group_member_attr = Some("memberUid".into());
+        settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
+        settings.ldap_remote_enrollment_enabled = true;
+        update_current_settings(&pool, settings).await.unwrap();
+        // user fields unchanged from the previous case — only the setting changed
+        assert!(
+            !user.is_enrolled(),
+            "LDAP user should not be enrolled when remote enrollment is enabled but not completed"
+        );
+
+        // Feature enabled, ldap_remote_enrollment_completed=true
+        // → LDAP user IS enrolled.
+        user.ldap_remote_enrollment_completed = true;
+        user.save(&pool).await.unwrap();
+        assert!(
+            user.is_enrolled(),
+            "LDAP user should be enrolled when remote enrollment is enabled and completed"
+        );
+
+        // Non-LDAP user with a password while the feature is enabled
+        // → still enrolled (feature must not affect non-LDAP users).
+        user.from_ldap = false;
+        user.ldap_remote_enrollment_completed = false;
+        user.password_hash = Some(hash_password("31071980").unwrap());
+        user.save(&pool).await.unwrap();
+        assert!(
+            user.is_enrolled(),
+            "non-LDAP user with a password should be enrolled regardless of the remote enrollment setting"
+        );
     }
 }

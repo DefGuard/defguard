@@ -2,6 +2,7 @@ pub(crate) mod client;
 
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
     sync::{Arc, Mutex},
 };
 
@@ -14,6 +15,7 @@ use defguard_common::{
         Id,
         models::{Device, Settings, User, WireguardNetwork, settings::initialize_current_settings},
     },
+    secret::SecretStringWrapper,
 };
 use defguard_core::{
     auth::failed_login::FailedLoginMap,
@@ -242,4 +244,26 @@ pub(crate) async fn get_db_location(pool: &PgPool, location_id: Id) -> Wireguard
 // Helper to fetch current user device state from DB by device ID
 pub(crate) async fn get_db_device(pool: &PgPool, device_id: Id) -> Device<Id> {
     Device::find_by_id(pool, device_id).await.unwrap().unwrap()
+}
+
+/// Set minimal SMTP fields on a [`Settings`] so that `smtp_configured()` returns `true`.
+pub(crate) fn configure_smtp(settings: &mut Settings) {
+    settings.smtp_server = Some("smtp.example.com".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_sender = Some("noreply@example.com".into());
+}
+
+/// Set minimal LDAP fields on a [`Settings`] so that `ldap_configured()` returns `true`.
+pub(crate) fn configure_ldap(settings: &mut Settings) {
+    settings.ldap_url = Some("ldap://localhost".into());
+    settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_username_attr = Some("uid".into());
+    settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
+    settings.ldap_user_obj_class = Some("inetOrgPerson".into());
+    settings.ldap_member_attr = Some("memberUid".into());
+    settings.ldap_groupname_attr = Some("cn".into());
+    settings.ldap_group_obj_class = Some("posixGroup".into());
+    settings.ldap_group_member_attr = Some("memberUid".into());
+    settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
 }
