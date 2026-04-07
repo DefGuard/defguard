@@ -18,7 +18,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates,
+            Certificates, Settings,
             certificates::ProxyCertSource,
             gateway::Gateway,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
@@ -1244,12 +1244,27 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let domain = match certs.acme_domain.clone() {
-            Some(d) if !d.is_empty() => d,
+        let domain = match Settings::get_current_settings().public_proxy_url.trim() {
+            url if !url.is_empty() => match Url::parse(url)
+                .ok()
+                .and_then(|u| u.host_str().map(ToString::to_string))
+                .filter(|host| !host.is_empty())
+            {
+                Some(host) => host,
+                None => {
+                    yield Ok(acme_error_event(
+                        "Connecting",
+                        "Public proxy URL is not configured with a valid hostname. Please re-submit the external URL settings with a valid domain."
+                            .to_string(),
+                        None,
+                    ));
+                    return;
+                }
+            },
             _ => {
                 yield Ok(acme_error_event(
                     "Connecting",
-                    "No ACME domain configured. Please re-submit the external URL settings \
+                    "Public proxy URL is not configured. Please re-submit the external URL settings \
                      with a Let's Encrypt domain."
                         .to_string(),
                     None,
@@ -1354,6 +1369,7 @@ pub async fn stream_proxy_acme(
                 let acme_cert_expiry = parse_cert_expiry(&cert_pem);
                 match Certificates::get_or_default(&pool).await {
                     Ok(mut updated_certs) => {
+                        updated_certs.acme_domain = Some(domain.clone());
                         updated_certs.proxy_http_cert_pem = Some(cert_pem.clone());
                         updated_certs.proxy_http_cert_key_pem = Some(key_pem.clone());
                         updated_certs.proxy_http_cert_expiry = acme_cert_expiry;

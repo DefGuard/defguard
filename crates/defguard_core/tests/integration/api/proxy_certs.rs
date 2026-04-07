@@ -547,8 +547,8 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(body["cert_info"].is_null());
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
-    assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::LetsEncrypt);
-    assert_eq!(saved.acme_domain.as_deref(), Some("edge.example.com"));
+    assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::None);
+    assert!(saved.acme_domain.is_none());
     assert!(saved.proxy_http_cert_pem.is_none());
     assert!(capture.drain_broadcast_certs().await.is_empty());
 

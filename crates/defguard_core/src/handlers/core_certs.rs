@@ -218,12 +218,8 @@ pub async fn apply_external_url_settings(
             None
         }
         ExternalSslType::LetsEncrypt => {
-            certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
-            certs.acme_domain = Some(hostname);
-            certs.proxy_http_cert_pem = None;
-            certs.proxy_http_cert_key_pem = None;
-            certs.proxy_http_cert_expiry = None;
-            certs.save(pool).await.map_err(WebError::from)?;
+            // Defer saving the state until ACME challenge succeeds
+            debug!("Validated Let's Encrypt configuration for domain {hostname}");
             None
         }
         ExternalSslType::DefguardCa => {
