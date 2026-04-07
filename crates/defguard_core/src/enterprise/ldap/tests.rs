@@ -3691,7 +3691,10 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
     let result =
         login_through_ldap_with_connection(&pool, &mut ldap_conn, "login_invite_user", PASSWORD)
             .await;
-    assert!(result.is_ok(), "Second LDAP login should succeed: {result:?}");
+    assert!(
+        result.is_ok(),
+        "Second LDAP login should succeed: {result:?}"
+    );
 
     let tokens = Token::fetch_all(&pool).await.unwrap();
     assert_eq!(
