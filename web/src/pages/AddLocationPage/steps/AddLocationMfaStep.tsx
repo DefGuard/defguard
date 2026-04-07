@@ -19,7 +19,7 @@ import { useAddLocationStore } from '../useAddLocationStore';
 
 const schema = z
   .number(m.form_error_required())
-  .min(120, m.form_min_value({ value: 120 }));
+  .min(120, m.form_error_min({ value: 120 }));
 
 export const AddLocationMfaStep = () => {
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +88,8 @@ export const AddLocationMfaStep = () => {
         <>
           <SizedBox height={ThemeSpacing.Xl2} />
           <Input
-            label="Client disconnect threshold (seconds)"
+            label={m.location_mfa_label_client_disconnect_threshold()}
+            helper={m.location_mfa_helper_client_disconnect_threshold()}
             type="number"
             value={disconnect}
             onChange={(value) => setDisconnect(value as number | null)}

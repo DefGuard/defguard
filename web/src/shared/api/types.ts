@@ -19,9 +19,15 @@ export interface MigrationWizardLocationState {
   locations: number[];
   current_location: number;
 }
+export interface MigrationWizardProxyUrl {
+  domain: string;
+  port: number;
+}
+
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
   location_state: MigrationWizardLocationState | null;
+  proxy_url: MigrationWizardProxyUrl | null;
 }
 
 export interface SessionInfo {
@@ -29,6 +35,7 @@ export interface SessionInfo {
   is_admin: boolean;
   // if it's not null then wizard is in progress / complete = false
   active_wizard: ActiveWizardValue | null;
+  username: string | null;
 }
 
 export interface GatewayTokenResponse {
@@ -54,6 +61,10 @@ export interface UploadCARequest {
   cert_file: string;
 }
 
+export interface CoreSelfSignedCertRequest {
+  san: string[];
+}
+
 export interface CreateAdminRequest {
   first_name: string;
   last_name: string;
@@ -64,11 +75,9 @@ export interface CreateAdminRequest {
 }
 
 export interface SetGeneralConfigRequest {
-  defguard_url: string;
   default_admin_group_name: string;
   default_authentication: number;
   default_mfa_code_lifetime: number;
-  public_proxy_url: string;
   admin_username: string;
 }
 
@@ -78,9 +87,45 @@ export interface MigrationGeneralConfigRequest {
   public_proxy_url: string;
 }
 
-export interface SetAutoAdoptionUrlSettingsRequest {
+export type InternalSslType = 'none' | 'defguard_ca' | 'own_cert';
+
+export interface SetAutoAdoptionInternalUrlSettingsRequest {
   defguard_url: string;
+  ssl_type: InternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export interface CertInfo {
+  common_name: string;
+  valid_for_days: number;
+  not_before: string;
+  not_after: string;
+}
+
+export interface SetAutoAdoptionInternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
+export interface SetAutoAdoptionExternalUrlSettingsRequest {
   public_proxy_url: string;
+  ssl_type: ExternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export type ExternalSslType = 'none' | 'lets_encrypt' | 'defguard_ca' | 'own_cert';
+
+export interface SetAutoAdoptionExternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
+export interface GetExternalSslInfoResponse {
+  ca_cert_pem: string | null;
+}
+
+export interface GetInternalSslInfoResponse {
+  ca_cert_pem: string | null;
 }
 
 export interface SetAutoAdoptionVpnSettingsRequest {
@@ -166,13 +211,8 @@ export interface GroupInfo {
   is_admin: boolean;
 }
 
-export interface UsersListItem extends User {
-  name: string;
-  devices: Device[];
-}
-
 export interface EditGroupRequest extends CreateGroupRequest {
-  originalName?: string;
+  id: number;
 }
 
 export interface CreateGroupRequest {
@@ -201,6 +241,7 @@ export interface User {
   username: string;
   first_name: string;
   last_name: string;
+  name: string;
   mfa_method: UserMfaMethodValue;
   mfa_enabled: boolean;
   totp_enabled: boolean;
@@ -213,6 +254,7 @@ export interface User {
   ldap_pass_requires_change: boolean;
   phone: string | null;
   authorized_apps?: OAuth2AuthorizedApps[];
+  devices: Device[];
 }
 
 export interface LoginRequest {
@@ -366,7 +408,16 @@ export const LicenseTier = {
   Enterprise: 'Enterprise',
 } as const;
 
+export const SupportType = {
+  Free: 'Free',
+  Basic: 'Basic',
+  Direct: 'Direct',
+  BasicEnterprise: 'BasicEnterprise',
+  DirectEnterprise: 'DirectEnterprise',
+} as const;
+
 export type LicenseTierValue = (typeof LicenseTier)[keyof typeof LicenseTier];
+export type SupportTypeValue = (typeof SupportType)[keyof typeof SupportType];
 
 export interface LicenseInfo {
   subscription: boolean;
@@ -374,6 +425,7 @@ export interface LicenseInfo {
   expired: boolean;
   limits_exceeded: boolean;
   tier: LicenseTierValue;
+  support_type: SupportTypeValue;
   limits: LicenseLimitsInfo | null;
 }
 
@@ -392,6 +444,15 @@ export interface ApplicationInfo {
   smtp_enabled: boolean;
   external_openid_enabled: boolean;
   ldap_info: LdapInfo;
+}
+
+export interface UpdateInfo {
+  version: string;
+  release_date: string;
+  release_notes_url: string;
+  update_url: string;
+  critical: boolean;
+  notes: string;
 }
 
 export interface WebauthnRegisterStartResponse {
@@ -790,6 +851,10 @@ export type InitialSetupStepValue =
   | 'ca'
   | 'ca_summary'
   | 'edge_component'
+  | 'internal_url_settings'
+  | 'internal_url_ssl_config'
+  | 'external_url_settings'
+  | 'external_url_ssl_config'
   | 'confirmation'
   | 'finished';
 
@@ -797,6 +862,10 @@ export type AutoAdoptionAdoptionStepValue =
   | 'welcome'
   | 'admin_user'
   | 'url_settings'
+  | 'internal_url_settings'
+  | 'internal_url_ssl_config'
+  | 'external_url_settings'
+  | 'external_url_ssl_config'
   | 'vpn_settings'
   | 'mfa_settings'
   | 'summary'
@@ -884,6 +953,7 @@ export interface SettingsEnrollment {
   enrollment_welcome_email: string;
   enrollment_welcome_email_subject: string;
   enrollment_use_welcome_message_as_email: boolean;
+  enrollment_send_welcome_email: boolean;
 }
 
 export interface SettingsModules {
@@ -1144,6 +1214,8 @@ export interface AclRule {
   id: number;
   state: AclStatusValue;
   name: string;
+  modified_at: string;
+  modified_by: string;
   all_locations: boolean;
   allow_all_users: boolean;
   deny_all_users: boolean;
@@ -1172,9 +1244,15 @@ export interface AclRule {
   destinations: number[];
 }
 
-export type EditAclRuleRequest = Omit<AclRule, 'state' | 'parent_id'>;
+export type EditAclRuleRequest = Omit<
+  AclRule,
+  'state' | 'parent_id' | 'modified_at' | 'modified_by'
+>;
 
-export type AddAclRuleRequest = Omit<AclRule, 'state' | 'parent_id' | 'id'>;
+export type AddAclRuleRequest = Omit<
+  AclRule,
+  'state' | 'parent_id' | 'id' | 'modified_at' | 'modified_by'
+>;
 
 export interface OpenIdAuthInfo {
   url: string;

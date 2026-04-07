@@ -91,6 +91,8 @@ const formSchema = z.object({
   enable_stats_purge: z.boolean(),
   stats_purge_frequency_hours: z.number(m.form_error_required()).int().min(1),
   stats_purge_threshold_days: z.number(m.form_error_required()).int().min(1),
+  password_reset_token_timeout_hours: z.number(m.form_error_required()).int().min(1),
+  password_reset_session_timeout_minutes: z.number(m.form_error_required()).int().min(1),
 });
 
 type FormFields = z.infer<typeof formSchema>;
@@ -124,6 +126,19 @@ const statsPurgeThresholdOptions = createNumericSelectOptions({
   90: m.settings_duration_days({ days: 90 }),
 });
 
+const passwordResetTokenTimeoutBaseOptions = createNumericSelectOptions({
+  1: m.settings_duration_one_hour(),
+  12: m.settings_duration_hours({ hours: 12 }),
+  24: m.settings_duration_one_day(),
+  168: m.settings_duration_one_week(),
+});
+
+const passwordResetSessionTimeoutBaseOptions = createNumericSelectOptions({
+  10: m.settings_duration_minutes({ minutes: 10 }),
+  30: m.settings_duration_minutes({ minutes: 30 }),
+  60: m.settings_duration_one_hour(),
+});
+
 const Content = ({ settings }: { settings: Settings }) => {
   const { mutateAsync } = useMutation({
     mutationFn: api.settings.patchSettings,
@@ -147,6 +162,10 @@ const Content = ({ settings }: { settings: Settings }) => {
       enable_stats_purge: settings.enable_stats_purge ?? true,
       stats_purge_frequency_hours: settings.stats_purge_frequency_hours ?? 24,
       stats_purge_threshold_days: settings.stats_purge_threshold_days ?? 30,
+      password_reset_token_timeout_hours:
+        settings.password_reset_token_timeout_hours ?? 24,
+      password_reset_session_timeout_minutes:
+        settings.password_reset_session_timeout_minutes ?? 10,
     }),
     [
       settings.defguard_url,
@@ -156,6 +175,8 @@ const Content = ({ settings }: { settings: Settings }) => {
       settings.enable_stats_purge,
       settings.stats_purge_frequency_hours,
       settings.stats_purge_threshold_days,
+      settings.password_reset_token_timeout_hours,
+      settings.password_reset_session_timeout_minutes,
     ],
   );
 
@@ -187,6 +208,26 @@ const Content = ({ settings }: { settings: Settings }) => {
         'days',
       ),
     [defaultValues.stats_purge_threshold_days],
+  );
+
+  const passwordResetTokenTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        passwordResetTokenTimeoutBaseOptions,
+        defaultValues.password_reset_token_timeout_hours,
+        'hours',
+      ),
+    [defaultValues.password_reset_token_timeout_hours],
+  );
+
+  const passwordResetSessionTimeoutOptions = useMemo(
+    () =>
+      withNumericFallbackOption(
+        passwordResetSessionTimeoutBaseOptions,
+        defaultValues.password_reset_session_timeout_minutes,
+        'minutes',
+      ),
+    [defaultValues.password_reset_session_timeout_minutes],
   );
 
   const form = useAppForm({
@@ -221,13 +262,18 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormInput
                 required
                 label={m.settings_instance_label_defguard_url()}
+                helper={m.settings_instance_helper_defguard_url()}
               />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="instance_name">
             {(field) => (
-              <field.FormInput required label={m.settings_instance_label_name()} />
+              <field.FormInput
+                required
+                label={m.settings_instance_label_name()}
+                helper={m.settings_instance_helper_name()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
@@ -236,6 +282,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormInput
                 required
                 label={m.settings_instance_label_public_proxy_url()}
+                helper={m.settings_instance_helper_public_proxy_url()}
               />
             )}
           </form.AppField>
@@ -245,6 +292,7 @@ const Content = ({ settings }: { settings: Settings }) => {
               <field.FormSelect
                 required
                 label={m.settings_instance_label_session_duration()}
+                helper={m.settings_instance_helper_session_duration()}
                 options={sessionDurationSelectOptions}
               />
             )}
@@ -271,6 +319,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                           <field.FormSelect
                             required
                             label={m.settings_vpn_stats_label_purge_frequency()}
+                            helper={m.settings_vpn_stats_helper_purge_frequency()}
                             options={statsPurgeFrequencySelectOptions}
                           />
                         )}
@@ -281,6 +330,7 @@ const Content = ({ settings }: { settings: Settings }) => {
                           <field.FormSelect
                             required
                             label={m.settings_vpn_stats_label_purge_threshold()}
+                            helper={m.settings_vpn_stats_helper_purge_threshold()}
                             options={statsPurgeThresholdSelectOptions}
                           />
                         )}
@@ -289,6 +339,34 @@ const Content = ({ settings }: { settings: Settings }) => {
                   )}
                 </form.Subscribe>
               </field.FormInteractiveBlock>
+            )}
+          </form.AppField>
+        </MarkedSection>
+        <Divider spacing={ThemeSpacing.Xl2} />
+        <MarkedSection icon="lock-open">
+          <MarkedSectionHeader
+            title={m.settings_instance_section_password_title()}
+            description={m.settings_instance_section_password_description()}
+          />
+          <form.AppField name="password_reset_token_timeout_hours">
+            {(field) => (
+              <field.FormSelect
+                required
+                label={m.settings_enrollment_label_password_reset_token_validity()}
+                helper={m.settings_enrollment_helper_password_reset_token_validity()}
+                options={passwordResetTokenTimeoutOptions}
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="password_reset_session_timeout_minutes">
+            {(field) => (
+              <field.FormSelect
+                required
+                label={m.settings_instance_label_password_reset_session_expiration()}
+                helper={m.settings_instance_helper_password_reset_session_expiration()}
+                options={passwordResetSessionTimeoutOptions}
+              />
             )}
           </form.AppField>
         </MarkedSection>

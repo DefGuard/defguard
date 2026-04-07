@@ -5,6 +5,7 @@ use defguard_common::db::{
     models::{
         Device, WireguardNetwork,
         device::WireguardNetworkDevice,
+        group::Group,
         settings::OpenIdUsernameHandling,
         wireguard::{
             DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
@@ -56,7 +57,12 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
     // check vpn locations for `admin` group
-    let response = client.get("/api/v1/group/admin").send().await;
+    let admin_id = Group::find_by_name(&client_state.pool, "admin")
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let response = client.get(format!("/api/v1/group/{admin_id}")).send().await;
     let group_info: GroupInfo = response.json().await;
     assert_eq!(group_info.vpn_locations, vec!["network"]);
 
@@ -99,7 +105,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_matches!(event, GatewayEvent::NetworkModified(..));
 
     // check vpn locations for `admin` group
-    let response = client.get("/api/v1/group/admin").send().await;
+    let response = client.get(format!("/api/v1/group/{admin_id}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
     assert_eq!(group_info.vpn_locations, vec!["my network"]);

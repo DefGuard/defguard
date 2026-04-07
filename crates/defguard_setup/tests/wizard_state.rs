@@ -1,11 +1,14 @@
-use defguard_common::db::{
-    models::{
-        settings::initialize_current_settings,
-        setup_auto_adoption::AutoAdoptionWizardStep,
-        wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            settings::initialize_current_settings,
+            setup_auto_adoption::AutoAdoptionWizardStep,
+            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -20,7 +23,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
@@ -75,11 +78,9 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
     let resp = client
         .post("/api/v1/initial_setup/general_config")
         .json(&json!({
-            "defguard_url": "https://example.com",
             "default_admin_group_name": "admins",
             "default_authentication": 14,
             "default_mfa_code_lifetime": 120,
-            "public_proxy_url": "https://proxy.example.com",
             "admin_username": "admin1"
         }))
         .send()
@@ -158,7 +159,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .await
         .expect("Failed to seed wireguard network");
 
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
@@ -216,14 +217,32 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(auto_state.step, AutoAdoptionWizardStep::UrlSettings);
 
     let resp = client
-        .post("/api/v1/initial_setup/auto_wizard/url_settings")
+        .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
         .json(&json!({
             "defguard_url": "https://example.com",
-            "public_proxy_url": "https://proxy.example.com"
+            "ssl_type": "none"
         }))
         .send()
         .await
-        .expect("Failed to set URL settings");
+        .expect("Failed to set internal URL settings");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+
+    let auto_state =
+        defguard_common::db::models::setup_auto_adoption::AutoAdoptionWizardState::get(&pool)
+            .await
+            .expect("Failed to get auto adoption state")
+            .expect("Auto adoption state should be set");
+    assert_eq!(auto_state.step, AutoAdoptionWizardStep::ExternalUrlSettings);
+
+    let resp = client
+        .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
+        .json(&json!({
+            "public_proxy_url": "https://proxy.example.com",
+            "ssl_type": "none"
+        }))
+        .send()
+        .await
+        .expect("Failed to set external URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     let auto_state =

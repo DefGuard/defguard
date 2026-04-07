@@ -43,7 +43,7 @@ export const EditNetworkDeviceModal = () => {
   return (
     <Modal
       id="edit-network-device-modal"
-      title={'Edit network device'}
+      title={m.modal_edit_network_device_title()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -158,7 +158,8 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         }}
       >
         <Select
-          label="Location"
+          label={m.form_label_location()}
+          helper={m.form_helper_location()}
           value={locationOption}
           options={[locationOption]}
           onChange={() => {}}
@@ -167,10 +168,22 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
         />
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={m.form_label_device_name()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_device_name()}
+                helper={m.form_helper_device_name()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="description">
-            {(field) => <field.FormInput required label={m.form_label_description()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_description()}
+                helper={m.form_helper_description()}
+              />
+            )}
           </form.AppField>
           <form.AppField name="modifiableIpParts" mode="array">
             {(field) =>
@@ -179,7 +192,8 @@ const ModalContent = ({ device, reservedNames }: ModalData) => {
                   {(subField) => (
                     <subField.FormSuggestedIPInput
                       data={device.split_ips[index]}
-                      label="Assigned IP Address"
+                      label={m.form_label_assigned_ip_address()}
+                      helper={m.form_helper_assigned_ip_address()}
                       required
                     />
                   )}

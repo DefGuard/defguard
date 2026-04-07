@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+
 import { m } from '../../../../paraglide/messages';
 import api from '../../../../shared/api/api';
 import type { MigrationWizardApiState } from '../../../../shared/api/types';
@@ -44,6 +45,7 @@ export const MigrationWizardConfirmationStep = () => {
   const queryClient = useQueryClient();
   const [confirm, setConfirm] = useState(false);
   const navigate = useNavigate();
+  const defguardUrl = useMigrationWizardStore((s) => s.defguard_url);
 
   const { data: locationsDisplay } = useSuspenseQuery(qOptions);
 
@@ -51,11 +53,13 @@ export const MigrationWizardConfirmationStep = () => {
 
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: migrationWizardFinishPromise,
-    onSuccess: async () => {
+    onSuccess: () => {
       Snackbar.default(m.migration_wizard_finish_success_snackbar());
-      await navigate({ to: '/vpn-overview', replace: true });
+      const base = defguardUrl ? defguardUrl.replace(/\/$/, '') : window.location.origin;
+      window.onbeforeunload = null;
       setTimeout(() => {
         useMigrationWizardStore.getState().resetState();
+        window.location.replace(`${base}/vpn-overview`);
       }, 2500);
     },
     onError: (e) => {
@@ -78,6 +82,7 @@ export const MigrationWizardConfirmationStep = () => {
         await api.migration.state.updateMigrationState({
           current_step: MigrationWizardStep.Confirmation,
           location_state: migrationLocationState,
+          proxy_url: useMigrationWizardStore.getState().proxy_url,
         });
         await queryClient.invalidateQueries({
           queryKey: getMigrationStateQueryOptions.queryKey,

@@ -52,22 +52,45 @@ export const EditCustomProviderForm = ({
       }}
     >
       <form.AppForm>
-        <EditPageFormSection label="Client settings">
+        <EditPageFormSection label={m.settings_openid_provider_client_settings_title()}>
           <form.AppField name="display_name">
-            {(field) => <field.FormInput required label="Display name" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_display_name()}
+                helper={m.settings_openid_provider_helper_display_name()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="base_url">
-            {(field) => <field.FormInput required label="Base URL" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_base_url()}
+                helper={m.settings_openid_provider_helper_base_url()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_id">
-            {(field) => <field.FormInput required label="Client ID" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_client_id()}
+                helper={m.settings_openid_provider_helper_client_id()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput type="password" required label="Client secret" />
+              <field.FormInput
+                type="password"
+                required
+                label={m.settings_openid_provider_label_client_secret()}
+                helper={m.settings_openid_provider_helper_client_secret()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
@@ -75,7 +98,8 @@ export const EditCustomProviderForm = ({
             {(field) => (
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
-                label="Username handling"
+                label={m.settings_openid_provider_label_username_handling()}
+                helper={m.settings_openid_provider_helper_username_handling()}
               />
             )}
           </form.AppField>
@@ -84,8 +108,8 @@ export const EditCustomProviderForm = ({
             {(field) => (
               <field.FormInteractiveBlock
                 variant="checkbox"
-                title={`Automatically create user account when logging in for the first time through external OpenID.`}
-                content={`If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID. Otherwise, the user account must first be created by an administrator.`}
+                title={m.settings_openid_provider_create_account_title()}
+                content={m.settings_openid_provider_create_account_content()}
               />
             )}
           </form.AppField>
@@ -95,7 +119,7 @@ export const EditCustomProviderForm = ({
             <EditPageControls
               deleteProps={{
                 disabled: submitting,
-                text: 'Delete provider',
+                text: m.settings_openid_provider_delete_button(),
                 onClick: onDelete,
               }}
               cancelProps={{

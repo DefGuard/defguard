@@ -25,10 +25,10 @@ import { getSettingsQueryOptions } from '../../../shared/query';
 
 const breadcrumbsLinks = [
   <Link to="/settings" search={{ tab: 'notifications' }} key={0}>
-    Notifications
+    {m.settings_breadcrumb_notifications()}
   </Link>,
   <Link key={1} to="/settings/gateway-notifications">
-    Gateway notifications
+    {m.settings_gateway_notifications_title()}
   </Link>,
 ];
 
@@ -36,13 +36,13 @@ export const SettingsGatewayNotificationsPage = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
 
   return (
-    <Page title="Settings">
+    <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
       <SettingsLayout>
         <SettingsHeader
           icon="notification"
-          title="Gateway notifications"
-          subtitle="Here you can manage email notifications."
+          title={m.settings_gateway_notifications_title()}
+          subtitle={m.settings_gateway_notifications_subtitle()}
         />
         {isPresent(settings) && (
           <SettingsCard>
@@ -58,7 +58,7 @@ const formSchema = z.object({
   gateway_disconnect_notifications_enabled: z.boolean(),
   gateway_disconnect_notifications_inactivity_threshold: z
     .number(m.form_error_required())
-    .min(0, m.form_min_value({ value: 0 })),
+    .min(0, m.form_error_min({ value: 0 })),
   gateway_disconnect_notifications_reconnect_notification_enabled: z.boolean(),
 });
 
@@ -119,7 +119,7 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
             <InfoBanner
               icon="info-outlined"
               variant="warning"
-              text={'To enable notifications you must first configure SMTP.'}
+              text={m.settings_gateway_notifications_smtp_warning()}
             />
             <SizedBox height={ThemeSpacing.Xl} />
           </>
@@ -128,25 +128,12 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
           {(field) => (
             <field.FormInteractiveBlock
               variant="toggle"
-              title="Gateway disconnect notifications"
-              content="Send email notification to admin users once a gateway is disconnected"
-              disabled={formDisabled}
-            />
-          )}
-        </form.AppField>
-        <SizedBox height={ThemeSpacing.Xl} />
-        <form.AppField name="gateway_disconnect_notifications_reconnect_notification_enabled">
-          {(field) => (
-            <field.FormInteractiveBlock
-              variant="toggle"
-              title="Gateway reconnect notifications"
-              content="Send email notification to admin users once a gateway is reconnected"
+              title={m.settings_gateway_notifications_disconnect_title()}
+              content={m.settings_gateway_notifications_disconnect_content()}
               disabled={formDisabled}
             >
               <form.Subscribe
-                selector={(s) =>
-                  s.values.gateway_disconnect_notifications_reconnect_notification_enabled
-                }
+                selector={(s) => s.values.gateway_disconnect_notifications_enabled}
               >
                 {(enabled) => (
                   <Fold open={enabled && !formDisabled}>
@@ -155,7 +142,8 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                       {(field) => (
                         <field.FormInput
                           required
-                          label="Gateway inactive time (minutes)"
+                          label={m.settings_gateway_notifications_inactivity_threshold_label()}
+                          helper={m.settings_gateway_notifications_inactivity_threshold_helper()}
                           type="number"
                           disabled={formDisabled}
                         />
@@ -165,6 +153,17 @@ const Content = ({ settings }: { settings: SettingsGatewayNotifications }) => {
                 )}
               </form.Subscribe>
             </field.FormInteractiveBlock>
+          )}
+        </form.AppField>
+        <SizedBox height={ThemeSpacing.Xl} />
+        <form.AppField name="gateway_disconnect_notifications_reconnect_notification_enabled">
+          {(field) => (
+            <field.FormInteractiveBlock
+              variant="toggle"
+              title={m.settings_gateway_notifications_reconnect_title()}
+              content={m.settings_gateway_notifications_reconnect_content()}
+              disabled={formDisabled}
+            />
           )}
         </form.AppField>
         <form.Subscribe

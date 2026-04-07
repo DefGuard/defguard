@@ -195,31 +195,58 @@ const FormStep = ({ destination, setOpen }: FormStepProps) => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label="Name" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_name()}
+                helper={m.modal_add_log_streaming_helper_name()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="url">
-            {(field) => <field.FormInput required label="URL" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_url()}
+                helper={m.modal_add_log_streaming_helper_url()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="username">
-            {(field) => <field.FormInput label="Username" />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_username()}
+                helper={m.modal_add_log_streaming_helper_username()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="password">
-            {(field) => <field.FormInput label="Password" type="password" />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_password()}
+                type="password"
+                helper={m.modal_add_log_streaming_helper_password()}
+              />
+            )}
           </form.AppField>
 
           <SizedBox height={ThemeSpacing.Xl} />
 
           <form.AppField name="certificate">
-            {(field) => <field.FormUploadField title="Upload certificate file" />}
+            {(field) => (
+              <field.FormUploadField
+                title={m.settings_activity_log_streaming_upload_certificate_file()}
+              />
+            )}
           </form.AppField>
         </form.AppForm>
       </form>

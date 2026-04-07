@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { m } from '../../../paraglide/messages';
+import type { AclListTabValue } from '../../../shared/aclTabs';
 import api from '../../../shared/api/api';
 import {
   type AclDestination,
@@ -34,6 +35,7 @@ type Props = {
   title: string;
   destinations: AclDestination[];
   rules: AclRule[];
+  tab: AclListTabValue;
   primaryProps: ButtonProps;
   search?: boolean;
   disableBlockedModal?: boolean;
@@ -47,6 +49,7 @@ export const DestinationsTable = ({
   primaryProps,
   destinations,
   rules,
+  tab,
   title,
   search,
   disableBlockedModal,
@@ -81,7 +84,7 @@ export const DestinationsTable = ({
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
-        header: 'Destination name',
+        header: m.acl_destination_col_name(),
         minSize: 210,
         meta: {
           flex: true,
@@ -94,14 +97,14 @@ export const DestinationsTable = ({
       }),
       columnHelper.display({
         id: 'destinations',
-        header: 'IP4/6 CIDR range addresses',
+        header: m.acl_destination_col_addresses(),
         minSize: 300,
         cell: (info) => {
           const row = info.row.original;
           if (row.any_address) {
             return (
               <TableCell>
-                <span>{`Any`}</span>
+                <span>{m.acl_destination_any_address()}</span>
               </TableCell>
             );
           }
@@ -110,14 +113,14 @@ export const DestinationsTable = ({
       }),
       columnHelper.display({
         id: 'ports',
-        header: 'Ports',
+        header: m.acl_col_ports(),
         minSize: 230,
         cell: (info) => {
           const row = info.row.original;
           if (row.any_port) {
             return (
               <TableCell>
-                <span>{`Any port`}</span>
+                <span>{m.acl_destination_any_port()}</span>
               </TableCell>
             );
           }
@@ -126,14 +129,14 @@ export const DestinationsTable = ({
       }),
       columnHelper.display({
         id: 'protocols',
-        header: 'Protocols',
+        header: m.acl_col_protocols(),
         minSize: 230,
         cell: (info) => {
           const row = info.row.original;
           if (row.any_protocol) {
             return (
               <TableCell>
-                <span>{`Any protocol`}</span>
+                <span>{m.acl_destination_any_protocol()}</span>
               </TableCell>
             );
           }
@@ -143,7 +146,7 @@ export const DestinationsTable = ({
       }),
       columnHelper.display({
         id: 'rules',
-        header: 'Used in rules',
+        header: m.acl_col_used_in_rules(),
         minSize: 500,
         cell: (info) => {
           if (!rulesById) return null;
@@ -173,6 +176,7 @@ export const DestinationsTable = ({
                         to: '/acl/edit-destination',
                         search: {
                           destination: row.id,
+                          tab,
                         },
                       });
                     });
@@ -189,13 +193,16 @@ export const DestinationsTable = ({
                       if (row.rules.length > 0) {
                         const ruleNames = rulesById
                           ? row.rules.map(
-                              (ruleId) => rulesById[ruleId]?.name ?? `Rule ${ruleId}`,
+                              (ruleId) =>
+                                rulesById[ruleId]?.name ??
+                                m.acl_rule_fallback_name({ id: ruleId }),
                             )
-                          : row.rules.map((ruleId) => `Rule ${ruleId}`);
+                          : row.rules.map((ruleId) =>
+                              m.acl_rule_fallback_name({ id: ruleId }),
+                            );
                         openModal(ModalName.DeleteAliasDestinationBlocked, {
-                          title: 'Deletion blocked',
-                          description:
-                            'This destination is currently in use by the following rule(s) and cannot be deleted. To proceed, remove it from these rules first:',
+                          title: m.modal_delete_acl_blocked_title(),
+                          description: m.modal_delete_acl_destination_blocked_body(),
                           rules: ruleNames,
                         });
                         return;
@@ -216,7 +223,7 @@ export const DestinationsTable = ({
           ];
           if (row.state === 'Modified') {
             menuItems[0].items.splice(1, 0, {
-              text: 'Deploy',
+              text: m.controls_deploy(),
               icon: 'deploy',
               onClick: () => {
                 if (licenseInfo === undefined) return;
@@ -238,6 +245,7 @@ export const DestinationsTable = ({
       licenseInfo,
       disableBlockedModal,
       applyDestinations,
+      tab,
     ],
   );
 

@@ -10,6 +10,7 @@ import {
 } from '@floating-ui/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Suspense, useState } from 'react';
+import { m } from '../../../../../paraglide/messages';
 import type { LicenseInfo } from '../../../../api/types';
 import { Divider } from '../../../../defguard-ui/components/Divider/Divider';
 import { Icon, IconKind } from '../../../../defguard-ui/components/Icon';
@@ -97,7 +98,7 @@ const OpenSource = () => {
   return (
     <div className="open-source">
       <Icon icon={IconKind.Config} />
-      <p>Open Source Mode</p>
+      <p>{m.license_open_source_mode()}</p>
     </div>
   );
 };

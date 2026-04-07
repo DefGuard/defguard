@@ -12,6 +12,7 @@ import type {
   NetworkLocation,
   OpenIdClient,
   StartEnrollmentResponse,
+  UpdateInfo,
   User,
   Webhook,
 } from '../../api/types';
@@ -165,3 +166,5 @@ export interface OpenAssignUserDeviceIPModal {
   username: string;
   locationData: DeviceLocationIpsResponse;
 }
+
+export interface OpenAppUpdateModal extends UpdateInfo {}

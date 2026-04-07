@@ -68,7 +68,8 @@ export const AddLocationNetworkStep = () => {
             {(field) => (
               <field.FormInput
                 required
-                label="Keep alive interval (seconds)"
+                label={m.location_network_label_keepalive_interval()}
+                helper={m.location_network_helper_keepalive_interval()}
                 type="number"
               />
             )}
@@ -76,12 +77,22 @@ export const AddLocationNetworkStep = () => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="mtu">
             {(field) => (
-              <field.FormInput label="Maximum Transmission Unit (MTU)" type="number" />
+              <field.FormInput
+                label={m.location_network_label_mtu()}
+                helper={m.location_network_helper_mtu()}
+                type="number"
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="fwmark">
-            {(field) => <field.FormInput label="Firewall Mark (FwMark)" type="number" />}
+            {(field) => (
+              <field.FormInput
+                label={m.location_network_label_fwmark()}
+                helper={m.location_network_helper_fwmark()}
+                type="number"
+              />
+            )}
           </form.AppField>
           <Controls>
             <Button

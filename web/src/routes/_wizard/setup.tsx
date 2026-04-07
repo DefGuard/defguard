@@ -37,6 +37,10 @@ const initialStepMap: Record<InitialSetupStepValue, SetupPageStepValue> = {
   ca: SetupPageStep.CertificateAuthority,
   ca_summary: SetupPageStep.CASummary,
   edge_component: SetupPageStep.EdgeComponent,
+  internal_url_settings: SetupPageStep.InternalUrlSettings,
+  internal_url_ssl_config: SetupPageStep.InternalUrlSslConfig,
+  external_url_settings: SetupPageStep.ExternalUrlSettings,
+  external_url_ssl_config: SetupPageStep.ExternalUrlSslConfig,
   confirmation: SetupPageStep.Confirmation,
   finished: SetupPageStep.Confirmation,
 };
@@ -48,7 +52,11 @@ const autoAdoptionStepMap: Record<
 > = {
   welcome: AutoAdoptionSetupStep.AdminUser,
   admin_user: AutoAdoptionSetupStep.AdminUser,
-  url_settings: AutoAdoptionSetupStep.UrlSettings,
+  url_settings: AutoAdoptionSetupStep.InternalUrlSettings,
+  internal_url_settings: AutoAdoptionSetupStep.InternalUrlSettings,
+  internal_url_ssl_config: AutoAdoptionSetupStep.InternalUrlSslConfig,
+  external_url_settings: AutoAdoptionSetupStep.ExternalUrlSettings,
+  external_url_ssl_config: AutoAdoptionSetupStep.ExternalUrlSslConfig,
   vpn_settings: AutoAdoptionSetupStep.VpnSettings,
   mfa_settings: AutoAdoptionSetupStep.MfaSetup,
   summary: AutoAdoptionSetupStep.Summary,
@@ -94,7 +102,9 @@ const handleWizardRedirect = async ({
   // Apply the server-provided step to the appropriate wizard store.
   if (isAutoAdoption) {
     useAutoAdoptionSetupWizardStore.setState({
-      activeStep: autoAdoptionStepMap[currentStep as AutoAdoptionAdoptionStepValue],
+      activeStep:
+        autoAdoptionStepMap[currentStep as AutoAdoptionAdoptionStepValue] ??
+        AutoAdoptionSetupStep.InternalUrlSettings,
       isAutoAdoptionFlowStarted: currentStep !== 'welcome',
     });
   } else {

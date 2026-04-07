@@ -5,12 +5,22 @@ use defguard_common::{
     csv::AsCsv,
     db::{
         Id,
-        models::{Device, DeviceType, User, WireguardNetwork, group::Group},
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            group::Group,
+            wireguard::{
+                DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_WIREGUARD_MTU,
+                LocationMfaMode, ServiceLocationMode,
+            },
+        },
     },
 };
 use defguard_core::{
     grpc::GatewayEvent,
-    handlers::{Auth, wireguard::ImportedNetworkData},
+    handlers::{
+        Auth,
+        wireguard::{ImportedNetworkData, WireguardNetworkData},
+    },
     location_management::allowed_peers::get_location_allowed_peers,
 };
 use matches::assert_matches;
@@ -21,7 +31,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 
-use super::common::{fetch_user_details, make_test_client, setup_pool};
+use super::common::{authenticate_admin, fetch_user_details, make_test_client, setup_pool};
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
@@ -250,7 +260,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // create network without allowed groups
+    // create network with one allowed group
     let response = client
         .post("/api/v1/network")
         .json(&json!({
@@ -263,7 +273,7 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
             "mtu": 1420,
             "fwmark": 0,
             "allow_all_groups": false,
-            "allowed_groups": [],
+            "allowed_groups": ["allowed group"],
             "keepalive_interval": 25,
             "peer_disconnect_threshold": 300,
             "acl_enabled": false,
@@ -279,12 +289,13 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
-    // network configuration was created only for the admin device
+    // network configuration was created for admin and the allowed group member
     let peers = get_location_allowed_peers(&network, &client_state.pool)
         .await
         .unwrap();
-    assert_eq!(peers.len(), 1);
+    assert_eq!(peers.len(), 2);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+    assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 
     // add an allowed group
     let response = client
@@ -385,38 +396,6 @@ async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(new_peers.len(), 2);
     assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
     assert_eq!(new_peers[1].pubkey, devices[2].wireguard_pubkey);
-
-    // remove all allowed groups
-    let response = client
-        .put("/api/v1/network/1")
-        .json(&json!({
-            "name": "network",
-            "address": "10.1.1.1/24",
-            "port": 55555,
-            "endpoint": "192.168.4.14",
-            "allowed_ips": "10.1.1.0/24",
-            "dns": "1.1.1.1",
-            "mtu": 1420,
-            "fwmark": 0,
-            "allow_all_groups": false,
-            "allowed_groups": [],
-            "keepalive_interval": 25,
-            "peer_disconnect_threshold": 300,
-            "acl_enabled": false,
-            "acl_default_allow": false,
-            "location_mfa_mode": "disabled",
-            "service_location_mode": "disabled"
-        }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
-
-    let new_peers = get_location_allowed_peers(&network, &client_state.pool)
-        .await
-        .unwrap();
-    assert_eq!(new_peers.len(), 1);
-    assert_eq!(new_peers[0].pubkey, devices[0].wireguard_pubkey);
 
     assert_err!(wg_rx.try_recv());
 }
@@ -989,7 +968,15 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 
     // remove an allowed group
-    let response = client.delete("/api/v1/group/allowed%20group").send().await;
+    let allowed_group_id = Group::find_by_name(&client_state.pool, "allowed group")
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let response = client
+        .delete(format!("/api/v1/group/{allowed_group_id}"))
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // network configuration was created only for the admin device
@@ -998,4 +985,120 @@ async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOpti
         .unwrap();
     assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].pubkey, devices[0].wireguard_pubkey);
+}
+
+#[sqlx::test]
+async fn test_create_network_without_groups_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    let base_data = WireguardNetworkData {
+        name: "test_location".into(),
+        address: "10.1.1.1/24".into(),
+        endpoint: "10.1.1.1".parse().unwrap(),
+        port: 55555,
+        allowed_ips: None,
+        dns: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
+        allow_all_groups: false,
+        allowed_groups: vec![],
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
+        location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
+    };
+
+    // allow_all_groups=false with no groups should be rejected
+    let response = client.post("/api/v1/network").json(&base_data).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // allow_all_groups=false with at least one group should be accepted
+    let mut data_with_group = base_data.clone();
+    data_with_group.allowed_groups = vec!["admin".into()];
+    let response = client
+        .post("/api/v1/network")
+        .json(&data_with_group)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // allow_all_groups=true with no groups should be accepted
+    let mut data_allow_all = base_data.clone();
+    data_allow_all.name = "test_location_allow_all".into();
+    data_allow_all.address = "10.1.2.1/24".into();
+    data_allow_all.allow_all_groups = true;
+    let response = client
+        .post("/api/v1/network")
+        .json(&data_allow_all)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[sqlx::test]
+async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, _client_state) = make_test_client(pool).await;
+    authenticate_admin(&mut client).await;
+
+    // create a valid location with allow_all_groups=true
+    let create_data = WireguardNetworkData {
+        name: "test_location".into(),
+        address: "10.1.1.1/24".into(),
+        endpoint: "10.1.1.1".parse().unwrap(),
+        port: 55555,
+        allowed_ips: None,
+        dns: None,
+        mtu: DEFAULT_WIREGUARD_MTU,
+        fwmark: 0,
+        allow_all_groups: true,
+        allowed_groups: vec![],
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
+        location_mfa_mode: LocationMfaMode::Disabled,
+        service_location_mode: ServiceLocationMode::Disabled,
+    };
+    let response = client
+        .post("/api/v1/network")
+        .json(&create_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut modify_data = create_data.clone();
+
+    // allow_all_groups=false with no groups should be rejected
+    modify_data.allow_all_groups = false;
+    modify_data.allowed_groups = vec![];
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&modify_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // allow_all_groups=false with at least one group should be accepted
+    modify_data.allowed_groups = vec!["admin".into()];
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&modify_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // allow_all_groups=true with no groups should be accepted
+    modify_data.allow_all_groups = true;
+    modify_data.allowed_groups = vec![];
+    let response = client
+        .put("/api/v1/network/1")
+        .json(&modify_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
 }

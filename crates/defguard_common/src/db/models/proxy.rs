@@ -67,6 +67,19 @@ impl Proxy {
 }
 
 impl Proxy<Id> {
+    /// Returns `true` if this proxy is currently considered connected.
+    ///
+    /// A proxy is connected when `connected_at` is set and either
+    /// `disconnected_at` is absent or `connected_at > disconnected_at`.
+    #[must_use]
+    pub fn is_connected(&self) -> bool {
+        match (self.connected_at, self.disconnected_at) {
+            (Some(c), Some(d)) => c > d,
+            (Some(_), None) => true,
+            _ => false,
+        }
+    }
+
     /// Mark all proxies currently considered connected as disconnected.
     pub async fn mark_all_disconnected<'e, E>(executor: E) -> sqlx::Result<()>
     where

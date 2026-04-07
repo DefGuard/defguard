@@ -1,10 +1,13 @@
-use defguard_common::db::{
-    models::{
-        Settings,
-        migration_wizard::MigrationWizardState,
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            Certificates, Settings,
+            migration_wizard::MigrationWizardState,
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use reqwest::{
     Client, StatusCode,
@@ -37,7 +40,7 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     seed_admin_user(&pool, "migration_admin", "Passw0rd!").await;
 
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
@@ -129,13 +132,12 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to POST /api/v1/migration/ca");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let settings = Settings::get(&pool)
+    let certs = Certificates::get_or_default(&pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert!(settings.ca_cert_der.is_some(), "CA cert should be set");
-    assert!(settings.ca_key_der.is_some(), "CA key should be set");
-    assert!(settings.ca_expiry.is_some(), "CA expiry should be set");
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some(), "CA cert should be set");
+    assert!(certs.ca_key_der.is_some(), "CA key should be set");
+    assert!(certs.ca_expiry.is_some(), "CA expiry should be set");
 
     let resp = client
         .put("/api/v1/migration/state")
@@ -182,7 +184,7 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
     init_settings_with_secret_key(&pool).await;
 
     seed_admin_user(&pool, "auth_migration_admin", "Passw0rd!").await;
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 

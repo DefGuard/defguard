@@ -2,13 +2,13 @@ import './style.scss';
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useCallback, useMemo } from 'react';
 import { m } from '../../paraglide/messages';
-import { Controls } from '../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../shared/components/wizard/types';
 import { WizardCover } from '../../shared/components/wizard/WizardCoverImage/types';
 import { WizardCoverImage } from '../../shared/components/wizard/WizardCoverImage/WizardCoverImage';
 import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
+import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupDeployGatewayStep } from './steps/SetupDeployGatewayStep';
@@ -78,15 +78,13 @@ export const GatewaySetupPage = () => {
 
   const WelcomePageContent = () => (
     <>
-      <Divider spacing={ThemeSpacing.Xl} />
-      <div className="left">
-        <Controls>
-          <Button
-            text={m.gateway_setup_controls_configure()}
-            onClick={() => setIsOnWelcomePage(false)}
-          />
-        </Controls>
-      </div>
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <Divider />
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <Button
+        text={m.gateway_setup_controls_configure()}
+        onClick={() => setIsOnWelcomePage(false)}
+      />
     </>
   );
 

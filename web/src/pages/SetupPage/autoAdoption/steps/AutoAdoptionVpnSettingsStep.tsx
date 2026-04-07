@@ -39,10 +39,20 @@ const formSchema = z.object({
     .string()
     .trim()
     .min(1, m.form_error_required())
-    .refine(
-      (value) => Validate.any(value, [Validate.CIDRv4, Validate.CIDRv6], true),
-      m.initial_setup_auto_adoption_vpn_error_invalid_value(),
-    ),
+    .superRefine((val, ctx) => {
+      if (!Validate.any(val, [Validate.CIDRv4, Validate.CIDRv6], true)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: m.initial_setup_auto_adoption_vpn_error_invalid_value(),
+        });
+        return;
+      }
+      if (Validate.isNetworkAddress(val)) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_network_address() });
+      } else if (Validate.isBroadcastAddress(val)) {
+        ctx.addIssue({ code: 'custom', message: m.form_error_broadcast_address() });
+      }
+    }),
   vpn_allowed_ips: z
     .string()
     .trim()
@@ -133,6 +143,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_auto_adoption_vpn_label_public_ip()}
+                  helper={m.initial_setup_auto_adoption_vpn_helper_public_ip()}
                 />
               )}
             </form.AppField>
@@ -141,6 +152,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_auto_adoption_vpn_label_wireguard_port()}
+                  helper={m.initial_setup_auto_adoption_vpn_helper_wireguard_port()}
                   type="number"
                 />
               )}
@@ -154,6 +166,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_auto_adoption_vpn_label_gateway_address()}
+                helper={m.initial_setup_auto_adoption_vpn_helper_gateway_address()}
               />
             )}
           </form.AppField>
@@ -164,6 +177,7 @@ export const AutoAdoptionVpnSettingsStep = () => {
             {(field) => (
               <field.FormInput
                 label={m.initial_setup_auto_adoption_vpn_label_allowed_ips()}
+                helper={m.initial_setup_auto_adoption_vpn_helper_allowed_ips()}
               />
             )}
           </form.AppField>
@@ -174,32 +188,35 @@ export const AutoAdoptionVpnSettingsStep = () => {
             {(field) => (
               <field.FormInput
                 label={m.initial_setup_auto_adoption_vpn_label_dns_server_ip()}
+                helper={m.initial_setup_auto_adoption_vpn_helper_dns_server_ip()}
               />
             )}
           </form.AppField>
-          <Controls>
-            <Button
-              variant="outlined"
-              text={m.initial_setup_controls_back()}
-              onClick={() => {
-                useAutoAdoptionSetupWizardStore.setState({
-                  ...form.state.values,
-                  vpn_allowed_ips: form.state.values.vpn_allowed_ips ?? '',
-                  vpn_dns_server_ip: form.state.values.vpn_dns_server_ip ?? '',
-                });
-                setActiveStep(AutoAdoptionSetupStep.UrlSettings);
-              }}
-            />
-            <div className="right">
-              <Button
-                text={m.initial_setup_controls_continue()}
-                onClick={form.handleSubmit}
-                loading={isPending}
-              />
-            </div>
-          </Controls>
         </form.AppForm>
       </form>
+      <SizedBox height={ThemeSpacing.Xl3} />
+      <Divider />
+      <Controls>
+        <Button
+          variant="outlined"
+          text={m.initial_setup_controls_back()}
+          onClick={() => {
+            useAutoAdoptionSetupWizardStore.setState({
+              ...form.state.values,
+              vpn_allowed_ips: form.state.values.vpn_allowed_ips ?? '',
+              vpn_dns_server_ip: form.state.values.vpn_dns_server_ip ?? '',
+            });
+            setActiveStep(AutoAdoptionSetupStep.ExternalUrlSslConfig);
+          }}
+        />
+        <div className="right">
+          <Button
+            text={m.initial_setup_controls_continue()}
+            onClick={form.handleSubmit}
+            loading={isPending}
+          />
+        </div>
+      </Controls>
     </WizardCard>
   );
 };

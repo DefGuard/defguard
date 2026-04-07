@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
+import { m } from '../../../../../paraglide/messages';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -66,7 +67,8 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   options={directorySyncTargetOptions}
                   required
-                  label="Synchronize"
+                  label={m.settings_openid_provider_label_sync_target()}
+                  helper={m.settings_openid_provider_helper_sync_target()}
                 />
               )}
             </form.AppField>
@@ -75,7 +77,8 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormInput
                   type="number"
                   required
-                  label="Synchronization interval"
+                  label={m.settings_openid_provider_label_sync_interval()}
+                  helper={m.settings_openid_provider_helper_sync_interval()}
                 />
               )}
             </form.AppField>
@@ -86,8 +89,9 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="User behavior"
+                  label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_user_behavior()}
                 />
               )}
             </form.AppField>
@@ -95,8 +99,9 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="Admin behavior"
+                  label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_admin_behavior()}
                 />
               )}
             </form.AppField>
@@ -104,14 +109,21 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
           <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="okta_dirsync_client_id">
-              {(field) => <field.FormInput required label="Directory sync client ID" />}
+              {(field) => (
+                <field.FormInput
+                  required
+                  label={m.settings_openid_provider_label_okta_directory_sync_client_id()}
+                  helper={m.settings_openid_provider_helper_okta_directory_sync_client_id()}
+                />
+              )}
             </form.AppField>
             <form.AppField name="okta_private_jwk">
               {(field) => (
                 <field.FormInput
                   required
-                  label="Directory sync client private key"
+                  label={m.settings_openid_provider_label_okta_directory_sync_client_private_key()}
                   type="password"
+                  helper={m.settings_openid_provider_helper_okta_directory_sync_client_private_key()}
                 />
               )}
             </form.AppField>

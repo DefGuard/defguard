@@ -1,5 +1,7 @@
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { m } from '../../../../paraglide/messages';
+import { AclListTab } from '../../../../shared/aclTabs';
 import api from '../../../../shared/api/api';
 import { AclStatus } from '../../../../shared/api/types';
 import type { ButtonProps } from '../../../../shared/defguard-ui/components/Button/types';
@@ -33,7 +35,7 @@ export const DestinationPendingTab = () => {
 
   const deployPending = useMemo(
     (): ButtonProps => ({
-      text: `Deploy all pending (${destinations.length})`,
+      text: m.acl_destinations_button_deploy_all_pending({ count: destinations.length }),
       iconLeft: 'deploy',
       loading: isPending,
       disabled: loading,
@@ -52,8 +54,8 @@ export const DestinationPendingTab = () => {
       {destinations.length === 0 && (
         <EmptyStateFlexible
           icon="gateway"
-          title="You don't have any pending items."
-          subtitle="They will appear here once you add or modify one."
+          title={m.acl_destinations_empty_pending_title()}
+          subtitle={m.acl_destinations_empty_pending_subtitle()}
         />
       )}
 
@@ -61,8 +63,9 @@ export const DestinationPendingTab = () => {
         <DestinationsTable
           destinations={destinations}
           rules={rules}
+          tab={AclListTab.Pending}
           primaryProps={deployPending}
-          title="Pending destinations"
+          title={m.acl_destinations_table_title_pending()}
           disableBlockedModal
         />
       )}

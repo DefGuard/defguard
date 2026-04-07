@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { Navigation } from '../../shared/components/Navigation/Navigation';
+import { VideoSupportWidget } from '../../shared/video-support/VideoSupportWidget';
 
 export const Route = createFileRoute('/_authorized/_default')({
   component: RouteComponent,
@@ -10,6 +11,7 @@ function RouteComponent() {
     <>
       <Outlet />
       <Navigation />
+      <VideoSupportWidget />
     </>
   );
 }

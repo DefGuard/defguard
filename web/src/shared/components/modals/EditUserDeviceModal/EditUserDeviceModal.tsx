@@ -123,12 +123,22 @@ const ModalContent = ({
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput label={m.form_label_device_name()} required />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_device_name()}
+                helper={m.form_helper_device_name()}
+                required
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="publicKey">
             {(field) => (
-              <field.FormInput label={m.form_label_device_public_key()} required />
+              <field.FormInput
+                label={m.form_label_device_public_key()}
+                helper={m.form_helper_device_public_key()}
+                required
+              />
             )}
           </form.AppField>
         </form.AppForm>

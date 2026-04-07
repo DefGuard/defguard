@@ -58,7 +58,7 @@ pub(crate) struct LocationsCount {
     count: usize,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
     pub address: String, // comma-separated list of addresses
@@ -129,6 +129,15 @@ impl WireguardNetworkData {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn validate_allowed_groups(&self) -> Result<(), WebError> {
+        if self.allow_all_groups || !self.allowed_groups.is_empty() {
+            return Ok(());
+        }
+        Err(WebError::BadRequest(
+            "At least one group must be specified when allow_all_groups is disabled".into(),
+        ))
     }
 }
 
@@ -216,6 +225,7 @@ pub(crate) async fn create_network(
 
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
+    data.validate_allowed_groups()?;
 
     let allowed_ips = data.parse_allowed_ips();
     let mut network = WireguardNetwork::new(
@@ -325,6 +335,7 @@ pub(crate) async fn modify_network(
 
     data.validate_peer_disconnect_threshold()?;
     data.validate_location_mfa_mode(&appstate.pool).await?;
+    data.validate_allowed_groups()?;
 
     let network = find_network(network_id, &appstate.pool).await?;
     // store network before mods
@@ -486,6 +497,8 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
             has_devices,
         });
     }
+    network_info.sort_by(|a, b| a.network.name.cmp(&b.network.name));
+
     debug!("Listed WireGuard networks");
 
     Ok(ApiResponse::json(network_info, StatusCode::OK))
@@ -1318,7 +1331,7 @@ pub(crate) async fn download_config(
     let settings = EnterpriseSettings::get(&appstate.pool).await?;
     if settings.only_client_activation && !session.is_admin {
         warn!(
-            "User {} tried to download device config, but manual device management is disaled",
+            "User {} tried to download device config, but manual device management is disabled",
             session.user.username
         );
         return Err(WebError::Forbidden("Manual device management is disabled"));

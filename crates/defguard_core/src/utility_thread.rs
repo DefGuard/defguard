@@ -1,10 +1,11 @@
 use std::{collections::HashSet, time::Duration};
 
+use chrono::Utc;
 use defguard_common::db::{
     Id,
     models::{WireguardNetwork, wireguard::ServiceLocationMode},
 };
-use sqlx::{PgPool, query_as};
+use sqlx::PgPool;
 use tokio::{
     sync::broadcast::Sender,
     time::{Instant, sleep},
@@ -13,7 +14,7 @@ use tracing::Instrument;
 
 use crate::{
     enterprise::{
-        db::models::acl::{AclRule, RuleState},
+        db::models::acl::AclRule,
         directory_sync::{do_directory_sync, get_directory_sync_interval},
         firewall::try_get_location_firewall_config,
         is_business_license_active,
@@ -31,6 +32,7 @@ const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
 const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
+const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 
 #[instrument(skip_all)]
 pub async fn run_utility_thread(
@@ -229,16 +231,16 @@ async fn expired_acl_rules_check(
     wireguard_tx: Sender<GatewayEvent>,
 ) -> Result<(), anyhow::Error> {
     // mark relevant rules as expired
-    let updated_rules = query_as!(
-        AclRule::<Id>,
-        "UPDATE aclrule SET state = 'expired'::aclrule_state \
+    let updated_rules = sqlx::query_as::<_, AclRule<Id>>(
+        "UPDATE aclrule SET state = 'expired'::aclrule_state, modified_at = $1, modified_by = $2 \
         WHERE state = 'applied'::aclrule_state AND expires < NOW() \
-        RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
-        deny_all_users, allow_all_groups, deny_all_groups, allow_all_network_devices, \
-        deny_all_network_devices, all_locations, \
-        addresses, ports, protocols, enabled, expires, any_address, any_port, \
-        any_protocol, use_manual_destination_settings"
+        RETURNING id, parent_id, state, name, allow_all_users, deny_all_users, allow_all_groups, \
+        deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, \
+        addresses, ports, protocols, enabled, expires, any_address, any_port, any_protocol, \
+        use_manual_destination_settings, modified_at, modified_by",
     )
+    .bind(Utc::now().naive_utc())
+    .bind(ACL_EXPIRY_SYSTEM_ACTOR)
     .fetch_all(pool)
     .await?;
 

@@ -112,7 +112,8 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormSelect
                   options={directorySyncTargetOptions}
                   required
-                  label="Synchronize"
+                  label={m.settings_openid_provider_label_sync_target()}
+                  helper={m.settings_openid_provider_helper_sync_target()}
                 />
               )}
             </form.AppField>
@@ -121,7 +122,8 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
                 <field.FormInput
                   type="number"
                   required
-                  label="Synchronization interval"
+                  label={m.settings_openid_provider_label_sync_interval()}
+                  helper={m.settings_openid_provider_helper_sync_interval()}
                 />
               )}
             </form.AppField>
@@ -132,8 +134,9 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="User behavior"
+                  label={m.settings_openid_provider_label_sync_user_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_user_behavior()}
                 />
               )}
             </form.AppField>
@@ -141,19 +144,28 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
               {(field) => (
                 <field.FormSelect
                   required
-                  label="Admin behavior"
+                  label={m.settings_openid_provider_label_sync_admin_behavior()}
                   options={directorySyncBehaviorOptions}
+                  helper={m.settings_openid_provider_helper_sync_admin_behavior()}
                 />
               )}
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="admin_email">
-            {(field) => <field.FormInput required label="Admin email" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_admin_email()}
+                helper={m.settings_openid_provider_helper_admin_email()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl3} />
-          <DescriptionBlock title="Service account key">
-            <p>{`Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.`}</p>
+          <DescriptionBlock
+            title={m.settings_openid_provider_google_service_account_key_title()}
+          >
+            <p>{m.settings_openid_provider_google_service_account_key_content()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="google_service_account_file">

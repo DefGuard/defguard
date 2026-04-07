@@ -32,7 +32,7 @@ const formSchema = z.object({
     ),
   port: z
     .number(m.form_error_required())
-    .min(1, m.form_min_value({ value: 1 }))
+    .min(1, m.form_error_min({ value: 1 }))
     .max(65535, m.form_error_port_max()),
 });
 
@@ -75,21 +75,38 @@ export const AddLocationStartStep = () => {
       >
         <form.AppForm>
           <form.AppField name="name">
-            {(field) => <field.FormInput required label={'Location name'} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.profile_devices_col_location_name()}
+                helper={m.profile_devices_col_location_helper()}
+              />
+            )}
           </form.AppField>
           <Divider spacing={ThemeSpacing.Xl2} />
-          <DescriptionBlock title="Gateway public address">
-            <p>{`Used by VPN users to connect.`}</p>
+          <DescriptionBlock title={m.add_location_start_public_address_title()}>
+            <p>{m.add_location_start_public_address_description()}</p>
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Lg} />
           <form.AppField name="endpoint">
             {(field) => (
-              <field.FormInput required label={'Gateway VPN IP address or domain name'} />
+              <field.FormInput
+                required
+                label={m.add_location_start_label_endpoint()}
+                helper={m.add_location_start_helper_endpoint()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="port">
-            {(field) => <field.FormInput required label={'Gateway port'} type="number" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.add_location_start_label_port()}
+                helper={m.add_location_start_helper_port()}
+                type="number"
+              />
+            )}
           </form.AppField>
           <Controls>
             <Button

@@ -14,6 +14,10 @@ pub enum InitialSetupStep {
     // Adoption is not present, since the proxy is saved
     // only after completing adoption step.
     EdgeComponent,
+    InternalUrlSettings,
+    InternalUrlSslConfig,
+    ExternalUrlSettings,
+    ExternalUrlSslConfig,
     Confirmation,
     Finished,
 }

@@ -5,7 +5,7 @@ const baseUrl = import.meta.env.VITE_UPDATE_BASE_URL as string | undefined;
 
 const clientDownloadFallback = 'https://defguard.net/download';
 
-const client = axios.create({
+export const updateServiceClient = axios.create({
   baseURL: baseUrl ?? 'https://pkgs.defguard.net/api',
   headers: { 'Content-Type': 'application/json' },
   paramsSerializer: {
@@ -30,12 +30,11 @@ export type ClientVersionCheck = {
 
 const updateServiceApi = {
   getClientArtifacts: () =>
-    client
+    updateServiceClient
       .get<ClientVersionCheck>('/update/artifacts', {
         params: {
           product: 'defguard-client',
-          //todo change to core
-          source: 'enrollment',
+          source: 'core',
         },
       })
       .then((response) => {

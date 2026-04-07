@@ -51,7 +51,11 @@ export const SettingsLicenseModal = () => {
 
   return (
     <Modal
-      title={modalData?.edit ? 'License key' : 'Enter license key'}
+      title={
+        modalData?.edit
+          ? m.settings_license_key_title()
+          : m.settings_license_enter_key_title()
+      }
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       afterClose={() => {
@@ -90,7 +94,7 @@ const getLicenseLimitConflicts = ({
 
   if (counts.user > limits.users) {
     conflicts.push({
-      label: 'Users',
+      label: m.cmp_nav_item_users(),
       current: counts.user,
       limit: limits.users,
     });
@@ -98,7 +102,7 @@ const getLicenseLimitConflicts = ({
 
   if (counts.location > limits.locations) {
     conflicts.push({
-      label: 'Locations',
+      label: m.cmp_nav_item_locations(),
       current: counts.location,
       limit: limits.locations,
     });
@@ -193,9 +197,10 @@ const ModalContent = ({ license: initialLicense }: ModalData) => {
         <form.AppField name="license">
           {(field) => (
             <field.FormTextarea
-              placeholder="Enter license key"
-              label="License key"
+              placeholder={m.settings_license_enter_key_title()}
+              label={m.settings_license_key_title()}
               maxHeight={300}
+              helper={m.settings_license_helper_key()}
             />
           )}
         </form.AppField>

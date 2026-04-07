@@ -9,18 +9,18 @@ use axum::{
     Extension, Json, Router,
     http::{Request, StatusCode},
     routing::{delete, get, post, put},
-    serve,
 };
 use axum_extra::extract::cookie::Key;
+use axum_server::tls_rustls::RustlsConfig;
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
-    config::{DefGuardConfig, InitVpnLocationArgs, server_config},
+    config::{DefGuardConfig, GatewayConfigArgs, InitVpnLocationArgs, server_config},
     db::{
         init_db,
         models::{
-            Device, DeviceType, Settings, User, WireguardNetwork,
+            Certificates, Device, DeviceType, Settings, User, WireguardNetwork,
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
             wireguard::{LocationMfaMode, ServiceLocationMode},
@@ -28,17 +28,18 @@ use defguard_common::{
     },
     types::proxy::ProxyControlMessage,
 };
+use defguard_proto::gateway::Configuration;
 use defguard_version::server::DefguardVersionLayer;
 use defguard_web_ui::{index, svg, web_asset};
 use events::ApiEvent;
 use handlers::{
     activity_log::get_activity_log_events,
     auth::disable_user_mfa,
-    component_setup::setup_proxy_tls_stream,
+    component_setup::{setup_proxy_tls_stream, stream_proxy_acme},
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
-        add_network_device, check_ip_availability, download_network_device_config,
-        find_available_ips, get_network_device, list_network_devices, modify_network_device,
+        add_network_device, check_ip_availability, find_available_ips, get_network_device,
+        list_network_devices, modify_network_device, network_device_configs,
         start_network_device_setup, start_network_device_setup_for_device,
     },
     session_info::get_session_info,
@@ -52,16 +53,12 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use regex::Regex;
-use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
-use tokio::{
-    net::TcpListener,
-    sync::{
-        broadcast::Sender,
-        mpsc::{UnboundedReceiver, UnboundedSender},
-    },
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{UnboundedReceiver, UnboundedSender},
 };
 use tower_http::{
     set_header::SetResponseHeaderLayer,
@@ -76,6 +73,7 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::AppEvent,
     enterprise::{
+        firewall::try_get_location_firewall_config,
         handlers::{
             acl::{
                 alias::{
@@ -118,6 +116,7 @@ use crate::{
             webauthn_start,
         },
         component_setup::setup_gateway_tls_stream,
+        core_certs::{core_cert_self_signed, core_cert_upload},
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         group::{
@@ -138,7 +137,10 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
-        proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
+        proxy::{
+            delete_proxy, proxy_cert_self_signed, proxy_cert_upload, proxy_details, proxy_list,
+            update_proxy,
+        },
         resource_display::get_locations_display,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
@@ -167,7 +169,9 @@ use crate::{
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
-    location_management::sync_location_allowed_devices,
+    location_management::{
+        allowed_peers::get_location_allowed_peers, sync_location_allowed_devices,
+    },
     version::IncompatibleComponents,
 };
 
@@ -328,13 +332,13 @@ pub fn build_webapp(
             // group
             .route("/group", get(list_groups).post(create_group))
             .route(
-                "/group/{name}",
+                "/group/{id}",
                 get(get_group)
                     .put(modify_group)
                     .delete(delete_group)
                     .post(add_group_member),
             )
-            .route("/group/{name}/user/{username}", delete(remove_group_member))
+            .route("/group/{id}/user/{username}", delete(remove_group_member))
             .route("/group-info", get(list_groups_info))
             .route("/groups-assign", post(bulk_assign_to_groups))
             // mail
@@ -375,6 +379,11 @@ pub fn build_webapp(
                 "/proxy/{proxy_id}",
                 get(proxy_details).put(update_proxy).delete(delete_proxy),
             )
+            .route("/proxy/cert/upload", post(proxy_cert_upload))
+            .route("/proxy/cert/self-signed", post(proxy_cert_self_signed))
+            // Core HTTPS cert routes
+            .route("/core/cert/upload", post(core_cert_upload))
+            .route("/core/cert/self-signed", post(core_cert_self_signed))
             // Gateway routes
             .route("/gateway", get(gateway_list))
             .route(
@@ -384,7 +393,8 @@ pub fn build_webapp(
                     .delete(delete_gateway),
             )
             // Proxy setup with SSE
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream)),
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+            .route("/proxy/acme/stream", get(stream_proxy_acme)),
     );
 
     // Enterprise features
@@ -524,7 +534,7 @@ pub fn build_webapp(
             )
             .route(
                 "/device/network/{device_id}/config",
-                get(download_network_device_config),
+                get(network_device_configs),
             )
             .route(
                 "/device/network/start_cli",
@@ -646,6 +656,15 @@ pub async fn run_web_server(
     let settings = Settings::get_current_settings();
     let key = Key::from(settings.secret_key_required()?.as_bytes());
 
+    // Read certs before build_webapp consumes the pool.
+    let tls_cert_pair = Certificates::get_or_default(&pool)
+        .await
+        .map(|c| {
+            c.core_http_cert_pair()
+                .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
+        })
+        .unwrap_or(None);
+
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
@@ -667,13 +686,21 @@ pub async fn run_web_server(
             .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
         server_config.http_port,
     );
-    let listener = TcpListener::bind(&addr).await?;
-    serve(
-        listener,
-        webapp.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await
-    .map_err(|err| anyhow!("Web server can't be started {err}"))
+
+    if let Some((cert_pem, key_pem)) = tls_cert_pair {
+        let tls_config = RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
+            .await
+            .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
+            .await
+            .map_err(|err| anyhow!("Web server error: {err}"))
+    } else {
+        axum_server::bind(addr)
+            .serve(webapp.into_make_service_with_connect_info::<SocketAddr>())
+            .await
+            .map_err(|err| anyhow!("Web server error: {err}"))
+    }
 }
 
 /// Automates test objects creation to easily setup development environment.
@@ -708,19 +735,26 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .await
         .expect("Could not initialize current settings in the database");
     let mut settings = Settings::get_current_settings();
-    settings.ca_cert_der = Some(ca.cert_der().to_vec());
-    settings.ca_key_der = Some(ca.key_pair_der().to_vec());
-    settings.ca_expiry = Some(ca.expiry().expect("Failed to get CA expiry"));
     // This should possibly be initialized somehow differently in the future since we are deprecating the enrollment URL env var.
     settings.public_proxy_url = config
         .enrollment_url
         .clone()
-        .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
-        .to_string();
+        .map_or(String::from("http://localhost:8080"), |url| url.to_string());
     settings.defguard_url = config.url.clone().unwrap().to_string();
     update_current_settings(&pool, settings)
         .await
         .expect("Failed to update settings");
+
+    let certs = Certificates {
+        ca_cert_der: Some(ca.cert_der().to_vec()),
+        ca_key_der: Some(ca.key_pair_der().to_vec()),
+        ca_expiry: Some(ca.expiry().expect("Failed to get CA expiry")),
+        ..Default::default()
+    };
+    certs
+        .save(&pool)
+        .await
+        .expect("Failed to save certificates");
 
     // Mark wizard as completed for dev environment
     use defguard_common::db::models::{
@@ -732,7 +766,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         completed: true,
     };
     // Ensure wizard is initialized, then overwrite with completed state
-    let _ = Wizard::init(&pool, false).await;
+    let _ = Wizard::init(&pool, false, config).await;
     wizard
         .save(&pool)
         .await
@@ -927,6 +961,46 @@ pub async fn init_vpn_location(
     .to_jwt()?;
 
     Ok(token)
+}
+
+pub async fn gateway_config(
+    pool: &PgPool,
+    args: &GatewayConfigArgs,
+) -> Result<Configuration, anyhow::Error> {
+    let location_id = args.location_id;
+
+    let mut conn = pool.acquire().await?;
+
+    // fetch specified location
+    let location = match WireguardNetwork::find_by_id(&mut *conn, location_id).await {
+        Ok(Some(network)) => network,
+        Ok(None) => return Err(anyhow!("Location {location_id} not found")),
+        Err(err) => {
+            return Err(anyhow!(
+                "Failed to retrieve location {location_id} with error: {err}"
+            ));
+        }
+    };
+
+    // get peers
+    let peers = get_location_allowed_peers(&location, &mut *conn)
+        .await
+        .map_err(|err| anyhow!("Failed to get peers for location {location} with error: {err}"))?;
+
+    // prepare firewall config
+    let maybe_firewall_config = try_get_location_firewall_config(&location, &mut conn)
+        .await
+        .map_err(|err| {
+            anyhow!("Failed to prepare firewall config for location {location} with error: {err}")
+        })?;
+
+    // generate config
+    let mut config = Configuration::new(&location, peers, maybe_firewall_config);
+
+    // overwrite private key just in case
+    config.prvkey = "REDACTED".into();
+
+    Ok(config)
 }
 
 pub fn is_valid_phone_number(number: &str) -> bool {

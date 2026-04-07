@@ -55,6 +55,7 @@ fn set_test_license_business() {
         customer_id: "0c4dcb5400544d47ad8617fcdf2704cb".into(),
         limits: None,
         subscription: false,
+        support_type: crate::enterprise::license::SupportType::Basic,
         tier: LicenseTier::Business,
         valid_until: None,
         version_date_limit: None,
@@ -1918,7 +1919,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(allow_rule.protocols.is_empty());
     assert_eq!(
         allow_rule.comment,
-        Some("ACL 1 - test rule ALLOW".to_string())
+        Some("RULE 1 - test rule ALLOW".to_string())
     );
 
     let alias_allow_rule = &generated_firewall_rules[1];
@@ -1937,7 +1938,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(alias_allow_rule.protocols.is_empty());
     assert_eq!(
         alias_allow_rule.comment,
-        Some("ACL 1 - test rule, ALIAS 1 - destination alias ALLOW".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - destination alias ALLOW".to_string())
     );
 
     let deny_rule = &generated_firewall_rules[2];
@@ -1948,7 +1949,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(deny_rule.protocols.is_empty());
     assert_eq!(
         deny_rule.comment,
-        Some("ACL 1 - test rule DENY".to_string())
+        Some("RULE 1 - test rule DENY".to_string())
     );
 
     let alias_deny_rule = &generated_firewall_rules[3];
@@ -1959,7 +1960,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(alias_deny_rule.protocols.is_empty());
     assert_eq!(
         alias_deny_rule.comment,
-        Some("ACL 1 - test rule, ALIAS 1 - destination alias DENY".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - destination alias DENY".to_string())
     );
 }
 
@@ -2071,7 +2072,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert!(alias_allow_rule_1.protocols.is_empty());
     assert_eq!(
         alias_allow_rule_1.comment,
-        Some("ACL 1 - test rule, ALIAS 1 - postgres ALLOW".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - postgres ALLOW".to_string())
     );
 
     let alias_allow_rule_2 = &generated_firewall_rules[1];
@@ -2092,7 +2093,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert!(alias_allow_rule_2.protocols.is_empty());
     assert_eq!(
         alias_allow_rule_2.comment,
-        Some("ACL 1 - test rule, ALIAS 2 - redis ALLOW".to_string())
+        Some("RULE 1 - test rule, DESTINATION 2 - redis ALLOW".to_string())
     );
 
     let alias_deny_rule_1 = &generated_firewall_rules[2];
@@ -2108,7 +2109,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert!(alias_deny_rule_1.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_1.comment,
-        Some("ACL 1 - test rule, ALIAS 1 - postgres DENY".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - postgres DENY".to_string())
     );
 
     let alias_deny_rule_2 = &generated_firewall_rules[3];
@@ -2124,7 +2125,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert!(alias_deny_rule_2.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_2.comment,
-        Some("ACL 1 - test rule, ALIAS 2 - redis DENY".to_string())
+        Some("RULE 1 - test rule, DESTINATION 2 - redis DENY".to_string())
     );
 }
 

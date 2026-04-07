@@ -94,6 +94,7 @@ const Content = () => {
     updateWizardState({
       current_step: MigrationWizardStep.Confirmation,
       location_state: state,
+      proxy_url: useMigrationWizardStore.getState().proxy_url,
     });
   }, [locationsState, updateWizardState, finish]);
 
@@ -101,11 +102,15 @@ const Content = () => {
 
   return (
     <>
-      <Divider spacing={ThemeSpacing.Lg} />
+      <SizedBox height={ThemeSpacing.Lg} />
+      <Divider />
+      <SizedBox height={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
         {`By clicking the button below, you confirm that the required firewall changes have been made and that the Core can connect to this gateway on TCP port 5055. In case you have any question please read our documentation following the link in the bottom section.`}
       </AppText>
-      <Divider spacing={ThemeSpacing.Lg} />
+      <SizedBox height={ThemeSpacing.Lg} />
+      <Divider />
+      <SizedBox height={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
         {`Migrate ${currentLocationIndex + 1} of ${locationsState.locations.length} location(s):`}
       </AppText>
@@ -115,7 +120,9 @@ const Content = () => {
           {locationsDisplay[locationsState.current_location] ?? `Unknown`}
         </AppText>
       )}
-      <SizedBox height={ThemeSpacing.Xl} />
+      <SizedBox height={ThemeSpacing.Xl2} />
+      <Divider />
+      <SizedBox height={ThemeSpacing.Xl2} />
       <Controls>
         <Button
           text={`Start migration`}

@@ -35,6 +35,7 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
+  CoreSelfSignedCertRequest,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -58,6 +59,8 @@ import type {
   Gateway,
   GatewayInfo,
   GetCAResponse,
+  GetExternalSslInfoResponse,
+  GetInternalSslInfoResponse,
   GroupInfo,
   IpValidation,
   LicenseCheckResponse,
@@ -85,8 +88,11 @@ import type {
   RenameAuthKeyRequest,
   ResourceDisplay,
   SessionInfo,
+  SetAutoAdoptionExternalUrlSettingsRequest,
+  SetAutoAdoptionExternalUrlSettingsResponse,
+  SetAutoAdoptionInternalUrlSettingsRequest,
+  SetAutoAdoptionInternalUrlSettingsResponse,
   SetAutoAdoptionMfaSettingsRequest,
-  SetAutoAdoptionUrlSettingsRequest,
   SetAutoAdoptionVpnSettingsRequest,
   SetGeneralConfigRequest,
   Settings,
@@ -97,12 +103,12 @@ import type {
   StartEnrollmentResponse,
   TestDirectorySyncResponse,
   TotpInitResponse,
+  UpdateInfo,
   UploadCARequest,
   User,
   UserChangePasswordRequest,
   UserDevice,
   UserProfileResponse,
-  UsersListItem,
   ValidateDeviceIpsRequest,
   ValidateIpAssignmentRequest,
   WebauthnLoginStartResponse,
@@ -113,19 +119,6 @@ import type {
 } from './types';
 
 const api = {
-  getUsersOverview: async (): Promise<UsersListItem[]> => {
-    const users = await api.user.getUsers();
-    const res: UsersListItem[] = [];
-    for (const user of users) {
-      const { data: profile } = await api.user.getUser(user.username);
-      res.push({
-        ...user,
-        name: `${user.first_name} ${user.last_name}`,
-        devices: profile.devices,
-      });
-    }
-    return res;
-  },
   initial_setup: {
     createCA: (data: CreateCARequest) => client.post('/initial_setup/ca', data),
     getCA: () => client.get<GetCAResponse>('/initial_setup/ca'),
@@ -139,8 +132,28 @@ const api = {
     getWizardState: () => client.get<WizardState>('/wizard'),
     setGeneralConfig: (data: SetGeneralConfigRequest) =>
       client.post('/initial_setup/general_config', data),
-    setAutoAdoptionUrlSettings: (data: SetAutoAdoptionUrlSettingsRequest) =>
-      client.post('/initial_setup/auto_wizard/url_settings', data),
+    setAutoAdoptionInternalUrlSettings: (
+      data: SetAutoAdoptionInternalUrlSettingsRequest,
+    ) =>
+      client.post<SetAutoAdoptionInternalUrlSettingsResponse>(
+        '/initial_setup/auto_wizard/internal_url_settings',
+        data,
+      ),
+    getInternalSslInfo: () =>
+      client.get<GetInternalSslInfoResponse>(
+        '/initial_setup/auto_wizard/internal_url_settings',
+      ),
+    setAutoAdoptionExternalUrlSettings: (
+      data: SetAutoAdoptionExternalUrlSettingsRequest,
+    ) =>
+      client.post<SetAutoAdoptionExternalUrlSettingsResponse>(
+        '/initial_setup/auto_wizard/external_url_settings',
+        data,
+      ),
+    getExternalSslInfo: () =>
+      client.get<GetExternalSslInfoResponse>(
+        '/initial_setup/auto_wizard/external_url_settings',
+      ),
     setAutoAdoptionVpnSettings: (data: SetAutoAdoptionVpnSettingsRequest) =>
       client.post('/initial_setup/auto_wizard/vpn_settings', data),
     setAutoAdoptionMfaSettings: (data: SetAutoAdoptionMfaSettingsRequest) =>
@@ -167,14 +180,14 @@ const api = {
     addGroup: (data: CreateGroupRequest) => client.post('/group', data),
     getGroups: () => fetchAllPages<string>('/group'),
     getGroupsInfo: () => client.get<GroupInfo[]>('/group-info'),
-    editGroup: ({ originalName, ...data }: EditGroupRequest) =>
-      client.put(`/group/${originalName ?? data.name}`, data),
-    deleteGroup: (name: string) => client.delete(`/group/${name}`),
+    editGroup: ({ id, ...data }: EditGroupRequest) => client.put(`/group/${id}`, data),
+    deleteGroup: (id: number) => client.delete(`/group/${id}`),
     addUsersToGroups: (data: AddUsersToGroupsRequest) =>
       client.post(`/groups-assign`, data),
   },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),
+    updates: () => client.get<UpdateInfo | null>('/updates'),
   },
   user: {
     addUser: (data: AddUserRequest) => client.post<User>('/user', data),
@@ -307,7 +320,8 @@ const api = {
       client.put(`/device/network/${id}`, data),
     getDevice: (id: number) => client.get<NetworkDevice>(`/device/network/${id}`),
     getDevices: () => fetchAllPages<NetworkDevice>('/device/network'),
-    getDeviceConfig: (id: number) => client.get<string>(`/device/network/${id}/config`),
+    getDeviceConfig: (id: number) =>
+      client.get<AddDeviceResponseConfig[]>(`/device/network/${id}/config`),
     generateToken: (id: number) =>
       client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
     addCliDevice: (data: AddNetworkDeviceRequest) =>
@@ -393,8 +407,15 @@ const api = {
     editDevice: (device: Device) => client.put<Device>(`/device/${device.id}`, device),
     getDevice: (deviceId: number) => client.get<Device>(`/device/${deviceId}`),
     getDevices: () => client.get<Device[]>('/device'),
-    getDeviceConfig: ({ deviceId, networkId }: { networkId: number; deviceId: number }) =>
-      client.get<string>(`/network/${networkId}/device/${deviceId}/config`),
+    getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
+      const { data: configs } = await client.get<AddDeviceResponseConfig[]>(
+        `/device/network/${device.id}/config`,
+      );
+      return {
+        configs,
+        device,
+      };
+    },
     getUserDeviceIps: (username: string) =>
       client.get<LocationDevicesResponse>(`/device/user/${username}/ip`),
     getDeviceIps: (username: string, deviceId: number) =>
@@ -403,25 +424,6 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
-    getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
-      const networkConfigurations: AddDeviceResponseConfig[] = [];
-      for (const network of device.networks) {
-        const { data: config } = await api.device.getDeviceConfig({
-          deviceId: device.id,
-          networkId: network.network_id,
-        });
-        networkConfigurations.push({
-          config: config,
-          network_id: network.network_id,
-          network_name: network.network_name,
-        });
-      }
-
-      return {
-        configs: networkConfigurations,
-        device,
-      };
-    },
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
@@ -444,7 +446,7 @@ const api = {
       client.get<TestDirectorySyncResponse>(`/test_directory_sync`),
   },
   mail: {
-    sendTestEmail: (data: { email: string }) => client.post('/mail/test', data),
+    sendTestEmail: (data: { to: string }) => client.post('/mail/test', data),
   },
   edge: {
     getEdges: () => client.get<EdgeInfo[]>('/proxy'),
@@ -457,8 +459,17 @@ const api = {
     getGateway: (gatewayId: number | string) =>
       client.get<Gateway>(`/gateway/${gatewayId}`),
     editGateway: (data: { id: number | string; name: string; enabled: boolean }) =>
-      client.put(`/gateway/${data.id}`, { name: data.name, enabled: data.enabled }),
+      client.put(`/gateway/${data.id}`, {
+        name: data.name,
+        enabled: data.enabled,
+      }),
     deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
+  },
+  core: {
+    certSelfSigned: (data: CoreSelfSignedCertRequest) =>
+      client.post('/core/cert/self-signed', data),
+    certUpload: (data: { cert_pem: string; key_pem: string }) =>
+      client.post('/core/cert/upload', data),
   },
   acl: {
     destination: {
@@ -522,6 +533,20 @@ const api = {
       updateMigrationState: (data: MigrationWizardApiState) =>
         client.put(`/migration/state`, data),
     },
+    setInternalUrlSettings: (data: SetAutoAdoptionInternalUrlSettingsRequest) =>
+      client.post<SetAutoAdoptionInternalUrlSettingsResponse>(
+        '/migration/internal_url_settings',
+        data,
+      ),
+    getInternalSslInfo: () =>
+      client.get<GetInternalSslInfoResponse>('/migration/internal_url_settings'),
+    setExternalUrlSettings: (data: SetAutoAdoptionExternalUrlSettingsRequest) =>
+      client.post<SetAutoAdoptionExternalUrlSettingsResponse>(
+        '/migration/external_url_settings',
+        data,
+      ),
+    getExternalSslInfo: () =>
+      client.get<GetExternalSslInfoResponse>('/migration/external_url_settings'),
   },
   checkLicense: (data: { license: string }) =>
     client.post<LicenseCheckResponse>('/license/check', data),
@@ -530,6 +555,10 @@ const api = {
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
   info: () => client.get<ApplicationInfo>('/info'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
+  support: {
+    getSupportData: () => client.get<object>('/support/configuration'),
+    getLogs: () => client.get<string>('/support/logs'),
+  },
 } as const;
 
 export default api;

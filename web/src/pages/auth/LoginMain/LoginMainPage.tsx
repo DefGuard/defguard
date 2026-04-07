@@ -120,19 +120,26 @@ export const LoginMainPage = () => {
           }}
         >
           <form.AppField name="username">
-            {(field) => <field.FormInput label={m.form_label_username()} size="lg" />}
+            {(field) => (
+              <field.FormInput
+                label={m.form_label_username()}
+                helper={m.form_helper_username()}
+                size="lg"
+              />
+            )}
           </form.AppField>
           <form.AppField name="password">
             {(field) => (
               <field.FormInput
                 type="password"
                 label={m.form_label_password()}
+                helper={m.form_helper_password()}
                 size="lg"
               />
             )}
           </form.AppField>
           <Button
-            text="Sign in"
+            text={m.controls_sign_in()}
             type="submit"
             testId="sign-in"
             variant="primary"
@@ -150,15 +157,15 @@ export const LoginMainPage = () => {
 const LoginWithExternalProvider = (data: OpenIdAuthInfo) => {
   const text = useMemo(() => {
     if (data.button_display_name) {
-      return `Sign in with ${data.button_display_name}`;
+      return m.login_main_sign_in_with({ provider: data.button_display_name });
     }
-    return `Sign in with external provider`;
+    return m.login_main_sign_in_with_external_provider();
   }, [data.button_display_name]);
 
   return (
     <div id="external-login">
       <OIDCButton url={data.url} text={text} />
-      <Divider text="or" spacing={ThemeSpacing.Xl2} />
+      <Divider text={m.misc_or()} spacing={ThemeSpacing.Xl2} />
     </div>
   );
 };

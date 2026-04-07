@@ -19,10 +19,10 @@ import { EditOktaProviderForm } from './form/EditOktaProviderForm';
 
 const breadcrumbs = [
   <Link to="/settings/openid" key={0}>
-    External Identity providers
+    {m.settings_openid_providers_breadcrumb()}
   </Link>,
   <Link to="/settings/edit-openid" key={1}>
-    Edit
+    {m.controls_edit()}
   </Link>,
 ];
 
@@ -79,10 +79,10 @@ export const SettingsEditOpenIdProviderPage = () => {
   return (
     <EditPage
       id="edit-openid-provider-page"
-      pageTitle={'Settings'}
+      pageTitle={m.settings_page_title()}
       links={breadcrumbs}
       headerProps={{
-        title: 'Edit external OpenID provider',
+        title: m.settings_openid_provider_edit_title(),
       }}
     >
       {formData.name === OpenIdProviderKind.Google && (

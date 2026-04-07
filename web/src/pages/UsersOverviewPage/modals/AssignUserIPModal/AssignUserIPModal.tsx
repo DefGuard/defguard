@@ -259,6 +259,7 @@ const AssignmentForm = ({
                           error={field.state.meta.errors[0]?.toString()}
                           onChange={(val) => field.handleChange(val ?? '')}
                           onBlur={field.handleBlur}
+                          helper={m.form_helper_assigned_ip_address()}
                         />
                       )}
                     </form.Field>

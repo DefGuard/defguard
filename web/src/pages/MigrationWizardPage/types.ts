@@ -1,6 +1,10 @@
 export const MigrationWizardStep = {
   Welcome: 'welcome',
   General: 'general',
+  InternalUrlSettings: 'internalUrlSettings',
+  InternalUrlSslConfig: 'internalUrlSslConfig',
+  ExternalUrlSettings: 'externalUrlSettings',
+  ExternalUrlSslConfig: 'externalUrlSslConfig',
   Ca: 'ca',
   CaSummary: 'caSummary',
   EdgeDeployment: 'edgeDeployment',

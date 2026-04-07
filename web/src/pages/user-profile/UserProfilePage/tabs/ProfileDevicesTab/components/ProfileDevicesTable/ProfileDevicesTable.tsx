@@ -100,7 +100,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
 
   const addDeviceProps = useMemo(
     (): ButtonProps => ({
-      text: 'Add device',
+      text: m.profile_devices_add_new(),
       variant: 'primary',
       testId: 'add-device',
       iconLeft: 'add-device',
@@ -147,14 +147,14 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
                 });
               })
               .catch((error) => {
-                Snackbar.error('Failed to load device IP settings');
+                Snackbar.error(m.profile_devices_ip_settings_load_failed());
                 console.error(error);
               });
           },
         });
       }
-      items.push(
-        {
+      if (row.networks.length > 0) {
+        items.push({
           text: m.profile_devices_menu_show_config(),
           onClick: () => {
             api.device.getDeviceConfigs(row).then((modalData) => {
@@ -162,24 +162,24 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
             });
           },
           icon: 'config',
+        });
+      }
+      items.push({
+        text: m.controls_delete(),
+        onClick: () => {
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_delete_user_device_title(),
+            contentMd: m.modal_delete_user_device_body({ name: row.name }),
+            actionPromise: () => api.device.deleteDevice(row.id),
+            invalidateKeys: [['user-overview'], ['user', username], ['network']],
+            submitProps: { text: m.controls_delete(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+            onError: () => Snackbar.error(m.user_device_delete_failed()),
+          });
         },
-        {
-          text: m.controls_delete(),
-          onClick: () => {
-            openModal(ModalName.ConfirmAction, {
-              title: m.modal_delete_user_device_title(),
-              contentMd: m.modal_delete_user_device_body({ name: row.name }),
-              actionPromise: () => api.device.deleteDevice(row.id),
-              invalidateKeys: [['user-overview'], ['user', username], ['network']],
-              submitProps: { text: m.controls_delete(), variant: 'critical' },
-              onSuccess: () => Snackbar.default(m.user_device_delete_success()),
-              onError: () => Snackbar.error(m.user_device_delete_failed()),
-            });
-          },
-          variant: 'danger',
-          icon: 'delete',
-        },
-      );
+        variant: 'danger',
+        icon: 'delete',
+      });
       return [{ items }];
     },
     [reservedNames, username, isAdmin, reservedPubkeys],
@@ -317,14 +317,14 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     <>
       {rowData.length === 0 && (
         <EmptyStateFlexible
-          title="No devices"
-          subtitle="To add new device click the button below."
+          title={m.profile_devices_empty_title()}
+          subtitle={m.profile_devices_empty_subtitle()}
           primaryAction={addDeviceProps}
         />
       )}
       {rowData.length > 0 && (
         <>
-          <TableTop text="All devices">
+          <TableTop text={m.profile_devices_title()}>
             <Button {...addDeviceProps} />
           </TableTop>
           <TableBody

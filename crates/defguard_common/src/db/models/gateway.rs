@@ -153,7 +153,6 @@ impl Gateway<Id> {
         Ok(())
     }
 
-    // TODO: Split the URL into address and port fields just like in proxy
     pub async fn find_by_url<'e, E>(
         executor: E,
         address: &str,

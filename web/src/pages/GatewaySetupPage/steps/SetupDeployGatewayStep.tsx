@@ -12,6 +12,9 @@ import { RenderMarkdown } from '../../../shared/defguard-ui/components/RenderMar
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabsItem } from '../../../shared/defguard-ui/components/Tabs/types';
+import { TooltipContent } from '../../../shared/defguard-ui/providers/tooltip/TooltipContent';
+import { TooltipProvider } from '../../../shared/defguard-ui/providers/tooltip/TooltipContext';
+import { TooltipTrigger } from '../../../shared/defguard-ui/providers/tooltip/TooltipTrigger';
 import {
   TextStyle,
   ThemeSpacing,
@@ -88,15 +91,24 @@ export const SetupDeployGatewayStep = () => {
           }}
         />
         <div className="right">
-          <Button
-            text={m.controls_continue()}
-            disabled={!confirmed}
-            onClick={() => {
-              useGatewayWizardStore.setState({
-                activeStep: GatewaySetupStep.GatewayComponent,
-              });
-            }}
-          />
+          <TooltipProvider disabled={confirmed}>
+            <TooltipTrigger>
+              <div>
+                <Button
+                  text={m.controls_continue()}
+                  disabled={!confirmed}
+                  onClick={() => {
+                    useGatewayWizardStore.setState({
+                      activeStep: GatewaySetupStep.GatewayComponent,
+                    });
+                  }}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{m.gateway_setup_step_deploy_confirm_tooltip()}</p>
+            </TooltipContent>
+          </TooltipProvider>
         </div>
       </Controls>
     </WizardCard>
@@ -196,7 +208,7 @@ const VirtualImageTab = () => {
       <TabContentHeader
         title={m.gateway_setup_step_deploy_tabs_virtual_title()}
         subtitle={m.gateway_setup_step_deploy_tabs_virtual_subtitle({
-          url: `https://defguard-downloads.s3.eu-central-1.amazonaws.com/defguard-alpha2.ova`,
+          url: `https://defguard-downloads.s3.eu-central-1.amazonaws.com/ova/defguard-latest.ova`,
           filename: `defguard-data.yaml`,
         })}
       />

@@ -272,7 +272,7 @@ async fn get_manual_destination_rules(
     let has_ipv6_destination =
         !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && any_address);
 
-    let comment = format!("ACL {rule_id} - {rule_name}");
+    let comment = format!("RULE {rule_id} - {rule_name}");
     let mut allow_rules = Vec::new();
     let mut deny_rules = Vec::new();
     if has_ipv4_destination {
@@ -367,7 +367,7 @@ async fn get_predefined_destination_rules(
         !dest_addrs_v6.is_empty() || (location_has_ipv6_addresses && destination.any_address);
 
     let comment = format!(
-        "ACL {rule_id} - {rule_name}, ALIAS {} - {}",
+        "RULE {rule_id} - {rule_name}, DESTINATION {} - {}",
         destination.id, destination.name
     );
     let mut allow_rules = Vec::new();
@@ -985,7 +985,7 @@ pub(crate) async fn get_location_active_acl_rules(
         allow_all_groups, deny_all_groups, \
         allow_all_network_devices, deny_all_network_devices, addresses, ports, protocols, \
         expires, enabled, parent_id, state, any_address, any_port, any_protocol,
-        use_manual_destination_settings \
+        use_manual_destination_settings, modified_at, modified_by \
         FROM aclrule a \
         LEFT JOIN aclrulenetwork an ON a.id = an.rule_id \
         WHERE (an.network_id = $1 OR a.all_locations) AND enabled \

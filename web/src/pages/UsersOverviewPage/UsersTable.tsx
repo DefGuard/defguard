@@ -16,7 +16,7 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { Device, UsersListItem } from '../../shared/api/types';
+import type { Device, User } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -26,7 +26,10 @@ import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { Icon, IconKind } from '../../shared/defguard-ui/components/Icon';
-import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
+import type {
+  MenuItemProps,
+  MenuItemsGroup,
+} from '../../shared/defguard-ui/components/Menu/types';
 import { Search } from '../../shared/defguard-ui/components/Search/Search';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -50,7 +53,7 @@ import { displayDate } from '../../shared/utils/displayDate';
 import { isDeviceOnline, isUserOnline } from '../../shared/utils/userOnlineStatus';
 import { useAddUserModal } from './modals/AddUserModal/useAddUserModal';
 
-type RowData = UsersListItem;
+type RowData = User;
 
 const columnHelper = createColumnHelper<RowData>();
 
@@ -65,7 +68,7 @@ export const UsersTable = () => {
   const addButtonProps = useMemo(
     (): ButtonProps => ({
       variant: 'primary',
-      text: 'Add new user',
+      text: m.users_add(),
       iconLeft: 'add-user',
       testId: 'add-user',
       onClick: () => {
@@ -87,6 +90,16 @@ export const UsersTable = () => {
 
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const tableFilterMessages = useMemo(
+    () => ({
+      searchPlaceholder: m.controls_search(),
+      clearButton: m.controls_reset(),
+      applyButton: m.controls_submit(),
+      emptyState: m.search_empty_common_title(),
+    }),
+    [],
+  );
 
   const { data: groups } = useQuery(getGroupsInfoQueryOptions);
 
@@ -162,15 +175,15 @@ export const UsersTable = () => {
         },
       }),
       columnHelper.accessor('is_active', {
-        header: m.users_col_status(),
+        header: m.col_status(),
         size: 100,
         minSize: 100,
         cell: (info) => (
           <TableCell>
             {info.getValue() ? (
-              <Badge variant="success" text={m.misc_active()} />
+              <Badge variant="success" text={m.state_active()} />
             ) : (
-              <Badge variant="critical" text={m.misc_disabled()} />
+              <Badge variant="critical" text={m.state_disabled()} />
             )}
           </TableCell>
         ),
@@ -426,7 +439,7 @@ export const UsersTable = () => {
                         });
                       })
                       .catch((error) => {
-                        Snackbar.error('Failed to initiate enrollment');
+                        Snackbar.error(m.failed_to_start_enrollment());
                         console.error(error);
                       });
                   },
@@ -510,69 +523,73 @@ export const UsersTable = () => {
       username: string,
       reservedDeviceNames: string[],
       reservedPubkeys: string[],
-    ): MenuItemsGroup[] => [
-      {
-        items: [
-          {
-            text: m.controls_edit(),
-            icon: 'edit',
-            onClick: () => {
-              openModal(ModalName.EditUserDevice, {
-                device,
-                reservedNames: reservedDeviceNames,
-                reservedPubkeys,
-                username,
-              });
-            },
+    ): MenuItemsGroup[] => {
+      const items: MenuItemProps[] = [
+        {
+          text: m.controls_edit(),
+          icon: 'edit',
+          onClick: () => {
+            openModal(ModalName.EditUserDevice, {
+              device,
+              reservedNames: reservedDeviceNames,
+              reservedPubkeys,
+              username,
+            });
           },
-          {
-            text: m.profile_devices_menu_ip_settings(),
-            icon: 'gateway',
-            testId: 'assign-device-ip',
-            onClick: () => {
-              api.device
-                .getDeviceIps(username, device.id)
-                .then(({ data: locationData }) => {
-                  openModal(ModalName.AssignUserDeviceIP, {
-                    device,
-                    username,
-                    locationData,
-                  });
-                })
-                .catch((error) => {
-                  Snackbar.error('Failed to load device IP settings');
-                  console.error(error);
+        },
+        {
+          text: m.profile_devices_menu_ip_settings(),
+          icon: 'gateway',
+          testId: 'assign-device-ip',
+          onClick: () => {
+            api.device
+              .getDeviceIps(username, device.id)
+              .then(({ data: locationData }) => {
+                openModal(ModalName.AssignUserDeviceIP, {
+                  device,
+                  username,
+                  locationData,
                 });
-            },
-          },
-          {
-            text: m.profile_devices_menu_show_config(),
-            onClick: () => {
-              api.device.getDeviceConfigs(device).then((modalData) => {
-                openModal(ModalName.UserDeviceConfig, modalData);
+              })
+              .catch((error) => {
+                Snackbar.error(m.profile_devices_ip_settings_load_failed());
+                console.error(error);
               });
-            },
-            icon: 'config',
           },
-          {
-            text: m.controls_delete(),
-            onClick: () => {
-              openModal(ModalName.ConfirmAction, {
-                title: m.modal_delete_user_device_title(),
-                contentMd: m.modal_delete_user_device_body({ name: device.name }),
-                actionPromise: () => api.device.deleteDevice(device.id),
-                invalidateKeys: [['user-overview'], ['user'], ['network']],
-                submitProps: { text: m.controls_delete(), variant: 'critical' },
-                onSuccess: () => Snackbar.default(m.user_device_delete_success()),
-                onError: () => Snackbar.error(m.user_device_delete_failed()),
-              });
-            },
-            variant: 'danger',
-            icon: 'delete',
+        },
+      ];
+
+      if (device.networks.length > 0) {
+        items.push({
+          text: m.profile_devices_menu_show_config(),
+          onClick: () => {
+            api.device.getDeviceConfigs(device).then((modalData) => {
+              openModal(ModalName.UserDeviceConfig, modalData);
+            });
           },
-        ],
-      },
-    ],
+          icon: 'config',
+        });
+      }
+
+      items.push({
+        text: m.controls_delete(),
+        onClick: () => {
+          openModal(ModalName.ConfirmAction, {
+            title: m.modal_delete_user_device_title(),
+            contentMd: m.modal_delete_user_device_body({ name: device.name }),
+            actionPromise: () => api.device.deleteDevice(device.id),
+            invalidateKeys: [['user-overview'], ['user'], ['network']],
+            submitProps: { text: m.controls_delete(), variant: 'critical' },
+            onSuccess: () => Snackbar.default(m.user_device_delete_success()),
+            onError: () => Snackbar.error(m.user_device_delete_failed()),
+          });
+        },
+        variant: 'danger',
+        icon: 'delete',
+      });
+
+      return [{ items }];
+    },
     [],
   );
 
@@ -654,6 +671,9 @@ export const UsersTable = () => {
       rowSelection: selected,
       columnFilters: columnFilters,
     },
+    meta: {
+      filterMessages: tableFilterMessages,
+    },
     columns,
     data: transformedData,
     enableRowSelection: true,
@@ -671,8 +691,8 @@ export const UsersTable = () => {
   if (users.length === 0)
     return (
       <EmptyStateFlexible
-        title={`No users here yet.`}
-        subtitle={`Add users by clicking the button below.`}
+        title={m.users_empty_title()}
+        subtitle={m.users_empty_subtitle()}
         primaryAction={addButtonProps}
       />
     );
@@ -684,7 +704,7 @@ export const UsersTable = () => {
           isPresent(groups) && (
             <Button
               variant="outlined"
-              text="Assign to a group"
+              text={m.users_bulk_assign_to_groups()}
               iconLeft="add-group"
               testId="bulk-assign"
               onClick={() => {

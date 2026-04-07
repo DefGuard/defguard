@@ -7,7 +7,6 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
 };
-
 #[cfg(test)]
 use std::{path::PathBuf, time::Duration};
 
@@ -17,7 +16,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            DeviceNetworkInfo, Settings, WireguardNetwork, gateway::Gateway,
+            Certificates, DeviceNetworkInfo, Settings, WireguardNetwork, gateway::Gateway,
             wireguard::DEFAULT_WIREGUARD_MTU,
         },
     },
@@ -51,15 +50,17 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{Code, Status, transport::Endpoint};
-
-use crate::{Client, TEN_SECS, error::GatewayError};
+use tonic::{
+    Code, Status,
+    transport::{Channel, Endpoint},
+};
 
 #[cfg(test)]
 use crate::GatewayManagerTestSupport;
+use crate::{Client, TEN_SECS, error::GatewayError};
 
 #[cfg(test)]
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct GatewayTestTransport {
     socket_path: Option<PathBuf>,
 }
@@ -129,19 +130,17 @@ impl GatewayHandler {
     }
 
     #[cfg(not(test))]
-    fn connect_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
-        self.connect_tls_channel(endpoint)
+    async fn connect_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
+        self.connect_tls_channel(endpoint).await
     }
 
-    fn connect_tls_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
-        let settings = Settings::get_current_settings();
-        let Some(ca_cert_der) = settings.ca_cert_der else {
+    async fn connect_tls_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
+        let certs = Certificates::get_or_default(&self.pool)
+            .await
+            .map_err(|err| {
+                GatewayError::EndpointError(format!("Failed to load certificates from DB: {err}"))
+            })?;
+        let Some(ca_cert_der) = certs.ca_cert_der else {
             return Err(GatewayError::EndpointError(
                 "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
             ));
@@ -212,7 +211,7 @@ impl GatewayHandler {
         let peers = get_location_allowed_peers(&network, &self.pool).await?;
 
         let maybe_firewall_config = try_get_location_firewall_config(&network, &mut conn).await?;
-        let payload = Some(core_response::Payload::Config(gen_config(
+        let payload = Some(core_response::Payload::Config(Configuration::new(
             &network,
             peers,
             maybe_firewall_config,
@@ -371,7 +370,7 @@ impl GatewayHandler {
         let endpoint = self.endpoint()?;
         let uri = endpoint.uri().to_string();
 
-        let channel = self.connect_channel(endpoint)?;
+        let channel = self.connect_channel(&endpoint).await?;
 
         debug!("Connecting to Gateway {uri}");
         let interceptor = ClientVersionInterceptor::new(
@@ -553,10 +552,7 @@ impl GatewayHandler {
             .map_or(TEN_SECS, GatewayManagerTestSupport::handler_reconnect_delay)
     }
 
-    fn connect_channel(
-        &self,
-        endpoint: Endpoint,
-    ) -> Result<tonic::transport::Channel, GatewayError> {
+    async fn connect_channel(&self, endpoint: &Endpoint) -> Result<Channel, GatewayError> {
         if let Some(socket_path) = self.test_transport.socket_path().cloned() {
             return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
                 move |_: tonic::transport::Uri| {
@@ -570,7 +566,7 @@ impl GatewayHandler {
             )));
         }
 
-        self.connect_tls_channel(endpoint)
+        self.connect_tls_channel(endpoint).await
     }
 
     pub(crate) async fn handle_connection_once(&mut self) -> anyhow::Result<()> {
@@ -1006,23 +1002,6 @@ fn try_protos_into_stats_message(
     ))
 }
 
-fn gen_config<I>(
-    network: &WireguardNetwork<I>,
-    peers: Vec<Peer>,
-    maybe_firewall_config: Option<FirewallConfig>,
-) -> Configuration {
-    Configuration {
-        name: network.name.clone(),
-        port: network.port.cast_unsigned(),
-        prvkey: network.prvkey.clone(),
-        addresses: network.address().iter().map(ToString::to_string).collect(),
-        peers,
-        firewall_config: maybe_firewall_config,
-        mtu: network.mtu.cast_unsigned(),
-        fwmark: network.fwmark as u32,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{collections::HashMap, net::IpAddr, str::FromStr, sync::Arc};
@@ -1040,13 +1019,12 @@ mod tests {
         setup_pool,
     };
     use defguard_core::grpc::GatewayEvent;
-    use defguard_proto::gateway::{Peer, PeerStats, core_response};
+    use defguard_proto::gateway::{Configuration, Peer, PeerStats, core_response};
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
     use super::{
-        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, gen_config,
-        try_protos_into_stats_message,
+        FirewallConfig, GatewayHandler, GatewayUpdatesHandler, try_protos_into_stats_message,
     };
 
     fn test_network(location_mfa_mode: LocationMfaMode) -> WireguardNetwork<Id> {
@@ -1151,7 +1129,7 @@ mod tests {
 
     #[test]
     fn gen_config_maps_network_fields() {
-        let config = gen_config(
+        let config = Configuration::new(
             &build_network(),
             vec![Peer {
                 pubkey: "peer-public-key".to_string(),
@@ -1192,7 +1170,7 @@ mod tests {
 
     #[test]
     fn gen_config_preserves_absent_firewall_config_and_empty_peers() {
-        let config = gen_config(&build_network(), Vec::new(), None);
+        let config = Configuration::new(&build_network(), Vec::new(), None);
 
         assert!(config.peers.is_empty());
         assert!(config.firewall_config.is_none());

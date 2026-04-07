@@ -6,7 +6,7 @@ import { Controls } from '../../../shared/components/Controls/Controls';
 import type { WizardPageStep } from '../../../shared/components/wizard/types';
 import { WizardPage } from '../../../shared/components/wizard/WizardPage/WizardPage';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { getSessionInfoQueryOptions } from '../../../shared/query';
 import worldMap from '../assets/world-map.png';
@@ -17,7 +17,11 @@ import { SetupConfirmationStep } from './steps/SetupConfirmationStep';
 import { SetupEdgeAdoptionStep } from './steps/SetupEdgeAdoptionStep';
 import { SetupEdgeComponentStep } from './steps/SetupEdgeComponentStep';
 import { SetupEdgeDeployStepAdapter } from './steps/SetupEdgeDeployStepAdapter';
+import { SetupExternalUrlSettingsStep } from './steps/SetupExternalUrlSettingsStep';
+import { SetupExternalUrlSslConfigStep } from './steps/SetupExternalUrlSslConfigStep';
 import { SetupGeneralConfigStep } from './steps/SetupGeneralConfigStep';
+import { SetupInternalUrlSettingsStep } from './steps/SetupInternalUrlSettingsStep';
+import { SetupInternalUrlSslConfigStep } from './steps/SetupInternalUrlSslConfigStep';
 import { SetupPageStep, type SetupPageStepValue } from './types';
 import { useSetupWizardStore } from './useSetupWizardStore';
 
@@ -28,7 +32,7 @@ const handleStartWizard = () => {
 
 const WelcomePageContent = () => (
   <div className="left">
-    <SizedBox height={ThemeSpacing.Xl} />
+    <Divider spacing={ThemeSpacing.Xl2} />
     <Controls>
       <Button
         text={m.initial_setup_welcome_button_configure()}
@@ -88,9 +92,33 @@ export const SetupPage = () => {
         label: m.initial_setup_step_edge_adoption_label(),
         description: m.initial_setup_step_edge_adoption_description(),
       },
+      internalUrlSettings: {
+        id: SetupPageStep.InternalUrlSettings,
+        order: 8,
+        label: m.initial_setup_step_internal_url_settings_label(),
+        description: m.initial_setup_step_internal_url_settings_description(),
+      },
+      internalUrlSslConfig: {
+        id: SetupPageStep.InternalUrlSslConfig,
+        order: 9,
+        label: m.initial_setup_step_internal_url_ssl_config_label(),
+        description: m.initial_setup_step_internal_url_ssl_config_description(),
+      },
+      externalUrlSettings: {
+        id: SetupPageStep.ExternalUrlSettings,
+        order: 10,
+        label: m.initial_setup_step_external_url_settings_label(),
+        description: m.initial_setup_step_external_url_settings_description(),
+      },
+      externalUrlSslConfig: {
+        id: SetupPageStep.ExternalUrlSslConfig,
+        order: 11,
+        label: m.initial_setup_step_external_url_ssl_config_label(),
+        description: m.initial_setup_step_external_url_ssl_config_description(),
+      },
       confirmation: {
         id: SetupPageStep.Confirmation,
-        order: 8,
+        order: 12,
         label: m.initial_setup_step_confirmation_label(),
         description: m.initial_setup_step_confirmation_description(),
       },
@@ -102,6 +130,10 @@ export const SetupPage = () => {
     (): Record<SetupPageStepValue, ReactNode> => ({
       adminUser: <SetupAdminUserStep />,
       generalConfig: <SetupGeneralConfigStep />,
+      internalUrlSettings: <SetupInternalUrlSettingsStep />,
+      internalUrlSslConfig: <SetupInternalUrlSslConfigStep />,
+      externalUrlSettings: <SetupExternalUrlSettingsStep />,
+      externalUrlSslConfig: <SetupExternalUrlSslConfigStep />,
       certificateAuthority: <SetupCertificateAuthorityStep />,
       certificateAuthoritySummary: <SetupCertificateAuthoritySummaryStep />,
       edgeDeploy: <SetupEdgeDeployStepAdapter />,

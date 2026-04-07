@@ -125,7 +125,7 @@ export const AutoAdoptionAdminUserStep = () => {
       invalidate: ['setupStatus'],
     },
     onSuccess: () => {
-      setActiveStep(AutoAdoptionSetupStep.UrlSettings);
+      setActiveStep(AutoAdoptionSetupStep.InternalUrlSettings);
     },
     onError: (error) => {
       Snackbar.error(m.initial_setup_admin_user_error_create_failed());
@@ -177,6 +177,7 @@ export const AutoAdoptionAdminUserStep = () => {
                   required
                   label={m.initial_setup_admin_user_label_first_name()}
                   type="text"
+                  helper={m.initial_setup_admin_user_helper_first_name()}
                 />
               )}
             </form.AppField>
@@ -186,6 +187,7 @@ export const AutoAdoptionAdminUserStep = () => {
                   required
                   label={m.initial_setup_admin_user_label_last_name()}
                   type="text"
+                  helper={m.initial_setup_admin_user_helper_last_name()}
                 />
               )}
             </form.AppField>
@@ -194,6 +196,7 @@ export const AutoAdoptionAdminUserStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_admin_user_label_username()}
+                  helper={m.initial_setup_admin_user_helper_username()}
                   type="text"
                 />
               )}
@@ -203,6 +206,7 @@ export const AutoAdoptionAdminUserStep = () => {
                 <field.FormInput
                   required
                   label={m.initial_setup_admin_user_label_email()}
+                  helper={m.initial_setup_admin_user_helper_email()}
                 />
               )}
             </form.AppField>
@@ -213,6 +217,7 @@ export const AutoAdoptionAdminUserStep = () => {
                     required
                     label={m.initial_setup_admin_user_label_password()}
                     type="password"
+                    helper={m.initial_setup_admin_user_helper_password()}
                   />
                 )}
               </form.AppField>

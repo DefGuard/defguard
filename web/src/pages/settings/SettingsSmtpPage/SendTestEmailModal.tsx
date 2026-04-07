@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../paraglide/messages';
@@ -6,6 +7,7 @@ import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText'
 import { Modal } from '../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
 import {
   TextStyle,
   ThemeSpacing,
@@ -38,7 +40,7 @@ export const SendTestEmailModal = () => {
 
   return (
     <Modal
-      title={'Send test email'}
+      title={m.settings_smtp_button_send_test_email()}
       isOpen={isOpen}
       onClose={() => setOpen(false)}
       size="small"
@@ -59,6 +61,17 @@ const defaultValues: FormFields = {
 };
 
 const ModalContent = () => {
+  const { mutateAsync: sendTestEmail, isPending } = useMutation({
+    mutationFn: api.mail.sendTestEmail,
+    onSuccess: () => {
+      Snackbar.default(m.settings_smtp_test_success());
+      closeModal(modalNameValue);
+    },
+    onError: () => {
+      Snackbar.error(m.settings_smtp_test_failed());
+    },
+  });
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -67,20 +80,16 @@ const ModalContent = () => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await api.mail
-        .sendTestEmail({
-          email: value.email,
-        })
-        .finally(() => {
-          closeModal(modalNameValue);
-        });
+      await sendTestEmail({
+        to: value.email,
+      });
     },
   });
 
   return (
     <>
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
-        {`Check if your SMTP configuration works by sending a test email.`}
+        {m.settings_smtp_test_email_description()}
       </AppText>
       <SizedBox height={ThemeSpacing.Xl2} />
       <form
@@ -92,7 +101,13 @@ const ModalContent = () => {
       >
         <form.AppForm>
           <form.AppField name="email">
-            {(field) => <field.FormInput required label={m.form_label_email()} />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.form_label_email()}
+                helper={m.settings_smtp_test_email_helper_email()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.Subscribe
@@ -104,12 +119,20 @@ const ModalContent = () => {
             {({ isSubmitting }) => (
               <ModalControls
                 submitProps={{
+                  testId: 'submit',
                   text: m.controls_send_email(),
-                  loading: isSubmitting,
+                  loading: isSubmitting || isPending,
+                  onClick: () => {
+                    form.handleSubmit();
+                  },
                 }}
                 cancelProps={{
+                  testId: 'cancel',
                   text: m.controls_cancel(),
-                  disabled: isSubmitting,
+                  disabled: isSubmitting || isPending,
+                  onClick: () => {
+                    closeModal(modalNameValue);
+                  },
                 }}
               />
             )}

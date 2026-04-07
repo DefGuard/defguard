@@ -99,18 +99,35 @@ export const EditGoogleProviderForm = ({
       }}
     >
       <form.AppForm>
-        <EditPageFormSection label="Client settings">
+        <EditPageFormSection label={m.settings_openid_provider_client_settings_title()}>
           <form.AppField name="display_name">
-            {(field) => <field.FormInput required label="Display name" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_display_name()}
+                helper={m.settings_openid_provider_helper_display_name()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_id">
-            {(field) => <field.FormInput required label="Client ID" />}
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.settings_openid_provider_label_client_id()}
+                helper={m.settings_openid_provider_helper_client_id()}
+              />
+            )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="client_secret">
             {(field) => (
-              <field.FormInput type="password" required label="Client secret" />
+              <field.FormInput
+                type="password"
+                required
+                label={m.settings_openid_provider_label_client_secret()}
+                helper={m.settings_openid_provider_helper_client_secret()}
+              />
             )}
           </form.AppField>
           <SizedBox height={ThemeSpacing.Xl2} />
@@ -118,7 +135,8 @@ export const EditGoogleProviderForm = ({
             {(field) => (
               <field.FormSelect
                 options={providerUsernameHandlingOptions}
-                label="Username handling"
+                label={m.settings_openid_provider_label_username_handling()}
+                helper={m.settings_openid_provider_helper_username_handling()}
               />
             )}
           </form.AppField>
@@ -127,15 +145,19 @@ export const EditGoogleProviderForm = ({
             {(field) => (
               <field.FormInteractiveBlock
                 variant="checkbox"
-                title={`Automatically create user account when logging in for the first time through external OpenID.`}
-                content={`If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID. Otherwise, the user account must first be created by an administrator.`}
+                title={m.settings_openid_provider_create_account_title()}
+                content={m.settings_openid_provider_create_account_content()}
               />
             )}
           </form.AppField>
         </EditPageFormSection>
-        <EditPageFormSection label="Directory synchronization">
+        <EditPageFormSection label={m.settings_openid_provider_directory_sync_title()}>
           <form.AppField name="directory_sync_enabled">
-            {(field) => <field.FormToggle label="Directory synchronization" />}
+            {(field) => (
+              <field.FormToggle
+                label={m.settings_openid_provider_directory_sync_toggle()}
+              />
+            )}
           </form.AppField>
           <form.Subscribe selector={(s) => s.values.directory_sync_enabled}>
             {(enabled) => (
@@ -145,7 +167,8 @@ export const EditGoogleProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncTargetOptions}
-                      label="Synchronize"
+                      label={m.settings_openid_provider_label_sync_target()}
+                      helper={m.settings_openid_provider_helper_sync_target()}
                     />
                   )}
                 </form.AppField>
@@ -154,8 +177,9 @@ export const EditGoogleProviderForm = ({
                   {(field) => (
                     <field.FormInput
                       required
-                      label="Synchronize interval"
+                      label={m.settings_openid_provider_label_sync_interval()}
                       type="number"
+                      helper={m.settings_openid_provider_helper_sync_interval()}
                     />
                   )}
                 </form.AppField>
@@ -164,7 +188,8 @@ export const EditGoogleProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
-                      label="User behavior"
+                      label={m.settings_openid_provider_label_sync_user_behavior()}
+                      helper={m.settings_openid_provider_helper_sync_user_behavior()}
                     />
                   )}
                 </form.AppField>
@@ -173,17 +198,26 @@ export const EditGoogleProviderForm = ({
                   {(field) => (
                     <field.FormSelect
                       options={directorySyncBehaviorOptions}
-                      label="Admin behavior"
+                      label={m.settings_openid_provider_label_sync_admin_behavior()}
+                      helper={m.settings_openid_provider_helper_sync_admin_behavior()}
                     />
                   )}
                 </form.AppField>
                 <SizedBox height={ThemeSpacing.Xl2} />
                 <form.AppField name="admin_email">
-                  {(field) => <field.FormInput required label="Admin email" />}
+                  {(field) => (
+                    <field.FormInput
+                      required
+                      label={m.settings_openid_provider_label_admin_email()}
+                      helper={m.settings_openid_provider_helper_admin_email()}
+                    />
+                  )}
                 </form.AppField>
                 <SizedBox height={ThemeSpacing.Xl2} />
-                <DescriptionBlock title="Service account key">
-                  <p>{`Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.`}</p>
+                <DescriptionBlock
+                  title={m.settings_openid_provider_google_service_account_key_title()}
+                >
+                  <p>{m.settings_openid_provider_google_service_account_key_content()}</p>
                 </DescriptionBlock>
                 <SizedBox height={ThemeSpacing.Xl} />
                 <form.AppField name="google_service_account_file">
@@ -198,7 +232,7 @@ export const EditGoogleProviderForm = ({
             <EditPageControls
               deleteProps={{
                 disabled: submitting,
-                text: 'Delete provider',
+                text: m.settings_openid_provider_delete_button(),
                 onClick: onDelete,
               }}
               cancelProps={{

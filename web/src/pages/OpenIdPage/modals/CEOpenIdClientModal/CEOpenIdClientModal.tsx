@@ -191,7 +191,11 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
       <form.AppForm>
         <form.AppField name="name">
           {(field) => (
-            <field.FormInput label={m.modal_ce_openid_client_label_name()} required />
+            <field.FormInput
+              label={m.modal_ce_openid_client_label_name()}
+              required
+              helper={m.modal_ce_openid_client_helper_name()}
+            />
           )}
         </form.AppField>
         <SizedBox height={ThemeSpacing.Lg} />
@@ -208,6 +212,7 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
                           label={m.modal_ce_openid_client_label_redirect({
                             index: index + 1,
                           })}
+                          helper={m.modal_ce_openid_client_helper_redirect_uri()}
                           onDismiss={
                             index !== 0
                               ? (e) => {

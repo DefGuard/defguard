@@ -323,8 +323,7 @@ impl WireguardNetwork<Id> {
         Ok(Some(networks))
     }
 
-    /// Gets the first network of the network device.
-    /// FIXME: Return only one network, not a Vec.
+    /// Gets all networks of the network device.
     pub async fn find_network_device_networks<'e, E>(
         executor: E,
         device_id: Id,
@@ -696,7 +695,7 @@ impl WireguardNetwork<Id> {
                 .await?
                 .ok_or(sqlx::Error::RowNotFound)?;
             stats.push(WireguardUserStatsRow {
-                user: UserInfo::from_user(conn, &user).await?,
+                user: UserInfo::from_user(conn, user).await?,
                 devices: u.1.clone(),
             });
         }

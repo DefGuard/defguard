@@ -12,9 +12,8 @@ use reqwest::{StatusCode, Url, header::CONTENT_TYPE};
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use crate::api::PaginatedApiResponse;
-
 use super::common::{make_client_with_db, setup_pool};
+use crate::api::PaginatedApiResponse;
 
 #[sqlx::test]
 async fn test_authorize(_: PgPoolOptions, options: PgConnectOptions) {

@@ -1,4 +1,12 @@
+#settings-license-tab {
+  #license-main-card {
+    padding: var(--spacing-lg);
+  }
+}
+
 #license-plans {
+  padding: var(--spacing-lg) var(--spacing-xl);
+
   header {
     display: flex;
     flex-flow: row;
@@ -32,7 +40,6 @@
       & > .content {
         display: flex;
         flex-flow: column;
-        row-gap: var(--spacing-xs);
 
         .top {
           width: 100%;
@@ -69,6 +76,8 @@
 }
 
 #license-expired-notice {
+  padding: var(--spacing-lg) var(--spacing-xl);
+
   .notice-track {
     display: grid;
     grid-template-columns: 68px 1fr;
@@ -85,7 +94,6 @@
       display: flex;
       flex-flow: column;
       align-items: flex-start;
-      gap: var(--spacing-md);
 
       .title {
         color: var(--fg-critical);

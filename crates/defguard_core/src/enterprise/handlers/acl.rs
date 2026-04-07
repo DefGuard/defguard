@@ -9,7 +9,7 @@ use axum::{
 use chrono::NaiveDateTime;
 use defguard_common::db::Id;
 use serde_json::{Value, json};
-use sqlx::query_as;
+use sqlx::{PgConnection, query_as};
 use utoipa::ToSchema;
 
 use super::LicenseInfo;
@@ -32,6 +32,8 @@ pub struct ApiAclRule {
     pub parent_id: Option<Id>,
     pub state: RuleState,
     pub name: String,
+    pub modified_at: NaiveDateTime,
+    pub modified_by: String,
     pub all_locations: bool,
     pub locations: Vec<Id>,
     pub expires: Option<NaiveDateTime>,
@@ -71,6 +73,8 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
             parent_id: info.parent_id,
             state: info.state,
             name: info.name,
+            modified_at: info.modified_at,
+            modified_by: info.modified_by,
             all_locations: info.all_locations,
             locations: info.locations.iter().map(|v| v.id).collect(),
             expires: info.expires,
@@ -133,17 +137,52 @@ pub struct EditAclRule {
 }
 
 impl EditAclRule {
-    pub fn validate(&self) -> Result<(), WebError> {
-        let manual_configured = self.any_address
-            || self.any_port
-            || self.any_protocol
-            || !self.addresses.trim().is_empty()
-            || !self.ports.trim().is_empty()
-            || !self.protocols.is_empty();
+    pub async fn validate(&self, conn: &mut PgConnection) -> Result<(), WebError> {
         if self.use_manual_destination_settings {
-            if !manual_configured {
+            // Determine what the selected component aliases collectively contribute.
+            // Note: Component-kind aliases always have any_address/any_port/any_protocol = false,
+            // so we only check whether they have non-empty arrays.
+            let (alias_has_address, alias_has_port, alias_has_protocol) = if self.aliases.is_empty()
+            {
+                (false, false, false)
+            } else {
+                let row = query_as::<_, (Option<bool>, Option<bool>, Option<bool>)>(
+                    "SELECT \
+                            bool_or(array_length(addresses, 1) > 0) \
+                                OR EXISTS ( \
+                                    SELECT 1 FROM aclaliasdestinationrange dr \
+                                    JOIN aclalias a ON a.id = dr.alias_id \
+                                    WHERE a.id = ANY($1) \
+                                      AND a.kind = 'component'::aclalias_kind \
+                                ), \
+                            bool_or(array_length(ports, 1) > 0), \
+                            bool_or(array_length(protocols, 1) > 0) \
+                        FROM aclalias WHERE id = ANY($1) AND kind = 'component'::aclalias_kind",
+                )
+                .bind(&self.aliases)
+                .fetch_one(&mut *conn)
+                .await
+                .map_err(WebError::from)?;
+                (
+                    row.0.unwrap_or(false),
+                    row.1.unwrap_or(false),
+                    row.2.unwrap_or(false),
+                )
+            };
+
+            if !self.any_address && self.addresses.trim().is_empty() && !alias_has_address {
                 return Err(WebError::BadRequest(
-                    "Must provide manual destination settings".to_string(),
+                    "Must provide destination address, or enable any address".to_string(),
+                ));
+            }
+            if !self.any_port && self.ports.trim().is_empty() && !alias_has_port {
+                return Err(WebError::BadRequest(
+                    "Must provide destination port, or enable any port".to_string(),
+                ));
+            }
+            if !self.any_protocol && self.protocols.is_empty() && !alias_has_protocol {
+                return Err(WebError::BadRequest(
+                    "Must provide destination protocol, or enable any protocol".to_string(),
                 ));
             }
         } else if self.destinations.is_empty() {
@@ -343,15 +382,15 @@ pub(crate) async fn create_acl_rule(
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
 
-    // validate submitted ACL rule
-    data.validate()?;
-
-    let rule = AclRule::create_from_api(&appstate.pool, &data)
+    let mut tx = appstate.pool.begin().await?;
+    data.validate(&mut tx).await?;
+    let rule = AclRule::create_from_api(&mut tx, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error creating ACL rule {data:?}: {err}");
             err
         })?;
+    tx.commit().await?;
     info!(
         "User {} created ACL rule {}",
         session.user.username, rule.id
@@ -382,15 +421,15 @@ pub(crate) async fn update_acl_rule(
 ) -> ApiResult {
     debug!("User {} updating ACL rule {data:?}", session.user.username);
 
-    // validate submitted ACL rule
-    data.validate()?;
-
-    let rule = AclRule::update_from_api(&appstate.pool, id, &data)
+    let mut tx = appstate.pool.begin().await?;
+    data.validate(&mut tx).await?;
+    let rule = AclRule::update_from_api(&mut tx, id, &data, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error updating ACL rule {data:?}: {err}");
             err
         })?;
+    tx.commit().await?;
     info!("User {} updated ACL rule", session.user.username);
     Ok(ApiResponse::json(rule, StatusCode::OK))
 }
@@ -415,7 +454,7 @@ pub(crate) async fn delete_acl_rule(
     Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} deleting ACL rule {id}", session.user.username);
-    AclRule::delete_from_api(&appstate.pool, id)
+    AclRule::delete_from_api(&appstate.pool, id, &session.user.username)
         .await
         .map_err(|err| {
             error!("Error deleting ACL rule {id}: {err}");
@@ -445,7 +484,7 @@ pub(crate) async fn apply_acl_rules(
         "User {} applying ACL rules: {:?}",
         session.user.username, data.rules
     );
-    AclRule::apply_rules(&data.rules, &appstate)
+    AclRule::apply_rules(&data.rules, &session.user.username, &appstate)
         .await
         .map_err(|err| {
             error!("Error applying ACL rules {data:?}: {err}");

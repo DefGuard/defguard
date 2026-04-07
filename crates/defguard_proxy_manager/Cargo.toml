@@ -19,6 +19,7 @@ defguard_grpc_tls.workspace = true
 
 axum.workspace = true
 axum-extra.workspace = true
+chrono.workspace = true
 semver.workspace = true
 hyper-rustls.workspace = true
 openidconnect.workspace = true
@@ -29,3 +30,18 @@ tokio.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+base32.workspace = true
+base64.workspace = true
+hyper-util = "0.1"
+ipnetwork.workspace = true
+jsonwebkey = { workspace = true }
+jsonwebtoken.workspace = true
+rand.workspace = true
+rsa.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tower.workspace = true
+totp-lite.workspace = true
+

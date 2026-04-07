@@ -5,15 +5,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { Controls } from '../../../shared/components/Controls/Controls';
-import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
-import { isValidDefguardUrl } from '../../../shared/utils/defguardUrl';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 
 export const MigrationWizardGeneralConfigurationStep = () => {
@@ -27,16 +24,15 @@ export const MigrationWizardGeneralConfigurationStep = () => {
   const formSchema = useMemo(
     () =>
       z.object({
-        defguard_url: z
-          .url(m.migration_wizard_general_config_error_invalid_url())
-          .min(1, m.migration_wizard_general_config_error_defguard_url_required())
-          .refine(
-            isValidDefguardUrl,
-            m.migration_wizard_general_config_error_defguard_url_invalid_host(),
-          ),
-        public_proxy_url: z
-          .url(m.migration_wizard_general_config_error_public_proxy_url_invalid())
-          .min(1, m.migration_wizard_general_config_error_public_proxy_url_required()),
+        default_admin_group_name: z
+          .string()
+          .min(1, m.migration_wizard_general_config_error_admin_group_required()),
+        authentication_period_days: z
+          .number()
+          .min(1, m.migration_wizard_general_config_error_auth_period_min()),
+        mfa_code_timeout_seconds: z
+          .number()
+          .min(60, m.migration_wizard_general_config_error_mfa_timeout_min()),
       }),
     [],
   );
@@ -45,8 +41,9 @@ export const MigrationWizardGeneralConfigurationStep = () => {
   const defaultValues = useMigrationWizardStore(
     useShallow(
       (s): FormFields => ({
-        defguard_url: s.defguard_url,
-        public_proxy_url: s.public_proxy_url,
+        default_admin_group_name: s.default_admin_group_name,
+        authentication_period_days: s.authentication_period_days,
+        mfa_code_timeout_seconds: s.mfa_code_timeout_seconds,
       }),
     ),
   );
@@ -60,10 +57,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
     },
     onSubmit: async ({ value }) => {
       await mutateAsync(value);
-      useMigrationWizardStore.setState({
-        defguard_url: value.defguard_url,
-        public_proxy_url: value.public_proxy_url,
-      });
+      useMigrationWizardStore.setState(value);
       useMigrationWizardStore.getState().next();
     },
   });
@@ -78,30 +72,35 @@ export const MigrationWizardGeneralConfigurationStep = () => {
         }}
       >
         <form.AppForm>
-          <DescriptionBlock title={m.migration_wizard_general_config_private_url_title()}>
-            <p>{m.migration_wizard_general_config_private_url_description()}</p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <form.AppField name="defguard_url">
+          <form.AppField name="default_admin_group_name">
             {(field) => (
               <field.FormInput
                 required
-                label={m.migration_wizard_general_config_label_defguard_url()}
+                label={m.migration_wizard_general_config_label_admin_group()}
+                helper={m.migration_wizard_general_config_helper_admin_group()}
                 type="text"
               />
             )}
           </form.AppField>
-          <Divider spacing={ThemeSpacing.Xl} />
-          <DescriptionBlock title={m.migration_wizard_general_config_public_url_title()}>
-            <p>{m.migration_wizard_general_config_public_url_description()}</p>
-          </DescriptionBlock>
-          <SizedBox height={ThemeSpacing.Lg} />
-          <form.AppField name="public_proxy_url">
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="authentication_period_days">
             {(field) => (
               <field.FormInput
                 required
-                label={m.migration_wizard_general_config_label_public_proxy_url()}
-                type="text"
+                label={m.migration_wizard_general_config_label_auth_period()}
+                helper={m.migration_wizard_general_config_helper_auth_period()}
+                type="number"
+              />
+            )}
+          </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <form.AppField name="mfa_code_timeout_seconds">
+            {(field) => (
+              <field.FormInput
+                required
+                label={m.migration_wizard_general_config_label_mfa_timeout()}
+                helper={m.migration_wizard_general_config_helper_mfa_timeout()}
+                type="number"
               />
             )}
           </form.AppField>

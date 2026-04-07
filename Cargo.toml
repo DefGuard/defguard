@@ -36,6 +36,7 @@ anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 axum-client-ip = "0.7"
+axum-server = { version = "0.8", features = ["tls-rustls"] }
 axum-extra = { version = "0.12", features = [
     "cookie-private",
     "cookie-key-expansion",
@@ -128,7 +129,6 @@ tonic-prost-build = "0.14"
 totp-lite = { version = "2.0" }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "trace", "set-header"] }
-tower-service = "0.3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"

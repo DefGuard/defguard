@@ -12,7 +12,7 @@ use axum_extra::{
 };
 use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
 use defguard_common::db::models::{
-    Session, SessionState, Settings, User,
+    Certificates, Session, SessionState, Settings, User,
     group::Group,
     initial_setup_wizard::{InitialSetupState, InitialSetupStep},
     settings::update_current_settings,
@@ -37,11 +37,17 @@ use tracing::{debug, info};
 
 use crate::handlers::auto_wizard::{advance_auto_wizard_to_step, is_auto_wizard_active};
 
-async fn advance_initial_wizard_to_step(
+pub(crate) async fn advance_initial_wizard_to_step(
     pool: &PgPool,
     step: InitialSetupStep,
 ) -> Result<(), WebError> {
     let wizard = Wizard::get(pool).await?;
+
+    // Don't try to advance if the initial wizard is not active
+    if wizard.active_wizard != ActiveWizard::Initial {
+        debug!("Not advancing initial wizard step as initial wizard is not active");
+        return Ok(());
+    }
 
     // Don't try to advance if setup is already completed
     if wizard.completed {
@@ -261,11 +267,9 @@ pub async fn setup_session(session: SessionInfo, Extension(pool): Extension<PgPo
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GeneralConfig {
-    defguard_url: String,
     default_admin_group_name: String,
     default_authentication: u32,
     default_mfa_code_lifetime: u32,
-    public_proxy_url: String,
 }
 
 pub async fn set_general_config(
@@ -275,15 +279,13 @@ pub async fn set_general_config(
 ) -> ApiResult {
     info!("Applying initial general configuration settings");
     debug!(
-        "General configuration received: defguard_url={}, default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}",
-        general_config.defguard_url,
+        "General configuration received: default_admin_group_name={}, default_authentication={}, default_mfa_code_lifetime={}",
         general_config.default_admin_group_name,
         general_config.default_authentication,
         general_config.default_mfa_code_lifetime,
     );
     let default_admin_group_name = general_config.default_admin_group_name.clone();
     let mut settings = Settings::get_current_settings();
-    settings.defguard_url = general_config.defguard_url;
     settings.default_admin_group_name = general_config.default_admin_group_name;
     settings.authentication_period_days = general_config
         .default_authentication
@@ -295,7 +297,6 @@ pub async fn set_general_config(
         .default_mfa_code_lifetime
         .try_into()
         .map_err(|err| WebError::BadRequest(format!("Invalid MFA code timeout seconds: {err}")))?;
-    settings.public_proxy_url = general_config.public_proxy_url;
     update_current_settings(&pool, settings).await?;
     let settings = Settings::get_current_settings();
     debug!("Settings persisted");
@@ -356,7 +357,6 @@ pub async fn create_ca(
         "CA request details: common_name={}, email={}, validity_period_years={}",
         ca_info.common_name, ca_info.email, ca_info.validity_period_years
     );
-    let mut settings = Settings::get_current_settings();
     let ca = defguard_certs::CertificateAuthority::new(
         &ca_info.common_name,
         &ca_info.email,
@@ -365,11 +365,13 @@ pub async fn create_ca(
 
     let (cert_der, key_der) = (ca.cert_der().to_vec(), ca.key_pair_der().to_vec());
 
-    settings.ca_cert_der = Some(cert_der);
-    settings.ca_key_der = Some(key_der);
-    settings.ca_expiry = Some(ca.expiry()?);
-
-    update_current_settings(&pool, settings).await?;
+    let mut certs = Certificates::get_or_default(&pool)
+        .await
+        .map_err(WebError::from)?;
+    certs.ca_cert_der = Some(cert_der);
+    certs.ca_key_der = Some(key_der);
+    certs.ca_expiry = Some(ca.expiry()?);
+    certs.save(&pool).await.map_err(WebError::from)?;
 
     info!("Certificate authority created and stored");
 
@@ -384,9 +386,11 @@ pub async fn create_ca(
 
 pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
     debug!("Fetching certificate authority details");
-    let settings = Settings::get_current_settings();
+    let certs = Certificates::get_or_default(&pool)
+        .await
+        .map_err(WebError::from)?;
     let wizard = Wizard::get(&pool).await?;
-    if let Some(ca_cert_der) = settings.ca_cert_der {
+    if let Some(ca_cert_der) = certs.ca_cert_der {
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
         let info = CertificateInfo::from_der(&ca_cert_der)?;
         let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
@@ -425,12 +429,13 @@ pub async fn upload_ca(
     let cert_der = parse_pem_certificate(&ca_info.cert_file)?;
     let expiry = CertificateInfo::from_der(&cert_der)?.not_after;
 
-    let mut settings = Settings::get_current_settings();
-    settings.ca_cert_der = Some(cert_der.to_vec());
-    settings.ca_key_der = None; // Key is not provided when uploading CA
-    settings.ca_expiry = Some(expiry);
-
-    update_current_settings(&pool, settings).await?;
+    let mut certs = Certificates::get_or_default(&pool)
+        .await
+        .map_err(WebError::from)?;
+    certs.ca_cert_der = Some(cert_der.to_vec());
+    certs.ca_key_der = None; // Key is not provided when uploading CA
+    certs.ca_expiry = Some(expiry);
+    certs.save(&pool).await.map_err(WebError::from)?;
 
     advance_initial_wizard_to_step(&pool, InitialSetupStep::CaSummary).await?;
 

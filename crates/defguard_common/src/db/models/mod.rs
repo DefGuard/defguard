@@ -1,6 +1,7 @@
 pub mod auth_code;
 pub mod authentication_key;
 pub mod biometric_auth;
+pub mod certificates;
 pub mod device;
 pub mod device_login;
 pub mod error;
@@ -28,6 +29,7 @@ pub mod yubikey;
 pub use auth_code::AuthCode;
 pub use authentication_key::{AuthenticationKey, AuthenticationKeyType};
 pub use biometric_auth::{BiometricAuth, BiometricChallenge};
+pub use certificates::{Certificates, CoreCertSource, ProxyCertSource};
 pub use device::{Device, DeviceConfig, DeviceError, DeviceNetworkInfo, DeviceType};
 pub use device_login::DeviceLoginEvent;
 pub use error::ModelError;

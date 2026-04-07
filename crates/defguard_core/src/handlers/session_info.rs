@@ -10,6 +10,7 @@ struct SessionInfoResponse {
     authorized: bool,
     is_admin: bool,
     active_wizard: Option<ActiveWizard>,
+    username: Option<String>,
 }
 
 pub async fn get_session_info(
@@ -30,6 +31,7 @@ pub async fn get_session_info(
                 authorized: false,
                 is_admin: false,
                 active_wizard,
+                username: None,
             },
             StatusCode::OK,
         ));
@@ -41,6 +43,7 @@ pub async fn get_session_info(
                 authorized: false,
                 is_admin: false,
                 active_wizard,
+                username: None,
             },
             StatusCode::OK,
         ));
@@ -53,6 +56,7 @@ pub async fn get_session_info(
             authorized: true,
             is_admin: user_admin,
             active_wizard,
+            username: Some(user.username),
         },
         StatusCode::OK,
     ))

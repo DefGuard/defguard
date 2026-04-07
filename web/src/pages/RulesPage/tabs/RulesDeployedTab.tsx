@@ -1,6 +1,8 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
+import { m } from '../../../paraglide/messages';
+import { AclListTab } from '../../../shared/aclTabs';
 import { AclStatus } from '../../../shared/api/types';
 import { TableSkeleton } from '../../../shared/components/skeleton/TableSkeleton/TableSkeleton';
 import type { ButtonProps } from '../../../shared/defguard-ui/components/Button/types';
@@ -26,14 +28,19 @@ export const RulesDeployedTab = () => {
   const buttonProps = useMemo(
     (): ButtonProps => ({
       variant: 'primary',
-      text: 'Create new rule',
+      text: m.acl_rules_button_create(),
       iconLeft: 'add-rule',
       disabled: loading,
       onClick: () => {
         if (license === undefined) return;
 
         licenseActionCheck(canUseBusinessFeature(license), () => {
-          navigate({ to: '/acl/add-rule' });
+          navigate({
+            to: '/acl/add-rule',
+            search: {
+              tab: AclListTab.Deployed,
+            },
+          });
         });
       },
     }),
@@ -45,8 +52,8 @@ export const RulesDeployedTab = () => {
       {isEmpty && (
         <EmptyStateFlexible
           icon="rules"
-          title={`You don't have any firewall rules yet.`}
-          subtitle={`Click the first rule by clicking button below.`}
+          title={m.acl_rules_empty_deployed_title()}
+          subtitle={m.acl_rules_empty_deployed_subtitle()}
           primaryAction={buttonProps}
         />
       )}
@@ -57,8 +64,8 @@ export const RulesDeployedTab = () => {
         isPresent(locations) &&
         license !== undefined && (
           <RulesTable
-            variant="deployed"
-            title="Deployed rules"
+            variant={AclListTab.Deployed}
+            title={m.acl_rules_table_title_deployed()}
             buttonProps={buttonProps}
             data={rules}
             aliases={aliases}

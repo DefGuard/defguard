@@ -95,7 +95,7 @@ const EnrollmentStep = () => {
               ctx.addIssue({
                 code: 'custom',
                 path: ['email'],
-                message: result.error.message,
+                message: result.error.issues[0]?.message ?? m.form_error_required(),
               });
             }
           }
@@ -184,6 +184,7 @@ const EnrollmentStep = () => {
                   required={sendEmail}
                   disabled={!sendEmail}
                   label={m.form_label_email()}
+                  helper={m.form_helper_email()}
                 />
               )}
             </form.AppField>
@@ -406,6 +407,7 @@ const AddUserModalForm = () => {
                   data-testid="field-username"
                   required
                   label={m.form_label_username()}
+                  helper={m.form_helper_username()}
                 />
               )}
             </form.AppField>
@@ -415,6 +417,7 @@ const AddUserModalForm = () => {
                   data-testid="field-email"
                   required
                   label={m.form_label_email()}
+                  helper={m.form_helper_email()}
                 />
               )}
             </form.AppField>
@@ -427,6 +430,7 @@ const AddUserModalForm = () => {
                   <field.FormInput
                     required
                     label={m.form_label_password()}
+                    helper={m.form_helper_password()}
                     mapError={(val) => mapPasswordFieldError(val, true)}
                     type="password"
                   />
@@ -444,6 +448,7 @@ const AddUserModalForm = () => {
                   data-testid="field-first_name"
                   required
                   label={m.form_label_first_name()}
+                  helper={m.form_helper_first_name()}
                 />
               )}
             </form.AppField>
@@ -453,6 +458,7 @@ const AddUserModalForm = () => {
                   data-testid="field-last_name"
                   required
                   label={m.form_label_last_name()}
+                  helper={m.form_helper_last_name()}
                 />
               )}
             </form.AppField>
@@ -460,7 +466,11 @@ const AddUserModalForm = () => {
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="phone">
             {(field) => (
-              <field.FormInput data-testid="field-phone" label={m.form_label_phone()} />
+              <field.FormInput
+                data-testid="field-phone"
+                label={m.form_label_phone()}
+                helper={m.form_helper_phone()}
+              />
             )}
           </form.AppField>
         </form.AppForm>

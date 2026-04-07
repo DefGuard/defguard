@@ -4,7 +4,7 @@ use defguard_common::{
         Id,
         models::{
             Device, DeviceType, User, WireguardNetwork,
-            group::Group,
+            group::{Group, Permission},
             settings::initialize_current_settings,
             wireguard::{LocationMfaMode, ServiceLocationMode},
         },
@@ -90,6 +90,21 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
     rule.save(pool).await.unwrap();
 }
 
+async fn authenticate_promoted_admin(client: &mut TestClient, pool: &PgPool, username: &str) {
+    let user = User::find_by_username(pool, username)
+        .await
+        .unwrap()
+        .unwrap();
+    let admin_group = Group::find_by_permission(pool, Permission::IsAdmin)
+        .await
+        .unwrap()
+        .into_iter()
+        .next()
+        .expect("admin group should exist in test database");
+    user.add_to_group(pool, &admin_group).await.unwrap();
+    client.login_user(username, "pass123").await;
+}
+
 fn make_alias() -> EditAclAlias {
     EditAclAlias {
         name: "alias".to_string(),
@@ -123,12 +138,16 @@ fn edit_rule_data_into_api_response(
     id: Id,
     parent_id: Option<Id>,
     state: RuleState,
+    modified_at: chrono::NaiveDateTime,
+    modified_by: String,
 ) -> ApiAclRule {
     ApiAclRule {
         id,
         parent_id,
         state,
         name: data.name.clone(),
+        modified_at,
+        modified_by,
         all_locations: data.all_locations,
         locations: data.locations.clone(),
         expires: data.expires,
@@ -176,6 +195,12 @@ fn edit_alias_data_into_api_response(
         protocols: data.protocols,
         rules,
     }
+}
+
+async fn create_alias(client: &mut TestClient, alias: EditAclAlias) -> i64 {
+    let resp = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    resp.json::<Value>().await["id"].as_i64().unwrap()
 }
 
 fn edit_destination_data_into_api_response(

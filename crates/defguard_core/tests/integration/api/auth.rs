@@ -1060,3 +1060,184 @@ async fn test_all_session_logout(_: PgPoolOptions, options: PgConnectOptions) {
     let auth_cookie = response.cookies().find(|c| c.name() == SESSION_COOKIE_NAME);
     assert!(auth_cookie.is_none());
 }
+
+async fn setup_email_mfa_secret(pool: &sqlx::PgPool, username: &str) -> AuthCode {
+    let mut user = User::find_by_username(pool, username)
+        .await
+        .unwrap()
+        .unwrap();
+    user.new_email_secret(pool).await.unwrap();
+    let user = User::find_by_username(pool, username)
+        .await
+        .unwrap()
+        .unwrap();
+    let code = user
+        .generate_email_mfa_code()
+        .expect("email_mfa_secret must be set after new_email_secret");
+    AuthCode::new(code)
+}
+
+/// Verifies that enabling email MFA for a user with no prior MFA method persists
+/// `email_mfa_enabled = true` and sets `mfa_method = Email` in the database.
+#[sqlx::test]
+async fn test_email_mfa_enable_persists(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("hpotter", "pass123").await;
+
+    let code = setup_email_mfa_secret(&pool, "hpotter").await;
+
+    let response = client.post("/api/v1/auth/email").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let recovery_codes: RecoveryCodes = response.json().await;
+    assert_eq!(
+        recovery_codes.codes.as_ref().unwrap().len(),
+        8,
+        "enabling email MFA must return 8 recovery codes"
+    );
+
+    client.verify_api_events(&[ApiEventType::MfaEmailEnabled]);
+
+    let user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        user.email_mfa_enabled,
+        "email_mfa_enabled must be persisted after enabling email MFA"
+    );
+    assert_eq!(
+        user.mfa_method,
+        MFAMethod::Email,
+        "mfa_method must be set to Email when it was previously None"
+    );
+}
+
+/// Verifies that `email_mfa_enabled` is persisted even when `mfa_method` is
+/// already set to a non-`None` value (and thus the inner branch is skipped).
+#[sqlx::test]
+async fn test_email_mfa_enable_persists_with_existing_mfa_method(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("hpotter", "pass123").await;
+
+    let mut user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+    user.set_mfa_method(&pool, MFAMethod::OneTimePassword)
+        .await
+        .unwrap();
+
+    let code = setup_email_mfa_secret(&pool, "hpotter").await;
+
+    let response = client.post("/api/v1/auth/email").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    client.verify_api_events(&[ApiEventType::MfaEmailEnabled]);
+
+    let user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        user.email_mfa_enabled,
+        "email_mfa_enabled must be persisted even when another MFA method is already active"
+    );
+    assert_eq!(
+        user.mfa_method,
+        MFAMethod::OneTimePassword,
+        "mfa_method must remain OneTimePassword since it was already configured"
+    );
+}
+
+/// Verifies that enabling TOTP for a user with no prior MFA method persists
+/// `totp_enabled = true` and sets `mfa_method = OneTimePassword` in the database.
+#[sqlx::test]
+async fn test_totp_enable_persists(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("hpotter", "pass123").await;
+
+    // Init TOTP — the secret is returned directly, no SMTP required.
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
+
+    let code = totp_code(&auth_totp);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let recovery_codes: RecoveryCodes = response.json().await;
+    assert_eq!(
+        recovery_codes.codes.as_ref().unwrap().len(),
+        8,
+        "enabling TOTP must return 8 recovery codes"
+    );
+
+    client.verify_api_events(&[ApiEventType::MfaTotpEnabled]);
+
+    let user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        user.totp_enabled,
+        "totp_enabled must be persisted after enabling TOTP"
+    );
+    assert_eq!(
+        user.mfa_method,
+        MFAMethod::OneTimePassword,
+        "mfa_method must be set to OneTimePassword when it was previously None"
+    );
+}
+
+/// Verifies that `totp_enabled` is persisted even when `mfa_method` is
+/// already set to a non-`None` value (and thus the inner branch is skipped).
+#[sqlx::test]
+async fn test_totp_enable_persists_with_existing_mfa_method(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("hpotter", "pass123").await;
+
+    let mut user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+    user.set_mfa_method(&pool, MFAMethod::Email).await.unwrap();
+
+    let response = client.post("/api/v1/auth/totp/init").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let auth_totp: AuthTotp = response.json().await;
+
+    let code = totp_code(&auth_totp);
+    let response = client.post("/api/v1/auth/totp").json(&code).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    client.verify_api_events(&[ApiEventType::MfaTotpEnabled]);
+
+    let user = User::find_by_username(&pool, "hpotter")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        user.totp_enabled,
+        "totp_enabled must be persisted even when another MFA method is already active"
+    );
+    assert_eq!(
+        user.mfa_method,
+        MFAMethod::Email,
+        "mfa_method must remain Email since it was already configured"
+    );
+}

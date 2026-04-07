@@ -7,9 +7,10 @@ use axum::serve;
 use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};
 use defguard_common::{
     VERSION,
+    config::DefGuardConfig,
     db::{
         models::{
-            Session, Settings, User,
+            Certificates, Session, Settings, User,
             group::Group,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             settings::initialize_current_settings,
@@ -51,7 +52,7 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -108,7 +109,7 @@ async fn test_create_admin_with_automatic_group_assignment(
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -155,7 +156,7 @@ async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnect
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -205,7 +206,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -226,12 +227,10 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let payload = json!({
-        "defguard_url": "https://example.com",
         "default_admin_group_name": "admins",
         "default_authentication": 14,
         "default_mfa_code_lifetime": 120,
-        "admin_username": "admin1",
-        "public_proxy_url": "https://proxy.example.com"
+        "admin_username": "admin1"
     });
 
     let response = client
@@ -246,7 +245,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch settings")
         .expect("Settings not found");
-    assert_eq!(settings.defguard_url, "https://example.com");
+    assert_eq!(settings.defguard_url, "http://localhost:8000");
     assert_eq!(settings.default_admin_group_name, "admins");
     assert_eq!(settings.authentication_period_days, 14);
     assert_eq!(settings.mfa_code_timeout_seconds, 120);
@@ -276,7 +275,7 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -310,13 +309,12 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to create CA");
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let settings = Settings::get(&pool)
+    let certs = Certificates::get_or_default(&pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert!(settings.ca_cert_der.is_some());
-    assert!(settings.ca_key_der.is_some());
-    assert!(settings.ca_expiry.is_some());
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some());
+    assert!(certs.ca_key_der.is_some());
+    assert!(certs.ca_expiry.is_some());
 
     assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 }
@@ -327,7 +325,7 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -359,13 +357,12 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to upload CA");
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let settings = Settings::get(&pool)
+    let certs = Certificates::get_or_default(&pool)
         .await
-        .expect("Failed to fetch settings")
-        .expect("Settings not found");
-    assert!(settings.ca_cert_der.is_some());
-    assert!(settings.ca_key_der.is_none());
-    assert!(settings.ca_expiry.is_some());
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some());
+    assert!(certs.ca_key_der.is_none());
+    assert!(certs.ca_expiry.is_some());
 
     assert_setup_step(&pool, InitialSetupStep::CaSummary).await;
 }
@@ -376,7 +373,7 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -430,7 +427,7 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -482,7 +479,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -550,11 +547,9 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/general_config"))
         .json(&json!({
-            "defguard_url": "https://example.com",
             "default_admin_group_name": "admins",
             "default_authentication": 14,
             "default_mfa_code_lifetime": 120,
-            "public_proxy_url": "https://proxy.example.com",
             "admin_username": "admin1"
         }))
         .send()
@@ -588,13 +583,16 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to fetch settings")
         .expect("Settings not found");
-    assert_eq!(settings.defguard_url, "https://example.com");
     assert_eq!(settings.default_admin_group_name, "admins");
     assert_eq!(settings.authentication_period_days, 14);
     assert_eq!(settings.mfa_code_timeout_seconds, 120);
-    assert!(settings.ca_cert_der.is_some());
-    assert!(settings.ca_key_der.is_some());
-    assert!(settings.ca_expiry.is_some());
+
+    let certs = Certificates::get_or_default(&pool)
+        .await
+        .expect("Failed to fetch certificates");
+    assert!(certs.ca_cert_der.is_some());
+    assert!(certs.ca_key_der.is_some());
+    assert!(certs.ca_expiry.is_some());
 
     let wizard = Wizard::get(&pool)
         .await

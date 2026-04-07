@@ -11,10 +11,9 @@ use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     config::DefGuardConfig,
     db::models::{
-        Settings, WireguardNetwork,
+        Certificates, WireguardNetwork,
         gateway::Gateway,
         proxy::Proxy,
-        settings::update_current_settings,
         setup_auto_adoption::{
             AutoAdoptionComponentResult, AutoAdoptionWizardState, SetupAutoAdoptionComponent,
         },
@@ -49,8 +48,8 @@ use tracing::{debug, error, info, warn};
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const STARTUP_ADOPTION_TIMEOUT: Duration = Duration::from_secs(10);
-const AUTO_ADOPTION_CA_COMMON_NAME: &str = "Defguard Automatic Setup CA";
-const AUTO_ADOPTION_CA_EMAIL: &str = "auto-adoption@defguard.local";
+const AUTO_ADOPTION_CA_COMMON_NAME: &str = "Defguard Root CA";
+const AUTO_ADOPTION_CA_EMAIL: &str = "root-ca@defguard.local";
 const AUTO_ADOPTION_CA_VALIDITY_DAYS: u32 = 3650;
 const GATEWAY_NAME: &str = "Gateway";
 const PROXY_NAME: &str = "Edge";
@@ -59,9 +58,11 @@ const KEEPALIVE_INTERVAL_SECONDS: Duration = Duration::from_secs(5);
 type SetupLogBuffer = Arc<Mutex<VecDeque<String>>>;
 
 async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error> {
-    let mut settings = Settings::get_current_settings();
-    let has_cert = settings.ca_cert_der.is_some();
-    let has_key = settings.ca_key_der.is_some();
+    let mut certs = Certificates::get_or_default(pool)
+        .await
+        .context("Failed to load certificates")?;
+    let has_cert = certs.ca_cert_der.is_some();
+    let has_key = certs.ca_key_der.is_some();
 
     if has_cert && has_key {
         debug!("Auto-adoption mode: existing CA certificate/key found");
@@ -83,14 +84,15 @@ async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error>
     )
     .context("Failed to create automatic setup CA")?;
 
-    settings.ca_cert_der = Some(ca.cert_der().to_vec());
-    settings.ca_key_der = Some(ca.key_pair_der().to_vec());
-    settings.ca_expiry = Some(
+    certs.ca_cert_der = Some(ca.cert_der().to_vec());
+    certs.ca_key_der = Some(ca.key_pair_der().to_vec());
+    certs.ca_expiry = Some(
         ca.expiry()
             .context("Failed to determine automatic CA expiry")?,
     );
 
-    update_current_settings(pool, settings)
+    certs
+        .save(pool)
         .await
         .map_err(anyhow::Error::from)
         .context("Failed to persist automatically generated CA for auto-adoption")?;
@@ -200,13 +202,31 @@ fn logs_to_persist(success: bool, logs: Vec<String>) -> Vec<String> {
 }
 
 async fn run_edge_adoption_attempt(
-    _pool: &PgPool,
+    pool: &PgPool,
     host: &str,
     port: u16,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
+    let certs = match Certificates::get_or_default(pool).await {
+        Ok(c) => c,
+        Err(err) => {
+            let msg = format!("Failed to load certificates: {err}");
+            error!("{msg}");
+            return (false, vec![msg], None);
+        }
+    };
+    let Some(ca_cert_der) = certs.ca_cert_der else {
+        let msg = "CA certificate not found in settings".to_string();
+        error!("{msg}");
+        return (false, vec![msg], None);
+    };
+    let Some(ca_key_der) = certs.ca_key_der else {
+        let msg = "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.".to_string();
+        error!("{msg}");
+        return (false, vec![msg], None);
+    };
     scope_setup_logs(Arc::clone(&log_buffer), async move {
-        run_edge_adoption_attempt_scoped(host, port, log_buffer).await
+        run_edge_adoption_attempt_scoped(host, port, log_buffer, ca_cert_der, ca_key_der).await
     })
     .await
 }
@@ -215,25 +235,11 @@ async fn run_edge_adoption_attempt_scoped(
     host: &str,
     port: u16,
     log_buffer: SetupLogBuffer,
+    ca_cert_der: Vec<u8>,
+    ca_key_der: Vec<u8>,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
     debug!("Starting edge adoption attempt host={host} port={port}");
     let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-
-    let settings = Settings::get_current_settings();
-    let Some(ca_cert_der) = settings.ca_cert_der else {
-        return merge_failure_logs(
-            "CA certificate not found in settings",
-            &log_buffer,
-            &mut log_rx,
-        );
-    };
-    let Some(ca_key_der) = settings.ca_key_der else {
-        return merge_failure_logs(
-            "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.",
-            &log_buffer,
-            &mut log_rx,
-        );
-    };
     let endpoint_str = format!("http://{host}:{port}");
     let url = match Url::parse(&endpoint_str) {
         Ok(url) => url,
@@ -502,12 +508,31 @@ async fn run_edge_adoption_attempt_scoped(
 }
 
 async fn run_gateway_adoption_attempt(
+    pool: &PgPool,
     host: &str,
     port: u16,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
+    let certs = match Certificates::get_or_default(pool).await {
+        Ok(c) => c,
+        Err(err) => {
+            let msg = format!("Failed to load certificates: {err}");
+            error!("{msg}");
+            return (false, vec![msg], None);
+        }
+    };
+    let Some(ca_cert_der) = certs.ca_cert_der else {
+        let msg = "CA certificate not found in settings".to_string();
+        error!("{msg}");
+        return (false, vec![msg], None);
+    };
+    let Some(ca_key_der) = certs.ca_key_der else {
+        let msg = "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.".to_string();
+        error!("{msg}");
+        return (false, vec![msg], None);
+    };
     scope_setup_logs(Arc::clone(&log_buffer), async move {
-        run_gateway_adoption_attempt_scoped(host, port, log_buffer).await
+        run_gateway_adoption_attempt_scoped(host, port, log_buffer, ca_cert_der, ca_key_der).await
     })
     .await
 }
@@ -516,25 +541,11 @@ async fn run_gateway_adoption_attempt_scoped(
     host: &str,
     port: u16,
     log_buffer: SetupLogBuffer,
+    ca_cert_der: Vec<u8>,
+    ca_key_der: Vec<u8>,
 ) -> (bool, Vec<String>, Option<CertificateInfo>) {
     debug!("Starting gateway adoption attempt host={host} port={port}");
     let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-
-    let settings = Settings::get_current_settings();
-    let Some(ca_cert_der) = settings.ca_cert_der else {
-        return merge_failure_logs(
-            "CA certificate not found in settings",
-            &log_buffer,
-            &mut log_rx,
-        );
-    };
-    let Some(ca_key_der) = settings.ca_key_der else {
-        return merge_failure_logs(
-            "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.",
-            &log_buffer,
-            &mut log_rx,
-        );
-    };
 
     let endpoint_str = format!("http://{host}:{port}");
     let url = match Url::parse(&endpoint_str) {
@@ -820,7 +831,9 @@ async fn process_startup_auto_adoption(
 
     let (status, logs, cert_info) = match component {
         SetupAutoAdoptionComponent::Edge => run_edge_adoption_attempt(pool, &host, port).await,
-        SetupAutoAdoptionComponent::Gateway => run_gateway_adoption_attempt(&host, port).await,
+        SetupAutoAdoptionComponent::Gateway => {
+            run_gateway_adoption_attempt(pool, &host, port).await
+        }
     };
 
     // On successful adoption: create the relevant DB records.

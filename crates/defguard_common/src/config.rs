@@ -98,6 +98,10 @@ pub struct DefGuardConfig {
     #[deprecated(since = "2.0.0", note = "Use Settings.public_proxy_url instead")]
     pub enrollment_url: Option<Url>,
 
+    #[arg(long, env = "DEFGUARD_PROXY_URL")]
+    #[serde(skip_serializing)]
+    pub proxy_url: Option<String>,
+
     #[arg(long, env = "DEFGUARD_ENROLLMENT_TOKEN_TIMEOUT")]
     #[serde(skip_serializing)]
     #[deprecated(
@@ -191,6 +195,8 @@ pub enum Command {
         about = "Add a new VPN location and return a gateway token. Used for automated setup."
     )]
     InitVpnLocation(InitVpnLocationArgs),
+    #[command(about = "Output the gateway gRPC configuration payload for a VPN location by ID.")]
+    GatewayConfig(GatewayConfigArgs),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -213,6 +219,12 @@ pub struct InitVpnLocationArgs {
     pub allowed_ips: Vec<IpNetwork>,
     #[arg(long)]
     pub id: Option<i64>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GatewayConfigArgs {
+    #[arg(long)]
+    pub location_id: i64,
 }
 
 impl DefGuardConfig {
@@ -252,6 +264,7 @@ impl DefGuardConfig {
             disable_stats_purge: None,
             stats_purge_frequency: None,
             stats_purge_threshold: None,
+            proxy_url: None,
             enrollment_url: None,
             enrollment_token_timeout: None,
             mfa_code_timeout: None,
