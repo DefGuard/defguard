@@ -10,6 +10,7 @@ import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
+import { Badge } from '../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
 import { MarkedSection } from '../../../shared/defguard-ui/components/MarkedSection/MarkedSection';
@@ -17,8 +18,8 @@ import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/Mark
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { downloadFile } from '../../../shared/utils/download';
 import { displayDate } from '../../../shared/utils/displayDate';
+import { downloadFile } from '../../../shared/utils/download';
 
 const breadcrumbs = [
   <Link
@@ -75,7 +76,6 @@ const Content = () => {
     downloadFile(blob, 'defguard-ca', 'pem');
   }, [caData?.ca_cert_pem]);
 
-  console.log(certsData);
   return (
     <>
       <MarkedSection icon="authorised-app">
@@ -97,11 +97,16 @@ const Content = () => {
         )}
         {certsData?.core_http_cert_source === 'SelfSigned' && (
           <>
-            <DescriptionBlock title={m.settings_certs_certs_internal_title()}>
-              <p>{m.settings_certs_certs_internal_description()}</p>
-            </DescriptionBlock>
+            <CertHeader
+              title={m.settings_certs_certs_internal_title()}
+              description={m.settings_certs_certs_internal_description()}
+              valid={certsData.core_http_cert_expiry}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
-            <CertInfo validUntil={certsData.core_http_cert_expiry} domain={certsData.core_http_cert_domain}/>
+            <CertInfo
+              validUntil={certsData.core_http_cert_expiry}
+              domain={certsData.core_http_cert_domain}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
@@ -118,7 +123,10 @@ const Content = () => {
               <p>{m.settings_certs_certs_custom_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <CertInfo validUntil={certsData.core_http_cert_expiry} domain={certsData.core_http_cert_domain}/>
+            <CertInfo
+              validUntil={certsData.core_http_cert_expiry}
+              domain={certsData.core_http_cert_domain}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
@@ -154,7 +162,10 @@ const Content = () => {
               <p>{m.settings_certs_certs_internal_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <CertInfo validUntil={certsData.proxy_http_cert_expiry} domain={certsData.proxy_http_cert_domain}/>
+            <CertInfo
+              validUntil={certsData.proxy_http_cert_expiry}
+              domain={certsData.proxy_http_cert_domain}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="outlined"
@@ -171,7 +182,10 @@ const Content = () => {
               <p>{m.settings_certs_certs_custom_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <CertInfo validUntil={certsData.proxy_http_cert_expiry} domain={certsData.proxy_http_cert_domain}/>
+            <CertInfo
+              validUntil={certsData.proxy_http_cert_expiry}
+              domain={certsData.proxy_http_cert_domain}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
@@ -188,7 +202,10 @@ const Content = () => {
               <p>{m.settings_certs_certs_letsencrypt_description()}</p>
             </DescriptionBlock>
             <SizedBox height={ThemeSpacing.Lg} />
-            <CertInfo validUntil={certsData.proxy_http_cert_expiry} domain={certsData.proxy_http_cert_domain}/>
+            <CertInfo
+              validUntil={certsData.proxy_http_cert_expiry}
+              domain={certsData.proxy_http_cert_domain}
+            />
             <SizedBox height={ThemeSpacing.Lg} />
             <Button
               variant="primary"
@@ -204,21 +221,62 @@ const Content = () => {
   );
 };
 
-
 type CertInfoProps = {
-  validUntil: string,
-  domain: string | null,
-}
+  validUntil: string;
+  domain: string | null;
+};
 
-const CertInfo = ({validUntil, domain}: CertInfoProps) => ( 
+const CertInfo = ({ validUntil, domain }: CertInfoProps) => (
   <div className="cert-info">
     <div>
       {m.settings_certs_valid_until()}:
       <span className="bold"> {displayDate(validUntil)}</span>
     </div>
     <div>
-      {m.settings_certs_domain()}:
-      <span className="bold"> {domain || '-'}</span>
+      {m.settings_certs_domain()}:<span className="bold"> {domain || '-'}</span>
     </div>
   </div>
-)
+);
+
+type ValidDescriptionBlockProps = {
+  title: string;
+  description: string;
+  valid: string;
+};
+
+const getValidForDays = (valid: string) => {
+  const validDate = new Date(valid);
+  if (Number.isNaN(validDate.getTime())) return null;
+
+  const millisecondsPerDay = 1000 * 60 * 60 * 24;
+  return Math.max(0, Math.ceil((validDate.getTime() - Date.now()) / millisecondsPerDay));
+};
+
+export const CertHeader = ({ title, description, valid }: ValidDescriptionBlockProps) => {
+  const validFor = getValidForDays(valid);
+  let badgeText;
+  let badgeVariant: "success" | "warning" | "critical";
+  if (validFor === null || validFor > 30) {
+    badgeText = "Valid";
+    badgeVariant = "success";
+  } else if (validFor > 0) {
+    badgeText = "Expires soon";
+    badgeVariant = "warning";
+  } else {
+    badgeText = "Expired";
+    badgeVariant = "critical";
+  }
+
+  return (
+    <div className="description-block">
+      <div className="header">
+        <div className="title">{title}</div>
+        <Badge text={badgeText} variant={badgeVariant}/>
+      </div>
+      <SizedBox height={ThemeSpacing.Xs} />
+      <div>
+        <p>{description}</p>
+      </div>
+    </div>
+  );
+};
