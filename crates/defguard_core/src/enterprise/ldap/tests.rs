@@ -3571,6 +3571,16 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         tokens[0].user_id, saved.id,
         "Token should belong to the synced user"
     );
+
+    // Second sync: user already exists in Defguard — must NOT create a second token.
+    ldap_conn.sync(&pool, false).await.unwrap();
+
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert_eq!(
+        tokens.len(),
+        1,
+        "Expected still exactly one enrollment token after second sync, got {tokens:?}"
+    );
 }
 
 /// When both invite flags are on but there are no active admins in Defguard, the sync must
@@ -3675,6 +3685,19 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
     assert_eq!(
         tokens[0].user_id, saved.id,
         "Token should belong to the logged-in user"
+    );
+
+    // Second login: user now exists in Defguard — must NOT create a second token.
+    let result =
+        login_through_ldap_with_connection(&pool, &mut ldap_conn, "login_invite_user", PASSWORD)
+            .await;
+    assert!(result.is_ok(), "Second LDAP login should succeed: {result:?}");
+
+    let tokens = Token::fetch_all(&pool).await.unwrap();
+    assert_eq!(
+        tokens.len(),
+        1,
+        "Expected still exactly one enrollment token after second login, got {tokens:?}"
     );
 }
 
