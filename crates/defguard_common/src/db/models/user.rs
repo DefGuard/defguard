@@ -184,7 +184,7 @@ impl<I: fmt::Debug> fmt::Debug for User<I> {
             .field(
                 "ldap_remote_enrollment_completed",
                 ldap_remote_enrollment_completed,
-            ) // sensitive data
+            )
             .field("openid_sub", openid_sub)
             .field("totp_enabled", totp_enabled)
             .field("email_mfa_enabled", email_mfa_enabled)
