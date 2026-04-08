@@ -31,6 +31,7 @@ export const EmailMfaSetupModal = () => {
 
   useEffect(() => {
     const openSub = subscribeOpenModal(modalName, () => {
+      void api.auth.mfa.email.init();
       setOpen(true);
     });
     const closeSub = subscribeCloseModal(modalName, () => setOpen(false));
@@ -117,10 +118,6 @@ const ModalContent = () => {
   });
 
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
-
-  useEffect(() => {
-    void api.auth.mfa.email.init();
-  }, []);
 
   return (
     <>
