@@ -71,7 +71,7 @@ export const MigrationWizardPage = () => {
         id: MigrationWizardStep.EdgeDeployment,
         order: 4,
         label: m.edge_setup_step_deploy_label(),
-        description: m.edge_setup_step_deploy_description(),
+        description: m.migration_wizard_step_edge_deploy_description(),
       },
       edge: {
         id: MigrationWizardStep.Edge,
