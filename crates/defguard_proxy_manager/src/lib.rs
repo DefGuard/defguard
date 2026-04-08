@@ -376,9 +376,7 @@ impl ProxyManager {
                             debug!("Broadcasting ClearHttpsCerts to all connected proxies");
                             let msg = CoreResponse {
                                 id: 0,
-                                payload: Some(core_response::Payload::ClearHttpsCerts(
-                                    defguard_proto::proxy::ClearHttpsCerts {},
-                                )),
+                                payload: Some(core_response::Payload::ClearHttpsCerts(())),
                             };
                             if let Ok(map) = handler_tx_map.read() {
                                 for (pid, tx) in map.iter() {
