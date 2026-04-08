@@ -294,7 +294,7 @@ CREATE TABLE mail_context (
 );
 
 INSERT INTO mail_context (template, section, language_tag, text) VALUES
-    ('desktop-start', 'title', 'en_US', 'You''re receiving this email to configure a new desktop client.'),
+    ('desktop-start', 'title', 'en_US', 'You''re receiving this email to configure a new desktop client'),
     ('desktop-start', 'subtitle', 'en_US', 'Please paste this URL and token in your desktop client:'),
     ('desktop-start', 'label_url', 'en_US', 'URL'),
     ('desktop-start', 'label_token', 'en_US', 'Token'),
