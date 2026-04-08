@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending FROM \"user\" WHERE openid_sub = $1",
+  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND r.allow AND u.is_active",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 10,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 11,
@@ -117,13 +117,18 @@
       },
       {
         "ordinal": 20,
+        "name": "ldap_remote_enrollment_completed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
         "name": "enrollment_pending",
         "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -136,19 +141,20 @@
       true,
       false,
       false,
-      false,
       true,
-      true,
-      false,
-      false,
       false,
       true,
       false,
       false,
+      false,
+      true,
+      false,
+      false,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "4b7289fe59a0e9553fa0bfd9e9da2dbd2cda17952cf77ac3d743a4fa85d37482"
+  "hash": "ce08d19023028c4797c2ca33ff76824b882f17f5891bb512deff13a2c26069bc"
 }

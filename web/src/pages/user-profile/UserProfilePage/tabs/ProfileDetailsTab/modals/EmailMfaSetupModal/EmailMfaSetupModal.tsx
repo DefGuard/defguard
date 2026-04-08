@@ -19,6 +19,7 @@ import api from '../../../../../../../shared/api/api';
 import type { ApiError } from '../../../../../../../shared/api/types';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
 import { SizedBox } from '../../../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { useEffectOnce } from '../../../../../../../shared/defguard-ui/hooks/useEffectOnce';
 import { ThemeSpacing } from '../../../../../../../shared/defguard-ui/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
 import { formChangeLogic } from '../../../../../../../shared/formLogic';
@@ -118,9 +119,9 @@ const ModalContent = () => {
 
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
 
-  useEffect(() => {
+  useEffectOnce(() => {
     void api.auth.mfa.email.init();
-  }, []);
+  });
 
   return (
     <>
