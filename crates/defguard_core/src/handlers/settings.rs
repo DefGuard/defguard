@@ -130,18 +130,17 @@ pub async fn patch_settings(
     let before = settings.clone();
     let license = data.license.clone();
 
+    // update LDAP sync status if relevant settings have been changed
     if let Some(ldap_enabled) = data.ldap_enabled {
         if !ldap_enabled {
             settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
         }
     }
-
     if let Some(ldap_authority) = data.ldap_is_authoritative {
         if settings.ldap_is_authoritative != ldap_authority {
             settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
         }
     }
-
     if let Some(ldap_sync_groups) = &data.ldap_sync_groups {
         if &settings.ldap_sync_groups != ldap_sync_groups {
             settings.ldap_sync_status = LdapSyncStatus::OutOfSync;
@@ -150,6 +149,7 @@ pub async fn patch_settings(
 
     settings.apply(data);
     settings.validate()?;
+
     // clone for event
     let after = settings.clone();
     update_current_settings(&appstate.pool, settings).await?;

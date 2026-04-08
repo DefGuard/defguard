@@ -5,6 +5,7 @@ import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCa
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import './style.scss';
+import { useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Suspense, useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
@@ -85,9 +86,9 @@ export const SettingsLdapPage = () => {
 };
 
 const formSchema = z.object({
-  ldap_bind_password: z.string().trim().nullable(),
-  ldap_bind_username: z.string().trim().nullable(),
-  ldap_url: z.string().trim(),
+  ldap_bind_password: z.string().trim().min(1, m.form_error_required()),
+  ldap_bind_username: z.string().trim().min(1, m.form_error_required()),
+  ldap_url: z.url(m.form_error_invalid()).min(1, m.form_error_required()),
   ldap_group_member_attr: z.string().trim().min(1, m.form_error_required()),
   ldap_group_obj_class: z.string().trim().min(1, m.form_error_required()),
   ldap_group_search_base: z.string().trim().min(1, m.form_error_required()),
@@ -111,12 +112,15 @@ const formSchema = z.object({
   ldap_uses_ad: z.boolean(),
   ldap_user_rdn_attr: z.string().trim().nullable(),
   ldap_sync_groups: z.string().trim().nullable(),
+  ldap_remote_enrollment_enabled: z.boolean(),
+  ldap_remote_enrollment_send_invite: z.boolean(),
 });
 
 type FormFields = z.infer<typeof formSchema>;
 
 const PageForm = () => {
   const isAppLdapEnabled = useApp((s) => s.appInfo.ldap_info.enabled);
+  const smtpEnabled = useApp((s) => s.appInfo.smtp_enabled);
   const { data: licenseInfo } = useSuspenseQuery(getLicenseInfoQueryOptions);
   const { data: settings } = useSuspenseQuery(getSettingsQueryOptions);
 
@@ -149,6 +153,9 @@ const PageForm = () => {
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
       ldap_sync_groups: settings?.ldap_sync_groups.join(', ') || null,
+      ldap_remote_enrollment_enabled: settings?.ldap_remote_enrollment_enabled ?? false,
+      ldap_remote_enrollment_send_invite:
+        settings?.ldap_remote_enrollment_send_invite ?? false,
     };
   }, [settings]);
 
@@ -208,6 +215,36 @@ const PageForm = () => {
       });
     },
   });
+
+  const requiredFieldsFilled = useStore(form.store, (s) => {
+    const v = s.values;
+    return (
+      URL.canParse(v.ldap_url.trim()) &&
+      v.ldap_bind_username !== null &&
+      v.ldap_bind_username.trim().length > 0 &&
+      v.ldap_bind_password !== null &&
+      v.ldap_bind_password.trim().length > 0 &&
+      v.ldap_username_attr.trim().length > 0 &&
+      v.ldap_user_search_base.trim().length > 0 &&
+      v.ldap_user_obj_class.trim().length > 0 &&
+      v.ldap_member_attr.trim().length > 0 &&
+      v.ldap_groupname_attr.trim().length > 0 &&
+      v.ldap_group_obj_class.trim().length > 0 &&
+      v.ldap_group_member_attr.trim().length > 0 &&
+      v.ldap_group_search_base.trim().length > 0
+    );
+  });
+
+  const remoteEnrollmentSectionDisabled = !requiredFieldsFilled || !smtpEnabled;
+  const remoteEnrollmentWarning = useMemo(
+    () =>
+      !requiredFieldsFilled
+        ? m.settings_ldap_remote_enrollment_warning_no_sync_no_smtp()
+        : !smtpEnabled
+          ? m.settings_ldap_remote_enrollment_warning_no_smtp()
+          : undefined,
+    [requiredFieldsFilled, smtpEnabled],
+  );
 
   return (
     <form
@@ -418,12 +455,16 @@ const PageForm = () => {
           <MarkedSectionHeader
             title={m.settings_ldap_section_sync_title()}
             description={m.settings_ldap_section_sync_description()}
+            warning={
+              requiredFieldsFilled ? undefined : m.settings_ldap_section_sync_warning()
+            }
           />
           <form.AppField name="ldap_sync_enabled">
             {(field) => (
               <field.FormInteractiveBlock
                 variant={'radio'}
                 value={false}
+                disabled={!requiredFieldsFilled}
                 title={m.settings_ldap_sync_one_way_title()}
                 content={m.settings_ldap_sync_one_way_content()}
               />
@@ -435,6 +476,7 @@ const PageForm = () => {
               <field.FormInteractiveBlock
                 variant={'radio'}
                 value={true}
+                disabled={!requiredFieldsFilled}
                 title={m.settings_ldap_sync_two_way_title()}
                 content={m.settings_ldap_sync_two_way_content()}
               />
@@ -487,10 +529,50 @@ const PageForm = () => {
             )}
           </form.Subscribe>
         </MarkedSection>
+        <Divider spacing={ThemeSpacing.Xl2} />
+        <MarkedSection icon={IconKind.Enrollment}>
+          <MarkedSectionHeader
+            title={m.settings_ldap_section_remote_enrollment_title()}
+            description={m.settings_ldap_section_remote_enrollment_description()}
+            warning={remoteEnrollmentWarning}
+          />
+          <form.AppField name="ldap_remote_enrollment_enabled">
+            {(field) => (
+              <field.FormInteractiveBlock
+                variant={'checkbox'}
+                value={true}
+                disabled={remoteEnrollmentSectionDisabled}
+                title={m.settings_ldap_label_remote_enrollment_enabled()}
+                content={m.settings_ldap_helper_remote_enrollment_enabled()}
+              />
+            )}
+          </form.AppField>
+          <form.Subscribe selector={(s) => s.values.ldap_remote_enrollment_enabled}>
+            {(remoteEnrollmentEnabled) => (
+              <Fold open={remoteEnrollmentEnabled && !remoteEnrollmentSectionDisabled}>
+                <SizedBox height={ThemeSpacing.Xl} />
+                <form.AppField name="ldap_remote_enrollment_send_invite">
+                  {(field) => (
+                    <field.FormInteractiveBlock
+                      variant={'checkbox'}
+                      value={true}
+                      disabled={remoteEnrollmentSectionDisabled}
+                      title={m.settings_ldap_label_remote_enrollment_send_invite()}
+                      content={m.settings_ldap_helper_remote_enrollment_send_invite()}
+                    />
+                  )}
+                </form.AppField>
+              </Fold>
+            )}
+          </form.Subscribe>
+        </MarkedSection>
         <Controls>
           <form.AppField name="ldap_enabled">
             {(field) => (
-              <field.FormToggle label={m.settings_ldap_toggle_enable_integration()} />
+              <field.FormToggle
+                label={m.settings_ldap_toggle_enable_integration()}
+                disabled={!requiredFieldsFilled}
+              />
             )}
           </form.AppField>
           <div className="right">

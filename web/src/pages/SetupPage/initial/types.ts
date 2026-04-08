@@ -14,11 +14,4 @@ export const SetupPageStep = {
   Confirmation: 'confirmation',
 } as const;
 
-export const CAOption = {
-  Create: 'create',
-  UseOwn: 'useOwn',
-} as const;
-
 export type SetupPageStepValue = (typeof SetupPageStep)[keyof typeof SetupPageStep];
-
-export type CAOptionType = (typeof CAOption)[keyof typeof CAOption];

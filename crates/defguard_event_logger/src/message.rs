@@ -371,6 +371,7 @@ pub enum VpnEvent {
 }
 
 /// Represents activity log events related to user enrollment process
+#[allow(clippy::large_enum_variant)]
 pub enum EnrollmentEvent {
     EnrollmentStarted,
     EnrollmentDeviceAdded { device: Device<Id> },

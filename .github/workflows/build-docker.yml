@@ -11,6 +11,11 @@ on:
         description: "List of flavors as key-value pair attributes"
         required: false
         type: string
+      trivy-exit-code:
+        description: "Exit code for Trivy when vulnerabilities are found (0 = warn only, 1 = fail)"
+        required: false
+        type: string
+        default: "1"
 
 env:
   GHCR_REPO: ghcr.io/defguard/defguard
@@ -79,7 +84,7 @@ jobs:
         with:
           image-ref: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
           format: "table"
-          exit-code: "1"
+          exit-code: ${{ inputs.trivy-exit-code }}
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH,MEDIUM"

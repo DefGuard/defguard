@@ -1033,6 +1033,8 @@ export interface SettingsLDAP {
   ldap_uses_ad: boolean;
   ldap_user_rdn_attr: string | null;
   ldap_sync_groups: string[];
+  ldap_remote_enrollment_enabled: boolean;
+  ldap_remote_enrollment_send_invite: boolean;
 }
 
 export interface SettingsOpenID {

@@ -1,5 +1,5 @@
 use chrono::Duration;
-use defguard_common::db::models::User;
+use defguard_common::db::models::{Settings, User, settings::update_current_settings};
 use defguard_core::{
     db::models::enrollment::Token,
     handlers::{AddUserData, Auth},
@@ -9,7 +9,9 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{fetch_user_details, make_client_with_db, setup_pool};
+use super::common::{
+    configure_ldap, configure_smtp, fetch_user_details, make_client_with_db, setup_pool,
+};
 
 #[sqlx::test]
 async fn test_initialize_enrollment(_: PgPoolOptions, options: PgConnectOptions) {
@@ -367,4 +369,98 @@ async fn test_enrollment_pending_unset_for_desktop_client(
     // verify enrollment variables
     assert!(!user.enrollment_pending);
     assert!(user.is_enrolled());
+}
+
+/// An LDAP-synced user (from_ldap=true, ldap_remote_enrollment_completed=false) is
+/// listed as **enrolled** by the API when `ldap_remote_enrollment_enabled` is disabled
+/// (the default / legacy behaviour).
+#[sqlx::test]
+async fn test_ldap_user_enrolled_via_api_when_remote_enrollment_disabled(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create user without a password (simulates an LDAP-synced account).
+    let new_user = AddUserData {
+        username: "ldapuser_b1".into(),
+        last_name: "User".into(),
+        first_name: "Ldap".into(),
+        email: "ldapuser_b1@example.com".into(),
+        phone: None,
+        password: None,
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Mark the user as LDAP-sourced directly in the DB (the API doesn't expose from_ldap).
+    let mut user = User::find_by_username(&pool, &new_user.username)
+        .await
+        .unwrap()
+        .unwrap();
+    user.from_ldap = true;
+    user.ldap_remote_enrollment_completed = false;
+    user.save(&pool).await.unwrap();
+
+    // ldap_remote_enrollment_enabled is false by default — no settings change needed.
+    let details = fetch_user_details(&client, &new_user.username).await;
+    assert!(
+        details.user.enrolled,
+        "LDAP user should be reported as enrolled by the API when remote enrollment is disabled"
+    );
+}
+
+/// An LDAP-synced user (from_ldap=true, ldap_remote_enrollment_completed=false) is
+/// listed as **not enrolled** by the API when `ldap_remote_enrollment_enabled` is enabled.
+#[sqlx::test]
+async fn test_ldap_user_not_enrolled_via_api_when_remote_enrollment_enabled(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create user without a password (simulates an LDAP-synced account).
+    let new_user = AddUserData {
+        username: "ldapuser_b2".into(),
+        last_name: "User".into(),
+        first_name: "Ldap".into(),
+        email: "ldapuser_b2@example.com".into(),
+        phone: None,
+        password: None,
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Mark the user as LDAP-sourced directly in the DB.
+    let mut user = User::find_by_username(&pool, &new_user.username)
+        .await
+        .unwrap()
+        .unwrap();
+    user.from_ldap = true;
+    user.ldap_remote_enrollment_completed = false;
+    user.save(&pool).await.unwrap();
+
+    // Enable LDAP remote enrollment directly in the DB, bypassing HTTP API
+    // validation (which would require LDAP and SMTP to be fully configured).
+    let mut settings = Settings::get_current_settings();
+    configure_smtp(&mut settings);
+    configure_ldap(&mut settings);
+    settings.ldap_remote_enrollment_enabled = true;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let details = fetch_user_details(&client, &new_user.username).await;
+    assert!(
+        !details.user.enrolled,
+        "LDAP user should not be reported as enrolled by the API when remote enrollment is enabled but not completed"
+    );
 }

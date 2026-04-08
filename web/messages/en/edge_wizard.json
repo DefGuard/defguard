@@ -46,7 +46,7 @@
   "edge_setup_adoption_controls_back": "Back",
   "edge_setup_adoption_controls_continue": "Continue",
   "edge_setup_step_deploy_label": "Deploy Edge component",
-  "edge_setup_step_deploy_description": "Before we can adopt a Edge this component needs to be launched. If you already have done so, please go to the next step, if not, please choose one of the desired deployment method bellow.",
+  "edge_setup_step_deploy_description": "Before we can adopt the Edge component, it needs to be launched. If you have already done so, please go to the next step. If not, please choose one of the deployment methods below.",
   "edge_setup_step_deploy_confirm": "Confirm that you have deployed Edge",
   "edge_setup_step_deploy_confirm_tooltip": "Please confirm you have deployed the Edge by selecting checkbox",
   "edge_setup_step_deploy_tabs_docker": "Docker",
