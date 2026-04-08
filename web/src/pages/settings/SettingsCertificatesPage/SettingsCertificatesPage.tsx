@@ -30,7 +30,7 @@ const breadcrumbs = [
   <Link
     to="/settings"
     search={{
-      tab: 'general',
+      tab: 'certs',
     }}
     key={0}
   >
@@ -255,7 +255,7 @@ const Content = () => {
 };
 
 type CertInfoProps = {
-  validUntil: string;
+  validUntil: string | null;
   domain: string | null;
 };
 
@@ -263,7 +263,7 @@ const CertInfo = ({ validUntil, domain }: CertInfoProps) => (
   <div className="cert-info">
     <div>
       {m.settings_certs_valid_until()}:
-      <span className="bold"> {displayDate(validUntil)}</span>
+      <span className="bold"> {validUntil ? displayDate(validUntil) : '-'}</span>
     </div>
     <div>
       {m.settings_certs_domain()}:<span className="bold"> {domain || '-'}</span>
@@ -274,7 +274,7 @@ const CertInfo = ({ validUntil, domain }: CertInfoProps) => (
 type ValidDescriptionBlockProps = {
   title: string;
   description: string;
-  valid: string;
+  valid: string | null;
 };
 
 export const CertHeader = ({ title, description, valid }: ValidDescriptionBlockProps) => {

@@ -55,8 +55,8 @@ export interface GetCAResponse {
   not_before: string;
   not_after: string;
   valid_for_days: number;
-  ca_expiry: string;
-  subject_email: string | null;
+  ca_expiry?: string | null;
+  subject_email?: string | null;
 }
 
 export const CoreCertSource = {
@@ -76,10 +76,10 @@ export type EdgeCertSourceValue = (typeof EdgeCertSource)[keyof typeof EdgeCertS
 
 export interface GetCertsResponse {
   core_http_cert_source: CoreCertSourceValue;
-  core_http_cert_expiry: string;
+  core_http_cert_expiry: string | null;
   core_http_cert_domain: string | null;
   proxy_http_cert_source: EdgeCertSourceValue;
-  proxy_http_cert_expiry: string;
+  proxy_http_cert_expiry: string | null;
   proxy_http_cert_domain: string | null;
 }
 

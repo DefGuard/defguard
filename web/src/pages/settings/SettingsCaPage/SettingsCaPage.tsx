@@ -25,7 +25,7 @@ const breadcrumbs = [
   <Link
     to="/settings"
     search={{
-      tab: 'general',
+      tab: 'certs',
     }}
     key={0}
   >
@@ -86,7 +86,7 @@ const Content = () => {
       <Divider spacing={ThemeSpacing.Md} />
       <div className="ca-info-grid">
         <div className="ca-info-label">{m.settings_certs_ca_email()}</div>
-        <div className="ca-info-value">{caData?.subject_email}</div>
+        <div className="ca-info-value">{caData?.subject_email ?? '-'}</div>
         <div className="ca-info-label">{m.settings_certs_valid_until()}</div>
         <div className="ca-info-value">
           {caData?.ca_expiry ? displayDate(caData?.ca_expiry) : '-'}
