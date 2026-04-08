@@ -1,12 +1,13 @@
 use std::str::FromStr;
 
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::NaiveDateTime;
 use rcgen::{
-    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
-    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
+    string::Ia5String, BasicConstraints, Certificate, CertificateParams,
+    CertificateSigningRequestParams, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
+    KeyUsagePurpose, SigningKey,
 };
-use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
+use rustls_pki_types::{pem::PemObject, CertificateDer, CertificateSigningRequestDer};
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 use x509_parser::{
@@ -162,17 +163,19 @@ impl CertificateInfo {
 
         let subject = &parsed.tbs_certificate.subject;
         let serial = parsed.raw_serial_as_string();
-        let subject_email = parsed.tbs_certificate.extensions().iter().find_map(|ext| {
-            match ext.parsed_extension() {
-                ParsedExtension::SubjectAlternativeName(san) => {
-                    san.general_names.iter().find_map(|name| match name {
-                        GeneralName::RFC822Name(email) => Some(email.to_string()),
-                        _ => None,
-                    })
-                }
+        let subject_email = parsed
+            .tbs_certificate
+            .extensions()
+            .iter()
+            .filter_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::SubjectAlternativeName(san) => Some(san),
                 _ => None,
-            }
-        });
+            })
+            .flat_map(|san| san.general_names.iter())
+            .find_map(|name| match name {
+                GeneralName::RFC822Name(email) => Some(email.to_string()),
+                _ => None,
+            });
 
         let cn = subject
             .iter_common_name()
