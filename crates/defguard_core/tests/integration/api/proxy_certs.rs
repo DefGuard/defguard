@@ -210,6 +210,14 @@ async fn test_proxy_cert_pair_none_by_default(_: PgPoolOptions, opts: PgConnectO
 async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOptions) {
     let pool = setup_pool(opts).await;
     let (mut client, mut capture, pool) = make_test_client_with_proxy_rx(pool).await;
+
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({ "ssl_type": "none" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
     login_admin(&mut client).await;
 
     let mut settings = Settings::get_current_settings();
@@ -301,6 +309,18 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::Custom);
     assert!(saved.proxy_http_cert_expiry.is_some());
     assert!(saved.acme_domain.is_none());
+
+    let (_, mismatched_key_pem) = generate_test_cert_pem("different-edge.example.com");
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": expected_cert_pem,
+            "key_pem": mismatched_key_pem
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let broadcasts = capture.drain_broadcast_certs().await;
     assert_eq!(broadcasts.len(), 1, "Expected exactly one broadcast");

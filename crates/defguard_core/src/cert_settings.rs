@@ -2,6 +2,7 @@ use defguard_certs::{
     CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
     parse_pem_certificate,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use defguard_common::db::models::{
     Certificates, CoreCertSource, ProxyCertSource, settings::update_current_settings,
 };
@@ -10,6 +11,15 @@ use sqlx::PgPool;
 use utoipa::ToSchema;
 
 use crate::error::WebError;
+
+async fn validate_uploaded_cert_pair(cert_pem: &str, key_pem: &str) -> Result<(), WebError> {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
+    RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())
+        .await
+        .map(|_| ())
+        .map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_string()))
+}
 
 /// SSL configuration type for Defguard's internal (core) web server.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ToSchema)]
@@ -139,6 +149,8 @@ pub async fn apply_internal_url_settings(
                 WebError::BadRequest("key_pem is required for own_cert".to_string())
             })?;
 
+            validate_uploaded_cert_pair(&cert_pem_str, &key_pem_str).await?;
+
             let cert_der = parse_pem_certificate(&cert_pem_str)?;
             let info = CertificateInfo::from_der(cert_der.as_ref())?;
             let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
@@ -261,6 +273,8 @@ pub async fn apply_external_url_settings(
             let key_pem_str = config.key_pem.ok_or_else(|| {
                 WebError::BadRequest("key_pem is required for own_cert".to_string())
             })?;
+
+            validate_uploaded_cert_pair(&cert_pem_str, &key_pem_str).await?;
 
             let cert_der = parse_pem_certificate(&cert_pem_str)?;
             let info = CertificateInfo::from_der(cert_der.as_ref())?;

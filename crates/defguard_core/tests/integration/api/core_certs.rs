@@ -37,6 +37,13 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     let pool = setup_pool(options).await;
     let (client, _) = make_test_client(pool.clone()).await;
 
+    let response = client
+        .post("/api/v1/core/cert/internal_url_settings")
+        .json(&json!({ "ssl_type": "none" }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -100,6 +107,18 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.core_http_cert_source, CoreCertSource::Custom);
     assert!(saved.core_http_cert_expiry.is_some());
+
+    let (_, mismatched_key_pem) = generate_test_cert_pem("different.example.com");
+    let response = client
+        .post("/api/v1/core/cert/internal_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": cert_pem,
+            "key_pem": mismatched_key_pem
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let response = client
         .post("/api/v1/core/cert/internal_url_settings")
