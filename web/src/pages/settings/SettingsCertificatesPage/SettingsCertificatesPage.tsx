@@ -20,6 +20,7 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../../shared/utils/displayDate';
 import { downloadFile } from '../../../shared/utils/download';
+import { Controls } from '../../../shared/components/Controls/Controls';
 
 const breadcrumbs = [
   <Link
@@ -108,7 +109,7 @@ const Content = () => {
               domain={certsData.core_http_cert_domain}
             />
             <SizedBox height={ThemeSpacing.Lg} />
-            <div className="cert-footer">
+            <Controls>
               <Button
                 variant="outlined"
                 text={m.settings_certs_ca_download()}
@@ -124,7 +125,7 @@ const Content = () => {
                 loading={false}
                 disabled={false}
               />
-            </div>
+            </Controls>
           </>
         )}
         {certsData?.core_http_cert_source === 'Custom' && (
@@ -181,7 +182,7 @@ const Content = () => {
               domain={certsData.proxy_http_cert_domain}
             />
             <SizedBox height={ThemeSpacing.Lg} />
-            <div className="cert-footer">
+            <Controls>
               <Button
                 variant="outlined"
                 text={m.settings_certs_ca_download()}
@@ -197,7 +198,7 @@ const Content = () => {
                 loading={false}
                 disabled={false}
               />
-            </div>
+            </Controls>
           </>
         )}
         {certsData?.proxy_http_cert_source === 'Custom' && (

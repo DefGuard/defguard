@@ -6,7 +6,6 @@ import { Controls } from '../../../../shared/components/Controls/Controls';
 import { InternalSslResult } from '../../../../shared/components/certificates/InternalSslResult/InternalSslResult';
 import { WizardCard } from '../../../../shared/components/wizard/WizardCard/WizardCard';
 import { Button } from '../../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../../shared/defguard-ui/components/Divider/Divider';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { downloadFile } from '../../../../shared/utils/download';
@@ -54,7 +53,6 @@ export const AutoAdoptionInternalUrlSslConfigStep = () => {
         imageSrc={caIcon}
       />
       <SizedBox height={ThemeSpacing.Xl3} />
-      <Divider />
       <Controls>
         <Button
           text={m.initial_setup_controls_back()}

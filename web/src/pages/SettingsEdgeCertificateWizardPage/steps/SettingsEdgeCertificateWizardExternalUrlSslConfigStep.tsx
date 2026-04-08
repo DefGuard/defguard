@@ -306,7 +306,6 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
     <WizardCard>
       {renderContent()}
       <SizedBox height={ThemeSpacing.Xl3} />
-      <Divider />
       <Controls>
         <Button
           text={m.controls_back()}
