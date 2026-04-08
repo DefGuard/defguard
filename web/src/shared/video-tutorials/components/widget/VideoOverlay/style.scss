@@ -1,0 +1,58 @@
+// ---------------------------------------------------------------------------
+// VideoOverlay
+// ModalFoundation provides the backdrop and portal; we style the content here.
+// Error/skeleton/iframe styles live in VideoPlayer/style.scss.
+// ---------------------------------------------------------------------------
+
+.video-support-modal-container {
+  position: relative;
+  display: inline-block;
+  padding-top: var(--size-2xl);
+
+  // Modal close button — floats outside the modal card (top-right).
+  // Uses IconButton; overrides border-radius token to circular and adds background/shadow.
+  &-close {
+    --button-border-radius-sm: var(--radius-full);
+
+    position: absolute;
+    top: var(--spacing-xs);
+    right: calc(-1 * var(--size-2xl));
+    background-color: var(--bg-default);
+    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 10%);
+    z-index: 1;
+
+    @include animate(box-shadow);
+  }
+}
+
+.video-support-modal {
+  background: var(--bg-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 30px 0 rgb(0 0 0 / 9%);
+  padding: var(--spacing-xl);
+  width: 920px;
+  max-width: 90vw;
+
+  // The shared VideoPlayer renders the iframe directly; size it here.
+  iframe {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    border-radius: var(--radius-sm);
+
+    &:not(.loaded) {
+      display: none;
+    }
+  }
+
+  // Overlay skeleton needs the aspect-ratio wrapper so the modal does not resize.
+  .video-player-skeleton {
+    aspect-ratio: 16 / 9;
+  }
+
+  // Overlay error fills the same 16/9 area.
+  .video-player-error.overlay {
+    aspect-ratio: 16 / 9;
+  }
+}

@@ -13,6 +13,10 @@ import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snac
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
+import {
+  correctUrlProtocol,
+  ensureUrlScheme,
+} from '../../../../shared/utils/defguardUrl';
 import type { ExternalSslType } from '../../autoAdoption/types';
 import '../../autoAdoption/steps/style.scss';
 import { SetupPageStep } from '../types';
@@ -25,8 +29,12 @@ export const SetupExternalUrlSettingsStep = () => {
 
   const formSchema = z.object({
     public_proxy_url: z
-      .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
-      .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
+      .string({
+        error: m.initial_setup_general_config_error_public_proxy_url_required(),
+      })
+      .overwrite(ensureUrlScheme)
+      .min(1, m.initial_setup_general_config_error_public_proxy_url_required())
+      .url(m.initial_setup_general_config_error_public_proxy_url_invalid()),
     ssl_type: z.custom<ExternalSslType>(),
     cert_pem_file: z.custom<File | null>().nullable(),
     key_pem_file: z.custom<File | null>().nullable(),
@@ -67,11 +75,12 @@ export const SetupExternalUrlSettingsStep = () => {
         );
         return;
       }
+      const correctedUrl = correctUrlProtocol(value.public_proxy_url, value.ssl_type);
       useSetupWizardStore.setState({
-        public_proxy_url: value.public_proxy_url,
+        public_proxy_url: correctedUrl,
       });
       mutate({
-        public_proxy_url: value.public_proxy_url,
+        public_proxy_url: correctedUrl,
         ssl_type: value.ssl_type,
         cert_pem: value.cert_pem_file ? await value.cert_pem_file.text() : undefined,
         key_pem: value.key_pem_file ? await value.key_pem_file.text() : undefined,
@@ -96,6 +105,7 @@ export const SetupExternalUrlSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_auto_adoption_external_url_settings_label()}
+                helper={m.initial_setup_auto_adoption_external_url_settings_helper()}
                 type="text"
               />
             )}

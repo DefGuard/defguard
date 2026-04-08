@@ -1,10 +1,12 @@
 use std::{
     collections::HashMap,
+    env::temp_dir,
     io,
     path::PathBuf,
+    process,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicU16, AtomicU64, Ordering},
     },
     time::Duration,
 };
@@ -50,9 +52,9 @@ macro_rules! assert_some {
     };
 }
 
-static TEST_ID: AtomicU64 = AtomicU64::new(0);
+static TEST_ID: AtomicU16 = AtomicU16::new(0);
 
-fn next_test_id() -> u64 {
+fn next_test_id() -> u16 {
     TEST_ID.fetch_add(1, Ordering::Relaxed)
 }
 
@@ -62,8 +64,9 @@ fn unique_name(prefix: &str) -> String {
 
 fn unique_socket_path() -> PathBuf {
     PathBuf::from(format!(
-        "/tmp/defguard-gateway-manager-{}-{}.sock",
-        std::process::id(),
+        "{}/defguard-gateway-manager-{}-{}.sock",
+        temp_dir().display(),
+        process::id(),
         next_test_id()
     ))
 }
@@ -81,9 +84,9 @@ struct MockGatewayState {
     outbound_tx: UnboundedSender<CoreResponse>,
     inbound_rx: Mutex<Option<UnboundedReceiver<Result<CoreRequest, Status>>>>,
     connected_tx: Mutex<Option<oneshot::Sender<()>>>,
-    connection_count: AtomicU64,
+    connection_count: AtomicU16,
     connection_notify: Notify,
-    purge_count: AtomicU64,
+    purge_count: AtomicU16,
     purge_notify: Notify,
 }
 
@@ -173,9 +176,9 @@ impl MockGatewayHarness {
             outbound_tx,
             inbound_rx: Mutex::new(Some(inbound_rx)),
             connected_tx: Mutex::new(Some(connected_tx)),
-            connection_count: AtomicU64::new(0),
+            connection_count: AtomicU16::new(0),
             connection_notify: Notify::new(),
-            purge_count: AtomicU64::new(0),
+            purge_count: AtomicU16::new(0),
             purge_notify: Notify::new(),
         });
         let service = MockGatewayService {
@@ -213,11 +216,11 @@ impl MockGatewayHarness {
             .expect("mock gateway connection notifier dropped");
     }
 
-    pub(crate) fn connection_count(&self) -> u64 {
+    pub(crate) fn connection_count(&self) -> u16 {
         self.state.connection_count.load(Ordering::Relaxed)
     }
 
-    pub(crate) async fn wait_for_connection_count(&self, expected_count: u64) {
+    pub(crate) async fn wait_for_connection_count(&self, expected_count: u16) {
         timeout(TEST_TIMEOUT, async {
             loop {
                 if self.connection_count() >= expected_count {
@@ -708,7 +711,7 @@ pub(crate) async fn create_gateway_with_enabled(
 }
 
 pub(crate) fn build_gateway_with_enabled(location_id: Id, enabled: bool) -> Gateway<NoId> {
-    let port = 20_000 + i32::try_from(next_test_id() % 40_000).expect("port offset fits in i32");
+    let port = 20_000 + i32::from(next_test_id() % 40_000);
     let mut gateway = Gateway::new(
         location_id,
         unique_name("gateway"),

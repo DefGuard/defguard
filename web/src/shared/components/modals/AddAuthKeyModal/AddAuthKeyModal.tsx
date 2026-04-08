@@ -166,6 +166,7 @@ const ModalContent = ({ username }: { username: string }) => {
             options={selectOptions}
             testId="field-type"
             label={m.form_label_type()}
+            helper={m.form_helper_type()}
           />
           <form.AppField name="name">
             {(field) => (

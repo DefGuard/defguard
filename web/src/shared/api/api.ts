@@ -325,7 +325,8 @@ const api = {
       client.put(`/device/network/${id}`, data),
     getDevice: (id: number) => client.get<NetworkDevice>(`/device/network/${id}`),
     getDevices: () => fetchAllPages<NetworkDevice>('/device/network'),
-    getDeviceConfig: (id: number) => client.get<string>(`/device/network/${id}/config`),
+    getDeviceConfig: (id: number) =>
+      client.get<AddDeviceResponseConfig[]>(`/device/network/${id}/config`),
     generateToken: (id: number) =>
       client.post<StartEnrollmentResponse>(`/device/network/start_cli/${id}`),
     addCliDevice: (data: AddNetworkDeviceRequest) =>

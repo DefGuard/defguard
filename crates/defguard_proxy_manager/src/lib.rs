@@ -3,21 +3,33 @@ use std::{
     sync::{Arc, RwLock},
     time::Duration,
 };
+#[cfg(test)]
+use std::{path::PathBuf, str::FromStr, sync::Mutex as StdMutex};
 
 use axum_extra::extract::cookie::Key;
-use defguard_common::{db::models::proxy::Proxy, types::proxy::ProxyControlMessage};
-use defguard_core::{events::BidiStreamEvent, grpc::GatewayEvent, version::IncompatibleComponents};
-use defguard_proto::proxy::{CoreResponse, core_response};
+use defguard_common::{
+    db::{Id, models::proxy::Proxy},
+    types::proxy::ProxyControlMessage,
+};
+use defguard_core::{
+    events::BidiStreamEvent,
+    grpc::{GatewayEvent, proxy::client_mfa::ClientLoginSession},
+    version::IncompatibleComponents,
+};
+use defguard_proto::proxy::{CoreResponse, HttpsCerts, core_response};
 use sqlx::PgPool;
+#[cfg(test)]
+use tokio::sync::Notify;
 use tokio::{
     select,
     sync::{
         Mutex,
         broadcast::Sender,
         mpsc::{Receiver, UnboundedSender},
-        watch,
+        oneshot, watch,
     },
     task::JoinSet,
+    time::sleep,
 };
 
 use crate::{certs::refresh_certs, error::ProxyError, handler::ProxyHandler};
@@ -27,10 +39,99 @@ mod error;
 mod handler;
 mod servers;
 
+#[cfg(test)]
+mod tests;
+
 #[macro_use]
 extern crate tracing;
 
 const TEN_SECS: Duration = Duration::from_secs(10);
+
+#[cfg(test)]
+#[derive(Clone, Default)]
+pub(crate) struct ProxyManagerTestSupport {
+    socket_paths_by_url: Arc<StdMutex<HashMap<String, PathBuf>>>,
+    handler_spawn_attempts_by_proxy: Arc<StdMutex<HashMap<Id, u64>>>,
+    handler_spawn_attempt_notify: Arc<Notify>,
+    retry_delay_override: Arc<StdMutex<Option<Duration>>>,
+}
+
+#[cfg(test)]
+impl ProxyManagerTestSupport {
+    fn register_proxy_url(&self, proxy_url: String, socket_path: PathBuf) {
+        self.socket_paths_by_url
+            .lock()
+            .expect("Failed to lock ProxyManager test socket registry")
+            .insert(proxy_url, socket_path);
+    }
+
+    pub(crate) fn socket_path_for_url(&self, url: &str) -> Option<PathBuf> {
+        self.socket_paths_by_url
+            .lock()
+            .expect("Failed to lock ProxyManager test socket registry")
+            .get(url)
+            .cloned()
+    }
+
+    fn note_handler_spawn_attempt(&self, proxy_id: Id) {
+        let mut handler_spawn_attempts = self
+            .handler_spawn_attempts_by_proxy
+            .lock()
+            .expect("Failed to lock ProxyManager handler spawn attempts registry");
+        *handler_spawn_attempts.entry(proxy_id).or_default() += 1;
+        self.handler_spawn_attempt_notify.notify_waiters();
+    }
+
+    pub(crate) fn handler_spawn_attempt_count(&self, proxy_id: Id) -> u64 {
+        self.handler_spawn_attempts_by_proxy
+            .lock()
+            .expect("Failed to lock ProxyManager handler spawn attempts registry")
+            .get(&proxy_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    pub(crate) async fn wait_for_handler_spawn_attempt_count(
+        &self,
+        proxy_id: Id,
+        expected_count: u64,
+    ) {
+        loop {
+            if self.handler_spawn_attempt_count(proxy_id) >= expected_count {
+                return;
+            }
+
+            let notified = self.handler_spawn_attempt_notify.notified();
+            if self.handler_spawn_attempt_count(proxy_id) >= expected_count {
+                return;
+            }
+
+            notified.await;
+        }
+    }
+
+    pub(crate) fn set_retry_delay(&self, retry_delay: Duration) {
+        *self
+            .retry_delay_override
+            .lock()
+            .expect("Failed to lock ProxyManager retry delay override") = Some(retry_delay);
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn manager_reconnect_delay(&self) -> Duration {
+        self.retry_delay_override
+            .lock()
+            .expect("Failed to lock ProxyManager retry delay override")
+            .unwrap_or(TEN_SECS)
+    }
+
+    pub(crate) fn handler_reconnect_delay(&self) -> Duration {
+        self.retry_delay_override
+            .lock()
+            .expect("Failed to lock ProxyManager retry delay override")
+            .unwrap_or(TEN_SECS)
+    }
+}
 
 /// Map from proxy ID to the `CoreResponse` sender for that handler's active stream.
 ///
@@ -49,6 +150,8 @@ pub struct ProxyManager {
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control: Receiver<ProxyControlMessage>,
     proxy_cookie_key: Key,
+    #[cfg(test)]
+    test_support: Option<ProxyManagerTestSupport>,
 }
 
 impl ProxyManager {
@@ -65,7 +168,82 @@ impl ProxyManager {
             incompatible_components,
             proxy_control: proxy_control_rx,
             proxy_cookie_key: Key::derive_from(core_secret_key.as_bytes()),
+            #[cfg(test)]
+            test_support: None,
         }
+    }
+
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) fn new_for_test(
+        pool: PgPool,
+        tx: ProxyTxSet,
+        incompatible_components: Arc<RwLock<IncompatibleComponents>>,
+        proxy_control_rx: Receiver<ProxyControlMessage>,
+        core_secret_key: &str,
+        test_support: ProxyManagerTestSupport,
+    ) -> Self {
+        Self {
+            pool,
+            tx,
+            incompatible_components,
+            proxy_control: proxy_control_rx,
+            proxy_cookie_key: Key::derive_from(core_secret_key.as_bytes()),
+            test_support: Some(test_support),
+        }
+    }
+
+    fn build_handler(
+        &self,
+        proxy: &Proxy<Id>,
+        remote_mfa_responses: Arc<RwLock<HashMap<String, oneshot::Sender<String>>>>,
+        sessions: Arc<RwLock<HashMap<String, ClientLoginSession>>>,
+        handler_tx_map: HandlerTxMap,
+        shutdown_rx: Arc<Mutex<oneshot::Receiver<bool>>>,
+        proxy_cookie_key: Key,
+    ) -> Result<ProxyHandler, ProxyError> {
+        #[cfg(test)]
+        if let Some(test_support) = self.test_support.clone() {
+            use reqwest::Url;
+
+            test_support.note_handler_spawn_attempt(proxy.id);
+
+            let url = Url::from_str(&format!("http://{}:{}", proxy.address, proxy.port))
+                .map_err(ProxyError::from)?;
+            let url_str = url.to_string();
+            let socket_path = test_support.socket_path_for_url(&url_str);
+
+            // Always construct with the shared handler_tx_map so that
+            // BroadcastHttpsCerts (and any other manager-level broadcasts) can
+            // reach this handler.
+            let mut handler = ProxyHandler::from_proxy(
+                proxy,
+                self.pool.clone(),
+                &self.tx,
+                remote_mfa_responses,
+                sessions,
+                shutdown_rx,
+                proxy_cookie_key,
+                handler_tx_map,
+            )?;
+
+            if let Some(path) = socket_path {
+                handler.set_test_socket_path(path);
+            }
+            handler.attach_test_support(test_support);
+            return Ok(handler);
+        }
+
+        ProxyHandler::from_proxy(
+            proxy,
+            self.pool.clone(),
+            &self.tx,
+            remote_mfa_responses,
+            sessions,
+            shutdown_rx,
+            proxy_cookie_key,
+            handler_tx_map,
+        )
     }
 
     /// Spawns and supervises asynchronous tasks for all configured proxies.
@@ -82,7 +260,7 @@ impl ProxyManager {
         tokio::spawn(async move {
             loop {
                 refresh_certs(&refresh_pool, &certs_tx).await;
-                tokio::time::sleep(TEN_SECS).await;
+                sleep(TEN_SECS).await;
             }
         });
 
@@ -95,17 +273,15 @@ impl ProxyManager {
             .await?
             .iter()
             .map(|proxy| {
-                let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<bool>();
+                let (shutdown_tx, shutdown_rx) = oneshot::channel::<bool>();
                 shutdown_channels.insert(proxy.id, shutdown_tx);
-                ProxyHandler::from_proxy(
+                self.build_handler(
                     proxy,
-                    self.pool.clone(),
-                    &self.tx,
                     Arc::clone(&remote_mfa_responses),
                     Arc::clone(&sessions),
+                    Arc::clone(&handler_tx_map),
                     Arc::new(Mutex::new(shutdown_rx)),
                     self.proxy_cookie_key.clone(),
-                    Arc::clone(&handler_tx_map),
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -144,17 +320,15 @@ impl ProxyManager {
                                     continue;
                                 }
                                 let (shutdown_tx, shutdown_rx) =
-                                    tokio::sync::oneshot::channel::<bool>();
+                                    oneshot::channel::<bool>();
                                 shutdown_channels.insert(id, shutdown_tx);
-                                match ProxyHandler::from_proxy(
+                                match self.build_handler(
                                     &proxy_model,
-                                    self.pool.clone(),
-                                    &self.tx,
                                     Arc::clone(&remote_mfa_responses),
                                     Arc::clone(&sessions),
+                                    Arc::clone(&handler_tx_map),
                                     Arc::new(Mutex::new(shutdown_rx)),
                                     self.proxy_cookie_key.clone(),
-                                    Arc::clone(&handler_tx_map),
                                 ) {
                                     Ok(proxy) => {
                                         debug!("Spawning proxy task for proxy {}", proxy.url);
@@ -188,7 +362,7 @@ impl ProxyManager {
                             let msg = CoreResponse {
                                 id: 0,
                                 payload: Some(core_response::Payload::HttpsCerts(
-                                    defguard_proto::proxy::HttpsCerts { cert_pem, key_pem },
+                                    HttpsCerts { cert_pem, key_pem },
                                 )),
                             };
                             if let Ok(map) = handler_tx_map.read() {

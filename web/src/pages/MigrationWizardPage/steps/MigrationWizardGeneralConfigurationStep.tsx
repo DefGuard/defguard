@@ -77,6 +77,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
               <field.FormInput
                 required
                 label={m.migration_wizard_general_config_label_admin_group()}
+                helper={m.migration_wizard_general_config_helper_admin_group()}
                 type="text"
               />
             )}
@@ -87,6 +88,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
               <field.FormInput
                 required
                 label={m.migration_wizard_general_config_label_auth_period()}
+                helper={m.migration_wizard_general_config_helper_auth_period()}
                 type="number"
               />
             )}
@@ -97,6 +99,7 @@ export const MigrationWizardGeneralConfigurationStep = () => {
               <field.FormInput
                 required
                 label={m.migration_wizard_general_config_label_mfa_timeout()}
+                helper={m.migration_wizard_general_config_helper_mfa_timeout()}
                 type="number"
               />
             )}

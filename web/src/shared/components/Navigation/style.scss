@@ -45,7 +45,7 @@
     width: 100%;
     margin-top: auto;
     box-sizing: border-box;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
     display: flex;
     flex-flow: row nowrap;
     align-items: center;
@@ -58,6 +58,7 @@
 
 .navigation .nav-group {
   user-select: none;
+  width: 100%;
 
   & > .track {
     display: flex;
@@ -103,6 +104,8 @@
   width: 100%;
   user-select: none;
   border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
 
   @include animate(color, background-color);
 
@@ -133,19 +136,5 @@
     align-items: center;
     justify-content: center;
     row-gap: var(--spacing-xxs);
-  }
-}
-
-.navigation .nav-controls {
-  display: flex;
-  flex-flow: row nowrap;
-  column-gap: var(--spacing-md);
-  flex-basis: 100%;
-
-  .right {
-    display: flex;
-    flex-flow: row nowrap;
-    column-gap: var(--spacing-md);
-    margin-left: auto;
   }
 }

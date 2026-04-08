@@ -137,7 +137,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
-    let wizard = Wizard::init(&pool, has_auto_adopt_flags).await?;
+    let wizard = Wizard::init(&pool, has_auto_adopt_flags, &config).await?;
 
     Settings::initialize_runtime_defaults(&pool).await?;
     if !wizard.completed {

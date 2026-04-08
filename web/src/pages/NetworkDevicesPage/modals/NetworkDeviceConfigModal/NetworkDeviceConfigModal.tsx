@@ -68,7 +68,7 @@ const ModalContent = ({ config, device }: ModalData) => {
       <InfoBanner
         variant="warning"
         icon={IconKind.WarningOutlined}
-        text={m.modal_network_device_manual_config_warning()}
+        text={m.modal_user_device_config_warning()}
       />
       <SizedBox height={ThemeSpacing.Xl2} />
       <CodeBox text={config.replaceAll('\n', '<br/>')} markdown />

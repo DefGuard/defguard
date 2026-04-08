@@ -80,7 +80,7 @@ export const GatewaySetupPage = () => {
     <>
       <SizedBox height={ThemeSpacing.Xl2} />
       <Divider />
-      <SizedBox height={ThemeSpacing.Xl} />
+      <SizedBox height={ThemeSpacing.Xl2} />
       <Button
         text={m.gateway_setup_controls_configure()}
         onClick={() => setIsOnWelcomePage(false)}

@@ -19,9 +19,15 @@ export interface MigrationWizardLocationState {
   locations: number[];
   current_location: number;
 }
+export interface MigrationWizardProxyUrl {
+  domain: string;
+  port: number;
+}
+
 export interface MigrationWizardApiState {
   current_step: MigrationWizardStepValue;
   location_state: MigrationWizardLocationState | null;
+  proxy_url: MigrationWizardProxyUrl | null;
 }
 
 export interface SessionInfo {
@@ -901,6 +907,7 @@ export type InitialSetupStepValue =
 export type AutoAdoptionAdoptionStepValue =
   | 'welcome'
   | 'admin_user'
+  | 'url_settings'
   | 'internal_url_settings'
   | 'internal_url_ssl_config'
   | 'external_url_settings'

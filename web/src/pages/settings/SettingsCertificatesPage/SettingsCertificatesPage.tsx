@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
@@ -20,7 +21,6 @@ import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { displayDate } from '../../../shared/utils/displayDate';
 import { downloadFile } from '../../../shared/utils/download';
-import { Controls } from '../../../shared/components/Controls/Controls';
 
 const breadcrumbs = [
   <Link

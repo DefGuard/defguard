@@ -335,7 +335,7 @@ pub async fn set_general_config(
 
     info!("Initial general configuration applied");
 
-    advance_initial_wizard_to_step(&pool, InitialSetupStep::InternalUrlSettings).await?;
+    advance_initial_wizard_to_step(&pool, InitialSetupStep::Ca).await?;
 
     Ok(ApiResponse::with_status(StatusCode::CREATED))
 }

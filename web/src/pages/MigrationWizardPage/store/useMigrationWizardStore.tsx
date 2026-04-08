@@ -60,6 +60,7 @@ const edgeAdoptionStateDefaults: EdgeAdoptionState = {
 const defaults: StoreValues = {
   current_step: MigrationWizardStep.General,
   location_state: null,
+  proxy_url: null,
   defguard_url: '',
   public_proxy_url: '',
   default_admin_group_name: 'admin',
@@ -97,6 +98,7 @@ const saveStep = (
     .updateMigrationState({
       current_step: step,
       location_state: locationState,
+      proxy_url: useMigrationWizardStore.getState().proxy_url,
     })
     .then(() => {
       void queryClient

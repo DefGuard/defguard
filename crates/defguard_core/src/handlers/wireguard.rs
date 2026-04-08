@@ -497,6 +497,8 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
             has_devices,
         });
     }
+    network_info.sort_by(|a, b| a.network.name.cmp(&b.network.name));
+
     debug!("Listed WireGuard networks");
 
     Ok(ApiResponse::json(network_info, StatusCode::OK))

@@ -31,16 +31,25 @@ type Props = { data: AddDeviceResponse; privateKey?: string };
 export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) => {
   const publicKey = response.device.wireguard_pubkey;
   const { writeToClipboard } = useClipboard();
-  const [selectedOption, setSelected] = useState<SelectOption<AddDeviceResponseConfig>>(
-    configToOption(response.configs[0]),
+  const selectOptions = useMemo(
+    () =>
+      response.configs.map(
+        (item): SelectOption<AddDeviceResponseConfig> => configToOption(item),
+      ),
+    [response.configs],
   );
+  const [selectedOption, setSelected] =
+    useState<SelectOption<AddDeviceResponseConfig> | null>(selectOptions[0] ?? null);
+  const hasConfigs = isPresent(selectedOption);
 
   const qrConfig = useMemo(() => {
+    if (!selectedOption) return '';
     const config = selectedOption.value.config;
     return config.replace('YOUR_PRIVATE_KEY', privateKey ?? publicKey);
   }, [selectedOption, privateKey, publicKey]);
 
   const clipboardConfig = useMemo(() => {
+    if (!selectedOption) return '';
     const config = selectedOption.value.config;
     if (privateKey) {
       return config.replace('YOUR_PRIVATE_KEY', privateKey);
@@ -89,45 +98,40 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
     [handleDownloadAll, handleDownloadSelected],
   );
 
-  const selectOptions = useMemo(
-    () =>
-      response.configs.map(
-        (item): SelectOption<AddDeviceResponseConfig> => ({
-          key: item.network_id,
-          label: item.network_name,
-          value: item,
-        }),
-      ),
-    [response.configs],
-  );
   return (
     <div className="modal-device-config-section">
-      <QrCard value={qrConfig} />
+      {hasConfigs && <QrCard value={qrConfig} />}
       <div className="right">
-        <Select
-          label={m.modal_add_user_device_manual_download_location_label()}
-          options={selectOptions}
-          onChange={setSelected}
-          value={selectedOption}
-        />
+        {selectedOption && (
+          <Select
+            label={m.modal_add_user_device_manual_download_location_label()}
+            helper={m.modal_add_user_device_manual_download_location_helper()}
+            options={selectOptions}
+            onChange={setSelected}
+            value={selectedOption}
+            disabled={!hasConfigs}
+          />
+        )}
         <SizedBox height={ThemeSpacing.Xl2} />
         <p>{m.modal_add_user_device_manual_download_explain()}</p>
-        <div className="actions">
-          <ButtonMenu
-            variant="outlined"
-            iconLeft="download"
-            text={m.modal_add_user_device_manual_download_actions_download()}
-            menuItems={downloadMenu}
-          />
-          <Button
-            text={m.controls_copy_clipboard()}
-            variant="outlined"
-            iconLeft="copy"
-            onClick={() => {
-              void writeToClipboard(clipboardConfig);
-            }}
-          />
-        </div>
+        {hasConfigs && (
+          <div className="actions">
+            <ButtonMenu
+              variant="outlined"
+              iconLeft="download"
+              text={m.modal_add_user_device_manual_download_actions_download()}
+              menuItems={downloadMenu}
+            />
+            <Button
+              text={m.controls_copy_clipboard()}
+              variant="outlined"
+              iconLeft="copy"
+              onClick={() => {
+                void writeToClipboard(clipboardConfig);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ use axum::serve;
 use defguard_certs::{CertificateAuthority, PemLabel, der_to_pem};
 use defguard_common::{
     VERSION,
+    config::DefGuardConfig,
     db::{
         models::{
             Certificates, Session, Settings, User,
@@ -51,7 +52,7 @@ async fn test_create_admin(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -108,7 +109,7 @@ async fn test_create_admin_with_automatic_group_assignment(
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -155,7 +156,7 @@ async fn test_setup_login_too_many_attempts(_: PgPoolOptions, options: PgConnect
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -205,7 +206,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -265,7 +266,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Failed to fetch group membership");
     assert!(groups.contains(&"admins".to_string()));
 
-    assert_setup_step(&pool, InitialSetupStep::InternalUrlSettings).await;
+    assert_setup_step(&pool, InitialSetupStep::Ca).await;
 }
 
 #[sqlx::test]
@@ -274,7 +275,7 @@ async fn test_create_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -324,7 +325,7 @@ async fn test_upload_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -372,7 +373,7 @@ async fn test_get_ca(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -426,7 +427,7 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -478,7 +479,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to initialize wizard");
 
@@ -555,7 +556,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .expect("Failed to set general config");
     assert_eq!(response.status(), StatusCode::CREATED);
-    assert_setup_step(&pool, InitialSetupStep::InternalUrlSettings).await;
+    assert_setup_step(&pool, InitialSetupStep::Ca).await;
 
     let response = client
         .post(format!("{base_url}/api/v1/initial_setup/ca"))

@@ -1,11 +1,14 @@
-use defguard_common::db::{
-    models::{
-        settings::initialize_current_settings,
-        setup_auto_adoption::AutoAdoptionWizardStep,
-        wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
-        wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    config::DefGuardConfig,
+    db::{
+        models::{
+            settings::initialize_current_settings,
+            setup_auto_adoption::AutoAdoptionWizardStep,
+            wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
+            wizard::{ActiveWizard, Wizard},
+        },
+        setup_pool,
     },
-    setup_pool,
 };
 use reqwest::StatusCode;
 use serde_json::json;
@@ -20,7 +23,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
-    Wizard::init(&pool, false)
+    Wizard::init(&pool, false, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 
@@ -93,10 +96,7 @@ async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) 
         .json()
         .await
         .expect("Failed to parse wizard state");
-    assert_eq!(
-        state["initial_setup_state"]["step"],
-        "internal_url_settings"
-    );
+    assert_eq!(state["initial_setup_state"]["step"], "ca");
 
     let resp = client
         .post("/api/v1/initial_setup/ca")
@@ -159,7 +159,7 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .await
         .expect("Failed to seed wireguard network");
 
-    Wizard::init(&pool, true)
+    Wizard::init(&pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
 

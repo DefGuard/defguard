@@ -13,6 +13,7 @@ import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackba
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { correctUrlProtocol, ensureUrlScheme } from '../../../shared/utils/defguardUrl';
 import type { ExternalSslType } from '../../SetupPage/autoAdoption/types';
 import { useMigrationWizardStore } from '../store/useMigrationWizardStore';
 import '../../SetupPage/autoAdoption/steps/style.scss';
@@ -23,8 +24,12 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
 
   const formSchema = z.object({
     public_proxy_url: z
-      .url(m.initial_setup_general_config_error_public_proxy_url_invalid())
-      .min(1, m.initial_setup_general_config_error_public_proxy_url_required()),
+      .string({
+        error: m.initial_setup_general_config_error_public_proxy_url_required(),
+      })
+      .overwrite(ensureUrlScheme)
+      .min(1, m.initial_setup_general_config_error_public_proxy_url_required())
+      .url(m.initial_setup_general_config_error_public_proxy_url_invalid()),
     ssl_type: z.custom<ExternalSslType>(),
     cert_pem_file: z.custom<File | null>().nullable(),
     key_pem_file: z.custom<File | null>().nullable(),
@@ -65,11 +70,12 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
         );
         return;
       }
+      const correctedUrl = correctUrlProtocol(value.public_proxy_url, value.ssl_type);
       useMigrationWizardStore.setState({
-        public_proxy_url: value.public_proxy_url,
+        public_proxy_url: correctedUrl,
       });
       mutate({
-        public_proxy_url: value.public_proxy_url,
+        public_proxy_url: correctedUrl,
         ssl_type: value.ssl_type,
         cert_pem: value.cert_pem_file ? await value.cert_pem_file.text() : undefined,
         key_pem: value.key_pem_file ? await value.key_pem_file.text() : undefined,
@@ -94,6 +100,7 @@ export const MigrationWizardExternalUrlSettingsStep = () => {
               <field.FormInput
                 required
                 label={m.initial_setup_auto_adoption_external_url_settings_label()}
+                helper={m.initial_setup_auto_adoption_external_url_settings_helper()}
                 type="text"
               />
             )}

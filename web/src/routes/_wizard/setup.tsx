@@ -52,6 +52,7 @@ const autoAdoptionStepMap: Record<
 > = {
   welcome: AutoAdoptionSetupStep.AdminUser,
   admin_user: AutoAdoptionSetupStep.AdminUser,
+  url_settings: AutoAdoptionSetupStep.InternalUrlSettings,
   internal_url_settings: AutoAdoptionSetupStep.InternalUrlSettings,
   internal_url_ssl_config: AutoAdoptionSetupStep.InternalUrlSslConfig,
   external_url_settings: AutoAdoptionSetupStep.ExternalUrlSettings,
@@ -101,7 +102,9 @@ const handleWizardRedirect = async ({
   // Apply the server-provided step to the appropriate wizard store.
   if (isAutoAdoption) {
     useAutoAdoptionSetupWizardStore.setState({
-      activeStep: autoAdoptionStepMap[currentStep as AutoAdoptionAdoptionStepValue],
+      activeStep:
+        autoAdoptionStepMap[currentStep as AutoAdoptionAdoptionStepValue] ??
+        AutoAdoptionSetupStep.InternalUrlSettings,
       isAutoAdoptionFlowStarted: currentStep !== 'welcome',
     });
   } else {

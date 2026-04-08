@@ -196,7 +196,7 @@ const VirtualImageTab = () => {
       <TabContentHeader
         title={m.edge_setup_step_deploy_tabs_virtual_title()}
         subtitle={m.edge_setup_step_deploy_tabs_virtual_subtitle({
-          url: `https://defguard-downloads.s3.eu-central-1.amazonaws.com/defguard-alpha2.ova`,
+          url: `https://defguard-downloads.s3.eu-central-1.amazonaws.com/ova/defguard-latest.ova`,
           filename: `defguard-data.yaml`,
         })}
       />

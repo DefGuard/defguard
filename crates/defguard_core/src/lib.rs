@@ -54,7 +54,6 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use regex::Regex;
-use reqwest::Url;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
@@ -798,8 +797,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     settings.public_proxy_url = config
         .enrollment_url
         .clone()
-        .unwrap_or(Url::parse("http://127.0.0.1:8000").unwrap())
-        .to_string();
+        .map_or(String::from("http://localhost:8080"), |url| url.to_string());
     settings.defguard_url = config.url.clone().unwrap().to_string();
     update_current_settings(&pool, settings)
         .await
@@ -826,7 +824,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         completed: true,
     };
     // Ensure wizard is initialized, then overwrite with completed state
-    let _ = Wizard::init(&pool, false).await;
+    let _ = Wizard::init(&pool, false, config).await;
     wizard
         .save(&pool)
         .await

@@ -9,15 +9,15 @@ pub enum InitialSetupStep {
     Welcome,
     AdminUser,
     GeneralConfiguration,
-    InternalUrlSettings,
-    InternalUrlSslConfig,
-    ExternalUrlSettings,
-    ExternalUrlSslConfig,
     Ca,
     CaSummary,
     // Adoption is not present, since the proxy is saved
     // only after completing adoption step.
     EdgeComponent,
+    InternalUrlSettings,
+    InternalUrlSslConfig,
+    ExternalUrlSettings,
+    ExternalUrlSslConfig,
     Confirmation,
     Finished,
 }
