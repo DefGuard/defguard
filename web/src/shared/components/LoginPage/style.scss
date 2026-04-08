@@ -31,15 +31,13 @@
     height: 100%;
     width: 100%;
     min-width: 0;
-    background-color: #0e61df;
+    background: linear-gradient(191deg, #e6e6ff 6.68%, #8cadff 89.78%);
     grid-column: 1 / 2;
     max-height: 100dvh;
 
     img {
-      object-fit: cover;
-      height: 100%;
-      width: auto;
-      aspect-ratio: auto;
+      position: relative;
+      top: 93px;
     }
   }
 
