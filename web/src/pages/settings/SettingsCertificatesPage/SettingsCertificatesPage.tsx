@@ -281,14 +281,18 @@ export const CertHeader = ({ title, description, valid }: ValidDescriptionBlockP
   const validFor = getDaysUntilExpiry(valid);
   let badgeText: string;
   let badgeVariant: 'success' | 'warning' | 'critical';
-  if (validFor === null || validFor > EXPIRING_THRESHOLD_DAYS) {
-    badgeText = 'Valid';
+
+  if (validFor === null) {
+    badgeText = m.settings_certs_status_unknown();
+    badgeVariant = 'warning';
+  } else if (validFor > EXPIRING_THRESHOLD_DAYS) {
+    badgeText = m.settings_certs_status_valid();
     badgeVariant = 'success';
   } else if (validFor > 0) {
-    badgeText = 'Expires soon';
+    badgeText = m.settings_certs_status_expiring();
     badgeVariant = 'warning';
   } else {
-    badgeText = 'Expired';
+    badgeText = m.settings_certs_status_expired();
     badgeVariant = 'critical';
   }
 

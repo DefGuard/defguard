@@ -147,7 +147,7 @@ pub(crate) async fn set_external_url_settings(
 }
 
 #[utoipa::path(
-    post,
+    get,
     path = "/api/v1/core/cert/ca",
     responses(
         (status = 200, description = "CA cert data", body = ApiResponse),
@@ -195,7 +195,7 @@ pub(crate) async fn get_ca(
 }
 
 #[utoipa::path(
-    post,
+    get,
     path = "/api/v1/core/cert/certs",
     responses(
         (status = 200, description = "Core & edge cert data", body = ApiResponse),
