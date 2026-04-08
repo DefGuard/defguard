@@ -7,20 +7,12 @@ import {
   ThemeVariable,
   type ThemeVariableValue,
 } from '../../../shared/defguard-ui/types';
-
-const EXPIRING_THRESHOLD_DAYS = 30;
+import {
+  EXPIRING_THRESHOLD_DAYS,
+  getDaysUntilExpiry,
+} from '../../../shared/utils/certificateExpiry';
 
 type WarningSeverity = 'warning' | 'critical' | null;
-
-const getDaysUntil = (value: string | null | undefined): number | null => {
-  if (!value) return null;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const millisecondsPerDay = 1000 * 60 * 60 * 24;
-  return Math.ceil((date.getTime() - Date.now()) / millisecondsPerDay);
-};
 
 export const useCertificatesWarningState = () => {
   const { data: certsData } = useQuery({
@@ -38,7 +30,7 @@ export const useCertificatesWarningState = () => {
 
   let severity: WarningSeverity = null;
   for (const expiry of expiries) {
-    const daysUntil = getDaysUntil(expiry);
+    const daysUntil = getDaysUntilExpiry(expiry);
     if (daysUntil === null) continue;
 
     if (daysUntil <= 0) {

@@ -19,6 +19,10 @@ import { MarkedSectionHeader } from '../../../shared/defguard-ui/components/Mark
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import {
+  EXPIRING_THRESHOLD_DAYS,
+  getDaysUntilExpiry,
+} from '../../../shared/utils/certificateExpiry';
 import { displayDate } from '../../../shared/utils/displayDate';
 import { downloadFile } from '../../../shared/utils/download';
 
@@ -273,19 +277,11 @@ type ValidDescriptionBlockProps = {
   valid: string;
 };
 
-const getValidForDays = (valid: string) => {
-  const validDate = new Date(valid);
-  if (Number.isNaN(validDate.getTime())) return null;
-
-  const millisecondsPerDay = 1000 * 60 * 60 * 24;
-  return Math.max(0, Math.ceil((validDate.getTime() - Date.now()) / millisecondsPerDay));
-};
-
 export const CertHeader = ({ title, description, valid }: ValidDescriptionBlockProps) => {
-  const validFor = getValidForDays(valid);
+  const validFor = getDaysUntilExpiry(valid);
   let badgeText: string;
   let badgeVariant: 'success' | 'warning' | 'critical';
-  if (validFor === null || validFor > 30) {
+  if (validFor === null || validFor > EXPIRING_THRESHOLD_DAYS) {
     badgeText = 'Valid';
     badgeVariant = 'success';
   } else if (validFor > 0) {
