@@ -19,11 +19,16 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use defguard_mail::templates::mfa_code_mail;
-use defguard_proto::proxy::{
-    self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse, ClientMfaFinishRequest,
-    ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
-    ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse, MfaMethod,
-    core_response::Payload,
+use defguard_proto::{
+    client_types::{
+        ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
+        ClientMfaStartResponse, MfaMethod,
+    },
+    proxy::{
+        self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse,
+        ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse,
+        core_response::Payload,
+    },
 };
 use sqlx::{PgConnection, PgPool};
 use thiserror::Error;

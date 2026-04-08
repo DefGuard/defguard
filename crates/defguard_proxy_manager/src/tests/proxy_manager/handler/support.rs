@@ -25,11 +25,14 @@ use defguard_core::{
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
 };
 use defguard_proto::{
-    client_types::{ActivateUserRequest, DeviceConfigResponse, EnrollmentStartRequest},
+    client_types::{
+        ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
+        CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
+        EnrollmentStartRequest, MfaMethod,
+    },
     proxy::{
-        ClientMfaFinishRequest, ClientMfaStartRequest, ClientMfaTokenValidationRequest,
-        CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, CoreRequest, CoreResponse, DeviceInfo,
-        MfaMethod, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+        ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
+        PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
         core_request, core_response,
     },
 };

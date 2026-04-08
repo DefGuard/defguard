@@ -20,6 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .compile_protos(
             &[
                 "../../proto/v1/worker/worker.proto",
+                "../../proto/v2/common.proto",
                 "../../proto/v2/proxy.proto",
                 "../../proto/v2/gateway.proto",
                 "../../proto/enterprise/v2/firewall/firewall.proto",

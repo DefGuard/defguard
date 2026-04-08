@@ -429,7 +429,7 @@ impl GatewayHandler {
                     debug!("Message from Gateway {uri}");
 
                     match received.payload {
-                        Some(core_request::Payload::ConfigRequest(_config_request)) => {
+                        Some(core_request::Payload::ConfigRequest(())) => {
                             if config_sent {
                                 warn!(
                                     "Ignoring repeated configuration request from {}",

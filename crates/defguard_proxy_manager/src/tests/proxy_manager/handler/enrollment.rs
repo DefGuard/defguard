@@ -6,8 +6,8 @@ use defguard_core::{
     grpc::GatewayEvent,
 };
 use defguard_proto::{
-    client_types::{ExistingDevice, NewDevice},
-    proxy::{CoreRequest, MfaMethod, RegisterMobileAuthRequest, core_request, core_response},
+    client_types::{ExistingDevice, MfaMethod, NewDevice, RegisterMobileAuthRequest},
+    proxy::{CoreRequest, core_request, core_response},
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 

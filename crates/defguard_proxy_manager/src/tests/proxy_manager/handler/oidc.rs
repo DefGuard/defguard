@@ -1,8 +1,11 @@
 #![allow(deprecated)]
 use defguard_core::db::models::enrollment::Token;
-use defguard_proto::proxy::{
-    AuthCallbackRequest, AuthFlowType, AuthInfoRequest, ClientMfaOidcAuthenticateRequest,
-    CoreRequest, MfaMethod, core_request, core_response,
+use defguard_proto::{
+    client_types::{AuthFlowType, AuthInfoRequest, MfaMethod},
+    proxy::{
+        AuthCallbackRequest, ClientMfaOidcAuthenticateRequest, CoreRequest, core_request,
+        core_response,
+    },
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -42,7 +45,6 @@ async fn test_auth_callback_creates_new_user_on_first_login(
         payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
             code: code.clone(),
             nonce: raw_nonce.to_string(),
-            callback_url: String::new(), // ignored in v2 path (handler uses settings)
         })),
     });
 
@@ -104,9 +106,9 @@ async fn test_auth_info_enrollment_returns_authorize_url(
         id: 40,
         device_info: None,
         payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
-            redirect_url: String::new(), // deprecated; ignored when auth_flow_type is set
             state: None,
             auth_flow_type: AuthFlowType::Enrollment as i32,
+            ..Default::default()
         })),
     });
 
@@ -166,9 +168,9 @@ async fn test_auth_info_mfa_returns_authorize_url(_: PgPoolOptions, options: PgC
         id: 50,
         device_info: None,
         payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
-            redirect_url: String::new(),
             state: None,
             auth_flow_type: AuthFlowType::Mfa as i32,
+            ..Default::default()
         })),
     });
 
@@ -216,9 +218,9 @@ async fn test_auth_info_requires_license(_: PgPoolOptions, options: PgConnectOpt
         id: 60,
         device_info: None,
         payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
-            redirect_url: String::new(),
             state: None,
             auth_flow_type: AuthFlowType::Enrollment as i32,
+            ..Default::default()
         })),
     });
 
@@ -247,9 +249,9 @@ async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConn
         id: 70,
         device_info: None,
         payload: Some(core_request::Payload::AuthInfo(AuthInfoRequest {
-            redirect_url: String::new(),
             state: None,
             auth_flow_type: AuthFlowType::Enrollment as i32,
+            ..Default::default()
         })),
     });
 
@@ -308,7 +310,6 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
             ClientMfaOidcAuthenticateRequest {
                 code: code.clone(),
                 state: state.clone(),
-                callback_url: String::new(), // unused in handler (uses settings)
                 nonce: raw_nonce.to_string(),
             },
         )),
@@ -369,7 +370,6 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
         payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
             code: code.clone(),
             nonce: raw_nonce.to_string(),
-            callback_url: String::new(),
         })),
     });
 

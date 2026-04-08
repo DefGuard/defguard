@@ -31,6 +31,12 @@ mod generated {
         pub mod client_types {
             tonic::include_proto!("defguard.client_types");
         }
+
+        pub mod common {
+            pub mod v2 {
+                tonic::include_proto!("defguard.common.v2");
+            }
+        }
     }
 }
 
@@ -56,6 +62,11 @@ pub mod client_types {
     pub use crate::generated::defguard::client_types::*;
 }
 
+pub mod common {
+    pub use crate::generated::defguard::common::v2::*;
+}
+
+use client_types::MfaMethod;
 use defguard_common::{
     csv::AsCsv,
     db::{
@@ -67,7 +78,7 @@ use defguard_common::{
         },
     },
 };
-use proxy::{CoreError, MfaMethod};
+use proxy::CoreError;
 use serde::Serialize;
 use tonic::Status;
 

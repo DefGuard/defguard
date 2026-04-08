@@ -1,5 +1,8 @@
 use defguard_common::{db::models::Settings, types::AuthFlowType};
-use defguard_proto::proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo, MfaMethod};
+use defguard_proto::{
+    client_types::MfaMethod,
+    proxy::{ClientMfaOidcAuthenticateRequest, DeviceInfo},
+};
 use openidconnect::{AuthorizationCode, Nonce};
 use tonic::Status;
 

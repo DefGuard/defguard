@@ -33,15 +33,11 @@ use defguard_mail::templates::{
     TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
     new_device_added_mail,
 };
-use defguard_proto::{
-    client_types::{
-        ActivateUserRequest, AdminInfo, DeviceConfigResponse, EnrollmentStartRequest,
-        EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
-    },
-    proxy::{
-        CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse, CodeMfaSetupStartRequest,
-        CodeMfaSetupStartResponse, MfaMethod, RegisterMobileAuthRequest,
-    },
+use defguard_proto::client_types::{
+    ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
+    CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
+    EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
+    NewDevice, RegisterMobileAuthRequest,
 };
 use sqlx::{PgConnection, PgPool, query_scalar};
 use tokio::sync::{
