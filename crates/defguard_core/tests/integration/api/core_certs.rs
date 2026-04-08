@@ -1,4 +1,4 @@
-use defguard_certs::{CertificateAuthority, Csr, DnType, PemLabel, der_to_pem, generate_key_pair};
+use defguard_certs::CertificateAuthority;
 use defguard_common::db::models::{
     Certificates, CoreCertSource, Settings, settings::update_current_settings,
 };
@@ -7,7 +7,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{make_test_client, setup_pool};
+use super::common::{generate_test_cert_pem, make_test_client, setup_pool};
 
 async fn seed_ca(pool: &sqlx::PgPool) {
     let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
@@ -18,18 +18,6 @@ async fn seed_ca(pool: &sqlx::PgPool) {
         ..Default::default()
     };
     certs.save(pool).await.unwrap();
-}
-
-fn generate_test_cert_pem(common_name: &str) -> (String, String) {
-    let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
-    let key_pair = generate_key_pair().unwrap();
-    let san = vec![common_name.to_string()];
-    let dn = vec![(DnType::CommonName, common_name)];
-    let csr = Csr::new(&key_pair, &san, dn).unwrap();
-    let cert = ca.sign_csr(&csr).unwrap();
-    let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
-    let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
-    (cert_pem, key_pem)
 }
 
 #[sqlx::test]

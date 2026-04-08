@@ -12,7 +12,7 @@ use std::{
 };
 
 use axum_extra::extract::cookie::Key;
-use defguard_certs::{CertificateAuthority, Csr, DnType, PemLabel, der_to_pem, generate_key_pair};
+use defguard_certs::CertificateAuthority;
 use defguard_common::{
     VERSION,
     db::{
@@ -48,7 +48,7 @@ use tokio::{
     },
 };
 
-use super::common::client::TestClient;
+use super::common::{client::TestClient, generate_test_cert_pem};
 use crate::common::{init_config, initialize_users};
 
 // Mock: captures messages sent to the proxy manager channel.
@@ -170,18 +170,6 @@ async fn seed_ca(pool: &PgPool) {
         ..Default::default()
     };
     certs.save(pool).await.unwrap();
-}
-
-fn generate_test_cert_pem(common_name: &str) -> (String, String) {
-    let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
-    let key_pair = generate_key_pair().unwrap();
-    let san = vec![common_name.to_string()];
-    let dn = vec![(DnType::CommonName, common_name)];
-    let csr = Csr::new(&key_pair, &san, dn).unwrap();
-    let cert = ca.sign_csr(&csr).unwrap();
-    let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
-    let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
-    (cert_pem, key_pem)
 }
 
 /// Authenticate as admin and discard the login event from the capture queue.
