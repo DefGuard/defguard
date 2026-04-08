@@ -1,14 +1,12 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
-use defguard_certs::{
-    CertificateInfo, der_to_pem, parse_pem_certificate,
-};
+use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
 use defguard_common::db::models::Certificates;
 use serde_json::json;
 use sqlx::PgPool;
 
 use crate::{
     appstate::AppState,
-    auth::AdminRole,
+    auth::{AdminRole, SessionInfo},
     cert_settings::{
         ExternalSslType, ExternalUrlSettingsConfig, InternalUrlSettingsConfig,
         apply_external_url_settings, apply_internal_url_settings,
@@ -23,6 +21,7 @@ fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
     Some(cert_info.subject_common_name)
 }
 
+/// Broadcast HTTPS certificate updates to all connected proxies.
 async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_pem: String) {
     if let Err(err) = appstate
         .proxy_control_tx
@@ -38,6 +37,7 @@ async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_
     }
 }
 
+/// Tell all connected proxies to clear their active web HTTPS certificates and serve on HTTP.
 async fn clear_proxy_https_certs(appstate: &AppState) {
     if let Err(err) = appstate
         .proxy_control_tx
@@ -70,14 +70,21 @@ fn reload_core_web_server(appstate: &AppState) {
 pub(crate) async fn set_internal_url_settings(
     State(appstate): State<AppState>,
     _role: AdminRole,
+    session: SessionInfo,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<InternalUrlSettingsConfig>,
 ) -> ApiResult {
-    debug!("Applying core internal URL certificate settings");
+    debug!(
+        "User {} applying core internal URL certificate settings",
+        session.user.username
+    );
     let settings = defguard_common::db::models::Settings::get_current_settings();
     let cert_info = apply_internal_url_settings(&pool, &settings.defguard_url, config).await?;
     reload_core_web_server(&appstate);
-    info!("Core internal URL certificate settings applied");
+    info!(
+        "User {} applied core internal URL certificate settings",
+        session.user.username
+    );
 
     Ok(ApiResponse::new(
         json!({ "cert_info": cert_info }),
@@ -101,28 +108,37 @@ pub(crate) async fn set_internal_url_settings(
 pub(crate) async fn set_external_url_settings(
     State(appstate): State<AppState>,
     _role: AdminRole,
+    session: SessionInfo,
     Extension(pool): Extension<PgPool>,
     Json(config): Json<ExternalUrlSettingsConfig>,
 ) -> ApiResult {
-    debug!("Applying proxy external URL certificate settings");
+    debug!(
+        "User {} applying proxy external URL certificate settings",
+        session.user.username
+    );
     let settings = defguard_common::db::models::Settings::get_current_settings();
     let ssl_type = config.ssl_type.clone();
     let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;
 
-    if matches!(
-        ssl_type,
-        ExternalSslType::DefguardCa | ExternalSslType::OwnCert
-    ) {
-        let certs = Certificates::get_or_default(&pool)
-            .await
-            .map_err(WebError::from)?;
-        if let Some((cert_pem, key_pem)) = certs.proxy_http_cert_pair() {
-            broadcast_proxy_https_certs(&appstate, cert_pem.to_owned(), key_pem.to_owned()).await;
+    match ssl_type {
+        ExternalSslType::DefguardCa | ExternalSslType::OwnCert => {
+            let certs = Certificates::get_or_default(&pool)
+                .await
+                .map_err(WebError::from)?;
+            if let Some((cert_pem, key_pem)) = certs.proxy_http_cert_pair() {
+                broadcast_proxy_https_certs(&appstate, cert_pem.to_owned(), key_pem.to_owned())
+                    .await;
+            }
         }
-    } else if ssl_type == ExternalSslType::None {
-        clear_proxy_https_certs(&appstate).await;
+        ExternalSslType::None => {
+            clear_proxy_https_certs(&appstate).await;
+        }
+        ExternalSslType::LetsEncrypt => {}
     }
-    info!("Proxy external URL certificate settings applied");
+    info!(
+        "User {} applied proxy external URL certificate settings",
+        session.user.username
+    );
 
     Ok(ApiResponse::new(
         json!({ "cert_info": cert_info }),
@@ -142,8 +158,15 @@ pub(crate) async fn set_external_url_settings(
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
-pub(crate) async fn get_ca(_role: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
-    debug!("Fetching certificate authority details");
+pub(crate) async fn get_ca(
+    _role: AdminRole,
+    session: SessionInfo,
+    Extension(pool): Extension<PgPool>,
+) -> ApiResult {
+    debug!(
+        "User {} fetching certificate authority details",
+        session.user.username
+    );
     let certs = Certificates::get_or_default(&pool)
         .await
         .map_err(WebError::from)?;
@@ -151,11 +174,6 @@ pub(crate) async fn get_ca(_role: AdminRole, Extension(pool): Extension<PgPool>)
         let ca_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)?;
         let info = CertificateInfo::from_der(&ca_cert_der)?;
         let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
-
-        debug!(
-            "Certificate authority details prepared: subject_common_name={}, valid_for_days={}",
-            info.subject_common_name, valid_for_days
-        );
 
         Ok(ApiResponse::new(
             json!({
@@ -188,8 +206,15 @@ pub(crate) async fn get_ca(_role: AdminRole, Extension(pool): Extension<PgPool>)
     ),
     security(("cookie" = []), ("api_token" = []))
 )]
-pub(crate) async fn get_certs(_role: AdminRole, Extension(pool): Extension<PgPool>) -> ApiResult {
-    debug!("Fetching certificate authority details");
+pub(crate) async fn get_certs(
+    _role: AdminRole,
+    session: SessionInfo,
+    Extension(pool): Extension<PgPool>,
+) -> ApiResult {
+    debug!(
+        "User {} fetching core and edge certificate details",
+        session.user.username
+    );
     let certs = Certificates::get_or_default(&pool)
         .await
         .map_err(WebError::from)?;

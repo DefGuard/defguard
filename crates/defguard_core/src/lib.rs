@@ -117,9 +117,7 @@ use crate::{
             webauthn_start,
         },
         component_setup::setup_gateway_tls_stream,
-        core_certs::{
-            get_ca, get_certs, set_external_url_settings, set_internal_url_settings,
-        },
+        core_certs::{get_ca, get_certs, set_external_url_settings, set_internal_url_settings},
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
         group::{
@@ -140,9 +138,7 @@ use crate::{
             authorization, discovery_keys, openid_configuration, secure_authorization, token,
             userinfo,
         },
-        proxy::{
-            delete_proxy, proxy_details, proxy_list, update_proxy,
-        },
+        proxy::{delete_proxy, proxy_details, proxy_list, update_proxy},
         resource_display::get_locations_display,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,

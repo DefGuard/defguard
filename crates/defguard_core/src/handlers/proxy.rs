@@ -5,10 +5,7 @@ use axum::{
 };
 use chrono::Utc;
 use defguard_common::{
-    db::{
-        Id,
-        models::proxy::Proxy,
-    },
+    db::{Id, models::proxy::Proxy},
     types::proxy::{ProxyControlMessage, ProxyInfo},
 };
 use serde_json::Value;
