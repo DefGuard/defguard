@@ -95,13 +95,11 @@ pub async fn apply_internal_url_settings(
                 .and_then(|u| u.host_str().map(ToString::to_string))
                 .unwrap_or_else(|| defguard_url.to_string());
 
-            if certs.ca_cert_der.is_none() {
-                return Err(WebError::BadRequest(
+            let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
+                WebError::BadRequest(
                     "CA certificate is not present; generate a CA first".to_string(),
-                ));
-            }
-
-            let ca_cert_der = certs.ca_cert_der.as_ref().expect("CA cert must be present");
+                )
+            })?;
             let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
                 WebError::BadRequest("CA private key not available for signing".to_string())
             })?;
@@ -219,13 +217,11 @@ pub async fn apply_external_url_settings(
             None
         }
         ExternalSslType::DefguardCa => {
-            if certs.ca_cert_der.is_none() {
-                return Err(WebError::BadRequest(
+            let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
+                WebError::BadRequest(
                     "CA certificate is not present; generate a CA first".to_string(),
-                ));
-            }
-
-            let ca_cert_der = certs.ca_cert_der.as_ref().expect("CA cert must be present");
+                )
+            })?;
             let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
                 WebError::BadRequest("CA private key not available for signing".to_string())
             })?;
