@@ -262,7 +262,7 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::None);
     assert!(certs.proxy_http_cert_pem.is_none());
 
-    // ssl_type = lets_encrypt: stores ACME domain, does not issue cert yet
+    // ssl_type = lets_encrypt: validates settings, does not issue or persist cert state yet
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/external_url_settings")
         .json(
@@ -274,8 +274,8 @@ async fn test_external_url_settings_all_ssl_types(_: PgPoolOptions, options: PgC
     assert_eq!(resp.status(), StatusCode::CREATED);
 
     let certs = Certificates::get_or_default(&pool).await.unwrap();
-    assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::LetsEncrypt);
-    assert_eq!(certs.acme_domain.as_deref(), Some("proxy.example.com"));
+    assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::None);
+    assert!(certs.acme_domain.is_none());
     assert!(certs.proxy_http_cert_pem.is_none());
     assert!(certs.proxy_http_cert_key_pem.is_none());
 

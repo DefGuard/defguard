@@ -372,6 +372,19 @@ impl ProxyManager {
                                 }
                             }
                         }
+                        Some(ProxyControlMessage::ClearHttpsCerts) => {
+                            debug!("Broadcasting ClearHttpsCerts to all connected proxies");
+                            let msg = CoreResponse {
+                                id: 0,
+                                payload: Some(core_response::Payload::ClearHttpsCerts(())),
+                            };
+                            if let Ok(map) = handler_tx_map.read() {
+                                for (pid, tx) in map.iter() {
+                                    debug!("Sending ClearHttpsCerts to proxy {pid}");
+                                    let _ = tx.send(msg.clone());
+                                }
+                            }
+                        }
                         None => {
                             debug!("Proxy control channel closed");
                             break;

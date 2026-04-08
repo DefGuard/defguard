@@ -7,11 +7,13 @@ import { Tabs } from '../../../shared/defguard-ui/components/Tabs/Tabs';
 import type { TabProps } from '../../../shared/defguard-ui/components/Tabs/types';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { SettingsActivityLogStreamingPage } from '../SettingsActivityLogStreamingPage/SettingsActivityStreamingTab';
+import { SettingsCertificatesTab } from './tabs/SettingsCertificatesTab/SettingsCertificatesTab';
 import { SettingsExternalProvidersTab } from './tabs/SettingsExternalProvidersTab';
 import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
 import { SettingsLicenseTab } from './tabs/SettingsLicenseTab/SettingsLicenseTab';
 import { SettingsNotificationsTab } from './tabs/SettingsNotificationsTab';
 import { type SettingsTabValue, settingsTabsSchema } from './types';
+import { useCertificatesWarningState } from './useCertificatesWarningState';
 
 const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   general: <SettingsGeneralTab />,
@@ -19,6 +21,7 @@ const tabComponent: Record<SettingsTabValue, JSX.Element> = {
   activity: <SettingsActivityLogStreamingPage />,
   license: <SettingsLicenseTab />,
   identity: <SettingsExternalProvidersTab />,
+  certs: <SettingsCertificatesTab />,
 };
 
 const tabToTitle = (tab: SettingsTabValue): string => {
@@ -33,12 +36,15 @@ const tabToTitle = (tab: SettingsTabValue): string => {
       return m.settings_tab_notifications();
     case 'identity':
       return m.settings_tab_identity_providers();
+    case 'certs':
+      return m.settings_tab_certificates();
   }
 };
 
 export const SettingsIndexPage = () => {
   const navigateTab = useNavigate({ from: '/settings/' });
   const search = useSearch({ from: '/_authorized/_default/settings/' });
+  const certificateWarningState = useCertificatesWarningState();
 
   const tabs: TabProps[] = useMemo(
     () =>
@@ -46,12 +52,19 @@ export const SettingsIndexPage = () => {
         (tab): TabProps => ({
           title: tabToTitle(tab),
           active: search.tab === tab,
+          icon: tab === 'certs' ? certificateWarningState.tabIcon : undefined,
+          iconColor: tab === 'certs' ? certificateWarningState.tabIconColor : undefined,
           onClick: () => {
             navigateTab({ search: { tab } });
           },
         }),
       ),
-    [navigateTab, search.tab],
+    [
+      certificateWarningState.tabIcon,
+      certificateWarningState.tabIconColor,
+      navigateTab,
+      search.tab,
+    ],
   );
 
   return (

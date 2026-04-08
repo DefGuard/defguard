@@ -35,7 +35,6 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
-  CoreSelfSignedCertRequest,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -59,6 +58,7 @@ import type {
   Gateway,
   GatewayInfo,
   GetCAResponse,
+  GetCertsResponse,
   GetExternalSslInfoResponse,
   GetInternalSslInfoResponse,
   GroupInfo,
@@ -94,6 +94,10 @@ import type {
   SetAutoAdoptionInternalUrlSettingsResponse,
   SetAutoAdoptionMfaSettingsRequest,
   SetAutoAdoptionVpnSettingsRequest,
+  SetCoreInternalUrlSettingsRequest,
+  SetCoreInternalUrlSettingsResponse,
+  SetEdgeExternalUrlSettingsRequest,
+  SetEdgeExternalUrlSettingsResponse,
   SetGeneralConfigRequest,
   Settings,
   SettingsEnterprise,
@@ -453,6 +457,11 @@ const api = {
     getEdge: (edgeId: number | string) => client.get<Edge>(`/proxy/${edgeId}`),
     editEdge: (data: Edge) => client.put(`/proxy/${data.id}`, data),
     deleteEdge: (edgeId: number | string) => client.delete(`/proxy/${edgeId}`),
+    setExternalUrlSettings: (data: SetEdgeExternalUrlSettingsRequest) =>
+      client.post<SetEdgeExternalUrlSettingsResponse>(
+        '/proxy/cert/external_url_settings',
+        data,
+      ),
   },
   gateway: {
     getGateways: () => client.get<GatewayInfo[]>('/gateway'),
@@ -466,10 +475,13 @@ const api = {
     deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
   },
   core: {
-    certSelfSigned: (data: CoreSelfSignedCertRequest) =>
-      client.post('/core/cert/self-signed', data),
-    certUpload: (data: { cert_pem: string; key_pem: string }) =>
-      client.post('/core/cert/upload', data),
+    setInternalUrlSettings: (data: SetCoreInternalUrlSettingsRequest) =>
+      client.post<SetCoreInternalUrlSettingsResponse>(
+        '/core/cert/internal_url_settings',
+        data,
+      ),
+    getCA: () => client.get<GetCAResponse>('/core/cert/ca'),
+    getCerts: () => client.get<GetCertsResponse>('/core/cert/certs'),
   },
   acl: {
     destination: {

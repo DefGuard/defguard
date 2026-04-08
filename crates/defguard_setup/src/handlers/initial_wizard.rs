@@ -405,7 +405,13 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
         }
 
         Ok(ApiResponse::new(
-            json!({ "ca_cert_pem": ca_pem, "subject_common_name": info.subject_common_name, "not_before": info.not_before, "not_after": info.not_after, "valid_for_days": valid_for_days }),
+            json!({
+                "ca_cert_pem": ca_pem,
+                "subject_common_name": info.subject_common_name,
+                "not_before": info.not_before,
+                "not_after": info.not_after,
+                "valid_for_days": valid_for_days
+            }),
             StatusCode::OK,
         ))
     } else {

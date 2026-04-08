@@ -70,6 +70,7 @@ pub fn build_migration_webapp(
     let (webhook_tx, webhook_rx) = mpsc::unbounded_channel::<AppEvent>();
     let (event_tx, event_rx) = mpsc::unbounded_channel::<ApiEvent>();
     let (wireguard_tx, wireguard_rx) = broadcast::channel::<GatewayEvent>(64);
+    let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
     let (proxy_control_tx, proxy_control_rx) = mpsc::channel(32);
     let incompatible_components = Arc::new(RwLock::new(IncompatibleComponents::default()));
     let key = Key::from(
@@ -83,6 +84,7 @@ pub fn build_migration_webapp(
         webhook_tx,
         webhook_rx,
         wireguard_tx.clone(),
+        web_reload_tx,
         key,
         failed_logins.clone(),
         event_tx,

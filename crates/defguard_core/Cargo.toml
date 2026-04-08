@@ -46,6 +46,7 @@ rand = { workspace = true }
 reqwest = { workspace = true }
 rsa = { workspace = true }
 rust-ini = { workspace = true }
+rustls = { workspace = true }
 secrecy = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
