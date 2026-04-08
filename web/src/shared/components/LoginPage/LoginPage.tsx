@@ -3,14 +3,14 @@ import dayjs from 'dayjs';
 import type { PropsWithChildren } from 'react';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../defguard-ui/types';
-import asci_image from './assets/login_asci.png';
+import loginImage from './assets/login.png';
 import { LoginPageLogo } from './LoginPageLogo';
 
 export const LoginPage = ({ children, id }: PropsWithChildren & { id?: string }) => {
   return (
     <div id="login-page">
       <aside>
-        <img src={asci_image} />
+        <img src={loginImage} loading="eager" decoding="async" width={844} height={999} />
       </aside>
       <div className="main-track">
         <main id={id}>
