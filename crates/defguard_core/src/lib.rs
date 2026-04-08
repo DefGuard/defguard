@@ -182,6 +182,7 @@ use crate::{
 
 pub mod appstate;
 pub mod auth;
+pub mod cert_settings;
 pub mod db;
 pub mod enrollment_management;
 pub mod enterprise;

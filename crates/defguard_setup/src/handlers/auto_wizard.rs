@@ -13,8 +13,15 @@ use defguard_common::{
 };
 use defguard_core::{
     auth::AdminOrSetupRole,
+    cert_settings::{
+        CertInfoResponse, ExternalSslType,
+        ExternalUrlSettingsConfig as CoreExternalUrlSettingsConfig, InternalSslType,
+        InternalUrlSettingsConfig as CoreInternalUrlSettingsConfig,
+        apply_external_url_settings as apply_core_external_url_settings,
+        apply_internal_url_settings as apply_core_internal_url_settings,
+    },
     error::WebError,
-    handlers::{ApiResponse, ApiResult, core_certs},
+    handlers::{ApiResponse, ApiResult},
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -50,9 +57,6 @@ pub(crate) async fn advance_auto_wizard_to_step(
     Ok(())
 }
 
-/// SSL configuration type for Defguard's internal (core) web server.
-pub use core_certs::InternalSslType;
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct InternalUrlSettingsConfig {
     defguard_url: String,
@@ -61,18 +65,16 @@ pub struct InternalUrlSettingsConfig {
     key_pem: Option<String>,
 }
 
-pub use core_certs::CertInfoResponse;
-
 /// Core logic for applying internal URL settings and configuring SSL for the core web server.
 /// Returns the cert info if a certificate was generated/uploaded, `None` for `ssl_type = None`.
 pub(crate) async fn apply_internal_url_settings(
     pool: &PgPool,
     config: InternalUrlSettingsConfig,
 ) -> Result<Option<CertInfoResponse>, WebError> {
-    core_certs::apply_internal_url_settings(
+    apply_core_internal_url_settings(
         pool,
         &config.defguard_url,
-        core_certs::InternalUrlSettingsConfig {
+        CoreInternalUrlSettingsConfig {
             ssl_type: config.ssl_type,
             cert_pem: config.cert_pem,
             key_pem: config.key_pem,
@@ -133,9 +135,6 @@ pub async fn get_internal_ssl_info(
     ))
 }
 
-/// SSL configuration type for the external (proxy) web server.
-pub use core_certs::ExternalSslType;
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ExternalUrlSettingsConfig {
     public_proxy_url: String,
@@ -185,10 +184,10 @@ pub(crate) async fn apply_external_url_settings(
     settings.public_proxy_url = config.public_proxy_url.clone();
     update_current_settings(pool, settings).await?;
 
-    core_certs::apply_external_url_settings(
+    apply_core_external_url_settings(
         pool,
         &config.public_proxy_url,
-        core_certs::ExternalUrlSettingsConfig {
+        CoreExternalUrlSettingsConfig {
             ssl_type: config.ssl_type,
             cert_pem: config.cert_pem,
             key_pem: config.key_pem,
