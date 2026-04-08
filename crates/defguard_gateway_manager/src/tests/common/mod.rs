@@ -23,6 +23,7 @@ use defguard_common::{
 };
 use defguard_core::grpc::GatewayEvent;
 use defguard_proto::gateway::{CoreRequest, CoreResponse, PeerStats, core_request, gateway_server};
+use prost_types::Timestamp;
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::UnixListener,
@@ -662,7 +663,7 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
         upload: 123,
         download: 456,
         keepalive_interval: 25,
-        latest_handshake: 1_700_000_000,
+        latest_handshake: Some(Timestamp { seconds: 1_700_000_000, nanos: 0 }),
         allowed_ips: "10.10.0.2/32".to_string(),
     }
 }

@@ -1487,6 +1487,7 @@ dependencies = [
  "defguard_version",
  "hyper-rustls",
  "hyper-util",
+ "prost-types",
  "reqwest",
  "semver",
  "serde_json",
@@ -1558,6 +1559,7 @@ version = "0.0.0"
 dependencies = [
  "defguard_common",
  "prost",
+ "prost-types",
  "serde",
  "tonic",
  "tonic-prost",

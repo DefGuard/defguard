@@ -36,6 +36,8 @@ use defguard_proto::{
         gateway_client, update,
     },
 };
+#[cfg(test)]
+use prost_types::Timestamp;
 use defguard_version::client::ClientVersionInterceptor;
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
@@ -987,8 +989,9 @@ fn try_protos_into_stats_message(
     // try to parse endpoint
     let endpoint = proto_stats.endpoint.parse().ok()?;
 
-    let latest_handshake = DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
-        .unwrap_or_default()
+    let latest_handshake = proto_stats
+        .latest_handshake
+        .and_then(|ts| DateTime::from_timestamp(ts.seconds, ts.nanos as u32))?
         .naive_utc();
 
     Some(PeerStatsUpdate::new(
@@ -1050,7 +1053,7 @@ mod tests {
             upload: 123,
             download: 456,
             keepalive_interval: 25,
-            latest_handshake: 1_700_000_000,
+            latest_handshake: Some(prost_types::Timestamp { seconds: 1_700_000_000, nanos: 0 }),
             allowed_ips: "10.10.0.2/32".to_string(),
         }
     }
@@ -1110,21 +1113,31 @@ mod tests {
     }
 
     #[test]
-    fn try_protos_into_stats_message_falls_back_to_default_timestamp() {
+    fn try_protos_into_stats_message_returns_none_for_missing_handshake() {
         let stats = try_protos_into_stats_message(
             PeerStats {
-                latest_handshake: i64::MAX as u64,
+                latest_handshake: None,
                 ..build_peer_stats("203.0.113.10:51820")
             },
             11,
             22,
-        )
-        .expect("valid endpoint should still produce stats");
-
-        assert_eq!(
-            stats.latest_handshake,
-            DateTime::<Utc>::default().naive_utc()
         );
+
+        assert!(stats.is_none());
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_returns_none_for_invalid_timestamp() {
+        let stats = try_protos_into_stats_message(
+            PeerStats {
+                latest_handshake: Some(Timestamp { seconds: i64::MAX, nanos: 0 }),
+                ..build_peer_stats("203.0.113.10:51820")
+            },
+            11,
+            22,
+        );
+
+        assert!(stats.is_none());
     }
 
     #[test]
