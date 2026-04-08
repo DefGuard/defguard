@@ -95,7 +95,7 @@ const formSchema = z.object({
   ldap_groupname_attr: z.string().trim().min(1, m.form_error_required()),
   ldap_member_attr: z.string().trim().min(1, m.form_error_required()),
   ldap_user_obj_class: z.string().trim().min(1, m.form_error_required()),
-  ldap_user_auxiliary_obj_classes: z.string().trim(),
+  ldap_user_auxiliary_obj_classes: z.string().trim().nullable(),
   ldap_user_search_base: z.string().trim().min(1, m.form_error_required()),
   ldap_username_attr: z.string().trim().min(1, m.form_error_required()),
   ldap_enabled: z.boolean(),
@@ -138,7 +138,7 @@ const PageForm = () => {
       ldap_user_search_base: settings?.ldap_user_search_base ?? '',
       ldap_user_obj_class: settings?.ldap_user_obj_class ?? '',
       ldap_user_auxiliary_obj_classes:
-        settings?.ldap_user_auxiliary_obj_classes.join(', ') ?? '',
+        settings?.ldap_user_auxiliary_obj_classes.join(', ') || null,
       ldap_url: settings?.ldap_url ?? '',
       ldap_member_attr: settings?.ldap_member_attr ?? '',
       ldap_groupname_attr: settings?.ldap_groupname_attr ?? '',
@@ -201,8 +201,11 @@ const PageForm = () => {
       await mutateAsync({
         ...value,
         ldap_user_auxiliary_obj_classes: value.ldap_user_auxiliary_obj_classes
-          .split(',')
-          .map((item) => item.trim()),
+          ? value.ldap_user_auxiliary_obj_classes
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : [],
         ldap_sync_groups: value.ldap_sync_groups
           ? value.ldap_sync_groups
               .split(',')
@@ -390,7 +393,6 @@ const PageForm = () => {
                 <field.FormInput
                   label={m.settings_ldap_label_additional_user_object_classes()}
                   helper={m.settings_ldap_helper_additional_user_object_classes()}
-                  notNull
                 />
               )}
             </form.AppField>

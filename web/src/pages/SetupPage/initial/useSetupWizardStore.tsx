@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { edgeDefaultGrpcPort } from '../../../shared/constants';
 import type { EdgeAdoptionState } from '../../EdgeSetupPage/types';
 import type { CertInfo, ExternalSslType, InternalSslType } from '../autoAdoption/types';
-import { type CAOptionType, SetupPageStep, type SetupPageStepValue } from './types';
+import { SetupPageStep, type SetupPageStepValue } from './types';
 
 const edgeAdoptionStateDefaults: EdgeAdoptionState = {
   isProcessing: false,
@@ -35,8 +35,6 @@ type StoreValues = {
   ca_common_name: string;
   ca_email: string;
   ca_validity_period_years: number;
-  ca_cert_file: File | null;
-  ca_option: CAOptionType | null;
   // SSL settings
   internal_ssl_type: InternalSslType | null;
   internal_ssl_cert_info: CertInfo | null;
@@ -77,8 +75,6 @@ const defaults: StoreValues = {
   ca_common_name: '',
   ca_email: '',
   ca_validity_period_years: 5,
-  ca_cert_file: null,
-  ca_option: null,
   // SSL settings
   internal_ssl_type: null,
   internal_ssl_cert_info: null,
