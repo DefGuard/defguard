@@ -22,7 +22,7 @@ export const ensureUrlScheme = (val: string): string => {
 
 /**
  * Corrects the URL scheme to match the given SSL type.
- * - `none` -> forces `http://`
+ * - `none` -> left unchanged (user may be behind a reverse proxy handling SSL)
  * - anything else -> forces `https://`
  *
  * Falls back to prepending the scheme when parsing fails.
@@ -31,13 +31,13 @@ export const correctUrlProtocol = (
   url: string,
   sslType: InternalSslType | ExternalSslType,
 ): string => {
-  const protocol: 'http:' | 'https:' = sslType === 'none' ? 'http:' : 'https:';
+  if (sslType === 'none') return url;
   try {
     const parsed = new URL(url);
-    parsed.protocol = protocol;
+    parsed.protocol = 'https:';
     return parsed.toString();
   } catch {
-    return `${protocol}//${url}`;
+    return `https://${url}`;
   }
 };
 
