@@ -1126,6 +1126,29 @@ fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
         .ok()
 }
 
+fn public_proxy_hostname() -> Result<String, String> {
+    let public_proxy_url = Settings::get_current_settings().public_proxy_url;
+    let url = public_proxy_url.trim();
+
+    if url.is_empty() {
+        return Err(
+            "Public proxy URL is not configured. Please re-submit the external URL settings \
+             with a Let's Encrypt domain."
+                .to_string(),
+        );
+    }
+
+    Url::parse(url)
+        .ok()
+        .and_then(|u| u.host_str().map(ToString::to_string))
+        .filter(|host| !host.is_empty())
+        .ok_or_else(|| {
+            "Public proxy URL is not configured with a valid hostname. Please re-submit the \
+             external URL settings with a valid domain."
+                .to_string()
+        })
+}
+
 /// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
 ///
 /// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
@@ -1244,31 +1267,10 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let domain = match Settings::get_current_settings().public_proxy_url.trim() {
-            url if !url.is_empty() => match Url::parse(url)
-                .ok()
-                .and_then(|u| u.host_str().map(ToString::to_string))
-                .filter(|host| !host.is_empty())
-            {
-                Some(host) => host,
-                None => {
-                    yield Ok(acme_error_event(
-                        "Connecting",
-                        "Public proxy URL is not configured with a valid hostname. Please re-submit the external URL settings with a valid domain."
-                            .to_string(),
-                        None,
-                    ));
-                    return;
-                }
-            },
-            _ => {
-                yield Ok(acme_error_event(
-                    "Connecting",
-                    "Public proxy URL is not configured. Please re-submit the external URL settings \
-                     with a Let's Encrypt domain."
-                        .to_string(),
-                    None,
-                ));
+        let domain = match public_proxy_hostname() {
+            Ok(domain) => domain,
+            Err(message) => {
+                yield Ok(acme_error_event("Connecting", message, None));
                 return;
             }
         };
