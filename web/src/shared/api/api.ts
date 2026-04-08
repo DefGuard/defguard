@@ -35,7 +35,6 @@ import type {
   AvailableLocationIpResponse,
   ChangeAccountActiveRequest,
   ChangeWebhookStateRequest,
-  CoreSelfSignedCertRequest,
   CountResponse,
   CreateActivityLogStreamRequest,
   CreateAdminRequest,
@@ -476,10 +475,6 @@ const api = {
     deleteGateway: (gatewayId: number | string) => client.delete(`/gateway/${gatewayId}`),
   },
   core: {
-    certSelfSigned: (data: CoreSelfSignedCertRequest) =>
-      client.post('/core/cert/self-signed', data),
-    certUpload: (data: { cert_pem: string; key_pem: string }) =>
-      client.post('/core/cert/upload', data),
     setInternalUrlSettings: (data: SetCoreInternalUrlSettingsRequest) =>
       client.post<SetCoreInternalUrlSettingsResponse>(
         '/core/cert/internal_url_settings',

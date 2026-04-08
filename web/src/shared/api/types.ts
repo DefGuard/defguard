@@ -87,10 +87,6 @@ export interface UploadCARequest {
   cert_file: string;
 }
 
-export interface CoreSelfSignedCertRequest {
-  san: string[];
-}
-
 export interface CreateAdminRequest {
   first_name: string;
   last_name: string;
