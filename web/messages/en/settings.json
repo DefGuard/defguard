@@ -52,6 +52,8 @@
   "settings_certs_core_wizard_summary_success_title": "Configuration succeeded",
   "settings_certs_core_wizard_summary_success_description": "Your Core certificate settings have been saved successfully.",
   "settings_certs_core_wizard_summary_ok": "OK",
+  "settings_certs_warning_expiring": "Expiring certificate",
+  "settings_certs_warning_expired": "Expired certificate",
   "settings_certs_certs_none_title": "No SSL certificate",
   "settings_certs_certs_none_description": "You have opted to deploy a custom Reverse Proxy and manage your own SSL certificates. ",
   "settings_certs_certs_internal_title": "Defguard Internal CA",
