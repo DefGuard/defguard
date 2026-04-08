@@ -702,17 +702,23 @@ pub async fn run_web_server(
     loop {
         let handle = axum_server::Handle::new();
         let handle_clone = handle.clone();
-        let app = webapp.clone().into_make_service_with_connect_info::<SocketAddr>();
+        let app = webapp
+            .clone()
+            .into_make_service_with_connect_info::<SocketAddr>();
         let current_tls_cert_pair = Certificates::get_or_default(&pool)
             .await
-            .map(|c| c.core_http_cert_pair().map(|(cert, key)| (cert.to_owned(), key.to_owned())))
+            .map(|c| {
+                c.core_http_cert_pair()
+                    .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
+            })
             .unwrap_or(None);
 
         let mut server_task = tokio::spawn(async move {
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
-                let tls_config = RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
-                    .await
-                    .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
+                let tls_config =
+                    RustlsConfig::from_pem(cert_pem.into_bytes(), key_pem.into_bytes())
+                        .await
+                        .map_err(|err| anyhow!("Failed to load TLS config: {err}"))?;
                 axum_server::bind_rustls(addr, tls_config)
                     .handle(handle_clone.clone())
                     .serve(app)

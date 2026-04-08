@@ -244,7 +244,7 @@ const Content = () => {
             />
           </>
         )}
-      </MarkedSection >
+      </MarkedSection>
     </>
   );
 };
@@ -282,17 +282,17 @@ const getValidForDays = (valid: string) => {
 
 export const CertHeader = ({ title, description, valid }: ValidDescriptionBlockProps) => {
   const validFor = getValidForDays(valid);
-  let badgeText;
-  let badgeVariant: "success" | "warning" | "critical";
+  let badgeText: string;
+  let badgeVariant: 'success' | 'warning' | 'critical';
   if (validFor === null || validFor > 30) {
-    badgeText = "Valid";
-    badgeVariant = "success";
+    badgeText = 'Valid';
+    badgeVariant = 'success';
   } else if (validFor > 0) {
-    badgeText = "Expires soon";
-    badgeVariant = "warning";
+    badgeText = 'Expires soon';
+    badgeVariant = 'warning';
   } else {
-    badgeText = "Expired";
-    badgeVariant = "critical";
+    badgeText = 'Expired';
+    badgeVariant = 'critical';
   }
 
   return (
