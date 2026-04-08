@@ -1405,6 +1405,7 @@ dependencies = [
  "reqwest",
  "rsa",
  "rust-ini",
+ "rustls",
  "secrecy",
  "semver",
  "serde",

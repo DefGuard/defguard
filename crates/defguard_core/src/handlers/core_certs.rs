@@ -1,4 +1,5 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
+use axum_server::tls_rustls::RustlsConfig;
 use defguard_certs::{
     CertificateAuthority, CertificateInfo, Csr, DnType, der_to_pem, generate_key_pair,
     parse_pem_certificate,
@@ -87,6 +88,21 @@ pub(crate) async fn core_cert_upload(
         "User {} uploading custom core certificate",
         session.user.username
     );
+
+    // Validate the certs so that we don't brick the web server after reset
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    RustlsConfig::from_pem(
+        data.cert_pem.clone().into_bytes(),
+        data.key_pem.clone().into_bytes(),
+    )
+    .await
+    .map_err(|err| {
+        warn!(
+            "User {} uploaded invalid core certificate PEM pair: {err}",
+            session.user.username
+        );
+        WebError::BadRequest("Invalid certificate or private key PEM".to_string())
+    })?;
 
     let mut certs = Certificates::get_or_default(&appstate.pool)
         .await

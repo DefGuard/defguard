@@ -64,9 +64,24 @@ async fn test_core_cert_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // upload custom cert
-    let cert_pem = "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n";
-    let key_pem = "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n";
+    // invalid custom cert upload is rejected and does not persist
+    let invalid_cert_pem = "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n";
+    let invalid_key_pem = "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n";
+
+    let response = client
+        .post("/api/v1/core/cert/upload")
+        .json(&json!({"cert_pem": invalid_cert_pem, "key_pem": invalid_key_pem}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let saved = Certificates::get(&pool).await.unwrap().unwrap_or_default();
+    assert_eq!(saved.core_http_cert_source, CoreCertSource::None);
+    assert!(saved.core_http_cert_pem.is_none());
+    assert!(saved.core_http_cert_key_pem.is_none());
+
+    // upload valid custom cert
+    let (cert_pem, key_pem) = generate_test_cert_pem("uploaded-before-self-signed.example.com");
 
     let response = client
         .post("/api/v1/core/cert/upload")
@@ -77,8 +92,8 @@ async fn test_core_cert_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.core_http_cert_source, CoreCertSource::Custom);
-    assert_eq!(saved.core_http_cert_pem.as_deref(), Some(cert_pem));
-    assert_eq!(saved.core_http_cert_key_pem.as_deref(), Some(key_pem));
+    assert_eq!(saved.core_http_cert_pem.as_deref(), Some(cert_pem.as_str()));
+    assert_eq!(saved.core_http_cert_key_pem.as_deref(), Some(key_pem.as_str()));
 
     // self-signed with CA present
     seed_ca(&pool).await;
