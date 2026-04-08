@@ -526,21 +526,23 @@ impl Settings {
             ldap_uses_ad = $46, \
             ldap_user_rdn_attr = $47, \
             ldap_sync_groups = $48, \
-            openid_username_handling = $49, \
-            defguard_url = $50, \
-            default_admin_group_name = $51, \
-            authentication_period_days = $52, \
-            mfa_code_timeout_seconds = $53, \
-            public_proxy_url = $54, \
-            default_admin_id = $55, \
-            secret_key = $56, \
-            enable_stats_purge = $57, \
-            stats_purge_frequency_hours = $58, \
-            stats_purge_threshold_days = $59, \
-            enrollment_token_timeout_hours = $60, \
-            password_reset_token_timeout_hours = $61, \
-            enrollment_session_timeout_minutes = $62, \
-            password_reset_session_timeout_minutes = $63 \
+            ldap_remote_enrollment_enabled = $49, \
+            ldap_remote_enrollment_send_invite = $50, \
+            openid_username_handling = $51, \
+            defguard_url = $52, \
+            default_admin_group_name = $53, \
+            authentication_period_days = $54, \
+            mfa_code_timeout_seconds = $55, \
+            public_proxy_url = $56, \
+            default_admin_id = $57, \
+            secret_key = $58, \
+            enable_stats_purge = $59, \
+            stats_purge_frequency_hours = $60, \
+            stats_purge_threshold_days = $61, \
+            enrollment_token_timeout_hours = $62, \
+            password_reset_token_timeout_hours = $63, \
+            enrollment_session_timeout_minutes = $64, \
+            password_reset_session_timeout_minutes = $65 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -590,6 +592,8 @@ impl Settings {
             self.ldap_uses_ad,
             self.ldap_user_rdn_attr,
             &self.ldap_sync_groups as &Vec<String>,
+            self.ldap_remote_enrollment_enabled,
+            self.ldap_remote_enrollment_send_invite,
             &self.openid_username_handling as &OpenIdUsernameHandling,
             self.defguard_url,
             self.default_admin_group_name,

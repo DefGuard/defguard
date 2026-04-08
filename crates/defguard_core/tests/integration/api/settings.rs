@@ -110,7 +110,7 @@ async fn test_ldap_settings_validation(_: PgPoolOptions, options: PgConnectOptio
 #[sqlx::test]
 async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
-    let (client, client_state) = make_test_client(pool).await;
+    let (client, client_state) = make_test_client(pool.clone()).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -162,6 +162,12 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
         StatusCode::OK,
         "enabling remote enrollment with LDAP and SMTP configured should return 200"
     );
+    // verify the flag was actually persisted to the database (not just held in memory)
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        from_db.ldap_remote_enrollment_enabled,
+        "ldap_remote_enrollment_enabled must be persisted to DB after enabling"
+    );
 
     // enabling send_invite while remote enrollment is disabled must fail
     // (use a fresh settings state: disable enrollment first)
@@ -169,6 +175,11 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
         serde_json::from_str(r#"{ "ldap_remote_enrollment_enabled": false }"#).unwrap();
     let response = client.patch("/api/v1/settings").json(&patch).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        !from_db.ldap_remote_enrollment_enabled,
+        "disabling ldap_remote_enrollment_enabled must be persisted to DB"
+    );
 
     let patch: SettingsPatch =
         serde_json::from_str(r#"{ "ldap_remote_enrollment_send_invite": true }"#).unwrap();
@@ -192,5 +203,15 @@ async fn test_ldap_remote_enrollment_validation(_: PgPoolOptions, options: PgCon
         response.status(),
         StatusCode::OK,
         "enabling send_invite with remote enrollment enabled should return 200"
+    );
+    // verify both flags were persisted to the database
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        from_db.ldap_remote_enrollment_enabled,
+        "ldap_remote_enrollment_enabled must still be true in DB"
+    );
+    assert!(
+        from_db.ldap_remote_enrollment_send_invite,
+        "ldap_remote_enrollment_send_invite must be persisted to DB after enabling"
     );
 }
