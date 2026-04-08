@@ -230,7 +230,7 @@ pub(crate) async fn set_internal_url_settings(
     Extension(pool): Extension<PgPool>,
     Json(config): Json<InternalUrlSettingsConfig>,
 ) -> ApiResult {
-    info!("Applying core internal URL certificate settings");
+    debug!("Applying core internal URL certificate settings");
     let settings = defguard_common::db::models::Settings::get_current_settings();
     let cert_info = apply_internal_url_settings(&pool, &settings.defguard_url, config).await?;
     reload_core_web_server(&appstate);
@@ -261,7 +261,7 @@ pub(crate) async fn set_external_url_settings(
     Extension(pool): Extension<PgPool>,
     Json(config): Json<ExternalUrlSettingsConfig>,
 ) -> ApiResult {
-    info!("Applying proxy external URL certificate settings");
+    debug!("Applying proxy external URL certificate settings");
     let settings = defguard_common::db::models::Settings::get_current_settings();
     let ssl_type = config.ssl_type.clone();
     let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;
@@ -279,7 +279,6 @@ pub(crate) async fn set_external_url_settings(
     } else if ssl_type == ExternalSslType::None {
         clear_proxy_https_certs(&appstate).await;
     }
-
     info!("Proxy external URL certificate settings applied");
 
     Ok(ApiResponse::new(
