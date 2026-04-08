@@ -118,6 +118,9 @@ pub struct User<I = NoId> {
     pub ldap_rdn: Option<String>,
     /// Rest of the user's DN
     pub ldap_user_path: Option<String>,
+    /// Marks whether LDAP user has completed enrollment
+    /// Only relevant if `Settings::ldap_remote_enrollment_enabled` is set to `true`
+    pub ldap_remote_enrollment_completed: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -154,6 +157,7 @@ impl<I: fmt::Debug> fmt::Debug for User<I> {
             ldap_pass_randomized,
             ldap_rdn,
             ldap_user_path,
+            ldap_remote_enrollment_completed,
             openid_sub,
             totp_enabled,
             email_mfa_enabled,
@@ -177,6 +181,10 @@ impl<I: fmt::Debug> fmt::Debug for User<I> {
             .field("ldap_pass_randomized", ldap_pass_randomized)
             .field("ldap_rdn", ldap_rdn)
             .field("ldap_user_path", ldap_user_path) // sensitive data
+            .field(
+                "ldap_remote_enrollment_completed",
+                ldap_remote_enrollment_completed,
+            )
             .field("openid_sub", openid_sub)
             .field("totp_enabled", totp_enabled)
             .field("email_mfa_enabled", email_mfa_enabled)
@@ -233,6 +241,7 @@ impl User {
             ldap_pass_randomized: false,
             ldap_rdn: Some(username),
             ldap_user_path: None,
+            ldap_remote_enrollment_completed: false,
             enrollment_pending: false,
         }
     }
@@ -275,12 +284,27 @@ impl<I> User<I> {
     /// A user is treated as enrolled if:
     /// - The `enrollment_pending` flag is **not** set, i.e. enrollment was not requested by an
     ///   administrator (https://github.com/DefGuard/client/issues/647).
-    /// - They either have a password configured, have authenticated via an external OIDC provider
-    ///   or were synced from LDAP.
+    /// - They either have a password configured, have authenticated via an external OIDC provider,
+    ///   or were synced from LDAP (subject to the `ldap_remote_enrollment_enabled` setting).
     #[must_use]
     pub fn is_enrolled(&self) -> bool {
-        !self.enrollment_pending
-            && (self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap)
+        if self.enrollment_pending {
+            return false;
+        }
+        if self.from_ldap {
+            let settings = Settings::get_current_settings();
+            if settings.ldap_remote_enrollment_enabled {
+                // When LDAP remote enrollment is enabled, an LDAP user is only considered
+                // enrolled after they have completed the self-enrollment process.
+                return self.ldap_remote_enrollment_completed;
+            }
+            // Feature disabled: all LDAP-synced users are implicitly enrolled (legacy behaviour).
+            return true;
+        }
+        if self.password_hash.is_some() || self.openid_sub.is_some() {
+            return true;
+        }
+        false
     }
 
     #[must_use]
@@ -623,7 +647,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" \
             WHERE is_active"
         )
@@ -642,7 +666,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -790,7 +814,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -807,7 +831,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, \
             totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, \
-            ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -835,14 +859,16 @@ impl User<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as(
+        let emails: Vec<String> = emails.iter().map(ToString::to_string).collect();
+        query_as!(
+            Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
-            ldap_rdn, ldap_user_path, enrollment_pending \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
+            ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" WHERE email = ANY($1)",
+            &emails
         )
-        .bind(emails)
         .fetch_all(executor)
         .await
     }
@@ -856,7 +882,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed,enrollment_pending \
             FROM \"user\" WHERE openid_sub = $1",
             sub
         )
@@ -1080,7 +1106,7 @@ impl User<Id> {
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, \
-            u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, \
+            u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, \
             enrollment_pending \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
@@ -1101,7 +1127,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, \
-            ldap_rdn, ldap_user_path, enrollment_pending \
+            ldap_rdn, ldap_user_path, enrollment_pending, ldap_remote_enrollment_completed \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1134,7 +1160,7 @@ impl User<Id> {
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, \
             u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, enrollment_pending \
+            from_ldap, ldap_pass_randomized, ldap_rdn, ldap_user_path, ldap_remote_enrollment_completed, enrollment_pending \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin AND user_id = u.id) AND u.is_active"
@@ -1184,6 +1210,7 @@ impl Distribution<User<Id>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            ldap_remote_enrollment_completed: false,
             enrollment_pending: false,
         }
     }
@@ -1224,6 +1251,7 @@ impl Distribution<User<NoId>> for Standard {
             ldap_pass_randomized: false,
             ldap_rdn: None,
             ldap_user_path: None,
+            ldap_remote_enrollment_completed: false,
             enrollment_pending: false,
         }
     }
@@ -1231,12 +1259,18 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
     use crate::{
         config::{DefGuardConfig, SERVER_CONFIG},
-        db::{models::settings::initialize_current_settings, setup_pool},
+        db::{
+            models::settings::{initialize_current_settings, update_current_settings},
+            setup_pool,
+        },
+        secret::SecretStringWrapper,
     };
 
     #[sqlx::test]
@@ -1587,6 +1621,9 @@ mod test {
     #[sqlx::test]
     async fn test_user_is_enrolled(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
+        // Populate the settings cache so that `is_enrolled()` can call
+        // `Settings::get_current_settings()` without panicking.
+        initialize_current_settings(&pool).await.unwrap();
         let user = User::new(
             "test",
             Some("31071980"),
@@ -1638,5 +1675,63 @@ mod test {
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
         assert!(!user.is_enrolled());
+
+        // Feature disabled (default), ldap_remote_enrollment_completed=false
+        // → LDAP user is still enrolled (legacy behaviour).
+        user.enrollment_pending = false;
+        user.password_hash = None;
+        user.openid_sub = None;
+        user.from_ldap = true;
+        user.ldap_remote_enrollment_completed = false;
+        user.save(&pool).await.unwrap();
+        assert!(
+            user.is_enrolled(),
+            "LDAP user should be enrolled when remote enrollment is disabled (legacy)"
+        );
+
+        // Feature enabled, ldap_remote_enrollment_completed=false
+        // → LDAP user is NOT yet enrolled.
+        let mut settings = Settings::get_current_settings();
+        settings.smtp_server = Some("smtp.example.com".into());
+        settings.smtp_port = Some(587);
+        settings.smtp_sender = Some("noreply@example.com".into());
+        settings.ldap_url = Some("ldap://localhost".into());
+        settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
+        settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+        settings.ldap_username_attr = Some("uid".into());
+        settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
+        settings.ldap_user_obj_class = Some("inetOrgPerson".into());
+        settings.ldap_member_attr = Some("memberUid".into());
+        settings.ldap_groupname_attr = Some("cn".into());
+        settings.ldap_group_obj_class = Some("posixGroup".into());
+        settings.ldap_group_member_attr = Some("memberUid".into());
+        settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
+        settings.ldap_remote_enrollment_enabled = true;
+        update_current_settings(&pool, settings).await.unwrap();
+        // user fields unchanged from the previous case — only the setting changed
+        assert!(
+            !user.is_enrolled(),
+            "LDAP user should not be enrolled when remote enrollment is enabled but not completed"
+        );
+
+        // Feature enabled, ldap_remote_enrollment_completed=true
+        // → LDAP user IS enrolled.
+        user.ldap_remote_enrollment_completed = true;
+        user.save(&pool).await.unwrap();
+        assert!(
+            user.is_enrolled(),
+            "LDAP user should be enrolled when remote enrollment is enabled and completed"
+        );
+
+        // Non-LDAP user with a password while the feature is enabled
+        // → still enrolled (feature must not affect non-LDAP users).
+        user.from_ldap = false;
+        user.ldap_remote_enrollment_completed = false;
+        user.password_hash = Some(hash_password("31071980").unwrap());
+        user.save(&pool).await.unwrap();
+        assert!(
+            user.is_enrolled(),
+            "non-LDAP user with a password should be enrolled regardless of the remote enrollment setting"
+        );
     }
 }

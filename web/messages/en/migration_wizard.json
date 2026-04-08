@@ -25,6 +25,7 @@
   "migration_wizard_step_certificate_authority_summary_description": "Securing component communication",
   "migration_wizard_step_edge_component_label": "Edge Component",
   "migration_wizard_step_edge_component_description": "Starting with Defguard 2.0, Proxy has been renamed to Edge, and support for multiple instances (high availability) has been introduced. ",
+  "migration_wizard_step_edge_deploy_description": "If you have previously deployed the Proxy component, you need to deploy a new Edge component. If you have already done so, please go to the next step. If not, please choose one of the deployment methods below.",
   "migration_wizard_step_edge_adoption_label": "Edge Component Adoption",
   "migration_wizard_step_edge_adoption_description": "Review the system's checks and see if any issues need attention before deployment.",
   "migration_wizard_step_confirmation_label": "Confirmation",

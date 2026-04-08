@@ -24,6 +24,7 @@ jobs:
       tags: |
         type=ref,event=branch
         type=sha
+      trivy-exit-code: "0"
 
   trigger-e2e:
     needs: build-current

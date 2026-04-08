@@ -50,6 +50,14 @@ pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
+    #[error("Cannot enable remote enrollment for LDAP. LDAP and SMTP must both be configured")]
+    CannotEnableLdapRemoteEnrollment,
+    #[error(
+        "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
+    )]
+    CannotEnableLdapRemoteEnrollmentInvite,
+    #[error("Cannot enable LDAP. Required LDAP fields are not configured")]
+    CannotEnableLdap,
     #[error("Invalid defguard_url `{0}`, url has to be a domain, not IP")]
     InvalidDefguardUrl(String),
 }
@@ -182,6 +190,8 @@ pub struct Settings {
     // The attribute which is used to map LDAP usernames to Defguard usernames
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
+    pub ldap_remote_enrollment_enabled: bool,
+    pub ldap_remote_enrollment_send_invite: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub openid_username_handling: OpenIdUsernameHandling,
@@ -405,7 +415,7 @@ impl Settings {
             ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_user_rdn_attr, ldap_sync_groups, \
+            ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, \
             openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", \
             defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
@@ -429,11 +439,34 @@ impl Settings {
         }
         self.build_webauthn()
             .map_err(|_| SettingsValidationError::InvalidDefguardUrl(self.defguard_url.clone()))?;
+
         // Check if gateway disconnect notifications can be enabled, since it requires SMTP to be
         // configured.
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
+        }
+
+        // Check if LDAP can be enabled
+        if self.ldap_enabled && !self.ldap_configured() {
+            warn!("Cannot enable LDAP. Required fields are not configured.");
+            return Err(SettingsValidationError::CannotEnableLdap);
+        }
+
+        // Check if LDAP remote enrollment can be enabled
+        if self.ldap_remote_enrollment_enabled && !self.smtp_configured() {
+            warn!("Cannot enable remote enrollment for LDAP. SMTP is not configured.");
+            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
+        }
+        if self.ldap_remote_enrollment_enabled && !self.ldap_configured() {
+            warn!("Cannot enable remote enrollment for LDAP. LDAP is not configured.");
+            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollment);
+        }
+        if self.ldap_remote_enrollment_send_invite && !self.ldap_remote_enrollment_enabled {
+            warn!(
+                "Cannot enable automatic invites for LDAP remote enrollment. LDAP remote enrollment is not enabled"
+            );
+            return Err(SettingsValidationError::CannotEnableLdapRemoteEnrollmentInvite);
         }
 
         Ok(())
@@ -493,21 +526,23 @@ impl Settings {
             ldap_uses_ad = $46, \
             ldap_user_rdn_attr = $47, \
             ldap_sync_groups = $48, \
-            openid_username_handling = $49, \
-            defguard_url = $50, \
-            default_admin_group_name = $51, \
-            authentication_period_days = $52, \
-            mfa_code_timeout_seconds = $53, \
-            public_proxy_url = $54, \
-            default_admin_id = $55, \
-            secret_key = $56, \
-            enable_stats_purge = $57, \
-            stats_purge_frequency_hours = $58, \
-            stats_purge_threshold_days = $59, \
-            enrollment_token_timeout_hours = $60, \
-            password_reset_token_timeout_hours = $61, \
-            enrollment_session_timeout_minutes = $62, \
-            password_reset_session_timeout_minutes = $63 \
+            ldap_remote_enrollment_enabled = $49, \
+            ldap_remote_enrollment_send_invite = $50, \
+            openid_username_handling = $51, \
+            defguard_url = $52, \
+            default_admin_group_name = $53, \
+            authentication_period_days = $54, \
+            mfa_code_timeout_seconds = $55, \
+            public_proxy_url = $56, \
+            default_admin_id = $57, \
+            secret_key = $58, \
+            enable_stats_purge = $59, \
+            stats_purge_frequency_hours = $60, \
+            stats_purge_threshold_days = $61, \
+            enrollment_token_timeout_hours = $62, \
+            password_reset_token_timeout_hours = $63, \
+            enrollment_session_timeout_minutes = $64, \
+            password_reset_session_timeout_minutes = $65 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -557,6 +592,8 @@ impl Settings {
             self.ldap_uses_ad,
             self.ldap_user_rdn_attr,
             &self.ldap_sync_groups as &Vec<String>,
+            self.ldap_remote_enrollment_enabled,
+            self.ldap_remote_enrollment_send_invite,
             &self.openid_username_handling as &OpenIdUsernameHandling,
             self.defguard_url,
             self.default_admin_group_name,
@@ -637,6 +674,27 @@ impl Settings {
             && self.smtp_sender.is_some()
             && self.smtp_server != Some(String::new())
             && self.smtp_sender != Some(String::new())
+    }
+
+    /// Check if all required LDAP options are configured.
+    ///
+    /// Meant to be used to check if LDAP integration can be enabled.
+    #[must_use]
+    pub fn ldap_configured(&self) -> bool {
+        let non_empty = |opt: &Option<String>| opt.as_deref().is_some_and(|s| !s.is_empty());
+        self.ldap_url
+            .as_deref()
+            .is_some_and(|s| Url::parse(s).is_ok())
+            && non_empty(&self.ldap_bind_username)
+            && self.ldap_bind_password.is_some()  // just check the presence, don't expose the secret
+            && non_empty(&self.ldap_username_attr)
+            && non_empty(&self.ldap_user_search_base)
+            && non_empty(&self.ldap_user_obj_class)
+            && non_empty(&self.ldap_member_attr)
+            && non_empty(&self.ldap_groupname_attr)
+            && non_empty(&self.ldap_group_obj_class)
+            && non_empty(&self.ldap_group_member_attr)
+            && non_empty(&self.ldap_group_search_base)
     }
 
     #[must_use]

@@ -82,6 +82,7 @@ use sqlx::{PgConnection, PgPool};
 
 use super::{LDAPConfig, error::LdapError};
 use crate::{
+    enrollment_management::try_send_ldap_enrollment_invite,
     enterprise::{
         ldap::model::{
             get_users_without_ldap_path, ldap_sync_allowed_for_user, update_from_ldap_user,
@@ -856,6 +857,7 @@ impl super::LDAPConnection {
             }
         }
 
+        let mut new_users = Vec::new();
         for user in changes.add_defguard {
             debug!("Adding user {} to Defguard", user.username);
             if let Some(defguard_user) =
@@ -893,11 +895,20 @@ impl super::LDAPConnection {
                     }
                     continue;
                 }
-                user.save(&mut *transaction).await?;
+                let saved_user = user.save(&mut *transaction).await?;
+                new_users.push(saved_user);
                 user_count += 1;
             }
         }
 
+        transaction.commit().await?;
+
+        // attempt to send enrollment invites after the original DB transaction is commited
+        // and users actually exist in DB
+        let mut transaction = pool.begin().await?;
+        for mut user in new_users {
+            try_send_ldap_enrollment_invite(&mut user, &mut transaction).await;
+        }
         transaction.commit().await?;
 
         update_counts(pool).await?;

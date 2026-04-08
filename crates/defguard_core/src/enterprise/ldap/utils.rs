@@ -10,10 +10,13 @@ use defguard_common::db::{
 use sqlx::PgPool;
 
 use super::{LDAPConnection, error::LdapError};
-use crate::enterprise::{
-    ldap::{model::ldap_sync_allowed_for_user, with_ldap_status},
-    license::get_cached_license,
-    limits::get_counts,
+use crate::{
+    enrollment_management::try_send_ldap_enrollment_invite,
+    enterprise::{
+        ldap::{model::ldap_sync_allowed_for_user, with_ldap_status},
+        license::get_cached_license,
+        limits::get_counts,
+    },
 };
 
 fn reached_user_license_limit() -> Option<(u32, u32)> {
@@ -46,6 +49,8 @@ pub(crate) async fn login_through_ldap_with_connection(
     password: &str,
 ) -> Result<User<Id>, LdapError> {
     debug!("Logging in user {username} through LDAP");
+    let mut transaction = pool.begin().await?;
+
     let mut ldap_user = ldap_connection
         .get_user_by_credentials(username, password)
         .await?;
@@ -59,16 +64,16 @@ pub(crate) async fn login_through_ldap_with_connection(
     debug!("User {ldap_user} logged in through LDAP");
     // The user is logging in through LDAP, so we can infer that there are no other login options
     // (Defguard password), so we should mark them as from_ldap.
-    let user = if let Some(mut defguard_user) =
-        User::find_by_username(pool, &ldap_user.username).await?
+    let (mut user, is_new_user) = if let Some(mut defguard_user) =
+        User::find_by_username(&mut *transaction, &ldap_user.username).await?
     {
         debug!(
             "User {defguard_user} already exists in Defguard, marking them as coming from LDAP and \
             proceeding with login"
         );
         defguard_user.from_ldap = true;
-        defguard_user.save(pool).await?;
-        defguard_user
+        defguard_user.save(&mut *transaction).await?;
+        (defguard_user, false)
     } else {
         debug!(
             "User {ldap_user} doesn't exist in Defguard, creating them first based on LDAP data"
@@ -84,8 +89,19 @@ pub(crate) async fn login_through_ldap_with_connection(
         }
 
         ldap_user.from_ldap = true;
-        ldap_user.save(pool).await?
+        (ldap_user.save(&mut *transaction).await?, true)
     };
+
+    transaction.commit().await?;
+
+    // Attempt to send enrollment invite after the original DB transaction is committed,
+    // so that the user row is visible to the new transaction inside try_send_ldap_enrollment_invite.
+    // Only send for newly-created users — returning users must not receive a second invite.
+    if is_new_user {
+        let mut transaction = pool.begin().await?;
+        try_send_ldap_enrollment_invite(&mut user, &mut transaction).await;
+        transaction.commit().await?;
+    }
 
     Ok(user)
 }

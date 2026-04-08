@@ -1,18 +1,22 @@
 use std::{
     mem::discriminant,
+    str::FromStr,
     sync::atomic::{AtomicU16, AtomicU64, Ordering},
     time::{Duration, SystemTime},
 };
 
-use defguard_common::db::{
-    Id, NoId,
-    models::{
-        Device, DeviceType, User, WireguardNetwork,
-        polling_token::PollingToken,
-        settings::{Settings, update_current_settings},
-        vpn_client_session::VpnClientSession,
-        wireguard::{LocationMfaMode, ServiceLocationMode},
+use defguard_common::{
+    db::{
+        Id, NoId,
+        models::{
+            Device, DeviceType, User, WireguardNetwork,
+            polling_token::PollingToken,
+            settings::{Settings, update_current_settings},
+            vpn_client_session::VpnClientSession,
+            wireguard::{LocationMfaMode, ServiceLocationMode},
+        },
     },
+    secret::SecretStringWrapper,
 };
 use defguard_core::{
     db::models::enrollment::{ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE, Token},
@@ -832,4 +836,26 @@ pub(crate) async fn send_code_mfa_setup_finish(
         )),
     });
     context.mock_proxy_mut().recv_outbound().await
+}
+
+/// Set minimal SMTP fields on a [`Settings`] so that `smtp_configured()` returns `true`.
+pub(crate) fn configure_smtp(settings: &mut Settings) {
+    settings.smtp_server = Some("smtp.example.com".into());
+    settings.smtp_port = Some(587);
+    settings.smtp_sender = Some("noreply@example.com".into());
+}
+
+/// Set minimal LDAP fields on a [`Settings`] so that `ldap_configured()` returns `true`.
+pub(crate) fn configure_ldap(settings: &mut Settings) {
+    settings.ldap_url = Some("ldap://localhost".into());
+    settings.ldap_bind_username = Some("cn=admin,dc=example,dc=com".into());
+    settings.ldap_bind_password = Some(SecretStringWrapper::from_str("secret").unwrap());
+    settings.ldap_username_attr = Some("uid".into());
+    settings.ldap_user_search_base = Some("ou=users,dc=example,dc=com".into());
+    settings.ldap_user_obj_class = Some("inetOrgPerson".into());
+    settings.ldap_member_attr = Some("memberUid".into());
+    settings.ldap_groupname_attr = Some("cn".into());
+    settings.ldap_group_obj_class = Some("posixGroup".into());
+    settings.ldap_group_member_attr = Some("memberUid".into());
+    settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
 }
