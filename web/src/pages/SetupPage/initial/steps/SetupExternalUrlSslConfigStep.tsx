@@ -306,6 +306,7 @@ export const SetupExternalUrlSslConfigStep = () => {
     <WizardCard>
       {renderContent()}
       <SizedBox height={ThemeSpacing.Xl3} />
+      <Divider />
       <Controls>
         <Button
           text={m.initial_setup_controls_back()}
