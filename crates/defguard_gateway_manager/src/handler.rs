@@ -36,8 +36,6 @@ use defguard_proto::{
         gateway_client, update,
     },
 };
-#[cfg(test)]
-use prost_types::Timestamp;
 use defguard_version::client::ClientVersionInterceptor;
 use hyper_rustls::HttpsConnectorBuilder;
 use reqwest::Url;
@@ -1023,6 +1021,7 @@ mod tests {
     };
     use defguard_core::grpc::GatewayEvent;
     use defguard_proto::gateway::{Configuration, Peer, PeerStats, core_response};
+    use prost_types::Timestamp;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
@@ -1053,7 +1052,10 @@ mod tests {
             upload: 123,
             download: 456,
             keepalive_interval: 25,
-            latest_handshake: Some(prost_types::Timestamp { seconds: 1_700_000_000, nanos: 0 }),
+            latest_handshake: Some(prost_types::Timestamp {
+                seconds: 1_700_000_000,
+                nanos: 0,
+            }),
             allowed_ips: "10.10.0.2/32".to_string(),
         }
     }
@@ -1130,7 +1132,10 @@ mod tests {
     fn try_protos_into_stats_message_returns_none_for_invalid_timestamp() {
         let stats = try_protos_into_stats_message(
             PeerStats {
-                latest_handshake: Some(Timestamp { seconds: i64::MAX, nanos: 0 }),
+                latest_handshake: Some(Timestamp {
+                    seconds: i64::MAX,
+                    nanos: 0,
+                }),
                 ..build_peer_stats("203.0.113.10:51820")
             },
             11,

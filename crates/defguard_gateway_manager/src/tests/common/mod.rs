@@ -663,7 +663,10 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
         upload: 123,
         download: 456,
         keepalive_interval: 25,
-        latest_handshake: Some(Timestamp { seconds: 1_700_000_000, nanos: 0 }),
+        latest_handshake: Some(Timestamp {
+            seconds: 1_700_000_000,
+            nanos: 0,
+        }),
         allowed_ips: "10.10.0.2/32".to_string(),
     }
 }
