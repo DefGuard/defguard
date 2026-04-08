@@ -12,6 +12,7 @@ use utoipa::ToSchema;
 
 use crate::error::WebError;
 
+/// Ensures cert & key pair are valid to avoid bricking the web server after restart.
 async fn validate_uploaded_cert_pair(cert_pem: &str, key_pem: &str) -> Result<(), WebError> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
