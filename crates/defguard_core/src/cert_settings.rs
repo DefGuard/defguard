@@ -1,8 +1,8 @@
+use axum_server::tls_rustls::RustlsConfig;
 use defguard_certs::{
     CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
     parse_pem_certificate,
 };
-use axum_server::tls_rustls::RustlsConfig;
 use defguard_common::db::models::{
     Certificates, CoreCertSource, ProxyCertSource, settings::update_current_settings,
 };
