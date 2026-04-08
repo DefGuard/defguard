@@ -64,7 +64,7 @@ pub(crate) async fn login_through_ldap_with_connection(
     debug!("User {ldap_user} logged in through LDAP");
     // The user is logging in through LDAP, so we can infer that there are no other login options
     // (Defguard password), so we should mark them as from_ldap.
-    let user = if let Some(mut defguard_user) =
+    let (mut user, is_new_user) = if let Some(mut defguard_user) =
         User::find_by_username(&mut *transaction, &ldap_user.username).await?
     {
         debug!(
@@ -73,7 +73,7 @@ pub(crate) async fn login_through_ldap_with_connection(
         );
         defguard_user.from_ldap = true;
         defguard_user.save(&mut *transaction).await?;
-        defguard_user
+        (defguard_user, false)
     } else {
         debug!(
             "User {ldap_user} doesn't exist in Defguard, creating them first based on LDAP data"
@@ -89,12 +89,19 @@ pub(crate) async fn login_through_ldap_with_connection(
         }
 
         ldap_user.from_ldap = true;
-        let mut saved_user = ldap_user.save(&mut *transaction).await?;
-        try_send_ldap_enrollment_invite(&mut saved_user, &mut transaction).await;
-        saved_user
+        (ldap_user.save(&mut *transaction).await?, true)
     };
 
     transaction.commit().await?;
+
+    // Attempt to send enrollment invite after the original DB transaction is committed,
+    // so that the user row is visible to the new transaction inside try_send_ldap_enrollment_invite.
+    // Only send for newly-created users — returning users must not receive a second invite.
+    if is_new_user {
+        let mut transaction = pool.begin().await?;
+        try_send_ldap_enrollment_invite(&mut user, &mut transaction).await;
+        transaction.commit().await?;
+    }
 
     Ok(user)
 }
