@@ -29,7 +29,12 @@ export const SettingsEdgeCertificateWizardExternalUrlSettingsStep = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.edge.setExternalUrlSettings,
-    meta: { invalidate: [['core', 'cert', 'certs']] },
+    meta: {
+      invalidate: [
+        ['core', 'cert', 'certs'],
+        ['core', 'cert', 'ca'],
+      ],
+    },
     onSuccess: (response) => {
       useSettingsEdgeCertificateWizardStore.setState({
         external_ssl_type: form.getFieldValue('ssl_type'),

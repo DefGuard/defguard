@@ -15,6 +15,7 @@ export const SettingsEdgeCertificateWizardSummaryStep = () => {
 
   const handleFinish = async () => {
     await queryClient.invalidateQueries({ queryKey: ['core', 'cert', 'certs'] });
+    await queryClient.invalidateQueries({ queryKey: ['core', 'cert', 'ca'] });
     useSettingsEdgeCertificateWizardStore.getState().reset();
     await navigate({ to: '/settings/certs' });
   };

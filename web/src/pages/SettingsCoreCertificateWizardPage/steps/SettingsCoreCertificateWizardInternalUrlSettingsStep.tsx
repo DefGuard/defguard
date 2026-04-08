@@ -29,7 +29,12 @@ export const SettingsCoreCertificateWizardInternalUrlSettingsStep = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.core.setInternalUrlSettings,
-    meta: { invalidate: [['core', 'cert', 'certs']] },
+    meta: {
+      invalidate: [
+        ['core', 'cert', 'certs'],
+        ['core', 'cert', 'ca'],
+      ],
+    },
     onSuccess: (response) => {
       useSettingsCoreCertificateWizardStore.setState({
         internal_ssl_type: form.getFieldValue('ssl_type'),
