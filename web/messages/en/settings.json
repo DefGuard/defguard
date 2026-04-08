@@ -5,6 +5,7 @@
   "settings_breadcrumb_instance": "Instance settings",
   "settings_breadcrumb_password_reset": "Password reset",
   "settings_breadcrumb_client_behavior": "Client behavior",
+  "settings_breadcrumb_certificates": "Certificates",
   "settings_client_title": "Client settings",
   "settings_instance_title": "Instance settings",
   "settings_instance_subtitle": "Here you can configure general instance parameters.",

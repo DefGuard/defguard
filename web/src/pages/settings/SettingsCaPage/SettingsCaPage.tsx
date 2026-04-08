@@ -29,7 +29,7 @@ const breadcrumbs = [
     }}
     key={0}
   >
-    {m.settings_breadcrumb_general()}
+    {m.settings_breadcrumb_certificates()}
   </Link>,
   <Link to="/settings/ca" key={1}>
     {m.settings_breadcrumb_instance()}
