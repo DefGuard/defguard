@@ -855,6 +855,11 @@ impl Settings {
         }
         Ok(url)
     }
+
+    pub fn cookie_secure(&self) -> Result<bool, SettingsUrlError> {
+        let url = self.parse_defguard_url()?;
+        Ok(url.scheme() == "https")
+    }
 }
 
 #[derive(Serialize)]
@@ -1141,6 +1146,75 @@ mod test {
         assert!(matches!(
             settings.cookie_domain(),
             Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
+        ));
+    }
+
+    // Regression tests for cookie_secure(): the secure flag on session/auth cookies
+    // must be derived from the defguard_url scheme when cookie_insecure is not set.
+
+    #[test]
+    fn test_cookie_secure_returns_true_for_https_url() {
+        let settings = Settings {
+            defguard_url: "https://defguard.example.com".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.cookie_secure().unwrap(), true);
+    }
+
+    #[test]
+    fn test_cookie_secure_returns_false_for_http_url() {
+        let settings = Settings {
+            defguard_url: "http://defguard.example.com".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.cookie_secure().unwrap(), false);
+    }
+
+    #[test]
+    fn test_cookie_secure_returns_false_for_http_localhost() {
+        let settings = Settings {
+            defguard_url: "http://localhost:8000".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.cookie_secure().unwrap(), false);
+    }
+
+    #[test]
+    fn test_cookie_secure_returns_true_for_https_with_port_and_path() {
+        let settings = Settings {
+            defguard_url: "https://defguard.example.com:8443/path".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(settings.cookie_secure().unwrap(), true);
+    }
+
+    #[test]
+    fn test_cookie_secure_propagates_ip_address_error() {
+        let settings = Settings {
+            defguard_url: "https://127.0.0.1:8443".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.cookie_secure(),
+            Err(SettingsUrlError::DefguardUrlUsesIpAddress(_))
+        ));
+    }
+
+    #[test]
+    fn test_cookie_secure_propagates_invalid_url_error() {
+        let settings = Settings {
+            defguard_url: "not a url".into(),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.cookie_secure(),
+            Err(SettingsUrlError::InvalidDefguardUrl(_))
         ));
     }
 

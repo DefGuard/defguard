@@ -140,7 +140,7 @@ pub async fn init_settings_with_secret_key(pool: &PgPool) {
         .expect("Failed to update settings");
 
     let mut config = DefGuardConfig::new_test_config();
-    config.cookie_insecure = true;
+    config.cookie_insecure = Some(true);
     config.initialize_post_settings();
     let _ = SERVER_CONFIG.set(config);
 }

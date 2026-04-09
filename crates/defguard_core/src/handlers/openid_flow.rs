@@ -348,6 +348,7 @@ fn login_redirect(
     private_cookies: PrivateCookieJar,
 ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
     let config = server_config();
+    let settings = Settings::get_current_settings();
     let url = Settings::url()?;
     let base_url = url.join("/api/v1/oauth/authorize").map_err(|err| {
         error!("Failed to prepare redirect URL: {err}");
@@ -361,7 +362,12 @@ fn login_redirect(
         ),
     ))
     .path("/")
-    .secure(!config.cookie_insecure)
+    .secure(
+        config
+            .cookie_insecure
+            .map(|insecure| !insecure)
+            .unwrap_or(settings.cookie_secure()?),
+    )
     .same_site(SameSite::Lax)
     .http_only(true)
     .max_age(SIGN_IN_COOKIE_MAX_AGE);

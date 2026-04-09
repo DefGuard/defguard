@@ -2,7 +2,7 @@ use axum::http::StatusCode;
 use defguard_common::{
     db::models::{
         DeviceError, ModelError, WireguardNetworkError,
-        settings::{SettingsSaveError, SettingsValidationError},
+        settings::{SettingsSaveError, SettingsUrlError, SettingsValidationError},
         user::UserError,
     },
     types::UrlParseError,
@@ -195,6 +195,12 @@ impl From<SettingsSaveError> for WebError {
             SettingsSaveError::Db(err) => Self::DbError(err.to_string()),
             SettingsSaveError::Validation(err) => err.into(),
         }
+    }
+}
+
+impl From<SettingsUrlError> for WebError {
+    fn from(err: SettingsUrlError) -> Self {
+        Self::BadRequest(err.to_string())
     }
 }
 
