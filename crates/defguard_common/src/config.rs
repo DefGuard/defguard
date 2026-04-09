@@ -154,7 +154,7 @@ pub struct DefGuardConfig {
     pub cookie_domain: Option<String>,
 
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
-    // If not present, it will be guessed based on Settings.defguard_urlcarg
+    // If not present, it will be guessed based on Settings.defguard_url
     pub cookie_insecure: Option<bool>,
 
     #[command(subcommand)]
