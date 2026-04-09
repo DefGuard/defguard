@@ -686,7 +686,12 @@ impl GatewayUpdatesHandler {
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
-                        self.send_network_update(&network, Vec::new(), None, 0)
+                        self.send_network_update(
+                            &network,
+                            Vec::new(),
+                            None,
+                            UpdateType::Create as i32,
+                        )
                     } else {
                         Ok(())
                     }
@@ -698,8 +703,12 @@ impl GatewayUpdatesHandler {
                     maybe_firewall_config,
                 ) => {
                     if network_id == self.network_id {
-                        let result =
-                            self.send_network_update(&network, peers, maybe_firewall_config, 1);
+                        let result = self.send_network_update(
+                            &network,
+                            peers,
+                            maybe_firewall_config,
+                            UpdateType::Modify as i32,
+                        );
                         // update stored network data
                         self.network = network;
                         result
@@ -725,7 +734,7 @@ impl GatewayUpdatesHandler {
                             &device.device.name,
                             device.device.wireguard_pubkey,
                             network_info,
-                            0,
+                            UpdateType::Create as i32,
                         ),
                         None => Ok(()),
                     }
@@ -741,7 +750,7 @@ impl GatewayUpdatesHandler {
                             &device.device.name,
                             device.device.wireguard_pubkey,
                             network_info,
-                            1,
+                            UpdateType::Modify as i32,
                         ),
                         None => Ok(()),
                     }
@@ -791,7 +800,7 @@ impl GatewayUpdatesHandler {
                             &device.name,
                             device.wireguard_pubkey,
                             &network_info,
-                            0,
+                            UpdateType::Create as i32,
                         )
                     } else {
                         Ok(())
