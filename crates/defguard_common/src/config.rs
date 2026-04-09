@@ -154,7 +154,8 @@ pub struct DefGuardConfig {
     pub cookie_domain: Option<String>,
 
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
-    pub cookie_insecure: bool,
+    // If not present, it will be guessed based on Settings.defguard_url
+    pub cookie_insecure: Option<bool>,
 
     #[command(subcommand)]
     #[serde(skip_serializing)]
@@ -273,7 +274,7 @@ impl DefGuardConfig {
             enrollment_session_timeout: None,
             password_reset_session_timeout: None,
             cookie_domain: None,
-            cookie_insecure: false,
+            cookie_insecure: Some(false),
             cmd: None,
             check_period: std::time::Duration::from_secs(12 * 3600).into(),
             check_period_no_license: std::time::Duration::from_secs(24 * 3600).into(),

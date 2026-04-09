@@ -233,7 +233,8 @@ pub async fn authenticate(
     let (session, user_info, mfa_info) =
         create_session(&appstate.pool, insecure_ip, user_agent.as_str(), &mut user).await?;
 
-    let timeout = Settings::get_current_settings().authentication_timeout();
+    let settings = Settings::get_current_settings();
+    let timeout = settings.authentication_timeout();
     let max_age = Duration::try_from(timeout).map_err(|err| {
         error!("Failed to convert authentication timeout for cookie max-age: {err}");
         WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
@@ -242,7 +243,12 @@ pub async fn authenticate(
     let mut auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .path("/")
         .http_only(true)
-        .secure(!config.cookie_insecure)
+        .secure(
+            config
+                .cookie_insecure
+                .map(|insecure| !insecure)
+                .unwrap_or(settings.cookie_secure()?),
+        )
         .same_site(SameSite::Lax)
         .max_age(max_age);
     if let Some(cookie_domain) = cookie_domain() {

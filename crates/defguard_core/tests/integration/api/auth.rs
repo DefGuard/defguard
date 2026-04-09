@@ -1241,3 +1241,31 @@ async fn test_totp_enable_persists_with_existing_mfa_method(
         "mfa_method must remain Email since it was already configured"
     );
 }
+
+#[sqlx::test]
+async fn test_session_cookie_attributes(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let auth_cookie = response
+        .cookies()
+        .find(|c| c.name() == SESSION_COOKIE_NAME)
+        .expect("session cookie must be present after login");
+
+    // The test config uses cookie_insecure = Some(false), so the handler
+    // resolves Some(false).map(|i| !i) = Some(true) -> Secure=true.
+    // This verifies the Some(_) override path is honoured.
+    assert!(
+        auth_cookie.secure(),
+        "session cookie must be Secure when cookie_insecure=Some(false)"
+    );
+    assert!(
+        auth_cookie.http_only(),
+        "session cookie must always be HttpOnly"
+    );
+}

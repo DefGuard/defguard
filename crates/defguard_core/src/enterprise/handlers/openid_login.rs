@@ -528,13 +528,23 @@ pub async fn get_auth_info(
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
-        .secure(!config.cookie_insecure)
+        .secure(
+            config
+                .cookie_insecure
+                .map(|insecure| !insecure)
+                .unwrap_or(settings.cookie_secure()?),
+        )
         .max_age(COOKIE_MAX_AGE);
     let mut csrf_cookie = Cookie::build((CSRF_COOKIE_NAME, csrf_state.secret().clone()))
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
-        .secure(!config.cookie_insecure)
+        .secure(
+            config
+                .cookie_insecure
+                .map(|insecure| !insecure)
+                .unwrap_or(settings.cookie_secure()?),
+        )
         .max_age(COOKIE_MAX_AGE);
     if let Some(cookie_domain) = cookie_domain() {
         nonce_cookie = nonce_cookie.domain(cookie_domain.clone());
@@ -612,7 +622,12 @@ pub async fn auth_callback(
     let mut auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id))
         .path("/")
         .http_only(true)
-        .secure(!config.cookie_insecure)
+        .secure(
+            config
+                .cookie_insecure
+                .map(|insecure| !insecure)
+                .unwrap_or(settings.cookie_secure()?),
+        )
         .same_site(SameSite::Lax)
         .max_age(max_age);
     if let Some(cookie_domain) = cookie_domain() {
