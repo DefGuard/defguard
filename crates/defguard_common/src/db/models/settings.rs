@@ -1159,7 +1159,7 @@ mod test {
             ..Default::default()
         };
 
-        assert_eq!(settings.cookie_secure().unwrap(), true);
+        assert!(settings.cookie_secure().unwrap());
     }
 
     #[test]
@@ -1169,7 +1169,7 @@ mod test {
             ..Default::default()
         };
 
-        assert_eq!(settings.cookie_secure().unwrap(), false);
+        assert!(!settings.cookie_secure().unwrap());
     }
 
     #[test]
@@ -1179,7 +1179,7 @@ mod test {
             ..Default::default()
         };
 
-        assert_eq!(settings.cookie_secure().unwrap(), false);
+        assert!(!settings.cookie_secure().unwrap());
     }
 
     #[test]
@@ -1189,7 +1189,7 @@ mod test {
             ..Default::default()
         };
 
-        assert_eq!(settings.cookie_secure().unwrap(), true);
+        assert!(settings.cookie_secure().unwrap());
     }
 
     #[test]
