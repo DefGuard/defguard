@@ -660,7 +660,7 @@ export const UsersTable = () => {
       columnFilters: columnFilters,
       globalFilter: search,
     },
-    globalFilterFn: (row, _columnId, filterValue: string) => {
+    globalFilterFn: (row, _column, filterValue: string) => {
       const u = row.original;
       const lower = filterValue.toLowerCase();
       return (
