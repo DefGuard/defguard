@@ -327,10 +327,11 @@ pub async fn new_device_oidc_login_mail(
     conn: &mut PgConnection,
     session: Option<&SessionContext>,
     oauth2client_name: &str,
+    username: &str,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
-    let url = format!("{}me", Settings::url()?);
+    let url = format!("{}user/{}", Settings::url()?, username);
     context.insert("oauth2client_name", &oauth2client_name);
     context.insert("profile_url", &url);
 

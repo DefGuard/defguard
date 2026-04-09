@@ -297,6 +297,7 @@ fn send_new_device_oidc_login_mail(_: PgPoolOptions, options: PgConnectOptions) 
         &mut conn,
         None,
         client_name,
+        "testuser",
     )
     .await
     .unwrap();

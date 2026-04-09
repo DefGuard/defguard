@@ -343,7 +343,7 @@ INSERT INTO mail_context (template, section, language_tag, text) VALUES
     ('new-device-login', 'label_device', 'en_US', 'Device name:'),
     ('new-device-login', 'label_date', 'en_US', 'Date:'),
     ('new-device-oidc-login', 'title', 'en_US', 'Your account was just logged into a system using OpenID Connect authorization'),
-    ('new-device-oidc-login', 'subtitle', 'en_US', 'You can deauthorize all applications that have access to your account from the web vault under (My Profile > Apps).'),
+    ('new-device-oidc-login', 'subtitle', 'en_US', 'You can deauthorize all applications that have access to your account from the web vault under (Profile > Authorized Apps).'),
     ('new-device-oidc-login', 'label_profile', 'en_US', 'Profile URL:'),
     ('new-device-oidc-login', 'label_oauth2client', 'en_US', 'System name:'),
     ('password-reset', 'title', 'en_US', 'Password reset'),
