@@ -152,11 +152,6 @@ async fn main() -> Result<(), anyhow::Error> {
                     }
                 }
 
-                config.initialize_post_settings();
-                SERVER_CONFIG
-                    .set(config.clone())
-                    .expect("Failed to initialize server config.");
-
                 if let Err(err) =
                     run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
                         .await
@@ -167,10 +162,6 @@ async fn main() -> Result<(), anyhow::Error> {
             ActiveWizard::Migration => {
                 let mut settings = Settings::get_current_settings();
                 settings.update_from_config(&pool, &config).await?;
-                config.initialize_post_settings();
-                SERVER_CONFIG
-                    .set(config.clone())
-                    .expect("Failed to initialize server config.");
 
                 if let Err(err) = run_migration_web_server(
                     pool.clone(),
@@ -193,8 +184,6 @@ async fn main() -> Result<(), anyhow::Error> {
     })?;
     update_current_settings(&pool, settings).await?;
 
-    // Only set SERVER_CONFIG if it has not already been set (e.g. by the setup
-    // path above).
     config.initialize_post_settings();
     SERVER_CONFIG.set(config.clone()).ok();
 
