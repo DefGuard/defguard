@@ -998,7 +998,7 @@ pub async fn gateway_config(
     let mut config = Configuration::new(&location, peers, maybe_firewall_config);
 
     // overwrite private key just in case
-    config.prvkey = "REDACTED".into();
+    config.private_key = "REDACTED".into();
 
     Ok(config)
 }

@@ -32,8 +32,8 @@ use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
     gateway::{
-        Configuration, CoreResponse, Peer, PeerStats, Update, core_request, core_response,
-        gateway_client, update,
+        Configuration, CoreResponse, Peer, PeerStats, Update, UpdateType, core_request,
+        core_response, gateway_client, update,
     },
 };
 use defguard_version::client::ClientVersionInterceptor;
@@ -823,7 +823,7 @@ impl GatewayUpdatesHandler {
                 update_type,
                 update: Some(update::Update::Network(Configuration {
                     name: network.name.clone(),
-                    prvkey: network.prvkey.clone(),
+                    private_key: network.prvkey.clone(),
                     addresses: network.address().iter().map(ToString::to_string).collect(),
                     port: network.port.cast_unsigned(),
                     peers,
@@ -836,7 +836,11 @@ impl GatewayUpdatesHandler {
             let msg = format!(
                 "Failed to send network update, network {network}, update type: {update_type} \
                 ({}), error: {err}",
-                if update_type == 0 { "CREATE" } else { "MODIFY" },
+                if update_type == UpdateType::Create as i32 {
+                    "CREATE"
+                } else {
+                    "MODIFY"
+                },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -854,10 +858,10 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 2,
+                update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::Network(Configuration {
                     name: network_name.to_string(),
-                    prvkey: String::new(),
+                    private_key: String::new(),
                     addresses: Vec::new(),
                     port: 0,
                     peers: Vec::new(),
@@ -892,7 +896,11 @@ impl GatewayUpdatesHandler {
                 "Failed to send peer update for network {}, update type: {update_type} ({}), \
                 error: {err}",
                 self.network,
-                if update_type == 0 { "CREATE" } else { "MODIFY" },
+                if update_type == UpdateType::Create as i32 {
+                    "CREATE"
+                } else {
+                    "MODIFY"
+                },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -907,7 +915,7 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 2,
+                update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::Peer(Peer {
                     pubkey: peer_pubkey.into(),
                     allowed_ips: Vec::new(),
@@ -937,7 +945,7 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 1,
+                update_type: UpdateType::Modify as i32,
                 update: Some(update::Update::FirewallConfig(firewall_config)),
             })),
         }) {
@@ -961,7 +969,7 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 2,
+                update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::DisableFirewall(())),
             })),
         }) {
@@ -1164,7 +1172,7 @@ mod tests {
 
         assert_eq!(config.name, "test-network");
         assert_eq!(config.port, 51820);
-        assert_eq!(config.prvkey, "network-private-key");
+        assert_eq!(config.private_key, "network-private-key");
         assert_eq!(config.addresses, vec!["10.10.0.1/24", "fd00::1/64"]);
         assert_eq!(config.mtu, 1420);
         assert_eq!(config.fwmark, 4321);

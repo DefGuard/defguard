@@ -559,6 +559,7 @@ fn get_source_addrs(
                     None
                 }
             }
+            IpVersion::Unspecified => None,
         })
         .collect();
 

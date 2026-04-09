@@ -221,7 +221,7 @@ impl Configuration {
         Self {
             name: location.name.clone(),
             port: location.port.cast_unsigned(),
-            prvkey: location.prvkey.clone(),
+            private_key: location.prvkey.clone(),
             addresses: location.address().iter().map(ToString::to_string).collect(),
             peers,
             firewall_config: maybe_firewall_config,
