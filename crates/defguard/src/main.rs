@@ -233,6 +233,7 @@ async fn main() -> Result<(), anyhow::Error> {
     update_counts(&pool).await?;
 
     let (proxy_control_tx, proxy_control_rx) = channel::<ProxyControlMessage>(100);
+    let (web_reload_tx, _web_reload_rx) = tokio::sync::broadcast::channel::<()>(8);
     let proxy_secret_key = settings.secret_key_required()?;
     let proxy_manager = ProxyManager::new(
         pool.clone(),
@@ -270,6 +271,7 @@ async fn main() -> Result<(), anyhow::Error> {
             webhook_tx,
             webhook_rx,
             gateway_tx.clone(),
+            web_reload_tx,
             pool.clone(),
             failed_logins,
             api_event_tx,

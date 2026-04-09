@@ -10,6 +10,7 @@ use axum::{
     extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
+use chrono::NaiveDateTime;
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
@@ -17,7 +18,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates,
+            Certificates, Settings,
             certificates::ProxyCertSource,
             gateway::Gateway,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
@@ -1116,6 +1117,39 @@ fn acme_step_name(step: AcmeStep) -> &'static str {
     }
 }
 
+fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+    let der = defguard_certs::parse_pem_certificate(cert_pem)
+        .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
+        .ok()?;
+    defguard_certs::CertificateInfo::from_der(&der)
+        .map(|info| info.not_after)
+        .map_err(|e| warn!("Failed to extract expiry from ACME cert: {e}"))
+        .ok()
+}
+
+fn public_proxy_hostname() -> Result<String, String> {
+    let public_proxy_url = Settings::get_current_settings().public_proxy_url;
+    let url = public_proxy_url.trim();
+
+    if url.is_empty() {
+        return Err(
+            "Public proxy URL is not configured. Please re-submit the external URL settings \
+             with a Let's Encrypt domain."
+                .to_string(),
+        );
+    }
+
+    Url::parse(url)
+        .ok()
+        .and_then(|u| u.host_str().map(ToString::to_string))
+        .filter(|host| !host.is_empty())
+        .ok_or_else(|| {
+            "Public proxy URL is not configured with a valid hostname. Please re-submit the \
+             external URL settings with a valid domain."
+                .to_string()
+        })
+}
+
 /// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
 ///
 /// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
@@ -1234,16 +1268,10 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let domain = match certs.acme_domain.clone() {
-            Some(d) if !d.is_empty() => d,
-            _ => {
-                yield Ok(acme_error_event(
-                    "Connecting",
-                    "No ACME domain configured. Please re-submit the external URL settings \
-                     with a Let's Encrypt domain."
-                        .to_string(),
-                    None,
-                ));
+        let domain = match public_proxy_hostname() {
+            Ok(domain) => domain,
+            Err(message) => {
+                yield Ok(acme_error_event("Connecting", message, None));
                 return;
             }
         };
@@ -1341,10 +1369,13 @@ pub async fn stream_proxy_acme(
         // Progress channel closed - collect the final result.
         match result_rx.await {
             Ok(Ok((cert_pem, key_pem, new_account_credentials_json))) => {
+                let acme_cert_expiry = parse_cert_expiry(&cert_pem);
                 match Certificates::get_or_default(&pool).await {
                     Ok(mut updated_certs) => {
+                        updated_certs.acme_domain = Some(domain.clone());
                         updated_certs.proxy_http_cert_pem = Some(cert_pem.clone());
                         updated_certs.proxy_http_cert_key_pem = Some(key_pem.clone());
+                        updated_certs.proxy_http_cert_expiry = acme_cert_expiry;
                         updated_certs.acme_account_credentials =
                             Some(new_account_credentials_json);
                         updated_certs.proxy_http_cert_source =

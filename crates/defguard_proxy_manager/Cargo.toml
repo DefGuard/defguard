@@ -44,4 +44,3 @@ serde.workspace = true
 serde_json.workspace = true
 tower.workspace = true
 totp-lite.workspace = true
-

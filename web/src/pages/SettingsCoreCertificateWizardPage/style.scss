@@ -1,0 +1,18 @@
+.settings-core-certificate-summary-card {
+  .summary-title {
+    font: var(--t-title-h4);
+    color: var(--fg-neutral);
+    margin: 0;
+  }
+
+  .summary-description,
+  .summary-restart {
+    font: var(--t-body-primary-400);
+    color: var(--fg-neutral);
+    margin: 0;
+  }
+
+  .summary-restart {
+    color: var(--fg-faded);
+  }
+}

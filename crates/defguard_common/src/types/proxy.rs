@@ -14,6 +14,7 @@ pub enum ProxyControlMessage {
         cert_pem: String,
         key_pem: String,
     },
+    ClearHttpsCerts,
 }
 
 #[derive(ToSchema, Serialize)]

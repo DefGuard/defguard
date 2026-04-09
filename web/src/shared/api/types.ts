@@ -55,14 +55,36 @@ export interface GetCAResponse {
   not_before: string;
   not_after: string;
   valid_for_days: number;
+  ca_expiry?: string | null;
+  subject_email?: string | null;
+}
+
+export const CoreCertSource = {
+  None: 'None',
+  SelfSigned: 'SelfSigned',
+  Custom: 'Custom',
+} as const;
+export type CoreCertSourceValue = (typeof CoreCertSource)[keyof typeof CoreCertSource];
+
+export const EdgeCertSource = {
+  None: 'None',
+  SelfSigned: 'SelfSigned',
+  LetsEncrypt: 'LetsEncrypt',
+  Custom: 'Custom',
+} as const;
+export type EdgeCertSourceValue = (typeof EdgeCertSource)[keyof typeof EdgeCertSource];
+
+export interface GetCertsResponse {
+  core_http_cert_source: CoreCertSourceValue;
+  core_http_cert_expiry: string | null;
+  core_http_cert_domain: string | null;
+  proxy_http_cert_source: EdgeCertSourceValue;
+  proxy_http_cert_expiry: string | null;
+  proxy_http_cert_domain: string | null;
 }
 
 export interface UploadCARequest {
   cert_file: string;
-}
-
-export interface CoreSelfSignedCertRequest {
-  san: string[];
 }
 
 export interface CreateAdminRequest {
@@ -104,6 +126,26 @@ export interface CertInfo {
 }
 
 export interface SetAutoAdoptionInternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
+export interface SetCoreInternalUrlSettingsRequest {
+  ssl_type: InternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export interface SetCoreInternalUrlSettingsResponse {
+  cert_info: CertInfo | null;
+}
+
+export interface SetEdgeExternalUrlSettingsRequest {
+  ssl_type: ExternalSslType;
+  cert_pem?: string;
+  key_pem?: string;
+}
+
+export interface SetEdgeExternalUrlSettingsResponse {
   cert_info: CertInfo | null;
 }
 
