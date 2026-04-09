@@ -431,7 +431,7 @@ impl ManagerTestContext {
         let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
         let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
-        let mut manager = GatewayManager::new_for_test(self.pool.clone(), tx, self.control.clone());
+        let mut manager = GatewayManager::new(self.pool.clone(), tx, self.control.clone());
         let manager_task = tokio::spawn(async move { manager.run().await });
 
         timeout(TEST_TIMEOUT, self.control.wait_until_listener_ready())

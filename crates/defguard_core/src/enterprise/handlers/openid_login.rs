@@ -531,8 +531,7 @@ pub async fn get_auth_info(
         .secure(
             config
                 .cookie_insecure
-                .map(|insecure| !insecure)
-                .unwrap_or(settings.cookie_secure()?),
+                .map_or(settings.cookie_secure()?, |insecure| !insecure),
         )
         .max_age(COOKIE_MAX_AGE);
     let mut csrf_cookie = Cookie::build((CSRF_COOKIE_NAME, csrf_state.secret().clone()))
@@ -542,8 +541,7 @@ pub async fn get_auth_info(
         .secure(
             config
                 .cookie_insecure
-                .map(|insecure| !insecure)
-                .unwrap_or(settings.cookie_secure()?),
+                .map_or(settings.cookie_secure()?, |insecure| !insecure),
         )
         .max_age(COOKIE_MAX_AGE);
     if let Some(cookie_domain) = cookie_domain() {
@@ -625,8 +623,7 @@ pub async fn auth_callback(
         .secure(
             config
                 .cookie_insecure
-                .map(|insecure| !insecure)
-                .unwrap_or(settings.cookie_secure()?),
+                .map_or(settings.cookie_secure()?, |insecure| !insecure),
         )
         .same_site(SameSite::Lax)
         .max_age(max_age);

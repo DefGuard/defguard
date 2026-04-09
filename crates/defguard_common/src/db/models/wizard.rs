@@ -171,17 +171,15 @@ impl Wizard {
                             domain: domain.to_string(),
                             port,
                         });
-                    } else {
-                        error!("Could not extract domain/port from {url}");
                     }
+                    error!("Could not extract domain/port from {url}");
                     if let (Some(ip), Some(port)) = (url.host(), url.port()) {
                         return Some(ProxyUrl {
                             domain: ip.to_string(),
                             port,
                         });
-                    } else {
-                        error!("Could not extract ip/port from {url}");
                     }
+                    error!("Could not extract ip/port from {url}");
                     None
                 }
                 Err(err) => {

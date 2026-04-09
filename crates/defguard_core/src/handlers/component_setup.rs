@@ -41,7 +41,7 @@ use futures::Stream;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::mpsc::{Sender, UnboundedSender};
+use tokio::sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender};
 use tokio_stream::StreamExt;
 use tonic::{
     Request, Status,
@@ -166,14 +166,11 @@ fn set_step_message(next_step: SetupStep) -> Event {
 struct SetupFlow {
     last_step: SetupStep,
     log_buffer: Arc<Mutex<VecDeque<String>>>,
-    log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+    log_rx: UnboundedReceiver<String>,
 }
 
 impl SetupFlow {
-    fn new(
-        log_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
-        log_buffer: Arc<Mutex<VecDeque<String>>>,
-    ) -> Self {
+    fn new(log_rx: UnboundedReceiver<String>, log_buffer: Arc<Mutex<VecDeque<String>>>) -> Self {
         Self {
             last_step: SetupStep::CheckingConfiguration,
             log_buffer,
@@ -1290,18 +1287,15 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let proxy = match proxies.into_iter().next() {
-            Some(p) => p,
-            None => {
-                yield Ok(acme_error_event(
-                    "Connecting",
-                    "No proxy found in database. Please complete the edge adoption step \
-                     first."
-                        .to_string(),
-                    None,
-                ));
-                return;
-            }
+        let proxy = if let Some(p) = proxies.into_iter().next() { p } else {
+            yield Ok(acme_error_event(
+                "Connecting",
+                "No proxy found in database. Please complete the edge adoption step \
+                 first."
+                    .to_string(),
+                None,
+            ));
+            return;
         };
 
         let proxy_host = proxy.address.clone();
@@ -1352,7 +1346,7 @@ pub async fn stream_proxy_acme(
                     }
                 }
 
-                _ = tokio::time::sleep_until(deadline) => {
+                () = tokio::time::sleep_until(deadline) => {
                     yield Ok(acme_error_event(
                         current_step,
                         format!(
