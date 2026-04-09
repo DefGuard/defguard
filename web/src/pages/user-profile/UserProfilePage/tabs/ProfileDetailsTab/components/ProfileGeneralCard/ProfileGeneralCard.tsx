@@ -34,12 +34,11 @@ const zodSchema = z.object({
   last_name: z.string().trim().min(1, m.form_error_required()),
   phone: z
     .string()
-    .trim()
     .refine((val) => {
-      if (val?.length) {
-        return patternValidPhoneNumber.test(val);
-      }
-      return true;
+      const trimmed = val.trim();
+      if (val.length === 0) return true;
+      if (trimmed.length === 0) return false;
+      return patternValidPhoneNumber.test(trimmed);
     }, m.form_error_invalid())
     .nullable(),
   email: z
