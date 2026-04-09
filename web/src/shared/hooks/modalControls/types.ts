@@ -95,6 +95,7 @@ export interface OpenCEWebhookModal {
 export interface OpenAssignUsersToGroupsModal {
   users: number[];
   groups: GroupInfo[];
+  onSuccess?: () => void;
 }
 
 export interface OpenAddNetworkDeviceModal {

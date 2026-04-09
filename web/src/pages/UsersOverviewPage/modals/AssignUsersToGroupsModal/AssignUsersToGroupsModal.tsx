@@ -49,13 +49,14 @@ export const AssignUsersToGroupsModal = () => {
   );
 };
 
-const ModalContent = ({ groups, users }: ModalData) => {
+const ModalContent = ({ groups, users, onSuccess }: ModalData) => {
   const [selection, setSelection] = useState<Set<string>>(new Set());
 
   const { mutate, isPending } = useMutation({
     mutationFn: api.group.addUsersToGroups,
     onSuccess: () => {
       closeModal(modalNameValue);
+      onSuccess?.();
     },
     meta: {
       invalidate: [['user-overview'], ['user'], ['activity-log']],
