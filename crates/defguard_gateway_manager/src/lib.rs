@@ -21,7 +21,7 @@ use sqlx::{PgPool, postgres::PgListener};
 use tokio::sync::Notify;
 use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
-    task::{AbortHandle, JoinSet},
+    task::{AbortHandle, JoinHandle, JoinSet},
 };
 use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
 
@@ -44,11 +44,11 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 type Client = GatewayClient<InterceptedService<Channel, ClientVersionInterceptor>>;
 
 struct AbortTaskOnDrop<T> {
-    handle: Option<tokio::task::JoinHandle<T>>,
+    handle: Option<JoinHandle<T>>,
 }
 
 impl<T> AbortTaskOnDrop<T> {
-    fn new(handle: tokio::task::JoinHandle<T>) -> Self {
+    fn new(handle: JoinHandle<T>) -> Self {
         Self {
             handle: Some(handle),
         }
@@ -249,65 +249,45 @@ pub struct GatewayManager {
     pool: PgPool,
     handlers: JoinSet<Result<(), GatewayError>>,
     #[cfg(test)]
-    test_support: Option<GatewayManagerTestSupport>,
+    test_support: GatewayManagerTestSupport,
     tx: GatewayTxSet,
 }
 
 impl GatewayManager {
+    #[cfg(not(test))]
     #[must_use]
     pub fn new(pool: PgPool, tx: GatewayTxSet) -> Self {
         Self {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
-            #[cfg(test)]
-            test_support: None,
             tx,
         }
     }
 
     #[cfg(test)]
     #[must_use]
-    fn new_for_test(
-        pool: PgPool,
-        tx: GatewayTxSet,
-        test_support: GatewayManagerTestSupport,
-    ) -> Self {
+    fn new(pool: PgPool, tx: GatewayTxSet, test_support: GatewayManagerTestSupport) -> Self {
         Self {
             clients: Arc::default(),
             handlers: JoinSet::new(),
             pool,
-            test_support: Some(test_support),
+            test_support,
             tx,
         }
     }
 
-    fn mark_listener_ready_for_tests(&self) {
-        #[cfg(test)]
-        if let Some(test_support) = &self.test_support {
-            test_support.mark_listener_ready();
-        }
-    }
-
+    #[cfg(test)]
     fn note_gateway_notification_for_tests(&self, maybe_gateway_id: Option<Id>) {
-        #[cfg(test)]
-        if let (Some(gateway_id), Some(test_support)) =
-            (maybe_gateway_id, self.test_support.as_ref())
-        {
-            test_support.note_gateway_notification(gateway_id);
+        if let Some(gateway_id) = maybe_gateway_id {
+            self.test_support.note_gateway_notification(gateway_id);
         }
-
-        #[cfg(not(test))]
-        let _ = maybe_gateway_id;
     }
 
     fn manager_reconnect_delay(&self) -> Duration {
         #[cfg(test)]
         {
-            self.test_support.as_ref().map_or(
-                GATEWAY_RECONNECT_DELAY,
-                GatewayManagerTestSupport::manager_reconnect_delay,
-            )
+            self.test_support.manager_reconnect_delay()
         }
 
         #[cfg(not(test))]
@@ -322,11 +302,11 @@ impl GatewayManager {
         certs_rx: Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<GatewayHandler, GatewayError> {
         #[cfg(test)]
-        if let Some(test_support) = self.test_support.clone() {
-            test_support.note_handler_spawn_attempt(gateway.id);
+        {
+            self.test_support.note_handler_spawn_attempt(gateway.id);
 
             let mut gateway_handler =
-                if let Some(socket_path) = test_support.socket_path_for(&gateway) {
+                if let Some(socket_path) = self.test_support.socket_path_for(&gateway) {
                     GatewayHandler::new_with_test_socket(
                         gateway,
                         self.pool.clone(),
@@ -344,11 +324,12 @@ impl GatewayManager {
                         certs_rx,
                     )?
                 };
-            gateway_handler.attach_test_support(test_support);
+            gateway_handler.attach_test_support(self.test_support.clone());
 
-            return Ok(gateway_handler);
+            Ok(gateway_handler)
         }
 
+        #[cfg(not(test))]
         GatewayHandler::new(
             gateway,
             self.pool.clone(),
@@ -382,15 +363,18 @@ impl GatewayManager {
             abort_handles.insert(id, abort_handle);
         }
 
-        // Observe gateway URL changes.
+        // Observe gateway changes.
         let mut listener = PgListener::connect_with(&self.pool).await?;
         listener.listen(GATEWAY_TABLE_TRIGGER).await?;
-        self.mark_listener_ready_for_tests();
+
+        #[cfg(test)]
+        self.test_support.mark_listener_ready();
+
         while let Ok(notification) = listener.recv().await {
             let payload = notification.payload();
             match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
                 Ok(gateway_notification) => {
-                    let maybe_gateway_id = match gateway_notification.operation {
+                    let _maybe_gateway_id = match gateway_notification.operation {
                         TriggerOperation::Insert => {
                             let Some(new) = gateway_notification.new else {
                                 continue;
@@ -428,17 +412,19 @@ impl GatewayManager {
                                 if let Some(abort_handle) = abort_handles.remove(&old.id) {
                                     if let Err(err) = old.touch_disconnected(&self.pool).await {
                                         error!(
-                                            "Failed to update disconnection time for Gateway {old} after database change: {err}"
+                                            "Failed to update disconnection time for Gateway {old} \
+                                            after database change: {err}"
                                         );
                                     }
                                     info!(
-                                        "Aborting connection to Gateway {old}, it has changed in the \
-                                        database"
+                                        "Aborting connection to Gateway {old}, it has changed in \
+                                        the database"
                                     );
                                     abort_handle.abort();
                                 } else if old.enabled {
                                     warn!(
-                                        "Cannot find Gateway {old} on the list of connected gateways"
+                                        "Cannot find Gateway {old} on the list of connected \
+                                        gateways"
                                     );
                                 }
                                 if new.enabled {
@@ -472,15 +458,16 @@ impl GatewayManager {
                                 }
                             } else {
                                 warn!(
-                                    "Cannot find gRPC client for Gateway {old}; skipping purge request"
+                                    "Cannot find gRPC client for Gateway {old}; skipping purge \
+                                    request"
                                 );
                             }
 
                             // Kill the `GatewayHandler` and the connection.
                             if let Some(abort_handle) = abort_handles.remove(&old.id) {
                                 info!(
-                                    "Aborting connection to Gateway {old}, it has disappeared from the \
-                                    database"
+                                    "Aborting connection to Gateway {old}, it has disappeared from \
+                                    the database"
                                 );
                                 abort_handle.abort();
                             } else if old.enabled {
@@ -493,7 +480,8 @@ impl GatewayManager {
                         }
                     };
 
-                    self.note_gateway_notification_for_tests(maybe_gateway_id);
+                    #[cfg(test)]
+                    self.note_gateway_notification_for_tests(_maybe_gateway_id);
                 }
                 Err(err) => error!("Failed to de-serialize database notification object: {err}"),
             }
@@ -515,17 +503,9 @@ impl GatewayManager {
         let mut gateway_handler = self.build_handler(gateway, certs_rx)?;
         let manager_reconnect_delay = self.manager_reconnect_delay();
         let abort_handle = self.handlers.spawn(async move {
-            loop {
-                if let Err(err) = gateway_handler
-                    .handle_connection(Arc::clone(&clients))
-                    .await
-                {
-                    error!(
-                        "Gateway connection error: {err}, retrying in {manager_reconnect_delay:?}..."
-                    );
-                    tokio::time::sleep(manager_reconnect_delay).await;
-                }
-            }
+            gateway_handler
+                .handle_connection(clients, manager_reconnect_delay)
+                .await
         });
         Ok(abort_handle)
     }

@@ -365,8 +365,7 @@ fn login_redirect(
     .secure(
         config
             .cookie_insecure
-            .map(|insecure| !insecure)
-            .unwrap_or(settings.cookie_secure()?),
+            .map_or(settings.cookie_secure()?, |insecure| !insecure),
     )
     .same_site(SameSite::Lax)
     .http_only(true)

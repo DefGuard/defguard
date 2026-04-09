@@ -1,3 +1,5 @@
+#[cfg(test)]
+use std::path::PathBuf;
 use std::{
     collections::HashMap,
     net::IpAddr,
@@ -6,9 +8,8 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
+    time::Duration,
 };
-#[cfg(test)]
-use std::{path::PathBuf, time::Duration};
 
 use chrono::{DateTime, TimeDelta};
 use defguard_common::{
@@ -47,6 +48,7 @@ use tokio::{
         mpsc::{self, UnboundedSender},
         watch,
     },
+    task::JoinHandle,
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -88,6 +90,7 @@ pub(crate) struct GatewayHandler {
     events_tx: Sender<GatewayEvent>,
     peer_stats_tx: UnboundedSender<PeerStatsUpdate>,
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+    updates_handler_handle: Option<JoinHandle<()>>,
     #[cfg(test)]
     test_transport: GatewayTestTransport,
     #[cfg(test)]
@@ -117,6 +120,7 @@ impl GatewayHandler {
             events_tx,
             peer_stats_tx,
             certs_rx,
+            updates_handler_handle: None,
             #[cfg(test)]
             test_transport: GatewayTestTransport::default(),
             #[cfg(test)]
@@ -125,7 +129,7 @@ impl GatewayHandler {
     }
 
     #[cfg(not(test))]
-    fn handler_retry_delay(&self) -> std::time::Duration {
+    fn handler_retry_delay(&self) -> Duration {
         TEN_SECS
     }
 
@@ -142,7 +146,7 @@ impl GatewayHandler {
             })?;
         let Some(ca_cert_der) = certs.ca_cert_der else {
             return Err(GatewayError::EndpointError(
-                "Core CA is not setup, can't create a Gateway endpoint.".to_string(),
+                "Core CA is not setup, can't create a Gateway endpoint".to_string(),
             ));
         };
         let tls_config =
@@ -349,7 +353,7 @@ impl GatewayHandler {
         &mut self,
         clients: &Arc<Mutex<HashMap<Id, Client>>>,
         retry_on_connect_failure: bool,
-        retry_delay: std::time::Duration,
+        retry_delay: Duration,
     ) {
         self.remove_client(clients);
         self.handle_disconnection_error().await;
@@ -450,9 +454,10 @@ impl GatewayHandler {
                                         self.events_tx.subscribe(),
                                         tx.clone(),
                                     );
-                                    tokio::spawn(async move {
+                                    let handle = tokio::spawn(async move {
                                         updates_handler.run().await;
                                     });
+                                    self.updates_handler_handle = Some(handle);
                                 }
                                 Err(err) => {
                                     error!(
@@ -513,10 +518,24 @@ impl GatewayHandler {
     pub(super) async fn handle_connection(
         &mut self,
         clients: Arc<Mutex<HashMap<Id, Client>>>,
+        reconnect_delay: Duration,
     ) -> Result<(), GatewayError> {
         loop {
-            self.handle_connection_iteration(Arc::clone(&clients), true)
-                .await?;
+            if let Err(err) = self
+                .handle_connection_iteration(Arc::clone(&clients), true)
+                .await
+            {
+                error!("Gateway connection error: {err}, retrying in {reconnect_delay:?}");
+                sleep(reconnect_delay).await;
+            }
+        }
+    }
+}
+
+impl Drop for GatewayHandler {
+    fn drop(&mut self) {
+        if let Some(handle) = self.updates_handler_handle.take() {
+            handle.abort();
         }
     }
 }

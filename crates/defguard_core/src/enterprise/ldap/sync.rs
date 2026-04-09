@@ -227,7 +227,7 @@ pub(super) fn compute_user_sync_changes(
     };
 
     debug!("Completed computing user sync changes");
-    trace!("User sync changes: {:?}", user_sync_changes);
+    trace!("User sync changes: {user_sync_changes:?}");
 
     user_sync_changes
 }
