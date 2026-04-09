@@ -1,20 +1,72 @@
 use std::fmt;
 
-pub mod proxy {
-    tonic::include_proto!("defguard.proxy");
-}
-pub mod gateway {
-    tonic::include_proto!("gateway");
-}
-pub mod worker {
-    tonic::include_proto!("worker");
-}
-pub mod enterprise {
-    pub mod firewall {
-        tonic::include_proto!("enterprise.firewall");
+mod generated {
+    pub mod defguard {
+        pub mod proxy {
+            pub mod v2 {
+                tonic::include_proto!("defguard.proxy.v2");
+            }
+        }
+
+        pub mod gateway {
+            pub mod v2 {
+                tonic::include_proto!("defguard.gateway.v2");
+            }
+        }
+
+        pub mod worker {
+            pub mod v1 {
+                tonic::include_proto!("defguard.worker.v1");
+            }
+        }
+
+        pub mod enterprise {
+            pub mod firewall {
+                pub mod v2 {
+                    tonic::include_proto!("defguard.enterprise.firewall.v2");
+                }
+            }
+        }
+
+        pub mod client_types {
+            tonic::include_proto!("defguard.client_types");
+        }
+
+        pub mod common {
+            pub mod v2 {
+                tonic::include_proto!("defguard.common.v2");
+            }
+        }
     }
 }
 
+pub mod proxy {
+    pub use crate::generated::defguard::proxy::v2::*;
+}
+
+pub mod gateway {
+    pub use crate::generated::defguard::gateway::v2::*;
+}
+
+pub mod worker {
+    pub use crate::generated::defguard::worker::v1::*;
+}
+
+pub mod enterprise {
+    pub mod firewall {
+        pub use crate::generated::defguard::enterprise::firewall::v2::*;
+    }
+}
+
+pub mod client_types {
+    pub use crate::generated::defguard::client_types::*;
+}
+
+pub mod common {
+    pub use crate::generated::defguard::common::v2::*;
+}
+
+use client_types::MfaMethod;
 use defguard_common::{
     csv::AsCsv,
     db::{
@@ -26,7 +78,7 @@ use defguard_common::{
         },
     },
 };
-use proxy::{CoreError, MfaMethod};
+use proxy::CoreError;
 use serde::Serialize;
 use tonic::Status;
 
@@ -86,7 +138,7 @@ impl From<Status> for CoreError {
     }
 }
 
-impl From<DeviceConfig> for proxy::DeviceConfig {
+impl From<DeviceConfig> for client_types::DeviceConfig {
     fn from(config: DeviceConfig) -> Self {
         // DEPRECATED(1.5): superseeded by location_mfa_mode
         let mfa_enabled = config.location_mfa_mode == LocationMfaMode::Internal;
@@ -103,11 +155,13 @@ impl From<DeviceConfig> for proxy::DeviceConfig {
             #[allow(deprecated)]
             mfa_enabled,
             location_mfa_mode: Some(
-                <LocationMfaMode as Into<proxy::LocationMfaMode>>::into(config.location_mfa_mode)
-                    .into(),
+                <LocationMfaMode as Into<client_types::LocationMfaMode>>::into(
+                    config.location_mfa_mode,
+                )
+                .into(),
             ),
             service_location_mode: Some(
-                <ServiceLocationMode as Into<proxy::ServiceLocationMode>>::into(
+                <ServiceLocationMode as Into<client_types::ServiceLocationMode>>::into(
                     config.service_location_mode,
                 )
                 .into(),
@@ -116,7 +170,7 @@ impl From<DeviceConfig> for proxy::DeviceConfig {
     }
 }
 
-impl From<Device<Id>> for proxy::Device {
+impl From<Device<Id>> for client_types::Device {
     fn from(device: Device<Id>) -> Self {
         Self {
             id: device.id,
@@ -128,7 +182,7 @@ impl From<Device<Id>> for proxy::Device {
     }
 }
 
-impl From<User<Id>> for proxy::AdminInfo {
+impl From<User<Id>> for client_types::AdminInfo {
     fn from(admin: User<Id>) -> Self {
         Self {
             name: format!("{} {}", admin.first_name, admin.last_name),
@@ -138,22 +192,22 @@ impl From<User<Id>> for proxy::AdminInfo {
     }
 }
 
-impl From<LocationMfaMode> for proxy::LocationMfaMode {
+impl From<LocationMfaMode> for client_types::LocationMfaMode {
     fn from(value: LocationMfaMode) -> Self {
         match value {
-            LocationMfaMode::Disabled => proxy::LocationMfaMode::Disabled,
-            LocationMfaMode::Internal => proxy::LocationMfaMode::Internal,
-            LocationMfaMode::External => proxy::LocationMfaMode::External,
+            LocationMfaMode::Disabled => client_types::LocationMfaMode::Disabled,
+            LocationMfaMode::Internal => client_types::LocationMfaMode::Internal,
+            LocationMfaMode::External => client_types::LocationMfaMode::External,
         }
     }
 }
 
-impl From<ServiceLocationMode> for proxy::ServiceLocationMode {
+impl From<ServiceLocationMode> for client_types::ServiceLocationMode {
     fn from(value: ServiceLocationMode) -> Self {
         match value {
-            ServiceLocationMode::Disabled => proxy::ServiceLocationMode::Disabled,
-            ServiceLocationMode::PreLogon => proxy::ServiceLocationMode::Prelogon,
-            ServiceLocationMode::AlwaysOn => proxy::ServiceLocationMode::Alwayson,
+            ServiceLocationMode::Disabled => client_types::ServiceLocationMode::Disabled,
+            ServiceLocationMode::PreLogon => client_types::ServiceLocationMode::Prelogon,
+            ServiceLocationMode::AlwaysOn => client_types::ServiceLocationMode::Alwayson,
         }
     }
 }
@@ -167,7 +221,7 @@ impl Configuration {
         Self {
             name: location.name.clone(),
             port: location.port.cast_unsigned(),
-            prvkey: location.prvkey.clone(),
+            private_key: location.prvkey.clone(),
             addresses: location.address().iter().map(ToString::to_string).collect(),
             peers,
             firewall_config: maybe_firewall_config,

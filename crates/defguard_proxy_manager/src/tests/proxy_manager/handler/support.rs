@@ -28,12 +28,17 @@ use defguard_core::{
     },
     events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
 };
-use defguard_proto::proxy::{
-    ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
-    ClientMfaTokenValidationRequest, CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest,
-    CoreRequest, CoreResponse, DeviceConfigResponse, DeviceInfo, EnrollmentStartRequest, MfaMethod,
-    PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest, core_request,
-    core_response,
+use defguard_proto::{
+    client_types::{
+        ActivateUserRequest, ClientMfaFinishRequest, ClientMfaStartRequest,
+        CodeMfaSetupFinishRequest, CodeMfaSetupStartRequest, DeviceConfigResponse,
+        EnrollmentStartRequest, MfaMethod,
+    },
+    proxy::{
+        ClientMfaTokenValidationRequest, CoreRequest, CoreResponse, DeviceInfo,
+        PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+        core_request, core_response,
+    },
 };
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;

@@ -29,10 +29,11 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
 };
 use defguard_proto::{
+    common::{CertificateInfo, DerPayload},
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::{
-        AcmeChallenge, AcmeLogs, AcmeStep, CertificateInfo, DerPayload, acme_issue_event,
-        proxy_client::ProxyClient, proxy_setup_client::ProxySetupClient,
+        AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
+        proxy_setup_client::ProxySetupClient,
     },
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
@@ -946,7 +947,7 @@ pub async fn setup_gateway_tls_stream(
         };
 
         let csr_response = match client
-            .get_csr(defguard_proto::gateway::CertificateInfo {
+            .get_csr(CertificateInfo {
                 cert_hostname: hostname.to_string(),
             })
             .await
@@ -1007,7 +1008,7 @@ pub async fn setup_gateway_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        let response = defguard_proto::gateway::DerPayload {
+        let response = DerPayload {
             der_data: cert.der().to_vec(),
         };
 

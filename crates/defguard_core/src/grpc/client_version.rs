@@ -1,5 +1,5 @@
 use base64::{Engine, prelude::BASE64_STANDARD};
-use defguard_proto::proxy::{ClientPlatformInfo, DeviceInfo};
+use defguard_proto::{client_types::ClientPlatformInfo, proxy::DeviceInfo};
 use prost::Message;
 use semver::Version;
 

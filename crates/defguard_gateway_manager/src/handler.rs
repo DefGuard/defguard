@@ -32,8 +32,8 @@ use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
 use defguard_proto::{
     enterprise::firewall::FirewallConfig,
     gateway::{
-        Configuration, CoreResponse, Peer, PeerStats, Update, core_request, core_response,
-        gateway_client, update,
+        Configuration, CoreResponse, Peer, PeerStats, Update, UpdateType, core_request,
+        core_response, gateway_client, update,
     },
 };
 use defguard_version::client::ClientVersionInterceptor;
@@ -429,7 +429,7 @@ impl GatewayHandler {
                     debug!("Message from Gateway {uri}");
 
                     match received.payload {
-                        Some(core_request::Payload::ConfigRequest(_config_request)) => {
+                        Some(core_request::Payload::ConfigRequest(())) => {
                             if config_sent {
                                 warn!(
                                     "Ignoring repeated configuration request from {}",
@@ -686,7 +686,12 @@ impl GatewayUpdatesHandler {
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
-                        self.send_network_update(&network, Vec::new(), None, 0)
+                        self.send_network_update(
+                            &network,
+                            Vec::new(),
+                            None,
+                            UpdateType::Create as i32,
+                        )
                     } else {
                         Ok(())
                     }
@@ -698,8 +703,12 @@ impl GatewayUpdatesHandler {
                     maybe_firewall_config,
                 ) => {
                     if network_id == self.network_id {
-                        let result =
-                            self.send_network_update(&network, peers, maybe_firewall_config, 1);
+                        let result = self.send_network_update(
+                            &network,
+                            peers,
+                            maybe_firewall_config,
+                            UpdateType::Modify as i32,
+                        );
                         // update stored network data
                         self.network = network;
                         result
@@ -725,7 +734,7 @@ impl GatewayUpdatesHandler {
                             &device.device.name,
                             device.device.wireguard_pubkey,
                             network_info,
-                            0,
+                            UpdateType::Create as i32,
                         ),
                         None => Ok(()),
                     }
@@ -741,7 +750,7 @@ impl GatewayUpdatesHandler {
                             &device.device.name,
                             device.device.wireguard_pubkey,
                             network_info,
-                            1,
+                            UpdateType::Modify as i32,
                         ),
                         None => Ok(()),
                     }
@@ -791,7 +800,7 @@ impl GatewayUpdatesHandler {
                             &device.name,
                             device.wireguard_pubkey,
                             &network_info,
-                            0,
+                            UpdateType::Create as i32,
                         )
                     } else {
                         Ok(())
@@ -823,7 +832,7 @@ impl GatewayUpdatesHandler {
                 update_type,
                 update: Some(update::Update::Network(Configuration {
                     name: network.name.clone(),
-                    prvkey: network.prvkey.clone(),
+                    private_key: network.prvkey.clone(),
                     addresses: network.address().iter().map(ToString::to_string).collect(),
                     port: network.port.cast_unsigned(),
                     peers,
@@ -836,7 +845,11 @@ impl GatewayUpdatesHandler {
             let msg = format!(
                 "Failed to send network update, network {network}, update type: {update_type} \
                 ({}), error: {err}",
-                if update_type == 0 { "CREATE" } else { "MODIFY" },
+                if update_type == UpdateType::Create as i32 {
+                    "CREATE"
+                } else {
+                    "MODIFY"
+                },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -854,10 +867,10 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 2,
+                update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::Network(Configuration {
                     name: network_name.to_string(),
-                    prvkey: String::new(),
+                    private_key: String::new(),
                     addresses: Vec::new(),
                     port: 0,
                     peers: Vec::new(),
@@ -892,7 +905,11 @@ impl GatewayUpdatesHandler {
                 "Failed to send peer update for network {}, update type: {update_type} ({}), \
                 error: {err}",
                 self.network,
-                if update_type == 0 { "CREATE" } else { "MODIFY" },
+                if update_type == UpdateType::Create as i32 {
+                    "CREATE"
+                } else {
+                    "MODIFY"
+                },
             );
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
@@ -907,7 +924,7 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 2,
+                update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::Peer(Peer {
                     pubkey: peer_pubkey.into(),
                     allowed_ips: Vec::new(),
@@ -937,7 +954,7 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 1,
+                update_type: UpdateType::Modify as i32,
                 update: Some(update::Update::FirewallConfig(firewall_config)),
             })),
         }) {
@@ -961,7 +978,7 @@ impl GatewayUpdatesHandler {
         if let Err(err) = self.tx.send(CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {
-                update_type: 2,
+                update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::DisableFirewall(())),
             })),
         }) {
@@ -987,8 +1004,9 @@ fn try_protos_into_stats_message(
     // try to parse endpoint
     let endpoint = proto_stats.endpoint.parse().ok()?;
 
-    let latest_handshake = DateTime::from_timestamp(proto_stats.latest_handshake as i64, 0)
-        .unwrap_or_default()
+    let latest_handshake = proto_stats
+        .latest_handshake
+        .and_then(|ts| DateTime::from_timestamp(ts.seconds, ts.nanos as u32))?
         .naive_utc();
 
     Some(PeerStatsUpdate::new(
@@ -1020,6 +1038,7 @@ mod tests {
     };
     use defguard_core::grpc::GatewayEvent;
     use defguard_proto::gateway::{Configuration, Peer, PeerStats, core_response};
+    use prost_types::Timestamp;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::{broadcast, mpsc::unbounded_channel, watch};
 
@@ -1050,7 +1069,10 @@ mod tests {
             upload: 123,
             download: 456,
             keepalive_interval: 25,
-            latest_handshake: 1_700_000_000,
+            latest_handshake: Some(prost_types::Timestamp {
+                seconds: 1_700_000_000,
+                nanos: 0,
+            }),
             allowed_ips: "10.10.0.2/32".to_string(),
         }
     }
@@ -1110,21 +1132,34 @@ mod tests {
     }
 
     #[test]
-    fn try_protos_into_stats_message_falls_back_to_default_timestamp() {
+    fn try_protos_into_stats_message_returns_none_for_missing_handshake() {
         let stats = try_protos_into_stats_message(
             PeerStats {
-                latest_handshake: i64::MAX as u64,
+                latest_handshake: None,
                 ..build_peer_stats("203.0.113.10:51820")
             },
             11,
             22,
-        )
-        .expect("valid endpoint should still produce stats");
-
-        assert_eq!(
-            stats.latest_handshake,
-            DateTime::<Utc>::default().naive_utc()
         );
+
+        assert!(stats.is_none());
+    }
+
+    #[test]
+    fn try_protos_into_stats_message_returns_none_for_invalid_timestamp() {
+        let stats = try_protos_into_stats_message(
+            PeerStats {
+                latest_handshake: Some(Timestamp {
+                    seconds: i64::MAX,
+                    nanos: 0,
+                }),
+                ..build_peer_stats("203.0.113.10:51820")
+            },
+            11,
+            22,
+        );
+
+        assert!(stats.is_none());
     }
 
     #[test]
@@ -1146,7 +1181,7 @@ mod tests {
 
         assert_eq!(config.name, "test-network");
         assert_eq!(config.port, 51820);
-        assert_eq!(config.prvkey, "network-private-key");
+        assert_eq!(config.private_key, "network-private-key");
         assert_eq!(config.addresses, vec!["10.10.0.1/24", "fd00::1/64"]);
         assert_eq!(config.mtu, 1420);
         assert_eq!(config.fwmark, 4321);

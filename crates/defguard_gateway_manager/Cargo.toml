@@ -18,6 +18,7 @@ defguard_version.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 hyper-rustls.workspace = true
+prost-types.workspace = true
 reqwest.workspace = true
 semver.workspace = true
 serde_json.workspace = true

@@ -37,10 +37,12 @@ use defguard_core::{
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
 use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
-use defguard_proto::proxy::{
-    AuthCallbackResponse, AuthFlowType as ProtoAuthFlowType, AuthInfoResponse, CoreError,
-    CoreRequest, CoreResponse, HttpsCerts, InitialInfo, core_request, core_response,
-    proxy_client::ProxyClient,
+use defguard_proto::{
+    client_types::AuthFlowType as ProtoAuthFlowType,
+    proxy::{
+        AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, HttpsCerts,
+        InitialInfo, core_request, core_response, proxy_client::ProxyClient,
+    },
 };
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,

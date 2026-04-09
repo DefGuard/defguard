@@ -33,7 +33,7 @@ use defguard_mail::templates::{
     TemplateLocation, enrollment_admin_notification, mfa_activation_mail, mfa_configured_mail,
     new_device_added_mail,
 };
-use defguard_proto::proxy::{
+use defguard_proto::client_types::{
     ActivateUserRequest, AdminInfo, CodeMfaSetupFinishRequest, CodeMfaSetupFinishResponse,
     CodeMfaSetupStartRequest, CodeMfaSetupStartResponse, DeviceConfigResponse,
     EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice, InitialUserInfo, MfaMethod,
@@ -258,14 +258,14 @@ impl EnrollmentServer {
             .fetch_one(&self.pool)
             .await
             .map_err(|_| Status::internal("Failed to read data".to_string()))?;
-            let enrollment_settings = defguard_proto::proxy::EnrollmentSettings {
+            let enrollment_settings = defguard_proto::client_types::EnrollmentSettings {
                 vpn_setup_optional,
                 smtp_configured,
                 only_client_activation: enterprise_settings.only_client_activation,
                 admin_device_management: enterprise_settings.admin_device_management,
                 mfa_required: instance_has_internal_mfa,
             };
-            let response = defguard_proto::proxy::EnrollmentStartResponse {
+            let response = defguard_proto::client_types::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),

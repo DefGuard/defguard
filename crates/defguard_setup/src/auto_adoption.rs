@@ -25,14 +25,9 @@ use defguard_core::{
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 use defguard_proto::{
-    gateway::{
-        CertificateInfo as GatewayCertificateInfo, DerPayload as GatewayDerPayload,
-        gateway_setup_client::GatewaySetupClient,
-    },
-    proxy::{
-        CertificateInfo as ProxyCertificateInfo, DerPayload as ProxyDerPayload,
-        proxy_setup_client::ProxySetupClient,
-    },
+    common::{CertificateInfo as ProtoCertificateInfo, DerPayload as ProtoDerPayload},
+    gateway::gateway_setup_client::GatewaySetupClient,
+    proxy::proxy_setup_client::ProxySetupClient,
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use ipnetwork::IpNetwork;
@@ -420,7 +415,7 @@ async fn run_edge_adoption_attempt_scoped(
 
     debug!("Requesting CSR from proxy hostname={hostname}");
     let csr_response = match client
-        .get_csr(ProxyCertificateInfo {
+        .get_csr(ProtoCertificateInfo {
             cert_hostname: hostname.to_string(),
         })
         .await
@@ -471,7 +466,7 @@ async fn run_edge_adoption_attempt_scoped(
     debug!("CSR signed for proxy hostname={hostname}; sending certificate");
 
     if let Err(err) = client
-        .send_cert(ProxyDerPayload {
+        .send_cert(ProtoDerPayload {
             der_data: cert.der().to_vec(),
         })
         .await
@@ -729,7 +724,7 @@ async fn run_gateway_adoption_attempt_scoped(
 
     debug!("Requesting CSR from gateway hostname={hostname}");
     let csr_response = match client
-        .get_csr(GatewayCertificateInfo {
+        .get_csr(ProtoCertificateInfo {
             cert_hostname: hostname.to_string(),
         })
         .await
@@ -780,7 +775,7 @@ async fn run_gateway_adoption_attempt_scoped(
     debug!("CSR signed for gateway hostname={hostname}; sending certificate");
 
     if let Err(err) = client
-        .send_cert(GatewayDerPayload {
+        .send_cert(ProtoDerPayload {
             der_data: cert.der().to_vec(),
         })
         .await

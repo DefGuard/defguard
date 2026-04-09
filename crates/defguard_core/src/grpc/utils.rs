@@ -11,9 +11,12 @@ use defguard_common::{
         },
     },
 };
-use defguard_proto::proxy::{
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, DeviceInfo,
-    LocationMfaMode as ProtoLocationMfaMode,
+use defguard_proto::{
+    client_types::{
+        DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse,
+        LocationMfaMode as ProtoLocationMfaMode,
+    },
+    proxy::DeviceInfo,
 };
 use sqlx::PgPool;
 use tonic::Status;
@@ -94,33 +97,31 @@ pub async fn build_device_config_response(
 
             // DEPRECATED(1.5): superseeded by location_mfa_mode
             let mfa_enabled = network.location_mfa_mode == LocationMfaMode::Internal;
-            let config =
-                ProtoDeviceConfig {
-                    config: Device::create_config(&network, &wireguard_network_device),
-                    network_id: network.id,
-                    network_name: network.name,
-                    assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
-                    endpoint: format!("{}:{}", network.endpoint, network.port),
-                    pubkey: network.pubkey,
-                    allowed_ips: network.allowed_ips.as_csv(),
-                    dns: network.dns,
-                    keepalive_interval: network.keepalive_interval,
-                    #[allow(deprecated)]
-                    mfa_enabled,
-                    location_mfa_mode: Some(
-                        <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
-                            network.location_mfa_mode,
-                        )
-                        .into(),
-                    ),
-                    service_location_mode:
-                        Some(
-                            <ServiceLocationMode as Into<
-                                defguard_proto::proxy::ServiceLocationMode,
-                            >>::into(network.service_location_mode)
-                            .into(),
-                        ),
-                };
+            let config = ProtoDeviceConfig {
+                config: Device::create_config(&network, &wireguard_network_device),
+                network_id: network.id,
+                network_name: network.name,
+                assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
+                endpoint: format!("{}:{}", network.endpoint, network.port),
+                pubkey: network.pubkey,
+                allowed_ips: network.allowed_ips.as_csv(),
+                dns: network.dns,
+                keepalive_interval: network.keepalive_interval,
+                #[allow(deprecated)]
+                mfa_enabled,
+                location_mfa_mode: Some(
+                    <LocationMfaMode as Into<ProtoLocationMfaMode>>::into(
+                        network.location_mfa_mode,
+                    )
+                    .into(),
+                ),
+                service_location_mode: Some(
+                    <ServiceLocationMode as Into<
+                        defguard_proto::client_types::ServiceLocationMode,
+                    >>::into(network.service_location_mode)
+                    .into(),
+                ),
+            };
             configs.push(config);
         }
     } else {
@@ -173,13 +174,12 @@ pub async fn build_device_config_response(
                         )
                         .into(),
                     ),
-                    service_location_mode:
-                        Some(
-                            <ServiceLocationMode as Into<
-                                defguard_proto::proxy::ServiceLocationMode,
-                            >>::into(network.service_location_mode)
-                            .into(),
-                        ),
+                    service_location_mode: Some(
+                        <ServiceLocationMode as Into<
+                            defguard_proto::client_types::ServiceLocationMode,
+                        >>::into(network.service_location_mode)
+                        .into(),
+                    ),
                 };
                 configs.push(config);
             }

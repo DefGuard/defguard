@@ -194,7 +194,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for defguard_proto::proxy::InstanceInfo {
+impl From<InstanceInfo> for defguard_proto::client_types::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,

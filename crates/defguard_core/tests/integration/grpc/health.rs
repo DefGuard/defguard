@@ -13,7 +13,7 @@ async fn worker_service_health_is_serving(_: PgPoolOptions, options: PgConnectOp
 
     let response = client
         .check(HealthCheckRequest {
-            service: "worker.WorkerService".into(),
+            service: "defguard.worker.v1.WorkerService".into(),
         })
         .await
         .expect("health check should succeed")

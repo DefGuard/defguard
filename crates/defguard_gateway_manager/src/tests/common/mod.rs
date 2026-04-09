@@ -22,9 +22,8 @@ use defguard_common::{
     messages::peer_stats_update::PeerStatsUpdate,
 };
 use defguard_core::grpc::GatewayEvent;
-use defguard_proto::gateway::{
-    ConfigurationRequest, CoreRequest, CoreResponse, PeerStats, core_request, gateway_server,
-};
+use defguard_proto::gateway::{CoreRequest, CoreResponse, PeerStats, core_request, gateway_server};
+use prost_types::Timestamp;
 use sqlx::{PgPool, postgres::PgConnectOptions};
 use tokio::{
     net::UnixListener,
@@ -259,13 +258,9 @@ impl MockGatewayHarness {
     }
 
     pub(crate) fn send_config_request(&self) {
-        let request = ConfigurationRequest {
-            hostname: "mock-gateway".to_string(),
-            ..Default::default()
-        };
         self.send_request(CoreRequest {
             id: self.next_message_id.fetch_add(1, Ordering::Relaxed),
-            payload: Some(core_request::Payload::ConfigRequest(request)),
+            payload: Some(core_request::Payload::ConfigRequest(())),
         });
     }
 
@@ -668,7 +663,10 @@ pub(crate) fn build_peer_stats(endpoint: &str) -> PeerStats {
         upload: 123,
         download: 456,
         keepalive_interval: 25,
-        latest_handshake: 1_700_000_000,
+        latest_handshake: Some(Timestamp {
+            seconds: 1_700_000_000,
+            nanos: 0,
+        }),
         allowed_ips: "10.10.0.2/32".to_string(),
     }
 }

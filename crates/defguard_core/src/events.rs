@@ -8,7 +8,7 @@ use defguard_common::db::{
         gateway::Gateway, group::Group, oauth2client::OAuth2Client, proxy::Proxy,
     },
 };
-use defguard_proto::proxy::MfaMethod;
+use defguard_proto::client_types::MfaMethod;
 
 use crate::{
     db::WebHook,
