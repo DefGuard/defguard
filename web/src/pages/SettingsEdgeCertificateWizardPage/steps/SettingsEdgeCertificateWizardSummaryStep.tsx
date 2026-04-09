@@ -29,6 +29,10 @@ export const SettingsEdgeCertificateWizardSummaryStep = () => {
       <p className="summary-description">
         {m.settings_certs_edge_wizard_summary_success_description()}
       </p>
+      <SizedBox height={ThemeSpacing.Sm} />
+      <p className="summary-description">
+        {m.settings_certs_edge_wizard_summary_url_notice()}
+      </p>
       <Controls>
         <div className="right">
           <Button
