@@ -39,7 +39,7 @@
   "migration_wizard_confirmation_subtitle": "You've completed the first stage of the migration. Defguard is almost ready to go.",
   "migration_wizard_confirmation_locations_info": "You currently have {count} VPN locations configured. These locations must be upgraded.",
   "migration_wizard_confirmation_architecture_change_info": "A key architectural change in Defguard 2.0 is that the Core now initiates connections to the gateways (in 1.x, gateways connected to the Core). As a result, in addition to upgrading the gateway components, you must update your firewall rules to:",
-  "migration_wizard_confirmation_rule_1": "Allow connections from the Core to the gateways on port 5055 tcp.",
+  "migration_wizard_confirmation_rule_1": "Allow connections from the Core to the gateways on TCP port 50066.",
   "migration_wizard_confirmation_rule_2": "Block connections from the gateways to the Core.",
   "migration_wizard_confirmation_security_notice_markdown": "**This change significantly improves the overall security of Defguard deployments**. You can [read more about it in the documentation]({link})",
   "migration_wizard_confirmation_prepare_network_title": "Prepare your network",
