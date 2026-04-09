@@ -591,6 +591,7 @@ pub async fn secure_authorization(
                             &mut conn,
                             Some(&session_info.session.into()),
                             &oauth2client.name,
+                            &session_info.user.username,
                         )
                         .await?;
                     }

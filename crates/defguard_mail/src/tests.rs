@@ -292,11 +292,13 @@ fn send_new_device_oidc_login_mail(_: PgPoolOptions, options: PgConnectOptions) 
 
     let mut conn = pool.begin().await.unwrap();
     let client_name = "RemoteApp";
+    let username = "testuser";
     templates::new_device_oidc_login_mail(
         &env::var("SMTP_TO").unwrap(),
         &mut conn,
         None,
         client_name,
+        username,
     )
     .await
     .unwrap();
