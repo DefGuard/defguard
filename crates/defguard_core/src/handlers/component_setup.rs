@@ -257,15 +257,15 @@ pub async fn setup_proxy_tls_stream(
         match Proxy::find_by_address_port(&pool, ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
                 yield Ok(flow.error(&format!(
-                    "An edge Proxy with address {}:{} is already registered with name \"{}\".",
-                    ip_or_domain, request.grpc_port, proxy.name
+                    "An edge Proxy with address {ip_or_domain}:{} is already registered with name \"{}\".",
+                     request.grpc_port, proxy.name
                 )));
                 return;
             }
             Ok(None) => {
                 debug!(
-                    "Verified no existing proxy registration for {}:{}",
-                    ip_or_domain, request.grpc_port
+                    "Verified no existing proxy registration for {ip_or_domain}:{}",
+                     request.grpc_port
                 );
             }
             Err(e) => {
@@ -338,8 +338,8 @@ pub async fn setup_proxy_tls_stream(
         };
 
         debug!(
-            "Prepared secure connection endpoint for Edge at {}:{}",
-            ip_or_domain, request.grpc_port
+            "Prepared secure connection endpoint for Edge at {ip_or_domain}:{}",
+             request.grpc_port
         );
 
         let version = match Version::parse(VERSION) {
@@ -379,8 +379,8 @@ pub async fn setup_proxy_tls_stream(
         });
 
         debug!(
-            "Initiating connection to Edge at {}:{}",
-            ip_or_domain, request.grpc_port
+            "Initiating connection to Edge at {ip_or_domain}:{}",
+             request.grpc_port
         );
 
         let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
@@ -391,13 +391,13 @@ pub async fn setup_proxy_tls_stream(
                         let error_msg = e.to_string();
                         if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
                             yield Ok(flow.error(&format!(
-                                "Failed to connect to Edge at {}:{}: {}. This may indicate that the Edge is already configured with TLS. Please check if the Edge has already been set up.",
-                                ip_or_domain, request.grpc_port, e
+                                "Failed to connect to Edge at {ip_or_domain}:{}: {e}. This may indicate that the Edge is already configured with TLS. Please check if the Edge has already been set up.",
+                                 request.grpc_port
                             )));
                         } else {
                             yield Ok(flow.error(&format!(
-                                "Failed to connect to Edge at {}:{}. Please ensure the address and port are correct and that the Edge component is running.",
-                                ip_or_domain, request.grpc_port
+                                "Failed to connect to Edge at {ip_or_domain}:{}. Please ensure the address and port are correct and that the Edge component is running.",
+                                 request.grpc_port
                             )));
                         }
                     }
@@ -409,8 +409,8 @@ pub async fn setup_proxy_tls_stream(
             }
             Err(_) => {
                 yield Ok(flow.error(&format!(
-                    "Connection to Edge at {}:{} timed out after 10 seconds.",
-                    ip_or_domain, request.grpc_port
+                    "Connection to Edge at {ip_or_domain}:{} timed out after 10 seconds.",
+                     request.grpc_port
                 )));
                 return;
             }
@@ -692,12 +692,12 @@ pub async fn setup_gateway_tls_stream(
 
         match Gateway::find_by_url(&pool, ip_or_domain, request.grpc_port).await {
             Ok(Some(gateway)) => {
-               yield Ok(flow.error(&format!("A Gateway with URL {}:{} is already registered with \
-                   name \"{}\".", ip_or_domain, request.grpc_port, gateway.name)));
+               yield Ok(flow.error(&format!("A Gateway with URL {ip_or_domain}:{} is already registered with \
+                   name \"{}\".",  request.grpc_port, gateway.name)));
                return;
             }
             Ok(None) => {
-                debug!("Verified no existing Gateway registration for {}:{}", ip_or_domain,
+                debug!("Verified no existing Gateway registration for {ip_or_domain}:{}",
                     request.grpc_port);
             },
             Err(e) => {
@@ -706,7 +706,7 @@ pub async fn setup_gateway_tls_stream(
             }
         }
 
-        let url_str = format!("http://{}:{}", ip_or_domain, request.grpc_port);
+        let url_str = format!("http://{ip_or_domain}:{}",  request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -767,7 +767,7 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Prepared secure connection endpoint for Gateway at {}:{}", ip_or_domain,
+        debug!("Prepared secure connection endpoint for Gateway at {ip_or_domain}:{}",
             request.grpc_port);
 
         let version = match Version::parse(VERSION) {
@@ -813,7 +813,7 @@ pub async fn setup_gateway_tls_stream(
             }
         );
 
-        debug!("Initiating connection to Gateway at {}:{}", ip_or_domain,
+        debug!("Initiating connection to Gateway at {ip_or_domain}:{}",
             request.grpc_port);
 
         let response_with_metadata = match tokio::time::timeout(
@@ -827,16 +827,16 @@ pub async fn setup_gateway_tls_stream(
                         let error_msg = e.to_string();
                         if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
                             yield Ok(flow.error(&format!(
-                                "Failed to connect to Gateway at {}:{}: {e}. This may indicate \
+                                "Failed to connect to Gateway at {ip_or_domain}:{}: {e}. This may indicate \
                                 that the Gateway is already configured with TLS. Please check if \
                                 the Gateway has already been set up.",
-                                ip_or_domain, request.grpc_port,
+                                 request.grpc_port,
                             )));
                         } else {
                         yield Ok(flow.error(&format!(
-                            "Failed to connect to Gateway at {}:{}. Please ensure the address and \
+                            "Failed to connect to Gateway at {ip_or_domain}:{}. Please ensure the address and \
                             port are correct and that the Gateway is running.",
-                            ip_or_domain, request.grpc_port
+                             request.grpc_port
                         )));
                         }
                     }
@@ -848,8 +848,8 @@ pub async fn setup_gateway_tls_stream(
             }
             Err(_) => {
                 yield Ok(flow.error(&format!(
-                    "Connection to Gateway at {}:{} timed out after 10 seconds.",
-                    ip_or_domain, request.grpc_port
+                    "Connection to Gateway at {ip_or_domain}:{} timed out after 10 seconds.",
+                     request.grpc_port
                 )));
                 return;
             }
