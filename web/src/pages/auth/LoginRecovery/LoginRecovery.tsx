@@ -35,7 +35,7 @@ export const LoginRecovery = () => {
         form.setErrorMap({
           onSubmit: {
             fields: {
-              code: m.form_error_code(),
+              code: code === 429 ? m.login_main_attempts_info() : m.form_error_code(),
             },
           },
         });
