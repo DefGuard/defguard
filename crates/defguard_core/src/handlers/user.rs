@@ -1260,7 +1260,7 @@ pub(crate) async fn delete_security_key(
         ("api_token" = [])
     )
 )]
-pub(crate) async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     let user_info = UserInfo::from_user(&appstate.pool, session.user).await?;
     Ok(ApiResponse::json(user_info, StatusCode::OK))
 }
