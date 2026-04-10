@@ -19,6 +19,7 @@ use defguard_common::{
         },
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
+    utils::strip_scheme,
 };
 use defguard_core::{
     setup_logs::scope_setup_logs,
@@ -100,10 +101,7 @@ async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error>
 
 fn parse_host_port(input: &str) -> Result<(String, u16), anyhow::Error> {
     // Strip any scheme the user may have accidentally included (e.g. "http://host:port")
-    let input = input
-        .strip_prefix("https://")
-        .or_else(|| input.strip_prefix("http://"))
-        .unwrap_or(input);
+    let input = strip_scheme(input);
 
     if let Some(rest) = input.strip_prefix('[') {
         let (host, port_part) = rest

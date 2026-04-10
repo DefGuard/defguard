@@ -27,6 +27,7 @@ use defguard_common::{
         },
     },
     types::proxy::ProxyControlMessage,
+    utils::strip_scheme,
 };
 use defguard_proto::{
     common::{CertificateInfo, DerPayload},
@@ -59,14 +60,6 @@ use crate::{
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
-
-/// Strip any `http://` or `https://` scheme prefix a user may have accidentally included
-/// in a hostname/IP field. The field is expected to contain a bare host, not a URL.
-fn strip_scheme(s: &str) -> &str {
-    s.strip_prefix("https://")
-        .or_else(|| s.strip_prefix("http://"))
-        .unwrap_or(s)
-}
 
 /// Guard that aborts a tokio task when dropped
 struct TaskGuard(tokio::task::JoinHandle<()>);
