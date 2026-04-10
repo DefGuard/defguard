@@ -38,6 +38,34 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   syncSchema,
 ]);
 
+const validationSchema = syncSchema
+  .omit({ admin_email: true, google_service_account_file: true })
+  .extend({
+    admin_email: z.string().trim(),
+    google_service_account_file: z
+      .file(m.form_error_required())
+      .mime('application/json', m.form_error_file_format())
+      .nullable(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.directory_sync_enabled) {
+      if (val.admin_email.trim().length === 0) {
+        ctx.addIssue({
+          path: ['admin_email'],
+          code: 'custom',
+          message: m.form_error_required(),
+        });
+      }
+      if (val.google_service_account_file === null) {
+        ctx.addIssue({
+          path: ['google_service_account_file'],
+          code: 'custom',
+          message: m.form_error_required(),
+        });
+      }
+    }
+  });
+
 type FormFields = z.infer<typeof discriminatedSchema>;
 
 export const EditGoogleProviderForm = ({
@@ -72,8 +100,8 @@ export const EditGoogleProviderForm = ({
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
-      onSubmit: syncSchema,
-      onChange: syncSchema,
+      onSubmit: validationSchema,
+      onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
       if (value.directory_sync_enabled) {
