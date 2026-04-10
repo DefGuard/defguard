@@ -45,6 +45,7 @@ import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../shared/hooks/useApp';
 import { useAuth } from '../../shared/hooks/useAuth';
 import {
+  getEnterpriseSettingsQueryOptions,
   getGroupsInfoQueryOptions,
   getLicenseInfoQueryOptions,
   getUsersOverviewQueryOptions,
@@ -60,8 +61,12 @@ const columnHelper = createColumnHelper<RowData>();
 export const UsersTable = () => {
   const { data: users } = useSuspenseQuery(getUsersOverviewQueryOptions);
   const { data: license } = useSuspenseQuery(getLicenseInfoQueryOptions);
+  const { data: enterpriseSettings } = useQuery(getEnterpriseSettingsQueryOptions);
   const appInfo = useApp((s) => s.appInfo);
+  const isAdmin = useAuth((s) => s.isAdmin);
   const authUsername = useAuth((s) => s.user?.username);
+  const canModifyDevices =
+    isAdmin || enterpriseSettings?.admin_device_management === false;
   const reservedEmails = useMemo(() => users.map((u) => u.email.toLowerCase()), [users]);
   const reservedUsernames = useMemo(() => users.map((u) => u.username), [users]);
 
@@ -447,7 +452,7 @@ export const UsersTable = () => {
               ],
             });
           }
-          if (rowData.enrolled) {
+          if (rowData.enrolled && canModifyDevices) {
             menuItems.splice(1, 0, {
               items: [
                 {
@@ -502,6 +507,7 @@ export const UsersTable = () => {
       groups,
       appInfo,
       authUsername,
+      canModifyDevices,
     ],
   );
 
@@ -650,12 +656,16 @@ export const UsersTable = () => {
               <span>{connectionDate}</span>
             </TableCell>
             <TableCell empty />
-            <TableEditCell menuItems={menuItems} />
+            {canModifyDevices ? (
+              <TableEditCell menuItems={menuItems} />
+            ) : (
+              <TableCell empty />
+            )}
           </TableRowContainer>
         );
       });
     },
-    [makeDeviceRowMenu],
+    [canModifyDevices, makeDeviceRowMenu],
   );
 
   const table = useReactTable({

@@ -1,4 +1,5 @@
 import './style.scss';
+import { useQuery } from '@tanstack/react-query';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -39,6 +40,7 @@ import { openModal } from '../../../../../../../shared/hooks/modalControls/modal
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import { useApp } from '../../../../../../../shared/hooks/useApp';
 import { useAuth } from '../../../../../../../shared/hooks/useAuth';
+import { getEnterpriseSettingsQueryOptions } from '../../../../../../../shared/query';
 import { displayDate } from '../../../../../../../shared/utils/displayDate';
 import { useUserProfile } from '../../../../hooks/useUserProfilePage';
 
@@ -88,9 +90,12 @@ const columnHelper = createColumnHelper<RowData>();
 const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
   const info = useApp((s) => s.appInfo);
   const isAdmin = useAuth((s) => s.isAdmin);
+  const { data: enterpriseSettings } = useQuery(getEnterpriseSettingsQueryOptions);
   const devices = useUserProfile((s) => s.devices);
   const user = useUserProfile((s) => s.user);
   const username = user.username;
+  const canModifyDevices =
+    isAdmin || enterpriseSettings?.admin_device_management === false;
 
   const reservedNames = useMemo(() => rowData.map((row) => row.name), [rowData]);
   const reservedPubkeys = useMemo(
@@ -104,7 +109,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
       variant: 'primary',
       testId: 'add-device',
       iconLeft: 'add-device',
-      disabled: !info.network_present,
+      disabled: !info.network_present || !canModifyDevices,
       onClick: () => {
         useAddUserDeviceModal.getState().open({
           devices,
@@ -112,7 +117,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         });
       },
     }),
-    [devices, user, info.network_present],
+    [canModifyDevices, devices, user, info.network_present],
   );
 
   const makeRowMenu = useCallback(
@@ -232,17 +237,21 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         minSize: 200,
         cell: (info) => CellWithFallback(info.getValue()),
       }),
-      columnHelper.display({
-        id: 'edit',
-        header: '',
-        size: tableEditColumnSize,
-        cell: (info) => {
-          const menuItems = makeRowMenu(info.row.original);
-          return <TableEditCell menuItems={menuItems} />;
-        },
-      }),
+      ...(canModifyDevices
+        ? [
+            columnHelper.display({
+              id: 'edit',
+              header: '',
+              size: tableEditColumnSize,
+              cell: (info) => {
+                const menuItems = makeRowMenu(info.row.original);
+                return <TableEditCell menuItems={menuItems} />;
+              },
+            }),
+          ]
+        : []),
     ],
-    [makeRowMenu],
+    [canModifyDevices, makeRowMenu],
   );
 
   const renderExpandedRow = useCallback(
