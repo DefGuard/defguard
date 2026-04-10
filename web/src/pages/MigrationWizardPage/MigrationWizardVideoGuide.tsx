@@ -63,7 +63,7 @@ export const MigrationWizardVideoGuide = () => {
           <SizedBox height={ThemeSpacing.Md} />
           <div className="migration-wizard-doc-card">
             <ExternalLink href={videoGuide.docsUrl} target="_blank" rel="noreferrer">
-              {m.migration_wizard_support_documentation_link()}
+              {videoGuide.docsTitle}
             </ExternalLink>
           </div>
         </div>

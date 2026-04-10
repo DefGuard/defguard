@@ -33,7 +33,6 @@
   "migration_wizard_support_video_guide": "Video guide",
   "migration_wizard_support_video_guide_helper": "Watch a short tutorial video.",
   "migration_wizard_support_related_documentation": "Related documentation",
-  "migration_wizard_support_documentation_link": "View documentation",
   "migration_wizard_general_config_private_url_title": "Private URL",
   "migration_wizard_general_config_private_url_description": "This URL will be used to access and control Defguard. It should not be exposed to the Internet only to the internal or VPN network. You can learn more about our security approach in the video below.",
   "migration_wizard_general_config_public_url_title": "Public URL",

@@ -121,6 +121,7 @@ const makeMappings = (): VideoTutorialsMappings => ({
       migrationWizard: {
         youtubeVideoId: 'abcDEFghiJK',
         title: 'Migration wizard guide',
+        docsTitle: 'Migration wizard documentation',
         docsUrl: 'https://docs.defguard.net/migration',
       },
     },
@@ -206,6 +207,7 @@ describe('resolveMigrationWizardPlacement', () => {
           migrationWizard: {
             youtubeVideoId: 'abcDEFghiJK',
             title: 'Migration wizard guide',
+            docsTitle: 'Migration wizard documentation',
             docsUrl: 'https://docs.defguard.net/migration',
           },
         },
@@ -256,6 +258,7 @@ const validRaw = {
         migrationWizard: {
           youtubeVideoId: 'xyz987GHI12',
           title: 'Migration guide',
+          docsTitle: 'Defguard Configuration Guide',
           docsUrl: 'https://docs.defguard.net/migration',
         },
       },
@@ -271,6 +274,9 @@ describe('parseVideoTutorials', () => {
     expect(result['2.2'].sections[0].name).toBe('Identity');
     expect(result['2.2'].sections[0].videos[0].youtubeVideoId).toBe('abcDEFghiJK');
     expect(result['2.2'].placements?.migrationWizard?.youtubeVideoId).toBe('xyz987GHI12');
+    expect(result['2.2'].placements?.migrationWizard?.docsTitle).toBe(
+      'Defguard Configuration Guide',
+    );
   });
 
   it('should reject an invalid youtubeVideoId (not 11 chars)', () => {
@@ -521,6 +527,7 @@ describe('parseVideoTutorials', () => {
             migrationWizard: {
               youtubeVideoId: 'xyz987GHI12',
               title: 'Migration guide',
+              docsTitle: 'Defguard Configuration Guide',
               docsUrl: 'not-a-url',
             },
           },
@@ -541,6 +548,7 @@ describe('parseVideoTutorials', () => {
             migrationWizard: {
               youtubeVideoId: 'xyz987GHI12',
               title: 'Migration guide',
+              docsTitle: 'Defguard Configuration Guide',
               docsUrl: 'https://docs.defguard.net/migration',
               extraPlacementField: 'ignored',
             },
@@ -555,5 +563,25 @@ describe('parseVideoTutorials', () => {
     expect(
       (result['2.2'].placements?.migrationWizard as Record<string, unknown>)['extraPlacementField'],
     ).toBeUndefined();
+  });
+
+  it('should reject an empty migrationWizard docsTitle', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            migrationWizard: {
+              youtubeVideoId: 'xyz987GHI12',
+              title: 'Migration guide',
+              docsTitle: '',
+              docsUrl: 'https://docs.defguard.net/migration',
+            },
+          },
+        },
+      },
+    };
+
+    expect(() => parseVideoTutorials(raw)).toThrow();
   });
 });

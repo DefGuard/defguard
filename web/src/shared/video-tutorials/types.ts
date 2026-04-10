@@ -12,6 +12,8 @@ export interface VideoTutorial extends PlayableVideo {
 }
 
 export interface MigrationWizardPlacement extends PlayableVideo {
+  /** Documentation link title shown in the migration wizard card. */
+  docsTitle: string;
   /** External documentation URL. */
   docsUrl: string;
 }

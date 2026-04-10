@@ -55,6 +55,7 @@ const migrationWizardPlacementSchema = z
         'youtubeVideoId must be exactly 11 alphanumeric/-/_ chars',
       ),
     title: z.string().min(1, 'title must be non-empty'),
+    docsTitle: z.string().min(1, 'docsTitle must be non-empty'),
     docsUrl: z.string().url('docsUrl must be a valid URL'),
   })
   .strip();
