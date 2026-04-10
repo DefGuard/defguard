@@ -219,7 +219,6 @@ const ModalContent = ({ reservedNames, openIdClient }: ModalData) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   form.removeFieldValue('redirect_uri', index, {
-                                    dontValidate: true,
                                     dontUpdateMeta: true,
                                     dontRunListeners: true,
                                   });
