@@ -1,4 +1,9 @@
-import type { VideoTutorialsMappings, VideoTutorialsSection } from './types';
+import type {
+  MigrationWizardPlacement,
+  VideoTutorialsMappings,
+  VideoTutorialsSection,
+  VideoTutorialsVersionEntry,
+} from './types';
 import { compareVersions, parseVersion } from './version';
 
 /**
@@ -27,12 +32,26 @@ function eligibleVersionsSorted(
 export function resolveVersion(
   mappings: VideoTutorialsMappings,
   appVersionRaw: string,
-): VideoTutorialsSection[] {
+): VideoTutorialsVersionEntry | null {
   const appVersion = parseVersion(appVersionRaw);
-  if (!appVersion) return [];
+  if (!appVersion) return null;
 
   const versions = eligibleVersionsSorted(mappings, appVersion);
-  if (versions.length === 0) return [];
+  if (versions.length === 0) return null;
 
   return mappings[versions[0]];
+}
+
+export function resolveSections(
+  mappings: VideoTutorialsMappings,
+  appVersionRaw: string,
+): VideoTutorialsSection[] {
+  return resolveVersion(mappings, appVersionRaw)?.sections ?? [];
+}
+
+export function resolveMigrationWizardPlacement(
+  mappings: VideoTutorialsMappings,
+  appVersionRaw: string,
+): MigrationWizardPlacement | null {
+  return resolveVersion(mappings, appVersionRaw)?.placements?.migrationWizard ?? null;
 }

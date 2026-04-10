@@ -27,7 +27,7 @@ pub struct AppInfo {
     external_openid_enabled: bool,
 }
 
-pub(crate) async fn get_app_info(
+pub async fn get_app_info(
     State(appstate): State<AppState>,
     _session: SessionInfo,
 ) -> ApiResult {

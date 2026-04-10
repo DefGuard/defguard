@@ -20,16 +20,11 @@ use defguard_core::{
     grpc::GatewayEvent,
     handle_404,
     handlers::{
-        auth::{
+        app_info::get_app_info, auth::{
             authenticate, email_mfa_code, email_mfa_enable, email_mfa_init, logout, mfa_disable,
             mfa_enable, recovery_code, request_email_mfa_code, totp_code, totp_enable, totp_secret,
             webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
-        },
-        component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream, stream_proxy_acme},
-        resource_display::get_locations_display,
-        session_info::get_session_info,
-        settings::{get_settings, get_settings_essentials, patch_settings},
-        wireguard::{count_networks, list_networks},
+        }, component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream, stream_proxy_acme}, resource_display::get_locations_display, session_info::get_session_info, settings::{get_settings, get_settings_essentials, patch_settings}, wireguard::{count_networks, list_networks}
     },
     health_check,
     version::IncompatibleComponents,
@@ -102,6 +97,7 @@ pub fn build_migration_webapp(
             "/api/v1",
             Router::new()
                 .route("/health", get(health_check))
+				.route("/info", get(get_app_info))
                 .route("/session-info", get(get_session_info))
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/settings", get(get_settings).patch(patch_settings))

@@ -8,20 +8,17 @@ import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox'
 import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { Thumbnail } from '../../shared/video-tutorials/components/widget/Thumbnail/Thumbnail';
 import { VideoOverlay } from '../../shared/video-tutorials/components/widget/VideoOverlay/VideoOverlay';
-import type { VideoTutorial } from '../../shared/video-tutorials/types';
-
-const MIGRATION_VIDEO: VideoTutorial = {
-  youtubeVideoId: 'dQw4w9WgXcQ',
-  title: 'How does the certificate authority work in Defguard.',
-  description: 'Temporary placeholder migration guide video.',
-  appRoute: '/migration',
-  docsUrl: 'https://docs.defguard.net/',
-};
+import { useMigrationWizardVideoGuide } from '../../shared/video-tutorials/resolved';
 
 const VIDEO_DURATION = '00:50';
 
 export const MigrationWizardVideoGuide = () => {
+  const videoGuide = useMigrationWizardVideoGuide();
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+
+  if (!videoGuide) {
+    return null;
+  }
 
   return (
     <>
@@ -43,8 +40,8 @@ export const MigrationWizardVideoGuide = () => {
           >
             <div className="migration-wizard-video-thumb-wrap">
               <Thumbnail
-                url={`https://img.youtube.com/vi/${MIGRATION_VIDEO.youtubeVideoId}/hqdefault.jpg`}
-                title={MIGRATION_VIDEO.title}
+                url={`https://img.youtube.com/vi/${videoGuide.youtubeVideoId}/hqdefault.jpg`}
+                title={videoGuide.title}
               />
               <div className="migration-wizard-video-play-badge">
                 <Icon icon="tutorial" size={16} staticColor={ThemeVariable.FgAction} />
@@ -56,7 +53,7 @@ export const MigrationWizardVideoGuide = () => {
                 font={TextStyle.TBodySm400}
                 color={ThemeVariable.FgFaded}
               >
-                {MIGRATION_VIDEO.title}
+                {videoGuide.title}
               </AppText>
               <div className="migration-wizard-video-duration">
                 <Icon icon="transactions" size={16} staticColor={ThemeVariable.FgMuted} />
@@ -79,7 +76,7 @@ export const MigrationWizardVideoGuide = () => {
           </div>
           <SizedBox height={ThemeSpacing.Md} />
           <div className="migration-wizard-doc-card">
-            <ExternalLink href={MIGRATION_VIDEO.docsUrl} target="_blank" rel="noreferrer">
+            <ExternalLink href={videoGuide.docsUrl} target="_blank" rel="noreferrer">
               {m.migration_wizard_support_documentation_link()}
             </ExternalLink>
           </div>
@@ -87,7 +84,7 @@ export const MigrationWizardVideoGuide = () => {
       </div>
 
       <VideoOverlay
-        video={MIGRATION_VIDEO}
+        video={videoGuide}
         isOpen={isVideoOpen}
         onClose={() => setIsVideoOpen(false)}
         afterClose={() => setIsVideoOpen(false)}

@@ -1,9 +1,17 @@
-export interface VideoTutorial {
+export interface PlayableVideo {
   youtubeVideoId: string;
   title: string;
   description: string;
+}
+
+export interface VideoTutorial extends PlayableVideo {
   /** In-app route this video is associated with (must start with "/"). */
   appRoute: string;
+  /** External documentation URL. */
+  docsUrl: string;
+}
+
+export interface MigrationWizardPlacement extends PlayableVideo {
   /** External documentation URL. */
   docsUrl: string;
 }
@@ -13,5 +21,14 @@ export interface VideoTutorialsSection {
   videos: VideoTutorial[];
 }
 
-// outer key = version string (e.g. "2.0"), value = ordered list of sections
-export type VideoTutorialsMappings = Record<string, VideoTutorialsSection[]>;
+export interface VideoTutorialsPlacements {
+  migrationWizard?: MigrationWizardPlacement;
+}
+
+export interface VideoTutorialsVersionEntry {
+  sections: VideoTutorialsSection[];
+  placements?: VideoTutorialsPlacements;
+}
+
+// outer key = version string (e.g. "2.0"), value = versioned tutorial payload
+export type VideoTutorialsMappings = Record<string, VideoTutorialsVersionEntry>;

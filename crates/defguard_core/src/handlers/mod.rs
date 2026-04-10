@@ -31,7 +31,7 @@ use crate::{
 };
 
 pub(crate) mod activity_log;
-pub(crate) mod app_info;
+pub mod app_info;
 pub mod auth;
 pub mod component_setup;
 pub mod core_certs;

@@ -46,6 +46,33 @@ const sectionSchema = z
   })
   .strip();
 
+const migrationWizardPlacementSchema = z
+  .object({
+    youtubeVideoId: z
+      .string()
+      .regex(
+        /^[A-Za-z0-9_-]{11}$/,
+        'youtubeVideoId must be exactly 11 alphanumeric/-/_ chars',
+      ),
+    title: z.string().min(1, 'title must be non-empty'),
+    description: z.string().min(1, 'description must be non-empty'),
+    docsUrl: z.string().url('docsUrl must be a valid URL'),
+  })
+  .strip();
+
+const placementsSchema = z
+  .object({
+    migrationWizard: migrationWizardPlacementSchema.optional(),
+  })
+  .strip();
+
+const versionEntrySchema = z
+  .object({
+    sections: z.array(sectionSchema),
+    placements: placementsSchema.optional(),
+  })
+  .strip();
+
 const mappingsSchema = z.object({
   versions: z.record(
     z
@@ -54,7 +81,7 @@ const mappingsSchema = z.object({
         /^\d+\.\d+(\.\d+)?$/,
         'version key must be major.minor or major.minor.patch',
       ),
-    z.array(sectionSchema),
+    versionEntrySchema,
   ),
 });
 
