@@ -9,6 +9,7 @@ import './style.scss';
 import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
 import Skeleton from 'react-loading-skeleton';
+import { MigrationWizardVideoGuide } from '../../../../pages/MigrationWizardPage/MigrationWizardVideoGuide';
 import { Badge } from '../../../defguard-ui/components/Badge/Badge';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../defguard-ui/types';
@@ -31,7 +32,7 @@ export const WizardPage = ({
   steps,
   subtitle,
   title,
-  sideContent,
+  videoGuidePath,
   children,
   onClose,
   welcomePageConfig,
@@ -82,7 +83,7 @@ export const WizardPage = ({
                   <p className="description">{subtitle}</p>
                   <SizedBox height={ThemeSpacing.Xl2} />
                   <WizardStepsCard steps={visibleSteps} activeStep={activeStep} />
-                  {sideContent}
+                  {isPresent(videoGuidePath) && <MigrationWizardVideoGuide />}
                 </div>
                 <div className="main">
                   <Badge variant="success" text={`Step ${activeStepIndex + 1}`} />

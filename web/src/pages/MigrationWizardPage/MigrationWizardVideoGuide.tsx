@@ -23,7 +23,6 @@ export const MigrationWizardVideoGuide = () => {
     <>
       <div className="migration-wizard-support">
         <SizedBox height={ThemeSpacing.Xl5} />
-
         <div>
           <div className="migration-wizard-support-header">
             <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>
