@@ -828,6 +828,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                             <field.FormTextarea
                               label={m.acl_form_addresses_label()}
                               helper={m.acl_helper_addresses()}
+                              notNull
                             />
                           )}
                         </form.AppField>
@@ -856,6 +857,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                             <field.FormInput
                               label={m.acl_form_ports_label()}
                               helper={m.acl_helper_ports()}
+                              notNull
                             />
                           )}
                         </form.AppField>

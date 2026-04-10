@@ -109,6 +109,7 @@ export const EditMicrosoftProviderForm = ({
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl2} />
           <form.AppField name="microsoftTenantId">
             {(field) => (
               <field.FormInput

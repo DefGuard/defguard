@@ -7,6 +7,7 @@ import { EditPageControls } from '../../../../shared/components/EditPageControls
 import { EditPageFormSection } from '../../../../shared/components/EditPageFormSection/EditPageFormSection';
 import { Fold } from '../../../../shared/defguard-ui/components/Fold/Fold';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../shared/form';
 import { formChangeLogic } from '../../../../shared/formLogic';
@@ -37,6 +38,31 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   basicSchema,
   syncSchema,
 ]);
+
+const validationSchema = syncSchema
+  .omit({ admin_email: true, google_service_account_file: true })
+  .extend({
+    admin_email: z.string().trim(),
+    google_service_account_file: z.file(m.form_error_required()).nullable(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.directory_sync_enabled) {
+      if (val.admin_email.trim().length === 0) {
+        ctx.addIssue({
+          path: ['admin_email'],
+          code: 'custom',
+          message: m.form_error_required(),
+        });
+      }
+      if (val.google_service_account_file === null) {
+        ctx.addIssue({
+          path: ['google_service_account_file'],
+          code: 'custom',
+          message: m.form_error_required(),
+        });
+      }
+    }
+  });
 
 type FormFields = z.infer<typeof discriminatedSchema>;
 
@@ -72,17 +98,21 @@ export const EditGoogleProviderForm = ({
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
-      onSubmit: syncSchema,
-      onChange: syncSchema,
+      onSubmit: validationSchema,
+      onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
       if (value.directory_sync_enabled) {
         const inner = value as z.infer<typeof syncSchema>;
         const file = await parseGoogleKeyFile(inner.google_service_account_file as File);
+        if (!file) {
+          Snackbar.error(m.form_error_file_contents());
+          return;
+        }
         await onSubmit({
           ...omit(inner, ['google_service_account_file']),
-          google_service_account_email: file?.client_email,
-          google_service_account_key: file?.private_key,
+          google_service_account_email: file.client_email,
+          google_service_account_key: file.private_key,
         });
       } else {
         await onSubmit(omit(value, ['google_service_account_file']));
