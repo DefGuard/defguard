@@ -44,7 +44,9 @@ RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
 FROM public.ecr.aws/docker/library/debian:13-slim
-RUN apt-get update -y && apt-get upgrade -y && \
+RUN printf "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: trixie-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n" \
+        > /etc/apt/sources.list.d/debian-security.sources && \
+    apt-get update -y && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
