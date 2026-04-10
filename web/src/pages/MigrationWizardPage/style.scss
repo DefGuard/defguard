@@ -45,12 +45,6 @@
     flex-direction: column;
   }
 
-  .migration-wizard-support-header {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
   .migration-wizard-video-card {
     display: flex;
     align-items: flex-end;
@@ -61,11 +55,6 @@
     background: transparent;
     cursor: pointer;
     text-align: left;
-  }
-
-  .migration-wizard-video-thumb-wrap {
-    position: relative;
-    flex-shrink: 0;
 
     .video-support-thumbnail {
       width: 152px;
@@ -73,25 +62,10 @@
     }
   }
 
-  .migration-wizard-video-play-badge {
-    position: absolute;
-    left: var(--spacing-sm);
-    bottom: var(--spacing-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: var(--radius-full);
-    background-color: var(--bg-default);
-    box-shadow: var(--menu-shadow);
-  }
-
   .migration-wizard-video-info {
     display: flex;
     flex: 1;
     flex-direction: column;
-    justify-content: space-between;
     align-self: stretch;
     min-width: 0;
   }
@@ -102,12 +76,6 @@
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
-  }
-
-  .migration-wizard-video-duration {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
   }
 
   .migration-wizard-doc-card {
