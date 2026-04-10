@@ -31,6 +31,7 @@
   "migration_wizard_step_confirmation_label": "Confirmation",
   "migration_wizard_step_confirmation_description": "Your configuration was successful. You're all set.",
   "migration_wizard_support_video_guide": "Video guide",
+  "migration_wizard_support_video_guide_helper": "Watch a short tutorial video.",
   "migration_wizard_support_related_documentation": "Related documentation",
   "migration_wizard_support_documentation_link": "Defguard Configuration Guide",
   "migration_wizard_general_config_private_url_title": "Private URL",

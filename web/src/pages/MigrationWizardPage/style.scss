@@ -45,6 +45,12 @@
     flex-direction: column;
   }
 
+  .migration-wizard-support-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
   .migration-wizard-video-card {
     display: flex;
     align-items: flex-end;
