@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// Which wizard is currently active. Stored as a PostgreSQL enum column.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
 #[sqlx(type_name = "active_wizard", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ActiveWizard {

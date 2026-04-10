@@ -482,18 +482,19 @@ pub async fn finish_setup(
     Ok(ApiResponse::with_status(StatusCode::OK))
 }
 
+#[derive(Serialize)]
+struct WizardStateResponse {
+    active_wizard: ActiveWizard,
+    completed: bool,
+    initial_setup_state: Option<InitialSetupState>,
+    auto_adoption_state: Option<AutoAdoptionWizardState>,
+}
+
 /// Returns the full wizard state (active wizard, step states, etc.).
 /// Used by the frontend to determine which wizard
 /// to show and what step to resume.
 pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
     let wizard = Wizard::get(&pool).await?;
-    #[derive(Serialize)]
-    struct WizardStateResponse {
-        active_wizard: ActiveWizard,
-        completed: bool,
-        initial_setup_state: Option<InitialSetupState>,
-        auto_adoption_state: Option<AutoAdoptionWizardState>,
-    }
 
     let initial_setup_state = if wizard.active_wizard == ActiveWizard::Initial {
         InitialSetupState::get(&pool).await?
