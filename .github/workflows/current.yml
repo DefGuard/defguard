@@ -9,7 +9,6 @@ on:
       - main
       - dev
       - "release/**"
-      - fix-trivy
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -25,17 +24,16 @@ jobs:
       tags: |
         type=ref,event=branch
         type=sha
-      trivy-exit-code: ${{ github.ref_name == 'fix-trivy' && '1' || '0' }}
+      trivy-exit-code: "0"
 
   trigger-e2e:
     needs: build-current
-    if: ${{ github.ref_name != 'fix-trivy' }}
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
 
   trigger-dev-deploy:
     needs: build-current
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && github.ref_name != 'fix-trivy' }}
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
 
