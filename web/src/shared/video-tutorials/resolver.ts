@@ -24,10 +24,10 @@ function eligibleVersionsSorted(
 }
 
 /**
- * Returns all sections from the newest eligible version (version key <= app version).
- * Used by both the VideoTutorialsModal and the VideoSupportWidget — both always show
- * content from the same single version with no fallback to older versions.
- * Returns [] if no eligible version exists or the app version is invalid.
+ * Returns the newest eligible version entry (version key <= app version).
+ * Consumers that only need sections or placements should prefer the narrower
+ * helpers (`resolveSections` / `resolveMigrationWizardPlacement`). Returns
+ * `null` if no eligible version exists or the app version is invalid.
  */
 export function resolveVersion(
   mappings: VideoTutorialsMappings,
