@@ -60,6 +60,14 @@ use crate::{
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Strip any `http://` or `https://` scheme prefix a user may have accidentally included
+/// in a hostname/IP field. The field is expected to contain a bare host, not a URL.
+fn strip_scheme(s: &str) -> &str {
+    s.strip_prefix("https://")
+        .or_else(|| s.strip_prefix("http://"))
+        .unwrap_or(s)
+}
+
 /// Guard that aborts a tokio task when dropped
 struct TaskGuard(tokio::task::JoinHandle<()>);
 
@@ -242,20 +250,22 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("License check passed");
 
+        let ip_or_domain = strip_scheme(&request.ip_or_domain);
+
         // Step 1: Check configuration
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
-        match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
+        match Proxy::find_by_address_port(&pool, ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
                 yield Ok(flow.error(&format!(
                     "An edge Proxy with address {}:{} is already registered with name \"{}\".",
-                    request.ip_or_domain, request.grpc_port, proxy.name
+                    ip_or_domain, request.grpc_port, proxy.name
                 )));
                 return;
             }
             Ok(None) => {
                 debug!(
                     "Verified no existing proxy registration for {}:{}",
-                    request.ip_or_domain, request.grpc_port
+                    ip_or_domain, request.grpc_port
                 );
             }
             Err(e) => {
@@ -266,7 +276,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Configuration check passed");
 
-        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
+        let url_str = format!("http://{}:{}", ip_or_domain, request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -329,7 +339,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!(
             "Prepared secure connection endpoint for Edge at {}:{}",
-            request.ip_or_domain, request.grpc_port
+            ip_or_domain, request.grpc_port
         );
 
         let version = match Version::parse(VERSION) {
@@ -370,7 +380,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!(
             "Initiating connection to Edge at {}:{}",
-            request.ip_or_domain, request.grpc_port
+            ip_or_domain, request.grpc_port
         );
 
         let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
@@ -382,12 +392,12 @@ pub async fn setup_proxy_tls_stream(
                         if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
                             yield Ok(flow.error(&format!(
                                 "Failed to connect to Edge at {}:{}: {}. This may indicate that the Edge is already configured with TLS. Please check if the Edge has already been set up.",
-                                request.ip_or_domain, request.grpc_port, e
+                                ip_or_domain, request.grpc_port, e
                             )));
                         } else {
                             yield Ok(flow.error(&format!(
                                 "Failed to connect to Edge at {}:{}. Please ensure the address and port are correct and that the Edge component is running.",
-                                request.ip_or_domain, request.grpc_port
+                                ip_or_domain, request.grpc_port
                             )));
                         }
                     }
@@ -400,7 +410,7 @@ pub async fn setup_proxy_tls_stream(
             Err(_) => {
                 yield Ok(flow.error(&format!(
                     "Connection to Edge at {}:{} timed out after 10 seconds.",
-                    request.ip_or_domain, request.grpc_port
+                    ip_or_domain, request.grpc_port
                 )));
                 return;
             }
@@ -569,10 +579,10 @@ pub async fn setup_proxy_tls_stream(
         debug!("Certificate expiry date determined: {expiry}");
 
         let mut proxy = Proxy::new(
-            &request.common_name,
-            &request.ip_or_domain,
+            request.common_name.as_str(),
+            ip_or_domain,
             i32::from(request.grpc_port),
-            &session.user.fullname(),
+            session.user.fullname().as_str(),
         );
         proxy.certificate = Some(serial);
         proxy.certificate_expiry = Some(expiry);
@@ -678,16 +688,16 @@ pub async fn setup_gateway_tls_stream(
             flow.step(SetupStep::CheckingConfiguration)
         );
 
+        let ip_or_domain = strip_scheme(&request.ip_or_domain);
 
-
-        match Gateway::find_by_url(&pool, &request.ip_or_domain, request.grpc_port).await {
+        match Gateway::find_by_url(&pool, ip_or_domain, request.grpc_port).await {
             Ok(Some(gateway)) => {
                yield Ok(flow.error(&format!("A Gateway with URL {}:{} is already registered with \
-                   name \"{}\".", request.ip_or_domain, request.grpc_port, gateway.name)));
+                   name \"{}\".", ip_or_domain, request.grpc_port, gateway.name)));
                return;
             }
             Ok(None) => {
-                debug!("Verified no existing Gateway registration for {}:{}", request.ip_or_domain,
+                debug!("Verified no existing Gateway registration for {}:{}", ip_or_domain,
                     request.grpc_port);
             },
             Err(e) => {
@@ -696,7 +706,7 @@ pub async fn setup_gateway_tls_stream(
             }
         }
 
-        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
+        let url_str = format!("http://{}:{}", ip_or_domain, request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -757,7 +767,7 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Prepared secure connection endpoint for Gateway at {}:{}", request.ip_or_domain,
+        debug!("Prepared secure connection endpoint for Gateway at {}:{}", ip_or_domain,
             request.grpc_port);
 
         let version = match Version::parse(VERSION) {
@@ -803,7 +813,7 @@ pub async fn setup_gateway_tls_stream(
             }
         );
 
-        debug!("Initiating connection to Gateway at {}:{}", request.ip_or_domain,
+        debug!("Initiating connection to Gateway at {}:{}", ip_or_domain,
             request.grpc_port);
 
         let response_with_metadata = match tokio::time::timeout(
@@ -820,13 +830,13 @@ pub async fn setup_gateway_tls_stream(
                                 "Failed to connect to Gateway at {}:{}: {e}. This may indicate \
                                 that the Gateway is already configured with TLS. Please check if \
                                 the Gateway has already been set up.",
-                                request.ip_or_domain, request.grpc_port,
+                                ip_or_domain, request.grpc_port,
                             )));
                         } else {
                         yield Ok(flow.error(&format!(
                             "Failed to connect to Gateway at {}:{}. Please ensure the address and \
                             port are correct and that the Gateway is running.",
-                            request.ip_or_domain, request.grpc_port
+                            ip_or_domain, request.grpc_port
                         )));
                         }
                     }
@@ -839,7 +849,7 @@ pub async fn setup_gateway_tls_stream(
             Err(_) => {
                 yield Ok(flow.error(&format!(
                     "Connection to Gateway at {}:{} timed out after 10 seconds.",
-                    request.ip_or_domain, request.grpc_port
+                    ip_or_domain, request.grpc_port
                 )));
                 return;
             }
@@ -1035,7 +1045,7 @@ pub async fn setup_gateway_tls_stream(
         let mut gateway = Gateway::new(
             network_id,
             request.common_name,
-            request.ip_or_domain,
+            ip_or_domain.to_owned(),
             request.grpc_port.into(),
             session.user.fullname(),
         );
