@@ -257,19 +257,19 @@ pub async fn setup_proxy_tls_stream(
             }
             Ok(None) => {
                 debug!(
-                    "Verified no existing proxy registration for {ip_or_domain}:{}",
+                    "Verified no existing Edge registration for {ip_or_domain}:{}",
                      request.grpc_port
                 );
             }
             Err(e) => {
-                yield Ok(flow.error(&format!("Failed to query existing proxy: {e}")));
+                yield Ok(flow.error(&format!("Failed to query existing Edge: {e}")));
                 return;
             }
         }
 
         debug!("Configuration check passed");
 
-        let url_str = format!("http://{}:{}", ip_or_domain, request.grpc_port);
+        let url_str = format!("http://{ip_or_domain}:{}",  request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -1120,7 +1120,7 @@ fn public_proxy_hostname() -> Result<String, String> {
 
     if url.is_empty() {
         return Err(
-            "Public proxy URL is not configured. Please re-submit the external URL settings \
+            "Public Edge URL is not configured. Please re-submit the external URL settings \
              with a Let's Encrypt domain."
                 .to_string(),
         );
@@ -1131,7 +1131,7 @@ fn public_proxy_hostname() -> Result<String, String> {
         .and_then(|u| u.host_str().map(ToString::to_string))
         .filter(|host| !host.is_empty())
         .ok_or_else(|| {
-            "Public proxy URL is not configured with a valid hostname. Please re-submit the \
+            "Public Edge URL is not configured with a valid hostname. Please re-submit the \
              external URL settings with a valid domain."
                 .to_string()
         })
@@ -1165,7 +1165,7 @@ async fn call_proxy_trigger_acme(
 
     let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
     let endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| (format!("Failed to build proxy endpoint: {e}"), Vec::new()))?
+        .map_err(|e| (format!("Failed to build Edge endpoint: {e}"), Vec::new()))?
         .http2_keep_alive_interval(Duration::from_secs(5))
         .tcp_keepalive(Some(Duration::from_secs(5)))
         .keep_alive_while_idle(true);
@@ -1173,7 +1173,7 @@ async fn call_proxy_trigger_acme(
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
     let endpoint = endpoint.tls_config(tls).map_err(|e| {
         (
-            format!("Failed to configure TLS for proxy endpoint: {e}"),
+            format!("Failed to configure TLS for Edge endpoint: {e}"),
             Vec::new(),
         )
     })?;
@@ -1274,7 +1274,7 @@ pub async fn stream_proxy_acme(
             Err(e) => {
                 yield Ok(acme_error_event(
                     "Connecting",
-                    format!("Failed to load proxy list from DB: {e}"),
+                    format!("Failed to load Edge list from DB: {e}"),
                     None,
                 ));
                 return;
@@ -1284,7 +1284,7 @@ pub async fn stream_proxy_acme(
         let Some(proxy) = proxies.into_iter().next() else {
             yield Ok(acme_error_event(
                 "Connecting",
-                "No proxy found in database. Please complete the edge adoption step \
+                "No Edge found in database. Please complete the edge adoption step \
                  first."
                     .to_string(),
                 None,
@@ -1295,8 +1295,8 @@ pub async fn stream_proxy_acme(
         let proxy_host = proxy.address.clone();
         let proxy_port = proxy.port as u16;
         info!(
-            "Triggering ACME HTTP-01 via Proxy gRPC TriggerAcme for domain: {domain} \
-             proxy={proxy_host}:{proxy_port}"
+            "Triggering ACME HTTP-01 via Edge gRPC TriggerAcme for domain: {domain} \
+             Edge={proxy_host}:{proxy_port}"
         );
 
         let (progress_tx, mut progress_rx) =
@@ -1394,7 +1394,7 @@ pub async fn stream_proxy_acme(
                         key_pem,
                     };
                     if let Err(e) = tx.send(msg).await {
-                        error!("Failed to broadcast HttpsCerts to proxy: {e}");
+                        error!("Failed to broadcast HttpsCerts to Edge: {e}");
                     }
                 }
 
