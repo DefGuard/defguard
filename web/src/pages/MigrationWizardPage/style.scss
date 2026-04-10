@@ -39,63 +39,6 @@
   }
 }
 
-#migration-wizard {
-  .support {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .support-header {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .video-card {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--spacing-xl);
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    text-align: left;
-
-    .video-support-thumbnail {
-      width: 152px;
-      height: 90px;
-    }
-  }
-
-  .video-info {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    align-self: stretch;
-    min-width: 0;
-  }
-
-  .video-title {
-    display: -webkit-box;
-    margin: 0;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .doc-card {
-    padding: var(--spacing-lg);
-    border: var(--border-1) solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background-color: var(--bg-default);
-
-    .external-link {
-      font: var(--t-body-sm-400);
-    }
-  }
-}
-
 #upgrade-guide-list {
   font: var(--t-body-sm-400);
   color: var(--fg-neutral);

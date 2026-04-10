@@ -1,3 +1,4 @@
+import './style.scss';
 import { useState } from 'react';
 import { m } from '../../../../paraglide/messages';
 import { AppText } from '../../../defguard-ui/components/AppText/AppText';
@@ -30,11 +31,7 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
           </AppText>
         </div>
         <SizedBox height={ThemeSpacing.Md} />
-        <button
-          type="button"
-          className="video-card"
-          onClick={() => setIsVideoOpen(true)}
-        >
+        <button type="button" className="video-card" onClick={() => setIsVideoOpen(true)}>
           <Thumbnail
             url={`https://img.youtube.com/vi/${videoGuide.youtubeVideoId}/hqdefault.jpg`}
             title={videoGuide.title}
