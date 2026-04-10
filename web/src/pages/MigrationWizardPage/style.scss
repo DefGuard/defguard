@@ -40,18 +40,18 @@
 }
 
 #migration-wizard {
-  .migration-wizard-support {
+  .support {
     display: flex;
     flex-direction: column;
   }
 
-  .migration-wizard-support-header {
+  .support-header {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
   }
 
-  .migration-wizard-video-card {
+  .video-card {
     display: flex;
     align-items: flex-end;
     gap: var(--spacing-xl);
@@ -68,7 +68,7 @@
     }
   }
 
-  .migration-wizard-video-info {
+  .video-info {
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -76,7 +76,7 @@
     min-width: 0;
   }
 
-  .migration-wizard-video-title {
+  .video-title {
     display: -webkit-box;
     margin: 0;
     overflow: hidden;
@@ -84,7 +84,7 @@
     -webkit-line-clamp: 3;
   }
 
-  .migration-wizard-doc-card {
+  .doc-card {
     padding: var(--spacing-lg);
     border: var(--border-1) solid var(--border-default);
     border-radius: var(--radius-lg);

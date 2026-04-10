@@ -20,51 +20,47 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
 
   return (
     <>
-      <div className="migration-wizard-support">
+      <div className="support">
         <SizedBox height={ThemeSpacing.Xl5} />
 
-        <div>
-          <div className="migration-wizard-support-header">
-            <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>
-            <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
-              {m.migration_wizard_support_video_guide()}
-            </AppText>
-          </div>
-          <SizedBox height={ThemeSpacing.Md} />
-          <button
-            type="button"
-            className="migration-wizard-video-card"
-            onClick={() => setIsVideoOpen(true)}
-          >
-            <Thumbnail
-              url={`https://img.youtube.com/vi/${videoGuide.youtubeVideoId}/hqdefault.jpg`}
-              title={videoGuide.title}
-            />
-            <div className="migration-wizard-video-info">
-              <AppText
-                className="migration-wizard-video-title"
-                font={TextStyle.TBodySm400}
-                color={ThemeVariable.FgFaded}
-              >
-                {videoGuide.title}
-              </AppText>
-            </div>
-          </button>
+        <div className="support-header">
+          <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>
+          <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
+            {m.migration_wizard_support_video_guide()}
+          </AppText>
         </div>
-        <Divider spacing={ThemeSpacing.Xl2} />
-        <div>
-          <div className="migration-wizard-support-header">
-            <Icon icon="file" size={16} staticColor={ThemeVariable.FgMuted} />
-            <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
-              {m.migration_wizard_support_related_documentation()}
+        <SizedBox height={ThemeSpacing.Md} />
+        <button
+          type="button"
+          className="video-card"
+          onClick={() => setIsVideoOpen(true)}
+        >
+          <Thumbnail
+            url={`https://img.youtube.com/vi/${videoGuide.youtubeVideoId}/hqdefault.jpg`}
+            title={videoGuide.title}
+          />
+          <div className="video-info">
+            <AppText
+              className="video-title"
+              font={TextStyle.TBodySm400}
+              color={ThemeVariable.FgFaded}
+            >
+              {videoGuide.title}
             </AppText>
           </div>
-          <SizedBox height={ThemeSpacing.Md} />
-          <div className="migration-wizard-doc-card">
-            <ExternalLink href={videoGuide.docsUrl} target="_blank" rel="noreferrer">
-              {videoGuide.docsTitle}
-            </ExternalLink>
-          </div>
+        </button>
+        <Divider spacing={ThemeSpacing.Xl2} />
+        <div className="support-header">
+          <Icon icon="file" size={16} staticColor={ThemeVariable.FgMuted} />
+          <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
+            {m.migration_wizard_support_related_documentation()}
+          </AppText>
+        </div>
+        <SizedBox height={ThemeSpacing.Md} />
+        <div className="doc-card">
+          <ExternalLink href={videoGuide.docsUrl} target="_blank" rel="noreferrer">
+            {videoGuide.docsTitle}
+          </ExternalLink>
         </div>
       </div>
 
