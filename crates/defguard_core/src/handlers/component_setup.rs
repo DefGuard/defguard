@@ -1,7 +1,7 @@
 use std::{
     collections::VecDeque,
     convert::Infallible,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, PoisonError},
     time::Duration,
 };
 
@@ -42,7 +42,7 @@ use futures::Stream;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio_stream::StreamExt;
 use tonic::{
     Request, Status,
@@ -96,7 +96,7 @@ pub enum SetupStep {
     Done,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct SetupResponse {
     #[serde(flatten)]
     pub step: SetupStep,
@@ -143,10 +143,10 @@ fn error_message(message: &str, last_step: SetupStep, logs: Option<Vec<String>>)
         error: true,
     };
 
-    match serde_json::to_string(&response) {
-        Ok(body) => Event::default().data(body),
-        Err(e) => Event::default().data(fallback_message(&e.to_string(), last_step)),
-    }
+    Event::default().data(match serde_json::to_string(&response) {
+        Ok(body) => body,
+        Err(e) => fallback_message(&e.to_string(), last_step),
+    })
 }
 
 fn set_step_message(next_step: SetupStep) -> Event {
@@ -191,7 +191,7 @@ impl SetupFlow {
             let mut guard = self
                 .log_buffer
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                .unwrap_or_else(PoisonError::into_inner);
             std::mem::take(&mut *guard).into_iter().collect::<Vec<_>>()
         };
         while let Ok(log) = self.log_rx.try_recv() {
@@ -217,7 +217,7 @@ pub async fn setup_proxy_tls_stream(
     Extension(pool): Extension<PgPool>,
     proxy_control_tx: Option<Extension<Sender<ProxyControlMessage>>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let (log_tx, log_rx) = unbounded_channel::<String>();
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
     let inner_log_buffer = Arc::clone(&log_buffer);
     let inner_stream = async_stream::stream! {
@@ -250,7 +250,7 @@ pub async fn setup_proxy_tls_stream(
         match Proxy::find_by_address_port(&pool, ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
                 yield Ok(flow.error(&format!(
-                    "An edge Proxy with address {ip_or_domain}:{} is already registered with name \"{}\".",
+                    "Edge with address {ip_or_domain}:{} is already registered with name \"{}\".",
                      request.grpc_port, proxy.name
                 )));
                 return;
@@ -377,33 +377,29 @@ pub async fn setup_proxy_tls_stream(
         );
 
         let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
-            Ok(Ok(r)) => r,
-            Ok(Err(e)) => {
-                match e.code() {
-                    tonic::Code::Unavailable => {
-                        let error_msg = e.to_string();
-                        if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
-                            yield Ok(flow.error(&format!(
-                                "Failed to connect to Edge at {ip_or_domain}:{}: {e}. This may indicate that the Edge is already configured with TLS. Please check if the Edge has already been set up.",
-                                 request.grpc_port
-                            )));
-                        } else {
-                            yield Ok(flow.error(&format!(
-                                "Failed to connect to Edge at {ip_or_domain}:{}. Please ensure the address and port are correct and that the Edge component is running.",
-                                 request.grpc_port
-                            )));
-                        }
-                    }
-                    _ => {
-                        yield Ok(flow.error(&format!("Failed to connect to Edge: {e}")));
-                    }
+            Ok(Ok(response)) => response,
+            Ok(Err(status)) => {
+                let error_msg = status.message();
+                if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
+                    yield Ok(flow.error(&format!(
+                        "Failed to connect to Edge at {ip_or_domain}:{}: {error_msg}. This may indicate that \
+                        the Edge is already configured with TLS. Please check if the Edge has \
+                        already been set up.",
+                         request.grpc_port
+                    )));
+                } else {
+                    yield Ok(flow.error(&format!(
+                        "Failed to connect to Edge at {ip_or_domain}:{}: {error_msg}. Please ensure the \
+                        address and port are correct and that the Edge component is running.",
+                         request.grpc_port
+                    )));
                 }
                 return;
             }
             Err(_) => {
                 yield Ok(flow.error(&format!(
-                    "Connection to Edge at {ip_or_domain}:{} timed out after 10 seconds.",
-                     request.grpc_port
+                    "Connection to Edge at {ip_or_domain}:{} timed out after {} seconds",
+                    request.grpc_port, CONNECTION_TIMEOUT.as_secs()
                 )));
                 return;
             }
@@ -428,7 +424,8 @@ pub async fn setup_proxy_tls_stream(
         if let Some(proxy_version) = proxy_version {
             if proxy_version < MIN_PROXY_VERSION {
                 yield Ok(flow.error(&format!(
-                    "Edge version {proxy_version} is older than Core version {version_clone}. Please update the Edge component.",
+                    "Edge version {proxy_version} is older than Core version {version_clone}. \
+                    Please update the Edge component.",
                 )));
                 return;
             }
@@ -654,7 +651,7 @@ pub async fn setup_gateway_tls_stream(
     Path(network_id): Path<Id>,
     Extension(pool): Extension<PgPool>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let (log_tx, log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+    let (log_tx, log_rx) = unbounded_channel::<String>();
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
     let inner_log_buffer = Arc::clone(&log_buffer);
     let inner_stream = async_stream::stream! {
@@ -813,29 +810,22 @@ pub async fn setup_gateway_tls_stream(
             CONNECTION_TIMEOUT,
             client.start(())
         ).await {
-            Ok(Ok(r)) => r,
-            Ok(Err(e)) => {
-                match e.code() {
-                    tonic::Code::Unavailable => {
-                        let error_msg = e.to_string();
-                        if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
-                            yield Ok(flow.error(&format!(
-                                "Failed to connect to Gateway at {ip_or_domain}:{}: {e}. This may indicate \
-                                that the Gateway is already configured with TLS. Please check if \
-                                the Gateway has already been set up.",
-                                 request.grpc_port,
-                            )));
-                        } else {
-                        yield Ok(flow.error(&format!(
-                            "Failed to connect to Gateway at {ip_or_domain}:{}. Please ensure the address and \
-                            port are correct and that the Gateway is running.",
-                             request.grpc_port
-                        )));
-                        }
-                    }
-                    _ => {
-                        yield Ok(flow.error(&format!("Failed to connect to Gateway: {e}")));
-                    }
+            Ok(Ok(response)) => response,
+            Ok(Err(status)) => {
+                let error_msg = status.message();
+                if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
+                    yield Ok(flow.error(&format!(
+                        "Failed to connect to Gateway at {ip_or_domain}:{}: {error_msg}. This may indicate \
+                        that the Gateway is already configured with TLS. Please, check if the \
+                        Gateway has already been set up.",
+                         request.grpc_port,
+                    )));
+                } else {
+                    yield Ok(flow.error(&format!(
+                        "Failed to connect to Gateway at {ip_or_domain}:{}: {error_msg}. Please ensure the \
+                        address and port are correct and that the Gateway is running.",
+                         request.grpc_port
+                    )));
                 }
                 return;
             }
@@ -851,9 +841,7 @@ pub async fn setup_gateway_tls_stream(
         debug!("Successfully connected to Gateway");
 
         // Step 3: Check version
-        yield Ok(
-            flow.step(SetupStep::CheckingVersion)
-        );
+        yield Ok(flow.step(SetupStep::CheckingVersion));
 
         let gateway_version = response_with_metadata
             .metadata()
@@ -1109,8 +1097,7 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
 /// Maps a proto [`AcmeStep`] to the SSE step string expected by the frontend.
 fn acme_step_name(step: AcmeStep) -> &'static str {
     match step {
-        AcmeStep::Unspecified => "Connecting",
-        AcmeStep::Connecting => "Connecting",
+        AcmeStep::Unspecified | AcmeStep::Connecting => "Connecting",
         AcmeStep::CheckingDomain => "CheckingDomain",
         AcmeStep::ValidatingDomain => "ValidatingDomain",
         AcmeStep::IssuingCertificate => "IssuingCertificate",
@@ -1165,17 +1152,20 @@ async fn call_proxy_trigger_acme(
 ) -> Result<(String, String, String), (String, Vec<String>)> {
     let certs = Certificates::get_or_default(pool)
         .await
-        .map_err(|e| (format!("Failed to load certificates: {e}"), vec![]))?;
-    let ca_cert_der = certs
-        .ca_cert_der
-        .ok_or_else(|| ("CA certificate not found in settings".to_string(), vec![]))?;
+        .map_err(|e| (format!("Failed to load certificates: {e}"), Vec::new()))?;
+    let ca_cert_der = certs.ca_cert_der.ok_or_else(|| {
+        (
+            "CA certificate not found in settings".to_string(),
+            Vec::new(),
+        )
+    })?;
 
     let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
-        .map_err(|e| (format!("Failed to convert CA cert to PEM: {e}"), vec![]))?;
+        .map_err(|e| (format!("Failed to convert CA cert to PEM: {e}"), Vec::new()))?;
 
     let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
     let endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| (format!("Failed to build proxy endpoint: {e}"), vec![]))?
+        .map_err(|e| (format!("Failed to build proxy endpoint: {e}"), Vec::new()))?
         .http2_keep_alive_interval(Duration::from_secs(5))
         .tcp_keepalive(Some(Duration::from_secs(5)))
         .keep_alive_while_idle(true);
@@ -1184,12 +1174,12 @@ async fn call_proxy_trigger_acme(
     let endpoint = endpoint.tls_config(tls).map_err(|e| {
         (
             format!("Failed to configure TLS for proxy endpoint: {e}"),
-            vec![],
+            Vec::new(),
         )
     })?;
 
     let version = Version::parse(VERSION)
-        .map_err(|e| (format!("Failed to parse core version: {e}"), vec![]))?;
+        .map_err(|e| (format!("Failed to parse core version: {e}"), Vec::new()))?;
     let version_interceptor = ClientVersionInterceptor::new(version);
 
     let mut client =
@@ -1203,7 +1193,7 @@ async fn call_proxy_trigger_acme(
             account_credentials_json,
         })
         .await
-        .map_err(|e| (format!("TriggerAcme RPC failed: {e}"), vec![]))?
+        .map_err(|e| (format!("TriggerAcme RPC failed: {e}"), Vec::new()))?
         .into_inner();
 
     let mut collected_logs: Vec<String> = Vec::new();
@@ -1263,7 +1253,8 @@ pub async fn stream_proxy_acme(
         let certs = match Certificates::get_or_default(&pool).await {
             Ok(c) => c,
             Err(e) => {
-                yield Ok(acme_error_event("Connecting", format!("Failed to load certificates: {e}"), None));
+                yield Ok(acme_error_event("Connecting", format!("Failed to load certificates: {e}"),
+                    None));
                 return;
             }
         };
@@ -1290,7 +1281,7 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let proxy = if let Some(p) = proxies.into_iter().next() { p } else {
+        let Some(proxy) = proxies.into_iter().next() else {
             yield Ok(acme_error_event(
                 "Connecting",
                 "No proxy found in database. Please complete the edge adoption step \
@@ -1309,7 +1300,7 @@ pub async fn stream_proxy_acme(
         );
 
         let (progress_tx, mut progress_rx) =
-            tokio::sync::mpsc::unbounded_channel::<AcmeStep>();
+            unbounded_channel::<AcmeStep>();
         let (result_tx, result_rx) =
             tokio::sync::oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
 

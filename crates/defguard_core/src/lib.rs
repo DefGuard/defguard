@@ -22,9 +22,11 @@ use defguard_common::{
         init_db,
         models::{
             Certificates, Device, DeviceType, Settings, User, WireguardNetwork,
+            initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             oauth2client::OAuth2Client,
             settings::{initialize_current_settings, update_current_settings},
             wireguard::{LocationMfaMode, ServiceLocationMode},
+            wizard::{ActiveWizard, Wizard},
         },
     },
     types::proxy::ProxyControlMessage,
@@ -805,10 +807,6 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         .expect("Failed to save certificates");
 
     // Mark wizard as completed for dev environment
-    use defguard_common::db::models::{
-        initial_setup_wizard::{InitialSetupState, InitialSetupStep},
-        wizard::{ActiveWizard, Wizard},
-    };
     let wizard = Wizard {
         active_wizard: ActiveWizard::None,
         completed: true,
@@ -1057,7 +1055,6 @@ pub fn is_valid_phone_number(number: &str) -> bool {
 
 #[cfg(test)]
 mod test {
-
     use super::is_valid_phone_number;
 
     #[test]

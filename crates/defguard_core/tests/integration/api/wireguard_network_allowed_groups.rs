@@ -1003,7 +1003,7 @@ async fn test_create_network_without_groups_rejected(_: PgPoolOptions, options: 
         mtu: DEFAULT_WIREGUARD_MTU,
         fwmark: 0,
         allow_all_groups: false,
-        allowed_groups: vec![],
+        allowed_groups: Vec::new(),
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
@@ -1056,7 +1056,7 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
         mtu: DEFAULT_WIREGUARD_MTU,
         fwmark: 0,
         allow_all_groups: true,
-        allowed_groups: vec![],
+        allowed_groups: Vec::new(),
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
         acl_enabled: false,
@@ -1075,7 +1075,7 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
 
     // allow_all_groups=false with no groups should be rejected
     modify_data.allow_all_groups = false;
-    modify_data.allowed_groups = vec![];
+    modify_data.allowed_groups = Vec::new();
     let response = client
         .put("/api/v1/network/1")
         .json(&modify_data)
@@ -1094,7 +1094,7 @@ async fn test_modify_network_without_groups_rejected(_: PgPoolOptions, options: 
 
     // allow_all_groups=true with no groups should be accepted
     modify_data.allow_all_groups = true;
-    modify_data.allowed_groups = vec![];
+    modify_data.allowed_groups = Vec::new();
     let response = client
         .put("/api/v1/network/1")
         .json(&modify_data)

@@ -44,8 +44,14 @@ RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
 
 # run
 FROM public.ecr.aws/docker/library/debian:13-slim
-RUN apt-get update -y && apt-get upgrade -y && \
-    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
+# TEMPORARY FIX: The parent image has a snapshot of debian sources that has a security vulnerability. This is a temporary fix until the parent image is updated.
+# Remove this once the parent image is updated with the latest debian sources.
+RUN sed -i \
+        -e 's|snapshot\.debian\.org/archive/debian/[^/]*/|deb.debian.org/debian/|g' \
+        -e 's|snapshot\.debian\.org/archive/debian-security/[^/]*/|security.debian.org/debian-security/|g' \
+        /etc/apt/sources.list.d/debian.sources && \
+    apt-get update -y && apt-get upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates lsb-release libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
