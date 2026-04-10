@@ -12,6 +12,7 @@ import {
   getMigrationStateQueryOptions,
   getSettingsQueryOptions,
 } from '../../shared/query';
+import { MigrationWizardVideoGuide } from './MigrationWizardVideoGuide';
 import { MigrationWizardCAStep } from './steps/MigrationWizardCAStep';
 import { MigrationWizardCASummaryStep } from './steps/MigrationWizardCASummaryStep';
 import { MigrationWizardConfirmationStep } from './steps/MigrationWizardConfirmationStep/MigrationWizardConfirmationStep';
@@ -170,6 +171,7 @@ export const MigrationWizardPage = () => {
       subtitle={m.migration_wizard_subtitle()}
       title={m.migration_wizard_title()}
       steps={stepsConfig}
+      sideContent={<MigrationWizardVideoGuide />}
       isOnWelcomePage={activeStep === MigrationWizardStep.Welcome}
       welcomePageConfig={welcomePageConfig}
     >

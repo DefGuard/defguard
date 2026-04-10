@@ -5,6 +5,7 @@ export interface WizardPageConfig {
   subtitle: string;
   activeStep: string | number;
   steps: WizardPageStepsConfig;
+  sideContent?: React.ReactNode;
   relatedDocs?: WizardDocsLink[];
   welcomePageConfig?: WizardWelcomePageConfig;
   isOnWelcomePage?: boolean;

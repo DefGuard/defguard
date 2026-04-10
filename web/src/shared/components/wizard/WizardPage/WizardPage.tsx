@@ -31,6 +31,7 @@ export const WizardPage = ({
   steps,
   subtitle,
   title,
+  sideContent,
   children,
   onClose,
   welcomePageConfig,
@@ -81,6 +82,7 @@ export const WizardPage = ({
                   <p className="description">{subtitle}</p>
                   <SizedBox height={ThemeSpacing.Xl2} />
                   <WizardStepsCard steps={visibleSteps} activeStep={activeStep} />
+                  {sideContent}
                 </div>
                 <div className="main">
                   <Badge variant="success" text={`Step ${activeStepIndex + 1}`} />

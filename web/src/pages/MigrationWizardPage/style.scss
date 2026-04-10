@@ -39,6 +39,115 @@
   }
 }
 
+#migration-wizard {
+  .migration-wizard-support {
+    margin-top: var(--spacing-5xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+  }
+
+  .migration-wizard-support-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .migration-wizard-support-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+
+    span {
+      font: var(--t-body-sm-500);
+      color: var(--fg-faded);
+    }
+  }
+
+  .migration-wizard-support-divider {
+    width: 100%;
+    height: 1px;
+    background-color: var(--border-muted);
+  }
+
+  .migration-wizard-video-card {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-xl);
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .migration-wizard-video-thumb-wrap {
+    position: relative;
+    flex-shrink: 0;
+
+    .video-support-thumbnail {
+      width: 152px;
+      height: 90px;
+    }
+  }
+
+  .migration-wizard-video-play-badge {
+    position: absolute;
+    left: var(--spacing-sm);
+    bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    background-color: var(--bg-default);
+    box-shadow: var(--menu-shadow);
+  }
+
+  .migration-wizard-video-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    align-self: stretch;
+    min-width: 0;
+  }
+
+  .migration-wizard-video-title {
+    font: var(--t-body-sm-400);
+    color: var(--fg-faded);
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .migration-wizard-video-duration {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+
+    span {
+      font: var(--t-body-xs-500);
+      color: var(--fg-muted);
+    }
+  }
+
+  .migration-wizard-doc-card {
+    padding: var(--spacing-lg);
+    border: var(--border-1) solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background-color: var(--bg-default);
+
+    .external-link {
+      font: var(--t-body-sm-400);
+    }
+  }
+}
+
 #upgrade-guide-list {
   font: var(--t-body-sm-400);
   color: var(--fg-neutral);
