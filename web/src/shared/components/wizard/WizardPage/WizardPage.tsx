@@ -13,10 +13,12 @@ import { Badge } from '../../../defguard-ui/components/Badge/Badge';
 import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../defguard-ui/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { useWizardVideoGuidePlacement } from '../../../video-tutorials/resolved';
 import { LayoutGrid } from '../../LayoutGrid/LayoutGrid';
 import type { WizardPageConfig } from '../types';
 import { WizardStepsCard } from '../WizardStepsCard/WizardStepsCard';
 import { WizardTop } from '../WizardTop/WizardTop';
+import { WizardVideoGuide } from '../WizardVideoGuide/WizardVideoGuide';
 import { WizardWelcomePage } from '../WizardWelcomePage/WizardWelcomePage';
 
 type Props = HTMLProps<HTMLDivElement> &
@@ -31,6 +33,7 @@ export const WizardPage = ({
   steps,
   subtitle,
   title,
+  videoGuidePlacementKey,
   children,
   onClose,
   welcomePageConfig,
@@ -38,6 +41,7 @@ export const WizardPage = ({
   ...containerProps
 }: Props) => {
   const activeStep = steps[activeStepId];
+  const videoGuide = useWizardVideoGuidePlacement(videoGuidePlacementKey);
 
   const visibleSteps = useMemo(
     () =>
@@ -81,6 +85,7 @@ export const WizardPage = ({
                   <p className="description">{subtitle}</p>
                   <SizedBox height={ThemeSpacing.Xl2} />
                   <WizardStepsCard steps={visibleSteps} activeStep={activeStep} />
+                  {isPresent(videoGuide) && <WizardVideoGuide videoGuide={videoGuide} />}
                 </div>
                 <div className="main">
                   <Badge variant="success" text={`Step ${activeStepIndex + 1}`} />

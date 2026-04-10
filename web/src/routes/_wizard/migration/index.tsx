@@ -4,14 +4,26 @@ import { MigrationWizardPage } from '../../../pages/MigrationWizardPage/Migratio
 import { useMigrationWizardStore } from '../../../pages/MigrationWizardPage/store/useMigrationWizardStore';
 import { ActiveWizard } from '../../../shared/api/types';
 import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { AppInfoProvider } from '../../../shared/providers/AppInfoProvider';
+import { AppUserProvider } from '../../../shared/providers/AppUserProvider';
 import {
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
   getSettingsQueryOptions,
 } from '../../../shared/query';
 
+const MigrationWizardRoute = () => {
+  return (
+    <AppUserProvider>
+      <AppInfoProvider>
+        <MigrationWizardPage />
+      </AppInfoProvider>
+    </AppUserProvider>
+  );
+};
+
 export const Route = createFileRoute('/_wizard/migration/')({
-  component: MigrationWizardPage,
+  component: MigrationWizardRoute,
   pendingComponent: AppLoaderPage,
   beforeLoad: async ({ context }) => {
     const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))

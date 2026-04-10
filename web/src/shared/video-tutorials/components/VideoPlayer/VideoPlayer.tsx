@@ -3,14 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { m } from '../../../../paraglide/messages';
 import { Icon } from '../../../defguard-ui/components/Icon/Icon';
-import type { VideoTutorial } from '../../types';
+import type { PlayableVideo } from '../../types';
 
 const LOAD_TIMEOUT_MS = 8_000;
 
 export type VideoPlayerErrorVariant = 'overlay' | 'modal';
 
 export interface VideoPlayerProps {
-  video: VideoTutorial;
+  video: PlayableVideo;
   /**
    * Controls which error UI is rendered when the iframe fails to load.
    *

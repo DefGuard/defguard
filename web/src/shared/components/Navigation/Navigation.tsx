@@ -21,10 +21,10 @@ import {
   getDestinationsCountQueryOptions,
   getLicenseInfoQueryOptions,
   getRulesCountQueryOptions,
-  videoTutorialsQueryOptions,
 } from '../../query';
 import { canUseBusinessFeature } from '../../utils/license';
 import { NavTutorialsButton } from '../../video-tutorials/components/widget/NavTutorialsButton/NavTutorialsButton';
+import { useVideoTutorialsSections } from '../../video-tutorials/resolved';
 
 interface NavGroupProps {
   id: string;
@@ -195,7 +195,10 @@ export const Navigation = () => {
     enabled: isAdmin,
   });
 
-  const { data: videoTutorialsData } = useQuery(videoTutorialsQueryOptions);
+  const videoTutorialSections = useVideoTutorialsSections();
+  const hasTutorialSections = videoTutorialSections.some(
+    (section) => section.videos.length > 0,
+  );
 
   const navigationGroups = useMemo(() => {
     const pendingCounts = {
@@ -235,7 +238,7 @@ export const Navigation = () => {
         ))}
       </div>
       <div className="bottom">
-        {videoTutorialsData && (
+        {hasTutorialSections && (
           <div className="nav-group">
             <NavTutorialsButton />
           </div>

@@ -170,6 +170,7 @@ export const MigrationWizardPage = () => {
       subtitle={m.migration_wizard_subtitle()}
       title={m.migration_wizard_title()}
       steps={stepsConfig}
+      videoGuidePlacementKey="migrationWizard"
       isOnWelcomePage={activeStep === MigrationWizardStep.Welcome}
       welcomePageConfig={welcomePageConfig}
     >

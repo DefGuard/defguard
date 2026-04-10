@@ -1,4 +1,9 @@
-import type { VideoTutorialsMappings, VideoTutorialsSection } from './types';
+import type {
+  VideoGuidePlacement,
+  VideoTutorialsMappings,
+  VideoTutorialsSection,
+  VideoTutorialsVersionEntry,
+} from './types';
 import { compareVersions, parseVersion } from './version';
 
 /**
@@ -19,20 +24,39 @@ function eligibleVersionsSorted(
 }
 
 /**
- * Returns all sections from the newest eligible version (version key <= app version).
- * Used by both the VideoTutorialsModal and the VideoSupportWidget — both always show
- * content from the same single version with no fallback to older versions.
- * Returns [] if no eligible version exists or the app version is invalid.
+ * Returns the newest eligible version entry (version key <= app version).
+ * Consumers that only need sections or placements should prefer the narrower
+ * helpers (`resolveSections` / `resolveVideoGuidePlacement`). Returns
+ * `null` if no eligible version exists or the app version is invalid.
  */
 export function resolveVersion(
   mappings: VideoTutorialsMappings,
   appVersionRaw: string,
-): VideoTutorialsSection[] {
+): VideoTutorialsVersionEntry | null {
   const appVersion = parseVersion(appVersionRaw);
-  if (!appVersion) return [];
+  if (!appVersion) return null;
 
   const versions = eligibleVersionsSorted(mappings, appVersion);
-  if (versions.length === 0) return [];
+  if (versions.length === 0) return null;
 
   return mappings[versions[0]];
+}
+
+export function resolveSections(
+  mappings: VideoTutorialsMappings,
+  appVersionRaw: string,
+): VideoTutorialsSection[] {
+  return resolveVersion(mappings, appVersionRaw)?.sections ?? [];
+}
+
+export function resolveVideoGuidePlacement(
+  mappings: VideoTutorialsMappings,
+  appVersionRaw: string,
+  placementKey: string | undefined,
+): VideoGuidePlacement | null {
+  if (!placementKey) {
+    return null;
+  }
+
+  return resolveVersion(mappings, appVersionRaw)?.placements?.[placementKey] ?? null;
 }

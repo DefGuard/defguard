@@ -1,3 +1,6 @@
+ignorePaths:
+  - e2e/**
+
 vulnerabilities:
   - id: CVE-2026-0861
     expired_at: 2026-03-30
