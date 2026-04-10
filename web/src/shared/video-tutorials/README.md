@@ -43,7 +43,6 @@ by default via the shared update-service client.
         "migrationWizard": {
           "youtubeVideoId": "xyz987GHI12",
           "title": "Migration wizard guide",
-          "description": "How to migrate your deployment.",
           "docsUrl": "https://docs.defguard.net/migration"
         }
       }
@@ -61,7 +60,9 @@ by default via the shared update-service client.
 - `placements` is optional.
 - `placements.migrationWizard` is optional.
 - Route tutorial videos require `appRoute`.
+- Route tutorial videos require `description`.
 - Placement videos do not use `appRoute`.
+- Migration-wizard placement videos do not use `description`.
 
 ## Version resolution
 

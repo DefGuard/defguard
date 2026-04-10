@@ -1,10 +1,10 @@
 export interface PlayableVideo {
   youtubeVideoId: string;
   title: string;
-  description: string;
 }
 
 export interface VideoTutorial extends PlayableVideo {
+  description: string;
   /** In-app route this video is associated with (must start with "/"). */
   appRoute: string;
   /** External documentation URL. */

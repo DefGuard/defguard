@@ -121,7 +121,6 @@ const makeMappings = (): VideoTutorialsMappings => ({
       migrationWizard: {
         youtubeVideoId: 'abcDEFghiJK',
         title: 'Migration wizard guide',
-        description: 'How to migrate your deployment.',
         docsUrl: 'https://docs.defguard.net/migration',
       },
     },
@@ -207,7 +206,6 @@ describe('resolveMigrationWizardPlacement', () => {
           migrationWizard: {
             youtubeVideoId: 'abcDEFghiJK',
             title: 'Migration wizard guide',
-            description: 'How to migrate your deployment.',
             docsUrl: 'https://docs.defguard.net/migration',
           },
         },
@@ -258,7 +256,6 @@ const validRaw = {
         migrationWizard: {
           youtubeVideoId: 'xyz987GHI12',
           title: 'Migration guide',
-          description: 'A migration guide video.',
           docsUrl: 'https://docs.defguard.net/migration',
         },
       },
@@ -524,7 +521,6 @@ describe('parseVideoTutorials', () => {
             migrationWizard: {
               youtubeVideoId: 'xyz987GHI12',
               title: 'Migration guide',
-              description: 'A migration guide video.',
               docsUrl: 'not-a-url',
             },
           },
@@ -545,7 +541,6 @@ describe('parseVideoTutorials', () => {
             migrationWizard: {
               youtubeVideoId: 'xyz987GHI12',
               title: 'Migration guide',
-              description: 'A migration guide video.',
               docsUrl: 'https://docs.defguard.net/migration',
               extraPlacementField: 'ignored',
             },
