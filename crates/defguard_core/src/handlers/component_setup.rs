@@ -27,6 +27,7 @@ use defguard_common::{
         },
     },
     types::proxy::ProxyControlMessage,
+    utils::strip_scheme,
 };
 use defguard_proto::{
     common::{CertificateInfo, DerPayload},
@@ -242,31 +243,33 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("License check passed");
 
+        let ip_or_domain = strip_scheme(&request.ip_or_domain);
+
         // Step 1: Check configuration
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
-        match Proxy::find_by_address_port(&pool, &request.ip_or_domain, i32::from(request.grpc_port)).await {
+        match Proxy::find_by_address_port(&pool, ip_or_domain, i32::from(request.grpc_port)).await {
             Ok(Some(proxy)) => {
                 yield Ok(flow.error(&format!(
-                    "Edge with address {}:{} is already registered with name \"{}\".",
-                    request.ip_or_domain, request.grpc_port, proxy.name
+                    "Edge with address {ip_or_domain}:{} is already registered with name \"{}\".",
+                     request.grpc_port, proxy.name
                 )));
                 return;
             }
             Ok(None) => {
                 debug!(
-                    "Verified no existing proxy registration for {}:{}",
-                    request.ip_or_domain, request.grpc_port
+                    "Verified no existing Edge registration for {ip_or_domain}:{}",
+                     request.grpc_port
                 );
             }
             Err(e) => {
-                yield Ok(flow.error(&format!("Failed to query existing proxy: {e}")));
+                yield Ok(flow.error(&format!("Failed to query existing Edge: {e}")));
                 return;
             }
         }
 
         debug!("Configuration check passed");
 
-        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
+        let url_str = format!("http://{ip_or_domain}:{}",  request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -328,8 +331,8 @@ pub async fn setup_proxy_tls_stream(
         };
 
         debug!(
-            "Prepared secure connection endpoint for Edge at {}:{}",
-            request.ip_or_domain, request.grpc_port
+            "Prepared secure connection endpoint for Edge at {ip_or_domain}:{}",
+             request.grpc_port
         );
 
         let version = match Version::parse(VERSION) {
@@ -369,8 +372,8 @@ pub async fn setup_proxy_tls_stream(
         });
 
         debug!(
-            "Initiating connection to Edge at {}:{}",
-            request.ip_or_domain, request.grpc_port
+            "Initiating connection to Edge at {ip_or_domain}:{}",
+             request.grpc_port
         );
 
         let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
@@ -379,24 +382,24 @@ pub async fn setup_proxy_tls_stream(
                 let error_msg = status.message();
                 if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
                     yield Ok(flow.error(&format!(
-                        "Failed to connect to Edge at {}:{}: {error_msg}. This may indicate that \
+                        "Failed to connect to Edge at {ip_or_domain}:{}: {error_msg}. This may indicate that \
                         the Edge is already configured with TLS. Please check if the Edge has \
                         already been set up.",
-                        request.ip_or_domain, request.grpc_port
+                         request.grpc_port
                     )));
                 } else {
                     yield Ok(flow.error(&format!(
-                        "Failed to connect to Edge at {}:{}: {error_msg}. Please ensure the \
+                        "Failed to connect to Edge at {ip_or_domain}:{}: {error_msg}. Please ensure the \
                         address and port are correct and that the Edge component is running.",
-                        request.ip_or_domain, request.grpc_port
+                         request.grpc_port
                     )));
                 }
                 return;
             }
             Err(_) => {
                 yield Ok(flow.error(&format!(
-                    "Connection to Edge at {}:{} timed out after {} seconds",
-                    CONNECTION_TIMEOUT.as_secs(), request.ip_or_domain, request.grpc_port
+                    "Connection to Edge at {ip_or_domain}:{} timed out after {} seconds",
+                    request.grpc_port, CONNECTION_TIMEOUT.as_secs()
                 )));
                 return;
             }
@@ -566,10 +569,10 @@ pub async fn setup_proxy_tls_stream(
         debug!("Certificate expiry date determined: {expiry}");
 
         let mut proxy = Proxy::new(
-            &request.common_name,
-            &request.ip_or_domain,
+            request.common_name.as_str(),
+            ip_or_domain,
             i32::from(request.grpc_port),
-            &session.user.fullname(),
+            session.user.fullname().as_str(),
         );
         proxy.certificate = Some(serial);
         proxy.certificate_expiry = Some(expiry);
@@ -675,16 +678,16 @@ pub async fn setup_gateway_tls_stream(
             flow.step(SetupStep::CheckingConfiguration)
         );
 
+        let ip_or_domain = strip_scheme(&request.ip_or_domain);
 
-
-        match Gateway::find_by_url(&pool, &request.ip_or_domain, request.grpc_port).await {
+        match Gateway::find_by_url(&pool, ip_or_domain, request.grpc_port).await {
             Ok(Some(gateway)) => {
-               yield Ok(flow.error(&format!("A Gateway with URL {}:{} is already registered with \
-                   name \"{}\".", request.ip_or_domain, request.grpc_port, gateway.name)));
+               yield Ok(flow.error(&format!("A Gateway with URL {ip_or_domain}:{} is already registered with \
+                   name \"{}\".",  request.grpc_port, gateway.name)));
                return;
             }
             Ok(None) => {
-                debug!("Verified no existing Gateway registration for {}:{}", request.ip_or_domain,
+                debug!("Verified no existing Gateway registration for {ip_or_domain}:{}",
                     request.grpc_port);
             },
             Err(e) => {
@@ -693,7 +696,7 @@ pub async fn setup_gateway_tls_stream(
             }
         }
 
-        let url_str = format!("http://{}:{}", request.ip_or_domain, request.grpc_port);
+        let url_str = format!("http://{ip_or_domain}:{}",  request.grpc_port);
         let url = match Url::parse(&url_str) {
             Ok(u) => u,
             Err(e) => {
@@ -754,7 +757,7 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
-        debug!("Prepared secure connection endpoint for Gateway at {}:{}", request.ip_or_domain,
+        debug!("Prepared secure connection endpoint for Gateway at {ip_or_domain}:{}",
             request.grpc_port);
 
         let version = match Version::parse(VERSION) {
@@ -800,7 +803,7 @@ pub async fn setup_gateway_tls_stream(
             }
         );
 
-        debug!("Initiating connection to Gateway at {}:{}", request.ip_or_domain,
+        debug!("Initiating connection to Gateway at {ip_or_domain}:{}",
             request.grpc_port);
 
         let response_with_metadata = match tokio::time::timeout(
@@ -812,24 +815,24 @@ pub async fn setup_gateway_tls_stream(
                 let error_msg = status.message();
                 if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
                     yield Ok(flow.error(&format!(
-                        "Failed to connect to Gateway at {}:{}: {error_msg}. This may indicate \
+                        "Failed to connect to Gateway at {ip_or_domain}:{}: {error_msg}. This may indicate \
                         that the Gateway is already configured with TLS. Please, check if the \
                         Gateway has already been set up.",
-                        request.ip_or_domain, request.grpc_port,
+                         request.grpc_port,
                     )));
                 } else {
                     yield Ok(flow.error(&format!(
-                        "Failed to connect to Gateway at {}:{}: {error_msg}. Please ensure the \
+                        "Failed to connect to Gateway at {ip_or_domain}:{}: {error_msg}. Please ensure the \
                         address and port are correct and that the Gateway is running.",
-                        request.ip_or_domain, request.grpc_port
+                         request.grpc_port
                     )));
                 }
                 return;
             }
             Err(_) => {
                 yield Ok(flow.error(&format!(
-                    "Connection to Gateway at {}:{} timed out after 10 seconds.",
-                    request.ip_or_domain, request.grpc_port
+                    "Connection to Gateway at {ip_or_domain}:{} timed out after 10 seconds.",
+                     request.grpc_port
                 )));
                 return;
             }
@@ -1023,7 +1026,7 @@ pub async fn setup_gateway_tls_stream(
         let mut gateway = Gateway::new(
             network_id,
             request.common_name,
-            request.ip_or_domain,
+            ip_or_domain.to_owned(),
             request.grpc_port.into(),
             session.user.fullname(),
         );
@@ -1117,7 +1120,7 @@ fn public_proxy_hostname() -> Result<String, String> {
 
     if url.is_empty() {
         return Err(
-            "Public proxy URL is not configured. Please re-submit the external URL settings \
+            "Public Edge URL is not configured. Please re-submit the external URL settings \
              with a Let's Encrypt domain."
                 .to_string(),
         );
@@ -1128,7 +1131,7 @@ fn public_proxy_hostname() -> Result<String, String> {
         .and_then(|u| u.host_str().map(ToString::to_string))
         .filter(|host| !host.is_empty())
         .ok_or_else(|| {
-            "Public proxy URL is not configured with a valid hostname. Please re-submit the \
+            "Public Edge URL is not configured with a valid hostname. Please re-submit the \
              external URL settings with a valid domain."
                 .to_string()
         })
@@ -1162,7 +1165,7 @@ async fn call_proxy_trigger_acme(
 
     let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
     let endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| (format!("Failed to build proxy endpoint: {e}"), Vec::new()))?
+        .map_err(|e| (format!("Failed to build Edge endpoint: {e}"), Vec::new()))?
         .http2_keep_alive_interval(Duration::from_secs(5))
         .tcp_keepalive(Some(Duration::from_secs(5)))
         .keep_alive_while_idle(true);
@@ -1170,7 +1173,7 @@ async fn call_proxy_trigger_acme(
     let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
     let endpoint = endpoint.tls_config(tls).map_err(|e| {
         (
-            format!("Failed to configure TLS for proxy endpoint: {e}"),
+            format!("Failed to configure TLS for Edge endpoint: {e}"),
             Vec::new(),
         )
     })?;
@@ -1271,7 +1274,7 @@ pub async fn stream_proxy_acme(
             Err(e) => {
                 yield Ok(acme_error_event(
                     "Connecting",
-                    format!("Failed to load proxy list from DB: {e}"),
+                    format!("Failed to load Edge list from DB: {e}"),
                     None,
                 ));
                 return;
@@ -1281,7 +1284,7 @@ pub async fn stream_proxy_acme(
         let Some(proxy) = proxies.into_iter().next() else {
             yield Ok(acme_error_event(
                 "Connecting",
-                "No proxy found in database. Please complete the edge adoption step \
+                "No Edge found in database. Please complete the edge adoption step \
                  first."
                     .to_string(),
                 None,
@@ -1292,8 +1295,8 @@ pub async fn stream_proxy_acme(
         let proxy_host = proxy.address.clone();
         let proxy_port = proxy.port as u16;
         info!(
-            "Triggering ACME HTTP-01 via Proxy gRPC TriggerAcme for domain: {domain} \
-             proxy={proxy_host}:{proxy_port}"
+            "Triggering ACME HTTP-01 via Edge gRPC TriggerAcme for domain: {domain} \
+             Edge={proxy_host}:{proxy_port}"
         );
 
         let (progress_tx, mut progress_rx) =
@@ -1391,7 +1394,7 @@ pub async fn stream_proxy_acme(
                         key_pem,
                     };
                     if let Err(e) = tx.send(msg).await {
-                        error!("Failed to broadcast HttpsCerts to proxy: {e}");
+                        error!("Failed to broadcast HttpsCerts to Edge: {e}");
                     }
                 }
 

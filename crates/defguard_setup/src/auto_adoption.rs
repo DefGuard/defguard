@@ -19,6 +19,7 @@ use defguard_common::{
         },
         wireguard::{LocationMfaMode, ServiceLocationMode},
     },
+    utils::strip_scheme,
 };
 use defguard_core::{
     setup_logs::scope_setup_logs,
@@ -99,6 +100,9 @@ async fn ensure_ca_for_auto_adoption(pool: &PgPool) -> Result<(), anyhow::Error>
 }
 
 fn parse_host_port(input: &str) -> Result<(String, u16), anyhow::Error> {
+    // Strip any scheme the user may have accidentally included (e.g. "http://host:port")
+    let input = strip_scheme(input);
+
     if let Some(rest) = input.strip_prefix('[') {
         let (host, port_part) = rest
             .split_once(']')
@@ -1101,4 +1105,64 @@ pub async fn attempt_auto_adoption(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_host_port;
+
+    #[test]
+    fn test_parse_host_port_plain() {
+        let (host, port) = parse_host_port("172.30.0.30:50052").unwrap();
+        assert_eq!(host, "172.30.0.30");
+        assert_eq!(port, 50052);
+    }
+
+    #[test]
+    fn test_parse_host_port_strips_http_scheme() {
+        let (host, port) = parse_host_port("http://172.30.0.30:50052").unwrap();
+        assert_eq!(host, "172.30.0.30");
+        assert_eq!(port, 50052);
+    }
+
+    #[test]
+    fn test_parse_host_port_strips_https_scheme() {
+        let (host, port) = parse_host_port("https://edge.example.com:50052").unwrap();
+        assert_eq!(host, "edge.example.com");
+        assert_eq!(port, 50052);
+    }
+
+    #[test]
+    fn test_parse_host_port_domain_plain() {
+        let (host, port) = parse_host_port("edge.example.com:50052").unwrap();
+        assert_eq!(host, "edge.example.com");
+        assert_eq!(port, 50052);
+    }
+
+    #[test]
+    fn test_parse_host_port_ipv6_plain() {
+        let (host, port) = parse_host_port("[::1]:50052").unwrap();
+        assert_eq!(host, "::1");
+        assert_eq!(port, 50052);
+    }
+
+    #[test]
+    fn test_parse_host_port_ipv6_with_http_scheme() {
+        // After stripping "http://", input becomes "[::1]:50052" which is valid IPv6 notation
+        let (host, port) = parse_host_port("http://[::1]:50052").unwrap();
+        assert_eq!(host, "::1");
+        assert_eq!(port, 50052);
+    }
+
+    #[test]
+    fn test_parse_host_port_missing_port_is_error() {
+        assert!(parse_host_port("172.30.0.30").is_err());
+        assert!(parse_host_port("http://172.30.0.30").is_err());
+    }
+
+    #[test]
+    fn test_parse_host_port_invalid_port_is_error() {
+        assert!(parse_host_port("172.30.0.30:99999").is_err());
+        assert!(parse_host_port("http://172.30.0.30:notaport").is_err());
+    }
 }

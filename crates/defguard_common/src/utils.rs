@@ -3,6 +3,15 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use ipnetwork::IpNetwork;
 use serde::Serialize;
 
+/// Strip any `http://` or `https://` scheme prefix a user may have accidentally
+/// included in a hostname/IP field that expects a bare host, not a URL.
+#[must_use]
+pub fn strip_scheme(s: &str) -> &str {
+    s.strip_prefix("https://")
+        .or_else(|| s.strip_prefix("http://"))
+        .unwrap_or(s)
+}
+
 /// Parse a string with comma-separated IP addresses.
 /// Invalid addresses will be silently ignored.
 #[must_use]
