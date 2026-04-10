@@ -139,18 +139,6 @@ export const UsersTable = () => {
   const navigate = useNavigate({ from: '/users' });
   const [selected, setSelected] = useState<RowSelectionState>({});
 
-  const transformedData = useMemo(() => {
-    let data = users;
-    if (search.length) {
-      data = data.filter(
-        (u) =>
-          u.first_name.toLowerCase().includes(search.toLowerCase()) ||
-          u.last_name.toLowerCase().includes(search.toLowerCase()),
-      );
-    }
-    return data;
-  }, [users, search.length, search.toLowerCase, search]);
-
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', {
@@ -680,12 +668,22 @@ export const UsersTable = () => {
     state: {
       rowSelection: selected,
       columnFilters: columnFilters,
+      globalFilter: search,
     },
+    globalFilterFn: (row, _column, filterValue: string) => {
+      const u = row.original;
+      const lower = filterValue.toLowerCase();
+      return (
+        u.first_name.toLowerCase().includes(lower) ||
+        u.last_name.toLowerCase().includes(lower)
+      );
+    },
+    getRowId: (row) => String(row.id),
     meta: {
       filterMessages: tableFilterMessages,
     },
     columns,
-    data: transformedData,
+    data: users,
     enableRowSelection: true,
     enableExpanding: true,
     columnResizeMode: 'onChange',
@@ -697,6 +695,8 @@ export const UsersTable = () => {
     getExpandedRowModel: getExpandedRowModel(),
     getRowCanExpand: (row) => row.original.devices.length > 0,
   });
+
+  const rows = table.getRowModel().rows;
 
   if (users.length === 0)
     return (
@@ -710,25 +710,22 @@ export const UsersTable = () => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) &&
-          isPresent(groups) && (
-            <Button
-              variant="outlined"
-              text={m.users_bulk_assign_to_groups()}
-              iconLeft="add-group"
-              testId="bulk-assign"
-              onClick={() => {
-                const selected = table
-                  .getSelectedRowModel()
-                  .rows.map((row) => row.original.id);
-                openModal(ModalName.AssignGroupsToUsers, {
-                  groups,
-                  users: selected,
-                });
-                table.resetRowSelection();
-              }}
-            />
-          )}
+        {Object.keys(selected).length > 0 && isPresent(groups) && (
+          <Button
+            variant="outlined"
+            text={m.users_bulk_assign_to_groups()}
+            iconLeft="add-group"
+            testId="bulk-assign"
+            onClick={() => {
+              const userIds = Object.keys(selected).map(Number);
+              openModal(ModalName.AssignGroupsToUsers, {
+                groups,
+                users: userIds,
+                onSuccess: () => setSelected({}),
+              });
+            }}
+          />
+        )}
         <Search
           placeholder={m.users_search_placeholder()}
           initialValue={search}
@@ -736,14 +733,14 @@ export const UsersTable = () => {
         />
         <Button {...addButtonProps} />
       </TableTop>
-      {transformedData.length === 0 && search.length > 0 && (
+      {rows.length === 0 && search.length > 0 && (
         <EmptyStateFlexible
           icon="search"
           title={m.search_empty_common_title()}
           subtitle={m.search_empty_common_subtitle()}
         />
       )}
-      {transformedData.length > 0 && (
+      {rows.length > 0 && (
         <TableBody
           table={table}
           renderExpandedRow={renderExpanded}
