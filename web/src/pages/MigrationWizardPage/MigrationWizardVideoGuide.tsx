@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import { m } from '../../paraglide/messages';
+import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
+import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
 import { ExternalLink } from '../../shared/defguard-ui/components/ExternalLink/ExternalLink';
 import { Icon } from '../../shared/defguard-ui/components/Icon/Icon';
-import { ThemeVariable } from '../../shared/defguard-ui/types';
+import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
 import { Thumbnail } from '../../shared/video-tutorials/components/widget/Thumbnail/Thumbnail';
 import { VideoOverlay } from '../../shared/video-tutorials/components/widget/VideoOverlay/VideoOverlay';
 import type { VideoTutorial } from '../../shared/video-tutorials/types';
@@ -15,7 +19,6 @@ const MIGRATION_VIDEO: VideoTutorial = {
 };
 
 const VIDEO_DURATION = '00:50';
-const DOCS_LABEL = 'Defguard Configuration Guide';
 
 export const MigrationWizardVideoGuide = () => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -23,11 +26,16 @@ export const MigrationWizardVideoGuide = () => {
   return (
     <>
       <div className="migration-wizard-support">
-        <div className="migration-wizard-support-section">
+        <SizedBox height={ThemeSpacing.Xl5} />
+
+        <div>
           <div className="migration-wizard-support-header">
             <Icon icon="help" size={20} staticColor={ThemeVariable.FgFaded} />
-            <span>Video guide</span>
+            <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
+              {m.migration_wizard_support_video_guide()}
+            </AppText>
           </div>
+          <SizedBox height={ThemeSpacing.Md} />
           <button
             type="button"
             className="migration-wizard-video-card"
@@ -43,25 +51,36 @@ export const MigrationWizardVideoGuide = () => {
               </div>
             </div>
             <div className="migration-wizard-video-info">
-              <p className="migration-wizard-video-title">{MIGRATION_VIDEO.title}</p>
+              <AppText
+                className="migration-wizard-video-title"
+                font={TextStyle.TBodySm400}
+                color={ThemeVariable.FgFaded}
+              >
+                {MIGRATION_VIDEO.title}
+              </AppText>
               <div className="migration-wizard-video-duration">
                 <Icon icon="transactions" size={16} staticColor={ThemeVariable.FgMuted} />
-                <span>{VIDEO_DURATION}</span>
+                <AppText font={TextStyle.TBodyXs500} color={ThemeVariable.FgMuted}>
+                  {VIDEO_DURATION}
+                </AppText>
               </div>
             </div>
           </button>
         </div>
 
-        <div className="migration-wizard-support-divider" />
+        <Divider spacing={ThemeSpacing.Xs} />
 
-        <div className="migration-wizard-support-section">
+        <div>
           <div className="migration-wizard-support-header">
             <Icon icon="file" size={20} staticColor={ThemeVariable.FgFaded} />
-            <span>Related documentation</span>
+            <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
+              {m.migration_wizard_support_related_documentation()}
+            </AppText>
           </div>
+          <SizedBox height={ThemeSpacing.Md} />
           <div className="migration-wizard-doc-card">
             <ExternalLink href={MIGRATION_VIDEO.docsUrl} target="_blank" rel="noreferrer">
-              {DOCS_LABEL}
+              {m.migration_wizard_support_documentation_link()}
             </ExternalLink>
           </div>
         </div>
