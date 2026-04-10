@@ -38,9 +38,6 @@ export const SettingsEditOpenIdProviderPage = () => {
 
   const { mutateAsync } = useMutation({
     mutationFn: api.openIdProvider.editOpenIdProvider,
-    onSuccess: () => {
-      router.history.back();
-    },
     meta: {
       invalidate: [['settings'], ['info'], ['openid']],
     },
@@ -68,10 +65,28 @@ export const SettingsEditOpenIdProviderPage = () => {
           ...formData,
           directory_sync_group_match: joinCsv(formData.directory_sync_group_match),
         };
-        await mutateAsync({ ...normalizedFormData, ...values });
+        const submitValues = { ...normalizedFormData, ...values };
+        await mutateAsync(submitValues);
+        if (values.directory_sync_enabled) {
+          try {
+            const { data: result } = await api.openIdProvider.testDirectorySync();
+            if (!result.success) {
+              await mutateAsync({ ...submitValues, directory_sync_enabled: false });
+              Snackbar.error(
+                result.message ?? m.settings_openid_provider_validation_failure_title(),
+              );
+              return;
+            }
+          } catch (_) {
+            await mutateAsync({ ...submitValues, directory_sync_enabled: false });
+            Snackbar.error(m.settings_openid_provider_validation_failure_title());
+            return;
+          }
+        }
+        router.history.back();
       }
     },
-    [formData, mutateAsync],
+    [formData, mutateAsync, router],
   );
 
   if (!formData) return null;
