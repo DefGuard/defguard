@@ -27,10 +27,7 @@ pub struct AppInfo {
     external_openid_enabled: bool,
 }
 
-pub async fn get_app_info(
-    State(appstate): State<AppState>,
-    _session: SessionInfo,
-) -> ApiResult {
+pub async fn get_app_info(State(appstate): State<AppState>, _session: SessionInfo) -> ApiResult {
     // both `await`s are executed upfront to avoid holding license `RwLock` across an await point
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let external_openid_enabled = OpenIdProvider::get_current(&appstate.pool).await?.is_some();
