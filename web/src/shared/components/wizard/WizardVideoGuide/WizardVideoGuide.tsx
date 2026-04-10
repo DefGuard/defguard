@@ -1,28 +1,28 @@
 import { useState } from 'react';
-import { m } from '../../paraglide/messages';
-import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
-import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
-import { ExternalLink } from '../../shared/defguard-ui/components/ExternalLink/ExternalLink';
-import { Helper } from '../../shared/defguard-ui/components/Helper/Helper';
-import { Icon } from '../../shared/defguard-ui/components/Icon/Icon';
-import { SizedBox } from '../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { TextStyle, ThemeSpacing, ThemeVariable } from '../../shared/defguard-ui/types';
-import { Thumbnail } from '../../shared/video-tutorials/components/widget/Thumbnail/Thumbnail';
-import { VideoOverlay } from '../../shared/video-tutorials/components/widget/VideoOverlay/VideoOverlay';
-import { useMigrationWizardVideoGuide } from '../../shared/video-tutorials/resolved';
+import { m } from '../../../../paraglide/messages';
+import { AppText } from '../../../defguard-ui/components/AppText/AppText';
+import { Divider } from '../../../defguard-ui/components/Divider/Divider';
+import { ExternalLink } from '../../../defguard-ui/components/ExternalLink/ExternalLink';
+import { Helper } from '../../../defguard-ui/components/Helper/Helper';
+import { Icon } from '../../../defguard-ui/components/Icon/Icon';
+import { SizedBox } from '../../../defguard-ui/components/SizedBox/SizedBox';
+import { TextStyle, ThemeSpacing, ThemeVariable } from '../../../defguard-ui/types';
+import { Thumbnail } from '../../../video-tutorials/components/widget/Thumbnail/Thumbnail';
+import { VideoOverlay } from '../../../video-tutorials/components/widget/VideoOverlay/VideoOverlay';
+import type { VideoGuidePlacement } from '../../../video-tutorials/types';
 
-export const MigrationWizardVideoGuide = () => {
-  const videoGuide = useMigrationWizardVideoGuide();
+type Props = {
+  videoGuide: VideoGuidePlacement;
+};
+
+export const WizardVideoGuide = ({ videoGuide }: Props) => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
-
-  if (!videoGuide) {
-    return null;
-  }
 
   return (
     <>
       <div className="migration-wizard-support">
         <SizedBox height={ThemeSpacing.Xl5} />
+
         <div>
           <div className="migration-wizard-support-header">
             <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>

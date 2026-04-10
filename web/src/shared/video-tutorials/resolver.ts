@@ -1,5 +1,5 @@
 import type {
-  MigrationWizardPlacement,
+  VideoGuidePlacement,
   VideoTutorialsMappings,
   VideoTutorialsSection,
   VideoTutorialsVersionEntry,
@@ -26,7 +26,7 @@ function eligibleVersionsSorted(
 /**
  * Returns the newest eligible version entry (version key <= app version).
  * Consumers that only need sections or placements should prefer the narrower
- * helpers (`resolveSections` / `resolveMigrationWizardPlacement`). Returns
+ * helpers (`resolveSections` / `resolveVideoGuidePlacement`). Returns
  * `null` if no eligible version exists or the app version is invalid.
  */
 export function resolveVersion(
@@ -49,9 +49,14 @@ export function resolveSections(
   return resolveVersion(mappings, appVersionRaw)?.sections ?? [];
 }
 
-export function resolveMigrationWizardPlacement(
+export function resolveVideoGuidePlacement(
   mappings: VideoTutorialsMappings,
   appVersionRaw: string,
-): MigrationWizardPlacement | null {
-  return resolveVersion(mappings, appVersionRaw)?.placements?.migrationWizard ?? null;
+  placementKey: string | undefined,
+): VideoGuidePlacement | null {
+  if (!placementKey) {
+    return null;
+  }
+
+  return resolveVersion(mappings, appVersionRaw)?.placements?.[placementKey] ?? null;
 }

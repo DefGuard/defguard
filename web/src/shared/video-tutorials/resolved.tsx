@@ -2,13 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useMatches } from '@tanstack/react-router';
 import { useApp } from '../hooks/useApp';
 import { videoTutorialsQueryOptions } from '../query';
-import { resolveMigrationWizardPlacement, resolveSections } from './resolver';
+import { resolveSections, resolveVideoGuidePlacement } from './resolver';
 import { canonicalizeRouteKey } from './route-key';
-import type {
-  MigrationWizardPlacement,
-  VideoTutorial,
-  VideoTutorialsSection,
-} from './types';
+import type { VideoGuidePlacement, VideoTutorial, VideoTutorialsSection } from './types';
 
 // Matches routes defined under src/routes/_authorized/_default.tsx
 const CONTENT_ROUTE_PREFIX = '/_authorized/_default/';
@@ -16,7 +12,7 @@ const CONTENT_ROUTE_PREFIX = '/_authorized/_default/';
 // Stable empty references — avoids triggering effects/memos that depend on these values.
 const EMPTY_VIDEO_TUTORIALS: VideoTutorial[] = [];
 const EMPTY_SECTIONS: VideoTutorialsSection[] = [];
-const EMPTY_MIGRATION_WIZARD_PLACEMENT: MigrationWizardPlacement | null = null;
+const EMPTY_VIDEO_GUIDE_PLACEMENT: VideoGuidePlacement | null = null;
 
 /**
  * Derives the canonical route key for the current page from TanStack Router
@@ -47,12 +43,14 @@ export function useVideoTutorialsSections(): VideoTutorialsSection[] {
   return resolveSections(data, appVersion);
 }
 
-export function useMigrationWizardVideoGuide(): MigrationWizardPlacement | null {
+export function useWizardVideoGuidePlacement(
+  placementKey: string | undefined,
+): VideoGuidePlacement | null {
   const { data } = useQuery(videoTutorialsQueryOptions);
   const appVersion = useApp((s) => s.appInfo.version);
 
-  if (!data || !appVersion) return EMPTY_MIGRATION_WIZARD_PLACEMENT;
-  return resolveMigrationWizardPlacement(data, appVersion);
+  if (!placementKey || !data || !appVersion) return EMPTY_VIDEO_GUIDE_PLACEMENT;
+  return resolveVideoGuidePlacement(data, appVersion, placementKey);
 }
 
 /**

@@ -225,7 +225,7 @@ Rules:
 Consumers built on top of that selected version:
 
 - `resolveSections()` returns `selectedVersion.sections`
-- `resolveMigrationWizardPlacement()` returns `selectedVersion.placements?.migrationWizard`
+- `resolveVideoGuidePlacement()` returns `selectedVersion.placements?[placementKey]`
 
 There is no fallback to older versions once a newer eligible version has been
 selected. If `2.2` is selected and omits `placements.migrationWizard`, the

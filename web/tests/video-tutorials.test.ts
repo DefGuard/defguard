@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parseVideoTutorials } from '../src/shared/video-tutorials/data';
 import {
-  resolveMigrationWizardPlacement,
   resolveSections,
+  resolveVideoGuidePlacement,
   resolveVersion,
 } from '../src/shared/video-tutorials/resolver';
 import { canonicalizeRouteKey } from '../src/shared/video-tutorials/route-key';
@@ -189,12 +189,12 @@ describe('resolveSections', () => {
 });
 
 // ---------------------------------------------------------------------------
-// resolveMigrationWizardPlacement
+// resolveVideoGuidePlacement
 // ---------------------------------------------------------------------------
 
-describe('resolveMigrationWizardPlacement', () => {
+describe('resolveVideoGuidePlacement', () => {
   it('should return the placement from the newest eligible version', () => {
-    const result = resolveMigrationWizardPlacement(makeMappings(), '2.3.0');
+    const result = resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'migrationWizard');
 
     expect(result?.title).toBe('Migration wizard guide');
   });
@@ -217,7 +217,7 @@ describe('resolveMigrationWizardPlacement', () => {
       },
     };
 
-    const result = resolveMigrationWizardPlacement(mappings, '2.2');
+    const result = resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard');
 
     expect(result).toBeNull();
   });
@@ -229,7 +229,11 @@ describe('resolveMigrationWizardPlacement', () => {
       },
     };
 
-    expect(resolveMigrationWizardPlacement(mappings, '2.2')).toBeNull();
+    expect(resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard')).toBeNull();
+  });
+
+  it('should return null for an unsupported placement key', () => {
+    expect(resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'unknownPlacement')).toBeNull();
   });
 });
 

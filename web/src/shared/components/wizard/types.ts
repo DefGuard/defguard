@@ -5,7 +5,7 @@ export interface WizardPageConfig {
   subtitle: string;
   activeStep: string | number;
   steps: WizardPageStepsConfig;
-  videoGuidePath?: string;
+  videoGuidePlacementKey?: string;
   relatedDocs?: WizardDocsLink[];
   welcomePageConfig?: WizardWelcomePageConfig;
   isOnWelcomePage?: boolean;
