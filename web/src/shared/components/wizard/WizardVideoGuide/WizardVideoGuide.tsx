@@ -21,7 +21,7 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
 
   return (
     <>
-      <div className="support">
+      <div id="wizard-video-support">
         <SizedBox height={ThemeSpacing.Xl5} />
 
         <div className="support-header">
