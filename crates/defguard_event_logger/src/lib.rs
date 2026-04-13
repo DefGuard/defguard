@@ -27,7 +27,7 @@ use message::{
     DefguardEvent, EnrollmentEvent, EventContext, EventLoggerMessage, LoggerEvent, VpnEvent,
 };
 use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedReceiver};
 use tracing::{debug, error, info, trace};
 
 pub mod description;
@@ -44,7 +44,7 @@ const MESSAGE_LIMIT: usize = 100;
 pub async fn run_event_logger(
     pool: PgPool,
     mut event_logger_rx: UnboundedReceiver<EventLoggerMessage>,
-    activity_log_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
+    activity_log_messages_tx: Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
     info!("Starting activity log event logger service");
 
@@ -73,7 +73,7 @@ pub async fn run_event_logger(
 async fn process_batch(
     pool: &PgPool,
     message_buffer: Vec<EventLoggerMessage>,
-    activity_log_messages_tx: &tokio::sync::broadcast::Sender<Bytes>,
+    activity_log_messages_tx: &Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
     let mut transaction = pool.begin().await?;
     let mut serialized_activity_log_events = String::new();
@@ -591,7 +591,7 @@ async fn process_batch(
 
     // Send serialized events
     if !serialized_activity_log_events.is_empty() {
-        let in_bytes = bytes::Bytes::from(serialized_activity_log_events);
+        let in_bytes = Bytes::from(serialized_activity_log_events);
         if let Err(send_err) = activity_log_messages_tx.send(in_bytes) {
             trace!(
                 "Sending serialized activity log events message failed. Most likely because there is no listeners. Reason: {send_err}"
