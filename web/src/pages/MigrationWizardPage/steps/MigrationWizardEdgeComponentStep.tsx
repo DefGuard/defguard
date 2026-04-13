@@ -66,6 +66,10 @@ export const MigrationWizardEdgeComponentStep = () => {
     onSubmit: ({ value }) => {
       useMigrationWizardStore.setState({
         ...value,
+        proxy_url: {
+          domain: value.ip_or_domain,
+          port: value.grpc_port,
+        },
       });
       useMigrationWizardStore.getState().next();
     },
