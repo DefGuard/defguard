@@ -64,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
     if dotenvy::from_filename(".env.local").is_err() {
         dotenvy::dotenv().ok();
     }
-    let mut config = DefGuardConfig::new();
+    let config = DefGuardConfig::new();
     let log_filter = format!(
         "{},defguard_core::handlers::component_setup=debug,defguard_setup::auto_adoption=debug",
         config.log_level
@@ -142,6 +142,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let wizard = Wizard::init(&pool, has_auto_adopt_flags, &config).await?;
 
     Settings::initialize_runtime_defaults(&pool).await?;
+    SERVER_CONFIG.set(config.clone()).ok();
+
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}
@@ -185,9 +187,6 @@ async fn main() -> Result<(), anyhow::Error> {
         )
     })?;
     update_current_settings(&pool, settings).await?;
-
-    config.initialize_post_settings();
-    SERVER_CONFIG.set(config.clone()).ok();
 
     let settings = Settings::get_current_settings();
 

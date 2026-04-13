@@ -29,7 +29,7 @@ pub(crate) async fn init_config(
 ) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let test_secret_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    let mut config = DefGuardConfig::new_test_config();
+    let config = DefGuardConfig::new_test_config();
     initialize_current_settings(pool)
         .await
         .expect("Could not initialize current settings in the database");
@@ -41,7 +41,6 @@ pub(crate) async fn init_config(
         .expect("Could not update current settings in the database");
     set_test_license_business();
 
-    config.initialize_post_settings();
     let _ = SERVER_CONFIG.set(config.clone());
     config
 }
