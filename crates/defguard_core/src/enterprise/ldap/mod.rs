@@ -15,7 +15,7 @@ use rand::Rng;
 use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status};
 
-use self::error::LdapError;
+use self::error::{LdapError, sanitize_ldap_string};
 use crate::{
     db::{self, User},
     enterprise::{is_business_license_active, ldap::model::extract_dn_path, limits::update_counts},
@@ -582,7 +582,9 @@ impl LDAPConnection {
                 info!("Found LDAP user with DN: {}", dn);
                 User::from_searchentry(&entry, &user.username, None)
             }
-            None => Err(LdapError::ObjectNotFound(format!("User {dn} not found",))),
+            None => Err(LdapError::ObjectNotFound(sanitize_ldap_string(&format!(
+                "User {dn} not found",
+            )))),
         }
     }
 
@@ -626,9 +628,11 @@ impl LDAPConnection {
         if !self.is_username_available(&user.username).await?
             || self.user_exists_by_dn(&user_dn).await?
         {
-            return Err(LdapError::ObjectAlreadyExists(format!(
-                "User with username {} or DN {user_dn} already exists",
-                user.username
+            return Err(LdapError::ObjectAlreadyExists(sanitize_ldap_string(
+                &format!(
+                    "User with username {} or DN {user_dn} already exists",
+                    user.username
+                ),
             )));
         }
         self.add(
@@ -704,9 +708,9 @@ impl LDAPConnection {
             .and_then(|v| v.first())
             .map(ToString::to_string)
             .ok_or_else(|| {
-                LdapError::ObjectNotFound(format!(
+                LdapError::ObjectNotFound(sanitize_ldap_string(&format!(
                     "Couldn't extract a group name from searchentry {entry:?}."
-                ))
+                )))
             })
     }
 
