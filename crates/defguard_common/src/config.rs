@@ -305,14 +305,6 @@ impl DefGuardConfig {
         }
     }
 
-    /// Initialize values that depend on Settings.
-    pub fn initialize_post_settings(&mut self) {
-        if self.cookie_domain.is_none() {
-            let settings = Settings::get_current_settings();
-            self.cookie_domain = settings.cookie_domain().ok();
-        }
-    }
-
     /// Try PKCS#1 and PKCS#8 PEM formats.
     fn parse_openid_key(path: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
         if let Ok(key) = RsaPrivateKey::read_pkcs1_pem_file(path) {
@@ -350,17 +342,6 @@ mod tests {
     fn verify_cli() {
         use clap::CommandFactory;
         DefGuardConfig::command().debug_assert();
-    }
-
-    #[test]
-    fn test_cookie_domain_env_override() {
-        unsafe {
-            env::set_var("DEFGUARD_COOKIE_DOMAIN", "example.com");
-        }
-
-        let config = DefGuardConfig::new();
-
-        assert_eq!(config.cookie_domain, Some("example.com".to_string()));
     }
 
     fn make_config(adopt_edge: Option<&str>, adopt_gateway: Option<&str>) -> DefGuardConfig {
