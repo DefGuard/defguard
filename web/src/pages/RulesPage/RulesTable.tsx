@@ -39,9 +39,9 @@ import { TableCell } from '../../shared/defguard-ui/components/table/TableCell/T
 import { TableEditCell } from '../../shared/defguard-ui/components/table/TableEditCell/TableEditCell';
 import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/TableTop';
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
+import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
-import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 
 type RowData = AclRule;
 
