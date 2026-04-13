@@ -72,7 +72,7 @@ feature-depth = 1
 ignore = [
     { id = "RUSTSEC-2023-0071", reason = "https://github.com/RustCrypto/RSA/issues/19" },
     { id = "RUSTSEC-2024-0436", reason = "Unmaintained dependency of tera" },
-    { id = "RUSTSEC-2026-0097", reason = "Unsound rand 0.8.5 advisory; silenced until jsonwebtoken upgrades their dependencies", timeout = "2026-05-13" },
+    { id = "RUSTSEC-2026-0097", reason = "Unsound rand 0.8.5 advisory; silenced until jsonwebtoken upgrades their dependencies" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
