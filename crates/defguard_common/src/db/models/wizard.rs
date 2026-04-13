@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgExecutor, Type};
+use sqlx::{PgExecutor, Type, query, query_as};
 use tracing::{error, info};
 use url::Url;
 
@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// Which wizard is currently active. Stored as a PostgreSQL enum column.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Serialize, Type)]
 #[sqlx(type_name = "active_wizard", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ActiveWizard {
@@ -41,16 +41,10 @@ impl fmt::Display for ActiveWizard {
 ///
 /// `active_wizard` and `completed` are regular DB columns.
 /// Each wizard type has its own JSONB column for step-tracking state.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct Wizard {
     pub active_wizard: ActiveWizard,
     pub completed: bool,
-}
-
-#[derive(Debug, FromRow)]
-struct WizardDbRow {
-    active_wizard: ActiveWizard,
-    completed: bool,
 }
 
 impl Wizard {
@@ -58,12 +52,12 @@ impl Wizard {
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query(
+        query!(
             "UPDATE wizard SET active_wizard = $1, completed = $2 \
-			 WHERE is_singleton",
+            WHERE is_singleton",
+            self.active_wizard as ActiveWizard,
+            self.completed
         )
-        .bind(self.active_wizard)
-        .bind(self.completed)
         .execute(executor)
         .await?;
 
@@ -74,11 +68,10 @@ impl Wizard {
     where
         E: PgExecutor<'e>,
     {
-        let row = sqlx::query_as::<_, WizardDbRow>(
-            "SELECT active_wizard, completed \
-			 FROM wizard \
-			 WHERE is_singleton \
-			 LIMIT 1",
+        let row = query_as!(
+            Wizard,
+            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed \
+            FROM wizard WHERE is_singleton LIMIT 1",
         )
         .fetch_one(executor)
         .await?;

@@ -176,10 +176,12 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    // Reload settings from database after setup completion to ensure any changes made during setup are reflected in the in-memory settings.
+    // Reload settings from database after setup completion to ensure any changes made during setup
+    // are reflected in the in-memory settings.
     let settings = Settings::get(&pool).await?.ok_or_else(|| {
         anyhow::anyhow!(
-            "Failed to retrieve settings from database after setup completion. This should not happen."
+            "Failed to retrieve settings from database after setup completion. This should not \
+            happen."
         )
     })?;
     update_current_settings(&pool, settings).await?;
