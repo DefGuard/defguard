@@ -41,7 +41,6 @@ pub(crate) async fn init_config(
         .expect("Could not update current settings in the database");
     set_test_license_business();
 
-    config.initialize_post_settings();
     let _ = SERVER_CONFIG.set(config.clone());
     config
 }
