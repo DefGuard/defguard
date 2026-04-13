@@ -334,8 +334,6 @@ impl Default for DefGuardConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-
     use super::*;
 
     #[test]
