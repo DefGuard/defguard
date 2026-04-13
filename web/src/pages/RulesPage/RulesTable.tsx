@@ -41,6 +41,7 @@ import { TableTop } from '../../shared/defguard-ui/components/table/TableTop/Tab
 import { Snackbar } from '../../shared/defguard-ui/providers/snackbar/snackbar';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseBusinessFeature, licenseActionCheck } from '../../shared/utils/license';
+import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 
 type RowData = AclRule;
 
@@ -245,6 +246,8 @@ export const RulesTable = ({
         minSize: 175,
         header: m.edges_col_last_modified(),
         enableSorting: true,
+        // @ts-expect-error
+        sortingFn: 'dateIso',
         cell: (info) => (
           <TableCell>
             <span>{displayDate(info.getValue())}</span>
@@ -396,6 +399,7 @@ export const RulesTable = ({
         },
       ],
     },
+    sortingFns: tableSortingFns,
     columns,
     data: visibleRules,
     enableRowSelection: false,

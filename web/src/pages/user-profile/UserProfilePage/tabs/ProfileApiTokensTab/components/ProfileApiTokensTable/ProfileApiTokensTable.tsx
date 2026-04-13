@@ -31,6 +31,7 @@ export const ProfileApiTokensTable = () => {
     () => [
       columnHelper.accessor('name', {
         enableSorting: true,
+        sortingFn: 'text',
         header: m.profile_api_tokens_col_name(),
         minSize: 300,
         meta: {

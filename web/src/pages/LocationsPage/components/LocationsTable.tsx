@@ -140,6 +140,7 @@ export const LocationsTable = () => {
       columnHelper.accessor('location_mfa_mode', {
         header: m.location_col_mfa(),
         minSize: 100,
+        sortingFn: 'text',
         cell: (info) => {
           switch (info.getValue()) {
             case 'disabled':
