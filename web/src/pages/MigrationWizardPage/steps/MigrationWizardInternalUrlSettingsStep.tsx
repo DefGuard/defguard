@@ -179,11 +179,6 @@ export const MigrationWizardInternalUrlSettingsStep = () => {
       <SizedBox height={ThemeSpacing.Xl3} />
       <Divider />
       <Controls>
-        <Button
-          text={m.controls_back()}
-          variant="outlined"
-          onClick={() => useMigrationWizardStore.getState().back()}
-        />
         <div className="right">
           <Button
             text={m.controls_continue()}
