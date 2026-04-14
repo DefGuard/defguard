@@ -53,11 +53,6 @@ export const SettingsCoreCertificateWizardInternalUrlSslConfigStep = () => {
       />
       <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>
-        <Button
-          text={m.controls_back()}
-          variant="outlined"
-          onClick={() => useSettingsCoreCertificateWizardStore.getState().back()}
-        />
         <div className="right">
           <Button
             text={m.controls_continue()}

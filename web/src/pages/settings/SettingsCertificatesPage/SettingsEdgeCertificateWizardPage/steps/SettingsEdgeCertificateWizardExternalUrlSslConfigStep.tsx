@@ -307,12 +307,6 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
       {renderContent()}
       <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>
-        <Button
-          text={m.controls_back()}
-          variant="outlined"
-          onClick={() => useSettingsEdgeCertificateWizardStore.getState().back()}
-          disabled={isLetsEncryptProcessing}
-        />
         <div className="right">
           <Button
             text={m.controls_continue()}
