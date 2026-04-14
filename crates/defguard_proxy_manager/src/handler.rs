@@ -256,8 +256,38 @@ impl ProxyHandler {
                 "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
             )
         })?;
-        let tls_config = tls_certs::client_config(&ca_cert_der, certs_rx, self.proxy_id)
-            .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
+
+        // Load the Proxy model to retrieve the per-component Core client cert.
+        let proxy = Proxy::find_by_id(&self.pool, self.proxy_id)
+            .await
+            .map_err(ProxyError::SqlxError)?
+            .ok_or_else(|| {
+                ProxyError::MissingConfiguration(format!(
+                    "Proxy id={} not found in DB, can't load Core client certificate",
+                    self.proxy_id
+                ))
+            })?;
+        let core_client_cert_der = proxy.core_client_cert_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(format!(
+                "Core client certificate not provisioned for proxy id={}",
+                self.proxy_id
+            ))
+        })?;
+        let core_client_cert_key_der = proxy.core_client_cert_key_der.ok_or_else(|| {
+            ProxyError::MissingConfiguration(format!(
+                "Core client certificate key not provisioned for proxy id={}",
+                self.proxy_id
+            ))
+        })?;
+
+        let tls_config = tls_certs::client_config(
+            &ca_cert_der,
+            certs_rx,
+            self.proxy_id,
+            &core_client_cert_der,
+            &core_client_cert_key_der,
+        )
+        .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
         let connector = HttpsConnectorBuilder::new()
             .with_tls_config(tls_config)
             .https_only()

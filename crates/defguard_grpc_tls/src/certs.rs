@@ -18,7 +18,7 @@ use rustls::{
         danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
     },
     crypto,
-    pki_types::{CertificateDer, ServerName, UnixTime},
+    pki_types::{CertificateDer, PrivateKeyDer, ServerName, UnixTime},
 };
 use thiserror::Error;
 use tokio::sync::watch;
@@ -160,11 +160,18 @@ pub fn server_tls_config(
     Ok(ServerTlsConfig::new().identity(identity).client_ca_root(ca))
 }
 
-/// Create a rustls client config that enforces the pinned component certificate serial.
+/// Create a rustls client config that enforces the pinned component certificate serial
+/// and presents the Core client certificate for mutual TLS authentication.
+///
+/// `core_client_cert_der` and `core_client_cert_key_der` are the DER-encoded client
+/// certificate and its private key that Core presents to the gateway/proxy during the
+/// TLS handshake.  The gateway/proxy verifies this cert against `ca_cert_der`.
 pub fn client_config(
     ca_cert_der: &[u8],
     certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     component_id: Id,
+    core_client_cert_der: &[u8],
+    core_client_cert_key_der: &[u8],
 ) -> Result<rustls::ClientConfig, CertConfigError> {
     let provider = Arc::new(crypto::ring::default_provider());
     let roots = root_store_from_ca(ca_cert_der)?;
@@ -175,10 +182,19 @@ pub fn client_config(
     )
     .build()
     .map_err(|err| CertConfigError::TlsConfig(err.to_string()))?;
+
+    let client_cert = CertificateDer::from(core_client_cert_der.to_vec());
+    let client_key = PrivateKeyDer::try_from(core_client_cert_key_der.to_vec())
+        .map_err(|err| CertConfigError::TlsConfig(format!("invalid client key DER: {err}")))?;
+
     let builder = rustls::ClientConfig::builder_with_provider(provider)
         .with_safe_default_protocol_versions()
         .map_err(|err| CertConfigError::TlsConfig(err.to_string()))?;
-    let mut config = builder.with_root_certificates(roots).with_no_client_auth();
+    let mut config = builder
+        .with_root_certificates(roots)
+        .with_client_auth_cert(vec![client_cert], client_key)
+        .map_err(|err| CertConfigError::TlsConfig(format!("client auth cert error: {err}")))?;
+
     let verifier: Arc<dyn ServerCertVerifier> = verifier;
     config
         .dangerous()
