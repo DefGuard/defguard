@@ -1,7 +1,7 @@
 use axum_server::tls_rustls::RustlsConfig;
 use defguard_certs::{
-    CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
-    parse_pem_certificate,
+	CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
+	parse_pem_certificate,
 };
 use defguard_common::db::models::{
     Certificates, CoreCertSource, ProxyCertSource, settings::update_current_settings,
@@ -12,14 +12,43 @@ use utoipa::ToSchema;
 
 use crate::error::WebError;
 
-/// Ensures cert & key pair are valid to avoid bricking the web server after restart.
-async fn validate_uploaded_cert_pair(cert_pem: &str, key_pem: &str) -> Result<(), WebError> {
-    let _ = rustls::crypto::ring::default_provider().install_default();
+fn validate_cert_validity(info: &CertificateInfo) -> Result<(), WebError> {
+	let now = chrono::Utc::now().naive_utc();
 
-    RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())
-        .await
-        .map(|_| ())
-        .map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_string()))
+	if info.not_after <= info.not_before {
+		return Err(WebError::BadRequest(
+			"Certificate validity period is invalid".to_string(),
+		));
+	}
+
+	if info.not_after <= now {
+		return Err(WebError::BadRequest(
+			"Certificate has expired".to_string(),
+		));
+	}
+
+	if info.not_before > now {
+		return Err(WebError::BadRequest(
+			"Certificate is not valid yet".to_string(),
+		));
+	}
+
+	Ok(())
+}
+
+/// Parses an uploaded certificate, validates its key pair, and rejects invalid validity windows.
+async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, WebError> {
+	let _ = rustls::crypto::ring::default_provider().install_default();
+
+	RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())
+		.await
+		.map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_string()))?;
+
+	let cert_der = parse_pem_certificate(cert_pem)?;
+	let info = CertificateInfo::from_der(cert_der.as_ref())?;
+	validate_cert_validity(&info)?;
+
+	Ok(info)
 }
 
 /// SSL configuration type for Defguard's internal (core) web server.
@@ -142,20 +171,17 @@ pub async fn apply_internal_url_settings(
                 not_after: info.not_after.to_string(),
             })
         }
-        InternalSslType::OwnCert => {
-            let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                WebError::BadRequest("cert_pem is required for own_cert".to_string())
-            })?;
-            let key_pem_str = config.key_pem.ok_or_else(|| {
-                WebError::BadRequest("key_pem is required for own_cert".to_string())
-            })?;
+		InternalSslType::OwnCert => {
+			let cert_pem_str = config.cert_pem.ok_or_else(|| {
+				WebError::BadRequest("cert_pem is required for own_cert".to_string())
+			})?;
+			let key_pem_str = config.key_pem.ok_or_else(|| {
+				WebError::BadRequest("key_pem is required for own_cert".to_string())
+			})?;
 
-            validate_uploaded_cert_pair(&cert_pem_str, &key_pem_str).await?;
-
-            let cert_der = parse_pem_certificate(&cert_pem_str)?;
-            let info = CertificateInfo::from_der(cert_der.as_ref())?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
-            let expiry = info.not_after;
+			let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
+			let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+			let expiry = info.not_after;
 
             certs.core_http_cert_source = CoreCertSource::Custom;
             certs.core_http_cert_pem = Some(cert_pem_str);
@@ -267,20 +293,17 @@ pub async fn apply_external_url_settings(
                 not_after: info.not_after.to_string(),
             })
         }
-        ExternalSslType::OwnCert => {
-            let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                WebError::BadRequest("cert_pem is required for own_cert".to_string())
-            })?;
-            let key_pem_str = config.key_pem.ok_or_else(|| {
-                WebError::BadRequest("key_pem is required for own_cert".to_string())
-            })?;
+		ExternalSslType::OwnCert => {
+			let cert_pem_str = config.cert_pem.ok_or_else(|| {
+				WebError::BadRequest("cert_pem is required for own_cert".to_string())
+			})?;
+			let key_pem_str = config.key_pem.ok_or_else(|| {
+				WebError::BadRequest("key_pem is required for own_cert".to_string())
+			})?;
 
-            validate_uploaded_cert_pair(&cert_pem_str, &key_pem_str).await?;
-
-            let cert_der = parse_pem_certificate(&cert_pem_str)?;
-            let info = CertificateInfo::from_der(cert_der.as_ref())?;
-            let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
-            let expiry = info.not_after;
+			let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
+			let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
+			let expiry = info.not_after;
 
             certs.proxy_http_cert_source = ProxyCertSource::Custom;
             certs.acme_domain = None;

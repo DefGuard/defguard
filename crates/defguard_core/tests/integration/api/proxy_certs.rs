@@ -48,7 +48,7 @@ use tokio::{
     },
 };
 
-use super::common::{client::TestClient, generate_test_cert_pem};
+use super::common::{client::TestClient, generate_expired_test_cert_pem, generate_test_cert_pem};
 use crate::common::{init_config, initialize_users};
 
 // Mock: captures messages sent to the proxy manager channel.
@@ -276,10 +276,10 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     let (cert_pem, key_pem) = generate_test_cert_pem("uploaded-edge.example.com");
     let expected_cert_pem = cert_pem.clone();
     let expected_key_pem = key_pem.clone();
-    let response = client
-        .post("/api/v1/proxy/cert/external_url_settings")
-        .json(&json!({
-            "ssl_type": "own_cert",
+	let response = client
+		.post("/api/v1/proxy/cert/external_url_settings")
+		.json(&json!({
+			"ssl_type": "own_cert",
             "cert_pem": cert_pem,
             "key_pem": key_pem
         }))
@@ -320,8 +320,23 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .json(&json!({
             "ssl_type": "own_cert",
             "cert_pem": "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n"
-        }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+		}))
+		.send()
+		.await;
+	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+	let (expired_cert_pem, expired_key_pem) =
+		generate_expired_test_cert_pem("expired-edge.example.com");
+	let response = client
+		.post("/api/v1/proxy/cert/external_url_settings")
+		.json(&json!({
+			"ssl_type": "own_cert",
+			"cert_pem": expired_cert_pem,
+			"key_pem": expired_key_pem
+		}))
+		.send()
+		.await;
+	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+	let body: serde_json::Value = response.json().await;
+	assert_eq!(body["msg"], "Certificate has expired");
 }
