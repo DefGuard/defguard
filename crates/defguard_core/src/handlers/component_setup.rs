@@ -537,7 +537,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Certificate authority loaded and ready to sign certificates");
 
-        let cert = match ca.sign_csr(&csr) {
+        let cert = match ca.sign_server_cert(&csr) {
             Ok(c) => c,
             Err(e) => {
                 yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
@@ -984,7 +984,7 @@ pub async fn setup_gateway_tls_stream(
 
         debug!("Certificate authority loaded and ready to sign certificates");
 
-        let cert = match ca.sign_csr(&csr) {
+        let cert = match ca.sign_server_cert(&csr) {
             Ok(c) => c,
             Err(e) => {
                 yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));

@@ -255,7 +255,7 @@ pub(crate) fn generate_test_cert_pem(common_name: &str) -> (String, String) {
     let san = vec![common_name.to_string()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
-    let cert = ca.sign_csr(&csr).unwrap();
+    let cert = ca.sign_server_cert(&csr).unwrap();
     let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
     let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
     (cert_pem, key_pem)

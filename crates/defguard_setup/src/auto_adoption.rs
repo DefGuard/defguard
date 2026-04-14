@@ -457,7 +457,7 @@ async fn run_edge_adoption_attempt_scoped(
         }
     };
 
-    let cert = match ca.sign_csr(&csr) {
+    let cert = match ca.sign_server_cert(&csr) {
         Ok(cert) => cert,
         Err(err) => {
             return merge_failure_logs(
@@ -762,7 +762,7 @@ async fn run_gateway_adoption_attempt_scoped(
         }
     };
 
-    let cert = match ca.sign_csr(&csr) {
+    let cert = match ca.sign_server_cert(&csr) {
         Ok(cert) => cert,
         Err(err) => {
             return merge_failure_logs(

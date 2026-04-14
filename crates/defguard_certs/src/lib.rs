@@ -92,16 +92,37 @@ impl CertificateAuthority<'_> {
         Self::from_key_cert_params(ca_key_pair, ca_params)
     }
 
-    pub fn sign_csr(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
-        // TODO: make validity configurable?
-        self.sign_csr_with_validity(csr, DEFAULT_CERT_VALIDITY_DAYS)
+    /// Sign a server-facing component certificate (`ServerAuth` EKU only).
+    ///
+    /// Use [`sign_client_cert`] for Core gRPC client certificates, or
+    /// [`sign_csr_with_validity`] when custom validity is needed.
+    pub fn sign_server_cert(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
+        self.sign_csr_with_validity(
+            csr,
+            DEFAULT_CERT_VALIDITY_DAYS,
+            &[ExtendedKeyUsagePurpose::ServerAuth],
+        )
     }
 
-    /// Sign CSR with explicit validity in days.
+    /// Sign a Core gRPC client certificate (`ClientAuth` EKU only).
+    pub fn sign_client_cert(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
+        self.sign_csr_with_validity(
+            csr,
+            DEFAULT_CERT_VALIDITY_DAYS,
+            &[ExtendedKeyUsagePurpose::ClientAuth],
+        )
+    }
+
+    /// Sign a CSR with explicit validity in days and extended key usages.
+    ///
+    /// `extended_key_usages` controls which EKUs are encoded in the signed
+    /// certificate.  Pass `&[ServerAuth]` for component server certs and
+    /// `&[ClientAuth]` for Core gRPC client certs.
     pub fn sign_csr_with_validity(
         &self,
         csr: &Csr,
         days_valid: i64,
+        extended_key_usages: &[ExtendedKeyUsagePurpose],
     ) -> Result<Certificate, CertificateError> {
         let mut csr_params = csr.params()?;
 
@@ -116,10 +137,7 @@ impl CertificateAuthority<'_> {
             KeyUsagePurpose::DigitalSignature,
             KeyUsagePurpose::KeyEncipherment,
         ];
-        csr_params.params.extended_key_usages = vec![
-            ExtendedKeyUsagePurpose::ServerAuth,
-            ExtendedKeyUsagePurpose::ClientAuth,
-        ];
+        csr_params.params.extended_key_usages = extended_key_usages.to_vec();
 
         let cert = csr_params.signed_by(&self.issuer)?;
         Ok(cert)
@@ -329,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sign_csr() {
+    fn test_sign_server_cert() {
         let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 10).unwrap();
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
@@ -341,7 +359,7 @@ mod tests {
             ],
         )
         .unwrap();
-        let signed_cert: Certificate = ca.sign_csr(&csr).unwrap();
+        let signed_cert: Certificate = ca.sign_server_cert(&csr).unwrap();
         assert!(signed_cert.pem().contains("BEGIN CERTIFICATE"));
     }
 
@@ -357,7 +375,9 @@ mod tests {
             vec![(rcgen::DnType::CommonName, "example.com")],
         )
         .unwrap();
-        let signed_cert: Certificate = ca.sign_csr_with_validity(&csr, 90).unwrap();
+        let signed_cert: Certificate = ca
+            .sign_csr_with_validity(&csr, 90, &[ExtendedKeyUsagePurpose::ServerAuth])
+            .unwrap();
         let der = signed_cert.der();
         let (_rem, parsed) = parse_x509_certificate(der).unwrap();
         let validity = parsed.tbs_certificate.validity;
