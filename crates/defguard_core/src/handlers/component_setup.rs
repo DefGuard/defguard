@@ -30,7 +30,7 @@ use defguard_common::{
     utils::strip_scheme,
 };
 use defguard_proto::{
-    common::{CertBundle, CertificateInfo, DerPayload},
+    common::{CertBundle, CertificateInfo},
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::{
         AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
@@ -550,7 +550,19 @@ pub async fn setup_proxy_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        let bundle: CertBundle = todo!();
+        let core_client = match ca.issue_core_client_cert(&request.common_name) {
+            Ok(c) => c,
+            Err(e) => {
+                yield Ok(flow.error(&format!("Failed to issue Core client certificate: {e}")));
+                return;
+            }
+        };
+
+        let bundle = CertBundle {
+            component_cert_der: cert.der().to_vec(),
+            ca_cert_der: ca_cert_der.clone(),
+            core_client_cert_der: core_client.cert_der.clone(),
+        };
         if let Err(e) = client.send_cert(bundle).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
@@ -577,6 +589,9 @@ pub async fn setup_proxy_tls_stream(
         );
         proxy.certificate_serial = Some(serial);
         proxy.certificate_expiry = Some(expiry);
+        proxy.core_client_cert_der = Some(core_client.cert_der);
+        proxy.core_client_cert_key_der = Some(core_client.key_der);
+        proxy.core_client_cert_expiry = Some(core_client.expiry);
 
         let proxy = match proxy.save(&pool).await {
             Ok(p) => p,
@@ -997,11 +1012,19 @@ pub async fn setup_gateway_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        let response = DerPayload {
-            der_data: cert.der().to_vec(),
+        let core_client = match ca.issue_core_client_cert(&request.common_name) {
+            Ok(c) => c,
+            Err(e) => {
+                yield Ok(flow.error(&format!("Failed to issue Core client certificate: {e}")));
+                return;
+            }
         };
 
-        let bundle: CertBundle = todo!();
+        let bundle = CertBundle {
+            component_cert_der: cert.der().to_vec(),
+            ca_cert_der: ca_cert_der.clone(),
+            core_client_cert_der: core_client.cert_der.clone(),
+        };
         if let Err(e) = client.send_cert(bundle).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
@@ -1035,6 +1058,9 @@ pub async fn setup_gateway_tls_stream(
 
         gateway.certificate_serial = Some(serial);
         gateway.certificate_expiry = Some(expiry);
+        gateway.core_client_cert_der = Some(core_client.cert_der);
+        gateway.core_client_cert_key_der = Some(core_client.key_der);
+        gateway.core_client_cert_expiry = Some(core_client.expiry);
 
         if let Err(err) = gateway.save(&pool).await {
             yield Ok(flow.error(&format!("Failed to save Gateway to database: {err}")));

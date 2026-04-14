@@ -143,6 +143,31 @@ impl CertificateAuthority<'_> {
         Ok(cert)
     }
 
+    /// Issue a Core gRPC client certificate for a specific gateway or proxy.
+    ///
+    /// Generates a fresh key pair, creates a CSR with `common_name` as both
+    /// the Subject CN and the SAN DNS name, signs it with `ClientAuth` EKU,
+    /// and returns all materials needed to store in the database and build a
+    /// [`CertBundle`].
+    pub fn issue_core_client_cert(
+        &self,
+        common_name: &str,
+    ) -> Result<CoreClientCert, CertificateError> {
+        let key_pair = generate_key_pair()?;
+        let csr = Csr::new(
+            &key_pair,
+            &[common_name.to_string()],
+            vec![(rcgen::DnType::CommonName, common_name)],
+        )?;
+        let cert = self.sign_client_cert(&csr)?;
+        let expiry = CertificateInfo::from_der(cert.der())?.not_after;
+        Ok(CoreClientCert {
+            cert_der: cert.der().to_vec(),
+            key_der: key_pair.serialized_der().to_vec(),
+            expiry,
+        })
+    }
+
     pub fn cert_pem(&self) -> Result<String, CertificateError> {
         der_to_pem(self.cert_der.as_ref(), PemLabel::Certificate)
     }
@@ -161,6 +186,18 @@ impl CertificateAuthority<'_> {
         let CertificateInfo { not_after, .. } = CertificateInfo::from_der(&self.cert_der)?;
         Ok(not_after)
     }
+}
+
+/// A Core gRPC client certificate issued for a specific gateway or proxy component.
+///
+/// The DER bytes are stored in the database; the key bytes never leave Core.
+pub struct CoreClientCert {
+    /// DER-encoded client certificate signed with `ClientAuth` EKU.
+    pub cert_der: Vec<u8>,
+    /// DER-encoded private key for the client certificate.
+    pub key_der: Vec<u8>,
+    /// Certificate expiry timestamp (UTC).
+    pub expiry: NaiveDateTime,
 }
 
 pub struct CertificateInfo {

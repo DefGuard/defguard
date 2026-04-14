@@ -5,7 +5,9 @@ use std::{
 };
 
 use anyhow::Context;
-use defguard_certs::{CertificateAuthority, CertificateInfo, Csr, PemLabel, der_to_pem};
+use defguard_certs::{
+    CertificateAuthority, CertificateInfo, CoreClientCert, Csr, PemLabel, der_to_pem,
+};
 use defguard_common::{
     VERSION,
     auth::claims::{Claims, ClaimsType},
@@ -26,7 +28,7 @@ use defguard_core::{
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 use defguard_proto::{
-    common::{CertBundle, CertificateInfo as ProtoCertificateInfo, DerPayload as ProtoDerPayload},
+    common::{CertBundle, CertificateInfo as ProtoCertificateInfo},
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::proxy_setup_client::ProxySetupClient,
 };
@@ -188,7 +190,7 @@ fn merge_failure_logs(
     message: impl Into<String>,
     log_buffer: &SetupLogBuffer,
     log_rx: &mut UnboundedReceiver<String>,
-) -> (bool, Vec<String>, Option<CertificateInfo>) {
+) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     let msg = message.into();
     error!("{msg}");
     let mut logs = collect_core_logs(log_buffer);
@@ -200,11 +202,21 @@ fn logs_to_persist(success: bool, logs: Vec<String>) -> Vec<String> {
     if success { Vec::new() } else { logs }
 }
 
+/// Carries the result of a successful component adoption attempt.
+///
+/// Bundles the parsed certificate metadata with the Core gRPC client
+/// certificate materials so that both can be persisted in the same DB
+/// transaction without re-issuing the client cert.
+struct ComponentAdoptionResult {
+    cert_info: CertificateInfo,
+    core_client: CoreClientCert,
+}
+
 async fn run_edge_adoption_attempt(
     pool: &PgPool,
     host: &str,
     port: u16,
-) -> (bool, Vec<String>, Option<CertificateInfo>) {
+) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
     let certs = match Certificates::get_or_default(pool).await {
         Ok(c) => c,
@@ -236,7 +248,7 @@ async fn run_edge_adoption_attempt_scoped(
     log_buffer: SetupLogBuffer,
     ca_cert_der: Vec<u8>,
     ca_key_der: Vec<u8>,
-) -> (bool, Vec<String>, Option<CertificateInfo>) {
+) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     debug!("Starting edge adoption attempt host={host} port={port}");
     let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
     let endpoint_str = format!("http://{host}:{port}");
@@ -469,7 +481,22 @@ async fn run_edge_adoption_attempt_scoped(
     };
     debug!("CSR signed for proxy hostname={hostname}; sending certificate");
 
-    let bundle: CertBundle = todo!();
+    let core_client = match ca.issue_core_client_cert(hostname) {
+        Ok(c) => c,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to issue Core client certificate for proxy: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+
+    let bundle = CertBundle {
+        component_cert_der: cert.der().to_vec(),
+        ca_cert_der: ca_cert_der.clone(),
+        core_client_cert_der: core_client.cert_der.clone(),
+    };
     if let Err(err) = client.send_cert(bundle).await {
         return merge_failure_logs(
             format!("Failed to send certificate to proxy: {err}"),
@@ -499,14 +526,21 @@ async fn run_edge_adoption_attempt_scoped(
         logs = vec!["No runtime logs received from edge component".to_string()];
     }
 
-    (true, logs, Some(cert_info))
+    (
+        true,
+        logs,
+        Some(ComponentAdoptionResult {
+            cert_info,
+            core_client,
+        }),
+    )
 }
 
 async fn run_gateway_adoption_attempt(
     pool: &PgPool,
     host: &str,
     port: u16,
-) -> (bool, Vec<String>, Option<CertificateInfo>) {
+) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
     let certs = match Certificates::get_or_default(pool).await {
         Ok(c) => c,
@@ -538,7 +572,7 @@ async fn run_gateway_adoption_attempt_scoped(
     log_buffer: SetupLogBuffer,
     ca_cert_der: Vec<u8>,
     ca_key_der: Vec<u8>,
-) -> (bool, Vec<String>, Option<CertificateInfo>) {
+) -> (bool, Vec<String>, Option<ComponentAdoptionResult>) {
     debug!("Starting gateway adoption attempt host={host} port={port}");
     let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -774,7 +808,22 @@ async fn run_gateway_adoption_attempt_scoped(
     };
     debug!("CSR signed for gateway hostname={hostname}; sending certificate");
 
-    let bundle: CertBundle = todo!();
+    let core_client = match ca.issue_core_client_cert(hostname) {
+        Ok(c) => c,
+        Err(err) => {
+            return merge_failure_logs(
+                format!("Failed to issue Core client certificate for gateway: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
+
+    let bundle = CertBundle {
+        component_cert_der: cert.der().to_vec(),
+        ca_cert_der: ca_cert_der.clone(),
+        core_client_cert_der: core_client.cert_der.clone(),
+    };
     if let Err(err) = client.send_cert(bundle).await {
         return merge_failure_logs(
             format!("Failed to send certificate to gateway: {err}"),
@@ -804,7 +853,14 @@ async fn run_gateway_adoption_attempt_scoped(
         logs = vec!["No runtime logs received from gateway component".to_string()];
     }
 
-    (true, logs, Some(cert_info))
+    (
+        true,
+        logs,
+        Some(ComponentAdoptionResult {
+            cert_info,
+            core_client,
+        }),
+    )
 }
 
 // Default WireGuard network address and port used when auto-adopting a gateway without an
@@ -831,9 +887,16 @@ async fn process_startup_auto_adoption(
     if status {
         match component {
             SetupAutoAdoptionComponent::Gateway => {
-                if let Some(cert_info) = cert_info {
-                    if let Err(err) =
-                        create_network_and_gateway(pool, &host, port, GATEWAY_NAME, cert_info).await
+                if let Some(result) = cert_info {
+                    if let Err(err) = create_network_and_gateway(
+                        pool,
+                        &host,
+                        port,
+                        GATEWAY_NAME,
+                        result.cert_info,
+                        result.core_client,
+                    )
+                    .await
                     {
                         warn!(
                             "Gateway adoption TLS handshake succeeded but failed to persist \
@@ -843,8 +906,17 @@ async fn process_startup_auto_adoption(
                 }
             }
             SetupAutoAdoptionComponent::Edge => {
-                if let Some(cert_info) = cert_info {
-                    if let Err(err) = create_proxy(pool, &host, port, PROXY_NAME, cert_info).await {
+                if let Some(result) = cert_info {
+                    if let Err(err) = create_proxy(
+                        pool,
+                        &host,
+                        port,
+                        PROXY_NAME,
+                        result.cert_info,
+                        result.core_client,
+                    )
+                    .await
+                    {
                         warn!(
                             "Edge adoption TLS handshake succeeded but failed to persist \
                             proxy record: {err}"
@@ -881,6 +953,7 @@ async fn create_network_and_gateway(
     grpc_port: u16,
     common_name: &str,
     cert_info: CertificateInfo,
+    core_client: CoreClientCert,
 ) -> Result<(), anyhow::Error> {
     // Re-use or create the network location.
     let network = if let Some(existing) = WireguardNetwork::find_by_name(pool, common_name)
@@ -961,6 +1034,9 @@ id={} for new gateway",
     );
     gateway.certificate_serial = Some(cert_info.serial);
     gateway.certificate_expiry = Some(cert_info.not_after);
+    gateway.core_client_cert_der = Some(core_client.cert_der);
+    gateway.core_client_cert_key_der = Some(core_client.key_der);
+    gateway.core_client_cert_expiry = Some(core_client.expiry);
 
     gateway
         .save(pool)
@@ -983,6 +1059,7 @@ async fn create_proxy(
     port: u16,
     common_name: &str,
     cert_info: CertificateInfo,
+    core_client: CoreClientCert,
 ) -> Result<(), anyhow::Error> {
     if let Some(existing) = Proxy::find_by_address_port(pool, host, i32::from(port))
         .await
@@ -999,6 +1076,9 @@ async fn create_proxy(
     let mut proxy = Proxy::new(common_name, host, i32::from(port), "Automatic setup");
     proxy.certificate_serial = Some(cert_info.serial);
     proxy.certificate_expiry = Some(cert_info.not_after);
+    proxy.core_client_cert_der = Some(core_client.cert_der);
+    proxy.core_client_cert_key_der = Some(core_client.key_der);
+    proxy.core_client_cert_expiry = Some(core_client.expiry);
 
     proxy
         .save(pool)
