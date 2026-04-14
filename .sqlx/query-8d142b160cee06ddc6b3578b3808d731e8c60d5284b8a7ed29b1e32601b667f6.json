@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM proxy WHERE enabled AND id NOT IN (SELECT id FROM proxy WHERE enabled LIMIT 1\n            )",
+  "query": "SELECT id, \"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"version\",\"enabled\",\"certificate_serial\",\"certificate_expiry\",\"modified_at\",\"modified_by\",\"core_client_cert_der\",\"core_client_cert_key_der\",\"core_client_cert_expiry\" FROM \"proxy\"",
   "describe": {
     "columns": [
       {
@@ -35,33 +35,48 @@
       },
       {
         "ordinal": 6,
-        "name": "certificate_expiry",
-        "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 7,
         "name": "version",
         "type_info": "Text"
       },
       {
+        "ordinal": 7,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
         "ordinal": 8,
+        "name": "certificate_serial",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "certificate_expiry",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 10,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 9,
-        "name": "certificate",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "modified_by",
         "type_info": "Text"
       },
       {
-        "ordinal": 11,
-        "name": "enabled",
-        "type_info": "Bool"
+        "ordinal": 12,
+        "name": "core_client_cert_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 13,
+        "name": "core_client_cert_key_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 14,
+        "name": "core_client_cert_expiry",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -75,12 +90,15 @@
       true,
       true,
       true,
-      true,
       false,
       true,
+      true,
       false,
-      false
+      false,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "27e7e18a7014af541fe5f8f051f78d61eebe6a79945324e98ca452b50d6abc90"
+  "hash": "8d142b160cee06ddc6b3578b3808d731e8c60d5284b8a7ed29b1e32601b667f6"
 }
