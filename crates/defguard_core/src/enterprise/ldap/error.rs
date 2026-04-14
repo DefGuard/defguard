@@ -1,10 +1,21 @@
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
+/// LDAP server responses (especially `LdapResult.text` and `LdapResult.matched`) may contain
+/// null bytes and non-printable control characters that corrupt log output. This function
+/// filters out all control characters except `\n` and `\t`.
+pub(super) fn sanitize_ldap_string(s: &str) -> String {
+    s.chars()
+        .filter(|c| !c.is_control() || *c == '\n' || *c == '\t')
+        .collect()
+}
+
 #[derive(Debug, Error)]
 pub enum LdapError {
+    // Stores a sanitized string to avoid null bytes / control chars from LDAP responses
+    // corrupting log output.
     #[error("LDAP error: {0}")]
-    Ldap(#[from] ldap3::LdapError),
+    Ldap(String),
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
     #[error("Missing required LDAP settings: {0}")]
@@ -30,4 +41,42 @@ pub enum LdapError {
     ObjectAlreadyExists(String),
     #[error("User {0} does not belong to the defined synchronization groups in {1}")]
     UserNotInLDAPSyncGroups(String, &'static str),
+}
+
+impl From<ldap3::LdapError> for LdapError {
+    fn from(err: ldap3::LdapError) -> Self {
+        Self::Ldap(sanitize_ldap_string(&err.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_ldap_string;
+
+    #[test]
+    fn sanitize_ldap_string_strips_control_chars() {
+        // Null bytes are stripped
+        assert_eq!(sanitize_ldap_string("hello\0world"), "helloworld");
+
+        // Other non-printable control chars are stripped
+        assert_eq!(sanitize_ldap_string("text\x01\x02\x03"), "text");
+
+        // Realistic LDAP error string containing null bytes is cleaned correctly
+        let dirty = "80090308: LdapErr: DSID-0C09044E, comment: AcceptSecurityContext error, data 52e, v2580\0";
+        let clean = "80090308: LdapErr: DSID-0C09044E, comment: AcceptSecurityContext error, data 52e, v2580";
+        assert_eq!(sanitize_ldap_string(dirty), clean);
+
+        // \n and \t are preserved
+        assert_eq!(
+            sanitize_ldap_string("line1\nline2\ttabbed"),
+            "line1\nline2\ttabbed"
+        );
+
+        // Normal ASCII and Unicode pass through unchanged
+        assert_eq!(sanitize_ldap_string("hello world"), "hello world");
+        assert_eq!(
+            sanitize_ldap_string("zażółć gęślą jaźń"),
+            "zażółć gęślą jaźń"
+        );
+    }
 }

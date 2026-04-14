@@ -35,43 +35,43 @@ jobs:
           submodules: recursive
 
       - name: Create SBOM with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
-          scan-type: 'fs'
-          format: 'spdx-json'
+          scan-type: "fs"
+          format: "spdx-json"
           output: "defguard-${{ steps.vars.outputs.VERSION }}.sbom.json"
-          scan-ref: '.'
+          scan-ref: "."
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
           skip-dirs: "e2e"
 
       - name: Create docker image SBOM with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
-          scan-type: 'image'
-          format: 'spdx-json'
+          scan-type: "image"
+          format: "spdx-json"
           output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.sbom.json"
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
 
       - name: Create security advisory file with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
-          scan-type: 'fs'
-          format: 'json'
+          scan-type: "fs"
+          format: "json"
           output: "defguard-${{ steps.vars.outputs.VERSION }}.advisories.json"
-          scan-ref: '.'
+          scan-ref: "."
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
           skip-dirs: "e2e"
 
       - name: Create docker image security advisory file with Trivy
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
-          scan-type: 'image'
-          format: 'json'
+          scan-type: "image"
+          format: "json"
           output: "defguard-${{ steps.vars.outputs.VERSION }}-docker.advisories.json"
           severity: "CRITICAL,HIGH,MEDIUM,LOW"
           scanners: "vuln"
