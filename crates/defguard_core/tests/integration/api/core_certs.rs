@@ -8,7 +8,7 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 use super::common::{
-	generate_expired_test_cert_pem, generate_test_cert_pem, make_test_client, setup_pool,
+    generate_expired_test_cert_pem, generate_test_cert_pem, make_test_client, setup_pool,
 };
 
 async fn seed_ca(pool: &sqlx::PgPool) {
@@ -80,10 +80,10 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     );
 
     let (cert_pem, key_pem) = generate_test_cert_pem("uploaded.example.com");
-	let response = client
-		.post("/api/v1/core/cert/internal_url_settings")
-		.json(&json!({
-			"ssl_type": "own_cert",
+    let response = client
+        .post("/api/v1/core/cert/internal_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
             "cert_pem": cert_pem,
             "key_pem": key_pem
         }))
@@ -115,23 +115,22 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
         .json(&json!({
             "ssl_type": "own_cert",
             "cert_pem": "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n"
-		}))
-		.send()
-		.await;
-	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-	let (expired_cert_pem, expired_key_pem) =
-		generate_expired_test_cert_pem("expired.example.com");
-	let response = client
-		.post("/api/v1/core/cert/internal_url_settings")
-		.json(&json!({
-			"ssl_type": "own_cert",
-			"cert_pem": expired_cert_pem,
-			"key_pem": expired_key_pem
-		}))
-		.send()
-		.await;
-	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-	let body: serde_json::Value = response.json().await;
-	assert_eq!(body["msg"], "Certificate has expired");
+    let (expired_cert_pem, expired_key_pem) = generate_expired_test_cert_pem("expired.example.com");
+    let response = client
+        .post("/api/v1/core/cert/internal_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": expired_cert_pem,
+            "key_pem": expired_key_pem
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["msg"], "Certificate has expired");
 }
