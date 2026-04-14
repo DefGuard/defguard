@@ -13,7 +13,7 @@ export const SettingsCoreCertificateWizardSummaryStep = () => {
   const handleFinish = () => {
     const targetUrl = new URL('/settings/certs', window.location.href);
     targetUrl.protocol = sslType === 'none' ? 'http:' : 'https:';
-
+    window.onbeforeunload = null;
     useSettingsCoreCertificateWizardStore.getState().reset();
     window.location.replace(targetUrl.toString());
   };
