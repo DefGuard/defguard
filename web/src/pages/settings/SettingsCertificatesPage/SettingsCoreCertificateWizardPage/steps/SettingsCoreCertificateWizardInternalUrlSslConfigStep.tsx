@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import { Controls } from '../../../shared/components/Controls/Controls';
-import { InternalSslResult } from '../../../shared/components/certificates/InternalSslResult/InternalSslResult';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { downloadFile } from '../../../shared/utils/download';
-import caIcon from '../../SetupPage/assets/ca.png';
-import '../../SetupPage/autoAdoption/steps/style.scss';
+import { m } from '../../../../../paraglide/messages';
+import api from '../../../../../shared/api/api';
+import { Controls } from '../../../../../shared/components/Controls/Controls';
+import { InternalSslResult } from '../../../../../shared/components/certificates/InternalSslResult/InternalSslResult';
+import { WizardCard } from '../../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
+import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
+import { downloadFile } from '../../../../../shared/utils/download';
+import caIcon from '../../../../SetupPage/assets/ca.png';
+import '../../../../SetupPage/autoAdoption/steps/style.scss';
 import { SettingsCoreCertificateWizardStep } from '../types';
 import { useSettingsCoreCertificateWizardStore } from '../useSettingsCoreCertificateWizardStore';
 
