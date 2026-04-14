@@ -30,7 +30,7 @@ use defguard_common::{
     utils::strip_scheme,
 };
 use defguard_proto::{
-    common::{CertificateInfo, DerPayload},
+    common::{CertBundle, CertificateInfo, DerPayload},
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::{
         AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
@@ -550,7 +550,8 @@ pub async fn setup_proxy_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        if let Err(e) = client.send_cert(DerPayload { der_data: cert.der().to_vec() }).await {
+        let bundle: CertBundle = todo!();
+        if let Err(e) = client.send_cert(bundle).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
         }
@@ -574,7 +575,7 @@ pub async fn setup_proxy_tls_stream(
             i32::from(request.grpc_port),
             session.user.fullname().as_str(),
         );
-        proxy.certificate = Some(serial);
+        proxy.certificate_serial = Some(serial);
         proxy.certificate_expiry = Some(expiry);
 
         let proxy = match proxy.save(&pool).await {
@@ -1000,7 +1001,8 @@ pub async fn setup_gateway_tls_stream(
             der_data: cert.der().to_vec(),
         };
 
-        if let Err(e) = client.send_cert(response).await {
+        let bundle: CertBundle = todo!();
+        if let Err(e) = client.send_cert(bundle).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
         }
@@ -1031,7 +1033,7 @@ pub async fn setup_gateway_tls_stream(
             session.user.fullname(),
         );
 
-        gateway.certificate = Some(serial);
+        gateway.certificate_serial = Some(serial);
         gateway.certificate_expiry = Some(expiry);
 
         if let Err(err) = gateway.save(&pool).await {

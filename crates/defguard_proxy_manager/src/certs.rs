@@ -24,7 +24,7 @@ pub(crate) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<
             let certs = collect_certs(
                 proxies
                     .into_iter()
-                    .map(|proxy| (proxy.id, proxy.certificate)),
+                    .map(|proxy| (proxy.id, proxy.certificate_serial)),
             );
             let _ = tx.send(Arc::new(certs));
         }

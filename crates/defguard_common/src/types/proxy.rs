@@ -27,7 +27,7 @@ pub struct ProxyInfo {
     pub disconnected_at: Option<NaiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
-    pub certificate: Option<String>,
+    pub certificate_serial: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
     pub modified_by: String,

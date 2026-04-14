@@ -16,12 +16,15 @@ pub struct Gateway<I = NoId> {
     pub port: i32,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
-    pub certificate: Option<String>,
+    pub certificate_serial: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
     pub modified_at: NaiveDateTime,
     pub modified_by: String,
+    pub core_client_cert_der: Option<Vec<u8>>,
+    pub core_client_cert_key_der: Option<Vec<u8>>,
+    pub core_client_cert_expiry: Option<NaiveDateTime>,
 }
 
 impl<I> Gateway<I> {
@@ -67,12 +70,15 @@ impl Gateway {
             port,
             connected_at: None,
             disconnected_at: None,
-            certificate: None,
+            certificate_serial: None,
             certificate_expiry: None,
             version: None,
             enabled: true,
             modified_by: modified_by.into(),
             modified_at,
+            core_client_cert_der: None,
+            core_client_cert_key_der: None,
+            core_client_cert_expiry: None,
         }
     }
 }

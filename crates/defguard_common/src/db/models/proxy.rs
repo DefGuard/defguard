@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgExecutor, PgPool, query, query_as};
 use utoipa::ToSchema;
 
 use crate::{
@@ -21,10 +21,13 @@ pub struct Proxy<I = NoId> {
     pub disconnected_at: Option<NaiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
-    pub certificate: Option<String>,
+    pub certificate_serial: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
     pub modified_by: String,
+    pub core_client_cert_der: Option<Vec<u8>>,
+    pub core_client_cert_key_der: Option<Vec<u8>>,
+    pub core_client_cert_expiry: Option<NaiveDateTime>,
 }
 
 impl fmt::Display for Proxy<NoId> {
@@ -56,12 +59,15 @@ impl Proxy {
             port,
             connected_at: None,
             disconnected_at: None,
-            certificate: None,
+            certificate_serial: None,
             certificate_expiry: None,
             version: None,
             enabled: true,
             modified_by: modified_by.into(),
             modified_at: Utc::now().naive_utc(),
+            core_client_cert_der: None,
+            core_client_cert_key_der: None,
+            core_client_cert_expiry: None,
         }
     }
 }
@@ -81,11 +87,8 @@ impl Proxy<Id> {
     }
 
     /// Mark all proxies currently considered connected as disconnected.
-    pub async fn mark_all_disconnected<'e, E>(executor: E) -> sqlx::Result<()>
-    where
-        E: sqlx::PgExecutor<'e>,
-    {
-        sqlx::query(
+    pub async fn mark_all_disconnected<'e, E: PgExecutor<'e>>(executor: E) -> sqlx::Result<()> {
+        query(
             "UPDATE proxy \
 			 SET disconnected_at = NOW() \
 			 WHERE connected_at IS NOT NULL \
@@ -98,11 +101,8 @@ impl Proxy<Id> {
     }
 
     /// Fetch all enabled Proxies.
-    pub async fn all_enabled<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
-    where
-        E: sqlx::PgExecutor<'e>,
-    {
-        sqlx::query_as!(Self, "SELECT * FROM proxy WHERE enabled")
+    pub async fn all_enabled<'e, E: PgExecutor<'e>>(executor: E) -> sqlx::Result<Vec<Self>> {
+        query_as!(Self, "SELECT * FROM proxy WHERE enabled")
             .fetch_all(executor)
             .await
     }
@@ -112,8 +112,8 @@ impl Proxy<Id> {
         address: &str,
         port: i32,
     ) -> sqlx::Result<Option<Self>> {
-        sqlx::query_as!(
-            Proxy,
+        query_as!(
+            Self,
             "SELECT * FROM proxy WHERE address = $1 AND port = $2",
             address,
             port
@@ -123,9 +123,15 @@ impl Proxy<Id> {
     }
 
     pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<ProxyInfo>> {
-        sqlx::query_as!(ProxyInfo, "SELECT * FROM proxy",)
-            .fetch_all(pool)
-            .await
+        query_as!(
+            ProxyInfo,
+            "SELECT id, name, address, port, connected_at, disconnected_at, \
+             version, enabled, certificate_serial, certificate_expiry, \
+             modified_at, modified_by \
+             FROM proxy",
+        )
+        .fetch_all(pool)
+        .await
     }
 
     pub async fn mark_connected(&mut self, pool: &PgPool, version: String) -> sqlx::Result<()> {
@@ -144,11 +150,8 @@ impl Proxy<Id> {
     }
 
     /// Fetch all enabled, but one. Used for expired licence.
-    pub async fn leave_one_enabled<'e, E>(executor: E) -> sqlx::Result<Vec<Self>>
-    where
-        E: sqlx::PgExecutor<'e>,
-    {
-        sqlx::query_as!(
+    pub async fn leave_one_enabled<'e, E: PgExecutor<'e>>(executor: E) -> sqlx::Result<Vec<Self>> {
+        query_as!(
             Self,
             "SELECT * FROM proxy WHERE enabled AND id NOT IN (\
                 SELECT id FROM proxy WHERE enabled LIMIT 1

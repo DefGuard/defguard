@@ -26,7 +26,7 @@ use defguard_core::{
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 use defguard_proto::{
-    common::{CertificateInfo as ProtoCertificateInfo, DerPayload as ProtoDerPayload},
+    common::{CertBundle, CertificateInfo as ProtoCertificateInfo, DerPayload as ProtoDerPayload},
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::proxy_setup_client::ProxySetupClient,
 };
@@ -469,12 +469,8 @@ async fn run_edge_adoption_attempt_scoped(
     };
     debug!("CSR signed for proxy hostname={hostname}; sending certificate");
 
-    if let Err(err) = client
-        .send_cert(ProtoDerPayload {
-            der_data: cert.der().to_vec(),
-        })
-        .await
-    {
+    let bundle: CertBundle = todo!();
+    if let Err(err) = client.send_cert(bundle).await {
         return merge_failure_logs(
             format!("Failed to send certificate to proxy: {err}"),
             &log_buffer,
@@ -778,12 +774,8 @@ async fn run_gateway_adoption_attempt_scoped(
     };
     debug!("CSR signed for gateway hostname={hostname}; sending certificate");
 
-    if let Err(err) = client
-        .send_cert(ProtoDerPayload {
-            der_data: cert.der().to_vec(),
-        })
-        .await
-    {
+    let bundle: CertBundle = todo!();
+    if let Err(err) = client.send_cert(bundle).await {
         return merge_failure_logs(
             format!("Failed to send certificate to gateway: {err}"),
             &log_buffer,
@@ -967,7 +959,7 @@ id={} for new gateway",
         i32::from(grpc_port),
         "Automatic setup",
     );
-    gateway.certificate = Some(cert_info.serial);
+    gateway.certificate_serial = Some(cert_info.serial);
     gateway.certificate_expiry = Some(cert_info.not_after);
 
     gateway
@@ -1005,7 +997,7 @@ async fn create_proxy(
     }
 
     let mut proxy = Proxy::new(common_name, host, i32::from(port), "Automatic setup");
-    proxy.certificate = Some(cert_info.serial);
+    proxy.certificate_serial = Some(cert_info.serial);
     proxy.certificate_expiry = Some(cert_info.not_after);
 
     proxy
