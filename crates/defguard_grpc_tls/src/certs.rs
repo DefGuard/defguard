@@ -22,6 +22,7 @@ use rustls::{
 };
 use thiserror::Error;
 use tokio::sync::watch;
+use tonic::transport::{Certificate, Identity, ServerTlsConfig};
 use tracing::error;
 use x509_parser::parse_x509_certificate;
 
@@ -136,6 +137,27 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, CertConfigErr
         .add(CertificateDer::from(ca_cert_der.to_vec()))
         .map_err(|err| CertConfigError::TlsConfig(err.to_string()))?;
     Ok(roots)
+}
+
+/// Build a tonic [`ServerTlsConfig`] for a gateway or proxy gRPC server that enforces
+/// mutual TLS.
+///
+/// The returned config:
+/// - presents `component_cert_pem` / `component_key_pem` as the server identity, and
+/// - requires every connecting client (i.e. Core) to present a certificate signed by
+///   `ca_cert_pem` (client auth is **not** optional).
+///
+/// The PEM arguments are the raw PEM bytes (or a string slice coerced to bytes).
+/// Both certificate and key must be in PKCS#8 / SEC1 PEM format as produced by
+/// `defguard_certs`.
+pub fn server_tls_config(
+    component_cert_pem: &[u8],
+    component_key_pem: &[u8],
+    ca_cert_pem: &[u8],
+) -> Result<ServerTlsConfig, CertConfigError> {
+    let identity = Identity::from_pem(component_cert_pem, component_key_pem);
+    let ca = Certificate::from_pem(ca_cert_pem);
+    Ok(ServerTlsConfig::new().identity(identity).client_ca_root(ca))
 }
 
 /// Create a rustls client config that enforces the pinned component certificate serial.
