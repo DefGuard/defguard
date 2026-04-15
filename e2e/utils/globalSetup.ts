@@ -65,67 +65,71 @@ const runWizard = async () => {
   // Navigate to base URL — app redirects to wizard if setup not done
   await page.goto(testsConfig.BASE_URL);
 
-  // Step 1: Click "Configure Defguard"
+  // Step 1: Welcome — click "Configure Defguard"
   await page
     .getByRole('button', { name: 'Configure Defguard' })
     .waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'Configure Defguard' }).click();
 
-  // Step 2: Fill admin user form
+  // Step 2: Admin user form
   await page.getByTestId('field-first_name').waitFor({ state: 'visible' });
   await page.getByTestId('field-first_name').fill(defaultUserAdmin.firstName);
   await page.getByTestId('field-last_name').fill(defaultUserAdmin.lastName);
   await page.getByTestId('field-username').fill(defaultUserAdmin.username);
   await page.getByTestId('field-email').fill(defaultUserAdmin.mail);
   await page.getByTestId('field-password').fill(defaultUserAdmin.password);
-
-  // Step 3: Continue to next step
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  // Step 4: Fill Defguard URL and proxy URL
+  // Step 3: General configuration — defaults are valid, continue
+  await page.getByTestId('field-default_admin_group_name').waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 4: Certificate authority — form fields shown directly (no option selector)
+  await page.getByTestId('field-ca_common_name').waitFor({ state: 'visible' });
+  await page.getByTestId('field-ca_common_name').fill('Defguard Test CA');
+  await page.getByTestId('field-ca_email').fill('ca@defguard.test');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 5: CA summary — continue
+  await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 6: Edge deploy — check the confirmation checkbox to enable Continue
+  await page.locator('.checkbox').waitFor({ state: 'visible' });
+  await page.locator('.checkbox').click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 7: Edge component — fill name and IP/domain
+  await page.getByTestId('field-common_name').waitFor({ state: 'visible' });
+  await page.getByTestId('field-common_name').fill('edge-test');
+  await page.getByTestId('field-ip_or_domain').fill('proxy');
+  await page.getByRole('button', { name: 'Adopt Edge component' }).click();
+
+  // Step 8: Edge adoption — wait for adoption to complete, then continue
+  await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 9: Internal URL settings — fill Defguard core URL, leave SSL as "none"
   await page.getByTestId('field-defguard_url').waitFor({ state: 'visible' });
   await page
     .getByTestId('field-defguard_url')
     .fill(testsConfig.CORE_BASE_URL.replace('/api/v1', ''));
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 10: Internal URL SSL config result — continue
+  await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Step 11: External URL settings — fill proxy/enrollment URL, leave SSL as "none"
+  await page.getByTestId('field-public_proxy_url').waitFor({ state: 'visible' });
   await page.getByTestId('field-public_proxy_url').fill(testsConfig.ENROLLMENT_URL);
-
-  // Continue to CA step
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  // Step 5: Click "Create a certificate authority..." option (recommended)
-  await page.locator('.interactive-content').first().waitFor({ state: 'visible' });
-  await page.locator('.interactive-content').first().click();
-
-  // Fill CA fields
-  await page.getByTestId('field-ca_common_name').waitFor({ state: 'visible' });
-  await page.getByTestId('field-ca_common_name').fill('Defguard Test CA');
-  await page.getByTestId('field-ca_email').fill('ca@defguard.test');
-
-  // Continue
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  // Step 6: CA summary — Continue
+  // Step 12: External URL SSL config result — continue
   await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  // Step 7: Confirm Edge deployment checkbox + Next
-  await page.locator('.checkbox').waitFor({ state: 'visible' });
-  await page.locator('.checkbox').click();
-  await page.getByRole('button', { name: 'Next' }).click();
-
-  // Step 8: Edge component — fill name and IP
-  await page.getByTestId('field-common_name').waitFor({ state: 'visible' });
-  await page.getByTestId('field-common_name').fill('edge-test');
-  await page.getByTestId('field-ip_or_domain').fill('proxy');
-
-  // Adopt Edge component
-  await page.getByRole('button', { name: 'Adopt Edge component' }).click();
-
-  // Step 9: Edge adoption — Continue
-  await page.getByRole('button', { name: 'Continue' }).waitFor({ state: 'visible' });
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  // Step 10: "I'll do this later"
+  // Step 13: Confirmation — skip creating a location for now
   await page
     .getByRole('button', { name: "I'll do this later" })
     .waitFor({ state: 'visible' });
