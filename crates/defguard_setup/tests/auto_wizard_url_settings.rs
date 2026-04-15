@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use defguard_certs::{CertificateAuthority, Csr, PemLabel, der_to_pem, generate_key_pair};
 use defguard_common::{
     config::DefGuardConfig,
@@ -25,6 +27,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 mod common;
 use common::make_setup_test_client;
+use tokio::time::timeout;
 
 const SESSION_COOKIE_NAME: &str = "defguard_session";
 
