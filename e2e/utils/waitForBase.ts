@@ -1,7 +1,6 @@
 import { Page } from '@playwright/test';
 
 import { routes } from '../config';
-import { waitForPromise } from './waitForPromise';
 
 // Retry navigation to the login page until it succeeds (e.g. after dockerRestart).
 export const waitForBase = async (page: Page): Promise<void> => {
@@ -14,7 +13,7 @@ export const waitForBase = async (page: Page): Promise<void> => {
       });
       err = false;
     } catch {
-      await waitForPromise(500);
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
     }
   }
 };

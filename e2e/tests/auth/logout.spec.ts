@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { testUserTemplate } from '../../config';
+import { routes, testUserTemplate } from '../../config';
 import { User } from '../../types';
 import { createUser } from '../../utils/controllers/createUser';
 import { loginBasic } from '../../utils/controllers/login';
@@ -8,8 +8,7 @@ import { logout } from '../../utils/controllers/logout';
 import { disableUser } from '../../utils/controllers/toggleUserState';
 import { dockerRestart } from '../../utils/docker';
 import { waitForBase } from '../../utils/waitForBase';
-import { waitForPromise } from '../../utils/waitForPromise';
-import { routes } from '../../config';
+import { waitForRoute } from '../../utils/waitForRoute';
 
 test.describe('Logout', () => {
   let testUser: User;
@@ -27,7 +26,7 @@ test.describe('Logout', () => {
     await logout(page);
     const response = await responsePromise;
     expect(response.status()).toBe(200);
-    await waitForPromise(1000);
+    await waitForRoute(page, routes.auth.login);
     await expect(page.url()).toBe(routes.base + routes.auth.login);
   });
 

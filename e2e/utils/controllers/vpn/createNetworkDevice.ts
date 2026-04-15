@@ -3,7 +3,6 @@ import { Browser, expect, Locator, Page } from '@playwright/test';
 import { routes } from '../../../config';
 import { EditNetworkDeviceForm, NetworkDeviceForm, User } from '../../../types';
 import { getPageClipboard } from '../../getPageClipboard';
-import { waitForPromise } from '../../waitForPromise';
 import { waitForRoute } from '../../waitForRoute';
 import { loginBasic } from '../login';
 
@@ -60,7 +59,6 @@ export const createNetworkCLIDevice = async (
   }
   await page.getByTestId('submit').click();
   await page.getByTestId('finish').click();
-  await waitForPromise(1000);
   const deviceRow = page.locator('.virtual-row').filter({ hasText: device.name });
   await expect(deviceRow).toContainText('Awaiting Setup');
   await context.close();
@@ -87,7 +85,7 @@ export const startNetworkDeviceEnrollment = async (
     await page.getByTestId('field-wireguard_pubkey').fill(device.pubKey);
   }
   await page.getByTestId('submit').click();
-  await waitForPromise(2000);
+  await page.getByTestId('copy-config').waitFor({ state: 'visible' });
   await page.getByTestId('copy-config').click();
 
   await page.getByTestId('finish').click();

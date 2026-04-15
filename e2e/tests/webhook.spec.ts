@@ -4,7 +4,6 @@ import { defaultUserAdmin, routes } from '../config';
 import { loginBasic } from '../utils/controllers/login';
 import { createWebhook } from '../utils/controllers/webhook';
 import { dockerRestart } from '../utils/docker';
-import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('Test webhooks', () => {
   test.beforeEach(() => {
@@ -50,8 +49,9 @@ test.describe('Test webhooks', () => {
 
     await page.getByTestId('field-url').fill(new_webhook_url);
     await page.getByTestId('field-description').fill(new_webhook_description);
+    const responsePromise = page.waitForResponse('**/webhook/**');
     await page.getByTestId('submit').click();
-    await waitForPromise(2000);
+    await responsePromise;
     await page.goto(routes.base + routes.webhooks, {
       waitUntil: 'load',
     });

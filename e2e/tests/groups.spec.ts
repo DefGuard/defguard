@@ -7,7 +7,6 @@ import { createGroup } from '../utils/controllers/groups';
 import { loginBasic } from '../utils/controllers/login';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 
 test.describe('Test groups', () => {
   test.beforeEach(() => dockerRestart());
@@ -19,7 +18,6 @@ test.describe('Test groups', () => {
       await createGroup(browser, group);
     }
     await loginBasic(page, defaultUserAdmin);
-    await waitForPromise(1000);
     await page.goto(routes.base + routes.identity.groups);
     for (const group of groups) {
       await expect(page.locator('text=' + group + '')).toBeVisible();
@@ -75,7 +73,7 @@ test.describe('Test groups', () => {
       .filter({ hasText: group_name })
       .click();
     await page.getByTestId('submit').click();
-    await waitForPromise(2000);
+    await page.locator('.modal').waitFor({ state: 'hidden' });
     await page.goto(routes.base + routes.identity.users);
 
     await expect(firstUser).toContainText(group_name);
