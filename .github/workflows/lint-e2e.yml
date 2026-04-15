@@ -16,20 +16,28 @@ on:
 
 jobs:
   lint-e2e:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
-          node-version-file: "./e2e/.nvmrc"
-      - uses: pnpm/action-setup@v4
+          submodules: recursive
+
+      - name: Install NodeJS
+        uses: actions/setup-node@v6
         with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
-          run_install: false
-      - name: install deps
-        working-directory: ./e2e
-        run: pnpm i --frozen-lockfile
-      - name: Lint
-        working-directory: ./e2e
-        run: pnpm lint
+          node-version: 25
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      # Change to '--frozen-lockfile' once this gets fixed:
+      # https://github.com/pnpm/action-setup/issues/40
+      - name: Build and lint e2e
+        working-directory: e2e
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm lint

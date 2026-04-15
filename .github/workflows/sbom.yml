@@ -45,7 +45,7 @@ jobs:
           scanners: "vuln"
           skip-dirs: "e2e"
 
-      - name: Create docker image SBOM with Trivy
+      - name: Create Docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
@@ -83,5 +83,5 @@ jobs:
         with:
           upload_url: ${{ inputs.upload_url }}
           asset_path: "defguard-*.json"
-          asset_content_type: application/octet-stream
+          asset_content_type: application/json
           overwrite: true
