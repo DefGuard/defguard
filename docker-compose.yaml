@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard
+    image: ghcr.io/defguard/defguard:${IMAGE_TAG}
     build:
       context: .
       dockerfile: Dockerfile
@@ -14,29 +14,31 @@ services:
     ports:
       # REST API
       - "8000:8000"
-      # Default GRPC port
+      # Default Core GRPC port
       - "50055:50055"
     depends_on:
       - db
 
   gateway:
-    image: ghcr.io/defguard/gateway
+    image: ghcr.io/defguard/gateway:${IMAGE_TAG}
     ports:
       # WireGuard endpoint
       - "50051:50051/udp"
-      # Default gateway GRPC port
+      # Default Gateway GRPC port
       - "50066:50066"
     depends_on:
       - core
+      - edge
+      - gateway
     cap_add:
       - NET_ADMIN
 
-  proxy:
+  edge:
     image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
     ports:
       # REST API
       - "8080:8080"
-      # Default GRPC port
+      # Default Edge GRPC port
       - "50051:50051"
     environment:
       DEFGUARD_PROXY_GRPC_PORT: 50051
@@ -58,34 +60,25 @@ services:
       timeout: 5s
       retries: 5
 
-  device:
-    build:
-      context: .
-      dockerfile: Dockerfile.device
-    depends_on:
-      - gateway
-    cap_add:
-      - NET_ADMIN
+  # vector:
+  #   image: timberio/vector:latest-alpine
+  #   profiles:
+  #     - observability
+  #   container_name: vector
+  #   volumes:
+  #     - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
+  #     - ./configs/key.pem:/etc/vector/key.pem:ro
+  #     - ./configs/cert.pem:/etc/vector/cert.pem:ro
+  #   command: ["--config", "/etc/vector/vector.yaml"]
+  #   ports:
+  #     - "8686:8686"
+  #     - "8001:8001"
 
-  vector:
-    image: timberio/vector:latest-alpine
-    profiles:
-      - observability
-    container_name: vector
-    volumes:
-      - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
-      - ./configs/key.pem:/etc/vector/key.pem:ro
-      - ./configs/cert.pem:/etc/vector/cert.pem:ro
-    command: ["--config", "/etc/vector/vector.yaml"]
-    ports:
-      - "8686:8686"
-      - "8001:8001"
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.14.0
-    profiles:
-      - observability
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+  # logstash:
+  #   image: docker.elastic.co/logstash/logstash:8.14.0
+  #   profiles:
+  #     - observability
+  #   ports:
+  #     - "8002:8002"
+  #   volumes:
+  #     - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro

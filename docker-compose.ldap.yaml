@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:latest
+    image: ghcr.io/defguard/defguard:${IMAGE_TAG}
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,19 +12,19 @@ services:
       DEFGUARD_DB_NAME: defguard
       RUST_BACKTRACE: 1
     ports:
-      # rest api
+      # REST API
       - "8000:8000"
-      # grpc
+      # Default Core GRPC port
       - "50055:50055"
     depends_on:
       - db
 
   gateway:
-    image: ghcr.io/defguard/gateway:latest
+    image: ghcr.io/defguard/gateway:${IMAGE_TAG}
     ports:
       # WireGuard endpoint
       - "50051:50051/udp"
-      # Default gateway GRPC port
+      # Default Gateway GRPC port
       - "50066:50066"
     depends_on:
       - core
@@ -42,37 +42,28 @@ services:
     ports:
       - "5432:5432"
 
-  device:
-    build:
-      context: .
-      dockerfile: Dockerfile.device
-    depends_on:
-      - gateway
-    cap_add:
-      - NET_ADMIN
+  # vector:
+  #   image: timberio/vector:latest-alpine
+  #   profiles:
+  #     - observability
+  #   container_name: vector
+  #   volumes:
+  #     - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
+  #     - ./configs/key.pem:/etc/vector/key.pem:ro
+  #     - ./configs/cert.pem:/etc/vector/cert.pem:ro
+  #   command: ["--config", "/etc/vector/vector.yaml"]
+  #   ports:
+  #     - "8686:8686"
+  #     - "8001:8001"
 
-  vector:
-    image: timberio/vector:latest-alpine
-    profiles:
-      - observability
-    container_name: vector
-    volumes:
-      - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
-      - ./configs/key.pem:/etc/vector/key.pem:ro
-      - ./configs/cert.pem:/etc/vector/cert.pem:ro
-    command: ["--config", "/etc/vector/vector.yaml"]
-    ports:
-      - "8686:8686"
-      - "8001:8001"
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.14.0
-    profiles:
-      - observability
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+  # logstash:
+  #   image: docker.elastic.co/logstash/logstash:8.14.0
+  #   profiles:
+  #     - observability
+  #   ports:
+  #     - "8002:8002"
+  #   volumes:
+  #     - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
 
   openldap:
     image: bitnamilegacy/openldap:2.6
