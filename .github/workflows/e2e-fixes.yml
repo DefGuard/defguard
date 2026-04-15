@@ -1,11 +1,11 @@
-name: E2E tests (e2e-fixes branch)
+name: E2E tests (e2e-fixes2 branch)
 # Temporary workflow: runs e2e tests on e2e-fixes using a pinned image tag,
 # bypassing the Docker build step.
 
 on:
   push:
     branches:
-      - "e2e-fixes"
+      - "e2e-fixes2"
     paths-ignore:
       - "*.md"
       - "LICENSE"
