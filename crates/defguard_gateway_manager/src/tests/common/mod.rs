@@ -33,7 +33,7 @@ use tokio::{
         oneshot, watch,
     },
     task::JoinHandle,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
@@ -573,7 +573,7 @@ impl HandlerTestContext {
             wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
         timeout(TEST_TIMEOUT, async {
             while self.events_tx().receiver_count() <= initial_event_receivers {
-                tokio::time::sleep(Duration::from_millis(20)).await;
+                sleep(Duration::from_millis(20)).await;
             }
         })
         .await
@@ -649,7 +649,7 @@ pub(crate) async fn wait_for_gateway_connection_state(
                 return gateway;
             }
 
-            tokio::time::sleep(Duration::from_millis(20)).await;
+            sleep(Duration::from_millis(20)).await;
         }
     })
     .await

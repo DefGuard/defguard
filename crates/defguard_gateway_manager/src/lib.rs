@@ -22,6 +22,7 @@ use tokio::sync::Notify;
 use tokio::{
     sync::{broadcast::Sender, mpsc::UnboundedSender, watch::Receiver},
     task::{AbortHandle, JoinHandle, JoinSet},
+    time::sleep,
 };
 use tonic::{Request, service::interceptor::InterceptedService, transport::Channel};
 
@@ -347,7 +348,7 @@ impl GatewayManager {
         let _refresh_certs_task = AbortTaskOnDrop::new(tokio::spawn(async move {
             loop {
                 certs::refresh_certs(&refresh_pool, &certs_tx).await;
-                tokio::time::sleep(TEN_SECS).await;
+                sleep(TEN_SECS).await;
             }
         }));
         let mut abort_handles = HashMap::new();

@@ -1,6 +1,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
+    time::Duration,
 };
 
 use axum::serve;
@@ -31,6 +32,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{
     net::TcpListener,
     sync::{Notify, oneshot},
+    time::timeout,
 };
 
 mod common;
@@ -468,8 +470,7 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
 
     assert_setup_step(&pool, InitialSetupStep::Finished).await;
 
-    let shutdown_signal =
-        tokio::time::timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
+    let shutdown_signal = timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
     assert!(matches!(shutdown_signal, Ok(Ok(()))));
 }
 
@@ -628,13 +629,9 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .expect("Session not created");
     assert_eq!(session.user_id, admin_user.id);
 
-    let shutdown_signal = tokio::time::timeout(
-        std::time::Duration::from_secs(1),
-        shutdown_notify.notified(),
-    )
-    .await;
+    let shutdown_signal = timeout(Duration::from_secs(1), shutdown_notify.notified()).await;
     assert!(shutdown_signal.is_ok());
 
-    let server_result = tokio::time::timeout(std::time::Duration::from_secs(1), server_task).await;
+    let server_result = timeout(Duration::from_secs(1), server_task).await;
     assert!(matches!(server_result, Ok(Ok(()))));
 }

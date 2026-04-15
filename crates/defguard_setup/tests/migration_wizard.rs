@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use defguard_common::{
     config::DefGuardConfig,
     db::{
@@ -18,6 +20,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 mod common;
 use common::{init_settings_with_secret_key, make_migration_test_client, seed_admin_user};
+use tokio::time::timeout;
 
 async fn assert_migration_step(pool: &sqlx::PgPool, expected_variant: &str) {
     let state = MigrationWizardState::get(pool)
@@ -170,8 +173,7 @@ async fn test_migration_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
         "Migration wizard state should be cleared after finish"
     );
 
-    let shutdown_signal =
-        tokio::time::timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
+    let shutdown_signal = timeout(Duration::from_secs(1), shutdown_rx).await;
     assert!(
         matches!(shutdown_signal, Ok(Ok(()))),
         "Migration server should have sent shutdown signal after finish"

@@ -541,6 +541,6 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
     assert!(wizard.completed);
     assert_eq!(wizard.active_wizard, ActiveWizard::None);
 
-    let shutdown = tokio::time::timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
+    let shutdown = timeout(Duration::from_secs(1), shutdown_rx).await;
     assert!(matches!(shutdown, Ok(Ok(()))));
 }

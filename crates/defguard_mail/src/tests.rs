@@ -18,6 +18,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 use tera::Context;
+use tokio::time::sleep;
 
 use super::{Attachment, mail::MailMessage, templates};
 
@@ -67,7 +68,7 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -102,7 +103,7 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -125,7 +126,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -149,7 +150,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -172,7 +173,7 @@ fn send_mfa_activation(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -197,7 +198,7 @@ fn send_enrollment_admin_notification(_: PgPoolOptions, options: PgConnectOption
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -221,7 +222,7 @@ fn send_gateway_disconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -245,7 +246,7 @@ fn send_gateway_reconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -265,7 +266,7 @@ fn send_mfa_configured_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -281,7 +282,7 @@ fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -304,7 +305,7 @@ fn send_new_device_oidc_login_mail(_: PgPoolOptions, options: PgConnectOptions) 
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -328,7 +329,7 @@ fn send_password_reset_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -343,7 +344,7 @@ fn send_password_reset_success_mail(_: PgPoolOptions, options: PgConnectOptions)
         .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -358,7 +359,7 @@ fn send_test_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -377,7 +378,7 @@ fn send_support_data_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -391,7 +392,7 @@ fn send_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap();
 
     // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 #[test]

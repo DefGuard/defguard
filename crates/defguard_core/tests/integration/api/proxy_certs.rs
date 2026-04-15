@@ -61,7 +61,7 @@ impl ProxyBroadcastCapture {
     async fn drain_broadcast_certs(&mut self) -> Vec<(String, String)> {
         let mut results = Vec::new();
         // Give the handler a brief moment to enqueue the message.
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        sleep(Duration::from_millis(50)).await;
         loop {
             match self.rx.try_recv() {
                 Ok(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem }) => {
@@ -76,7 +76,7 @@ impl ProxyBroadcastCapture {
 
     async fn drain_clear_https_certs(&mut self) -> usize {
         let mut results = 0;
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        sleep(Duration::from_millis(50)).await;
         loop {
             match self.rx.try_recv() {
                 Ok(ProxyControlMessage::ClearHttpsCerts) => {

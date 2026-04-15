@@ -41,7 +41,7 @@ use tokio::{
         oneshot, watch,
     },
     task::JoinHandle,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
@@ -662,7 +662,7 @@ pub(crate) async fn wait_for_proxy_connection_state(
             if proxy.is_connected() == expected_connected {
                 return proxy;
             }
-            tokio::time::sleep(PROXY_CONNECT_DELAY).await;
+            sleep(PROXY_CONNECT_DELAY).await;
         }
     })
     .await

@@ -36,7 +36,7 @@ use defguard_version::{Version, client::ClientVersionInterceptor};
 use ipnetwork::IpNetwork;
 use reqwest::Url;
 use sqlx::PgPool;
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::{
     Request, Status,
     service::Interceptor,
@@ -345,27 +345,26 @@ async fn run_edge_adoption_attempt_scoped(
             auth_interceptor.clone().call(req)
         });
 
-    let response_with_metadata =
-        match tokio::time::timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
-            Ok(Ok(response)) => response,
-            Ok(Err(err)) => {
-                return merge_failure_logs(
-                    format!("Failed to start edge setup stream: {err}"),
-                    &log_buffer,
-                    &mut log_rx,
-                );
-            }
-            Err(_) => {
-                return merge_failure_logs(
-                    format!(
-                        "Timed out connecting to edge setup endpoint after {} seconds",
-                        STARTUP_ADOPTION_TIMEOUT.as_secs()
-                    ),
-                    &log_buffer,
-                    &mut log_rx,
-                );
-            }
-        };
+    let response_with_metadata = match timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(err)) => {
+            return merge_failure_logs(
+                format!("Failed to start edge setup stream: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+        Err(_) => {
+            return merge_failure_logs(
+                format!(
+                    "Timed out connecting to edge setup endpoint after {} seconds",
+                    STARTUP_ADOPTION_TIMEOUT.as_secs()
+                ),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!("Successfully connected to Edge setup stream");
 
     let edge_version = response_with_metadata
@@ -672,27 +671,26 @@ async fn run_gateway_adoption_attempt_scoped(
         },
     );
 
-    let response_with_metadata =
-        match tokio::time::timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
-            Ok(Ok(response)) => response,
-            Ok(Err(err)) => {
-                return merge_failure_logs(
-                    format!("Failed to start gateway setup stream: {err}"),
-                    &log_buffer,
-                    &mut log_rx,
-                );
-            }
-            Err(_) => {
-                return merge_failure_logs(
-                    format!(
-                        "Timed out connecting to gateway setup endpoint after {} seconds",
-                        STARTUP_ADOPTION_TIMEOUT.as_secs()
-                    ),
-                    &log_buffer,
-                    &mut log_rx,
-                );
-            }
-        };
+    let response_with_metadata = match timeout(STARTUP_ADOPTION_TIMEOUT, client.start(())).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(err)) => {
+            return merge_failure_logs(
+                format!("Failed to start gateway setup stream: {err}"),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+        Err(_) => {
+            return merge_failure_logs(
+                format!(
+                    "Timed out connecting to gateway setup endpoint after {} seconds",
+                    STARTUP_ADOPTION_TIMEOUT.as_secs()
+                ),
+                &log_buffer,
+                &mut log_rx,
+            );
+        }
+    };
     debug!("Successfully connected to Gateway setup stream");
 
     let gateway_version = response_with_metadata

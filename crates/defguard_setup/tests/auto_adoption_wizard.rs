@@ -1,4 +1,4 @@
-use std::sync::Once;
+use std::{sync::Once, time::Duration};
 
 use defguard_common::{
     config::DefGuardConfig,
@@ -23,6 +23,7 @@ use reqwest::{
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod common;
@@ -212,8 +213,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
     assert!(wizard.completed);
     assert_eq!(wizard.active_wizard, ActiveWizard::None);
 
-    let shutdown_signal =
-        tokio::time::timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
+    let shutdown_signal = timeout(Duration::from_secs(1), shutdown_rx).await;
     assert!(
         matches!(shutdown_signal, Ok(Ok(()))),
         "Setup server should have sent shutdown signal after finish"

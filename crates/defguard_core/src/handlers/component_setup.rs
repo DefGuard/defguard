@@ -42,7 +42,10 @@ use futures::Stream;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::{
+    sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel},
+    time::{Instant, sleep_until, timeout},
+};
 use tokio_stream::StreamExt;
 use tonic::{
     Request, Status,
@@ -376,7 +379,7 @@ pub async fn setup_proxy_tls_stream(
              request.grpc_port
         );
 
-        let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
+        let response_with_metadata = match timeout(CONNECTION_TIMEOUT, client.start(())).await {
             Ok(Ok(response)) => response,
             Ok(Err(status)) => {
                 let error_msg = status.message();
@@ -822,7 +825,7 @@ pub async fn setup_gateway_tls_stream(
         debug!("Initiating connection to Gateway at {ip_or_domain}:{}",
             request.grpc_port);
 
-        let response_with_metadata = match tokio::time::timeout(
+        let response_with_metadata = match timeout(
             CONNECTION_TIMEOUT,
             client.start(())
         ).await {
@@ -1349,8 +1352,8 @@ pub async fn stream_proxy_acme(
         });
 
         let mut current_step: &'static str = "Connecting";
-        let deadline = tokio::time::Instant::now()
-            + tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS);
+        let deadline = Instant::now()
+            + Duration::from_secs(ACME_TIMEOUT_SECS);
 
         // Drain progress steps until the ACME task finishes (channel closed) or times out.
         loop {
@@ -1368,7 +1371,7 @@ pub async fn stream_proxy_acme(
                     }
                 }
 
-                () = tokio::time::sleep_until(deadline) => {
+                () = sleep_until(deadline) => {
                     yield Ok(acme_error_event(
                         current_step,
                         format!(
