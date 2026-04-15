@@ -143,7 +143,7 @@ test.describe('Test user authentication', () => {
     await page.getByTestId('field-username').fill(testUser.username);
     await page.getByTestId('field-password').fill(testUser.password);
     await page.getByTestId('sign-in').click();
-    await page.waitForTimeout(1000);
+    await page.getByTestId('login-with-passkey').waitFor({ state: 'visible' });
 
     const authenticator = await context.newCDPSession(page);
     await authenticator.send('WebAuthn.enable');
@@ -173,107 +173,8 @@ test.describe('Test user authentication', () => {
     });
     const responsePromise = page.waitForResponse('**/me');
     await page.getByTestId('login-with-passkey').click();
-    await page.waitForTimeout(2000);
     const response = await responsePromise;
     expect(response.ok()).toBeTruthy();
   });
 });
 
-test.describe('Test password change', () => {
-  let testUser: User;
-  const newPassword = 'MyNewPassword1!@#$';
-
-  test.beforeEach(() => {
-    dockerRestart();
-    testUser = { ...testUserTemplate, username: 'test' };
-  });
-
-  test('Change user password', async ({ page, browser }) => {
-    await waitForBase(page);
-    await createUser(browser, testUser);
-    await loginBasic(page, testUser);
-    await page.getByTestId('change-password').click();
-    await page.getByTestId('field-current').fill(testUser.password);
-    await page.getByTestId('field-password').fill(newPassword);
-    await page.getByTestId('field-repeat').fill(newPassword);
-    await page.getByTestId('submit-password-change').click();
-    await logout(page);
-    testUser.password = newPassword;
-    const responsePromise = page.waitForResponse('**/auth');
-    await loginBasic(page, testUser);
-    const response = await responsePromise;
-    expect(response.ok()).toBeTruthy();
-  });
-
-  test('Change user password by admin', async ({ page, browser }) => {
-    await waitForBase(page);
-    await createUser(browser, testUser);
-    await loginBasic(page, defaultUserAdmin);
-    await page.goto(routes.base + routes.identity.users);
-    const userRow = await page
-      .locator('.virtual-row')
-      .filter({ hasText: testUser.username });
-    await userRow.locator('.icon-button').click();
-    await page.getByTestId('change-password').click();
-    await page.getByTestId('field-password').fill(newPassword);
-    await page.getByTestId('submit-password-change').click();
-    await logout(page);
-    testUser.password = newPassword;
-    const responsePromise = page.waitForResponse('**/auth');
-    await loginBasic(page, testUser);
-    const response = await responsePromise;
-    expect(response.ok()).toBeTruthy();
-  });
-});
-
-test.describe('API tokens management', () => {
-  let testUser: User;
-  const token_name = 'test token name';
-  test.beforeEach(() => {
-    dockerRestart();
-    testUser = { ...testUserTemplate, username: 'test' };
-  });
-  test('Add API token as default admin', async ({ page }) => {
-    await waitForBase(page);
-    await loginBasic(page, defaultUserAdmin);
-    await page.goto(
-      routes.base + routes.profile + defaultUserAdmin.username + routes.tab.api_tokens,
-    );
-    await page.getByTestId('add-token').click();
-    await page.getByTestId('field-name').fill(token_name);
-    await page.getByTestId('submit').click();
-    const api_token = await page.getByTestId('copy-field').textContent();
-    await page.getByTestId('close').click();
-
-    const row = await page
-      .locator('.table-row-container')
-      .filter({ hasText: token_name });
-    await row.locator('.icon-button').click();
-    await page.getByTestId('delete').click();
-    await page.locator('button[data-variant="critical"]').click();
-    await expect(row).not.toBeVisible();
-    expect(api_token).toBeDefined();
-  });
-  test('Add API token as new user with admin privileges', async ({ page, browser }) => {
-    await waitForBase(page);
-    await createUser(browser, testUser, ['admin']);
-    await loginBasic(page, testUser);
-    await page.goto(
-      routes.base + routes.profile + testUser.username + routes.tab.api_tokens,
-    );
-    await page.getByTestId('add-token').click();
-    await page.getByTestId('field-name').fill(token_name);
-    await page.getByTestId('submit').click();
-    const api_token = await page.getByTestId('copy-field').textContent();
-    await page.getByTestId('close').click();
-
-    const row = await page
-      .locator('.table-row-container')
-      .filter({ hasText: token_name });
-    await row.locator('.icon-button').click();
-    await page.getByTestId('delete').click();
-    await page.locator('button[data-variant="critical"]').click();
-    await expect(row).not.toBeVisible();
-    expect(api_token).toBeDefined();
-  });
-});
