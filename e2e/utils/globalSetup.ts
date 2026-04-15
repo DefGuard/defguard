@@ -59,6 +59,8 @@ const runWizard = async () => {
   const browser = await chromium.launch({ headless: !process.env.HEADED });
   const context = await browser.newContext();
   const page = await context.newPage();
+  // Inherit the same timeout used by tests so wizard steps don't time out early on slow CI.
+  page.setDefaultTimeout(testsConfig.TEST_TIMEOUT * 1000);
 
   // Navigate to base URL — app redirects to wizard if setup not done
   await page.goto(testsConfig.BASE_URL);

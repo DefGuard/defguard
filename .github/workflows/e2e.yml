@@ -2,6 +2,11 @@ name: E2E tests
 
 on:
   workflow_call:
+    inputs:
+      image_tag:
+        type: string
+        required: false
+        description: 'Docker image tag to use. Defaults to the branch name.'
 
 permissions:
   contents: read
@@ -13,8 +18,10 @@ jobs:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
         instance-size:2xlarge
-    outputs:
-      tests_ok: ${{ steps.run-test.outcome == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - uses: actions/checkout@v6
@@ -30,14 +37,18 @@ jobs:
 
       - name: Export image tag
         run: |
-          # strip "refs/heads.” to get just the branch name
-          BRANCH=${GITHUB_REF#refs/heads/}
-          if [[ "$BRANCH" == release/* ]]; then
-            # replace '/' with '-' on release branches
-            IMAGE_TAG=${BRANCH//\//-}
+          if [[ -n "${{ inputs.image_tag }}" ]]; then
+            IMAGE_TAG="${{ inputs.image_tag }}"
           else
-            # main/dev branch
-            IMAGE_TAG=$BRANCH
+            # strip "refs/heads." to get just the branch name
+            BRANCH=${GITHUB_REF#refs/heads/}
+            if [[ "$BRANCH" == release/* ]]; then
+              # replace '/' with '-' on release branches
+              IMAGE_TAG=${BRANCH//\//-}
+            else
+              # main/dev branch
+              IMAGE_TAG=$BRANCH
+            fi
           fi
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "E2E tests will run on IMAGE_TAG=$IMAGE_TAG"
@@ -82,27 +93,26 @@ jobs:
 
       - name: run tests
         id: run-test
-        continue-on-error: true
         working-directory: ./e2e
         env:
           DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
-        run: pnpm test
+        run: pnpm test --shard=${{ matrix.shard }}/4
 
       - name: Stop compose
         if: always()
         run: docker compose --file './docker-compose.e2e.yaml' down
 
       - uses: actions/upload-artifact@v7
-        if: steps.run-test.outcome == 'failure'
+        if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: |
             ./e2e/playwright-report
           retention-days: 7
 
   trigger-dev-deploy:
     needs: test
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && needs.test.result == 'success' }}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
 
@@ -111,6 +121,6 @@ jobs:
     if: |
       github.event_name != 'pull_request' &&
       startsWith(github.ref_name, 'release/') &&
-      needs.test.outputs.tests_ok == 'true'
+      needs.test.result == 'success'
     uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit
