@@ -17,11 +17,11 @@ jobs:
   test:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
-        instance-size:2xlarge
+        instance-size:large
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
 
     steps:
       - uses: actions/checkout@v6
@@ -87,16 +87,31 @@ jobs:
         working-directory: ./e2e
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install playwright chromium
         working-directory: ./e2e
-        run: npx playwright install chromium
+        run: |
+          if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]]; then
+            # Browsers are cached; only install missing system dependencies.
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: run tests
         id: run-test
         working-directory: ./e2e
         env:
           DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
-        run: pnpm test --shard=${{ matrix.shard }}/4
+        run: pnpm test --shard=${{ matrix.shard }}/6
 
       - name: Stop compose
         if: always()
@@ -112,15 +127,12 @@ jobs:
 
   trigger-dev-deploy:
     needs: test
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && needs.test.result == 'success' }}
+    if: false # temporarily disabled
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
 
   trigger-staging-deploy:
     needs: test
-    if: |
-      github.event_name != 'pull_request' &&
-      startsWith(github.ref_name, 'release/') &&
-      needs.test.result == 'success'
+    if: false # temporarily disabled
     uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit

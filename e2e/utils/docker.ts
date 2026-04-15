@@ -6,25 +6,30 @@ const defguardPath = __dirname.split('e2e')[0];
 const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
 const dockerCompose = `docker compose -f ${dockerFilePath}`;
 
+// Run a SQL statement in the postgres maintenance database.
+const psql = (sql: string) =>
+  execSync(`${dockerCompose} exec db psql -U defguard -d postgres -c "${sql}"`);
+
 // Start Defguard stack with docker compose.
 export const dockerUp = () => {
-  const command = `${dockerCompose} up --wait`;
-  execSync(command);
-  // NOTE: After waiting, sleep for 3 seconds to let Defguard Core apply migrations.
-  const wait_for_db = `${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done; sleep 3'`;
-  execSync(wait_for_db);
-  const create_snapshot = `${dockerCompose} exec db pg_dump -U defguard -Fc -f /tmp/defguard_backup.dump defguard`;
-  execSync(create_snapshot);
+  execSync(`${dockerCompose} up --wait`);
+  // Wait for DB to be ready and let Core apply migrations before proceeding.
+  execSync(`${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done; sleep 3'`);
 };
 
+// Snapshot the current defguard database as a PostgreSQL template so it can
+// be cloned instantly on each test reset. Core is briefly stopped to prevent
+// active connections from blocking the template creation.
 export const dockerCreateSnapshot = () => {
-  const create_snapshot = `${dockerCompose} exec db pg_dump -U defguard -Fc -f /tmp/defguard_backup.dump defguard`;
-  execSync(create_snapshot);
+  execSync(`${dockerCompose} stop core`);
+  psql('DROP DATABASE IF EXISTS defguard_template');
+  psql('CREATE DATABASE defguard_template TEMPLATE defguard OWNER defguard');
+  execSync(`${dockerCompose} start core`);
+  execSync(`until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`);
 };
 
 export const dockerCheckContainers = (): boolean => {
-  const command = `${dockerCompose} ps -q`;
-  const containers = execSync(command).toString().trim();
+  const containers = execSync(`${dockerCompose} ps -q`).toString().trim();
   return Boolean(containers.length);
 };
 
@@ -32,18 +37,13 @@ export const dockerRestart = () => {
   if (!dockerCheckContainers()) {
     dockerUp();
   } else {
-    // Stop core first to avoid crashing due to terminated DB connections during restore.
-    const stop_core = `${dockerCompose} stop core`;
-    execSync(stop_core);
-    const restore = `${dockerCompose} exec db pg_restore --clean -U defguard -d defguard /tmp/defguard_backup.dump`;
-    execSync(restore);
-    const restart = `${dockerCompose} restart db`;
-    execSync(restart);
-    const wait_for_db = `${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done'`;
-    execSync(wait_for_db);
-    const start_core = `${dockerCompose} start core`;
-    execSync(start_core);
-    const wait_for_core = `until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`;
-    execSync(wait_for_core);
+    // Stop core first to ensure no active sessions remain on the database.
+    execSync(`${dockerCompose} stop core`);
+    // Drop and instantly recreate defguard from the template (filesystem-level copy).
+    psql('DROP DATABASE defguard');
+    psql('CREATE DATABASE defguard TEMPLATE defguard_template OWNER defguard');
+    // Start core and wait for it to be healthy.
+    execSync(`${dockerCompose} start core`);
+    execSync(`until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`);
   }
 };
