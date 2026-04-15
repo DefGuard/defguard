@@ -1,8 +1,6 @@
 name: Make a new release
 on:
   push:
-    branches:
-      - cross
     tags:
       - v*.*.*
 
@@ -64,9 +62,6 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          # TODO: remove
-          release_name: test
-          tag_name: test
 
   create-sbom:
     needs:
