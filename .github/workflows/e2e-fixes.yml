@@ -1,0 +1,22 @@
+name: E2E tests (e2e-fixes branch)
+# Temporary workflow: runs e2e tests on e2e-fixes using a pinned image tag,
+# bypassing the Docker build step.
+
+on:
+  push:
+    branches:
+      - "e2e-fixes"
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-e2e:
+    uses: ./.github/workflows/e2e.yml
+    with:
+      image_tag: release-2.0
+    secrets: inherit

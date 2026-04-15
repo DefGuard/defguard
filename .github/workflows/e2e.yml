@@ -2,6 +2,11 @@ name: E2E tests
 
 on:
   workflow_call:
+    inputs:
+      image_tag:
+        type: string
+        required: false
+        description: 'Docker image tag to use. Defaults to the branch name.'
 
 permissions:
   contents: read
@@ -32,14 +37,18 @@ jobs:
 
       - name: Export image tag
         run: |
-          # strip "refs/heads." to get just the branch name
-          BRANCH=${GITHUB_REF#refs/heads/}
-          if [[ "$BRANCH" == release/* ]]; then
-            # replace '/' with '-' on release branches
-            IMAGE_TAG=${BRANCH//\//-}
+          if [[ -n "${{ inputs.image_tag }}" ]]; then
+            IMAGE_TAG="${{ inputs.image_tag }}"
           else
-            # main/dev branch
-            IMAGE_TAG=$BRANCH
+            # strip "refs/heads." to get just the branch name
+            BRANCH=${GITHUB_REF#refs/heads/}
+            if [[ "$BRANCH" == release/* ]]; then
+              # replace '/' with '-' on release branches
+              IMAGE_TAG=${BRANCH//\//-}
+            else
+              # main/dev branch
+              IMAGE_TAG=$BRANCH
+            fi
           fi
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "E2E tests will run on IMAGE_TAG=$IMAGE_TAG"
