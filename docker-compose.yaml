@@ -5,44 +5,45 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DEFGUARD_COOKIE_INSECURE: "true"
-      DEFGUARD_SECRET_KEY: aa5a506b11d719dd7170f57f5d9947faf8eb0bc2be1325e42aa0237c3dcfd26456e73dff9eef3b12c7bcf8711b45e3e703d8e21ee1c08520f5e12e3f5772da94
-      DEFGUARD_AUTH_SECRET: defguard-auth-secret
-      DEFGUARD_GATEWAY_SECRET: defguard-gateway-secret
-      DEFGUARD_YUBIBRIDGE_SECRET: defguard-yubibridge-secret
       DEFGUARD_DB_HOST: db
       DEFGUARD_DB_PORT: 5432
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
-      DEFGUARD_URL: http://localhost:8000
       RUST_BACKTRACE: 1
     ports:
-      # rest api
+      # REST API
       - "8000:8000"
-      # grpc
+      # Default GRPC port
       - "50055:50055"
     depends_on:
       - db
 
   gateway:
     image: ghcr.io/defguard/gateway
-    environment:
-      DEFGUARD_GRPC_URL: http://core:50055
-      DEFGUARD_STATS_PERIOD: 60
-      DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjE3NDcwNzYsIm5iZiI6MTY2Njc3OTc4MSwicm9sZXMiOltdfQ.uEUMnw_gO23W0K2q3N1lToeP0D2zAY1swr8N-84sRHA
-      RUST_LOG: debug
     ports:
       # WireGuard endpoint
       - "50051:50051/udp"
+      # Default gateway GRPC port
       - "50066:50066"
     depends_on:
       - core
     cap_add:
       - NET_ADMIN
 
+  proxy:
+    image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
+    ports:
+      # REST API
+      - "8080:8080"
+      # Default GRPC port
+      - "50051:50051"
+    environment:
+      DEFGUARD_PROXY_GRPC_PORT: 50051
+      RUST_BACKTRACE: 1
+
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
