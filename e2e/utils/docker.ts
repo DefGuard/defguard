@@ -21,7 +21,8 @@ export const dockerUp = () => {
 // be cloned instantly on each test reset. Core is briefly stopped to prevent
 // active connections from blocking the template creation.
 export const dockerCreateSnapshot = () => {
-  execSync(`${dockerCompose} stop core`);
+  execSync(`${dockerCompose} kill core`);
+  psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'");
   psql('DROP DATABASE IF EXISTS defguard_template');
   psql('CREATE DATABASE defguard_template TEMPLATE defguard OWNER defguard');
   execSync(`${dockerCompose} start core`);
@@ -37,8 +38,11 @@ export const dockerRestart = () => {
   if (!dockerCheckContainers()) {
     dockerUp();
   } else {
-    // Stop core first to ensure no active sessions remain on the database.
-    execSync(`${dockerCompose} stop core`);
+    // SIGKILL core immediately — no grace period needed in tests.
+    execSync(`${dockerCompose} kill core`);
+    // Terminate any connections PostgreSQL still sees (kernel closes sockets on
+    // SIGKILL but PostgreSQL may not have processed the hangup yet).
+    psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'");
     // Drop and instantly recreate defguard from the template (filesystem-level copy).
     psql('DROP DATABASE defguard');
     psql('CREATE DATABASE defguard TEMPLATE defguard_template OWNER defguard');

@@ -3,7 +3,6 @@ import { chromium, request } from '@playwright/test';
 import { defaultUserAdmin, testsConfig } from '../config';
 import { dockerCheckContainers, dockerCreateSnapshot, dockerUp } from './docker';
 import { loadEnv } from './loadEnv';
-import { waitForPromise } from './waitForPromise';
 
 const setLicense = async () => {
   const license = process.env.DEFGUARD_LICENSE_KEY;
@@ -43,7 +42,9 @@ const waitForCore = async () => {
   await new Promise<void>((resolve) => {
     const check = () => {
       const req = http.get(coreUrl.toString(), (res) => {
-        if (res.statusCode && res.statusCode < 500) {
+        // Require exactly 200 — the setup server may return other 2xx/4xx
+        // codes on this path during the setup-to-core transition.
+        if (res.statusCode === 200) {
           resolve();
         } else {
           setTimeout(check, 2000);
@@ -135,6 +136,10 @@ const runWizard = async () => {
     .waitFor({ state: 'visible' });
   await page.getByRole('button', { name: "I'll do this later" }).click();
 
+  // Wait for navigation to /vpn-overview — this confirms that finishSetup()
+  // completed on the backend (setup server has received its shutdown signal).
+  await page.waitForURL('**/vpn-overview', { timeout: testsConfig.TEST_TIMEOUT * 1000 });
+
   await context.close();
   await browser.close();
 };
@@ -153,7 +158,12 @@ export default async function globalSetup() {
 
   await runWizard();
 
-  await waitForPromise(3000);
+  // After the wizard finishes, the setup server shuts down and the main core
+  // server takes over. Wait for the main core to be ready before proceeding.
+  console.log('Wizard complete. Waiting for main Core to be ready...');
+  await waitForCore();
+  console.log('Main Core is ready.');
+
   await setLicense();
 
   // Overwrite the snapshot with post-wizard state.
