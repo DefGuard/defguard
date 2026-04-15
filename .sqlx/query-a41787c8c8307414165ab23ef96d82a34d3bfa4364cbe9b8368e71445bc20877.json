@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, connected_at, disconnected_at, version, enabled, certificate_serial, certificate_expiry, modified_at, modified_by, core_client_cert_der, core_client_cert_key_der, core_client_cert_expiry FROM proxy WHERE enabled AND id NOT IN (SELECT id FROM proxy WHERE enabled LIMIT 1\n             )",
+  "query": "SELECT * FROM proxy WHERE address = $1 AND port = $2",
   "describe": {
     "columns": [
       {
@@ -35,33 +35,33 @@
       },
       {
         "ordinal": 6,
-        "name": "version",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 7,
-        "name": "enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 8,
-        "name": "certificate_serial",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 10,
+        "ordinal": 7,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
+        "name": "certificate_serial",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
         "name": "modified_by",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 12,
@@ -80,7 +80,10 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text",
+        "Int4"
+      ]
     },
     "nullable": [
       false,
@@ -90,8 +93,8 @@
       true,
       true,
       true,
-      false,
       true,
+      false,
       true,
       false,
       false,
@@ -100,5 +103,5 @@
       true
     ]
   },
-  "hash": "e2f43cdd1dd50ab2b97b1cdae80f6354bd99ff1f1f9adc02837ccbc458ee8be9"
+  "hash": "a41787c8c8307414165ab23ef96d82a34d3bfa4364cbe9b8368e71445bc20877"
 }

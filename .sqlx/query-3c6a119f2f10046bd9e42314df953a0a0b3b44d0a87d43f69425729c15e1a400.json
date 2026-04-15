@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, location_id, name, address, port, connected_at, disconnected_at, certificate_serial, certificate_expiry, version, enabled, modified_at, modified_by, core_client_cert_der, core_client_cert_key_der, core_client_cert_expiry FROM gateway WHERE address = $1 AND port = $2",
+  "query": "SELECT * FROM gateway WHERE location_id = $1 ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -15,28 +15,28 @@
       },
       {
         "ordinal": 2,
-        "name": "name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 3,
-        "name": "address",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
-        "name": "port",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 5,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 3,
         "name": "disconnected_at",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "certificate_expiry",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "name",
+        "type_info": "Text"
       },
       {
         "ordinal": 7,
@@ -45,23 +45,23 @@
       },
       {
         "ordinal": 8,
-        "name": "certificate_expiry",
-        "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 9,
-        "name": "version",
+        "name": "address",
         "type_info": "Text"
       },
       {
+        "ordinal": 9,
+        "name": "port",
+        "type_info": "Int4"
+      },
+      {
         "ordinal": 10,
-        "name": "enabled",
-        "type_info": "Bool"
+        "name": "modified_at",
+        "type_info": "Timestamp"
       },
       {
         "ordinal": 11,
-        "name": "modified_at",
-        "type_info": "Timestamp"
+        "name": "enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 12,
@@ -86,21 +86,20 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Int4"
+        "Int8"
       ]
     },
     "nullable": [
       false,
       false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
       false,
       false,
-      false,
-      true,
-      true,
-      true,
-      true,
-      true,
       false,
       false,
       false,
@@ -109,5 +108,5 @@
       true
     ]
   },
-  "hash": "bda99bacb002f781dd276c5623d399dec458cb9250fc448bc6edf94b5e90805b"
+  "hash": "3c6a119f2f10046bd9e42314df953a0a0b3b44d0a87d43f69425729c15e1a400"
 }
