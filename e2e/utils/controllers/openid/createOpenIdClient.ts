@@ -11,7 +11,7 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.openid_apps, { waitUntil: 'networkidle' });
+  await page.goto(routes.base + routes.openid_apps, { waitUntil: 'load' });
   await page.getByTestId('add-new-app').click();
   await page.getByTestId('field-name').fill(client.name);
 
