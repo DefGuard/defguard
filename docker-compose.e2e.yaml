@@ -35,7 +35,7 @@ services:
       retries: 5
       start_period: 5s
 
-  proxy:
+  edge:
     image: ghcr.io/defguard/defguard-proxy:${IMAGE_TAG}
     ports:
       # REST API

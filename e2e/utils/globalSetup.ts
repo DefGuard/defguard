@@ -114,7 +114,7 @@ const runWizard = async () => {
   // Step 8: Edge component — fill name and IP
   await page.getByTestId('field-common_name').waitFor({ state: 'visible' });
   await page.getByTestId('field-common_name').fill('edge-test');
-  await page.getByTestId('field-ip_or_domain').fill('proxy');
+  await page.getByTestId('field-ip_or_domain').fill('edge');
 
   // Adopt Edge component
   await page.getByRole('button', { name: 'Adopt Edge component' }).click();
