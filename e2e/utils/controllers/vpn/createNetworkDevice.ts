@@ -50,7 +50,7 @@ export const createNetworkCLIDevice = async (
   const page = await context.newPage();
   await loginBasic(page, user);
   await page.goto(routes.base + routes.network_devices, {
-    waitUntil: 'networkidle',
+    waitUntil: 'load',
   });
   await page.getByTestId('add-device').click();
   await page.getByTestId('defguard-cli').click();

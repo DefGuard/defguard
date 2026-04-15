@@ -29,7 +29,8 @@ test.describe('Setup VPN (wizard) ', () => {
     await createRegularLocation(browser, network);
   });
 
-  test('Wizard Service Location', async ({ page, browser }) => {
+  // TODO: add enterprise license to enable service location testing
+  test.skip('Wizard Service Location', async ({ page, browser }) => {
     await waitForBase(page);
     const network: NetworkForm = {
       name: 'test service',

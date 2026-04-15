@@ -18,7 +18,7 @@ test.describe('Test webhooks', () => {
     await createWebhook(browser, webhook_url, webhook_description, webhook_secret);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.webhooks, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const webhookRow = await page
       .locator('.virtual-row')
@@ -35,7 +35,7 @@ test.describe('Test webhooks', () => {
     await createWebhook(browser, webhook_url, webhook_description, 'secret');
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.webhooks, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const webhookRow = await page
       .locator('.virtual-row')
@@ -53,7 +53,7 @@ test.describe('Test webhooks', () => {
     await page.getByTestId('submit').click();
     await waitForPromise(2000);
     await page.goto(routes.base + routes.webhooks, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
 
     const new_webhookRow = await page
@@ -68,7 +68,7 @@ test.describe('Test webhooks', () => {
     await createWebhook(browser, webhook_url, webhook_description, webhook_secret);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.webhooks, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const webhookRow = await page
       .locator('.virtual-row')
@@ -96,7 +96,7 @@ test.describe('Test webhooks', () => {
     await createWebhook(browser, webhook_url, webhook_description, webhook_secret);
     await loginBasic(page, defaultUserAdmin);
     await page.goto(routes.base + routes.webhooks, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const webhookRow = await page
       .locator('.virtual-row')
