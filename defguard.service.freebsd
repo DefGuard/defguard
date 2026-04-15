@@ -9,6 +9,7 @@
 name="defguard"
 rcvar=defguard_enable
 command="/usr/local/bin/defguard"
+config="/etc/defguard/core.conf"
 start_cmd="${name}_start"
 
 defguard_start()
