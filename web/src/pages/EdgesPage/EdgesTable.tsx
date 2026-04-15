@@ -28,6 +28,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
 import { getEdgesQueryOptions, getLicenseInfoQueryOptions } from '../../shared/query';
+import { tableSortingFns } from '../../shared/utils/dateSortingFn';
 import { displayDate } from '../../shared/utils/displayDate';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
 
@@ -168,6 +169,8 @@ export const EdgesTable = () => {
         minSize: 175,
         header: m.edges_col_last_modified(),
         enableSorting: true,
+        // @ts-expect-error
+        sortingFn: 'dateIso',
         cell: (info) => (
           <TableCell>
             <span>{displayDate(info.getValue())}</span>
@@ -269,6 +272,7 @@ export const EdgesTable = () => {
         },
       ],
     },
+    sortingFns: tableSortingFns,
     columns,
     data: transformedData,
     enableRowSelection: false,
