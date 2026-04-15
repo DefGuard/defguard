@@ -105,8 +105,10 @@ jobs:
       # Change to '--frozen-lockfile' once this gets fixed:
       # https://github.com/pnpm/action-setup/issues/40
       - name: Build frontend
-        run: pnpm install --ignore-scripts --no-frozen-lockfile && pnpm build
         working-directory: web
+        run: |
+          pnpm install --ignore-scripts --no-frozen-lockfile
+          pnpm build
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
