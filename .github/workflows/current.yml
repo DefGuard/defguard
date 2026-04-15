@@ -9,6 +9,7 @@ on:
       - main
       - dev
       - "release/**"
+      - "e2e-fixes"
     paths-ignore:
       - "*.md"
       - "LICENSE"
