@@ -14,7 +14,9 @@ const psql = (sql: string) =>
 export const dockerUp = () => {
   execSync(`${dockerCompose} up --wait`);
   // Wait for DB to be ready and let Core apply migrations before proceeding.
-  execSync(`${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done; sleep 3'`);
+  execSync(
+    `${dockerCompose} exec db sh -c 'until pg_isready; do sleep 1; done; sleep 3'`,
+  );
 };
 
 // Snapshot the current defguard database as a PostgreSQL template so it can
@@ -22,11 +24,15 @@ export const dockerUp = () => {
 // active connections from blocking the template creation.
 export const dockerCreateSnapshot = () => {
   execSync(`${dockerCompose} kill core`);
-  psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'");
+  psql(
+    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'",
+  );
   psql('DROP DATABASE IF EXISTS defguard_template');
   psql('CREATE DATABASE defguard_template TEMPLATE defguard OWNER defguard');
   execSync(`${dockerCompose} start core`);
-  execSync(`until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`);
+  execSync(
+    `until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`,
+  );
 };
 
 export const dockerCheckContainers = (): boolean => {
@@ -42,12 +48,16 @@ export const dockerRestart = () => {
     execSync(`${dockerCompose} kill core`);
     // Terminate any connections PostgreSQL still sees (kernel closes sockets on
     // SIGKILL but PostgreSQL may not have processed the hangup yet).
-    psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'");
+    psql(
+      "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'defguard'",
+    );
     // Drop and instantly recreate defguard from the template (filesystem-level copy).
     psql('DROP DATABASE defguard');
     psql('CREATE DATABASE defguard TEMPLATE defguard_template OWNER defguard');
     // Start core and wait for it to be healthy.
     execSync(`${dockerCompose} start core`);
-    execSync(`until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`);
+    execSync(
+      `until curl -sf http://localhost:8000/api/v1/health > /dev/null; do sleep 1; done`,
+    );
   }
 };

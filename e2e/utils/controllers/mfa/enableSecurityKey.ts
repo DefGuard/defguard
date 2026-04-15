@@ -30,15 +30,18 @@ export const enableSecurityKey = async (
   // so it can respond to navigator.credentials.create() automatically.
   const authenticator = await context.newCDPSession(page);
   await authenticator.send('WebAuthn.enable');
-  const { authenticatorId } = await authenticator.send('WebAuthn.addVirtualAuthenticator', {
-    options: {
-      protocol: 'ctap2',
-      transport: 'usb',
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
+  const { authenticatorId } = await authenticator.send(
+    'WebAuthn.addVirtualAuthenticator',
+    {
+      options: {
+        protocol: 'ctap2',
+        transport: 'usb',
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+      },
     },
-  });
+  );
 
   await page.getByTestId('submit').click();
 

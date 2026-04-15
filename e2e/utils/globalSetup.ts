@@ -63,7 +63,9 @@ const runWizard = async () => {
 
   await page.goto(testsConfig.BASE_URL);
 
-  await page.getByRole('button', { name: 'Configure Defguard' }).waitFor({ state: 'visible' });
+  await page
+    .getByRole('button', { name: 'Configure Defguard' })
+    .waitFor({ state: 'visible' });
   await page.getByRole('button', { name: 'Configure Defguard' }).click();
 
   await page.getByTestId('field-first_name').waitFor({ state: 'visible' });
@@ -81,7 +83,8 @@ const runWizard = async () => {
   await page.getByTestId('field-default_admin_group_name').waitFor({ state: 'visible' });
   const generalConfigResp = page.waitForResponse(
     (r) =>
-      r.url().includes('/initial_setup/general_config') && r.request().method() === 'POST',
+      r.url().includes('/initial_setup/general_config') &&
+      r.request().method() === 'POST',
   );
   await page.getByRole('button', { name: 'Continue' }).click();
   await generalConfigResp;
