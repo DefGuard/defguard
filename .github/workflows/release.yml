@@ -177,7 +177,7 @@ jobs:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             defguard.service=/usr/lib/systemd/system/defguard.service
             .env-template=/etc/defguard/core.conf"
-          fpm_opts: "--architecture arm64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-freebsd.rpm"
+          fpm_opts: "--architecture arm64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm"
 
       - name: Build FreeBSD package
         uses: defGuard/fpm-action@main
