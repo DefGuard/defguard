@@ -25,9 +25,8 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   for (const scope of client.scopes) {
     await page.getByTestId(`field-scope-${scope}`).click();
   }
-  await page.getByTestId('save-settings').click();
   const responsePromise = page.waitForResponse('**/oauth');
-
+  await page.getByTestId('save-settings').click();
   const resp = await responsePromise;
   expect(resp.status()).toBe(201);
   await context.close();

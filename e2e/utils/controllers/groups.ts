@@ -14,6 +14,6 @@ export const createGroup = async (browser: Browser, group_name: string) => {
   await page.getByTestId('field-name').fill(group_name);
   await page.getByTestId('next').click();
   await page.getByTestId('submit').click();
-  // Playwright's expect auto-retries until the group name is visible.
-  expect(page.locator(':text("' + group_name + '")')).toBeVisible();
+  await expect(page.locator(':text("' + group_name + '")')).toBeVisible();
+  await context.close();
 };

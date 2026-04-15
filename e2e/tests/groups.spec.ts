@@ -40,7 +40,8 @@ test.describe('Test groups', () => {
     await createGroup(browser, 'test_group2');
     await createUser(browser, testUser, ['test_group2']);
     await loginBasic(page, testUser);
-    await expect(page.url()).toBe(
+    // Use toHaveURL (retries) not expect(page.url()).toBe (synchronous, no retry).
+    await expect(page).toHaveURL(
       routes.base + routes.profile + testUser.username + routes.tab.details,
     );
   });

@@ -15,6 +15,7 @@ export const copyOpenIdClientId = async (browser: Browser, clientId: number) => 
   await deviceRow.locator('.icon-button').click();
   await page.getByTestId('copy-id').click();
   const id = await getPageClipboard(page);
+  await context.close();
   return id;
 };
 

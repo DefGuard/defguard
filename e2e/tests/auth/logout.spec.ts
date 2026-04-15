@@ -27,7 +27,7 @@ test.describe('Logout', () => {
     const response = await responsePromise;
     expect(response.status()).toBe(200);
     await waitForRoute(page, routes.auth.login);
-    await expect(page.url()).toBe(routes.base + routes.auth.login);
+    await expect(page).toHaveURL(routes.base + routes.auth.login);
   });
 
   test('Logout when disabled', async ({ page, browser }) => {
