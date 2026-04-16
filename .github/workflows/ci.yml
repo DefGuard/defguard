@@ -30,8 +30,6 @@ jobs:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
       RUSTC_WRAPPER: sccache
-      CARGO_HOME: ${{ github.workspace }}/.cargo
-      SCCACHE_DIR: ${{ github.workspace }}/.sccache
 
     steps:
       - name: Checkout
@@ -39,23 +37,26 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Add .cargo/bin to PATH
-        run: echo "$CARGO_HOME/bin" >> $GITHUB_PATH
+      - name: Export workspace-relative cache paths
+        run: |
+          echo "SCCACHE_DIR=$GITHUB_WORKSPACE/.sccache" >> $GITHUB_ENV
+          echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo"    >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: |
-            ${{ github.workspace }}/.cargo/registry/index
-            ${{ github.workspace }}/.cargo/registry/cache
-            ${{ github.workspace }}/.cargo/git/db
+            ${{ env.CARGO_HOME }}/registry/index
+            ${{ env.CARGO_HOME }}/registry/cache
+            ${{ env.CARGO_HOME }}/git/db
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
       - name: Cache sccache
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/.sccache
+          path: ${{ env.SCCACHE_DIR }}
           key: sccache-lint-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: sccache-lint-
 
@@ -116,8 +117,6 @@ jobs:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
       RUSTC_WRAPPER: sccache
-      CARGO_HOME: ${{ github.workspace }}/.cargo
-      SCCACHE_DIR: ${{ github.workspace }}/.sccache
 
     steps:
       - name: Checkout
@@ -125,23 +124,26 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Add .cargo/bin to PATH
-        run: echo "$CARGO_HOME/bin" >> $GITHUB_PATH
+      - name: Export workspace-relative cache paths
+        run: |
+          echo "SCCACHE_DIR=$GITHUB_WORKSPACE/.sccache" >> $GITHUB_ENV
+          echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo"    >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: |
-            ${{ github.workspace }}/.cargo/registry/index
-            ${{ github.workspace }}/.cargo/registry/cache
-            ${{ github.workspace }}/.cargo/git/db
+            ${{ env.CARGO_HOME }}/registry/index
+            ${{ env.CARGO_HOME }}/registry/cache
+            ${{ env.CARGO_HOME }}/git/db
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
       - name: Cache sccache
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/.sccache
+          path: ${{ env.SCCACHE_DIR }}
           key: sccache-build-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: sccache-build-
 
