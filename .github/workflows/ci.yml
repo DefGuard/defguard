@@ -29,12 +29,32 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: sccache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           submodules: recursive
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/cargo/registry/index
+            /usr/local/cargo/registry/cache
+            /usr/local/cargo/git/db
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Install and start sccache
+        run: |
+          SCCACHE_VERSION=v0.14.0
+          curl -sSL "https://github.com/mozilla/sccache/releases/download/${SCCACHE_VERSION}/sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz -C /tmp
+          mv "/tmp/sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl/sccache" /usr/local/bin/sccache
+          sccache --start-server
 
       - name: Scan code with Trivy
         uses: aquasecurity/trivy-action@0.35.0
@@ -48,9 +68,6 @@ jobs:
           ignore-unfixed: true
           severity: "CRITICAL,HIGH,MEDIUM"
           scanners: "vuln"
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
 
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
@@ -73,6 +90,10 @@ jobs:
       - name: Run cargo deny
         run: cargo deny check
 
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
+
   build:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
@@ -83,6 +104,8 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: sccache
 
     steps:
       - name: Checkout
@@ -90,8 +113,23 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/cargo/registry/index
+            /usr/local/cargo/registry/cache
+            /usr/local/cargo/git/db
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Install and start sccache
+        run: |
+          SCCACHE_VERSION=v0.14.0
+          curl -sSL "https://github.com/mozilla/sccache/releases/download/${SCCACHE_VERSION}/sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz -C /tmp
+          mv "/tmp/sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl/sccache" /usr/local/bin/sccache
+          sccache --start-server
 
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
@@ -109,6 +147,10 @@ jobs:
             --archive-file nextest-archive.tar.zst \
             --config 'profile.test.debug=false' \
             --config 'profile.test.strip="debuginfo"'
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
 
       - name: Upload test archive
         uses: actions/upload-artifact@v4
