@@ -160,6 +160,12 @@ jobs:
       SQLX_OFFLINE: true
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
       - name: Download test archive
         uses: actions/download-artifact@v4
         with:
