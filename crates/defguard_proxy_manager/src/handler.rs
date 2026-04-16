@@ -330,7 +330,14 @@ impl ProxyHandler {
                         self.retry_delay()
                     );
                     self.mark_disconnected().await?;
-                    sleep(self.retry_delay()).await;
+                    let mut shutdown = self.shutdown_signal.lock().await;
+                    select! {
+                        _ = sleep(self.retry_delay()) => {}
+                        _ = &mut *shutdown => {
+                            debug!("Shutdown signal received during reconnect backoff (connect_channel failure), stopping");
+                            break;
+                        }
+                    }
                     continue;
                 }
             };
@@ -372,7 +379,14 @@ impl ProxyHandler {
                         map.remove(&self.proxy_id);
                     }
                     self.mark_disconnected().await?;
-                    sleep(self.retry_delay()).await;
+                    let mut shutdown = self.shutdown_signal.lock().await;
+                    select! {
+                        _ = sleep(self.retry_delay()) => {}
+                        _ = &mut *shutdown => {
+                            debug!("Shutdown signal received during reconnect backoff (bidi failure), stopping");
+                            break;
+                        }
+                    }
                     continue;
                 }
             };
@@ -397,7 +411,14 @@ impl ProxyHandler {
                 data.insert(&incompatible_components);
 
                 // Sleep before trying to reconnect
-                sleep(self.retry_delay()).await;
+                let mut shutdown = self.shutdown_signal.lock().await;
+                select! {
+                    _ = sleep(self.retry_delay()) => {}
+                    _ = &mut *shutdown => {
+                        debug!("Shutdown signal received during reconnect backoff (version incompatible), stopping");
+                        break;
+                    }
+                }
                 continue;
             }
             IncompatibleComponents::remove_proxy(&incompatible_components);
