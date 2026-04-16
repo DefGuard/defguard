@@ -247,8 +247,8 @@ pub async fn apply_external_url_settings(
     update_current_settings(&mut *transaction, settings).await?;
 
     let hostname = match config.ssl_type {
-        ExternalSslType::None => String::new(),
-        ExternalSslType::DefguardCa | ExternalSslType::LetsEncrypt | ExternalSslType::OwnCert => {
+        ExternalSslType::None | ExternalSslType::OwnCert => String::new(),
+        ExternalSslType::DefguardCa | ExternalSslType::LetsEncrypt => {
             let url = public_proxy_url.trim();
             if url.is_empty() {
                 return Err(WebError::BadRequest(
