@@ -1,6 +1,9 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
-use defguard_common::db::models::Certificates;
+use defguard_common::{
+    db::models::{Certificates, Settings},
+    types::proxy::ProxyControlMessage,
+};
 use serde_json::json;
 use sqlx::PgPool;
 
@@ -25,12 +28,7 @@ fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
 async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_pem: String) {
     if let Err(err) = appstate
         .proxy_control_tx
-        .send(
-            defguard_common::types::proxy::ProxyControlMessage::BroadcastHttpsCerts {
-                cert_pem,
-                key_pem,
-            },
-        )
+        .send(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem })
         .await
     {
         error!("Failed to broadcast HttpsCerts to proxies: {err:?}");
@@ -41,7 +39,7 @@ async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_
 async fn clear_proxy_https_certs(appstate: &AppState) {
     if let Err(err) = appstate
         .proxy_control_tx
-        .send(defguard_common::types::proxy::ProxyControlMessage::ClearHttpsCerts)
+        .send(ProxyControlMessage::ClearHttpsCerts)
         .await
     {
         error!("Failed to broadcast ClearHttpsCerts to proxies: {err:?}");
@@ -78,7 +76,7 @@ pub(crate) async fn set_internal_url_settings(
         "User {} applying core internal URL certificate settings",
         session.user.username
     );
-    let settings = defguard_common::db::models::Settings::get_current_settings();
+    let settings = Settings::get_current_settings();
     let cert_info = apply_internal_url_settings(&pool, &settings.defguard_url, config).await?;
     reload_core_web_server(&appstate);
     info!(
@@ -116,7 +114,7 @@ pub(crate) async fn set_external_url_settings(
         "User {} applying proxy external URL certificate settings",
         session.user.username
     );
-    let settings = defguard_common::db::models::Settings::get_current_settings();
+    let settings = Settings::get_current_settings();
     let ssl_type = config.ssl_type.clone();
     let cert_info = apply_external_url_settings(&pool, &settings.public_proxy_url, config).await?;
 
