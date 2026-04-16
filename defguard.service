@@ -1,5 +1,5 @@
 [Unit]
-Description=defguard core service
+Description=Defguard Core service
 Documentation=https://docs.defguard.net/
 Wants=network-online.target
 After=network-online.target
@@ -13,8 +13,8 @@ KillMode=process
 KillSignal=SIGINT
 LimitNOFILE=65536
 LimitNPROC=infinity
-Restart=on-failure
-RestartSec=2
+Restart=always
+RestartSec=3
 TasksMax=infinity
 OOMScoreAdjust=-1000
 
