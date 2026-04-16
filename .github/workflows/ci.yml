@@ -54,6 +54,14 @@ jobs:
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
+      - name: Forward AWS credentials
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('AWS_ACCESS_KEY_ID', process.env.AWS_ACCESS_KEY_ID || '');
+            core.exportVariable('AWS_SECRET_ACCESS_KEY', process.env.AWS_SECRET_ACCESS_KEY || '');
+            core.exportVariable('AWS_SESSION_TOKEN', process.env.AWS_SESSION_TOKEN || '');
+
       - name: Install and start sccache
         run: |
           SCCACHE_VERSION=v0.14.0
@@ -134,6 +142,14 @@ jobs:
             ${{ env.CARGO_HOME }}/git/db
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
+
+      - name: Forward AWS credentials
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('AWS_ACCESS_KEY_ID', process.env.AWS_ACCESS_KEY_ID || '');
+            core.exportVariable('AWS_SECRET_ACCESS_KEY', process.env.AWS_SECRET_ACCESS_KEY || '');
+            core.exportVariable('AWS_SESSION_TOKEN', process.env.AWS_SESSION_TOKEN || '');
 
       - name: Install and start sccache
         run: |
