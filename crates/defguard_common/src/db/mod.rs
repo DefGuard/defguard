@@ -39,7 +39,7 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
 // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
 pub async fn setup_pool(options: PgConnectOptions) -> PgPool {
     let pool = PgPoolOptions::new()
-        .max_connections(2)
+        .max_connections(5)
         .connect_with(options)
         .await
         .unwrap();

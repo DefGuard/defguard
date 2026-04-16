@@ -22,7 +22,7 @@ jobs:
   lint:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
-      - instance-size:2xlarge
+      - instance-size:large
 
     container: public.ecr.aws/docker/library/rust:1
 
@@ -126,7 +126,7 @@ jobs:
 
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
-      - instance-size:2xlarge
+      - instance-size:large
 
     container: public.ecr.aws/docker/library/rust:1
 
