@@ -19,37 +19,16 @@ on:
       - "LICENSE"
 
 jobs:
-  test:
+  lint:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
       - instance-size:2xlarge
 
     container: public.ecr.aws/docker/library/rust:1
 
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:17-alpine
-        env:
-          POSTGRES_DB: defguard
-          POSTGRES_USER: defguard
-          POSTGRES_PASSWORD: defguard
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        command: postgres -c max_connections=400
-
     env:
       CARGO_TERM_COLOR: always
-      DEFGUARD_DB_HOST: postgres
-      DEFGUARD_DB_PORT: 5432
-      DEFGUARD_DB_NAME: defguard
-      DEFGUARD_DB_USER: defguard
-      DEFGUARD_DB_PASSWORD: defguard
-      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
       SQLX_OFFLINE: true
-      # sccache
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
 
@@ -88,13 +67,63 @@ jobs:
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Install cargo extensions
+      - name: Install cargo-deny
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-deny,cargo-nextest
+          tool: cargo-deny
 
       - name: Run cargo deny
         run: cargo deny check
 
+  test:
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:2xlarge
+
+    container: public.ecr.aws/docker/library/rust:1
+
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:17-alpine
+        env:
+          POSTGRES_DB: defguard
+          POSTGRES_USER: defguard
+          POSTGRES_PASSWORD: defguard
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        command: postgres -c max_connections=400
+
+    env:
+      CARGO_TERM_COLOR: always
+      DEFGUARD_DB_HOST: postgres
+      DEFGUARD_DB_PORT: 5432
+      DEFGUARD_DB_NAME: defguard
+      DEFGUARD_DB_USER: defguard
+      DEFGUARD_DB_PASSWORD: defguard
+      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
+      SQLX_OFFLINE: true
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Install protoc
+        run: apt-get update && apt-get -y install protobuf-compiler
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
       - name: Run tests
-        run: cargo nextest run --locked --no-fail-fast
+        run: cargo nextest run --locked --no-fail-fast --all-features
