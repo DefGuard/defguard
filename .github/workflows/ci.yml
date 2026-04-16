@@ -30,7 +30,8 @@ jobs:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /sccache
+      CARGO_HOME: ${{ github.workspace }}/.cargo
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
 
     steps:
       - name: Checkout
@@ -38,20 +39,23 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Add .cargo/bin to PATH
+        run: echo "$CARGO_HOME/bin" >> $GITHUB_PATH
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: |
-            /usr/local/cargo/registry/index
-            /usr/local/cargo/registry/cache
-            /usr/local/cargo/git/db
+            ${{ github.workspace }}/.cargo/registry/index
+            ${{ github.workspace }}/.cargo/registry/cache
+            ${{ github.workspace }}/.cargo/git/db
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
       - name: Cache sccache
         uses: actions/cache@v4
         with:
-          path: /sccache
+          path: ${{ github.workspace }}/.sccache
           key: sccache-lint-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: sccache-lint-
 
@@ -112,7 +116,8 @@ jobs:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /sccache
+      CARGO_HOME: ${{ github.workspace }}/.cargo
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
 
     steps:
       - name: Checkout
@@ -120,20 +125,23 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Add .cargo/bin to PATH
+        run: echo "$CARGO_HOME/bin" >> $GITHUB_PATH
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: |
-            /usr/local/cargo/registry/index
-            /usr/local/cargo/registry/cache
-            /usr/local/cargo/git/db
+            ${{ github.workspace }}/.cargo/registry/index
+            ${{ github.workspace }}/.cargo/registry/cache
+            ${{ github.workspace }}/.cargo/git/db
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
       - name: Cache sccache
         uses: actions/cache@v4
         with:
-          path: /sccache
+          path: ${{ github.workspace }}/.sccache
           key: sccache-build-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: sccache-build-
 
