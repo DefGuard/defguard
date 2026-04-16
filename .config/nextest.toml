@@ -1,0 +1,3 @@
+[profile.ci]
+# Run up to 32 tests concurrently on CI (2xlarge runner).
+test-threads = 32

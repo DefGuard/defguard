@@ -40,7 +40,7 @@ use tonic::{Request, Response, Status, Streaming, transport::Server};
 
 use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
 
-const TEST_TIMEOUT: Duration = Duration::from_secs(2);
+const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 macro_rules! assert_some {
     ($expr:expr, $message:literal) => {

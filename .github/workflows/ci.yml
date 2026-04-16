@@ -126,4 +126,4 @@ jobs:
           tool: cargo-nextest
 
       - name: Run tests
-        run: cargo nextest run --locked --no-fail-fast --all-features
+        run: cargo nextest run --locked --no-fail-fast --all-features --profile ci
