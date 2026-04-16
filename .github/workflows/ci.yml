@@ -30,6 +30,7 @@ jobs:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
       RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - name: Checkout
@@ -39,7 +40,6 @@ jobs:
 
       - name: Export workspace-relative cache paths
         run: |
-          echo "SCCACHE_DIR=$GITHUB_WORKSPACE/.sccache" >> $GITHUB_ENV
           echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo"    >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
@@ -53,12 +53,12 @@ jobs:
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
-      - name: Cache sccache
-        uses: actions/cache@v4
+      - name: Configure sccache
+        uses: actions/github-script@v7
         with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-lint-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: sccache-lint-
+          script: |
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install and start sccache
         run: |
@@ -117,6 +117,7 @@ jobs:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
       RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - name: Checkout
@@ -126,7 +127,6 @@ jobs:
 
       - name: Export workspace-relative cache paths
         run: |
-          echo "SCCACHE_DIR=$GITHUB_WORKSPACE/.sccache" >> $GITHUB_ENV
           echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo"    >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
 
@@ -140,12 +140,12 @@ jobs:
           key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-registry-
 
-      - name: Cache sccache
-        uses: actions/cache@v4
+      - name: Configure sccache
+        uses: actions/github-script@v7
         with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: sccache-build-
+          script: |
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install and start sccache
         run: |
