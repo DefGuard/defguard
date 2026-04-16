@@ -106,7 +106,13 @@ jobs:
           tool: cargo-nextest
 
       - name: Build and archive tests
-        run: cargo nextest archive --locked --all-features --archive-file nextest-archive.tar.zst
+        run: |
+          cargo nextest archive \
+            --locked \
+            --all-features \
+            --archive-file nextest-archive.tar.zst \
+            --config 'profile.test.debug=false' \
+            --config 'profile.test.strip="debuginfo"'
 
       - name: Upload test archive
         uses: actions/upload-artifact@v4
@@ -171,3 +177,27 @@ jobs:
             --archive-file nextest-archive.tar.zst \
             --partition hash:${{ matrix.partition }}/4 \
             --profile ci
+
+  cleanup:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete test archive artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            const artifact = artifacts.data.artifacts.find(a => a.name === 'nextest-archive');
+            if (artifact) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }
+
