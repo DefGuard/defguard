@@ -1060,7 +1060,7 @@ pub async fn setup_gateway_tls_stream(
 }
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
-const ACME_TIMEOUT_SECS: u64 = 300;
+pub const ACME_TIMEOUT_SECS: u64 = 300;
 
 #[derive(Debug, Serialize)]
 struct AcmeSetupResponse {
@@ -1095,7 +1095,7 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
 }
 
 /// Maps a proto [`AcmeStep`] to the SSE step string expected by the frontend.
-fn acme_step_name(step: AcmeStep) -> &'static str {
+pub fn acme_step_name(step: AcmeStep) -> &'static str {
     match step {
         AcmeStep::Unspecified | AcmeStep::Connecting => "Connecting",
         AcmeStep::CheckingDomain => "CheckingDomain",
@@ -1104,7 +1104,7 @@ fn acme_step_name(step: AcmeStep) -> &'static str {
     }
 }
 
-fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+pub fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
     let der = defguard_certs::parse_pem_certificate(cert_pem)
         .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
         .ok()?;
@@ -1114,35 +1114,14 @@ fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
         .ok()
 }
 
-fn public_proxy_hostname() -> Result<String, String> {
-    let public_proxy_url = Settings::get_current_settings().public_proxy_url;
-    let url = public_proxy_url.trim();
 
-    if url.is_empty() {
-        return Err(
-            "Public Edge URL is not configured. Please re-submit the external URL settings \
-             with a Let's Encrypt domain."
-                .to_string(),
-        );
-    }
-
-    Url::parse(url)
-        .ok()
-        .and_then(|u| u.host_str().map(ToString::to_string))
-        .filter(|host| !host.is_empty())
-        .ok_or_else(|| {
-            "Public Edge URL is not configured with a valid hostname. Please re-submit the \
-             external URL settings with a valid domain."
-                .to_string()
-        })
-}
 
 /// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
 ///
 /// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
 /// `(error_message, log_lines)` on failure where `log_lines` are the proxy log entries
 /// collected during the ACME run (sent by the proxy via an [`AcmeLogs`] event).
-async fn call_proxy_trigger_acme(
+pub async fn call_proxy_trigger_acme(
     pool: &PgPool,
     proxy_host: &str,
     proxy_port: u16,
@@ -1259,10 +1238,11 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let domain = match public_proxy_hostname() {
+        let settings = Settings::get_current_settings();
+        let domain = match settings.proxy_hostname() {
             Ok(domain) => domain,
             Err(message) => {
-                yield Ok(acme_error_event("Connecting", message, None));
+                yield Ok(acme_error_event("Connecting", message.to_string(), None));
                 return;
             }
         };
