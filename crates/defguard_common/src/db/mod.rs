@@ -38,7 +38,11 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
 // Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
 // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
 pub async fn setup_pool(options: PgConnectOptions) -> PgPool {
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = PgPoolOptions::new()
+        .max_connections(2)
+        .connect_with(options)
+        .await
+        .unwrap();
     MIGRATOR
         .run(&pool)
         .await

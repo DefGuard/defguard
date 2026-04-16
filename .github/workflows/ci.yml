@@ -58,6 +58,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Increase Postgres max_connections
+        run: |
+          docker exec ${{ job.services.postgres.id }} \
+            psql -U defguard -d defguard -c "ALTER SYSTEM SET max_connections = 400;"
+          docker restart ${{ job.services.postgres.id }}
+          sleep 5
+
       - name: Scan code with Trivy
         uses: aquasecurity/trivy-action@0.35.0
         env:
