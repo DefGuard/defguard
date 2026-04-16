@@ -29,13 +29,9 @@ use x509_parser::prelude::*;
 ///     .service(/* gRPC service */)
 /// ```
 pub fn certificate_serial_interceptor(
-    expected_serial: Option<String>,
+    expected_serial: String,
 ) -> impl Fn(Request<()>) -> Result<Request<()>, Status> + Clone + Send + 'static {
     move |req| {
-        let Some(ref serial) = expected_serial else {
-            return Ok(req);
-        };
-
         let certs = req
             .extensions()
             .get::<TlsConnectInfo<TcpConnectInfo>>()
@@ -51,7 +47,7 @@ pub fn certificate_serial_interceptor(
 
         let peer_serial = cert.tbs_certificate.raw_serial_as_string();
 
-        if !peer_serial.eq_ignore_ascii_case(serial) {
+        if !peer_serial.eq_ignore_ascii_case(&expected_serial) {
             return Err(Status::unauthenticated(
                 "Client certificate serial mismatch",
             ));
