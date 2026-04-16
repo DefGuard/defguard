@@ -1,6 +1,9 @@
 use axum::{Extension, Json, extract::State, http::StatusCode};
 use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
-use defguard_common::{db::models::{Certificates, Settings}, types::proxy::ProxyControlMessage};
+use defguard_common::{
+    db::models::{Certificates, Settings},
+    types::proxy::ProxyControlMessage,
+};
 use serde_json::json;
 use sqlx::PgPool;
 
@@ -25,12 +28,7 @@ fn cert_common_name(cert_pem: Option<&str>) -> Option<String> {
 async fn broadcast_proxy_https_certs(appstate: &AppState, cert_pem: String, key_pem: String) {
     if let Err(err) = appstate
         .proxy_control_tx
-        .send(
-            ProxyControlMessage::BroadcastHttpsCerts {
-                cert_pem,
-                key_pem,
-            },
-        )
+        .send(ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem })
         .await
     {
         error!("Failed to broadcast HttpsCerts to proxies: {err:?}");
