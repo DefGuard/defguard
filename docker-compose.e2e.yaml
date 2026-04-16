@@ -16,6 +16,7 @@ services:
       DEFGUARD_DB_PASSWORD: defguard
       DEFGUARD_DB_NAME: defguard
       DEFGUARD_URL: http://localhost:8000
+      DEFGUARD_LICENSE_KEY: ${DEFGUARD_LICENSE_KEY:-}
       RUST_BACKTRACE: 1
     ports:
       - "8000:8000"

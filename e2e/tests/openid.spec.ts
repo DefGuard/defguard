@@ -48,7 +48,7 @@ test.describe('Authorize OpenID client.', () => {
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
     await page.goto(routes.base + routes.me, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
     await expect(authorizedApps).toContainText(client.name);
@@ -71,7 +71,7 @@ test.describe('Authorize OpenID client.', () => {
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
     await page.goto(routes.base + routes.me, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
     await expect(authorizedApps).toContainText(client.name);
@@ -97,7 +97,7 @@ test.describe('Authorize OpenID client.', () => {
       .textContent();
     expect(headerMessage?.replace(' ', '')).toBe('Success!');
     await page.goto(routes.base + routes.me, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     const authorizedApps = page.locator('#authorized-apps-card').locator('.app');
     await expect(authorizedApps).toContainText(client.name);

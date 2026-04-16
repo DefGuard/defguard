@@ -12,9 +12,11 @@ jobs:
   test:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
-        instance-size:2xlarge
-    outputs:
-      tests_ok: ${{ steps.run-test.outcome == 'success' }}
+        instance-size:medium
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
 
     steps:
       - uses: actions/checkout@v6
@@ -30,13 +32,10 @@ jobs:
 
       - name: Export image tag
         run: |
-          # strip "refs/heads.” to get just the branch name
           BRANCH=${GITHUB_REF#refs/heads/}
           if [[ "$BRANCH" == release/* ]]; then
-            # replace '/' with '-' on release branches
             IMAGE_TAG=${BRANCH//\//-}
           else
-            # main/dev branch
             IMAGE_TAG=$BRANCH
           fi
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
@@ -76,33 +75,47 @@ jobs:
         working-directory: ./e2e
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install playwright chromium
         working-directory: ./e2e
-        run: npx playwright install chromium
+        run: |
+          if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]]; then
+            # Browsers are cached; only install missing system dependencies.
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: run tests
         id: run-test
-        continue-on-error: true
         working-directory: ./e2e
         env:
           DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
-        run: pnpm test
+        run: pnpm test --shard=${{ matrix.shard }}/8
 
       - name: Stop compose
         if: always()
         run: docker compose --file './docker-compose.e2e.yaml' down
 
       - uses: actions/upload-artifact@v7
-        if: steps.run-test.outcome == 'failure'
+        if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: |
             ./e2e/playwright-report
           retention-days: 7
 
   trigger-dev-deploy:
     needs: test
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && needs.test.result == 'success' }}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
 
@@ -111,6 +124,6 @@ jobs:
     if: |
       github.event_name != 'pull_request' &&
       startsWith(github.ref_name, 'release/') &&
-      needs.test.outputs.tests_ok == 'true'
+      needs.test.result == 'success'
     uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit
