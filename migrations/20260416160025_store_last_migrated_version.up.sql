@@ -1,1 +1,1 @@
-ALTER TABLE wizard ADD COLUMN last_migrated_version TEXT;
+ALTER TABLE wizard ADD COLUMN last_version_migrated_to TEXT;

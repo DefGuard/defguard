@@ -45,7 +45,7 @@ impl fmt::Display for ActiveWizard {
 pub struct Wizard {
     pub active_wizard: ActiveWizard,
     pub completed: bool,
-    pub last_migrated_version: Option<String>,
+    pub last_version_migrated_to: Option<String>,
 }
 
 impl Wizard {
@@ -54,11 +54,11 @@ impl Wizard {
         E: PgExecutor<'e>,
     {
         query!(
-            "UPDATE wizard SET active_wizard = $1, completed = $2, last_migrated_version = $3 \
+            "UPDATE wizard SET active_wizard = $1, completed = $2, last_version_migrated_to = $3 \
             WHERE is_singleton",
             self.active_wizard as ActiveWizard,
             self.completed,
-            self.last_migrated_version
+            self.last_version_migrated_to
         )
         .execute(executor)
         .await?;
@@ -72,7 +72,7 @@ impl Wizard {
     {
         let row = query_as!(
             Wizard,
-            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_migrated_version \
+            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_version_migrated_to \
             FROM wizard WHERE is_singleton LIMIT 1",
         )
         .fetch_one(executor)
@@ -81,7 +81,7 @@ impl Wizard {
         Ok(Self {
             active_wizard: row.active_wizard,
             completed: row.completed,
-            last_migrated_version: row.last_migrated_version,
+            last_version_migrated_to: row.last_version_migrated_to,
         })
     }
 
@@ -214,7 +214,7 @@ impl Wizard {
         }
     }
 
-    pub async fn update_last_migrated_version<'e, E>(
+    pub async fn update_last_version_migrated_to<'e, E>(
         &mut self,
         executor: E,
         version: &str,
@@ -222,7 +222,7 @@ impl Wizard {
     where
         E: PgExecutor<'e>,
     {
-        self.last_migrated_version = Some(version.to_string());
+        self.last_version_migrated_to = Some(version.to_string());
         self.save(executor).await
     }
 }
