@@ -129,7 +129,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: [1, 2, 3, 4, 5, 6]
+        partition: [1, 2, 3, 4, 5, 6, 7, 8]
 
     services:
       postgres:
@@ -172,12 +172,12 @@ jobs:
         with:
           tool: cargo-nextest
 
-      - name: Run tests (shard ${{ matrix.partition }}/6)
+      - name: Run tests (shard ${{ matrix.partition }}/8)
         run: |
           cargo nextest run \
             --no-fail-fast \
             --archive-file nextest-archive.tar.zst \
-            --partition hash:${{ matrix.partition }}/6
+            --partition hash:${{ matrix.partition }}/8
 
   cleanup:
     needs: test
