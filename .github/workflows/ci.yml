@@ -29,24 +29,12 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           submodules: recursive
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/local/cargo/registry/index
-            /usr/local/cargo/registry/cache
-            /usr/local/cargo/git/db
-          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-registry-
 
       - name: Scan code with Trivy
         uses: aquasecurity/trivy-action@0.35.0
@@ -61,8 +49,8 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
           scanners: "vuln"
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
@@ -95,8 +83,6 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: true
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
 
     steps:
       - name: Checkout
@@ -104,18 +90,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/local/cargo/registry/index
-            /usr/local/cargo/registry/cache
-            /usr/local/cargo/git/db
-          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-registry-
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
@@ -225,4 +201,3 @@ jobs:
                 artifact_id: artifact.id,
               });
             }
-
