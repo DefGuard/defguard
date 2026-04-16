@@ -45,6 +45,7 @@ impl fmt::Display for ActiveWizard {
 pub struct Wizard {
     pub active_wizard: ActiveWizard,
     pub completed: bool,
+    pub last_migrated_version: Option<String>,
 }
 
 impl Wizard {
@@ -53,10 +54,11 @@ impl Wizard {
         E: PgExecutor<'e>,
     {
         query!(
-            "UPDATE wizard SET active_wizard = $1, completed = $2 \
+            "UPDATE wizard SET active_wizard = $1, completed = $2, last_migrated_version = $3 \
             WHERE is_singleton",
             self.active_wizard as ActiveWizard,
-            self.completed
+            self.completed,
+            self.last_migrated_version
         )
         .execute(executor)
         .await?;
@@ -70,7 +72,7 @@ impl Wizard {
     {
         let row = query_as!(
             Wizard,
-            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed \
+            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_migrated_version \
             FROM wizard WHERE is_singleton LIMIT 1",
         )
         .fetch_one(executor)
@@ -79,6 +81,7 @@ impl Wizard {
         Ok(Self {
             active_wizard: row.active_wizard,
             completed: row.completed,
+            last_migrated_version: row.last_migrated_version,
         })
     }
 
@@ -209,5 +212,17 @@ impl Wizard {
             }
             _ => Ok(true),
         }
+    }
+
+    pub async fn update_last_migrated_version<'e, E>(
+        &mut self,
+        executor: E,
+        version: &str,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.last_migrated_version = Some(version.to_string());
+        self.save(executor).await
     }
 }

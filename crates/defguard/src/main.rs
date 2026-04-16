@@ -178,6 +178,8 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
+    wizard.update_last_migrated_version(&pool, VERSION).await?;
+
     // Reload settings from database after setup completion to ensure any changes made during setup
     // are reflected in the in-memory settings.
     let settings = Settings::get(&pool).await?.ok_or_else(|| {
