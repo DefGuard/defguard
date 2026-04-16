@@ -41,7 +41,7 @@ services:
       RUST_BACKTRACE: 1
 
   db:
-    image: postgres:18-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
