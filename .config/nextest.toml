@@ -1,3 +1,4 @@
 [profile.ci]
-# Run up to 32 tests concurrently on CI (2xlarge runner).
-test-threads = 32
+# Each shard runs on a dedicated 2xlarge runner with its own postgres instance.
+# Tests are I/O-bound so more threads than CPUs is beneficial.
+test-threads = 16

@@ -75,12 +75,59 @@ jobs:
       - name: Run cargo deny
         run: cargo deny check
 
-  test:
+  build:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
       - instance-size:2xlarge
 
     container: public.ecr.aws/docker/library/rust:1
+
+    env:
+      CARGO_TERM_COLOR: always
+      SQLX_OFFLINE: true
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Install protoc
+        run: apt-get update && apt-get -y install protobuf-compiler
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Build and archive tests
+        run: cargo nextest archive --locked --all-features --archive-file nextest-archive.tar.zst
+
+      - name: Upload test archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextest-archive
+          path: nextest-archive.tar.zst
+          retention-days: 1
+
+  test:
+    needs: build
+
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:2xlarge
+
+    container: public.ecr.aws/docker/library/rust:1
+
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2, 3, 4]
 
     services:
       postgres:
@@ -105,25 +152,22 @@ jobs:
       DEFGUARD_DB_PASSWORD: defguard
       DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
       SQLX_OFFLINE: true
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Download test archive
+        uses: actions/download-artifact@v4
         with:
-          submodules: recursive
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-
-      - name: Install protoc
-        run: apt-get update && apt-get -y install protobuf-compiler
+          name: nextest-archive
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
 
-      - name: Run tests
-        run: cargo nextest run --locked --no-fail-fast --all-features --profile ci
+      - name: Run tests (shard ${{ matrix.partition }}/4)
+        run: |
+          cargo nextest run \
+            --no-fail-fast \
+            --archive-file nextest-archive.tar.zst \
+            --partition hash:${{ matrix.partition }}/4 \
+            --profile ci
