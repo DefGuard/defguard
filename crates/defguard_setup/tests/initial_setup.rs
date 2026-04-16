@@ -470,7 +470,7 @@ async fn test_finish_setup(_: PgPoolOptions, options: PgConnectOptions) {
 
     assert_setup_step(&pool, InitialSetupStep::Finished).await;
 
-    let shutdown_signal = timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
+    let shutdown_signal = timeout(Duration::from_secs(1), shutdown_rx).await;
     assert!(matches!(shutdown_signal, Ok(Ok(()))));
 }
 

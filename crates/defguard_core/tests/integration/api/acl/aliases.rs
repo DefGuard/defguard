@@ -401,7 +401,7 @@ async fn test_alias_audit_fields_track_acting_user_across_mutations(
     assert_ne!(created_alias_row.modified_by, "admin");
     let created_modified_at = created_alias_row.modified_at;
 
-    sleep(std::time::Duration::from_millis(2)).await;
+    sleep(Duration::from_millis(2)).await;
 
     let mut alias_update = created_alias.clone();
     alias_update.name = "alias updated by hpotter".to_string();

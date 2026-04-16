@@ -1411,7 +1411,7 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     assert_ne!(created_rule_row.modified_by, "admin");
     let created_modified_at = created_rule_row.modified_at;
 
-    sleep(std::time::Duration::from_millis(2)).await;
+    sleep(Duration::from_millis(2)).await;
 
     let mut updated_rule = created_rule.clone();
     updated_rule.name = "rule updated by hpotter".to_string();
@@ -1431,7 +1431,7 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     assert!(updated_rule_row.modified_at > created_modified_at);
     let updated_modified_at = updated_rule_row.modified_at;
 
-    sleep(std::time::Duration::from_millis(2)).await;
+    sleep(Duration::from_millis(2)).await;
 
     let response = client
         .put("/api/v1/acl/rule/apply")
