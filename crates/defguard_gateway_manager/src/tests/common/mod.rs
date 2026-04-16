@@ -41,6 +41,7 @@ use tonic::{Request, Response, Status, Streaming, transport::Server};
 use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(10);
+pub(crate) const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
 
 macro_rules! assert_some {
     ($expr:expr, $message:literal) => {
@@ -427,6 +428,8 @@ impl ManagerTestContext {
             self.manager_task.is_none(),
             "gateway manager already started"
         );
+
+        self.set_retry_delay(FAST_RETRY_DELAY);
 
         let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
