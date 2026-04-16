@@ -28,6 +28,7 @@
   "gateway_setup_component_label_grpc_port": "gRPC Port",
   "gateway_setup_component_label_grpc_port_help": "If you have changed the default Gateway gRPC port, please change it here.",
   "gateway_setup_component_error_common_name_required": "Gateway Name is required",
+  "gateway_setup_component_error_common_name_duplicate": "A gateway with this name already exists",
   "gateway_setup_component_error_ip_or_domain_required": "IP or Domain is required",
   "gateway_setup_component_error_grpc_port_required": "gRPC Port is required",
   "gateway_setup_component_error_grpc_port_max": "gRPC Port must be less than 65536",
