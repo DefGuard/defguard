@@ -1,4 +1,0 @@
-[profile.ci]
-# Each shard runs on a dedicated 2xlarge runner with its own postgres instance.
-# Tests are I/O-bound so more threads than CPUs is beneficial.
-test-threads = 16
