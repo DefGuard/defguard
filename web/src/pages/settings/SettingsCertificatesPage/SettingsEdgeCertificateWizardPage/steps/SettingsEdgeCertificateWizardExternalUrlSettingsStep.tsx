@@ -1,20 +1,21 @@
 import { useMutation } from '@tanstack/react-query';
 import z from 'zod';
-import { m } from '../../../paraglide/messages';
-import api from '../../../shared/api/api';
-import type { ExternalSslType } from '../../../shared/api/types';
-import { Controls } from '../../../shared/components/Controls/Controls';
-import { WizardCard } from '../../../shared/components/wizard/WizardCard/WizardCard';
-import { Button } from '../../../shared/defguard-ui/components/Button/Button';
-import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { Helper } from '../../../shared/defguard-ui/components/Helper/Helper';
-import { Radio } from '../../../shared/defguard-ui/components/Radio/Radio';
-import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { Snackbar } from '../../../shared/defguard-ui/providers/snackbar/snackbar';
-import { ThemeSpacing } from '../../../shared/defguard-ui/types';
-import { useAppForm } from '../../../shared/form';
-import { formChangeLogic } from '../../../shared/formLogic';
-import '../../SetupPage/autoAdoption/steps/style.scss';
+import { m } from '../../../../../paraglide/messages';
+import api from '../../../../../shared/api/api';
+import type { ExternalSslType } from '../../../../../shared/api/types';
+import { Controls } from '../../../../../shared/components/Controls/Controls';
+import { WizardCard } from '../../../../../shared/components/wizard/WizardCard/WizardCard';
+import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
+import { Divider } from '../../../../../shared/defguard-ui/components/Divider/Divider';
+import { Helper } from '../../../../../shared/defguard-ui/components/Helper/Helper';
+import { Radio } from '../../../../../shared/defguard-ui/components/Radio/Radio';
+import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
+import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
+import { useAppForm } from '../../../../../shared/form';
+import { formChangeLogic } from '../../../../../shared/formLogic';
+import '../../../../SetupPage/autoAdoption/steps/style.scss';
+import { getApiErrorMessage } from '../../utils';
 import { SettingsEdgeCertificateWizardStep } from '../types';
 import { useSettingsEdgeCertificateWizardStore } from '../useSettingsEdgeCertificateWizardStore';
 
@@ -43,7 +44,7 @@ export const SettingsEdgeCertificateWizardExternalUrlSettingsStep = () => {
       });
     },
     onError: (error) => {
-      Snackbar.error(m.settings_msg_save_failed());
+      Snackbar.error(getApiErrorMessage(error) ?? m.settings_msg_save_failed());
       console.error('Failed to save edge external URL settings:', error);
     },
   });

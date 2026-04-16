@@ -33,6 +33,19 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   syncSchema,
 ]);
 
+const validationSchema = syncSchema
+  .omit({ jumpcloud_api_key: true })
+  .extend({ jumpcloud_api_key: z.string() })
+  .superRefine((val, ctx) => {
+    if (val.directory_sync_enabled && val.jumpcloud_api_key.trim().length === 0) {
+      ctx.addIssue({
+        path: ['jumpcloud_api_key'],
+        code: 'custom',
+        message: m.form_error_required(),
+      });
+    }
+  });
+
 type FormFields = z.infer<typeof discriminatedSchema>;
 
 export const EditJumpCloudProviderForm = ({
@@ -60,8 +73,8 @@ export const EditJumpCloudProviderForm = ({
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
-      onSubmit: syncSchema,
-      onChange: syncSchema,
+      onSubmit: validationSchema,
+      onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
       await onSubmit(value);
@@ -105,17 +118,6 @@ export const EditJumpCloudProviderForm = ({
                 required
                 label={m.settings_openid_provider_label_client_secret()}
                 helper={m.settings_openid_provider_helper_client_secret()}
-              />
-            )}
-          </form.AppField>
-          <SizedBox height={ThemeSpacing.Xl2} />
-          <form.AppField name="jumpcloud_api_key">
-            {(field) => (
-              <field.FormInput
-                type="password"
-                required
-                label={m.settings_openid_provider_label_jumpcloud_api_key()}
-                helper={m.settings_openid_provider_helper_jumpcloud_api_key()}
               />
             )}
           </form.AppField>
@@ -189,6 +191,17 @@ export const EditJumpCloudProviderForm = ({
                       options={directorySyncBehaviorOptions}
                       label={m.settings_openid_provider_label_sync_admin_behavior()}
                       helper={m.settings_openid_provider_helper_sync_admin_behavior()}
+                    />
+                  )}
+                </form.AppField>
+                <SizedBox height={ThemeSpacing.Xl2} />
+                <form.AppField name="jumpcloud_api_key">
+                  {(field) => (
+                    <field.FormInput
+                      type="password"
+                      required
+                      label={m.settings_openid_provider_label_jumpcloud_api_key()}
+                      helper={m.settings_openid_provider_helper_jumpcloud_api_key()}
                     />
                   )}
                 </form.AppField>

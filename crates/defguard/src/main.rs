@@ -64,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
     if dotenvy::from_filename(".env.local").is_err() {
         dotenvy::dotenv().ok();
     }
-    let mut config = DefGuardConfig::new();
+    let config = DefGuardConfig::new();
     let log_filter = format!(
         "{},defguard_core::handlers::component_setup=debug,defguard_setup::auto_adoption=debug",
         config.log_level
@@ -142,6 +142,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let wizard = Wizard::init(&pool, has_auto_adopt_flags, &config).await?;
 
     Settings::initialize_runtime_defaults(&pool).await?;
+    SERVER_CONFIG.set(config.clone()).ok();
+
     if !wizard.completed {
         match wizard.active_wizard {
             ActiveWizard::None => {}
@@ -176,16 +178,15 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    // Reload settings from database after setup completion to ensure any changes made during setup are reflected in the in-memory settings.
+    // Reload settings from database after setup completion to ensure any changes made during setup
+    // are reflected in the in-memory settings.
     let settings = Settings::get(&pool).await?.ok_or_else(|| {
         anyhow::anyhow!(
-            "Failed to retrieve settings from database after setup completion. This should not happen."
+            "Failed to retrieve settings from database after setup completion. This should not \
+            happen."
         )
     })?;
     update_current_settings(&pool, settings).await?;
-
-    config.initialize_post_settings();
-    SERVER_CONFIG.set(config.clone()).ok();
 
     let settings = Settings::get_current_settings();
 

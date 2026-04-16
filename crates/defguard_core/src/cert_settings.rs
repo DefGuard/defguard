@@ -12,14 +12,37 @@ use utoipa::ToSchema;
 
 use crate::error::WebError;
 
-/// Ensures cert & key pair are valid to avoid bricking the web server after restart.
-async fn validate_uploaded_cert_pair(cert_pem: &str, key_pem: &str) -> Result<(), WebError> {
+/// Parses an uploaded certificate, validates its key pair, and rejects invalid validity windows.
+async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, WebError> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())
         .await
-        .map(|_| ())
-        .map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_string()))
+        .map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_string()))?;
+
+    let cert_der = parse_pem_certificate(cert_pem)?;
+    let info = CertificateInfo::from_der(cert_der.as_ref())?;
+
+    // Validate cert dates
+    let now = chrono::Utc::now().naive_utc();
+
+    if info.not_after <= info.not_before {
+        return Err(WebError::BadRequest(
+            "Certificate validity period is invalid".to_string(),
+        ));
+    }
+
+    if info.not_after <= now {
+        return Err(WebError::BadRequest("Certificate has expired".to_string()));
+    }
+
+    if info.not_before > now {
+        return Err(WebError::BadRequest(
+            "Certificate is not valid yet".to_string(),
+        ));
+    }
+
+    Ok(info)
 }
 
 /// SSL configuration type for Defguard's internal (core) web server.
@@ -150,10 +173,7 @@ pub async fn apply_internal_url_settings(
                 WebError::BadRequest("key_pem is required for own_cert".to_string())
             })?;
 
-            validate_uploaded_cert_pair(&cert_pem_str, &key_pem_str).await?;
-
-            let cert_der = parse_pem_certificate(&cert_pem_str)?;
-            let info = CertificateInfo::from_der(cert_der.as_ref())?;
+            let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
             let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
             let expiry = info.not_after;
 
@@ -275,10 +295,7 @@ pub async fn apply_external_url_settings(
                 WebError::BadRequest("key_pem is required for own_cert".to_string())
             })?;
 
-            validate_uploaded_cert_pair(&cert_pem_str, &key_pem_str).await?;
-
-            let cert_der = parse_pem_certificate(&cert_pem_str)?;
-            let info = CertificateInfo::from_der(cert_der.as_ref())?;
+            let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
             let valid_for_days = (info.not_after.and_utc() - chrono::Utc::now()).num_days();
             let expiry = info.not_after;
 

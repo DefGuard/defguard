@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CertInfo, InternalSslType } from '../../shared/api/types';
+import type { CertInfo, InternalSslType } from '../../../../shared/api/types';
 import {
   SettingsCoreCertificateWizardStep,
   type SettingsCoreCertificateWizardStepValue,

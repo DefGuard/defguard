@@ -37,30 +37,26 @@ export const AddExternalOpenIdValidationStep = () => {
       {result && (
         <>
           <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgSuccess}>
-            {'External ID provider successfully added.'}
+            {m.settings_openid_provider_validation_success_title()}
           </AppText>
           <SizedBox height={ThemeSpacing.Sm} />
           <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgNeutral}>
-            {
-              'The connection to the external identity provider has been successfully verified.'
-            }
+            {m.settings_openid_provider_validation_success_body()}
           </AppText>
           <Divider spacing={ThemeSpacing.Xl} />
           <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgNeutral}>
-            {`The connection to your external identity provider is now verified. Your users can now log in using this provider for a faster and more convenient authentication experience.`}
+            {m.settings_openid_provider_validation_success_detail()}
           </AppText>
         </>
       )}
       {!result && (
         <>
           <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgCritical}>
-            {'External ID provider successfully added.'}
+            {m.settings_openid_provider_validation_failure_title()}
           </AppText>
           <SizedBox height={ThemeSpacing.Sm} />
           <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgNeutral}>
-            {
-              'The connection to the external identity provider has been successfully verified.'
-            }
+            {m.settings_openid_provider_validation_failure_body()}
           </AppText>
           {isPresent(message) && (
             <>
@@ -68,7 +64,7 @@ export const AddExternalOpenIdValidationStep = () => {
               <InfoBanner
                 variant="warning"
                 icon={IconKind.WarningFilled}
-                text={`Error: ${message}`}
+                text={m.settings_openid_provider_validation_failure_error({ message })}
               />
             </>
           )}

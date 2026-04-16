@@ -1,8 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useMemo } from 'react';
-import { m } from '../../paraglide/messages';
-import type { WizardPageStep } from '../../shared/components/wizard/types';
-import { WizardPage } from '../../shared/components/wizard/WizardPage/WizardPage';
+import { m } from '../../../../paraglide/messages';
+import type { WizardPageStep } from '../../../../shared/components/wizard/types';
+import { WizardPage } from '../../../../shared/components/wizard/WizardPage/WizardPage';
 import { SettingsCoreCertificateWizardInternalUrlSettingsStep } from './steps/SettingsCoreCertificateWizardInternalUrlSettingsStep';
 import { SettingsCoreCertificateWizardInternalUrlSslConfigStep } from './steps/SettingsCoreCertificateWizardInternalUrlSslConfigStep';
 import { SettingsCoreCertificateWizardSummaryStep } from './steps/SettingsCoreCertificateWizardSummaryStep';

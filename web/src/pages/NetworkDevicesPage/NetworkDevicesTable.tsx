@@ -124,6 +124,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         header: m.form_label_location(),
         size: 225,
         minSize: 175,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -143,6 +144,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         header: m.form_label_description(),
         size: 300,
         minSize: 250,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>
@@ -153,6 +155,7 @@ export const NetworkDevicesTable = ({ networkDevices }: Props) => {
         header: m.network_devices_col_added_by(),
         size: 140,
         minSize: 100,
+        sortingFn: 'text',
         cell: (info) => (
           <TableCell>
             <span>{info.getValue()}</span>

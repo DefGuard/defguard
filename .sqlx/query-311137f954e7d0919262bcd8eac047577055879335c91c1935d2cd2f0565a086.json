@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wizard SET active_wizard = $1, completed = $2 WHERE is_singleton",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "active_wizard",
+            "kind": {
+              "Enum": [
+                "none",
+                "initial",
+                "auto_adoption",
+                "migration"
+              ]
+            }
+          }
+        },
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "311137f954e7d0919262bcd8eac047577055879335c91c1935d2cd2f0565a086"
+}

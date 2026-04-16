@@ -53,12 +53,13 @@ export const createUserEnrollment = async (
     throw new Error('No token');
   }
 
+  await context.close();
   return { user, token };
 };
 
 export const selectEnrollment = async (page: Page) => {
   const selectButton = page.getByTestId('select-enrollment');
-  selectButton.click();
+  await selectButton.click();
 };
 
 export const setToken = async (token: string, page: Page) => {
