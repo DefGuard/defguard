@@ -38,6 +38,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/cargo/registry/index
+            /usr/local/cargo/registry/cache
+            /usr/local/cargo/git/db
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
       - name: Scan code with Trivy
         uses: aquasecurity/trivy-action@0.35.0
         env:
@@ -93,6 +103,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           submodules: recursive
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/cargo/registry/index
+            /usr/local/cargo/registry/cache
+            /usr/local/cargo/git/db
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
@@ -181,8 +201,7 @@ jobs:
           cargo nextest run \
             --no-fail-fast \
             --archive-file nextest-archive.tar.zst \
-            --partition hash:${{ matrix.partition }}/6 \
-            --profile ci
+            --partition hash:${{ matrix.partition }}/6
 
   cleanup:
     needs: test
