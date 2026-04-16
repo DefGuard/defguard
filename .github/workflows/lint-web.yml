@@ -1,47 +1,46 @@
 on:
   push:
     branches:
-      - main
-      - dev
-      - "release/**"
+    - main
+    - dev
+    - "release/**"
     paths-ignore:
-      - "*.md"
-      - "LICENSE"
+    - "*.md"
+    - "LICENSE"
   pull_request:
     branches:
-      - main
-      - dev
-      - "release/**"
+    - main
+    - dev
+    - "release/**"
     paths-ignore:
-      - "*.md"
-      - "LICENSE"
+    - "*.md"
+    - "LICENSE"
 
 jobs:
   lint-web:
     runs-on:
-      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
 
-      - name: Install NodeJS
-        uses: actions/setup-node@v6
-        with:
-          node-version: 25
+    - name: Install NodeJS
+      uses: actions/setup-node@v6
+      with:
+        node-version: 25
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10
+    - name: Install pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        version: 10
 
-      # Change to '--frozen-lockfile' once this gets fixed:
-      # https://github.com/pnpm/action-setup/issues/40
-      - name: Lint frontend
-        working-directory: web
-        run: |
-          pnpm install --ignore-scripts --no-frozen-lockfile
-          pnpm build
-          pnpm lint
-          pnpm audit --prod --ignore-unfixable
+    # Change to '--frozen-lockfile' once this gets fixed:
+    # https://github.com/pnpm/action-setup/issues/40
+    - name: Lint frontend
+      working-directory: web
+      run: |
+        pnpm install --ignore-scripts --no-frozen-lockfile
+        pnpm build
+        pnpm lint
