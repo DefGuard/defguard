@@ -38,7 +38,7 @@ services:
       POSTGRES_USER: defguard
       POSTGRES_PASSWORD: defguard
     volumes:
-      - ./.volumes/db:/var/lib/postgresql/data
+      - ./.volumes/db:/var/lib/postgresql
     ports:
       - "5432:5432"
 
