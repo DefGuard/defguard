@@ -33,7 +33,7 @@ jobs:
 
   trigger-dev-deploy:
     needs: build-current
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && startsWith(github.ref_name, 'release/')}}
+    if: ${{ github.event_name != 'pull_request' && (github.ref_name == 'dev' || startsWith(github.ref_name, 'release/'))}}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
 
