@@ -195,7 +195,7 @@ pub(crate) async fn do_letsencrypt_refresh(
         }
         Ok(Err((acme_err, logs))) => {
             error!("ACME issuance failed: {acme_err}");
-            if let Err(err) = send_le_refresh_failed_emails(pool, &domain, &logs).await {
+            if let Err(err) = send_le_refresh_failed_emails(pool, &logs).await {
                 error!("Sending letsencrypt refresh email notification failed: {err}");
             }
             return Err(LetsencryptError::AcmeIssuanceFailed(acme_err));
@@ -216,19 +216,13 @@ pub(crate) async fn do_letsencrypt_refresh(
 /// with the notification email.
 async fn send_le_refresh_failed_emails(
     pool: &PgPool,
-    domain: &str,
     logs: &[String],
 ) -> Result<(), anyhow::Error> {
     let mut conn = pool.begin().await?;
     let admin_users = User::find_admins(&mut *conn).await?;
     for user in admin_users {
-        templates::letsencrypt_cert_refresh_failed_mail(
-            &user.email,
-            &mut conn,
-            domain,
-            &logs.join("\n"),
-        )
-        .await?;
+        templates::letsencrypt_cert_refresh_failed_mail(&user.email, &mut conn, &logs.join("\n"))
+            .await?;
     }
 
     Ok(())
@@ -361,8 +355,8 @@ mod tests {
     use std::{
         net::{IpAddr, Ipv4Addr, SocketAddr},
         pin::Pin,
-        sync::Once,
         sync::Arc,
+        sync::Once,
         time::Duration,
     };
 
@@ -379,13 +373,13 @@ mod tests {
         AcmeCertificate, AcmeIssueEvent, AcmeLogs, AcmeProgress, AcmeStep, proxy_server,
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use std::str::FromStr;
     use tokio::{
         net::TcpListener,
         sync::{Mutex, mpsc},
         task::JoinHandle,
         time::{sleep, timeout},
     };
-    use std::str::FromStr;
     use tokio_stream::{self as stream};
     use tonic::{
         Request, Response, Status, Streaming,
@@ -413,8 +407,12 @@ mod tests {
 
     #[tonic::async_trait]
     impl proxy_server::Proxy for MockProxyService {
-        type BidiStream =
-            Pin<Box<dyn tokio_stream::Stream<Item = Result<defguard_proto::proxy::CoreRequest, Status>> + Send>>;
+        type BidiStream = Pin<
+            Box<
+                dyn tokio_stream::Stream<Item = Result<defguard_proto::proxy::CoreRequest, Status>>
+                    + Send,
+            >,
+        >;
         type TriggerAcmeStream =
             Pin<Box<dyn tokio_stream::Stream<Item = Result<AcmeIssueEvent, Status>> + Send>>;
 
@@ -458,20 +456,22 @@ mod tests {
                         }));
                     }
                     events.push(Ok(AcmeIssueEvent {
-                        payload: Some(defguard_proto::proxy::acme_issue_event::Payload::Certificate(
-                            AcmeCertificate {
-                                cert_pem: cert_pem.clone(),
-                                key_pem: key_pem.clone(),
-                                account_credentials_json: account_credentials_json.clone(),
-                            },
-                        )),
+                        payload: Some(
+                            defguard_proto::proxy::acme_issue_event::Payload::Certificate(
+                                AcmeCertificate {
+                                    cert_pem: cert_pem.clone(),
+                                    key_pem: key_pem.clone(),
+                                    account_credentials_json: account_credentials_json.clone(),
+                                },
+                            ),
+                        ),
                     }));
                     Ok(Response::new(Box::pin(stream::iter(events))))
                 }
                 MockAcmeBehavior::RpcError(status) => Err(status.clone()),
-                MockAcmeBehavior::Hang => {
-                    Ok(Response::new(Box::pin(stream::pending::<Result<AcmeIssueEvent, Status>>())))
-                }
+                MockAcmeBehavior::Hang => Ok(Response::new(Box::pin(stream::pending::<
+                    Result<AcmeIssueEvent, Status>,
+                >()))),
             }
         }
     }
@@ -527,11 +527,9 @@ mod tests {
         let cert = ca.sign_csr(&csr).expect("failed to sign server cert");
         let cert_pem =
             defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
-        let key_pem = defguard_certs::der_to_pem(
-            key_pair.serialize_der().as_slice(),
-            PemLabel::PrivateKey,
-        )
-        .expect("key PEM");
+        let key_pem =
+            defguard_certs::der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)
+                .expect("key PEM");
         Identity::from_pem(cert_pem, key_pem)
     }
 
@@ -566,8 +564,7 @@ mod tests {
     }
 
     fn make_ca() -> CertificateAuthority<'static> {
-        CertificateAuthority::new("Test CA", "test@example.com", 365)
-            .expect("failed to create CA")
+        CertificateAuthority::new("Test CA", "test@example.com", 365).expect("failed to create CA")
     }
 
     async fn seed_ca(pool: &sqlx::PgPool, ca: &CertificateAuthority<'_>) {
@@ -597,11 +594,9 @@ mod tests {
             .expect("failed to sign cert");
         let cert_pem =
             defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
-        let key_pem = defguard_certs::der_to_pem(
-            key_pair.serialize_der().as_slice(),
-            PemLabel::PrivateKey,
-        )
-        .expect("key PEM");
+        let key_pem =
+            defguard_certs::der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)
+                .expect("key PEM");
         let expiry = super::parse_cert_expiry(&cert_pem).expect("expected cert expiry");
 
         let mut certs = Certificates::get_or_default(pool)
@@ -657,8 +652,14 @@ mod tests {
         let certs_after = Certificates::get_or_default(&pool)
             .await
             .expect("failed to reload certificates");
-        assert_eq!(certs_after.proxy_http_cert_pem, certs_before.proxy_http_cert_pem);
-        assert_eq!(certs_after.proxy_http_cert_key_pem, certs_before.proxy_http_cert_key_pem);
+        assert_eq!(
+            certs_after.proxy_http_cert_pem,
+            certs_before.proxy_http_cert_pem
+        );
+        assert_eq!(
+            certs_after.proxy_http_cert_key_pem,
+            certs_before.proxy_http_cert_key_pem
+        );
         assert!(drain_broadcasts(&mut proxy_control_rx).await.is_empty());
     }
 
@@ -712,7 +713,8 @@ mod tests {
             MockAcmeBehavior::Success {
                 cert_pem: new_cert_pem.clone(),
                 key_pem: new_key_pem.clone(),
-                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#.to_string(),
+                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#
+                    .to_string(),
                 logs: vec!["proxy log line".to_string()],
             },
         )
@@ -722,12 +724,18 @@ mod tests {
         let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
         let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
 
-        assert!(result.is_ok(), "expected successful refresh, got {result:?}");
+        assert!(
+            result.is_ok(),
+            "expected successful refresh, got {result:?}"
+        );
 
         let certs = Certificates::get_or_default(&pool)
             .await
             .expect("failed to reload certificates");
-        assert_eq!(certs.proxy_http_cert_pem.as_deref(), Some(new_cert_pem.as_str()));
+        assert_eq!(
+            certs.proxy_http_cert_pem.as_deref(),
+            Some(new_cert_pem.as_str())
+        );
         assert_eq!(
             certs.proxy_http_cert_key_pem.as_deref(),
             Some(new_key_pem.as_str())
@@ -787,8 +795,7 @@ mod tests {
         seed_admin(&pool).await;
         seed_letsencrypt_cert(&pool, &ca, "localhost", 1).await;
 
-        let mock_server =
-            MockAcmeServer::start(&ca, "localhost", MockAcmeBehavior::Hang).await;
+        let mock_server = MockAcmeServer::start(&ca, "localhost", MockAcmeBehavior::Hang).await;
         create_proxy(&pool, "localhost", mock_server.port).await;
 
         let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
