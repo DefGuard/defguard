@@ -287,21 +287,11 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
                         ProxyCertSource::LetsEncrypt;
                     if let Err(e) = updated_certs.save(pool).await {
                         error!( "Failed to save certificate: {e}");
-                        // yield Ok(acme_error_event(
-                        //     "Installing",
-                        //     format!("Failed to save certificate: {e}"),
-                        //     None,
-                        // ));
                         return Ok(());
                     }
                 }
                 Err(e) => {
                     error!( "Failed to reload certificates for saving: {e}");
-                    // yield Ok(acme_error_event(
-                    //     "Installing",
-                    //     format!("Failed to reload certificates for saving: {e}"),
-                    //     None,
-                    // ));
                     return Ok(());
                 }
             }
@@ -319,20 +309,15 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
             // }
 
             info!("ACME certificate issued and saved for domain: {domain}");
-            // yield Ok(acme_event("Done"));
         }
         Ok(Err((acme_err, logs))) => {
             let msg = format!("ACME issuance failed: {acme_err}");
             error!("{msg}");
-            // yield Ok(acme_error_event(current_step, msg, Some(logs)));
+            return Ok(());
         }
         Err(_) => {
             error!( "ACME task terminated unexpectedly.");
-            // yield Ok(acme_error_event(
-            //     current_step,
-            //     "ACME task terminated unexpectedly.".to_string(),
-            //     None,
-            // ));
+            return Ok(());
         }
     }
 
