@@ -23,7 +23,7 @@ use defguard_session_manager::{
     run_session_manager_iteration,
 };
 use ipnetwork::IpNetwork;
-use sqlx::{PgExecutor, query, query_scalar};
+use sqlx::{PgExecutor, PgPool, query, query_scalar};
 use tokio::{
     sync::{
         broadcast,
@@ -64,7 +64,7 @@ pub(crate) fn assert_no_gateway_events(harness: &mut SessionManagerHarness) {
 }
 
 impl SessionManagerHarness {
-    pub(crate) fn new(pool: sqlx::PgPool) -> Self {
+    pub(crate) fn new(pool: PgPool) -> Self {
         let (stats_tx, stats_rx) = mpsc::unbounded_channel();
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let (gateway_tx, gateway_rx) = broadcast::channel(16);
@@ -90,7 +90,7 @@ impl SessionManagerHarness {
     }
 
     pub(crate) async fn run_iteration(&mut self) -> IterationOutcome {
-        let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
+        let mut session_update_timer = interval(SESSION_UPDATE_INTERVAL);
         run_session_manager_iteration(
             &mut self.manager,
             &mut self.stats_rx,
@@ -112,12 +112,12 @@ impl SessionManagerHarness {
     }
 }
 
-pub(crate) async fn create_location(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
+pub(crate) async fn create_location(pool: &PgPool) -> WireguardNetwork<Id> {
     create_location_with_mfa_mode(pool, LocationMfaMode::Disabled).await
 }
 
 pub(crate) async fn create_location_with_mfa_mode(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     location_mfa_mode: LocationMfaMode,
 ) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
@@ -139,7 +139,7 @@ pub(crate) async fn create_location_with_mfa_mode(
     .expect("failed to create WireGuard location")
 }
 
-pub(crate) async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
+pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
     User::new(
         "session-test",
         Some("pass123"),
@@ -153,12 +153,12 @@ pub(crate) async fn create_user(pool: &sqlx::PgPool) -> User<Id> {
     .expect("failed to create user")
 }
 
-pub(crate) async fn create_device(pool: &sqlx::PgPool, user_id: Id) -> Device<Id> {
+pub(crate) async fn create_device(pool: &PgPool, user_id: Id) -> Device<Id> {
     create_device_with_pubkey(pool, user_id, "device-pubkey-test").await
 }
 
 pub(crate) async fn create_device_with_pubkey(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     user_id: Id,
     wireguard_pubkey: &str,
 ) -> Device<Id> {
@@ -175,7 +175,7 @@ pub(crate) async fn create_device_with_pubkey(
     .expect("failed to create device")
 }
 
-pub(crate) async fn attach_device_to_location(pool: &sqlx::PgPool, location_id: Id, device_id: Id) {
+pub(crate) async fn attach_device_to_location(pool: &PgPool, location_id: Id, device_id: Id) {
     let network_device = WireguardNetworkDevice::new(
         location_id,
         device_id,
@@ -188,7 +188,7 @@ pub(crate) async fn attach_device_to_location(pool: &sqlx::PgPool, location_id: 
 }
 
 pub(crate) async fn create_gateway(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     location_id: Id,
     modified_by: String,
 ) -> Gateway<Id> {
@@ -196,7 +196,7 @@ pub(crate) async fn create_gateway(
 }
 
 pub(crate) async fn create_gateway_named(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     location_id: Id,
     modified_by: String,
     name: &str,
@@ -214,7 +214,7 @@ pub(crate) async fn create_gateway_named(
 }
 
 pub(crate) async fn authorize_device_in_location(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     location_id: Id,
     user_id: Id,
     device_id: Id,
@@ -274,7 +274,7 @@ pub(crate) fn stale_session_timestamp(location: &WireguardNetwork<Id>) -> NaiveD
 }
 
 pub(crate) async fn create_session(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     location_id: Id,
     user_id: Id,
     device_id: Id,
@@ -293,7 +293,7 @@ pub(crate) async fn create_session(
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn create_session_stats(
-    pool: &sqlx::PgPool,
+    pool: &PgPool,
     session_id: Id,
     gateway_id: Id,
     collected_at: NaiveDateTime,

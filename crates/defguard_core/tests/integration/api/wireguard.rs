@@ -1042,3 +1042,282 @@ async fn test_network_size_validation(_: PgPoolOptions, options: PgConnectOption
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
+
+#[derive(serde::Deserialize)]
+struct DeviceWireGuardConfig {
+    network_id: Id,
+    network_name: String,
+    config: String,
+}
+
+/// A user allowed in a single location returns exactly one device config.
+#[sqlx::test]
+async fn test_user_device_configs_single_network(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let network: WireguardNetwork<Id> = make_network(&client, "network").await.json().await;
+
+    let device_payload = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device: serde_json::Value = response.json().await;
+    let device_id = device["device"]["id"].as_i64().unwrap();
+
+    let response = client
+        .get(format!("/api/v1/device/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs: Vec<DeviceWireGuardConfig> = response.json().await;
+
+    assert_eq!(configs.len(), 1);
+    assert_eq!(configs[0].network_id, network.id);
+    assert_eq!(configs[0].network_name, network.name);
+    assert!(configs[0].config.contains("[Interface]"));
+    assert!(configs[0].config.contains("[Peer]"));
+}
+
+/// A user allowed in multiple networks returns a device config entry for each location.
+#[sqlx::test]
+async fn test_user_device_configs_multiple_networks(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let location1: WireguardNetwork<Id> = make_network(&client, "location-1").await.json().await;
+    let location2: WireguardNetwork<Id> = make_network(&client, "location-2").await.json().await;
+
+    // Both locations use allow_all_groups=true (make_network default), so the device
+    // will be allowed in both when created.
+    let device_payload = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device: serde_json::Value = response.json().await;
+    let device_id = device["device"]["id"].as_i64().unwrap();
+
+    let response = client
+        .get(format!("/api/v1/device/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs: Vec<DeviceWireGuardConfig> = response.json().await;
+
+    assert_eq!(configs.len(), 2, "expected configs for both locations");
+    let ids: Vec<Id> = configs.iter().map(|c| c.network_id).collect();
+    assert!(ids.contains(&location1.id), "config for location-1 missing");
+    assert!(ids.contains(&location2.id), "config for location-2 missing");
+    for cfg in &configs {
+        assert!(cfg.config.contains("[Interface]"));
+        assert!(cfg.config.contains("[Peer]"));
+    }
+}
+
+/// A non-admin user can fetch configs for their own device but not for another user's device.
+#[sqlx::test]
+async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create a location that allows all users (not just admin group)
+    client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await;
+
+    // Create a device for hpotter (non-admin user)
+    let device_payload = json!({
+        "name": "hpotter-device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let hpotter_device: serde_json::Value = response.json().await;
+    let hpotter_device_id = hpotter_device["device"]["id"].as_i64().unwrap();
+
+    // Create a device for admin
+    let device_payload = json!({
+        "name": "admin-device",
+        "wireguard_pubkey": "sIhx53MsX+iLk83sssybHrD7M+5m+CmpLzWL/zo8C38=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let admin_device: serde_json::Value = response.json().await;
+    let admin_device_id = admin_device["device"]["id"].as_i64().unwrap();
+
+    // Switch to hpotter
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // hpotter can fetch their own device config
+    let response = client
+        .get(format!("/api/v1/device/{hpotter_device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs: Vec<DeviceWireGuardConfig> = response.json().await;
+    assert_eq!(configs.len(), 1);
+
+    // hpotter cannot fetch admin's device config
+    let response = client
+        .get(format!("/api/v1/device/{admin_device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::NOT_FOUND,
+        "non-admin user should not access another user's device config"
+    );
+}
+
+/// MFA locations (internal/external) must be excluded from the user device config endpoint.
+/// A user should only receive configs for regular (non-MFA) locations since MFA location
+/// connections are possible only with the Defguard client apps, not standard WireGuard clients.
+#[sqlx::test]
+async fn test_user_device_configs_excludes_mfa_locations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create a normal location (allow_all_groups so the device is allowed)
+    let normal_location: WireguardNetwork<Id> = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "normal-location",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await
+        .json()
+        .await;
+
+    // Create an MFA location (internal mode, no enterprise license required).
+    let mfa_location: WireguardNetwork<Id> = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "mfa-location",
+            "address": "10.1.2.1/24",
+            "port": 55556,
+            "endpoint": "192.168.4.15",
+            "allowed_ips": "10.1.2.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "internal",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await
+        .json()
+        .await;
+
+    // Create a user device
+    let device_payload = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device: serde_json::Value = response.json().await;
+    let device_id = device["device"]["id"].as_i64().unwrap();
+
+    let response = client
+        .get(format!("/api/v1/device/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs: Vec<DeviceWireGuardConfig> = response.json().await;
+
+    // Only the normal location config should be returned
+    assert_eq!(configs.len(), 1, "MFA location should be excluded");
+    assert_eq!(
+        configs[0].network_id, normal_location.id,
+        "config should belong to the normal location"
+    );
+    assert_ne!(
+        configs[0].network_id, mfa_location.id,
+        "MFA location config must not be returned"
+    );
+}

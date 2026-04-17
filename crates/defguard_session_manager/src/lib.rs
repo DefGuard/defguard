@@ -31,7 +31,7 @@ pub mod events;
 pub mod session_state;
 
 const MESSAGE_LIMIT: usize = 100;
-pub const SESSION_UPDATE_INTERVAL: u64 = 60;
+pub const SESSION_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 
 pub enum IterationOutcome {
     ProcessedBatch(usize),
@@ -45,7 +45,7 @@ pub async fn run_session_manager(
     gateway_tx: Sender<GatewayEvent>,
 ) -> Result<(), SessionManagerError> {
     info!("Starting VPN client session manager service");
-    let mut session_update_timer = interval(Duration::from_secs(SESSION_UPDATE_INTERVAL));
+    let mut session_update_timer = interval(SESSION_UPDATE_INTERVAL);
 
     // initialize session manager
     let mut session_manager = SessionManager::new(pool, session_manager_event_tx, gateway_tx);
@@ -65,15 +65,16 @@ pub async fn run_session_manager_iteration(
     peer_stats_rx: &mut UnboundedReceiver<PeerStatsUpdate>,
     session_update_timer: &mut Interval,
 ) -> Result<IterationOutcome, SessionManagerError> {
-    // receive next batch of peer stats messages
-    // if no message is received within `SESSION_UPDATE_INTERVAL` trigger session status refresh anyway
-    // to disconnect inactive sessions if necessary
-    let mut message_buffer: Vec<PeerStatsUpdate> = Vec::with_capacity(MESSAGE_LIMIT);
+    // Receive next batch of peer stats messages. If no message is received within
+    // `SESSION_UPDATE_INTERVAL`, trigger session status refresh anyway to disconnect inactive
+    // sessions, if necessary.
+    let mut message_buffer = Vec::with_capacity(MESSAGE_LIMIT);
     let message_count = tokio::select! {
         biased;
         message_count = peer_stats_rx.recv_many(&mut message_buffer, MESSAGE_LIMIT) => message_count,
         _ = session_update_timer.tick() => {
-            debug!("No WireGuard peer stats updates received in last {SESSION_UPDATE_INTERVAL}. Triggering session status update to disconnect inactive clients.");
+            debug!("No WireGuard peer stats updates received in last {SESSION_UPDATE_INTERVAL:?}. \
+                Triggering session status update to disconnect inactive clients.");
             session_manager.update_inactive_session_status().await?;
 
             return Ok(IterationOutcome::TickNoMessages);

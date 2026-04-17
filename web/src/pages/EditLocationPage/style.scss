@@ -1,7 +1,13 @@
 #edit-location-page {
   form {
-    .info-banner {
+    & > .info-banner {
       padding-top: var(--spacing-3xl);
+    }
+
+    .edit-page-form-section {
+      .info-banner {
+        padding-top: 0;
+      }
     }
 
     .buttons-group {

@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
+use anyhow::bail;
 use bytes::Bytes;
 use defguard_common::{
     VERSION,
@@ -46,9 +47,12 @@ use defguard_setup::{
 };
 use defguard_vpn_stats_purge::run_periodic_stats_purge;
 use secrecy::ExposeSecret;
-use tokio::sync::{
-    broadcast,
-    mpsc::{channel, unbounded_channel},
+use tokio::{
+    signal::ctrl_c,
+    sync::{
+        broadcast,
+        mpsc::{channel, unbounded_channel},
+    },
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -135,7 +139,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Both flags must be provided together
     if let Err(msg) = config.validate_adopt_flags() {
-        anyhow::bail!("{msg}");
+        bail!(msg);
     }
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
@@ -158,7 +162,7 @@ async fn main() -> Result<(), anyhow::Error> {
                     run_setup_web_server(pool.clone(), config.http_bind_address, config.http_port)
                         .await
                 {
-                    anyhow::bail!("Setup web server exited with error: {err}");
+                    bail!("Setup web server exited with error: {err}");
                 }
             }
             ActiveWizard::Migration => {
@@ -172,7 +176,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 )
                 .await
                 {
-                    anyhow::bail!("Migration web server exited with error: {err}");
+                    bail!("Migration web server exited with error: {err}");
                 }
             }
         }
@@ -213,7 +217,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let certs = Certificates::get_or_default(&pool).await?;
     if certs.ca_cert_der.is_none() || certs.ca_key_der.is_none() {
-        anyhow::bail!("CA certificate or key were not found, despite completing setup.")
+        bail!("CA certificate or key were not found, despite completing setup.")
     }
 
     // read grpc TLS cert and key from legacy config values
@@ -258,14 +262,14 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        res = proxy_manager.run() => error!("ProxyManager returned early: {res:?}"),
-        res = gateway_manager.run() => error!("GatewayManager returned early: {res:?}"),
+        res = proxy_manager.run() => bail!("ProxyManager returned early: {res:?}"),
+        res = gateway_manager.run() => bail!("GatewayManager returned early: {res:?}"),
         res = run_grpc_server(
             Arc::clone(&worker_state),
             pool.clone(),
             grpc_cert,
             grpc_key,
-        ) => error!("gRPC server returned early: {res:?}"),
+        ) => bail!("gRPC server returned early: {res:?}"),
         res = run_web_server(
             worker_state,
             webhook_tx,
@@ -277,17 +281,17 @@ async fn main() -> Result<(), anyhow::Error> {
             api_event_tx,
             incompatible_components,
             proxy_control_tx.clone()
-        ) => error!("Web server returned early: {res:?}"),
+        ) => bail!("Web server returned early: {res:?}"),
         res = run_periodic_stats_purge(
             pool.clone(),
             settings.stats_purge_frequency(),
             settings.stats_purge_threshold()
         ), if settings.enable_stats_purge =>
-            error!("Periodic stats purge task returned early: {res:?}"),
+            bail!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool, proxy_control_tx.clone()) =>
-            error!("Periodic license check task returned early: {res:?}"),
+            bail!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx) =>
-            error!("Utility thread returned early: {res:?}"),
+            bail!("Utility thread returned early: {res:?}"),
         res = run_event_router(
             RouterReceiverSet::new(
                 api_event_rx,
@@ -297,21 +301,20 @@ async fn main() -> Result<(), anyhow::Error> {
             event_logger_tx,
             gateway_tx.clone(),
             activity_log_stream_reload_notify.clone()
-        ) => error!("Event router returned early: {res:?}"),
+        ) => bail!("Event router returned early: {res:?}"),
         res = run_event_logger(pool.clone(), event_logger_rx, activity_log_messages_tx.clone()) =>
-            error!("Activity log event logger returned early: {res:?}"),
+            bail!("Activity log event logger returned early: {res:?}"),
         res = run_activity_log_stream_manager(
             pool.clone(),
             activity_log_stream_reload_notify.clone(),
             activity_log_messages_rx
-        ) => error!("Activity log stream manager returned early: {res:?}"),
+        ) => bail!("Activity log stream manager returned early: {res:?}"),
         res = run_session_manager(
             pool.clone(),
             peer_stats_rx,
             session_manager_event_tx,
             gateway_tx
-        ) => error!("VPN client session manager returned early: {res:?}"),
+        ) => bail!("VPN client session manager returned early: {res:?}"),
+        _ = ctrl_c() => Ok(()),
     }
-
-    Ok(())
 }

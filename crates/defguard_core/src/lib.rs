@@ -165,7 +165,7 @@ use crate::{
             add_device, add_user_devices, count_networks, create_network, delete_device,
             delete_network, download_config, gateway_status, get_device, import_network,
             list_devices, list_networks, list_user_devices, modify_device, modify_network,
-            network_details,
+            network_details, user_device_configs,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -512,6 +512,7 @@ pub fn build_webapp(
                 "/device/{device_id}",
                 put(modify_device).get(get_device).delete(delete_device),
             )
+            .route("/device/{device_id}/config", get(user_device_configs))
             .route("/device", get(list_devices))
             .route("/device/user/{username}", get(list_user_devices))
             .route(

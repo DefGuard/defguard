@@ -5,7 +5,7 @@ export const externalLink = {
     docs: 'https://docs.defguard.net',
     pricing: 'https://defguard.net/pricing',
     download: 'https://defguard.net/download',
-    sales: 'mailto:sales@defguard.net',
+    sales: 'https://defguard.net/contact/',
     scheduleCall:
       'https://docs.google.com/forms/d/e/1FAIpQLSdKr1NXH1DlQuAF5oQWvT7Zri5yPQ3txvwz3qgtb1n9FtKTgw/viewform',
   },
