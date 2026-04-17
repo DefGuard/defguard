@@ -1,4 +1,4 @@
-use chrono::{TimeDelta, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use defguard_common::{
     db::models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
     types::proxy::ProxyControlMessage,
@@ -6,33 +6,13 @@ use defguard_common::{
 use defguard_mail::templates;
 use defguard_proto::proxy::AcmeStep;
 use sqlx::PgPool;
-use tokio::sync::mpsc::{self, unbounded_channel};
+use tokio::sync::mpsc::{self, UnboundedSender, unbounded_channel};
 
-use crate::handlers::component_setup::{
-    ACME_TIMEOUT_SECS, call_proxy_trigger_acme, parse_cert_expiry,
-};
+use crate::handlers::component_setup::{call_proxy_trigger_acme, parse_cert_expiry};
 
+/// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
+pub const ACME_TIMEOUT_SECS: u64 = 300;
 const LETSENCRYPT_EXPIRY_THRESHOLD: TimeDelta = TimeDelta::days(14);
-
-async fn send_le_refresh_failed_emails(
-    pool: &PgPool,
-    domain: &str,
-    logs: &[String],
-) -> Result<(), anyhow::Error> {
-    let mut conn = pool.begin().await?;
-    let admin_users = User::find_admins(&mut *conn).await?;
-    for user in admin_users {
-        templates::letsencrypt_cert_refresh_failed_mail(
-            &user.email,
-            &mut conn,
-            domain,
-            &logs.join("\n"),
-        )
-        .await?;
-    }
-
-    Ok(())
-}
 
 pub(crate) async fn do_letsencrypt_refresh(
     pool: &PgPool,
@@ -179,4 +159,142 @@ pub(crate) async fn do_letsencrypt_refresh(
     }
 
     Ok(())
+}
+
+async fn send_le_refresh_failed_emails(
+    pool: &PgPool,
+    domain: &str,
+    logs: &[String],
+) -> Result<(), anyhow::Error> {
+    let mut conn = pool.begin().await?;
+    let admin_users = User::find_admins(&mut *conn).await?;
+    for user in admin_users {
+        templates::letsencrypt_cert_refresh_failed_mail(
+            &user.email,
+            &mut conn,
+            domain,
+            &logs.join("\n"),
+        )
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
+    let der = defguard_certs::parse_pem_certificate(cert_pem)
+        .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
+        .ok()?;
+    defguard_certs::CertificateInfo::from_der(&der)
+        .map(|info| info.not_after)
+        .map_err(|e| warn!("Failed to extract expiry from ACME cert: {e}"))
+        .ok()
+}
+
+/// Maps a proto [`AcmeStep`] to the SSE step string expected by the frontend.
+pub(crate) fn acme_step_name(step: AcmeStep) -> &'static str {
+    match step {
+        AcmeStep::Unspecified | AcmeStep::Connecting => "Connecting",
+        AcmeStep::CheckingDomain => "CheckingDomain",
+        AcmeStep::ValidatingDomain => "ValidatingDomain",
+        AcmeStep::IssuingCertificate => "IssuingCertificate",
+    }
+}
+
+/// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
+///
+/// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
+/// `(error_message, log_lines)` on failure where `log_lines` are the proxy log entries
+/// collected during the ACME run (sent by the proxy via an [`AcmeLogs`] event).
+pub(crate) async fn call_proxy_trigger_acme(
+    pool: &PgPool,
+    proxy_host: &str,
+    proxy_port: u16,
+    domain: String,
+    account_credentials_json: String,
+    progress_tx: UnboundedSender<AcmeStep>,
+) -> Result<(String, String, String), (String, Vec<String>)> {
+    let certs = Certificates::get_or_default(pool)
+        .await
+        .map_err(|e| (format!("Failed to load certificates: {e}"), Vec::new()))?;
+    let ca_cert_der = certs.ca_cert_der.ok_or_else(|| {
+        (
+            "CA certificate not found in settings".to_string(),
+            Vec::new(),
+        )
+    })?;
+
+    let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
+        .map_err(|e| (format!("Failed to convert CA cert to PEM: {e}"), Vec::new()))?;
+
+    let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
+    let endpoint = Endpoint::from_shared(endpoint_str)
+        .map_err(|e| (format!("Failed to build Edge endpoint: {e}"), Vec::new()))?
+        .http2_keep_alive_interval(Duration::from_secs(5))
+        .tcp_keepalive(Some(Duration::from_secs(5)))
+        .keep_alive_while_idle(true);
+
+    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
+    let endpoint = endpoint.tls_config(tls).map_err(|e| {
+        (
+            format!("Failed to configure TLS for Edge endpoint: {e}"),
+            Vec::new(),
+        )
+    })?;
+
+    let version = Version::parse(VERSION)
+        .map_err(|e| (format!("Failed to parse core version: {e}"), Vec::new()))?;
+    let version_interceptor = ClientVersionInterceptor::new(version);
+
+    let mut client =
+        ProxyClient::with_interceptor(endpoint.connect_lazy(), move |req: Request<()>| {
+            version_interceptor.clone().call(req)
+        });
+
+    let mut stream = client
+        .trigger_acme(AcmeChallenge {
+            domain: domain.clone(),
+            account_credentials_json,
+        })
+        .await
+        .map_err(|e| (format!("TriggerAcme RPC failed: {e}"), Vec::new()))?
+        .into_inner();
+
+    let mut collected_logs: Vec<String> = Vec::new();
+
+    loop {
+        match stream.message().await {
+            Ok(Some(event)) => match event.payload {
+                Some(acme_issue_event::Payload::Progress(p)) => {
+                    if let Ok(step) = AcmeStep::try_from(p.step) {
+                        let _ = progress_tx.send(step);
+                    }
+                }
+                Some(acme_issue_event::Payload::Certificate(cert)) => {
+                    return Ok((cert.cert_pem, cert.key_pem, cert.account_credentials_json));
+                }
+                Some(acme_issue_event::Payload::Logs(AcmeLogs { lines })) => {
+                    collected_logs = lines;
+                }
+                None => {
+                    return Err((
+                        "TriggerAcme stream sent an event with no payload".to_string(),
+                        collected_logs,
+                    ));
+                }
+            },
+            Ok(None) => {
+                return Err((
+                    "TriggerAcme stream ended without delivering a certificate".to_string(),
+                    collected_logs,
+                ));
+            }
+            Err(e) => {
+                return Err((
+                    format!("Failed to read TriggerAcme response: {e}"),
+                    collected_logs,
+                ));
+            }
+        }
+    }
 }
