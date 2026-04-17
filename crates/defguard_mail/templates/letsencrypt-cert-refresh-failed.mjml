@@ -9,6 +9,11 @@
       <p>
         {{ content }}
       </p>
+      {% if error_message %}
+      <p>
+        Error: {{ error_message }}
+      </p>
+      {% endif %}
     </mj-text>
   </mj-column>
 </mj-section>

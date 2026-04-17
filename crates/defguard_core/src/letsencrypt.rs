@@ -46,8 +46,6 @@ pub(crate) enum LetsencryptError {
     CertificateSaveFailed(sqlx::Error),
     #[error("ACME issuance failed: {0}")]
     AcmeIssuanceFailed(String),
-    #[error("ACME task terminated unexpectedly")]
-    AcmeTaskTerminatedUnexpectedly,
 }
 
 /// Refreshes the proxy HTTPS certificate through the Edge ACME flow when the
@@ -117,53 +115,21 @@ pub(crate) async fn do_letsencrypt_refresh(
          Edge={proxy_host}:{proxy_port}"
     );
 
-    let (progress_tx, mut progress_rx) = unbounded_channel::<AcmeStep>();
-    let (result_tx, result_rx) =
-        tokio::sync::oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
+    let (progress_tx, _progress_rx) = unbounded_channel::<AcmeStep>();
 
-    let pool_clone = pool.clone();
-    let domain_clone = domain.clone();
-    let acct_creds_clone = account_credentials_json.clone();
-    tokio::spawn(async move {
-        let result = call_proxy_trigger_acme(
-            &pool_clone,
+    match tokio::time::timeout(
+        tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS),
+        call_proxy_trigger_acme(
+            pool,
             &proxy_host,
             proxy_port,
-            domain_clone,
-            acct_creds_clone,
+            domain.clone(),
+            account_credentials_json,
             progress_tx,
-        )
-        .await;
-        let _ = result_tx.send(result);
-    });
-
-    let deadline =
-        tokio::time::Instant::now() + tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS);
-
-    // Drain progress steps until the ACME task finishes (channel closed) or times out.
-    loop {
-        tokio::select! {
-            maybe_step = progress_rx.recv() => {
-                if maybe_step.is_none() {
-                    // progress_tx dropped - ACME task finished; stop polling progress.
-                    break;
-                }
-            }
-
-            () = tokio::time::sleep_until(deadline) => {
-                error!(
-                    "ACME certificate issuance timed out after \
-                     {ACME_TIMEOUT_SECS} seconds."
-                );
-                return Err(LetsencryptError::AcmeTimedOut {
-                    timeout_secs: ACME_TIMEOUT_SECS,
-                });
-            }
-        }
-    }
-
-    // Progress channel closed - collect the final result.
-    match result_rx.await {
+        ),
+    )
+    .await
+    {
         Ok(Ok((cert_pem, key_pem, new_account_credentials_json))) => {
             let acme_cert_expiry = parse_cert_expiry(&cert_pem);
             match Certificates::get_or_default(pool).await {
@@ -195,14 +161,19 @@ pub(crate) async fn do_letsencrypt_refresh(
         }
         Ok(Err((acme_err, logs))) => {
             error!("ACME issuance failed: {acme_err}");
-            if let Err(err) = send_le_refresh_failed_emails(pool, &logs).await {
+            if let Err(err) = send_le_refresh_failed_emails(pool, &acme_err, &logs).await {
                 error!("Sending letsencrypt refresh email notification failed: {err}");
             }
             return Err(LetsencryptError::AcmeIssuanceFailed(acme_err));
         }
         Err(_) => {
-            error!("ACME task terminated unexpectedly.");
-            return Err(LetsencryptError::AcmeTaskTerminatedUnexpectedly);
+            error!(
+                "ACME certificate issuance timed out after \
+                 {ACME_TIMEOUT_SECS} seconds."
+            );
+            return Err(LetsencryptError::AcmeTimedOut {
+                timeout_secs: ACME_TIMEOUT_SECS,
+            });
         }
     }
 
@@ -216,13 +187,19 @@ pub(crate) async fn do_letsencrypt_refresh(
 /// with the notification email.
 async fn send_le_refresh_failed_emails(
     pool: &PgPool,
+    error_message: &str,
     logs: &[String],
 ) -> Result<(), anyhow::Error> {
     let mut conn = pool.begin().await?;
     let admin_users = User::find_admins(&mut *conn).await?;
     for user in admin_users {
-        templates::letsencrypt_cert_refresh_failed_mail(&user.email, &mut conn, &logs.join("\n"))
-            .await?;
+        templates::letsencrypt_cert_refresh_failed_mail(
+            &user.email,
+            &mut conn,
+            error_message,
+            &logs.join("\n"),
+        )
+        .await?;
     }
 
     Ok(())

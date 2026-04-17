@@ -367,9 +367,11 @@ pub async fn gateway_disconnected_mail(
 pub async fn letsencrypt_cert_refresh_failed_mail(
     to: &str,
     conn: &mut PgConnection,
+    error_message: &str,
     logs: &str,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+    context.insert("error_message", error_message);
 
     let now = Utc::now();
     let attachment = Attachment::new(
