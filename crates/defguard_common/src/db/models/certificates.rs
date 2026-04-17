@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query, query_as};
+use sqlx::{PgExecutor, Type, query, query_as};
 use utoipa::ToSchema;
 
 /// Certificate source for the proxy HTTP/HTTPS listener.
@@ -9,9 +9,7 @@ use utoipa::ToSchema;
 /// - `SelfSigned`: cert issued by the Core CA
 /// - `LetsEncrypt`: cert obtained via ACME/Let's Encrypt
 /// - `Custom`: admin-uploaded PEM cert + key
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ToSchema, sqlx::Type,
-)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 pub enum ProxyCertSource {
     #[default]
@@ -26,9 +24,7 @@ pub enum ProxyCertSource {
 /// - `None`: no cert configured, core runs plain HTTP
 /// - `SelfSigned`: cert issued by the Core CA
 /// - `Custom`: admin-uploaded PEM cert + key
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ToSchema, sqlx::Type,
-)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 pub enum CoreCertSource {
     #[default]

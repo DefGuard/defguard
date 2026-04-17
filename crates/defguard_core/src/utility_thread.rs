@@ -1,8 +1,12 @@
 use std::{collections::HashSet, time::Duration};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::models::{Certificates, WireguardNetwork, wireguard::ServiceLocationMode};
-use sqlx::{PgPool, query_as};
+use defguard_common::db::models::{
+    Certificates, CoreCertSource, ProxyCertSource, User, WireguardNetwork,
+    wireguard::ServiceLocationMode,
+};
+use defguard_mail::templates;
+use sqlx::{PgConnection, PgPool, query_as};
 use tokio::{
     sync::broadcast::Sender,
     time::{Instant, sleep},
@@ -29,6 +33,7 @@ const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
 const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
+const CERTIFICATE_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24; // 1 day
 const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 
 #[instrument(skip_all)]
@@ -42,6 +47,7 @@ pub async fn run_utility_thread(
     let mut last_ldap_sync = Instant::now();
     let mut last_expired_acl_rules_check = Instant::now();
     let mut last_enterprise_status_check = Instant::now();
+    let mut last_certificate_check = Instant::now();
 
     // helper variable which stores previous enterprise features status
     let mut enterprise_enabled = is_business_license_active();
@@ -91,12 +97,6 @@ pub async fn run_utility_thread(
             error!("Failed to check expired ACL rules: {err}");
         }
     };
-
-    // let certificates_task = || async {
-    //     if let Err(err) = check_certificates(pool) {
-    //         error!("Failed to check certificates: {err}");
-    //     }
-    // };
 
     directory_sync_task().await;
     count_update_task().await;
@@ -159,6 +159,14 @@ pub async fn run_utility_thread(
                 enterprise_enabled = new_enterprise_enabled;
             }
             last_enterprise_status_check = Instant::now();
+        }
+
+        // Check certificates.
+        if last_certificate_check.elapsed().as_secs() >= CERTIFICATE_EXPIRY_CHECK_INTERVAL {
+            check_certificates(pool)
+                .instrument(info_span!("check_certificates"))
+                .await;
+            last_certificate_check = Instant::now();
         }
     }
 }
@@ -293,24 +301,54 @@ async fn expired_acl_rules_check(
     Ok(())
 }
 
-fn expiry_check(expiry: NaiveDateTime) {
+/// Check if certificate is about to expire, or got expired. Send mail accordingly.
+async fn expiry_check(conn: &mut PgConnection, certificate_type: &str, expiry: NaiveDateTime) {
     const TIME_CHECK: &[TimeDelta] = &[
-        TimeDelta::days(14),
-        TimeDelta::days(7),
-        TimeDelta::days(3),
-        TimeDelta::days(1),
+        TimeDelta::days(-14),
+        TimeDelta::days(-7),
+        TimeDelta::days(-3),
+        TimeDelta::days(-1),
+        TimeDelta::days(0),
     ];
 
     let now = Utc::now().naive_utc();
     let time_delta = now - expiry;
     for check in TIME_CHECK {
         if check.num_days() == time_delta.num_days() {
-            // Send email
+            // Send email to admins.
+            if time_delta.num_days() >= 0 {
+                debug!("Certificate {certificate_type} has expired; notifying admins");
+            } else {
+                debug!("Certificate {certificate_type} is about to expire; notifying admins");
+            }
+            let Ok(admin_users) = User::find_admins(&mut *conn).await else {
+                error!("Failed to fetch admins from database");
+                return;
+            };
+            for user in admin_users {
+                let _ = if time_delta.num_days() >= 0 {
+                    templates::certificate_expired_mail(
+                        &user.email,
+                        &mut *conn,
+                        certificate_type,
+                        expiry,
+                    )
+                    .await
+                } else {
+                    templates::certificate_expiration_mail(
+                        &user.email,
+                        &mut *conn,
+                        certificate_type,
+                        expiry,
+                    )
+                    .await
+                };
+            }
         }
     }
 }
 
-/// Check if certificates are about to expire, or got expired.
+/// Check if any of the certificates are about to expire, or got expired.
 async fn check_certificates(pool: &PgPool) {
     let cert = match Certificates::get(pool).await {
         Ok(Some(cert)) => cert,
@@ -319,20 +357,24 @@ async fn check_certificates(pool: &PgPool) {
             return;
         }
         Err(err) => {
-            error!("Failed to fetch certificates {err}");
+            error!("Failed to fetch certificates: {err}");
             return;
         }
     };
 
-    if let Some(ca_expiry) = cert.ca_expiry {
-        expiry_check(ca_expiry);
+    let Ok(mut conn) = pool.begin().await else {
+        error!("Failed to create database transaction");
+        return;
+    };
+    if let ProxyCertSource::Custom = cert.proxy_http_cert_source {
+        if let Some(proxy_http_cert_expiry) = cert.proxy_http_cert_expiry {
+            expiry_check(&mut conn, "Edge HTTPS", proxy_http_cert_expiry).await;
+        }
     }
 
-    if let Some(proxy_http_cert_expiry) = cert.proxy_http_cert_expiry {
-        expiry_check(proxy_http_cert_expiry);
-    }
-
-    if let Some(core_http_cert_expiry) = cert.core_http_cert_expiry {
-        expiry_check(core_http_cert_expiry);
+    if let CoreCertSource::Custom = cert.core_http_cert_source {
+        if let Some(core_http_cert_expiry) = cert.core_http_cert_expiry {
+            expiry_check(&mut conn, "Core HTTPS", core_http_cert_expiry).await;
+        }
     }
 }

@@ -1,0 +1,5 @@
+{{ title }}
+{% if subtitle %}{{ subtitle }}{% endif %}
+
+{{ label_cert_type }}: {{ cert_type }}
+{{ label_exp_date }}: {{ exp_date }}

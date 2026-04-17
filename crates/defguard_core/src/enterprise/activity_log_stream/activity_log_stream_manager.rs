@@ -13,8 +13,8 @@ use crate::enterprise::{
     is_business_license_active,
 };
 
-// check if enterprise features are enabled every minute
-const ENTERPRISE_CHECK_PERIOD_SECS: u64 = 60;
+// Every minute, check if enterprise features are enabled.
+const ENTERPRISE_CHECK_PERIOD: Duration = Duration::from_secs(60);
 
 #[instrument(skip_all)]
 pub async fn run_activity_log_stream_manager(
@@ -24,7 +24,7 @@ pub async fn run_activity_log_stream_manager(
 ) -> anyhow::Result<()> {
     info!("Starting activity log stream manager");
 
-    let mut enterprise_check_timer = interval(Duration::from_secs(ENTERPRISE_CHECK_PERIOD_SECS));
+    let mut enterprise_check_timer = interval(ENTERPRISE_CHECK_PERIOD);
 
     // initialize enterprise features status
     let mut enterprise_features_enabled = is_business_license_active();
@@ -76,7 +76,8 @@ pub async fn run_activity_log_stream_manager(
             }
         } else {
             info!(
-                "Activity log stream manager cannot start streams, license needs enterprise features enabled."
+                "Activity log stream manager cannot start streams, license needs enterprise \
+                features enabled."
             );
         }
 
@@ -88,7 +89,8 @@ pub async fn run_activity_log_stream_manager(
             tokio::select! {
                 () = notification.notified() => {
                     info!(
-                        "Activity log stream manager configuration refresh notification received, reloading streaming tasks."
+                        "Activity log stream manager configuration refresh notification received, \
+                        reloading streaming tasks."
                     );
                     break;
                }
@@ -96,13 +98,15 @@ pub async fn run_activity_log_stream_manager(
                     // check if enterprise features status has changed
                     let current_enterprise_features_enabled = is_business_license_active();
                     if current_enterprise_features_enabled != enterprise_features_enabled {
-                        warn!("Activity log stream manager will reload, detected license enterprise features status has changed");
+                        warn!("Activity log stream manager will reload, detected license \
+                            enterprise features status has changed");
                         enterprise_features_enabled = current_enterprise_features_enabled;
                         break;
                     }
                }
                task_output = handles.join_next(), if !handles.is_empty() => {
-                    error!("Activity log streaming task has terminated early with result: {task_output:?}, reloading activity log stream manager");
+                    error!("Activity log streaming task has terminated early with result: \
+                        {task_output:?}, reloading activity log stream manager");
                     break;
                }
             }

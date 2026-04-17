@@ -309,7 +309,7 @@ impl Default for AclRule {
 impl<I> AclRule<I> {
     pub(crate) fn stamp_modified(&mut self, actor: &str) {
         self.modified_at = Utc::now().naive_utc();
-        self.modified_by = actor.to_owned();
+        actor.clone_into(&mut self.modified_by);
     }
 }
 
@@ -1538,7 +1538,7 @@ impl Default for AclAlias {
 impl<I> AclAlias<I> {
     pub(crate) fn stamp_modified(&mut self, actor: &str) {
         self.modified_at = Utc::now().naive_utc();
-        self.modified_by = actor.to_owned();
+        actor.clone_into(&mut self.modified_by);
     }
 }
 

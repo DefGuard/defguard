@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ca_cert_der, ca_key_der, ca_expiry, proxy_http_cert_source AS \"proxy_http_cert_source: ProxyCertSource\", proxy_http_cert_pem, proxy_http_cert_key_pem, proxy_http_cert_expiry, acme_domain, acme_account_credentials, core_http_cert_source AS \"core_http_cert_source: CoreCertSource\", core_http_cert_pem, core_http_cert_key_pem, core_http_cert_expiry FROM certificates WHERE id = 1",
+  "query": "SELECT ca_cert_der, ca_key_der, ca_expiry, proxy_http_cert_source \"proxy_http_cert_source: ProxyCertSource\", proxy_http_cert_pem, proxy_http_cert_key_pem, proxy_http_cert_expiry, acme_domain, acme_account_credentials, core_http_cert_source \"core_http_cert_source: CoreCertSource\", core_http_cert_pem, core_http_cert_key_pem, core_http_cert_expiry FROM certificates WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -88,5 +88,5 @@
       true
     ]
   },
-  "hash": "42a2fa6799182a1c23c2e7a472ba40a55f4030b7586c59035d4d09a976deb408"
+  "hash": "596e16f2eeadb84764f11fa160723aed8fda4a3cd543b9cd020978fa66c6fea1"
 }

@@ -100,7 +100,7 @@ pub async fn run_event_logger(
     // Receive messages in an infinite loop
     loop {
         // Collect multiple messages from the channel (up to MESSAGE_LIMIT at a time)
-        let mut message_buffer: Vec<EventLoggerMessage> = Vec::with_capacity(MESSAGE_LIMIT);
+        let mut message_buffer = Vec::with_capacity(MESSAGE_LIMIT);
         let message_count = event_logger_rx
             .recv_many(&mut message_buffer, MESSAGE_LIMIT)
             .await;
