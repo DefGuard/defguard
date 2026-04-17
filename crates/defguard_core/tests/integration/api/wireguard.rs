@@ -1050,7 +1050,7 @@ struct DeviceWireGuardConfig {
     config: String,
 }
 
-/// A user device enrolled in a single network returns exactly one config entry.
+/// A user allowed in a single location returns exactly one device config.
 #[sqlx::test]
 async fn test_user_device_configs_single_network(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -1089,8 +1089,7 @@ async fn test_user_device_configs_single_network(_: PgPoolOptions, options: PgCo
     assert!(configs[0].config.contains("[Peer]"));
 }
 
-/// A user device enrolled in multiple networks returns a config entry for each network.
-/// This is the regression test for https://github.com/DefGuard/defguard/issues/2605.
+/// A user allowed in multiple networks returns a device config entry for each location.
 #[sqlx::test]
 async fn test_user_device_configs_multiple_networks(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -1104,7 +1103,7 @@ async fn test_user_device_configs_multiple_networks(_: PgPoolOptions, options: P
     let location2: WireguardNetwork<Id> = make_network(&client, "location-2").await.json().await;
 
     // Both locations use allow_all_groups=true (make_network default), so the device
-    // will be auto-enrolled in both when created.
+    // will be allowed in both when created.
     let device_payload = json!({
         "name": "device",
         "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
@@ -1145,7 +1144,7 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Create a network that allows all users (not just admin group)
+    // Create a location that allows all users (not just admin group)
     client
         .post("/api/v1/network")
         .json(&json!({
@@ -1225,7 +1224,7 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
 
 /// MFA locations (internal/external) must be excluded from the user device config endpoint.
 /// A user should only receive configs for regular (non-MFA) locations since MFA location
-/// connections are managed by the defguard client, not a static config file.
+/// connections are possible only with the Defguard client apps, not standard WireGuard clients.
 #[sqlx::test]
 async fn test_user_device_configs_excludes_mfa_locations(
     _: PgPoolOptions,
@@ -1238,7 +1237,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Create a normal location (allow_all_groups so the device gets enrolled)
+    // Create a normal location (allow_all_groups so the device is allowed)
     let normal_location: WireguardNetwork<Id> = client
         .post("/api/v1/network")
         .json(&json!({
@@ -1265,7 +1264,6 @@ async fn test_user_device_configs_excludes_mfa_locations(
         .await;
 
     // Create an MFA location (internal mode, no enterprise license required).
-    // peer_disconnect_threshold >= 120 is required when MFA is enabled.
     let mfa_location: WireguardNetwork<Id> = client
         .post("/api/v1/network")
         .json(&json!({
@@ -1291,7 +1289,7 @@ async fn test_user_device_configs_excludes_mfa_locations(
         .json()
         .await;
 
-    // Create a user device — it will be enrolled in both locations
+    // Create a user device
     let device_payload = json!({
         "name": "device",
         "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
