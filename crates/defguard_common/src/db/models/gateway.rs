@@ -7,7 +7,7 @@ use sqlx::{PgExecutor, query, query_as, query_scalar};
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Model, Serialize, PartialEq)]
 pub struct Gateway<I = NoId> {
     pub id: I,
     pub location_id: Id,
@@ -22,9 +22,37 @@ pub struct Gateway<I = NoId> {
     pub enabled: bool,
     pub modified_at: NaiveDateTime,
     pub modified_by: String,
+    #[serde(skip)]
     pub core_client_cert_der: Option<Vec<u8>>,
+    #[serde(skip)]
     pub core_client_cert_key_der: Option<Vec<u8>>,
     pub core_client_cert_expiry: Option<NaiveDateTime>,
+}
+
+impl<I: fmt::Debug> fmt::Debug for Gateway<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Gateway")
+            .field("id", &self.id)
+            .field("location_id", &self.location_id)
+            .field("name", &self.name)
+            .field("address", &self.address)
+            .field("port", &self.port)
+            .field("connected_at", &self.connected_at)
+            .field("disconnected_at", &self.disconnected_at)
+            .field("certificate_serial", &self.certificate_serial)
+            .field("certificate_expiry", &self.certificate_expiry)
+            .field("version", &self.version)
+            .field("enabled", &self.enabled)
+            .field("modified_at", &self.modified_at)
+            .field("modified_by", &self.modified_by)
+            .field(
+                "core_client_cert_der",
+                &self.core_client_cert_der.as_ref().map(|_| "<redacted>"),
+            )
+            .field("core_client_cert_key_der", &"<redacted>")
+            .field("core_client_cert_expiry", &self.core_client_cert_expiry)
+            .finish()
+    }
 }
 
 impl<I> Gateway<I> {

@@ -11,7 +11,7 @@ use crate::{
     types::proxy::ProxyInfo,
 };
 
-#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema, PartialEq)]
+#[derive(Clone, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
     pub id: I,
     pub name: String,
@@ -25,9 +25,36 @@ pub struct Proxy<I = NoId> {
     pub certificate_expiry: Option<NaiveDateTime>,
     pub modified_at: NaiveDateTime,
     pub modified_by: String,
+    #[serde(skip)]
     pub core_client_cert_der: Option<Vec<u8>>,
+    #[serde(skip)]
     pub core_client_cert_key_der: Option<Vec<u8>>,
     pub core_client_cert_expiry: Option<NaiveDateTime>,
+}
+
+impl<I: fmt::Debug> fmt::Debug for Proxy<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Proxy")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("address", &self.address)
+            .field("port", &self.port)
+            .field("connected_at", &self.connected_at)
+            .field("disconnected_at", &self.disconnected_at)
+            .field("version", &self.version)
+            .field("enabled", &self.enabled)
+            .field("certificate_serial", &self.certificate_serial)
+            .field("certificate_expiry", &self.certificate_expiry)
+            .field("modified_at", &self.modified_at)
+            .field("modified_by", &self.modified_by)
+            .field(
+                "core_client_cert_der",
+                &self.core_client_cert_der.as_ref().map(|_| "<redacted>"),
+            )
+            .field("core_client_cert_key_der", &"<redacted>")
+            .field("core_client_cert_expiry", &self.core_client_cert_expiry)
+            .finish()
+    }
 }
 
 impl fmt::Display for Proxy<NoId> {
