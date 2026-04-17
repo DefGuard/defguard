@@ -334,7 +334,9 @@ impl MailMessage {
             Self::PasswordResetDone => "Defguard: Password reset success".to_string(),
             Self::UserImportBlocked => "User import blocked".to_string(),
             Self::EnrollmentNotification => "Defguard: User enrollment completed".to_string(),
-            Self::LetsencryptCertRefreshFailed => "Defguard: automatic Letsencrypt certificate refresh failed".to_string(),
+            Self::LetsencryptCertRefreshFailed => {
+                "Defguard: automatic Letsencrypt certificate refresh failed".to_string()
+            }
         }
     }
 
@@ -381,10 +383,10 @@ impl MailMessage {
             Self::UserImportBlocked => include_str!("../templates/plain-notification.mjml"),
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.mjml")
-            },
+            }
             Self::LetsencryptCertRefreshFailed => {
                 include_str!("../templates/letsencrypt-cert-refresh-failed.mjml")
-            },
+            }
         }
     }
 
@@ -408,10 +410,10 @@ impl MailMessage {
             Self::UserImportBlocked => include_str!("../templates/plain-notification.text"),
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.text")
-            },
+            }
             Self::LetsencryptCertRefreshFailed => {
                 include_str!("../templates/letsencrypt-cert-refresh-failed.text")
-            },
+            }
         }
     }
 

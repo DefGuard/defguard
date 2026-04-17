@@ -186,6 +186,7 @@ pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
+pub mod letsencrypt;
 pub mod location_management;
 pub mod setup_logs;
 pub mod support;

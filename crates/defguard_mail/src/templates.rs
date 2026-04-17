@@ -376,10 +376,16 @@ pub async fn letsencrypt_cert_refresh_failed_mail(
     context.insert("logs", logs);
 
     let now = Utc::now();
-    let attachment = Attachment::new(format!("defguard-letsencrypt-refresh-logs-{now}.txt"), logs.into());
+    let attachment = Attachment::new(
+        format!("defguard-letsencrypt-refresh-logs-{now}.txt"),
+        logs.into(),
+    );
     let message = MailMessage::LetsencryptCertRefreshFailed;
     message.fill_context(conn, &mut context).await?;
-    message.mail(&mut tera, &context, to)?.set_attachments(vec![attachment]).send_and_forget();
+    message
+        .mail(&mut tera, &context, to)?
+        .set_attachments(vec![attachment])
+        .send_and_forget();
 
     Ok(())
 }

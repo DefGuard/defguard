@@ -1114,8 +1114,6 @@ pub fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
         .ok()
 }
 
-
-
 /// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
 ///
 /// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or

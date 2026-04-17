@@ -770,12 +770,10 @@ impl Settings {
         Ok(secret_key)
     }
 
-    #[must_use]
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
 
-    #[must_use]
     pub fn proxy_hostname(&self) -> Result<String, SettingsUrlError> {
         let url = self
             .proxy_public_url()
