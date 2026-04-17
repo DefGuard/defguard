@@ -19,44 +19,45 @@ on:
       - "LICENSE"
 
 jobs:
-  test:
+  lint:
     runs-on:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
-      - instance-size:2xlarge
+      - instance-size:large
 
     container: public.ecr.aws/docker/library/rust:1
 
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:17-alpine
-        env:
-          POSTGRES_DB: defguard
-          POSTGRES_USER: defguard
-          POSTGRES_PASSWORD: defguard
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
       CARGO_TERM_COLOR: always
-      DEFGUARD_DB_HOST: postgres
-      DEFGUARD_DB_PORT: 5432
-      DEFGUARD_DB_NAME: defguard
-      DEFGUARD_DB_USER: defguard
-      DEFGUARD_DB_PASSWORD: defguard
-      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
       SQLX_OFFLINE: true
-      # sccache
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
+      RUSTC_WRAPPER: sccache
+      SCCACHE_BUCKET: defguard-gh-build-cache
+      SCCACHE_REGION: eu-central-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.S3_CACHE_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_CACHE_SECRET_KEY }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           submodules: recursive
+
+      - name: Export workspace-relative cache paths
+        run: |
+          echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo"    >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry/index
+            ${{ env.CARGO_HOME }}/registry/cache
+            ${{ env.CARGO_HOME }}/git/db
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Scan code with Trivy
         uses: aquasecurity/trivy-action@0.35.0
@@ -71,9 +72,6 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
           scanners: "vuln"
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
 
@@ -87,13 +85,167 @@ jobs:
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Install cargo extensions
+      - name: Install cargo-deny
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-deny,cargo-nextest
+          tool: cargo-deny
 
       - name: Run cargo deny
         run: cargo deny check
 
-      - name: Run tests
-        run: cargo nextest run --locked --no-fail-fast
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
+
+  build:
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:2xlarge
+
+    container: public.ecr.aws/docker/library/rust:1
+
+    env:
+      CARGO_TERM_COLOR: always
+      SQLX_OFFLINE: true
+      RUSTC_WRAPPER: sccache
+      SCCACHE_BUCKET: defguard-gh-build-cache
+      SCCACHE_REGION: eu-central-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.S3_CACHE_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_CACHE_SECRET_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Export workspace-relative cache paths
+        run: |
+          echo "CARGO_HOME=$GITHUB_WORKSPACE/.cargo"    >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/.cargo/bin"           >> $GITHUB_PATH
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CARGO_HOME }}/registry/index
+            ${{ env.CARGO_HOME }}/registry/cache
+            ${{ env.CARGO_HOME }}/git/db
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Install protoc
+        run: apt-get update && apt-get -y install protobuf-compiler
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Build and archive tests
+        run: |
+          cargo nextest archive \
+            --locked \
+            --all-features \
+            --archive-file nextest-archive.tar.zst \
+            --config 'profile.test.debug=false' \
+            --config 'profile.test.strip="debuginfo"'
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
+
+      - name: Upload test archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextest-archive
+          path: nextest-archive.tar.zst
+          retention-days: 1
+
+  test:
+    needs: build
+
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:large
+
+    container: public.ecr.aws/docker/library/rust:1
+
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2, 3, 4, 5, 6, 7, 8]
+
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:17-alpine
+        env:
+          POSTGRES_DB: defguard
+          POSTGRES_USER: defguard
+          POSTGRES_PASSWORD: defguard
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        command: postgres -c max_connections=400
+
+    env:
+      CARGO_TERM_COLOR: always
+      DEFGUARD_DB_HOST: postgres
+      DEFGUARD_DB_PORT: 5432
+      DEFGUARD_DB_NAME: defguard
+      DEFGUARD_DB_USER: defguard
+      DEFGUARD_DB_PASSWORD: defguard
+      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
+      SQLX_OFFLINE: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Download test archive
+        uses: actions/download-artifact@v4
+        with:
+          name: nextest-archive
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - name: Run tests (shard ${{ matrix.partition }}/8)
+        run: |
+          cargo nextest run \
+            --no-fail-fast \
+            --archive-file nextest-archive.tar.zst \
+            --partition hash:${{ matrix.partition }}/8
+
+  cleanup:
+    needs: test
+    if: needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete test archive artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            const artifact = artifacts.data.artifacts.find(a => a.name === 'nextest-archive');
+            if (artifact) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }
