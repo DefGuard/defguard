@@ -1222,3 +1222,104 @@ async fn test_user_device_configs_auth(_: PgPoolOptions, options: PgConnectOptio
         "non-admin user should not access another user's device config"
     );
 }
+
+/// MFA locations (internal/external) must be excluded from the user device config endpoint.
+/// A user should only receive configs for regular (non-MFA) locations since MFA location
+/// connections are managed by the defguard client, not a static config file.
+#[sqlx::test]
+async fn test_user_device_configs_excludes_mfa_locations(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_test_client(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create a normal location (allow_all_groups so the device gets enrolled)
+    let normal_location: WireguardNetwork<Id> = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "normal-location",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "disabled",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await
+        .json()
+        .await;
+
+    // Create an MFA location (internal mode, no enterprise license required).
+    // peer_disconnect_threshold >= 120 is required when MFA is enabled.
+    let mfa_location: WireguardNetwork<Id> = client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "mfa-location",
+            "address": "10.1.2.1/24",
+            "port": 55556,
+            "endpoint": "192.168.4.15",
+            "allowed_ips": "10.1.2.0/24",
+            "dns": "1.1.1.1",
+            "mtu": 1420,
+            "fwmark": 0,
+            "allowed_groups": [],
+            "allow_all_groups": true,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 300,
+            "acl_enabled": false,
+            "acl_default_allow": false,
+            "location_mfa_mode": "internal",
+            "service_location_mode": "disabled"
+        }))
+        .send()
+        .await
+        .json()
+        .await;
+
+    // Create a user device — it will be enrolled in both locations
+    let device_payload = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/admin")
+        .json(&device_payload)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let device: serde_json::Value = response.json().await;
+    let device_id = device["device"]["id"].as_i64().unwrap();
+
+    let response = client
+        .get(format!("/api/v1/device/{device_id}/config"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let configs: Vec<DeviceWireGuardConfig> = response.json().await;
+
+    // Only the normal location config should be returned
+    assert_eq!(configs.len(), 1, "MFA location should be excluded");
+    assert_eq!(
+        configs[0].network_id, normal_location.id,
+        "config should belong to the normal location"
+    );
+    assert_ne!(
+        configs[0].network_id, mfa_location.id,
+        "MFA location config must not be returned"
+    );
+}

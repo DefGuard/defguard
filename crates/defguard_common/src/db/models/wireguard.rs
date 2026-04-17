@@ -347,7 +347,9 @@ impl WireguardNetwork<Id> {
         .await
     }
 
-    /// Gets all locations a user device is allowed to access.
+    /// Gets all non-MFA locations a user device is allowed to access.
+    /// Locations requiring MFA (Internal/External) are excluded — their connections
+    /// are managed by the defguard client and cannot be represented as a static config.
     pub async fn find_user_device_networks<'e, E>(
         executor: E,
         device_id: Id,
@@ -364,7 +366,8 @@ impl WireguardNetwork<Id> {
             service_location_mode \"service_location_mode: ServiceLocationMode\" \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device \
-            WHERE device_id = $1)",
+            WHERE device_id = $1) \
+            AND location_mfa_mode = 'disabled'",
             device_id
         )
         .fetch_all(executor)
