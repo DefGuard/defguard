@@ -41,7 +41,7 @@ pub enum CoreCertSource {
 ///
 /// Holds the Core CA (used to sign gRPC TLS certs for gateways/proxies),
 /// the proxy HTTP/HTTPS cert, and the core web server HTTPS cert.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct Certificates {
     // Core CA
     pub ca_cert_der: Option<Vec<u8>>,
@@ -75,13 +75,13 @@ impl Certificates {
                 ca_cert_der, \
                 ca_key_der, \
                 ca_expiry, \
-                proxy_http_cert_source AS \"proxy_http_cert_source: ProxyCertSource\", \
+                proxy_http_cert_source \"proxy_http_cert_source: ProxyCertSource\", \
                 proxy_http_cert_pem, \
                 proxy_http_cert_key_pem, \
                 proxy_http_cert_expiry, \
                 acme_domain, \
                 acme_account_credentials, \
-                core_http_cert_source AS \"core_http_cert_source: CoreCertSource\", \
+                core_http_cert_source \"core_http_cert_source: CoreCertSource\", \
                 core_http_cert_pem, \
                 core_http_cert_key_pem, \
                 core_http_cert_expiry \

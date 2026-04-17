@@ -1,11 +1,8 @@
 use std::{collections::HashSet, time::Duration};
 
-use chrono::Utc;
-use defguard_common::db::{
-    Id,
-    models::{WireguardNetwork, wireguard::ServiceLocationMode},
-};
-use sqlx::PgPool;
+use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_common::db::models::{Certificates, WireguardNetwork, wireguard::ServiceLocationMode};
+use sqlx::{PgPool, query_as};
 use tokio::{
     sync::broadcast::Sender,
     time::{Instant, sleep},
@@ -95,11 +92,18 @@ pub async fn run_utility_thread(
         }
     };
 
+    // let certificates_task = || async {
+    //     if let Err(err) = check_certificates(pool) {
+    //         error!("Failed to check certificates: {err}");
+    //     }
+    // };
+
     directory_sync_task().await;
     count_update_task().await;
     updates_check_task().await;
     ldap_sync_task().await;
     expired_acl_rules_task().await;
+    check_certificates(pool).await;
 
     loop {
         sleep(UTILITY_THREAD_MAIN_SLEEP_TIME).await;
@@ -142,7 +146,7 @@ pub async fn run_utility_thread(
             }
             debug!(
                 "Enterprise feature status changed from {enterprise_enabled} to \
-                    {new_enterprise_enabled}"
+                {new_enterprise_enabled}"
             );
             if let Err(err) =
                 enterprise_status_check(pool, wireguard_tx.clone(), new_enterprise_enabled)
@@ -231,21 +235,21 @@ async fn expired_acl_rules_check(
     wireguard_tx: Sender<GatewayEvent>,
 ) -> Result<(), anyhow::Error> {
     // mark relevant rules as expired
-    let updated_rules = sqlx::query_as::<_, AclRule<Id>>(
-        "UPDATE aclrule SET state = 'expired'::aclrule_state, modified_at = $1, modified_by = $2 \
+    let updated_rules = query_as!(
+        AclRule,
+        "UPDATE aclrule SET state = 'expired'::aclrule_state, modified_at = NOW(), \
+        modified_by = $1 \
         WHERE state = 'applied'::aclrule_state AND expires < NOW() \
-        RETURNING id, parent_id, state, name, allow_all_users, deny_all_users, allow_all_groups, \
-        deny_all_groups, allow_all_network_devices, deny_all_network_devices, all_locations, \
-        addresses, ports, protocols, enabled, expires, any_address, any_port, any_protocol, \
-        use_manual_destination_settings, modified_at, modified_by",
+        RETURNING id, parent_id, state \"state: _\", name, allow_all_users, deny_all_users, \
+        allow_all_groups, deny_all_groups, allow_all_network_devices, deny_all_network_devices, \
+        all_locations, addresses, ports, protocols, enabled, expires, any_address, any_port, \
+        any_protocol, use_manual_destination_settings, modified_at, modified_by",
+        ACL_EXPIRY_SYSTEM_ACTOR
     )
-    .bind(Utc::now().naive_utc())
-    .bind(ACL_EXPIRY_SYSTEM_ACTOR)
     .fetch_all(pool)
     .await?;
 
-    // send firewall config updates to locations which have been affected by updated
-    // rules
+    // Send firewall config updates to locations which have been affected by updated rules.
     debug!(
         "Marked {} ACL rules as expired. Sending firewall config updates to affected locations.",
         updated_rules.len()
@@ -260,10 +264,10 @@ async fn expired_acl_rules_check(
         }
     }
 
-    let affected_locations: Vec<WireguardNetwork<Id>> = affected_locations.into_iter().collect();
+    let affected_locations = affected_locations.into_iter().collect::<Vec<_>>();
     debug!(
-        "{} locations affected by expired ACL rules. Sending gateway firewall update events \
-            for each location",
+        "{} locations affected by expired ACL rules. Sending gateway firewall update events for \
+        each location",
         affected_locations.len()
     );
 
@@ -287,4 +291,48 @@ async fn expired_acl_rules_check(
     }
 
     Ok(())
+}
+
+fn expiry_check(expiry: NaiveDateTime) {
+    const TIME_CHECK: &[TimeDelta] = &[
+        TimeDelta::days(14),
+        TimeDelta::days(7),
+        TimeDelta::days(3),
+        TimeDelta::days(1),
+    ];
+
+    let now = Utc::now().naive_utc();
+    let time_delta = now - expiry;
+    for check in TIME_CHECK {
+        if check.num_days() == time_delta.num_days() {
+            // Send email
+        }
+    }
+}
+
+/// Check if certificates are about to expire, or got expired.
+async fn check_certificates(pool: &PgPool) {
+    let cert = match Certificates::get(pool).await {
+        Ok(Some(cert)) => cert,
+        Ok(None) => {
+            debug!("No certificates in the databae");
+            return;
+        }
+        Err(err) => {
+            error!("Failed to fetch certificates {err}");
+            return;
+        }
+    };
+
+    if let Some(ca_expiry) = cert.ca_expiry {
+        expiry_check(ca_expiry);
+    }
+
+    if let Some(proxy_http_cert_expiry) = cert.proxy_http_cert_expiry {
+        expiry_check(proxy_http_cert_expiry);
+    }
+
+    if let Some(core_http_cert_expiry) = cert.core_http_cert_expiry {
+        expiry_check(core_http_cert_expiry);
+    }
 }
