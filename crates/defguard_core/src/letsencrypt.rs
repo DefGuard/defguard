@@ -13,6 +13,7 @@ use defguard_proto::proxy::{
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use sqlx::PgPool;
+use thiserror::Error;
 use tokio::sync::mpsc::{self, UnboundedSender, unbounded_channel};
 use tonic::{
     Request,
@@ -24,12 +25,37 @@ use tonic::{
 pub const ACME_TIMEOUT_SECS: u64 = 300;
 const LETSENCRYPT_EXPIRY_THRESHOLD: TimeDelta = TimeDelta::days(14);
 
+#[derive(Debug, Error)]
+pub(crate) enum LetsencryptError {
+    #[error("Failed to load certificates: {0}")]
+    CertificatesLoadFailed(sqlx::Error),
+    #[error("Failed to resolve proxy hostname: {0}")]
+    ProxyHostnameFailed(String),
+    #[error("Failed to load Edge list from DB: {0}")]
+    ProxyListLoadFailed(sqlx::Error),
+    #[error("No Edge found in database")]
+    NoProxyFound,
+    #[error("ACME certificate issuance timed out after {timeout_secs} seconds")]
+    AcmeTimedOut { timeout_secs: u64 },
+    #[error("Failed to reload certificates for saving: {0}")]
+    CertificateReloadFailed(sqlx::Error),
+    #[error("Failed to save certificate: {0}")]
+    CertificateSaveFailed(sqlx::Error),
+    #[error("ACME issuance failed: {0}")]
+    AcmeIssuanceFailed(String),
+    #[error("ACME task terminated unexpectedly")]
+    AcmeTaskTerminatedUnexpectedly,
+}
+
 pub(crate) async fn do_letsencrypt_refresh(
     pool: &PgPool,
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), LetsencryptError> {
     debug!("Performing letsencrypt cert validity check");
-    let Some(certs) = Certificates::get(pool).await? else {
+    let Some(certs) = Certificates::get(pool)
+        .await
+        .map_err(LetsencryptError::CertificatesLoadFailed)?
+    else {
         warn!("Missing certificates configuration, aborting letsencrypt expiry check");
         return Ok(());
     };
@@ -63,15 +89,16 @@ pub(crate) async fn do_letsencrypt_refresh(
         expire_in.num_days()
     );
     let settings = Settings::get_current_settings();
-    let domain = settings.proxy_hostname()?;
+    let domain = settings
+        .proxy_hostname()
+        .map_err(|err| LetsencryptError::ProxyHostnameFailed(err.to_string()))?;
     let account_credentials_json = certs.acme_account_credentials.clone().unwrap_or_default();
-    let Ok(proxies) = Proxy::list(pool).await else {
-        error!("Failed to load Edge list from DB");
-        return Ok(());
-    };
+    let proxies = Proxy::list(pool)
+        .await
+        .map_err(LetsencryptError::ProxyListLoadFailed)?;
     let Some(proxy) = proxies.into_iter().next() else {
         warn!("No Edge found in database, aborting Letsencrypt expiry check");
-        return Ok(());
+        return Err(LetsencryptError::NoProxyFound);
     };
 
     let proxy_host = proxy.address.clone();
@@ -119,7 +146,9 @@ pub(crate) async fn do_letsencrypt_refresh(
                     "ACME certificate issuance timed out after \
                      {ACME_TIMEOUT_SECS} seconds."
                 );
-                return Ok(());
+                return Err(LetsencryptError::AcmeTimedOut {
+                    timeout_secs: ACME_TIMEOUT_SECS,
+                });
             }
         }
     }
@@ -138,12 +167,12 @@ pub(crate) async fn do_letsencrypt_refresh(
                     updated_certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
                     if let Err(e) = updated_certs.save(pool).await {
                         error!("Failed to save certificate: {e}");
-                        return Ok(());
+                        return Err(LetsencryptError::CertificateSaveFailed(e));
                     }
                 }
                 Err(e) => {
                     error!("Failed to reload certificates for saving: {e}");
-                    return Ok(());
+                    return Err(LetsencryptError::CertificateReloadFailed(e));
                 }
             }
 
@@ -160,11 +189,11 @@ pub(crate) async fn do_letsencrypt_refresh(
             if let Err(err) = send_le_refresh_failed_emails(pool, &domain, &logs).await {
                 error!("Sending letsencrypt refresh email notification failed: {err}");
             }
-            return Ok(());
+            return Err(LetsencryptError::AcmeIssuanceFailed(acme_err));
         }
         Err(_) => {
             error!("ACME task terminated unexpectedly.");
-            return Ok(());
+            return Err(LetsencryptError::AcmeTaskTerminatedUnexpectedly);
         }
     }
 
