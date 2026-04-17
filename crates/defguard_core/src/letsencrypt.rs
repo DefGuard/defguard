@@ -50,6 +50,12 @@ pub(crate) enum LetsencryptError {
     AcmeTaskTerminatedUnexpectedly,
 }
 
+/// Refreshes the proxy HTTPS certificate through the Edge ACME flow when the
+/// currently stored Let's Encrypt certificate is close to expiry.
+///
+/// Returns `Ok(())` when refresh is not needed or when renewal completes
+/// successfully. Returns [`LetsencryptError`] only for operational failures in
+/// the refresh flow itself.
 pub(crate) async fn do_letsencrypt_refresh(
     pool: &PgPool,
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
@@ -203,6 +209,11 @@ pub(crate) async fn do_letsencrypt_refresh(
     Ok(())
 }
 
+/// Sends a failed Let's Encrypt refresh notification email to all active
+/// administrators.
+///
+/// The provided log lines are joined into a single text attachment and sent
+/// with the notification email.
 async fn send_le_refresh_failed_emails(
     pool: &PgPool,
     domain: &str,
@@ -223,6 +234,10 @@ async fn send_le_refresh_failed_emails(
     Ok(())
 }
 
+/// Parses the expiry timestamp from a PEM-encoded certificate.
+///
+/// Returns the certificate `not_after` value, or `None` if the PEM cannot be
+/// parsed or the expiry cannot be extracted.
 pub(crate) fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
     let der = defguard_certs::parse_pem_certificate(cert_pem)
         .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
