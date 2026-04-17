@@ -149,7 +149,7 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
             defguard.service=/usr/lib/systemd/system/defguard.service
-            .env-template=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf"
           fpm_opts: "--architecture amd64 --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb"
 
       - name: Build aarch64 DEB package
@@ -158,7 +158,7 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             defguard.service=/usr/lib/systemd/system/defguard.service
-            .env-template=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf"
           fpm_opts: "--architecture arm64 --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb"
 
       - name: Build x86_64 RPM package
@@ -167,7 +167,7 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
             defguard.service=/usr/lib/systemd/system/defguard.service
-            .env-template=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf"
           fpm_opts: "--architecture amd64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm"
 
       - name: Build aarch64 RPM package
@@ -176,7 +176,7 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
             defguard.service=/usr/lib/systemd/system/defguard.service
-            .env-template=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf"
           fpm_opts: "--architecture arm64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm"
 
       - name: Build FreeBSD package
@@ -185,7 +185,7 @@ jobs:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
             defguard.service.freebsd=/usr/local/etc/rc.d/defguard
-            .env-template=/etc/defguard/core.conf"
+            .env.example=/etc/defguard/core.conf"
           fpm_opts: "--architecture amd64 --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg --freebsd-osversion '*' --depends openssl"
 
       - name: Upload Linux x86_64 archive
