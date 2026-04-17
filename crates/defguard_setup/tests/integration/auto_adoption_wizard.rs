@@ -7,7 +7,9 @@ use defguard_common::{
         models::{
             Settings, WireguardNetwork,
             settings::initialize_current_settings,
-            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+            setup_auto_adoption::{
+                AutoAdoptionWizardState, AutoAdoptionWizardStep, SetupAutoAdoptionComponent,
+            },
             wireguard::{LocationMfaMode, ServiceLocationMode},
             wizard::{ActiveWizard, Wizard},
         },
@@ -26,10 +28,9 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod common;
-use common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
+use crate::common::SESSION_COOKIE_NAME;
 
-const SESSION_COOKIE_NAME: &str = "defguard_session";
+use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
 
 fn init_tracing_once() {
     static ONCE: Once = Once::new();
@@ -436,7 +437,7 @@ async fn test_attempt_auto_adoption_requires_both_flags(
     _: PgPoolOptions,
     options: PgConnectOptions,
 ) {
-    let pool = defguard_common::db::setup_pool(options).await;
+    let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
@@ -473,7 +474,7 @@ async fn test_attempt_auto_adoption_persists_actionable_edge_failure_logs(
 ) {
     init_tracing_once();
 
-    let pool = defguard_common::db::setup_pool(options).await;
+    let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
@@ -496,7 +497,7 @@ async fn test_attempt_auto_adoption_persists_actionable_edge_failure_logs(
 
     let edge_result = state
         .adoption_result
-        .get(&defguard_common::db::models::setup_auto_adoption::SetupAutoAdoptionComponent::Edge)
+        .get(&SetupAutoAdoptionComponent::Edge)
         .expect("Expected edge adoption result");
 
     assert!(!edge_result.success, "Edge auto-adoption should fail");
@@ -530,7 +531,7 @@ async fn test_attempt_auto_adoption_persists_actionable_gateway_failure_logs(
 ) {
     init_tracing_once();
 
-    let pool = defguard_common::db::setup_pool(options).await;
+    let pool = setup_pool(options).await;
     initialize_current_settings(&pool)
         .await
         .expect("Failed to initialize settings");
@@ -553,7 +554,7 @@ async fn test_attempt_auto_adoption_persists_actionable_gateway_failure_logs(
 
     let gateway_result = state
         .adoption_result
-        .get(&defguard_common::db::models::setup_auto_adoption::SetupAutoAdoptionComponent::Gateway)
+        .get(&SetupAutoAdoptionComponent::Gateway)
         .expect("Expected gateway adoption result");
 
     assert!(!gateway_result.success, "Gateway auto-adoption should fail");

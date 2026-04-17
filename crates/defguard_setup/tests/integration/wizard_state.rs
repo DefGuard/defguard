@@ -3,7 +3,7 @@ use defguard_common::{
     db::{
         models::{
             settings::initialize_current_settings,
-            setup_auto_adoption::AutoAdoptionWizardStep,
+            setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
             wireguard::{LocationMfaMode, ServiceLocationMode, WireguardNetwork},
             wizard::{ActiveWizard, Wizard},
         },
@@ -14,8 +14,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-mod common;
-use common::make_setup_test_client;
+use super::common::make_setup_test_client;
 
 #[sqlx::test]
 async fn test_wizard_state_initial(_: PgPoolOptions, options: PgConnectOptions) {
@@ -209,11 +208,10 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .expect("Failed to parse wizard state");
     assert_eq!(state["active_wizard"], "auto_adoption");
 
-    let auto_state =
-        defguard_common::db::models::setup_auto_adoption::AutoAdoptionWizardState::get(&pool)
-            .await
-            .expect("Failed to get auto adoption state")
-            .unwrap_or_default();
+    let auto_state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to get auto adoption state")
+        .unwrap_or_default();
     assert_eq!(auto_state.step, AutoAdoptionWizardStep::UrlSettings);
 
     let resp = client
@@ -227,11 +225,10 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .expect("Failed to set internal URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let auto_state =
-        defguard_common::db::models::setup_auto_adoption::AutoAdoptionWizardState::get(&pool)
-            .await
-            .expect("Failed to get auto adoption state")
-            .expect("Auto adoption state should be set");
+    let auto_state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to get auto adoption state")
+        .expect("Auto adoption state should be set");
     assert_eq!(auto_state.step, AutoAdoptionWizardStep::ExternalUrlSettings);
 
     let resp = client
@@ -245,11 +242,10 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .expect("Failed to set external URL settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let auto_state =
-        defguard_common::db::models::setup_auto_adoption::AutoAdoptionWizardState::get(&pool)
-            .await
-            .expect("Failed to get auto adoption state")
-            .expect("Auto adoption state should be set");
+    let auto_state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to get auto adoption state")
+        .expect("Auto adoption state should be set");
     assert_eq!(auto_state.step, AutoAdoptionWizardStep::VpnSettings);
 
     let resp = client
@@ -266,11 +262,10 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .expect("Failed to set VPN settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let auto_state =
-        defguard_common::db::models::setup_auto_adoption::AutoAdoptionWizardState::get(&pool)
-            .await
-            .expect("Failed to get auto adoption state")
-            .expect("Auto adoption state should be set");
+    let auto_state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to get auto adoption state")
+        .expect("Auto adoption state should be set");
     assert_eq!(auto_state.step, AutoAdoptionWizardStep::MfaSettings);
 
     let resp = client
@@ -281,11 +276,10 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .expect("Failed to set MFA settings");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    let auto_state =
-        defguard_common::db::models::setup_auto_adoption::AutoAdoptionWizardState::get(&pool)
-            .await
-            .expect("Failed to get auto adoption state")
-            .expect("Auto adoption state should be set");
+    let auto_state = AutoAdoptionWizardState::get(&pool)
+        .await
+        .expect("Failed to get auto adoption state")
+        .expect("Auto adoption state should be set");
     assert_eq!(auto_state.step, AutoAdoptionWizardStep::Summary);
 
     let resp = client

@@ -14,8 +14,9 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-mod common;
-use common::{init_settings_with_secret_key, make_migration_test_client, make_setup_test_client};
+use super::common::{
+    init_settings_with_secret_key, make_migration_test_client, make_setup_test_client,
+};
 
 #[sqlx::test]
 async fn test_session_info_setup_server(_: PgPoolOptions, options: PgConnectOptions) {

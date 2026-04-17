@@ -16,8 +16,7 @@ use reqwest::{
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-mod common;
-use common::{
+use super::common::{
     SHUTDOWN_TIMEOUT, init_settings_with_secret_key, make_migration_test_client, seed_admin_user,
 };
 use tokio::time::timeout;

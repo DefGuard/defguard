@@ -23,15 +23,14 @@ use reqwest::{
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-mod common;
-use common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
-use tokio::time::timeout;
+use crate::common::{SESSION_COOKIE_NAME, TestClient};
 
-const SESSION_COOKIE_NAME: &str = "defguard_session";
+use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
+use tokio::{sync::oneshot, time::timeout};
 
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,
-) -> (common::TestClient, tokio::sync::oneshot::Receiver<()>) {
+) -> (TestClient, oneshot::Receiver<()>) {
     Wizard::init(pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
