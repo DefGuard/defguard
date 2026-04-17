@@ -157,7 +157,10 @@ pub fn server_tls_config(
 ) -> Result<ServerTlsConfig, CertConfigError> {
     let identity = Identity::from_pem(component_cert_pem, component_key_pem);
     let ca = Certificate::from_pem(ca_cert_pem);
-    Ok(ServerTlsConfig::new().identity(identity).client_ca_root(ca))
+    Ok(ServerTlsConfig::new()
+        .identity(identity)
+        .client_ca_root(ca)
+        .client_auth_optional(false))
 }
 
 /// Create a rustls client config that enforces the pinned component certificate serial
