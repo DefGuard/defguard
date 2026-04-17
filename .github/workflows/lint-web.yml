@@ -38,10 +38,12 @@ jobs:
 
       # Change to '--frozen-lockfile' once this gets fixed:
       # https://github.com/pnpm/action-setup/issues/40
+      #
+      # Restore audit when this is fixed:
+      # https://github.com/pnpm/pnpm/issues/11265
       - name: Lint frontend
         working-directory: web
         run: |
           pnpm install --ignore-scripts --no-frozen-lockfile
           pnpm build
           pnpm lint
-          pnpm audit --prod --ignore-unfixable

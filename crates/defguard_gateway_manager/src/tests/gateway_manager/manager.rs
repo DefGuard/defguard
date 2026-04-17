@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use defguard_common::db::{Id, models::gateway::Gateway};
 use defguard_proto::gateway::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -10,8 +8,6 @@ use crate::tests::common::{
     create_gateway_with_enabled, create_network, reload_gateway, unique_mock_gateway_socket_path,
     wait_for_gateway_connection_state,
 };
-
-const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
 
 async fn complete_manager_handshake(
     context: &ManagerTestContext,
@@ -283,7 +279,6 @@ async fn test_retries_failed_connection_without_notification_or_duplicate_handle
     options: PgConnectOptions,
 ) {
     let mut context = ManagerTestContext::new(options).await;
-    context.set_retry_delay(FAST_RETRY_DELAY);
 
     let network = create_network(&context.pool).await;
     let gateway = create_gateway(&context.pool, network.id).await;
@@ -328,7 +323,6 @@ async fn test_retries_after_stream_close_with_single_handler_supervisor(
     options: PgConnectOptions,
 ) {
     let mut context = ManagerTestContext::new(options).await;
-    context.set_retry_delay(FAST_RETRY_DELAY);
 
     let network = create_network(&context.pool).await;
     let gateway = create_gateway(&context.pool, network.id).await;
@@ -379,7 +373,6 @@ async fn test_retries_after_stream_error_with_single_handler_supervisor(
     options: PgConnectOptions,
 ) {
     let mut context = ManagerTestContext::new(options).await;
-    context.set_retry_delay(FAST_RETRY_DELAY);
 
     let network = create_network(&context.pool).await;
     let gateway = create_gateway(&context.pool, network.id).await;

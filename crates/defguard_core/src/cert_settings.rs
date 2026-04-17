@@ -4,7 +4,7 @@ use defguard_certs::{
     parse_pem_certificate,
 };
 use defguard_common::db::models::{
-    Certificates, CoreCertSource, ProxyCertSource, settings::update_current_settings,
+    Certificates, CoreCertSource, ProxyCertSource, Settings, settings::update_current_settings,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -94,6 +94,14 @@ pub struct ExternalUrlSettingsConfig {
     pub key_pem: Option<String>,
 }
 
+fn ensure_https(url: &str) -> String {
+    if let Some(rest) = url.strip_prefix("http://") {
+        format!("https://{rest}")
+    } else {
+        url.to_owned()
+    }
+}
+
 /// Core logic for applying internal URL certificate settings using the current Defguard URL.
 /// Returns cert info if a certificate was generated/uploaded, `None` for `ssl_type = None`.
 pub async fn apply_internal_url_settings(
@@ -106,11 +114,17 @@ pub async fn apply_internal_url_settings(
         defguard_url, config.ssl_type,
     );
 
-    let mut settings = defguard_common::db::models::Settings::get_current_settings();
-    settings.defguard_url = defguard_url.to_string();
-    update_current_settings(pool, settings).await?;
+    let mut settings = Settings::get_current_settings();
+    let mut transaction = pool.begin().await?;
 
-    let mut certs = Certificates::get_or_default(pool)
+    // Modify url schema if necessary
+    settings.defguard_url = match config.ssl_type {
+        InternalSslType::None => defguard_url.to_string(),
+        InternalSslType::DefguardCa | InternalSslType::OwnCert => ensure_https(defguard_url),
+    };
+    update_current_settings(&mut *transaction, settings).await?;
+
+    let mut certs = Certificates::get_or_default(&mut *transaction)
         .await
         .map_err(WebError::from)?;
 
@@ -120,7 +134,10 @@ pub async fn apply_internal_url_settings(
             certs.core_http_cert_pem = None;
             certs.core_http_cert_key_pem = None;
             certs.core_http_cert_expiry = None;
-            certs.save(pool).await.map_err(WebError::from)?;
+            certs
+                .save(&mut *transaction)
+                .await
+                .map_err(WebError::from)?;
             None
         }
         InternalSslType::DefguardCa => {
@@ -156,7 +173,10 @@ pub async fn apply_internal_url_settings(
             certs.core_http_cert_pem = Some(cert_pem);
             certs.core_http_cert_key_pem = Some(key_pem);
             certs.core_http_cert_expiry = Some(expiry);
-            certs.save(pool).await.map_err(WebError::from)?;
+            certs
+                .save(&mut *transaction)
+                .await
+                .map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
@@ -181,7 +201,10 @@ pub async fn apply_internal_url_settings(
             certs.core_http_cert_pem = Some(cert_pem_str);
             certs.core_http_cert_key_pem = Some(key_pem_str);
             certs.core_http_cert_expiry = Some(expiry);
-            certs.save(pool).await.map_err(WebError::from)?;
+            certs
+                .save(&mut *transaction)
+                .await
+                .map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
@@ -192,6 +215,7 @@ pub async fn apply_internal_url_settings(
         }
     };
 
+    transaction.commit().await?;
     Ok(cert_info)
 }
 
@@ -207,28 +231,37 @@ pub async fn apply_external_url_settings(
         public_proxy_url, config.ssl_type,
     );
 
-    let mut certs = Certificates::get_or_default(pool)
+    let mut transaction = pool.begin().await?;
+    let mut certs = Certificates::get_or_default(&mut *transaction)
         .await
         .map_err(WebError::from)?;
 
-    let hostname = if matches!(
-        config.ssl_type,
-        ExternalSslType::LetsEncrypt | ExternalSslType::DefguardCa
-    ) {
-        let url = public_proxy_url.trim();
-        if url.is_empty() {
-            return Err(WebError::BadRequest(
-                "Public proxy URL is not configured".to_string(),
-            ));
+    // Modify url schema if necessary
+    let mut settings = Settings::get_current_settings();
+    settings.public_proxy_url = match config.ssl_type {
+        ExternalSslType::None => public_proxy_url.to_string(),
+        ExternalSslType::LetsEncrypt | ExternalSslType::DefguardCa | ExternalSslType::OwnCert => {
+            ensure_https(public_proxy_url)
         }
+    };
+    update_current_settings(&mut *transaction, settings).await?;
 
-        reqwest::Url::parse(url)
-            .ok()
-            .and_then(|u| u.host_str().map(ToString::to_string))
-            .filter(|host| !host.is_empty())
-            .unwrap_or_else(|| url.to_string())
-    } else {
-        String::new()
+    let hostname = match config.ssl_type {
+        ExternalSslType::None | ExternalSslType::OwnCert => String::new(),
+        ExternalSslType::DefguardCa | ExternalSslType::LetsEncrypt => {
+            let url = public_proxy_url.trim();
+            if url.is_empty() {
+                return Err(WebError::BadRequest(
+                    "Public proxy URL is not configured".to_string(),
+                ));
+            }
+
+            reqwest::Url::parse(url)
+                .ok()
+                .and_then(|u| u.host_str().map(ToString::to_string))
+                .filter(|host| !host.is_empty())
+                .unwrap_or_else(|| url.to_string())
+        }
     };
 
     let cert_info = match config.ssl_type {
@@ -239,7 +272,10 @@ pub async fn apply_external_url_settings(
             certs.proxy_http_cert_pem = None;
             certs.proxy_http_cert_key_pem = None;
             certs.proxy_http_cert_expiry = None;
-            certs.save(pool).await.map_err(WebError::from)?;
+            certs
+                .save(&mut *transaction)
+                .await
+                .map_err(WebError::from)?;
             None
         }
         ExternalSslType::LetsEncrypt => {
@@ -278,7 +314,10 @@ pub async fn apply_external_url_settings(
             certs.proxy_http_cert_pem = Some(cert_pem);
             certs.proxy_http_cert_key_pem = Some(key_pem);
             certs.proxy_http_cert_expiry = Some(expiry);
-            certs.save(pool).await.map_err(WebError::from)?;
+            certs
+                .save(&mut *transaction)
+                .await
+                .map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
@@ -304,7 +343,10 @@ pub async fn apply_external_url_settings(
             certs.proxy_http_cert_pem = Some(cert_pem_str);
             certs.proxy_http_cert_key_pem = Some(key_pem_str);
             certs.proxy_http_cert_expiry = Some(expiry);
-            certs.save(pool).await.map_err(WebError::from)?;
+            certs
+                .save(&mut *transaction)
+                .await
+                .map_err(WebError::from)?;
 
             Some(CertInfoResponse {
                 common_name: info.subject_common_name,
@@ -315,5 +357,6 @@ pub async fn apply_external_url_settings(
         }
     };
 
+    transaction.commit().await?;
     Ok(cert_info)
 }

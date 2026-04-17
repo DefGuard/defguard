@@ -14,7 +14,6 @@ import { disableUser } from '../utils/controllers/toggleUserState';
 import { getPasswordResetToken } from '../utils/db/getPasswordResetToken';
 import { dockerRestart } from '../utils/docker';
 import { waitForBase } from '../utils/waitForBase';
-import { waitForPromise } from '../utils/waitForPromise';
 
 const newPassword = '!7(8o3aN8RoF';
 
@@ -29,14 +28,12 @@ test.describe('Reset password', () => {
   test('Reset user password', async ({ page }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
-    await waitForPromise(2000);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
-    await waitForPromise(1000);
     const token = await getPasswordResetToken(user.mail);
 
     await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
-    await waitForPromise(1000);
+    await page.getByTestId('field-password').waitFor({ state: 'visible' });
 
     await setPassword(newPassword, page);
     const goToLogin = page.locator('button[data-variant="primary"]');
@@ -52,13 +49,10 @@ test.describe('Reset password', () => {
   test.skip('Reset disabled user password', async ({ page, browser }) => {
     await waitForBase(page);
     await page.goto(testsConfig.ENROLLMENT_URL);
-    await waitForPromise(2000);
     await selectPasswordReset(page);
     await setEmail(user.mail, page);
-    await waitForPromise(2000);
     const token = await getPasswordResetToken(user.mail);
     await disableUser(browser, user);
-    await waitForPromise(5000);
     await page.goto(`${testsConfig.ENROLLMENT_URL}/password-reset/?token=${token}`);
 
     // A message should be displayed that the code is invalid
