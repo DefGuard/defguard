@@ -715,22 +715,25 @@ export const UsersTable = () => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {Object.keys(selected).length > 0 && isPresent(groups) && (
-          <Button
-            variant="outlined"
-            text={m.users_bulk_assign_to_groups()}
-            iconLeft="add-group"
-            testId="bulk-assign"
-            onClick={() => {
-              const userIds = Object.keys(selected).map(Number);
-              openModal(ModalName.AssignGroupsToUsers, {
-                groups,
-                users: userIds,
-                onSuccess: () => setSelected({}),
-              });
-            }}
-          />
-        )}
+        {table.getFilteredSelectedRowModel().rows.length > 0 &&
+          isPresent(groups) && (
+            <Button
+              variant="outlined"
+              text={m.users_bulk_assign_to_groups()}
+              iconLeft="add-group"
+              testId="bulk-assign"
+              onClick={() => {
+                const selectedUsers = table
+                  .getFilteredSelectedRowModel()
+                  .rows.map((row) => row.original.id);
+                openModal(ModalName.AssignGroupsToUsers, {
+                  groups,
+                  users: selectedUsers,
+                  onSuccess: () => table.resetRowSelection(),
+                });
+              }}
+            />
+          )}
         <Search
           placeholder={m.users_search_placeholder()}
           initialValue={search}
