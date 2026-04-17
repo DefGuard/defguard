@@ -16,6 +16,7 @@ defguard_web_ui = { workspace = true }
 defguard_version = { workspace = true }
 model_derive = { workspace = true }
 defguard_certs = { workspace = true }
+defguard_grpc_tls = { workspace = true }
 defguard_static_ip = { workspace = true }
 
 # external dependencies
@@ -30,6 +31,7 @@ bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 humantime = { workspace = true }
+hyper-rustls = { workspace = true }
 # match version used by sqlx
 ipnetwork = { workspace = true }
 jsonwebkey = { workspace = true }

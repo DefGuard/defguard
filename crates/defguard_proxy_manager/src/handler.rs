@@ -36,7 +36,7 @@ use defguard_core::{
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
-use defguard_grpc_tls::{certs as tls_certs, connector::HttpsSchemeConnector};
+use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
     client_types::AuthFlowType as ProtoAuthFlowType,
     proxy::{
@@ -47,7 +47,6 @@ use defguard_proto::{
 use defguard_version::{
     ComponentInfo, DefguardComponent, client::ClientVersionInterceptor, get_tracing_variables,
 };
-use hyper_rustls::HttpsConnectorBuilder;
 use openidconnect::{AuthorizationCode, Nonce, Scope, core::CoreAuthenticationFlow};
 use reqwest::Url;
 use semver::Version;
@@ -64,9 +63,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
-    Code, Request, Streaming,
-    service::interceptor::InterceptedService,
-    transport::{Channel, Endpoint},
+    Code, Request, Streaming, service::interceptor::InterceptedService, transport::Channel,
 };
 
 #[cfg(test)]
@@ -75,6 +72,8 @@ use crate::{
     HandlerTxMap, ProxyError, ProxyTxSet, TEN_SECS,
     servers::{EnrollmentServer, PasswordResetServer},
 };
+#[cfg(test)]
+use tonic::transport::Endpoint;
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
@@ -222,25 +221,8 @@ impl ProxyHandler {
         TEN_SECS
     }
 
-    fn endpoint(&self) -> Result<Endpoint, ProxyError> {
-        let mut url = self.url.clone();
-
-        // Using HTTP here because the connector upgrades to TLS internally.
-        url.set_scheme("http").map_err(|()| {
-            ProxyError::UrlError(format!("Failed to set HTTP scheme on URL {url}"))
-        })?;
-        let endpoint = Endpoint::from_shared(url.to_string())?;
-        let endpoint = endpoint
-            .http2_keep_alive_interval(TEN_SECS)
-            .tcp_keepalive(Some(TEN_SECS))
-            .keep_alive_while_idle(true);
-
-        Ok(endpoint)
-    }
-
-    async fn connect_tls_channel(
+    async fn connect_channel_mtls(
         &self,
-        endpoint: &Endpoint,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Channel, ProxyError> {
         let certs = Certificates::get(&self.pool)
@@ -267,43 +249,17 @@ impl ProxyHandler {
                     self.proxy_id
                 ))
             })?;
-        let core_client_cert_der = proxy.core_client_cert_der.ok_or_else(|| {
-            ProxyError::MissingConfiguration(format!(
-                "Core client certificate not provisioned for proxy id={}",
-                self.proxy_id
-            ))
-        })?;
-        let core_client_cert_key_der = proxy.core_client_cert_key_der.ok_or_else(|| {
-            ProxyError::MissingConfiguration(format!(
-                "Core client certificate key not provisioned for proxy id={}",
-                self.proxy_id
-            ))
-        })?;
 
-        let tls_config = tls_certs::client_config(
-            &ca_cert_der,
-            certs_rx,
-            self.proxy_id,
-            &core_client_cert_der,
-            &core_client_cert_key_der,
-        )
-        .map_err(|err| ProxyError::TlsConfigError(err.to_string()))?;
-        let connector = HttpsConnectorBuilder::new()
-            .with_tls_config(tls_config)
-            .https_only()
-            .enable_http2()
-            .build();
-        let connector = HttpsSchemeConnector::new(connector);
-        Ok(endpoint.connect_with_connector_lazy(connector))
+        proxy_mtls_channel(&proxy, &ca_cert_der, certs_rx)
+            .map_err(|e| ProxyError::TlsConfigError(e.to_string()))
     }
 
     #[cfg(not(test))]
     async fn connect_channel(
         &self,
-        endpoint: &Endpoint,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Channel, ProxyError> {
-        self.connect_tls_channel(endpoint, certs_rx).await
+        self.connect_channel_mtls(certs_rx).await
     }
 
     /// Establishes and maintains a gRPC bidirectional stream to the proxy.
@@ -319,14 +275,12 @@ impl ProxyHandler {
     ) -> Result<(), ProxyError> {
         let parsed_version = Version::parse(VERSION)?;
         loop {
-            let endpoint = self.endpoint()?;
-
-            let channel = match self.connect_channel(&endpoint, certs_rx.clone()).await {
+            let channel = match self.connect_channel(certs_rx.clone()).await {
                 Ok(ch) => ch,
                 Err(err) => {
                     error!(
                         "Failed to create proxy channel for {}: {err}, retrying in {:?}",
-                        endpoint.uri(),
+                        self.url,
                         self.retry_delay()
                     );
                     self.mark_disconnected().await?;
@@ -342,7 +296,7 @@ impl ProxyHandler {
                 }
             };
 
-            debug!("Connecting to proxy at {}", endpoint.uri());
+            debug!("Connecting to proxy at {}", self.url);
             let interceptor = ClientVersionInterceptor::new(parsed_version.clone());
             let mut client = ProxyClient::with_interceptor(channel, interceptor);
             self.client = Some(client.clone());
@@ -361,7 +315,7 @@ impl ProxyHandler {
                             error!(
                                 "Failed to connect to proxy @ {}, version check failed, retrying in \
                             {:?}: {err}",
-                                endpoint.uri(),
+                                self.url,
                                 self.retry_delay()
                             );
                             // TODO push event
@@ -369,7 +323,7 @@ impl ProxyHandler {
                         err => {
                             error!(
                                 "Failed to connect to proxy @ {}, retrying in {:?}: {err}",
-                                endpoint.uri(),
+                                self.url,
                                 self.retry_delay()
                             );
                         }
@@ -423,7 +377,7 @@ impl ProxyHandler {
             }
             IncompatibleComponents::remove_proxy(&incompatible_components);
 
-            info!("Connected to proxy at {}", endpoint.uri());
+            info!("Connected to proxy at {}", self.url);
             let mut resp_stream = response.into_inner();
 
             // Send initial info with private cookies key.
@@ -479,17 +433,17 @@ impl ProxyHandler {
                 res = &mut *shutdown_signal.lock().await => {
                     match res {
                         Err(err) => {
-                            error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", endpoint.uri());
+                            error!("An error occurred when trying to wait for a shutdown signal for Proxy: {err}. Reconnecting to: {}", self.url);
                         }
                         Ok(purge) => {
-                            info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", endpoint.uri());
+                            info!("Shutdown signal received, purge: {purge}, stopping proxy connection to {}", self.url);
                             if purge {
                                 if let Some(client) = self.client.as_mut() {
-                                    debug!("Sending purge request to proxy {}", endpoint.uri());
+                                    debug!("Sending purge request to proxy {}", self.url);
                                     if let Err(err) = client.purge(Request::new(())).await {
-                                        error!("Error sending purge request to proxy {}: {err}", endpoint.uri());
+                                        error!("Error sending purge request to proxy {}: {err}", self.url);
                                     } else {
-                                        info!("Sent purge request to proxy {}", endpoint.uri());
+                                        info!("Sent purge request to proxy {}", self.url);
                                     }
                                 }
                             }
@@ -1092,10 +1046,12 @@ impl ProxyHandler {
 
     async fn connect_channel(
         &self,
-        endpoint: &Endpoint,
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<Channel, ProxyError> {
         if let Some(socket_path) = self.test_transport.socket_path().cloned() {
+            // Build a minimal endpoint for the Unix socket connector.
+            // The scheme and host are irrelevant — the connector ignores the URI.
+            let endpoint = Endpoint::from_shared(self.url.to_string())?;
             return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
                 move |_: tonic::transport::Uri| {
                     let socket_path = socket_path.clone();
@@ -1108,7 +1064,7 @@ impl ProxyHandler {
             )));
         }
 
-        self.connect_tls_channel(endpoint, certs_rx).await
+        self.connect_channel_mtls(certs_rx).await
     }
 
     /// Single-iteration version of `run()` for use in tests.
@@ -1123,12 +1079,11 @@ impl ProxyHandler {
         certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
     ) -> Result<(), ProxyError> {
         let parsed_version = Version::parse(VERSION)?;
-        let endpoint = self.endpoint()?;
-        let channel = self.connect_channel(&endpoint, certs_rx).await?;
+        let channel = self.connect_channel(certs_rx).await?;
 
         debug!(
             "Connecting to proxy at {} (test, single iteration)",
-            endpoint.uri()
+            self.url
         );
         let interceptor = ClientVersionInterceptor::new(parsed_version);
         let mut client = ProxyClient::with_interceptor(channel, interceptor);
@@ -1163,7 +1118,7 @@ impl ProxyHandler {
         }
         IncompatibleComponents::remove_proxy(&incompatible_components);
 
-        info!("Connected to proxy at {} (test)", endpoint.uri());
+        info!("Connected to proxy at {} (test)", self.url);
         let mut resp_stream = response.into_inner();
 
         let initial_info = InitialInfo {

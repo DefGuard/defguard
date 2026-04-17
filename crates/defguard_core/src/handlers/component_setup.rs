@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     convert::Infallible,
     sync::{Arc, Mutex, PoisonError},
     time::Duration,
@@ -29,6 +29,7 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
     utils::strip_scheme,
 };
+use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
     common::{CertBundle, CertificateInfo},
     gateway::gateway_setup_client::GatewaySetupClient,
@@ -43,7 +44,10 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tokio::{
-    sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel},
+    sync::{
+        mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel},
+        oneshot, watch,
+    },
     time::{Instant, sleep_until, timeout},
 };
 use tokio_stream::StreamExt;
@@ -1175,8 +1179,7 @@ fn public_proxy_hostname() -> Result<String, String> {
 /// collected during the ACME run (sent by the proxy via an [`AcmeLogs`] event).
 async fn call_proxy_trigger_acme(
     pool: &PgPool,
-    proxy_host: &str,
-    proxy_port: u16,
+    proxy: &Proxy<Id>,
     domain: String,
     account_credentials_json: String,
     progress_tx: UnboundedSender<AcmeStep>,
@@ -1191,32 +1194,29 @@ async fn call_proxy_trigger_acme(
         )
     })?;
 
-    let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
-        .map_err(|e| (format!("Failed to convert CA cert to PEM: {e}"), Vec::new()))?;
-
-    let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
-    let endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| (format!("Failed to build Edge endpoint: {e}"), Vec::new()))?
-        .http2_keep_alive_interval(Duration::from_secs(5))
-        .tcp_keepalive(Some(Duration::from_secs(5)))
-        .keep_alive_while_idle(true);
-
-    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-    let endpoint = endpoint.tls_config(tls).map_err(|e| {
+    let cert_serial = proxy.certificate_serial.as_deref().ok_or_else(|| {
         (
-            format!("Failed to configure TLS for Edge endpoint: {e}"),
+            "Edge certificate serial not provisioned".to_string(),
             Vec::new(),
         )
     })?;
+
+    // Seed a one-shot serial map so the rustls verifier validates the server cert serial.
+    let (_, certs_rx) = watch::channel(Arc::new(HashMap::from([(
+        proxy.id,
+        cert_serial.to_string(),
+    )])));
+
+    let channel = proxy_mtls_channel(proxy, &ca_cert_der, certs_rx)
+        .map_err(|e| (format!("Failed to build mTLS channel: {e}"), Vec::new()))?;
 
     let version = Version::parse(VERSION)
         .map_err(|e| (format!("Failed to parse core version: {e}"), Vec::new()))?;
     let version_interceptor = ClientVersionInterceptor::new(version);
 
-    let mut client =
-        ProxyClient::with_interceptor(endpoint.connect_lazy(), move |req: Request<()>| {
-            version_interceptor.clone().call(req)
-        });
+    let mut client = ProxyClient::with_interceptor(channel, move |req: Request<()>| {
+        version_interceptor.clone().call(req)
+    });
 
     let mut stream = client
         .trigger_acme(AcmeChallenge {
@@ -1300,7 +1300,7 @@ pub async fn stream_proxy_acme(
 
         let account_credentials_json = certs.acme_account_credentials.clone().unwrap_or_default();
 
-        let proxies = match Proxy::list(&pool).await {
+        let proxies = match Proxy::all_enabled(&pool).await {
             Ok(list) => list,
             Err(e) => {
                 yield Ok(acme_error_event(
@@ -1323,8 +1323,8 @@ pub async fn stream_proxy_acme(
             return;
         };
 
-        let proxy_host = proxy.address.clone();
-        let proxy_port = proxy.port as u16;
+        let proxy_host = &proxy.address;
+        let proxy_port = proxy.port;
         info!(
             "Triggering ACME HTTP-01 via Edge gRPC TriggerAcme for domain: {domain} \
              Edge={proxy_host}:{proxy_port}"
@@ -1333,7 +1333,7 @@ pub async fn stream_proxy_acme(
         let (progress_tx, mut progress_rx) =
             unbounded_channel::<AcmeStep>();
         let (result_tx, result_rx) =
-            tokio::sync::oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
+            oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
 
         let pool_clone = pool.clone();
         let domain_clone = domain.clone();
@@ -1341,8 +1341,7 @@ pub async fn stream_proxy_acme(
         tokio::spawn(async move {
             let result = call_proxy_trigger_acme(
                 &pool_clone,
-                &proxy_host,
-                proxy_port,
+                &proxy,
                 domain_clone,
                 acct_creds_clone,
                 progress_tx,

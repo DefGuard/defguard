@@ -8,9 +8,10 @@
 //! - A lightweight in-memory cache (refreshed periodically) avoids database access
 //!   during the handshake and keeps verification synchronous.
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use defguard_common::db::Id;
+use defguard_common::db::{Id, models::proxy::Proxy};
+use hyper_rustls::HttpsConnectorBuilder;
 use rustls::{
     CertificateError, DistinguishedName, Error as RustlsError, RootCertStore, SignatureScheme,
     client::{
@@ -22,9 +23,13 @@ use rustls::{
 };
 use thiserror::Error;
 use tokio::sync::watch;
-use tonic::transport::{Certificate, Identity, ServerTlsConfig};
+use tonic::transport::{Certificate, Channel, Endpoint, Identity, ServerTlsConfig};
 use tracing::error;
 use x509_parser::parse_x509_certificate;
+
+use crate::connector::HttpsSchemeConnector;
+
+const TEN_SECS: Duration = Duration::from_secs(10);
 
 /// Errors that can occur while building a TLS config with a pinned verifier.
 #[derive(Debug, Error)]
@@ -207,4 +212,54 @@ pub fn client_config(
             component_id,
         )));
     Ok(config)
+}
+
+/// Build an mTLS [`Channel`] to a proxy using its stored per-component client certificate.
+///
+/// * `proxy` — the full `Proxy<Id>` row from the database; `core_client_cert_der`,
+///   `core_client_cert_key_der`, and `certificate_serial` must all be `Some`.
+/// * `ca_cert_der` — the core CA certificate in DER form, used as the only trusted root.
+/// * `certs_rx` — watch channel carrying the current `{ proxy_id → cert_serial }` map.
+///   Pass a long-lived receiver for persistent connections (serial revocation is picked up
+///   dynamically) or a one-shot channel seeded with the proxy's current serial for
+///   short-lived calls.
+///
+/// The returned channel uses an `http://` endpoint scheme; TLS is applied by the
+/// internal [`HttpsSchemeConnector`](crate::connector::HttpsSchemeConnector).
+pub fn proxy_mtls_channel(
+    proxy: &Proxy<Id>,
+    ca_cert_der: &[u8],
+    certs_rx: watch::Receiver<Arc<HashMap<Id, String>>>,
+) -> Result<Channel, CertConfigError> {
+    let cert_der = proxy.core_client_cert_der.as_deref().ok_or_else(|| {
+        CertConfigError::TlsConfig(format!(
+            "core client certificate not provisioned for proxy id={}",
+            proxy.id
+        ))
+    })?;
+    let key_der = proxy.core_client_cert_key_der.as_deref().ok_or_else(|| {
+        CertConfigError::TlsConfig(format!(
+            "core client certificate key not provisioned for proxy id={}",
+            proxy.id
+        ))
+    })?;
+
+    let tls_config = client_config(ca_cert_der, certs_rx, proxy.id, cert_der, key_der)?;
+
+    let connector = HttpsConnectorBuilder::new()
+        .with_tls_config(tls_config)
+        .https_only()
+        .enable_http2()
+        .build();
+    let connector = HttpsSchemeConnector::new(connector);
+
+    // Use http:// scheme — the HttpsSchemeConnector rewrites it to https:// internally.
+    let endpoint_str = format!("http://{}:{}", proxy.address, proxy.port);
+    let endpoint = Endpoint::from_shared(endpoint_str)
+        .map_err(|e| CertConfigError::TlsConfig(format!("invalid proxy endpoint URL: {e}")))?
+        .http2_keep_alive_interval(TEN_SECS)
+        .tcp_keepalive(Some(TEN_SECS))
+        .keep_alive_while_idle(true);
+
+    Ok(endpoint.connect_with_connector_lazy(connector))
 }

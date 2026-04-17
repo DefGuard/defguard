@@ -1380,6 +1380,7 @@ dependencies = [
  "claims",
  "defguard_certs",
  "defguard_common",
+ "defguard_grpc_tls",
  "defguard_mail",
  "defguard_proto",
  "defguard_static_ip",
@@ -1387,6 +1388,7 @@ dependencies = [
  "defguard_web_ui",
  "futures",
  "humantime",
+ "hyper-rustls",
  "hyper-util",
  "ipnetwork",
  "jsonwebkey",
@@ -1523,6 +1525,7 @@ version = "0.0.0"
 dependencies = [
  "defguard_common",
  "http",
+ "hyper-rustls",
  "rustls",
  "thiserror 2.0.18",
  "tokio",
