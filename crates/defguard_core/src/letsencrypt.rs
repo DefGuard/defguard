@@ -1,14 +1,24 @@
+use std::time::Duration;
+
 use chrono::{NaiveDateTime, TimeDelta, Utc};
+use defguard_certs::der_to_pem;
 use defguard_common::{
+    VERSION,
     db::models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
     types::proxy::ProxyControlMessage,
 };
 use defguard_mail::templates;
-use defguard_proto::proxy::AcmeStep;
+use defguard_proto::proxy::{
+    AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
+};
+use defguard_version::{Version, client::ClientVersionInterceptor};
 use sqlx::PgPool;
 use tokio::sync::mpsc::{self, UnboundedSender, unbounded_channel};
-
-use crate::handlers::component_setup::{call_proxy_trigger_acme, parse_cert_expiry};
+use tonic::{
+    Request,
+    service::Interceptor,
+    transport::{Certificate, ClientTlsConfig, Endpoint},
+};
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
 pub const ACME_TIMEOUT_SECS: u64 = 300;

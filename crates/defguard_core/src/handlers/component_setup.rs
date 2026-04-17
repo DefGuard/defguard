@@ -10,7 +10,6 @@ use axum::{
     extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
-use chrono::NaiveDateTime;
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
@@ -32,10 +31,7 @@ use defguard_common::{
 use defguard_proto::{
     common::{CertificateInfo, DerPayload},
     gateway::gateway_setup_client::GatewaySetupClient,
-    proxy::{
-        AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
-        proxy_setup_client::ProxySetupClient,
-    },
+    proxy::{AcmeStep, proxy_setup_client::ProxySetupClient},
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use futures::Stream;
@@ -52,7 +48,11 @@ use tonic::{
 use tracing::Instrument;
 
 use crate::{
-    auth::{AdminOrSetupRole, SessionInfo}, enterprise::is_enterprise_license_active, letsencrypt::{ACME_TIMEOUT_SECS, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry}, setup_logs::scope_setup_logs, version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION}
+    auth::{AdminOrSetupRole, SessionInfo},
+    enterprise::is_enterprise_license_active,
+    letsencrypt::{ACME_TIMEOUT_SECS, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
+    setup_logs::scope_setup_logs,
+    version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
@@ -1115,8 +1115,8 @@ pub async fn stream_proxy_acme(
         let settings = Settings::get_current_settings();
         let domain = match settings.proxy_hostname() {
             Ok(domain) => domain,
-            Err(message) => {
-                yield Ok(acme_error_event("Connecting", message.to_string(), None));
+            Err(err) => {
+                yield Ok(acme_error_event("Connecting", err.to_string(), None));
                 return;
             }
         };
