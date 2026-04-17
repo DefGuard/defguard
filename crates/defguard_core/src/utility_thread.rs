@@ -1,14 +1,23 @@
 use std::{collections::HashSet, time::Duration};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::{
-    Id,
-    models::{Certificates, ProxyCertSource, Settings, WireguardNetwork, proxy::Proxy, wireguard::ServiceLocationMode},
+use defguard_common::{
+    db::{
+        Id,
+        models::{
+            Certificates, ProxyCertSource, Settings, WireguardNetwork, proxy::Proxy,
+            wireguard::ServiceLocationMode,
+        },
+    },
+    types::proxy::ProxyControlMessage,
 };
 use defguard_proto::proxy::{AcmeStep, acme_issue_event};
 use sqlx::PgPool;
 use tokio::{
-    sync::{broadcast::Sender, mpsc::{UnboundedSender, unbounded_channel}},
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, UnboundedSender, unbounded_channel},
+    },
     time::{Instant, sleep},
 };
 use tracing::Instrument;
@@ -21,7 +30,13 @@ use crate::{
         is_business_license_active,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::update_counts,
-    }, grpc::GatewayEvent, handlers::component_setup::{ACME_TIMEOUT_SECS, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry}, location_management::allowed_peers::get_location_allowed_peers, updates::do_new_version_check
+    },
+    grpc::GatewayEvent,
+    handlers::component_setup::{
+        ACME_TIMEOUT_SECS, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry,
+    },
+    location_management::allowed_peers::get_location_allowed_peers,
+    updates::do_new_version_check,
 };
 
 // Times in seconds
@@ -39,6 +54,7 @@ const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 pub async fn run_utility_thread(
     pool: &PgPool,
     wireguard_tx: Sender<GatewayEvent>,
+    proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
     let mut last_count_update = Instant::now();
     let mut last_directory_sync = Instant::now();
@@ -98,7 +114,7 @@ pub async fn run_utility_thread(
     };
 
     let letsencrypt_refresh_task = || async {
-        if let Err(e) = do_letsencrypt_refresh(pool)
+        if let Err(e) = do_letsencrypt_refresh(pool, proxy_control_tx.clone())
             .instrument(info_span!("letsencrypt_refresh_task"))
             .await
         {
@@ -177,7 +193,10 @@ pub async fn run_utility_thread(
     }
 }
 
-async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
+async fn do_letsencrypt_refresh(
+    pool: &PgPool,
+    proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
+) -> Result<(), anyhow::Error> {
     debug!("Performing letsencrypt cert validity check");
     let Some(certs) = Certificates::get(pool).await? else {
         warn!("Missing certificates configuration, aborting letsencrypt expiry check");
@@ -185,22 +204,33 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
     };
 
     if certs.proxy_http_cert_source != ProxyCertSource::LetsEncrypt {
-        info!("Edge certificate source is {:?}, skipping letsencrypt expiry check", certs.proxy_http_cert_source);
+        info!(
+            "Edge certificate source is {:?}, skipping letsencrypt expiry check",
+            certs.proxy_http_cert_source
+        );
         return Ok(());
     }
 
     let Some(expiry) = certs.proxy_http_cert_expiry else {
-        info!("Edge certificate has no expiry date, skipping letsencrypt refresh certificate refresh");
+        info!(
+            "Edge certificate has no expiry date, skipping letsencrypt refresh certificate refresh"
+        );
         return Ok(());
     };
 
     let expire_in = expiry - Utc::now().naive_utc();
     if expire_in > LETSENCRYPT_EXPIRY_THRESHOLD {
-        info!("Letsencrypt certificates expire in {} days, skipping refresh", expire_in.num_days());
+        info!(
+            "Letsencrypt certificate expires in {} days, skipping refresh",
+            expire_in.num_days()
+        );
         return Ok(());
     }
 
-    info!("Letsencrypt certificates expire in {} days, performing certificate refresh", expire_in.num_days());
+    info!(
+        "Letsencrypt certificates expire in {} days, performing certificate refresh",
+        expire_in.num_days()
+    );
     let settings = Settings::get_current_settings();
     let domain = settings.proxy_hostname()?;
     let account_credentials_json = certs.acme_account_credentials.clone().unwrap_or_default();
@@ -211,7 +241,7 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
     let Some(proxy) = proxies.into_iter().next() else {
         warn!("No Edge found in database, aborting letsencrypt expiry check");
         return Ok(());
-     };
+    };
 
     let proxy_host = proxy.address.clone();
     let proxy_port = proxy.port as u16;
@@ -220,8 +250,7 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
          Edge={proxy_host}:{proxy_port}"
     );
 
-    let (progress_tx, mut progress_rx) =
-        unbounded_channel::<AcmeStep>();
+    let (progress_tx, mut progress_rx) = unbounded_channel::<AcmeStep>();
     let (result_tx, result_rx) =
         tokio::sync::oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
 
@@ -241,23 +270,16 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
         let _ = result_tx.send(result);
     });
 
-    let mut current_step: &'static str = "Connecting";
-    let deadline = tokio::time::Instant::now()
-        + tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS);
+    let deadline =
+        tokio::time::Instant::now() + tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS);
 
     // Drain progress steps until the ACME task finishes (channel closed) or times out.
     loop {
         tokio::select! {
             maybe_step = progress_rx.recv() => {
-                match maybe_step {
-                    Some(step) => {
-                        current_step = acme_step_name(step);
-                        // yield Ok(acme_event(current_step));
-                    }
-                    None => {
-                        // progress_tx dropped - ACME task finished; stop polling progress.
-                        break;
-                    }
+                if maybe_step.is_none() {
+                    // progress_tx dropped - ACME task finished; stop polling progress.
+                    break;
                 }
             }
 
@@ -281,32 +303,24 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
                     updated_certs.proxy_http_cert_pem = Some(cert_pem.clone());
                     updated_certs.proxy_http_cert_key_pem = Some(key_pem.clone());
                     updated_certs.proxy_http_cert_expiry = acme_cert_expiry;
-                    updated_certs.acme_account_credentials =
-                        Some(new_account_credentials_json);
-                    updated_certs.proxy_http_cert_source =
-                        ProxyCertSource::LetsEncrypt;
+                    updated_certs.acme_account_credentials = Some(new_account_credentials_json);
+                    updated_certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
                     if let Err(e) = updated_certs.save(pool).await {
-                        error!( "Failed to save certificate: {e}");
+                        error!("Failed to save certificate: {e}");
                         return Ok(());
                     }
                 }
                 Err(e) => {
-                    error!( "Failed to reload certificates for saving: {e}");
+                    error!("Failed to reload certificates for saving: {e}");
                     return Ok(());
                 }
             }
 
-            // TODO(jck): broadcast new certs
-            // // Post-wizard: broadcast certs to the proxy via bidi channel.
-            // if let Some(ref tx) = proxy_control_tx {
-            //     let msg = ProxyControlMessage::BroadcastHttpsCerts {
-            //         cert_pem,
-            //         key_pem,
-            //     };
-            //     if let Err(e) = tx.send(msg).await {
-            //         error!("Failed to broadcast HttpsCerts to Edge: {e}");
-            //     }
-            // }
+            // Broadcast certs to the proxy via bidi channel
+            let msg = ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem };
+            if let Err(e) = proxy_control_tx.send(msg).await {
+                error!("Failed to broadcast HttpsCerts to Edge: {e}");
+            }
 
             info!("ACME certificate issued and saved for domain: {domain}");
         }
@@ -316,7 +330,7 @@ async fn do_letsencrypt_refresh(pool: &PgPool) -> Result<(), anyhow::Error> {
             return Ok(());
         }
         Err(_) => {
-            error!( "ACME task terminated unexpectedly.");
+            error!("ACME task terminated unexpectedly.");
             return Ok(());
         }
     }

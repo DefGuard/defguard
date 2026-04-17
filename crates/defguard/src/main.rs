@@ -284,9 +284,9 @@ async fn main() -> Result<(), anyhow::Error> {
             settings.stats_purge_threshold()
         ), if settings.enable_stats_purge =>
             error!("Periodic stats purge task returned early: {res:?}"),
-        res = run_periodic_license_check(&pool, proxy_control_tx) =>
+        res = run_periodic_license_check(&pool, proxy_control_tx.clone()) =>
             error!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, gateway_tx.clone()) =>
+        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx) =>
             error!("Utility thread returned early: {res:?}"),
         res = run_event_router(
             RouterReceiverSet::new(
