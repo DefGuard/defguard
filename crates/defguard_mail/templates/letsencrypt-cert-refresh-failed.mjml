@@ -7,7 +7,7 @@
 <mj-section>  <mj-column mj-class="s-3xl">
     <mj-text>
       <p>
-        {content}
+        {{ content }}
       </p>
     </mj-text>
   </mj-column>
