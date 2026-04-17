@@ -778,10 +778,12 @@ impl Settings {
         let url = self
             .proxy_public_url()
             .map_err(|_err| SettingsUrlError::UnparsableEdgeUrl(self.public_proxy_url.clone()))?;
-        Ok(url
+        let hostname = url
             .host_str()
             .ok_or_else(|| SettingsUrlError::EdgeUrlMissingHostname(self.public_proxy_url.clone()))?
-            .to_string())
+            .to_string();
+
+        Ok(hostname)
     }
 
     #[allow(deprecated)]
