@@ -268,7 +268,7 @@ jobs:
 
   cleanup:
     needs: test
-    if: always()
+    if: needs.test.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Delete test archive artifact
