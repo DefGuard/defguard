@@ -67,6 +67,11 @@ use crate::{
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
+/// Maximum lifetime of a one-time setup session token.
+/// The setup handshake must complete within this window; tokens that outlive
+/// it are useless and limiting the expiry reduces the damage window if the
+/// token is captured from the plaintext setup channel.
+const SETUP_TOKEN_EXPIRY_SECS: u64 = 300;
 
 /// Guard that aborts a tokio task when dropped
 struct TaskGuard(tokio::task::JoinHandle<()>);
@@ -358,7 +363,7 @@ pub async fn setup_proxy_tls_stream(
             defguard_common::auth::claims::ClaimsType::Gateway,
             url.to_string(),
             TOKEN_CLIENT_ID.to_string(),
-            u32::MAX.into(),
+            SETUP_TOKEN_EXPIRY_SECS,
         )
         .to_jwt()
         {
@@ -802,7 +807,7 @@ pub async fn setup_gateway_tls_stream(
             defguard_common::auth::claims::ClaimsType::Gateway,
             url.to_string(),
             TOKEN_CLIENT_ID.to_string(),
-            u32::MAX.into(),
+             SETUP_TOKEN_EXPIRY_SECS,
         )
         .to_jwt()
         {
