@@ -151,12 +151,12 @@ fn root_store_from_ca(ca_cert_der: &[u8]) -> Result<RootCertStore, CertConfigErr
 /// Both certificate and key must be in PKCS#8 / SEC1 PEM format as produced by
 /// `defguard_certs`.
 pub fn server_tls_config(
-    component_cert_pem: &[u8],
-    component_key_pem: &[u8],
-    ca_cert_pem: &[u8],
+    component_cert_pem: impl AsRef<[u8]>,
+    component_key_pem: impl AsRef<[u8]>,
+    ca_cert_pem: impl AsRef<[u8]>,
 ) -> Result<ServerTlsConfig, CertConfigError> {
-    let identity = Identity::from_pem(component_cert_pem, component_key_pem);
-    let ca = Certificate::from_pem(ca_cert_pem);
+    let identity = Identity::from_pem(component_cert_pem.as_ref(), component_key_pem.as_ref());
+    let ca = Certificate::from_pem(ca_cert_pem.as_ref());
     Ok(ServerTlsConfig::new()
         .identity(identity)
         .client_ca_root(ca)
