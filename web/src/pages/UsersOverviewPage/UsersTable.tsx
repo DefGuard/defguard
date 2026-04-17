@@ -715,18 +715,20 @@ export const UsersTable = () => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {Object.keys(selected).length > 0 && isPresent(groups) && (
+        {table.getFilteredSelectedRowModel().rows.length > 0 && isPresent(groups) && (
           <Button
             variant="outlined"
             text={m.users_bulk_assign_to_groups()}
             iconLeft="add-group"
             testId="bulk-assign"
             onClick={() => {
-              const userIds = Object.keys(selected).map(Number);
+              const selectedUsers = table
+                .getFilteredSelectedRowModel()
+                .rows.map((row) => row.original.id);
               openModal(ModalName.AssignGroupsToUsers, {
                 groups,
-                users: userIds,
-                onSuccess: () => setSelected({}),
+                users: selectedUsers,
+                onSuccess: () => table.resetRowSelection(),
               });
             }}
           />
@@ -738,18 +740,16 @@ export const UsersTable = () => {
         />
         <Button {...addButtonProps} />
       </TableTop>
-      {rows.length === 0 && search.length > 0 && (
+      <TableBody
+        table={table}
+        renderExpandedRow={renderExpanded}
+        expandedHeaders={expandedHeader}
+      />
+      {rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
         <EmptyStateFlexible
           icon="search"
           title={m.search_empty_common_title()}
           subtitle={m.search_empty_common_subtitle()}
-        />
-      )}
-      {rows.length > 0 && (
-        <TableBody
-          table={table}
-          renderExpandedRow={renderExpanded}
-          expandedHeaders={expandedHeader}
         />
       )}
     </>
