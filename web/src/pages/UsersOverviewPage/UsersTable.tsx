@@ -741,18 +741,16 @@ export const UsersTable = () => {
         />
         <Button {...addButtonProps} />
       </TableTop>
-      {rows.length === 0 && search.length > 0 && (
+      <TableBody
+        table={table}
+        renderExpandedRow={renderExpanded}
+        expandedHeaders={expandedHeader}
+      />
+      {rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
         <EmptyStateFlexible
           icon="search"
           title={m.search_empty_common_title()}
           subtitle={m.search_empty_common_subtitle()}
-        />
-      )}
-      {rows.length > 0 && (
-        <TableBody
-          table={table}
-          renderExpandedRow={renderExpanded}
-          expandedHeaders={expandedHeader}
         />
       )}
     </>
