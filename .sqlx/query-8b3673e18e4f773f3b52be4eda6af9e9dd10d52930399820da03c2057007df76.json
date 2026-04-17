@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE wizard SET active_wizard = $1, completed = $2 WHERE is_singleton",
+  "query": "UPDATE wizard SET active_wizard = $1, completed = $2, last_version_migrated_to = $3 WHERE is_singleton",
   "describe": {
     "columns": [],
     "parameters": {
@@ -18,10 +18,11 @@
             }
           }
         },
-        "Bool"
+        "Bool",
+        "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "311137f954e7d0919262bcd8eac047577055879335c91c1935d2cd2f0565a086"
+  "hash": "8b3673e18e4f773f3b52be4eda6af9e9dd10d52930399820da03c2057007df76"
 }
