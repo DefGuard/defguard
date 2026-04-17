@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
 import { m } from '../../../../../paraglide/messages';
+import { ProviderUsersSyncWarning } from '../../../../../shared/components/ProviderUsersSyncWarning/ProviderUsersSyncWarning';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -61,6 +62,8 @@ export const OktaProviderForm = ({ onSubmit }: ProviderFormProps) => {
     >
       <form.AppForm>
         <ProviderSyncToggle>
+          <ProviderUsersSyncWarning provider="Okta" />
+          <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="directory_sync_target">
               {(field) => (

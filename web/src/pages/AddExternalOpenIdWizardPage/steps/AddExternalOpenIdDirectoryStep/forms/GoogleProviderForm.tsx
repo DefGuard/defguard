@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react';
 import type z from 'zod';
 import { m } from '../../../../../paraglide/messages';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
+import { ProviderUsersSyncWarning } from '../../../../../shared/components/ProviderUsersSyncWarning/ProviderUsersSyncWarning';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
@@ -106,6 +107,8 @@ export const GoogleProviderForm = ({ onSubmit }: ProviderFormProps) => {
     >
       <form.AppForm>
         <ProviderSyncToggle>
+          <ProviderUsersSyncWarning provider="Google" />
+          <SizedBox height={ThemeSpacing.Xl} />
           <EvenSplit>
             <form.AppField name="directory_sync_target">
               {(field) => (

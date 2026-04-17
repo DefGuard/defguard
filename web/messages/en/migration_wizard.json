@@ -48,6 +48,7 @@
   "migration_wizard_confirmation_prepare_network_title": "Prepare your network",
   "migration_wizard_confirmation_prepare_network_subtitle": "Please prepare all required network and firewall changes before starting the migration. Once ready, we'll begin adopting the upgraded gateway components for each VPN location.",
   "migration_wizard_confirmation_checkbox_label": "I have changed all my gateways firewall rules and network setup",
+  "migration_wizard_confirmation_finish_control": "Go to Defguard",
   "migration_wizard_finish_success_snackbar": "Migration finished",
   "migration_wizard_finish_error_snackbar": "Finishing migration failed",
   "migration_wizard_ca_validity_one_year": "1 year",
