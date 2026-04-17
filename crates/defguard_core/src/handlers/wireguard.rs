@@ -36,7 +36,7 @@ use crate::{
     },
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayEvent,
-    handlers::gateway::GatewayInfo,
+    handlers::{gateway::GatewayInfo, network_devices::DeviceWireGuardConfig},
     location_management::{
         allowed_peers::get_location_allowed_peers, handle_imported_devices, handle_mapped_devices,
         sync_location_allowed_devices,
@@ -1354,4 +1354,49 @@ pub(crate) async fn download_config(
             device.name, device.id
         )))
     }
+}
+
+/// For a given user device, retrieve WireGuard configurations for all allowed locations.
+///
+/// GET /device/{device_id}/config
+pub(crate) async fn user_device_configs(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Path(device_id): Path<Id>,
+) -> ApiResult {
+    debug!("Creating WireGuard configs for user device {device_id}.");
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.only_client_activation && !session.is_admin {
+        warn!(
+            "User {} tried to download device config, but manual device management is disabled",
+            session.user.username
+        );
+        return Err(WebError::Forbidden("Manual device management is disabled"));
+    }
+
+    let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    let locations = WireguardNetwork::find_user_device_networks(&appstate.pool, device_id).await?;
+
+    let mut result = Vec::new();
+    for location in locations {
+        let location_device = WireguardNetworkDevice::find(&appstate.pool, device_id, location.id)
+            .await?
+            .ok_or(WebError::ObjectNotFound(format!(
+                "No IP address found for device: {}({})",
+                device.name, device.id
+            )))?;
+        debug!(
+            "Created WireGuard config for user device {device_id} in location {}.",
+            location.name
+        );
+        let config = Device::create_config(&location, &location_device);
+        result.push(DeviceWireGuardConfig {
+            network_id: location.id,
+            network_name: location.name,
+            config,
+        });
+    }
+
+    Ok(ApiResponse::json(result, StatusCode::OK))
 }
