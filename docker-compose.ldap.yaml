@@ -32,13 +32,13 @@ services:
       - NET_ADMIN
 
   db:
-    image: postgres:18-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: defguard
       POSTGRES_USER: defguard
       POSTGRES_PASSWORD: defguard
     volumes:
-      - ./.volumes/db:/var/lib/postgresql
+      - ./.volumes/db:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 

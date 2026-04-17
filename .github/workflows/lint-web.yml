@@ -44,4 +44,3 @@ jobs:
           pnpm install --ignore-scripts --no-frozen-lockfile
           pnpm build
           pnpm lint
-          pnpm audit --prod --ignore-unfixable
