@@ -525,6 +525,11 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
+        if let Err(e) = csr.verify_hostname(hostname) {
+            yield Ok(flow.error(&format!("CSR hostname validation failed: {e}")));
+            return;
+        }
+
         debug!("Received certificate signing request from Edge for hostname: {hostname}");
 
         // Step 5: Sign certificate
@@ -982,6 +987,11 @@ pub async fn setup_gateway_tls_stream(
                 return;
             }
         };
+
+        if let Err(e) = csr.verify_hostname(hostname) {
+            yield Ok(flow.error(&format!("CSR hostname validation failed: {e}")));
+            return;
+        }
 
         debug!("Received certificate signing request from Gateway for hostname: {hostname}");
 

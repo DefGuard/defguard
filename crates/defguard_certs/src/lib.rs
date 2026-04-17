@@ -26,6 +26,8 @@ pub enum CertificateError {
     ParsingError(String),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error("CSR hostname mismatch: {0}")]
+    HostnameMismatch(String),
 }
 
 pub struct CertificateAuthority<'a> {
@@ -296,6 +298,41 @@ impl Csr<'_> {
         Ok(params)
     }
 
+    /// Verify that the CSR's SAN list contains exactly `expected_hostname` and
+    /// nothing else. The hostname may be a DNS name or an IP address literal.
+    ///
+    /// This is used during component setup to ensure the component has not
+    /// substituted a different hostname in the CSR it returns to Core.
+    pub fn verify_hostname(&self, expected_hostname: &str) -> Result<(), CertificateError> {
+        let params = self.params()?;
+        let sans = &params.params.subject_alt_names;
+
+        if sans.is_empty() {
+            return Err(CertificateError::HostnameMismatch(format!(
+                "CSR contains no SANs; expected {expected_hostname:?}"
+            )));
+        }
+
+        let expected_ip: Option<std::net::IpAddr> = expected_hostname.parse().ok();
+
+        for san in sans {
+            let matches = match san {
+                rcgen::SanType::IpAddress(ip) => expected_ip.is_some_and(|e| &e == ip),
+                rcgen::SanType::DnsName(name) => {
+                    expected_ip.is_none() && name.as_str() == expected_hostname
+                }
+                _ => false,
+            };
+            if !matches {
+                return Err(CertificateError::HostnameMismatch(format!(
+                    "CSR SAN does not match expected hostname {expected_hostname:?}"
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
     #[must_use]
     pub fn to_der(&self) -> &[u8] {
         self.csr.as_ref()
@@ -521,5 +558,53 @@ mod tests {
         // Parse the PEM back to DER and ensure it matches the original
         let parsed = parse_pem_certificate(&pem).unwrap();
         assert_eq!(parsed, ca.cert_der);
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_dns_ok() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(&key, &["proxy.example.com".to_string()], vec![]).unwrap();
+        assert!(
+            csr.verify_hostname("proxy.example.com").is_ok(),
+            "matching DNS SAN should pass"
+        );
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_ip_ok() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(&key, &["10.0.0.1".to_string()], vec![]).unwrap();
+        assert!(
+            csr.verify_hostname("10.0.0.1").is_ok(),
+            "matching IP SAN should pass"
+        );
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_mismatch() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(&key, &["evil.attacker.com".to_string()], vec![]).unwrap();
+        assert!(
+            csr.verify_hostname("proxy.example.com").is_err(),
+            "mismatched DNS SAN should fail"
+        );
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_extra_san_rejected() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(
+            &key,
+            &[
+                "proxy.example.com".to_string(),
+                "evil.extra.com".to_string(),
+            ],
+            vec![],
+        )
+        .unwrap();
+        assert!(
+            csr.verify_hostname("proxy.example.com").is_err(),
+            "CSR with extra SANs beyond the expected hostname should fail"
+        );
     }
 }
