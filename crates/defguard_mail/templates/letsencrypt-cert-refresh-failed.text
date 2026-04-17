@@ -1,4 +1,2 @@
 {{ title }}
-{% if subtitle %}{{ subtitle }}{% endif %}
-
-TODO
+{% if content %}{{ content }}{% endif %}

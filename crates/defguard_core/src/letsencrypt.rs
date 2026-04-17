@@ -22,7 +22,10 @@ use tonic::{
 };
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
+#[cfg(not(test))]
 pub const ACME_TIMEOUT_SECS: u64 = 300;
+#[cfg(test)]
+pub const ACME_TIMEOUT_SECS: u64 = 1;
 const LETSENCRYPT_EXPIRY_THRESHOLD: TimeDelta = TimeDelta::days(14);
 
 #[derive(Debug, Error)]
@@ -335,5 +338,458 @@ pub(crate) async fn call_proxy_trigger_acme(
                 ));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        net::{IpAddr, Ipv4Addr, SocketAddr},
+        pin::Pin,
+        sync::Once,
+        sync::Arc,
+        time::Duration,
+    };
+
+    use defguard_certs::{CertificateAuthority, Csr, DnType, PemLabel, generate_key_pair};
+    use defguard_common::{
+        db::{
+            models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
+            setup_pool,
+        },
+        secret::SecretStringWrapper,
+        types::proxy::ProxyControlMessage,
+    };
+    use defguard_proto::proxy::{
+        AcmeCertificate, AcmeIssueEvent, AcmeLogs, AcmeProgress, AcmeStep, proxy_server,
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+    use tokio::{
+        net::TcpListener,
+        sync::{Mutex, mpsc},
+        task::JoinHandle,
+        time::{sleep, timeout},
+    };
+    use std::str::FromStr;
+    use tokio_stream::{self as stream};
+    use tonic::{
+        Request, Response, Status, Streaming,
+        transport::{Identity, Server, ServerTlsConfig},
+    };
+
+    use super::{ACME_TIMEOUT_SECS, LetsencryptError, do_letsencrypt_refresh};
+
+    const TEST_ACCOUNT_JSON: &str = r#"{"account_url":"https://acme.example/account/1"}"#;
+
+    enum MockAcmeBehavior {
+        Success {
+            cert_pem: String,
+            key_pem: String,
+            account_credentials_json: String,
+            logs: Vec<String>,
+        },
+        RpcError(Status),
+        Hang,
+    }
+
+    struct MockProxyService {
+        behavior: Arc<Mutex<MockAcmeBehavior>>,
+    }
+
+    #[tonic::async_trait]
+    impl proxy_server::Proxy for MockProxyService {
+        type BidiStream =
+            Pin<Box<dyn tokio_stream::Stream<Item = Result<defguard_proto::proxy::CoreRequest, Status>> + Send>>;
+        type TriggerAcmeStream =
+            Pin<Box<dyn tokio_stream::Stream<Item = Result<AcmeIssueEvent, Status>> + Send>>;
+
+        async fn bidi(
+            &self,
+            _request: Request<Streaming<defguard_proto::proxy::CoreResponse>>,
+        ) -> Result<Response<Self::BidiStream>, Status> {
+            Ok(Response::new(Box::pin(stream::empty())))
+        }
+
+        async fn purge(&self, _request: Request<()>) -> Result<Response<()>, Status> {
+            Ok(Response::new(()))
+        }
+
+        async fn trigger_acme(
+            &self,
+            _request: Request<defguard_proto::proxy::AcmeChallenge>,
+        ) -> Result<Response<Self::TriggerAcmeStream>, Status> {
+            let behavior = self.behavior.lock().await;
+            match &*behavior {
+                MockAcmeBehavior::Success {
+                    cert_pem,
+                    key_pem,
+                    account_credentials_json,
+                    logs,
+                } => {
+                    let mut events = vec![Ok(AcmeIssueEvent {
+                        payload: Some(defguard_proto::proxy::acme_issue_event::Payload::Progress(
+                            AcmeProgress {
+                                step: AcmeStep::CheckingDomain as i32,
+                            },
+                        )),
+                    })];
+                    if !logs.is_empty() {
+                        events.push(Ok(AcmeIssueEvent {
+                            payload: Some(defguard_proto::proxy::acme_issue_event::Payload::Logs(
+                                AcmeLogs {
+                                    lines: logs.clone(),
+                                },
+                            )),
+                        }));
+                    }
+                    events.push(Ok(AcmeIssueEvent {
+                        payload: Some(defguard_proto::proxy::acme_issue_event::Payload::Certificate(
+                            AcmeCertificate {
+                                cert_pem: cert_pem.clone(),
+                                key_pem: key_pem.clone(),
+                                account_credentials_json: account_credentials_json.clone(),
+                            },
+                        )),
+                    }));
+                    Ok(Response::new(Box::pin(stream::iter(events))))
+                }
+                MockAcmeBehavior::RpcError(status) => Err(status.clone()),
+                MockAcmeBehavior::Hang => {
+                    Ok(Response::new(Box::pin(stream::pending::<Result<AcmeIssueEvent, Status>>())))
+                }
+            }
+        }
+    }
+
+    struct MockAcmeServer {
+        port: u16,
+        task: JoinHandle<()>,
+    }
+
+    impl MockAcmeServer {
+        async fn start(
+            ca: &CertificateAuthority<'_>,
+            common_name: &str,
+            behavior: MockAcmeBehavior,
+        ) -> Self {
+            init_rustls_crypto_provider();
+            let identity = make_server_identity(ca, common_name);
+            let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0))
+                .await
+                .expect("failed to bind mock ACME server");
+            let port = listener.local_addr().expect("missing local addr").port();
+            let service = MockProxyService {
+                behavior: Arc::new(Mutex::new(behavior)),
+            };
+            let incoming = tokio_stream::wrappers::TcpListenerStream::new(listener);
+            let task = tokio::spawn(async move {
+                Server::builder()
+                    .tls_config(ServerTlsConfig::new().identity(identity))
+                    .expect("failed to configure TLS for mock ACME server")
+                    .add_service(proxy_server::ProxyServer::new(service))
+                    .serve_with_incoming(incoming)
+                    .await
+                    .expect("mock ACME server failed");
+            });
+
+            tokio::task::yield_now().await;
+
+            Self { port, task }
+        }
+    }
+
+    impl Drop for MockAcmeServer {
+        fn drop(&mut self) {
+            self.task.abort();
+        }
+    }
+
+    fn make_server_identity(ca: &CertificateAuthority<'_>, common_name: &str) -> Identity {
+        let key_pair = generate_key_pair().expect("failed to generate key pair");
+        let san = vec![common_name.to_string()];
+        let dn = vec![(DnType::CommonName, common_name)];
+        let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
+        let cert = ca.sign_csr(&csr).expect("failed to sign server cert");
+        let cert_pem =
+            defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
+        let key_pem = defguard_certs::der_to_pem(
+            key_pair.serialize_der().as_slice(),
+            PemLabel::PrivateKey,
+        )
+        .expect("key PEM");
+        Identity::from_pem(cert_pem, key_pem)
+    }
+
+    fn init_rustls_crypto_provider() {
+        static INIT: Once = Once::new();
+        INIT.call_once(|| {
+            rustls::crypto::ring::default_provider()
+                .install_default()
+                .ok();
+        });
+    }
+
+    async fn seed_settings(pool: &sqlx::PgPool, hostname: &str) {
+        defguard_common::db::models::settings::initialize_current_settings(pool)
+            .await
+            .expect("failed to initialize settings");
+        let mut settings = Settings::get_current_settings();
+        settings.public_proxy_url = format!("https://{hostname}");
+        settings.smtp_server = Some("smtp.example.com".into());
+        settings.smtp_port = Some(587);
+        settings.smtp_sender = Some("noreply@example.com".into());
+        settings.smtp_user = Some(String::new());
+        settings.smtp_password = Some(SecretStringWrapper::from_str("").unwrap());
+        defguard_common::db::models::settings::set_settings(Some(settings));
+    }
+
+    async fn seed_admin(pool: &sqlx::PgPool) {
+        let _ = User::new("admin", None, "Admin", "User", "admin@example.com", None)
+            .save(pool)
+            .await
+            .expect("failed to save admin user");
+    }
+
+    fn make_ca() -> CertificateAuthority<'static> {
+        CertificateAuthority::new("Test CA", "test@example.com", 365)
+            .expect("failed to create CA")
+    }
+
+    async fn seed_ca(pool: &sqlx::PgPool, ca: &CertificateAuthority<'_>) {
+        Certificates {
+            ca_cert_der: Some(ca.cert_der().to_vec()),
+            ca_key_der: Some(ca.key_pair_der().to_vec()),
+            ca_expiry: Some(ca.expiry().expect("missing CA expiry")),
+            ..Default::default()
+        }
+        .save(pool)
+        .await
+        .expect("failed to save CA certs");
+    }
+
+    async fn seed_letsencrypt_cert(
+        pool: &sqlx::PgPool,
+        ca: &CertificateAuthority<'_>,
+        common_name: &str,
+        valid_for_days: i64,
+    ) {
+        let key_pair = generate_key_pair().expect("failed to generate key pair");
+        let san = vec![common_name.to_string()];
+        let dn = vec![(DnType::CommonName, common_name)];
+        let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
+        let cert = ca
+            .sign_csr_with_validity(&csr, valid_for_days)
+            .expect("failed to sign cert");
+        let cert_pem =
+            defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
+        let key_pem = defguard_certs::der_to_pem(
+            key_pair.serialize_der().as_slice(),
+            PemLabel::PrivateKey,
+        )
+        .expect("key PEM");
+        let expiry = super::parse_cert_expiry(&cert_pem).expect("expected cert expiry");
+
+        let mut certs = Certificates::get_or_default(pool)
+            .await
+            .expect("failed to load certificates");
+        certs.proxy_http_cert_source = ProxyCertSource::LetsEncrypt;
+        certs.proxy_http_cert_pem = Some(cert_pem);
+        certs.proxy_http_cert_key_pem = Some(key_pem);
+        certs.proxy_http_cert_expiry = Some(expiry);
+        certs.acme_account_credentials = Some(TEST_ACCOUNT_JSON.to_string());
+        certs.save(pool).await.expect("failed to save LE certs");
+    }
+
+    async fn create_proxy(pool: &sqlx::PgPool, address: &str, port: u16) {
+        let mut proxy = Proxy::new("test-proxy", address, i32::from(port), "tester");
+        proxy.enabled = true;
+        proxy.save(pool).await.expect("failed to save proxy");
+    }
+
+    async fn drain_broadcasts(
+        rx: &mut mpsc::Receiver<ProxyControlMessage>,
+    ) -> Vec<(String, String)> {
+        sleep(Duration::from_millis(50)).await;
+        let mut broadcasts = Vec::new();
+        while let Ok(message) = rx.try_recv() {
+            if let ProxyControlMessage::BroadcastHttpsCerts { cert_pem, key_pem } = message {
+                broadcasts.push((cert_pem, key_pem));
+            }
+        }
+        broadcasts
+    }
+
+    #[sqlx::test]
+    async fn letsencrypt_refresh_skips_when_certificate_not_due(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let ca = make_ca();
+        seed_settings(&pool, "refresh.example.com").await;
+        seed_ca(&pool, &ca).await;
+        seed_letsencrypt_cert(&pool, &ca, "refresh.example.com", 89).await;
+
+        let certs_before = Certificates::get_or_default(&pool)
+            .await
+            .expect("failed to load certificates");
+
+        let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
+        let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
+
+        assert!(result.is_ok(), "expected skip to succeed, got {result:?}");
+
+        let certs_after = Certificates::get_or_default(&pool)
+            .await
+            .expect("failed to reload certificates");
+        assert_eq!(certs_after.proxy_http_cert_pem, certs_before.proxy_http_cert_pem);
+        assert_eq!(certs_after.proxy_http_cert_key_pem, certs_before.proxy_http_cert_key_pem);
+        assert!(drain_broadcasts(&mut proxy_control_rx).await.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn letsencrypt_refresh_returns_no_proxy_found_when_due(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let ca = make_ca();
+        seed_settings(&pool, "refresh.example.com").await;
+        seed_ca(&pool, &ca).await;
+        seed_letsencrypt_cert(&pool, &ca, "refresh.example.com", 1).await;
+
+        let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
+        let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
+
+        assert!(matches!(result, Err(LetsencryptError::NoProxyFound)));
+    }
+
+    #[sqlx::test]
+    async fn letsencrypt_refresh_success_persists_certificate_and_broadcasts(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let ca = make_ca();
+        seed_settings(&pool, "localhost").await;
+        seed_ca(&pool, &ca).await;
+        seed_letsencrypt_cert(&pool, &ca, "localhost", 1).await;
+
+        let (new_cert_pem, new_key_pem) = {
+            let key_pair = generate_key_pair().expect("failed to generate key pair");
+            let san = vec!["localhost".to_string()];
+            let dn = vec![(DnType::CommonName, "localhost")];
+            let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
+            let cert = ca.sign_csr(&csr).expect("failed to sign cert");
+            (
+                defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM"),
+                defguard_certs::der_to_pem(
+                    key_pair.serialize_der().as_slice(),
+                    PemLabel::PrivateKey,
+                )
+                .expect("key PEM"),
+            )
+        };
+
+        let mock_server = MockAcmeServer::start(
+            &ca,
+            "localhost",
+            MockAcmeBehavior::Success {
+                cert_pem: new_cert_pem.clone(),
+                key_pem: new_key_pem.clone(),
+                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#.to_string(),
+                logs: vec!["proxy log line".to_string()],
+            },
+        )
+        .await;
+        create_proxy(&pool, "localhost", mock_server.port).await;
+
+        let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
+        let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
+
+        assert!(result.is_ok(), "expected successful refresh, got {result:?}");
+
+        let certs = Certificates::get_or_default(&pool)
+            .await
+            .expect("failed to reload certificates");
+        assert_eq!(certs.proxy_http_cert_pem.as_deref(), Some(new_cert_pem.as_str()));
+        assert_eq!(
+            certs.proxy_http_cert_key_pem.as_deref(),
+            Some(new_key_pem.as_str())
+        );
+        assert_eq!(
+            certs.acme_account_credentials.as_deref(),
+            Some(r#"{"account_url":"https://acme.example/account/2"}"#)
+        );
+        assert_eq!(certs.acme_domain.as_deref(), Some("localhost"));
+        assert_eq!(certs.proxy_http_cert_source, ProxyCertSource::LetsEncrypt);
+        assert!(certs.proxy_http_cert_expiry.is_some());
+
+        let broadcasts = drain_broadcasts(&mut proxy_control_rx).await;
+        assert_eq!(broadcasts.len(), 1);
+        assert_eq!(broadcasts[0].0, new_cert_pem);
+        assert_eq!(broadcasts[0].1, new_key_pem);
+    }
+
+    #[sqlx::test]
+    async fn letsencrypt_refresh_returns_acme_issuance_failed_on_rpc_error(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let ca = make_ca();
+        seed_settings(&pool, "localhost").await;
+        seed_ca(&pool, &ca).await;
+        seed_admin(&pool).await;
+        seed_letsencrypt_cert(&pool, &ca, "localhost", 1).await;
+
+        let mock_server = MockAcmeServer::start(
+            &ca,
+            "localhost",
+            MockAcmeBehavior::RpcError(Status::unavailable("rpc unavailable")),
+        )
+        .await;
+        create_proxy(&pool, "localhost", mock_server.port).await;
+
+        let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
+        let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
+
+        assert!(matches!(
+            result,
+            Err(LetsencryptError::AcmeIssuanceFailed(message)) if message.contains("TriggerAcme RPC failed")
+        ));
+    }
+
+    #[sqlx::test]
+    async fn letsencrypt_refresh_returns_acme_timed_out_when_stream_hangs(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        let ca = make_ca();
+        seed_settings(&pool, "localhost").await;
+        seed_ca(&pool, &ca).await;
+        seed_admin(&pool).await;
+        seed_letsencrypt_cert(&pool, &ca, "localhost", 1).await;
+
+        let mock_server =
+            MockAcmeServer::start(&ca, "localhost", MockAcmeBehavior::Hang).await;
+        create_proxy(&pool, "localhost", mock_server.port).await;
+
+        let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
+        let result = timeout(
+            Duration::from_secs(ACME_TIMEOUT_SECS + 5),
+            do_letsencrypt_refresh(&pool, proxy_control_tx),
+        )
+        .await
+        .expect("refresh should finish before outer timeout");
+
+        assert!(matches!(
+            result,
+            Err(LetsencryptError::AcmeTimedOut { timeout_secs }) if timeout_secs == ACME_TIMEOUT_SECS
+        ));
+
+        drop(mock_server);
+        sleep(Duration::from_millis(50)).await;
     }
 }
