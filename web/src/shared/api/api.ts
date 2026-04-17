@@ -413,7 +413,7 @@ const api = {
     getDevices: () => client.get<Device[]>('/device'),
     getDeviceConfigs: async (device: Device): Promise<AddDeviceResponse> => {
       const { data: configs } = await client.get<AddDeviceResponseConfig[]>(
-        `/device/network/${device.id}/config`,
+        `/device/${device.id}/config`,
       );
       return {
         configs,
