@@ -11,7 +11,7 @@ use crate::tests::common::{
 };
 
 /// A minimal but syntactically valid PEM certificate block (content is
-/// arbitrary bytes — the handler stores it verbatim without parsing).
+/// arbitrary bytes - the handler stores it verbatim without parsing).
 const TEST_CERT_PEM: &str =
     "-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJ\n-----END CERTIFICATE-----\n";
 const TEST_KEY_PEM: &str =
@@ -154,7 +154,7 @@ async fn test_acme_certificate_overwrites_existing(_: PgPoolOptions, options: Pg
 /// in `handler_tx_map`.  After processing `AcmeCertificate`, it broadcasts
 /// `HttpsCerts` to ALL registered handlers, which forward it to their
 /// respective proxy streams.  This test verifies that every connected mock
-/// proxy receives the `HttpsCerts` response — including proxies other than the
+/// proxy receives the `HttpsCerts` response - including proxies other than the
 /// one that sent the certificate.
 #[sqlx::test]
 async fn test_acme_certificate_broadcasts_to_connected_proxy(
@@ -182,7 +182,7 @@ async fn test_acme_certificate_broadcasts_to_connected_proxy(
         TEST_ACCOUNT_JSON,
     ));
 
-    // The handler must broadcast HttpsCerts to ALL registered proxies — both
+    // The handler must broadcast HttpsCerts to ALL registered proxies - both
     // the sender (proxy A) and the bystander (proxy B).
     for (label, mock) in [
         ("proxy A (sender)", &mut mock_a),

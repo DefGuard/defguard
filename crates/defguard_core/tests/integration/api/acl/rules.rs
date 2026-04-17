@@ -572,7 +572,7 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
 
-    // rule — empty address and port strings are parse-safe; use any_* flags so validation passes
+    // rule - empty address and port strings are parse-safe; use any_* flags so validation passes
     let mut rule = make_rule();
     rule.addresses = String::new();
     rule.ports = String::new();

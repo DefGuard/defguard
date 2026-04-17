@@ -186,7 +186,7 @@ pub async fn clear_unused_enrollment_tokens<'e, E: PgExecutor<'e>>(
 /// Sends an enrollment invitation to a newly-created LDAP user when both
 /// `ldap_remote_enrollment_enabled` and `ldap_remote_enrollment_send_invite` settings are enabled.
 ///
-/// Errors are logged and swallowed — this must not disrupt the caller's flow.
+/// Errors are logged and swallowed - this must not disrupt the caller's flow.
 pub async fn try_send_ldap_enrollment_invite(user: &mut User<Id>, conn: &mut PgConnection) {
     let settings = Settings::get_current_settings();
     if !settings.ldap_remote_enrollment_enabled || !settings.ldap_remote_enrollment_send_invite {

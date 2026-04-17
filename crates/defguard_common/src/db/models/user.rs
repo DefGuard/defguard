@@ -1708,7 +1708,7 @@ mod test {
         settings.ldap_group_search_base = Some("ou=groups,dc=example,dc=com".into());
         settings.ldap_remote_enrollment_enabled = true;
         update_current_settings(&pool, settings).await.unwrap();
-        // user fields unchanged from the previous case — only the setting changed
+        // user fields unchanged from the previous case - only the setting changed
         assert!(
             !user.is_enrolled(),
             "LDAP user should not be enrolled when remote enrollment is enabled but not completed"

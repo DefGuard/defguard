@@ -53,7 +53,7 @@ async fn test_mfa_start_fails_for_unknown_location(_: PgPoolOptions, options: Pg
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    // Create a device so the pubkey lookup succeeds — the handler checks the
+    // Create a device so the pubkey lookup succeeds - the handler checks the
     // location_id first, but using a real pubkey avoids masking the error.
     let (_, device) = create_user_with_device(&context.pool).await;
 
@@ -137,7 +137,7 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
     assert!(session.preshared_key.is_some());
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
-    // Use the already-subscribed receiver — subscribing after send_mfa_finish would miss the event.
+    // Use the already-subscribed receiver - subscribing after send_mfa_finish would miss the event.
     let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
@@ -232,7 +232,7 @@ async fn test_mfa_start_fails_when_email_mfa_not_enabled(
     let network = create_mfa_network(&context.pool).await;
     // device is created after the network so add_to_all_networks picks it up
     let (_, device) = create_user_with_device(&context.pool).await;
-    // user.email_mfa_enabled is false by default — no setup call
+    // user.email_mfa_enabled is false by default - no setup call
 
     context.mock_proxy().send_request(CoreRequest {
         id: 1,
@@ -281,7 +281,7 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
 
     let network = create_mfa_network(&context.pool).await;
     let (mut user, device) = create_user_with_device(&context.pool).await;
-    // Setup email MFA — the code is the same one that start_client_mfa_login
+    // Setup email MFA - the code is the same one that start_client_mfa_login
     // will regenerate internally, so we can generate it once here.
     let code = setup_user_email_mfa(&context.pool, &mut user).await;
 
@@ -384,7 +384,7 @@ async fn test_mfa_finish_fails_with_wrong_code(_: PgPoolOptions, options: PgConn
     )
     .await;
 
-    // Send a clearly wrong code — use _raw so we can inspect the error response
+    // Send a clearly wrong code - use _raw so we can inspect the error response
     let response = send_mfa_finish_raw(&mut context, &token, Some("000000")).await;
     let code = assert_error_response(&response);
     // invalid code → InvalidArgument or Unauthenticated
@@ -448,7 +448,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     )
     .await;
 
-    // Send AwaitRemoteMfaFinish first — no immediate response expected
+    // Send AwaitRemoteMfaFinish first - no immediate response expected
     context.mock_proxy().send_request(CoreRequest {
         id: AWAIT_ID,
         device_info: None,
@@ -473,7 +473,7 @@ async fn test_mfa_await_remote_receives_psk_after_finish(
     send_mfa_finish_no_recv(&mut context, &token, Some(&code)).await;
 
     // Two responses should arrive: one ClientMfaFinish and one
-    // AwaitRemoteMfaFinish — order is not guaranteed.
+    // AwaitRemoteMfaFinish - order is not guaranteed.
     let r1 = context.mock_proxy_mut().recv_outbound().await;
     let r2 = context.mock_proxy_mut().recv_outbound().await;
 

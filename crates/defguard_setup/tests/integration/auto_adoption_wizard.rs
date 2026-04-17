@@ -378,7 +378,7 @@ async fn test_auto_adoption_vpn_settings_missing_network(
         .expect("Failed to create admin");
     assert_eq!(resp.status(), StatusCode::CREATED);
 
-    // Set URL settings (requires auth — cookie jar carries session)
+    // Set URL settings (requires auth - cookie jar carries session)
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/internal_url_settings")
         .json(&json!({

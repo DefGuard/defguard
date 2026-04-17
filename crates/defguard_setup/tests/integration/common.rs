@@ -115,7 +115,7 @@ pub async fn make_migration_test_client(
         setup_shutdown_tx,
     );
     // We must keep `webapp` alive to prevent its event receiver channels from
-    // being dropped — if they are dropped the `emit_event` call in the auth
+    // being dropped - if they are dropped the `emit_event` call in the auth
     // handler will fail with "channel closed".
     let router = webapp.router.clone();
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);

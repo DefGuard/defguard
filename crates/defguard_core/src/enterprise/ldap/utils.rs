@@ -96,7 +96,7 @@ pub(crate) async fn login_through_ldap_with_connection(
 
     // Attempt to send enrollment invite after the original DB transaction is committed,
     // so that the user row is visible to the new transaction inside try_send_ldap_enrollment_invite.
-    // Only send for newly-created users — returning users must not receive a second invite.
+    // Only send for newly-created users - returning users must not receive a second invite.
     if is_new_user {
         let mut transaction = pool.begin().await?;
         try_send_ldap_enrollment_invite(&mut user, &mut transaction).await;

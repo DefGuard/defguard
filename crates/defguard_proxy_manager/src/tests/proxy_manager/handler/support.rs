@@ -172,7 +172,7 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
 
 /// Pre-generated valid 32-byte WireGuard public keys (base64, 44 chars each).
 /// Used by `create_device_for_user` so that `Device::validate_pubkey` passes.
-/// 64 entries — enough headroom so the per-function counter modulo never wraps
+/// 64 entries - enough headroom so the per-function counter modulo never wraps
 /// within a single test and causes unique-key constraint violations.
 static DEVICE_PUBKEYS: &[&str] = &[
     "HCk2Q1BdaneEkZ6ruMXS3+z5BhMgLTpHVGFue4iVoq8=",
@@ -325,7 +325,7 @@ pub(crate) async fn create_polling_token(pool: &PgPool, device_id: Id) -> String
 /// after `complete_proxy_handshake` to open the enrollment session.
 ///
 /// The function sends a single `EnrollmentStartRequest` with the given token
-/// ID and waits for the `EnrollmentStartResponse` (or any payload — panicking
+/// ID and waits for the `EnrollmentStartResponse` (or any payload - panicking
 /// if the stream closes without a response).
 pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, token_id: &str) {
     static ENROLL_CTR: AtomicU64 = AtomicU64::new(1000);
@@ -414,7 +414,7 @@ pub(crate) async fn setup_user_email_mfa(pool: &PgPool, user: &mut User<Id>) -> 
     user.new_email_secret(pool).await.expect("new_email_secret");
     user.enable_email_mfa(pool).await.expect("enable_email_mfa");
     // generate_email_mfa_code uses the in-memory secret; note that
-    // start_client_mfa_login also calls generate_email_mfa_code internally —
+    // start_client_mfa_login also calls generate_email_mfa_code internally -
     // the two calls will produce the same code because the in-memory secret
     // hasn't changed. But we need the code *after* the start call, so the
     // caller should call this helper before start and pass the code to finish.
@@ -563,7 +563,7 @@ pub(crate) async fn send_mfa_finish_no_recv(
 
 /// Send `ClientMfaFinish` and return the raw `CoreResponse`.
 ///
-/// Like `send_mfa_finish` but does not panic on error — the caller is
+/// Like `send_mfa_finish` but does not panic on error - the caller is
 /// responsible for inspecting `response.payload`.  Use this for error-path
 /// tests where an error response is expected.
 pub(crate) async fn send_mfa_finish_raw(

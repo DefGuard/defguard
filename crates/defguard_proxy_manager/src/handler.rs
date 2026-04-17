@@ -1050,7 +1050,7 @@ impl ProxyHandler {
     ) -> Result<Channel, ProxyError> {
         if let Some(socket_path) = self.test_transport.socket_path().cloned() {
             // Build a minimal endpoint for the Unix socket connector.
-            // The scheme and host are irrelevant — the connector ignores the URI.
+            // The scheme and host are irrelevant - the connector ignores the URI.
             let endpoint = Endpoint::from_shared(self.url.to_string())?;
             return Ok(endpoint.connect_with_connector_lazy(tower::service_fn(
                 move |_: tonic::transport::Uri| {

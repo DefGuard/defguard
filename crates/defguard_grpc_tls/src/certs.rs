@@ -216,10 +216,10 @@ pub fn client_config(
 
 /// Build an mTLS [`Channel`] to a proxy using its stored per-component client certificate.
 ///
-/// * `proxy` — the full `Proxy<Id>` row from the database; `core_client_cert_der`,
+/// * `proxy` - the full `Proxy<Id>` row from the database; `core_client_cert_der`,
 ///   `core_client_cert_key_der`, and `certificate_serial` must all be `Some`.
-/// * `ca_cert_der` — the core CA certificate in DER form, used as the only trusted root.
-/// * `certs_rx` — watch channel carrying the current `{ proxy_id → cert_serial }` map.
+/// * `ca_cert_der` - the core CA certificate in DER form, used as the only trusted root.
+/// * `certs_rx` - watch channel carrying the current `{ proxy_id → cert_serial }` map.
 ///   Pass a long-lived receiver for persistent connections (serial revocation is picked up
 ///   dynamically) or a one-shot channel seeded with the proxy's current serial for
 ///   short-lived calls.
@@ -253,7 +253,7 @@ pub fn proxy_mtls_channel(
         .build();
     let connector = HttpsSchemeConnector::new(connector);
 
-    // Use http:// scheme — the HttpsSchemeConnector rewrites it to https:// internally.
+    // Use http:// scheme - the HttpsSchemeConnector rewrites it to https:// internally.
     let endpoint_str = format!("http://{}:{}", proxy.address, proxy.port);
     let endpoint = Endpoint::from_shared(endpoint_str)
         .map_err(|e| CertConfigError::TlsConfig(format!("invalid proxy endpoint URL: {e}")))?

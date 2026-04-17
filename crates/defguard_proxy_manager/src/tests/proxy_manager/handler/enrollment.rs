@@ -221,7 +221,7 @@ async fn test_activate_user_already_activated_returns_error(
     let token = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token.id).await;
 
-    // First activation — must succeed.
+    // First activation - must succeed.
     let first = send_activate_user(&mut context, &token.id, STRONG_PASSWORD, None).await;
     match &first.payload {
         Some(core_response::Payload::Empty(())) => {}
@@ -234,7 +234,7 @@ async fn test_activate_user_already_activated_returns_error(
     let token2 = create_enrollment_token(&context.pool, user.id, Some(user.id)).await;
     start_enrollment_session(&mut context, &token2.id).await;
 
-    // Second activation — must fail with InvalidArgument.
+    // Second activation - must fail with InvalidArgument.
     let second = send_activate_user(&mut context, &token2.id, STRONG_PASSWORD, None).await;
     let code = assert_error_response(&second);
     assert_eq!(
@@ -393,7 +393,7 @@ async fn test_existing_device_wrong_user_returns_error(
     let _ = user_a; // suppress unused warning
 
     // Enrollment token belonging to user_b, NOT user_a (device owner).
-    // No admin needed — this test only checks that an error is returned;
+    // No admin needed - this test only checks that an error is returned;
     // the session validation will fail before the welcome-page template renders.
     let wrong_token = create_enrollment_token(&context.pool, user_b.id, None).await;
 
@@ -678,7 +678,7 @@ async fn test_register_mobile_auth_invalid_device_pubkey(
 /// `device_pub_key` (not `auth_pub_key`), and WireGuard keys are 32 bytes so
 /// the check always passes for syntactically valid WireGuard keys.  The first
 /// error path that exercises `auth_pub_key` rejection would require a key
-/// whose WireGuard decode fails — but a valid WireGuard key passes both
+/// whose WireGuard decode fails - but a valid WireGuard key passes both
 /// `Device::validate_pubkey` and `BiometricAuth::validate_pubkey`.  The
 /// interesting third error path is therefore "key valid but no device found".
 #[sqlx::test]
@@ -829,7 +829,7 @@ async fn test_activate_ldap_user_sets_ldap_remote_enrollment_completed(
 }
 
 /// When `ldap_remote_enrollment_enabled` is set, a non-LDAP user who completes
-/// activation must NOT have `ldap_remote_enrollment_completed` set — the flag is
+/// activation must NOT have `ldap_remote_enrollment_completed` set - the flag is
 /// LDAP-specific and must remain `false`.
 #[sqlx::test]
 async fn test_activate_non_ldap_user_does_not_set_ldap_remote_enrollment_completed(

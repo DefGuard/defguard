@@ -608,7 +608,7 @@ impl ManagerTestContext {
         );
         let manager_task = tokio::spawn(async move { manager.run().await });
 
-        // No PgListener in proxy manager — just yield to let the manager start.
+        // No PgListener in proxy manager - just yield to let the manager start.
         tokio::task::yield_now().await;
 
         self.manager_task = Some(manager_task);
@@ -697,7 +697,7 @@ pub(crate) fn build_proxy_with_enabled(enabled: bool) -> Proxy<NoId> {
 }
 
 // ---------------------------------------------------------------------------
-// MockOidcProvider — a minimal OIDC identity provider for tests
+// MockOidcProvider - a minimal OIDC identity provider for tests
 // ---------------------------------------------------------------------------
 
 /// Shared state injected into axum route handlers.
