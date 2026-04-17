@@ -1,4 +1,4 @@
-use std::{sync::Once, time::Duration};
+use std::sync::Once;
 
 use defguard_common::{
     config::DefGuardConfig,
@@ -27,7 +27,7 @@ use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod common;
-use common::make_setup_test_client;
+use common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
 
 const SESSION_COOKIE_NAME: &str = "defguard_session";
 
@@ -213,7 +213,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
     assert!(wizard.completed);
     assert_eq!(wizard.active_wizard, ActiveWizard::None);
 
-    let shutdown_signal = timeout(Duration::from_secs(1), shutdown_rx).await;
+    let shutdown_signal = timeout(SHUTDOWN_TIMEOUT, shutdown_rx).await;
     assert!(
         matches!(shutdown_signal, Ok(Ok(()))),
         "Setup server should have sent shutdown signal after finish"

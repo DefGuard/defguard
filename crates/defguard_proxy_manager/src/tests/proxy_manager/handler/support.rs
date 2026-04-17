@@ -2,7 +2,7 @@ use std::{
     mem::discriminant,
     str::FromStr,
     sync::atomic::{AtomicU16, AtomicU64, Ordering},
-    time::{Duration, SystemTime},
+    time::SystemTime,
 };
 
 use defguard_common::{
@@ -45,9 +45,7 @@ use sqlx::PgPool;
 use tokio::{sync::mpsc::UnboundedReceiver, time::timeout};
 use tonic::Code;
 
-use crate::tests::common::{HandlerTestContext, MockOidcProvider};
-
-const BIDI_RECEIVE_TIMEOUT: Duration = Duration::from_secs(5);
+use crate::tests::common::{HandlerTestContext, MockOidcProvider, RECEIVE_TIMEOUT};
 
 /// A strong password satisfying all `check_password_strength` requirements:
 /// ≥8 chars, digit, upper, lower, special character.
@@ -621,7 +619,7 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
 pub(crate) async fn expect_bidi_mfa_success(
     bidi_rx: &mut UnboundedReceiver<BidiStreamEvent>,
 ) -> Id {
-    let event = timeout(BIDI_RECEIVE_TIMEOUT, bidi_rx.recv())
+    let event = timeout(RECEIVE_TIMEOUT, bidi_rx.recv())
         .await
         .expect("timed out waiting for BidiStreamEvent DesktopClientMfa(Success)")
         .expect("bidi event channel closed");

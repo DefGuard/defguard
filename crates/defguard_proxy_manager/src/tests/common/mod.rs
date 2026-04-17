@@ -54,6 +54,8 @@ pub(crate) const CORE_RESPONSE_TIMEOUT: Duration = Duration::from_millis(200);
 
 pub(crate) const PROXY_CONNECT_DELAY: Duration = Duration::from_millis(20);
 
+pub(crate) const RECEIVE_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// Minimum proxy version that passes `is_proxy_version_supported()`.
 const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(2, 0, 0);
 

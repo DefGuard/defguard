@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use defguard_common::db::Id;
 use defguard_core::grpc::GatewayEvent;
 use defguard_proto::{
@@ -17,9 +15,8 @@ use super::support::{
     send_mfa_finish_no_recv, send_mfa_finish_raw, send_mfa_start, send_token_validation,
     setup_user_email_mfa, setup_user_totp_mfa,
 };
-use crate::tests::common::HandlerTestContext;
+use crate::tests::common::{HandlerTestContext, RECEIVE_TIMEOUT};
 
-const EVENT_RECEIVE_TIMEOUT: Duration = Duration::from_secs(5);
 const WRONG_REQUEST_ID: u64 = 9991;
 const AWAIT_ID: u64 = 8000;
 
@@ -141,7 +138,7 @@ async fn test_mfa_finish_succeeds_with_totp_code(_: PgPoolOptions, options: PgCo
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast.
     // Use the already-subscribed receiver — subscribing after send_mfa_finish would miss the event.
-    let event = timeout(EVENT_RECEIVE_TIMEOUT, gateway_rx.recv())
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
         .expect("gateway event channel closed");
@@ -316,7 +313,7 @@ async fn test_mfa_finish_succeeds_and_creates_session(_: PgPoolOptions, options:
     assert!(session.preshared_key.is_some());
 
     // Verify GatewayEvent::MfaSessionAuthorized was broadcast
-    let event = timeout(EVENT_RECEIVE_TIMEOUT, gateway_rx.recv())
+    let event = timeout(RECEIVE_TIMEOUT, gateway_rx.recv())
         .await
         .expect("timed out waiting for GatewayEvent::MfaSessionAuthorized")
         .expect("gateway event channel closed");
@@ -579,7 +576,7 @@ async fn test_mfa_finish_replaces_existing_session_disconnects_old(
     let mut got_disconnected = false;
     let mut got_authorized = false;
     for _ in 0..2 {
-        let event = timeout(EVENT_RECEIVE_TIMEOUT, gw_rx2.recv())
+        let event = timeout(RECEIVE_TIMEOUT, gw_rx2.recv())
             .await
             .expect("timed out waiting for gateway event after second MFA finish")
             .expect("gateway event channel closed");

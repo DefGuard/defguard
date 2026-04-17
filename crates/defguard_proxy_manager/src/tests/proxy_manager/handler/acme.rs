@@ -3,11 +3,11 @@ use defguard_proto::proxy::{
     AcmeCertificate as AcmeCertPayload, CoreRequest, core_request, core_response,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::time::{Duration, timeout};
+use tokio::time::timeout;
 
 use super::support::complete_proxy_handshake;
 use crate::tests::common::{
-    HandlerTestContext, ManagerTestContext, MockProxyHarness, create_proxy,
+    HandlerTestContext, ManagerTestContext, MockProxyHarness, RECEIVE_TIMEOUT, create_proxy,
 };
 
 /// A minimal but syntactically valid PEM certificate block (content is
@@ -188,7 +188,7 @@ async fn test_acme_certificate_broadcasts_to_connected_proxy(
         ("proxy A (sender)", &mut mock_a),
         ("proxy B (bystander)", &mut mock_b),
     ] {
-        let response = timeout(Duration::from_secs(5), mock.recv_outbound())
+        let response = timeout(RECEIVE_TIMEOUT, mock.recv_outbound())
             .await
             .unwrap_or_else(|_| panic!("timed out waiting for HttpsCerts broadcast on {label}"));
 

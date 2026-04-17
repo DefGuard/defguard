@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use defguard_certs::{CertificateAuthority, Csr, PemLabel, der_to_pem, generate_key_pair};
 use defguard_common::{
     config::DefGuardConfig,
@@ -26,7 +24,7 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 mod common;
-use common::make_setup_test_client;
+use common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
 use tokio::time::timeout;
 
 const SESSION_COOKIE_NAME: &str = "defguard_session";
@@ -544,6 +542,6 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
     assert!(wizard.completed);
     assert_eq!(wizard.active_wizard, ActiveWizard::None);
 
-    let shutdown = timeout(Duration::from_secs(1), shutdown_rx).await;
+    let shutdown = timeout(SHUTDOWN_TIMEOUT, shutdown_rx).await;
     assert!(matches!(shutdown, Ok(Ok(()))));
 }

@@ -173,3 +173,8 @@ pub async fn seed_admin_user(pool: &PgPool, username: &str, password: &str) -> U
 
     user
 }
+
+use std::time::Duration;
+
+#[allow(dead_code)]
+pub(crate) const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(1);
