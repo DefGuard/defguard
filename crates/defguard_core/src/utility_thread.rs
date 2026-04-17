@@ -5,12 +5,13 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates, ProxyCertSource, Settings, WireguardNetwork, proxy::Proxy,
+            Certificates, ProxyCertSource, Settings, User, WireguardNetwork, proxy::Proxy,
             wireguard::ServiceLocationMode,
         },
     },
     types::proxy::ProxyControlMessage,
 };
+use defguard_mail::templates::{self, TemplateError};
 use defguard_proto::proxy::{AcmeStep, acme_issue_event};
 use sqlx::PgPool;
 use tokio::{
@@ -193,6 +194,17 @@ pub async fn run_utility_thread(
     }
 }
 
+async fn send_le_refresh_failed_emails(pool: &PgPool, domain: &str, logs: &[String]) -> Result<(), anyhow::Error> {
+    let mut conn = pool.begin().await?;
+    let admin_users = User::find_admins(&mut *conn).await?;
+    for user in admin_users {
+        templates::letsencrypt_cert_refresh_failed_mail(&user.email, &mut conn, domain, &logs.join("\n"))
+            .await?;
+    }
+
+    Ok(())
+}
+
 async fn do_letsencrypt_refresh(
     pool: &PgPool,
     proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
@@ -205,7 +217,7 @@ async fn do_letsencrypt_refresh(
 
     if certs.proxy_http_cert_source != ProxyCertSource::LetsEncrypt {
         info!(
-            "Edge certificate source is {:?}, skipping letsencrypt expiry check",
+            "Edge certificate source is {:?}, skipping Letsencrypt expiry check",
             certs.proxy_http_cert_source
         );
         return Ok(());
@@ -213,7 +225,7 @@ async fn do_letsencrypt_refresh(
 
     let Some(expiry) = certs.proxy_http_cert_expiry else {
         info!(
-            "Edge certificate has no expiry date, skipping letsencrypt refresh certificate refresh"
+            "Edge certificate has no expiry date, skipping Letsencrypt refresh certificate refresh"
         );
         return Ok(());
     };
@@ -228,7 +240,7 @@ async fn do_letsencrypt_refresh(
     }
 
     info!(
-        "Letsencrypt certificates expire in {} days, performing certificate refresh",
+        "Letsencrypt certificate expires in {} days, performing certificate refresh",
         expire_in.num_days()
     );
     let settings = Settings::get_current_settings();
@@ -239,7 +251,7 @@ async fn do_letsencrypt_refresh(
         return Ok(());
     };
     let Some(proxy) = proxies.into_iter().next() else {
-        warn!("No Edge found in database, aborting letsencrypt expiry check");
+        warn!("No Edge found in database, aborting Letsencrypt expiry check");
         return Ok(());
     };
 
@@ -325,8 +337,10 @@ async fn do_letsencrypt_refresh(
             info!("ACME certificate issued and saved for domain: {domain}");
         }
         Ok(Err((acme_err, logs))) => {
-            let msg = format!("ACME issuance failed: {acme_err}");
-            error!("{msg}");
+            error!("ACME issuance failed: {acme_err}");
+            if let Err(err) = send_le_refresh_failed_emails(pool, &domain, &logs).await {
+                error!("Sending letsencrypt refresh email notification failed: {err}");
+            }
             return Ok(());
         }
         Err(_) => {
