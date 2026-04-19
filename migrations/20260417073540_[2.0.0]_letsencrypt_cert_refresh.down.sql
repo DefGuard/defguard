@@ -1,1 +1,1 @@
-DELETE FROM mail_context where "template" = 'letsencrypt-cert-refresh-failed';
+DELETE FROM mail_context WHERE "template" = 'letsencrypt-cert-refresh-failed';

@@ -335,7 +335,7 @@ impl MailMessage {
             Self::UserImportBlocked => "User import blocked".to_string(),
             Self::EnrollmentNotification => "Defguard: User enrollment completed".to_string(),
             Self::LetsencryptCertRefreshFailed => {
-                "Defguard: automatic Letsencrypt certificate refresh failed".to_string()
+                "Defguard: automatic Let's Encrypt certificate refresh failed".to_string()
             }
         }
     }
