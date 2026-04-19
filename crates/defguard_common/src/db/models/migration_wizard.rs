@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, query};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub enum MigrationWizardStep {
@@ -76,12 +76,12 @@ impl MigrationWizardState {
         let state =
             serde_json::to_value(self).map_err(|error| sqlx::Error::Decode(Box::new(error)))?;
 
-        sqlx::query(
+        query!(
             "UPDATE wizard
              SET migration_wizard_state = $1
              WHERE is_singleton",
+            state
         )
-        .bind(state)
         .execute(executor)
         .await?;
 
@@ -92,7 +92,7 @@ impl MigrationWizardState {
     where
         E: PgExecutor<'e>,
     {
-        sqlx::query!(
+        query!(
             "Update wizard \
             SET migration_wizard_state = NULL \
             WHERE is_singleton"

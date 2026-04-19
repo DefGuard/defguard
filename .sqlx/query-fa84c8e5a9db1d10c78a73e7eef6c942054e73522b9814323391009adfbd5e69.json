@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gateway SET disconnected_at = NOW() WHERE connected_at IS NOT NULL AND (disconnected_at IS NULL OR disconnected_at <= connected_at)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "fa84c8e5a9db1d10c78a73e7eef6c942054e73522b9814323391009adfbd5e69"
+}

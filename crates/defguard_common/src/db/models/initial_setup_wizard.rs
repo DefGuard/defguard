@@ -79,7 +79,7 @@ impl InitialSetupState {
     where
         E: PgExecutor<'e>,
     {
-        query(
+        query!(
             "UPDATE wizard
              SET initial_setup_state = NULL
              WHERE is_singleton",

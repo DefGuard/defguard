@@ -115,7 +115,7 @@ impl Proxy<Id> {
 
     /// Mark all proxies currently considered connected as disconnected.
     pub async fn mark_all_disconnected<'e, E: PgExecutor<'e>>(executor: E) -> sqlx::Result<()> {
-        query(
+        query!(
             "UPDATE proxy \
 			 SET disconnected_at = NOW() \
 			 WHERE connected_at IS NOT NULL \

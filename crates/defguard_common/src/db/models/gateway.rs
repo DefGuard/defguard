@@ -117,7 +117,7 @@ impl Gateway<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query(
+        query!(
             "UPDATE gateway \
 			 SET disconnected_at = NOW() \
 			 WHERE connected_at IS NOT NULL \
