@@ -160,24 +160,23 @@ pub async fn run_utility_thread(
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
             let new_enterprise_enabled = is_business_license_active();
-            if new_enterprise_enabled == enterprise_enabled {
-                continue;
-            }
-            debug!(
-                "Enterprise feature status changed from {enterprise_enabled} to \
-                    {new_enterprise_enabled}"
-            );
-            if let Err(err) =
-                enterprise_status_check(pool, wireguard_tx.clone(), new_enterprise_enabled)
-                    .instrument(info_span!("enterprise_status_check"))
-                    .await
-            {
-                error!("Failed to check enterprise status: {err}");
-            } else {
-                // update status
-                enterprise_enabled = new_enterprise_enabled;
-            }
             last_enterprise_status_check = Instant::now();
+            if new_enterprise_enabled != enterprise_enabled {
+                debug!(
+                    "Enterprise feature status changed from {enterprise_enabled} to \
+                    {new_enterprise_enabled}"
+                );
+                if let Err(err) =
+                    enterprise_status_check(pool, wireguard_tx.clone(), new_enterprise_enabled)
+                        .instrument(info_span!("enterprise_status_check"))
+                        .await
+                {
+                    error!("Failed to check enterprise status: {err}");
+                } else {
+                    // update status
+                    enterprise_enabled = new_enterprise_enabled;
+                }
+            }
         }
     }
 }
