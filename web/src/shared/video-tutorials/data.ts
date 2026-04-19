@@ -60,9 +60,16 @@ const migrationWizardPlacementSchema = z
   })
   .strip();
 
+const migrationWizardPlacementGroupSchema = z
+  .object({
+    default: migrationWizardPlacementSchema.optional(),
+    steps: z.record(z.string(), migrationWizardPlacementSchema).optional(),
+  })
+  .strip();
+
 const placementsSchema = z
   .object({
-    migrationWizard: migrationWizardPlacementSchema.optional(),
+    migrationWizard: migrationWizardPlacementGroupSchema.optional(),
   })
   .strip();
 

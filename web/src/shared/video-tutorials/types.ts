@@ -18,13 +18,18 @@ export interface VideoGuidePlacement extends PlayableVideo {
   docsUrl: string;
 }
 
+export interface VideoGuidePlacementGroup {
+  default?: VideoGuidePlacement;
+  steps?: Record<string, VideoGuidePlacement>;
+}
+
 export interface VideoTutorialsSection {
   name: string;
   videos: VideoTutorial[];
 }
 
 export interface VideoTutorialsPlacements {
-  [key: string]: VideoGuidePlacement | undefined;
+  [key: string]: VideoGuidePlacementGroup | undefined;
 }
 
 export interface VideoTutorialsVersionEntry {

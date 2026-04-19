@@ -119,10 +119,20 @@ const makeMappings = (): VideoTutorialsMappings => ({
     ],
     placements: {
       migrationWizard: {
-        youtubeVideoId: 'abcDEFghiJK',
-        title: 'Migration wizard guide',
-        docsTitle: 'Migration wizard documentation',
-        docsUrl: 'https://docs.defguard.net/migration',
+        default: {
+          youtubeVideoId: 'abcDEFghiJK',
+          title: 'Migration wizard guide',
+          docsTitle: 'Migration wizard documentation',
+          docsUrl: 'https://docs.defguard.net/migration',
+        },
+        steps: {
+          ca: {
+            youtubeVideoId: 'caGuide220a',
+            title: 'Certificate authority guide',
+            docsTitle: 'Certificate authority documentation',
+            docsUrl: 'https://docs.defguard.net/migration/ca',
+          },
+        },
       },
     },
   },
@@ -137,7 +147,7 @@ describe('resolveVersion', () => {
     const result = resolveVersion(makeMappings(), '2.3.0');
 
     expect(result?.sections).toHaveLength(2);
-    expect(result?.placements?.migrationWizard?.youtubeVideoId).toBe('abcDEFghiJK');
+    expect(result?.placements?.migrationWizard?.default?.youtubeVideoId).toBe('abcDEFghiJK');
   });
 
   it('should return null for an unparseable app version', () => {
@@ -193,8 +203,19 @@ describe('resolveSections', () => {
 // ---------------------------------------------------------------------------
 
 describe('resolveVideoGuidePlacement', () => {
-  it('should return the placement from the newest eligible version', () => {
-    const result = resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'migrationWizard');
+  it('should return the step-specific placement from the newest eligible version', () => {
+    const result = resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'migrationWizard', 'ca');
+
+    expect(result?.title).toBe('Certificate authority guide');
+  });
+
+  it('should fall back to the default placement when step-specific entry is missing', () => {
+    const result = resolveVideoGuidePlacement(
+      makeMappings(),
+      '2.3.0',
+      'migrationWizard',
+      'general',
+    );
 
     expect(result?.title).toBe('Migration wizard guide');
   });
@@ -205,10 +226,12 @@ describe('resolveVideoGuidePlacement', () => {
         sections: [],
         placements: {
           migrationWizard: {
-            youtubeVideoId: 'abcDEFghiJK',
-            title: 'Migration wizard guide',
-            docsTitle: 'Migration wizard documentation',
-            docsUrl: 'https://docs.defguard.net/migration',
+            default: {
+              youtubeVideoId: 'abcDEFghiJK',
+              title: 'Migration wizard guide',
+              docsTitle: 'Migration wizard documentation',
+              docsUrl: 'https://docs.defguard.net/migration',
+            },
           },
         },
       },
@@ -217,7 +240,7 @@ describe('resolveVideoGuidePlacement', () => {
       },
     };
 
-    const result = resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard');
+    const result = resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca');
 
     expect(result).toBeNull();
   });
@@ -229,11 +252,28 @@ describe('resolveVideoGuidePlacement', () => {
       },
     };
 
-    expect(resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard')).toBeNull();
+    expect(resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca')).toBeNull();
+  });
+
+  it('should return null when neither default nor step-specific placement exists', () => {
+    const mappings: VideoTutorialsMappings = {
+      '2.2': {
+        sections: [],
+        placements: {
+          migrationWizard: {
+            steps: {},
+          },
+        },
+      },
+    };
+
+    expect(resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca')).toBeNull();
   });
 
   it('should return null for an unsupported placement key', () => {
-    expect(resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'unknownPlacement')).toBeNull();
+    expect(
+      resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'unknownPlacement', 'ca'),
+    ).toBeNull();
   });
 });
 
@@ -260,10 +300,20 @@ const validRaw = {
       ],
       placements: {
         migrationWizard: {
-          youtubeVideoId: 'xyz987GHI12',
-          title: 'Migration guide',
-          docsTitle: 'Defguard Configuration Guide',
-          docsUrl: 'https://docs.defguard.net/migration',
+          default: {
+            youtubeVideoId: 'xyz987GHI12',
+            title: 'Migration guide',
+            docsTitle: 'Defguard Configuration Guide',
+            docsUrl: 'https://docs.defguard.net/migration',
+          },
+          steps: {
+            general: {
+              youtubeVideoId: 'genGuide220a',
+              title: 'General configuration guide',
+              docsTitle: 'General configuration documentation',
+              docsUrl: 'https://docs.defguard.net/migration/general',
+            },
+          },
         },
       },
     },
@@ -277,9 +327,14 @@ describe('parseVideoTutorials', () => {
     expect(result['2.2'].sections).toHaveLength(1);
     expect(result['2.2'].sections[0].name).toBe('Identity');
     expect(result['2.2'].sections[0].videos[0].youtubeVideoId).toBe('abcDEFghiJK');
-    expect(result['2.2'].placements?.migrationWizard?.youtubeVideoId).toBe('xyz987GHI12');
-    expect(result['2.2'].placements?.migrationWizard?.docsTitle).toBe(
+    expect(result['2.2'].placements?.migrationWizard?.default?.youtubeVideoId).toBe(
+      'xyz987GHI12',
+    );
+    expect(result['2.2'].placements?.migrationWizard?.default?.docsTitle).toBe(
       'Defguard Configuration Guide',
+    );
+    expect(result['2.2'].placements?.migrationWizard?.steps?.general?.youtubeVideoId).toBe(
+      'genGuide220a',
     );
   });
 
@@ -529,10 +584,12 @@ describe('parseVideoTutorials', () => {
           sections: [],
           placements: {
             migrationWizard: {
-              youtubeVideoId: 'xyz987GHI12',
-              title: 'Migration guide',
-              docsTitle: 'Defguard Configuration Guide',
-              docsUrl: 'not-a-url',
+              default: {
+                youtubeVideoId: 'xyz987GHI12',
+                title: 'Migration guide',
+                docsTitle: 'Defguard Configuration Guide',
+                docsUrl: 'not-a-url',
+              },
             },
           },
         },
@@ -550,10 +607,12 @@ describe('parseVideoTutorials', () => {
           extraVersionField: 'ignored',
           placements: {
             migrationWizard: {
-              youtubeVideoId: 'xyz987GHI12',
-              title: 'Migration guide',
-              docsTitle: 'Defguard Configuration Guide',
-              docsUrl: 'https://docs.defguard.net/migration',
+              default: {
+                youtubeVideoId: 'xyz987GHI12',
+                title: 'Migration guide',
+                docsTitle: 'Defguard Configuration Guide',
+                docsUrl: 'https://docs.defguard.net/migration',
+              },
               extraPlacementField: 'ignored',
             },
           },
@@ -576,10 +635,36 @@ describe('parseVideoTutorials', () => {
           sections: [],
           placements: {
             migrationWizard: {
-              youtubeVideoId: 'xyz987GHI12',
-              title: 'Migration guide',
-              docsTitle: '',
-              docsUrl: 'https://docs.defguard.net/migration',
+              default: {
+                youtubeVideoId: 'xyz987GHI12',
+                title: 'Migration guide',
+                docsTitle: '',
+                docsUrl: 'https://docs.defguard.net/migration',
+              },
+            },
+          },
+        },
+      },
+    };
+
+    expect(() => parseVideoTutorials(raw)).toThrow();
+  });
+
+  it('should reject invalid migrationWizard step docsUrl', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            migrationWizard: {
+              steps: {
+                ca: {
+                  youtubeVideoId: 'xyz987GHI12',
+                  title: 'Migration guide',
+                  docsTitle: 'Certificate authority guide',
+                  docsUrl: 'not-a-url',
+                },
+              },
             },
           },
         },

@@ -45,12 +45,13 @@ export function useVideoTutorialsSections(): VideoTutorialsSection[] {
 
 export function useWizardVideoGuidePlacement(
   placementKey: string | undefined,
+  stepKey?: string | number,
 ): VideoGuidePlacement | null {
   const { data } = useQuery(videoTutorialsQueryOptions);
   const appVersion = useApp((s) => s.appInfo.version);
 
   if (!placementKey || !data || !appVersion) return EMPTY_VIDEO_GUIDE_PLACEMENT;
-  return resolveVideoGuidePlacement(data, appVersion, placementKey);
+  return resolveVideoGuidePlacement(data, appVersion, placementKey, stepKey);
 }
 
 /**

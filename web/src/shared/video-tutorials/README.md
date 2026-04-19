@@ -161,10 +161,20 @@ endpoint on the same server.
       ],
       "placements": {
         "migrationWizard": {
-          "youtubeVideoId": "xyz987GHI12",
-          "title": "Migration wizard guide",
-          "docsTitle": "Defguard Configuration Guide",
-          "docsUrl": "https://docs.defguard.net/migration"
+          "default": {
+            "youtubeVideoId": "xyz987GHI12",
+            "title": "Migration wizard guide",
+            "docsTitle": "Defguard Configuration Guide",
+            "docsUrl": "https://docs.defguard.net/migration"
+          },
+          "steps": {
+            "ca": {
+              "youtubeVideoId": "aaaBBBccc11",
+              "title": "Certificate authority guide",
+              "docsTitle": "Certificate authority documentation",
+              "docsUrl": "https://docs.defguard.net/migration/ca"
+            }
+          }
         }
       }
     }
@@ -192,6 +202,16 @@ Migration placement fields:
 | `title` | Yes | Displayed next to the thumbnail and used as the iframe title. |
 | `docsTitle` | Yes | Text shown in the migration documentation card. |
 | `docsUrl` | Yes | External URL opened from the migration documentation card. |
+
+Migration wizard placement structure:
+
+- `default`: optional fallback guide used when the current step has no dedicated entry
+- `steps`: optional map of step key to guide data
+
+The keys in `steps` should match `MigrationWizardStep` values used by the frontend,
+for example `general`, `ca`, `caSummary`, `edgeDeployment`, `edge`,
+`edgeAdoption`, `internalUrlSettings`, `internalUrlSslConfig`,
+`externalUrlSettings`, `externalUrlSslConfig`, `confirmation`, and `welcome`.
 
 ### Section structure
 
@@ -225,11 +245,17 @@ Rules:
 Consumers built on top of that selected version:
 
 - `resolveSections()` returns `selectedVersion.sections`
-- `resolveVideoGuidePlacement()` returns `selectedVersion.placements?[placementKey]`
+- `resolveVideoGuidePlacement()` returns a step-aware placement from the selected version
 
 There is no fallback to older versions once a newer eligible version has been
 selected. If `2.2` is selected and omits `placements.migrationWizard`, the
 migration wizard shows nothing even if `2.1` defined that placement.
+
+Within the selected version, wizard guide resolution uses this fallback order:
+
+1. `placements[placementKey].steps[currentStep]`
+2. `placements[placementKey].default`
+3. `null`
 
 ---
 
