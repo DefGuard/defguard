@@ -24,7 +24,7 @@ use x509_parser::prelude::*;
 ///
 /// ```rust,ignore
 /// ServiceBuilder::new()
-///     .layer(tonic::service::interceptor(certificate_serial_interceptor(Some(serial))))
+///     .layer(tonic::service::interceptor(certificate_serial_interceptor(serial)))
 ///     .layer(/* version layer */)
 ///     .service(/* gRPC service */)
 /// ```
