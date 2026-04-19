@@ -151,6 +151,12 @@ pub async fn run_utility_thread(
             last_expired_acl_rules_check = Instant::now();
         }
 
+        // Check LE cert expiry dates and refresh if necessary
+        if last_letsencrypt_expiry_check.elapsed().as_secs() >= LETSENCRYPT_EXPIRY_CHECK_INTERVAL {
+            letsencrypt_refresh_task().await;
+            last_letsencrypt_expiry_check = Instant::now();
+        }
+
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
             let new_enterprise_enabled = is_business_license_active();
@@ -172,12 +178,6 @@ pub async fn run_utility_thread(
                 enterprise_enabled = new_enterprise_enabled;
             }
             last_enterprise_status_check = Instant::now();
-        }
-
-        // Check LE cert expiry dates and refresh if necessary
-        if last_letsencrypt_expiry_check.elapsed().as_secs() >= LETSENCRYPT_EXPIRY_CHECK_INTERVAL {
-            letsencrypt_refresh_task().await;
-            last_letsencrypt_expiry_check = Instant::now();
         }
     }
 }
