@@ -86,6 +86,8 @@ pub enum SettingsUrlError {
     DefguardUrlUsesIpAddress(String),
     #[error("Invalid WebAuthn configuration for defguard_url `{0}`: {1}")]
     InvalidWebauthnConfiguration(String, String),
+    #[error("Public Edge URL is not configured")]
+    PublicEdgeUrlEmpty,
     #[error("Unparsable Edge url: {0}")]
     UnparsableEdgeUrl(String),
     #[error("Edge url missing hostname: {0}")]
@@ -775,6 +777,9 @@ impl Settings {
     }
 
     pub fn proxy_hostname(&self) -> Result<String, SettingsUrlError> {
+        if self.public_proxy_url.trim().is_empty() {
+            return Err(SettingsUrlError::PublicEdgeUrlEmpty);
+        }
         let url = self
             .proxy_public_url()
             .map_err(|_err| SettingsUrlError::UnparsableEdgeUrl(self.public_proxy_url.clone()))?;
