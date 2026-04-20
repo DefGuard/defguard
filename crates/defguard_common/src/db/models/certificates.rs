@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query, query_as};
+use sqlx::{PgExecutor, Type, query, query_as};
 use utoipa::ToSchema;
 
 /// Certificate source for the proxy HTTP/HTTPS listener.
@@ -9,9 +9,7 @@ use utoipa::ToSchema;
 /// - `SelfSigned`: cert issued by the Core CA
 /// - `LetsEncrypt`: cert obtained via ACME/Let's Encrypt
 /// - `Custom`: admin-uploaded PEM cert + key
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ToSchema, sqlx::Type,
-)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 pub enum ProxyCertSource {
     #[default]
@@ -26,9 +24,7 @@ pub enum ProxyCertSource {
 /// - `None`: no cert configured, core runs plain HTTP
 /// - `SelfSigned`: cert issued by the Core CA
 /// - `Custom`: admin-uploaded PEM cert + key
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, ToSchema, sqlx::Type,
-)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 pub enum CoreCertSource {
     #[default]
@@ -41,7 +37,7 @@ pub enum CoreCertSource {
 ///
 /// Holds the Core CA (used to sign gRPC TLS certs for gateways/proxies),
 /// the proxy HTTP/HTTPS cert, and the core web server HTTPS cert.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct Certificates {
     // Core CA
     pub ca_cert_der: Option<Vec<u8>>,
@@ -75,13 +71,13 @@ impl Certificates {
                 ca_cert_der, \
                 ca_key_der, \
                 ca_expiry, \
-                proxy_http_cert_source AS \"proxy_http_cert_source: ProxyCertSource\", \
+                proxy_http_cert_source \"proxy_http_cert_source: ProxyCertSource\", \
                 proxy_http_cert_pem, \
                 proxy_http_cert_key_pem, \
                 proxy_http_cert_expiry, \
                 acme_domain, \
                 acme_account_credentials, \
-                core_http_cert_source AS \"core_http_cert_source: CoreCertSource\", \
+                core_http_cert_source \"core_http_cert_source: CoreCertSource\", \
                 core_http_cert_pem, \
                 core_http_cert_key_pem, \
                 core_http_cert_expiry \

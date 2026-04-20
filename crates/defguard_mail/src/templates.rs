@@ -509,3 +509,47 @@ pub async fn password_reset_success_mail(
 
     Ok(())
 }
+
+/// Certificate is about to expire.
+pub async fn certificate_expiration_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    certificate_type: &str,
+    expiration: NaiveDateTime,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
+    context.insert("cert_type", certificate_type);
+    context.insert(
+        "exp_date",
+        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
+    );
+
+    let message = MailMessage::CertificateExpiration;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
+}
+
+/// Certificate has expired.
+pub async fn certificate_expired_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    certificate_type: &str,
+    expiration: NaiveDateTime,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
+    context.insert("cert_type", certificate_type);
+    context.insert(
+        "exp_date",
+        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
+    );
+
+    let message = MailMessage::CertificateExpired;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
+}

@@ -1,0 +1,32 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section mj-class="s-4xl">
+  <mj-column css-class="s-2xl">
+    <mj-table css-class="dg-table">
+      <tr>
+        <td>
+          {{ label_cert_type }}
+        </td>
+        <td>
+          {{ cert_type }}
+        </td>
+      </tr>
+      <tr>
+        <td>
+          {{ label_exp_date }}
+        </td>
+        <td>
+          {{ exp_date }}
+        </td>
+      </tr>
+    </mj-table>
+  </mj-column>
+</mj-section>
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}
