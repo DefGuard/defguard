@@ -60,6 +60,7 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
           </ExternalLink>
         </div>
       </div>
+      <SizedBox height={ThemeSpacing.Xl5} />
 
       <VideoOverlay
         video={videoGuide}
