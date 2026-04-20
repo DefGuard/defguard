@@ -1,5 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "cmp_provider_users_sync_warning": "No users are imported from {provider}. Only user status and group memberships are synchronized.",
   "cmp_selection_section_all": "Select all",
   "cmp_selection_section_selected_filter": "Show selected only",
   "cmp_selection_section_search_placeholder": "Filter/Search",

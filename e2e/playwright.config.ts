@@ -28,6 +28,14 @@ export default defineConfig({
   globalSetup: './utils/globalSetup',
   timeout: testsConfig.TEST_TIMEOUT * 1000,
   testDir: './tests',
+  // Exclude files that consist entirely of skipped tests to avoid Playwright
+  // collecting and reporting them as empty suites on every shard.
+  testIgnore: [
+    '**/enrollment.spec.ts',
+    '**/externalopenid.spec.ts',
+    '**/externalopenidmfa.spec.ts',
+    '**/openid.spec.ts',
+  ],
   /* Run tests in files in parallel */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

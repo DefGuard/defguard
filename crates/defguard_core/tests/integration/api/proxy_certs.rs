@@ -50,7 +50,7 @@ use tokio::{
     time::sleep,
 };
 
-use super::common::{client::TestClient, generate_test_cert_pem};
+use super::common::{client::TestClient, generate_expired_test_cert_pem, generate_test_cert_pem};
 use crate::common::{init_config, initialize_users};
 
 // Mock: captures messages sent to the proxy manager channel.
@@ -220,6 +220,9 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    // Don't touch the URL if setting no cert
+    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::None);
@@ -229,12 +232,17 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.acme_domain.is_none());
     assert_eq!(capture.drain_clear_https_certs().await, 1);
 
+    settings.public_proxy_url = "http://edge.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
         .json(&json!({ "ssl_type": "lets_encrypt" }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    // Url schema changed to https
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
 
     let body: serde_json::Value = response.json().await;
     assert!(body["cert_info"].is_null());
@@ -247,12 +255,17 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
 
     seed_ca(&pool).await;
 
+    settings.public_proxy_url = "http://edge.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
         .json(&json!({ "ssl_type": "defguard_ca" }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    // Url schema changed to https
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
 
     let body: serde_json::Value = response.json().await;
     assert!(!body["cert_info"].is_null());
@@ -275,6 +288,8 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(broadcasts[0].0.contains("BEGIN CERTIFICATE"));
     assert!(broadcasts[0].1.contains("BEGIN PRIVATE KEY"));
 
+    settings.public_proxy_url = "http://edge.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let (cert_pem, key_pem) = generate_test_cert_pem("uploaded-edge.example.com");
     let expected_cert_pem = cert_pem.clone();
     let expected_key_pem = key_pem.clone();
@@ -288,6 +303,9 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    // Url schema changed to https
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
 
     let body: serde_json::Value = response.json().await;
     assert_eq!(
@@ -300,6 +318,8 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_expiry.is_some());
     assert!(saved.acme_domain.is_none());
 
+    settings.public_proxy_url = "http://edge.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let (_, mismatched_key_pem) = generate_test_cert_pem("different-edge.example.com");
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
@@ -311,6 +331,9 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    // Url schema unchanged on errors
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "http://edge.example.com");
 
     let broadcasts = capture.drain_broadcast_certs().await;
     assert_eq!(broadcasts.len(), 1, "Expected exactly one broadcast");
@@ -326,4 +349,24 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    settings.public_proxy_url = "http://edge.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
+    let (expired_cert_pem, expired_key_pem) =
+        generate_expired_test_cert_pem("expired-edge.example.com");
+    let response = client
+        .post("/api/v1/proxy/cert/external_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": expired_cert_pem,
+            "key_pem": expired_key_pem
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    // Url schema unchanged on errors
+    let settings = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(settings.public_proxy_url, "http://edge.example.com");
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["msg"], "Certificate has expired");
 }

@@ -25,11 +25,11 @@ export const enableSecurityKey = async (
   await page.getByTestId('passkeys-row').locator('.icon-button').click();
   await page.getByTestId('add-passkey').click();
   await page.getByTestId('field-name').fill(keyName);
-  await page.getByTestId('submit').click();
 
+  // Set up virtual authenticator before triggering the WebAuthn challenge
+  // so it can respond to navigator.credentials.create() automatically.
   const authenticator = await context.newCDPSession(page);
   await authenticator.send('WebAuthn.enable');
-
   const { authenticatorId } = await authenticator.send(
     'WebAuthn.addVirtualAuthenticator',
     {
@@ -42,9 +42,14 @@ export const enableSecurityKey = async (
       },
     },
   );
-  await page.waitForTimeout(2000);
+
+  await page.getByTestId('submit').click();
+
+  // Wait for recovery codes screen to appear after WebAuthn registration completes
+  await page.getByTestId('confirm-code-save').waitFor({ state: 'visible' });
   await page.getByTestId('confirm-code-save').click();
   await page.getByTestId('finish-recovery-codes').click();
+
   const { credentials } = await authenticator.send('WebAuthn.getCredentials', {
     authenticatorId,
   });

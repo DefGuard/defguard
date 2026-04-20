@@ -2,12 +2,16 @@ import { Page } from 'playwright';
 
 export const selectPasswordReset = async (page: Page) => {
   const selectButton = page.getByTestId('start-password-reset');
-  selectButton.click();
+  await selectButton.waitFor({ state: 'visible' });
+  await selectButton.click();
 };
 
-export const setEmail = async (token: string, page: Page) => {
-  await page.getByTestId('field-email').fill(token);
+export const setEmail = async (email: string, page: Page) => {
+  await page.getByTestId('field-email').waitFor({ state: 'visible' });
+  await page.getByTestId('field-email').fill(email);
   await page.getByTestId('page-nav-next').click();
+  // Wait for the email step to complete (field hidden = server processed the request).
+  await page.getByTestId('field-email').waitFor({ state: 'hidden' });
 };
 
 export const setPassword = async (password: string, page: Page) => {

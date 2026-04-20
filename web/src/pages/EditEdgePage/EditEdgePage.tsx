@@ -15,7 +15,7 @@ import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { getEdgeQueryOptions } from '../../shared/query';
+import { getEdgeQueryOptions, getEdgesQueryOptions } from '../../shared/query';
 
 export const EditEdgePage = () => {
   const { edgeId } = useParams({
@@ -41,22 +41,33 @@ export const EditEdgePage = () => {
   );
 };
 
-const formSchema = z.object({
-  name: z.string(m.form_error_required()).min(1, m.form_error_required()),
-  address: z.string().nullable(),
-  port: z.number().nullable(),
-  connected_at: z.string().nullable(),
-  disconnected_at: z.string().nullable(),
-  modified_at: z.string(),
-  modified_by: z.string(),
-  version: z.string().nullable(),
-  enabled: z.boolean(),
-});
-
-type FormFields = z.infer<typeof formSchema>;
-
 const EditEdgeForm = ({ edge }: { edge: Edge }) => {
   const navigate = useNavigate();
+  const { data: edges } = useSuspenseQuery(getEdgesQueryOptions);
+
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        name: z
+          .string(m.form_error_required())
+          .min(1, m.form_error_required())
+          .refine(
+            (val) => val === edge.name || !edges?.some((e) => e.name === val),
+            m.edge_edit_error_name_duplicate(),
+          ),
+        address: z.string().nullable(),
+        port: z.number().nullable(),
+        connected_at: z.string().nullable(),
+        disconnected_at: z.string().nullable(),
+        modified_at: z.string(),
+        modified_by: z.string(),
+        version: z.string().nullable(),
+        enabled: z.boolean(),
+      }),
+    [edges, edge.name],
+  );
+
+  type FormFields = z.infer<typeof formSchema>;
 
   const { mutateAsync: editEdge } = useMutation({
     mutationFn: api.edge.editEdge,

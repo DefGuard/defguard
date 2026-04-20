@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -9,10 +10,11 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { getGatewaysQueryOptions } from '../../../shared/query';
+import { Validate } from '../../../shared/validate';
 import { GatewaySetupStep } from '../types';
 import { useGatewayWizardStore } from '../useGatewayWizardStore';
 import './style.scss';
-import { Validate } from '../../../shared/validate';
 
 type FormFields = StoreValues;
 
@@ -24,6 +26,7 @@ type StoreValues = {
 
 export const SetupGatewayComponentStep = () => {
   const setActiveStep = useGatewayWizardStore((s) => s.setActiveStep);
+  const { data: gateways } = useQuery(getGatewaysQueryOptions);
 
   const defaultValues = useGatewayWizardStore(
     useShallow(
@@ -50,7 +53,11 @@ export const SetupGatewayComponentStep = () => {
       z.object({
         common_name: z
           .string()
-          .min(1, m.edge_setup_component_error_common_name_required()),
+          .min(1, m.gateway_setup_component_error_common_name_required())
+          .refine(
+            (val) => !gateways?.some((g) => g.name === val),
+            m.gateway_setup_component_error_common_name_duplicate(),
+          ),
         ip_or_domain: z
           .string()
           .min(1, m.edge_setup_component_error_ip_or_domain_required())
@@ -66,7 +73,7 @@ export const SetupGatewayComponentStep = () => {
           .min(1, m.edge_setup_component_error_grpc_port_required())
           .max(65535, m.edge_setup_component_error_grpc_port_max()),
       }),
-    [],
+    [gateways],
   );
 
   const form = useAppForm({

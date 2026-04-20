@@ -25,8 +25,7 @@ import {
 import { ModalName } from '../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenAssignUserIPModal } from '../../../../shared/hooks/modalControls/types';
 import './style.scss';
-import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../shared/defguard-ui/types';
+import { DescriptionBlock } from '../../../../shared/components/DescriptionBlock/DescriptionBlock';
 
 const modalNameValue = ModalName.AssignUserIP;
 
@@ -208,81 +207,74 @@ const AssignmentForm = ({
 
   return (
     <form.AppForm>
-      <div className="assign-user-ip-modal">
-        <div className="assignment-mode">
-          <h3>{m.modal_assign_user_ip_assignment_mode_title()}</h3>
-          <SizedBox height={ThemeSpacing.Xl} />
-          <p className="mode-description">
-            {m.modal_assign_user_ip_assignment_mode_description()}
+      <DescriptionBlock title={m.modal_assign_user_ip_assignment_mode_title()}>
+        <p>{m.modal_assign_user_ip_assignment_mode_description()}</p>
+      </DescriptionBlock>
+
+      <div className="devices-list">
+        {locationData.locations.length === 0 && (
+          <p className="no-locations">
+            {hasDevices
+              ? m.modal_assign_user_ip_no_locations()
+              : m.modal_assign_user_ip_no_devices()}
           </p>
-        </div>
-
-        <div className="devices-list">
-          {locationData.locations.length === 0 && (
-            <p className="no-locations">
-              {hasDevices
-                ? m.modal_assign_user_ip_no_locations()
-                : m.modal_assign_user_ip_no_devices()}
-            </p>
-          )}
-          {locationData.locations.map((location: LocationDevices, locIdx) => (
-            <IpAssignmentCard
-              key={location.location_id}
-              title={location.location_name}
-              isOpen={openLocations.has(location.location_id)}
-              onOpenChange={() => toggleLocation(location.location_id)}
-            >
-              {location.devices.map((deviceIps, devIdx) => (
-                <IpAssignmentDeviceSection
-                  key={deviceIps.device_id}
-                  name={deviceIps.device_name}
-                >
-                  {deviceIps.wireguard_ips.map((ipData, ipIdx) => (
-                    <form.Field
-                      key={`${deviceIps.device_id}-${ipData.ip}`}
-                      name={`locations[${locIdx}].devices[${devIdx}].ips[${ipIdx}].modifiable_part`}
-                      validators={{
-                        onChangeAsyncDebounceMs: 200,
-                        onChangeAsync: ({ value }) =>
-                          validateIp(
-                            `${ipData.network_part}${value}`,
-                            deviceIps.device_id,
-                            location.location_id,
-                          ),
-                      }}
-                    >
-                      {(field) => (
-                        <SuggestedIpInput
-                          data={ipData}
-                          value={field.state.value}
-                          loading={field.state.meta.isValidating}
-                          error={field.state.meta.errors[0]?.toString()}
-                          onChange={(val) => field.handleChange(val ?? '')}
-                          onBlur={field.handleBlur}
-                          helper={m.form_helper_assigned_ip_address()}
-                        />
-                      )}
-                    </form.Field>
-                  ))}
-                </IpAssignmentDeviceSection>
-              ))}
-            </IpAssignmentCard>
-          ))}
-        </div>
-
-        <ModalControls
-          submitProps={{
-            text: m.controls_submit(),
-            disabled: isSubmitting || !hasDevices,
-            onClick: () => form.handleSubmit(),
-          }}
-          cancelProps={{
-            text: m.controls_cancel(),
-            disabled: isSubmitting,
-            onClick: () => closeModal(modalNameValue),
-          }}
-        />
+        )}
+        {locationData.locations.map((location: LocationDevices, locIdx) => (
+          <IpAssignmentCard
+            key={location.location_id}
+            title={location.location_name}
+            isOpen={openLocations.has(location.location_id)}
+            onOpenChange={() => toggleLocation(location.location_id)}
+          >
+            {location.devices.map((deviceIps, devIdx) => (
+              <IpAssignmentDeviceSection
+                key={deviceIps.device_id}
+                name={deviceIps.device_name}
+              >
+                {deviceIps.wireguard_ips.map((ipData, ipIdx) => (
+                  <form.Field
+                    key={`${deviceIps.device_id}-${ipData.ip}`}
+                    name={`locations[${locIdx}].devices[${devIdx}].ips[${ipIdx}].modifiable_part`}
+                    validators={{
+                      onChangeAsyncDebounceMs: 200,
+                      onChangeAsync: ({ value }) =>
+                        validateIp(
+                          `${ipData.network_part}${value}`,
+                          deviceIps.device_id,
+                          location.location_id,
+                        ),
+                    }}
+                  >
+                    {(field) => (
+                      <SuggestedIpInput
+                        data={ipData}
+                        value={field.state.value}
+                        loading={field.state.meta.isValidating}
+                        error={field.state.meta.errors[0]?.toString()}
+                        onChange={(val) => field.handleChange(val ?? '')}
+                        onBlur={field.handleBlur}
+                        helper={m.form_helper_assigned_ip_address()}
+                      />
+                    )}
+                  </form.Field>
+                ))}
+              </IpAssignmentDeviceSection>
+            ))}
+          </IpAssignmentCard>
+        ))}
       </div>
+      <ModalControls
+        submitProps={{
+          text: m.controls_submit(),
+          disabled: isSubmitting || !hasDevices,
+          onClick: () => form.handleSubmit(),
+        }}
+        cancelProps={{
+          text: m.controls_cancel(),
+          disabled: isSubmitting,
+          onClick: () => closeModal(modalNameValue),
+        }}
+      />
     </form.AppForm>
   );
 };

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CertInfo, ExternalSslType } from '../../shared/api/types';
+import type { CertInfo, ExternalSslType } from '../../../../shared/api/types';
 import {
   SettingsEdgeCertificateWizardStep,
   type SettingsEdgeCertificateWizardStepValue,

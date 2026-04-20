@@ -261,6 +261,18 @@ pub(crate) fn generate_test_cert_pem(common_name: &str) -> (String, String) {
     (cert_pem, key_pem)
 }
 
+pub(crate) fn generate_expired_test_cert_pem(common_name: &str) -> (String, String) {
+    let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
+    let key_pair = generate_key_pair().unwrap();
+    let san = vec![common_name.to_string()];
+    let dn = vec![(DnType::CommonName, common_name)];
+    let csr = Csr::new(&key_pair, &san, dn).unwrap();
+    let cert = ca.sign_csr_with_validity(&csr, 0).unwrap();
+    let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
+    let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
+    (cert_pem, key_pem)
+}
+
 /// Set minimal SMTP fields on a [`Settings`] so that `smtp_configured()` returns `true`.
 pub(crate) fn configure_smtp(settings: &mut Settings) {
     settings.smtp_server = Some("smtp.example.com".into());

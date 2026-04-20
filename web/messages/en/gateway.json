@@ -11,6 +11,7 @@
   "gateway_helper_port": "",
   "gateway_edit_delete": "Delete",
   "gateway_edit_success": "Gateway updated",
+  "gateway_edit_error_name_duplicate": "A gateway with this name already exists",
   "gateway_edit_failed": "Failed to update gateway",
   "gateway_status_all_connected": "All gateways connected",
   "gateway_status_connected_count": "{count} gateways connected",
