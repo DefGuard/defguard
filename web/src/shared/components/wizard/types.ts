@@ -3,7 +3,7 @@ import type { HTMLProps } from 'react';
 export interface WizardPageConfig {
   title: string;
   subtitle: string;
-  activeStep: string | number;
+  activeStep: string;
   steps: WizardPageStepsConfig;
   videoGuidePlacementKey?: string;
   relatedDocs?: WizardDocsLink[];
@@ -17,7 +17,7 @@ export interface WizardDocsLink {
 }
 
 export interface WizardPageStep {
-  id: number | string;
+  id: string;
   order: number;
   label: string;
   description?: string;

@@ -45,7 +45,7 @@ export function useVideoTutorialsSections(): VideoTutorialsSection[] {
 
 export function useWizardVideoGuidePlacement(
   placementKey: string | undefined,
-  stepKey?: string | number,
+  stepKey?: string,
 ): VideoGuidePlacement | null {
   const isEnabled = Boolean(placementKey);
   const { data } = useQuery({
