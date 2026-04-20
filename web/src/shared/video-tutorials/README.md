@@ -161,58 +161,84 @@ endpoint on the same server.
           ]
         }
       ],
-       "placements": {
-         "migrationWizard": {
-           "default": {
-             "youtubeVideoId": "xyz987GHI12",
-             "title": "Migration wizard guide",
-            "docsTitle": "Defguard Configuration Guide",
-            "docsUrl": "https://docs.defguard.net/migration"
+        "placements": {
+          "migrationWizard": {
+            "default": {
+              "video": {
+                "youtubeVideoId": "xyz987GHI12",
+                "title": "Migration wizard guide"
+              },
+              "docs": [
+                {
+                  "docsTitle": "Defguard Configuration Guide",
+                  "docsUrl": "https://docs.defguard.net/migration"
+                }
+              ]
+            },
+            "steps": {
+              "ca": {
+                "video": {
+                  "youtubeVideoId": "aaaBBBccc11",
+                  "title": "Certificate authority guide"
+                },
+                "docs": [
+                  {
+                    "docsTitle": "Certificate authority documentation",
+                    "docsUrl": "https://docs.defguard.net/migration/ca"
+                  },
+                  {
+                    "docsTitle": "Certificate authority troubleshooting",
+                    "docsUrl": "https://docs.defguard.net/migration/ca/troubleshooting"
+                  }
+                ]
+              }
+            }
           },
-          "steps": {
-            "ca": {
-              "youtubeVideoId": "aaaBBBccc11",
-              "title": "Certificate authority guide",
-              "docsTitle": "Certificate authority documentation",
-              "docsUrl": "https://docs.defguard.net/migration/ca"
-             }
-           }
-         },
-         "initialSetupWizard": {
-           "default": {
-             "youtubeVideoId": "bbbCCCddd22",
-             "title": "Initial setup guide",
-             "docsTitle": "Initial setup documentation",
-             "docsUrl": "https://docs.defguard.net/setup"
-           },
-           "steps": {
-             "adminUser": {
-               "youtubeVideoId": "cccDDDeee33",
-               "title": "Admin user guide",
-               "docsTitle": "Admin user documentation",
-               "docsUrl": "https://docs.defguard.net/setup/admin-user"
-             }
-           }
-         },
-         "autoAdoptionWizard": {
-           "default": {
-             "youtubeVideoId": "dddEEEfff44",
-             "title": "Auto adoption guide",
-             "docsTitle": "Auto adoption documentation",
-             "docsUrl": "https://docs.defguard.net/auto-adoption"
-           },
-           "steps": {
-             "vpnSettings": {
-               "youtubeVideoId": "eeeFFFggg55",
-               "title": "VPN settings guide",
-               "docsTitle": "VPN settings documentation",
-               "docsUrl": "https://docs.defguard.net/auto-adoption/vpn-settings"
-             }
-           }
-         }
-       }
-     }
-  }
+          "initialSetupWizard": {
+            "default": {
+              "video": {
+                "youtubeVideoId": "bbbCCCddd22",
+                "title": "Initial setup guide"
+              },
+              "docs": [
+                {
+                  "docsTitle": "Initial setup documentation",
+                  "docsUrl": "https://docs.defguard.net/setup"
+                }
+              ]
+            },
+            "steps": {
+              "adminUser": {
+                "docs": [
+                  {
+                    "docsTitle": "Admin user documentation",
+                    "docsUrl": "https://docs.defguard.net/setup/admin-user"
+                  }
+                ]
+              }
+            }
+          },
+          "autoAdoptionWizard": {
+            "default": {
+              "docs": [
+                {
+                  "docsTitle": "Auto adoption documentation",
+                  "docsUrl": "https://docs.defguard.net/auto-adoption"
+                }
+              ]
+            },
+            "steps": {
+              "vpnSettings": {
+                "video": {
+                  "youtubeVideoId": "eeeFFFggg55",
+                  "title": "VPN settings guide"
+                }
+              }
+            }
+          }
+        }
+      }
+   }
 }
 ```
 
@@ -232,8 +258,20 @@ Wizard placement fields:
 
 | Field | Required | Description |
 |---|---|---|
+| `video` | No | Optional video block shown in the wizard sidebar. |
+| `docs` | No | Optional non-empty array of documentation links shown one under another in the wizard sidebar. |
+
+`video` fields:
+
+| Field | Required | Description |
+|---|---|---|
 | `youtubeVideoId` | Yes | Used to render the thumbnail and embedded player in the wizard sidebar. |
 | `title` | Yes | Displayed next to the thumbnail and used as the iframe title. |
+
+`docs` item fields:
+
+| Field | Required | Description |
+|---|---|---|
 | `docsTitle` | Yes | Text shown in the wizard documentation card. |
 | `docsUrl` | Yes | External URL opened from the wizard documentation card. |
 
@@ -241,6 +279,9 @@ Wizard placement structure:
 
 - `default`: optional fallback guide used when the current step has no dedicated entry
 - `steps`: optional map of step key to guide data
+
+Each placement object must define at least one of `video` or `docs`.
+If `docs` is present, it must contain at least one item.
 
 `placements` is a string-keyed record, so placement keys are not hardcoded in the
 schema. The application currently uses these keys:
@@ -301,6 +342,10 @@ Within the selected version, wizard guide resolution uses this fallback order:
 1. `placements[placementKey].steps[currentStep]`
 2. `placements[placementKey].default`
 3. `null`
+
+Fallback to `default` only happens when the whole step entry is missing.
+If a step entry exists with only `docs` or only `video`, it is used as-is and is
+not merged with `default`.
 
 ---
 

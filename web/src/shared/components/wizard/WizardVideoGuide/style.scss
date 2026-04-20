@@ -40,4 +40,10 @@
       font: var(--t-body-sm-400);
     }
   }
+
+  .doc-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
 }

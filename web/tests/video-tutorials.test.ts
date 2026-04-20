@@ -120,49 +120,85 @@ const makeMappings = (): VideoTutorialsMappings => ({
     placements: {
       migrationWizard: {
         default: {
-          youtubeVideoId: 'abcDEFghiJK',
-          title: 'Migration wizard guide',
-          docsTitle: 'Migration wizard documentation',
-          docsUrl: 'https://docs.defguard.net/migration',
+          video: {
+            youtubeVideoId: 'abcDEFghiJK',
+            title: 'Migration wizard guide',
+          },
+          docs: [
+            {
+              docsTitle: 'Migration wizard documentation',
+              docsUrl: 'https://docs.defguard.net/migration',
+            },
+          ],
         },
         steps: {
           ca: {
-            youtubeVideoId: 'caGuide220a',
-            title: 'Certificate authority guide',
-            docsTitle: 'Certificate authority documentation',
-            docsUrl: 'https://docs.defguard.net/migration/ca',
+            video: {
+              youtubeVideoId: 'caGuide220a',
+              title: 'Certificate authority guide',
+            },
+            docs: [
+              {
+                docsTitle: 'Certificate authority documentation',
+                docsUrl: 'https://docs.defguard.net/migration/ca',
+              },
+            ],
           },
         },
       },
       initialSetupWizard: {
         default: {
-          youtubeVideoId: 'setGuide220',
-          title: 'Initial setup guide',
-          docsTitle: 'Initial setup documentation',
-          docsUrl: 'https://docs.defguard.net/setup',
+          video: {
+            youtubeVideoId: 'setGuide220',
+            title: 'Initial setup guide',
+          },
+          docs: [
+            {
+              docsTitle: 'Initial setup documentation',
+              docsUrl: 'https://docs.defguard.net/setup',
+            },
+          ],
         },
         steps: {
           adminUser: {
-            youtubeVideoId: 'admGuide220',
-            title: 'Admin user guide',
-            docsTitle: 'Admin user documentation',
-            docsUrl: 'https://docs.defguard.net/setup/admin-user',
+            video: {
+              youtubeVideoId: 'admGuide220',
+              title: 'Admin user guide',
+            },
+            docs: [
+              {
+                docsTitle: 'Admin user documentation',
+                docsUrl: 'https://docs.defguard.net/setup/admin-user',
+              },
+            ],
           },
         },
       },
       autoAdoptionWizard: {
         default: {
-          youtubeVideoId: 'autoGuid220',
-          title: 'Auto adoption guide',
-          docsTitle: 'Auto adoption documentation',
-          docsUrl: 'https://docs.defguard.net/auto-adoption',
+          video: {
+            youtubeVideoId: 'autoGuid220',
+            title: 'Auto adoption guide',
+          },
+          docs: [
+            {
+              docsTitle: 'Auto adoption documentation',
+              docsUrl: 'https://docs.defguard.net/auto-adoption',
+            },
+          ],
         },
         steps: {
           vpnSettings: {
-            youtubeVideoId: 'vpnGuide220',
-            title: 'VPN settings guide',
-            docsTitle: 'VPN settings documentation',
-            docsUrl: 'https://docs.defguard.net/auto-adoption/vpn-settings',
+            video: {
+              youtubeVideoId: 'vpnGuide220',
+              title: 'VPN settings guide',
+            },
+            docs: [
+              {
+                docsTitle: 'VPN settings documentation',
+                docsUrl: 'https://docs.defguard.net/auto-adoption/vpn-settings',
+              },
+            ],
           },
         },
       },
@@ -179,8 +215,10 @@ describe('resolveVersion', () => {
     const result = resolveVersion(makeMappings(), '2.3.0');
 
     expect(result?.sections).toHaveLength(2);
-    expect(result?.placements?.migrationWizard?.default?.youtubeVideoId).toBe('abcDEFghiJK');
-    expect(result?.placements?.initialSetupWizard?.default?.youtubeVideoId).toBe(
+    expect(result?.placements?.migrationWizard?.default?.video?.youtubeVideoId).toBe(
+      'abcDEFghiJK',
+    );
+    expect(result?.placements?.initialSetupWizard?.default?.video?.youtubeVideoId).toBe(
       'setGuide220',
     );
   });
@@ -241,7 +279,7 @@ describe('resolveVideoGuidePlacement', () => {
   it('should return the step-specific placement from the newest eligible version', () => {
     const result = resolveVideoGuidePlacement(makeMappings(), '2.3.0', 'migrationWizard', 'ca');
 
-    expect(result?.title).toBe('Certificate authority guide');
+    expect(result?.video?.title).toBe('Certificate authority guide');
   });
 
   it('should fall back to the default placement when step-specific entry is missing', () => {
@@ -252,7 +290,7 @@ describe('resolveVideoGuidePlacement', () => {
       'general',
     );
 
-    expect(result?.title).toBe('Migration wizard guide');
+    expect(result?.video?.title).toBe('Migration wizard guide');
   });
 
   it('should not fall back to an older placement once a newer eligible version is selected', () => {
@@ -262,10 +300,16 @@ describe('resolveVideoGuidePlacement', () => {
         placements: {
           migrationWizard: {
             default: {
-              youtubeVideoId: 'abcDEFghiJK',
-              title: 'Migration wizard guide',
-              docsTitle: 'Migration wizard documentation',
-              docsUrl: 'https://docs.defguard.net/migration',
+              video: {
+                youtubeVideoId: 'abcDEFghiJK',
+                title: 'Migration wizard guide',
+              },
+              docs: [
+                {
+                  docsTitle: 'Migration wizard documentation',
+                  docsUrl: 'https://docs.defguard.net/migration',
+                },
+              ],
             },
           },
         },
@@ -319,7 +363,7 @@ describe('resolveVideoGuidePlacement', () => {
       'adminUser',
     );
 
-    expect(result?.title).toBe('Admin user guide');
+    expect(result?.video?.title).toBe('Admin user guide');
   });
 
   it('should resolve a default placement for auto adoption wizard when step is missing', () => {
@@ -330,7 +374,7 @@ describe('resolveVideoGuidePlacement', () => {
       'summary',
     );
 
-    expect(result?.title).toBe('Auto adoption guide');
+    expect(result?.video?.title).toBe('Auto adoption guide');
   });
 
   it('should resolve a step-specific placement for auto adoption wizard', () => {
@@ -341,7 +385,51 @@ describe('resolveVideoGuidePlacement', () => {
       'vpnSettings',
     );
 
-    expect(result?.title).toBe('VPN settings guide');
+    expect(result?.video?.title).toBe('VPN settings guide');
+  });
+
+  it('should not merge a step placement with the default placement', () => {
+    const mappings: VideoTutorialsMappings = {
+      '2.2': {
+        sections: [],
+        placements: {
+          migrationWizard: {
+            default: {
+              video: {
+                youtubeVideoId: 'abcDEFghiJK',
+                title: 'Migration wizard guide',
+              },
+              docs: [
+                {
+                  docsTitle: 'Migration wizard documentation',
+                  docsUrl: 'https://docs.defguard.net/migration',
+                },
+              ],
+            },
+            steps: {
+              ca: {
+                docs: [
+                  {
+                    docsTitle: 'Certificate authority documentation',
+                    docsUrl: 'https://docs.defguard.net/migration/ca',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = resolveVideoGuidePlacement(mappings, '2.2', 'migrationWizard', 'ca');
+
+    expect(result?.video).toBeUndefined();
+    expect(result?.docs).toEqual([
+      {
+        docsTitle: 'Certificate authority documentation',
+        docsUrl: 'https://docs.defguard.net/migration/ca',
+      },
+    ]);
   });
 });
 
@@ -369,26 +457,44 @@ const validRaw = {
       placements: {
         migrationWizard: {
           default: {
-            youtubeVideoId: 'xyz987GHI12',
-            title: 'Migration guide',
-            docsTitle: 'Defguard Configuration Guide',
-            docsUrl: 'https://docs.defguard.net/migration',
+            video: {
+              youtubeVideoId: 'xyz987GHI12',
+              title: 'Migration guide',
+            },
+            docs: [
+              {
+                docsTitle: 'Defguard Configuration Guide',
+                docsUrl: 'https://docs.defguard.net/migration',
+              },
+            ],
           },
           steps: {
             general: {
-              youtubeVideoId: 'genGuide220',
-              title: 'General configuration guide',
-              docsTitle: 'General configuration documentation',
-              docsUrl: 'https://docs.defguard.net/migration/general',
+              video: {
+                youtubeVideoId: 'genGuide220',
+                title: 'General configuration guide',
+              },
+              docs: [
+                {
+                  docsTitle: 'General configuration documentation',
+                  docsUrl: 'https://docs.defguard.net/migration/general',
+                },
+              ],
             },
           },
         },
         initialSetupWizard: {
           default: {
-            youtubeVideoId: 'setGuide220',
-            title: 'Setup guide',
-            docsTitle: 'Setup docs',
-            docsUrl: 'https://docs.defguard.net/setup',
+            video: {
+              youtubeVideoId: 'setGuide220',
+              title: 'Setup guide',
+            },
+            docs: [
+              {
+                docsTitle: 'Setup docs',
+                docsUrl: 'https://docs.defguard.net/setup',
+              },
+            ],
           },
         },
       },
@@ -403,16 +509,16 @@ describe('parseVideoTutorials', () => {
     expect(result['2.2'].sections).toHaveLength(1);
     expect(result['2.2'].sections[0].name).toBe('Identity');
     expect(result['2.2'].sections[0].videos[0].youtubeVideoId).toBe('abcDEFghiJK');
-    expect(result['2.2'].placements?.migrationWizard?.default?.youtubeVideoId).toBe(
+    expect(result['2.2'].placements?.migrationWizard?.default?.video?.youtubeVideoId).toBe(
       'xyz987GHI12',
     );
-    expect(result['2.2'].placements?.migrationWizard?.default?.docsTitle).toBe(
+    expect(result['2.2'].placements?.migrationWizard?.default?.docs?.[0]?.docsTitle).toBe(
       'Defguard Configuration Guide',
     );
-    expect(result['2.2'].placements?.migrationWizard?.steps?.general?.youtubeVideoId).toBe(
+    expect(result['2.2'].placements?.migrationWizard?.steps?.general?.video?.youtubeVideoId).toBe(
       'genGuide220',
     );
-    expect(result['2.2'].placements?.initialSetupWizard?.default?.youtubeVideoId).toBe(
+    expect(result['2.2'].placements?.initialSetupWizard?.default?.video?.youtubeVideoId).toBe(
       'setGuide220',
     );
   });
@@ -664,10 +770,12 @@ describe('parseVideoTutorials', () => {
           placements: {
             initialSetupWizard: {
               default: {
-                youtubeVideoId: 'xyz987GHI12',
-                title: 'Setup guide',
-                docsTitle: 'Setup Guide',
-                docsUrl: 'not-a-url',
+                docs: [
+                  {
+                    docsTitle: 'Setup Guide',
+                    docsUrl: 'not-a-url',
+                  },
+                ],
               },
             },
           },
@@ -687,10 +795,18 @@ describe('parseVideoTutorials', () => {
           placements: {
             migrationWizard: {
               default: {
-                youtubeVideoId: 'xyz987GHI12',
-                title: 'Migration guide',
-                docsTitle: 'Defguard Configuration Guide',
-                docsUrl: 'https://docs.defguard.net/migration',
+                video: {
+                  youtubeVideoId: 'xyz987GHI12',
+                  title: 'Migration guide',
+                  ignoredVideoField: 'ignored',
+                },
+                docs: [
+                  {
+                    docsTitle: 'Defguard Configuration Guide',
+                    docsUrl: 'https://docs.defguard.net/migration',
+                    ignoredDocsField: 'ignored',
+                  },
+                ],
               },
               extraPlacementField: 'ignored',
             },
@@ -705,6 +821,16 @@ describe('parseVideoTutorials', () => {
     expect(
       (result['2.2'].placements?.migrationWizard as Record<string, unknown>)['extraPlacementField'],
     ).toBeUndefined();
+    expect(
+      (result['2.2'].placements?.migrationWizard?.default?.video as Record<string, unknown>)[
+        'ignoredVideoField'
+      ],
+    ).toBeUndefined();
+    expect(
+      (result['2.2'].placements?.migrationWizard?.default?.docs?.[0] as Record<string, unknown>)[
+        'ignoredDocsField'
+      ],
+    ).toBeUndefined();
   });
 
   it('should reject an empty placement docsTitle', () => {
@@ -715,10 +841,12 @@ describe('parseVideoTutorials', () => {
           placements: {
             autoAdoptionWizard: {
               default: {
-                youtubeVideoId: 'xyz987GHI12',
-                title: 'Auto adoption guide',
-                docsTitle: '',
-                docsUrl: 'https://docs.defguard.net/auto-adoption',
+                docs: [
+                  {
+                    docsTitle: '',
+                    docsUrl: 'https://docs.defguard.net/auto-adoption',
+                  },
+                ],
               },
             },
           },
@@ -738,10 +866,12 @@ describe('parseVideoTutorials', () => {
             autoAdoptionWizard: {
               steps: {
                 vpnSettings: {
-                  youtubeVideoId: 'xyz987GHI12',
-                  title: 'VPN guide',
-                  docsTitle: 'VPN settings guide',
-                  docsUrl: 'not-a-url',
+                  docs: [
+                    {
+                      docsTitle: 'VPN settings guide',
+                      docsUrl: 'not-a-url',
+                    },
+                  ],
                 },
               },
             },
@@ -761,10 +891,16 @@ describe('parseVideoTutorials', () => {
           placements: {
             anyWizardKey: {
               default: {
-                youtubeVideoId: 'xyz987GHI12',
-                title: 'Generic guide',
-                docsTitle: 'Generic docs',
-                docsUrl: 'https://docs.defguard.net/generic',
+                video: {
+                  youtubeVideoId: 'xyz987GHI12',
+                  title: 'Generic guide',
+                },
+                docs: [
+                  {
+                    docsTitle: 'Generic docs',
+                    docsUrl: 'https://docs.defguard.net/generic',
+                  },
+                ],
               },
             },
           },
@@ -774,6 +910,136 @@ describe('parseVideoTutorials', () => {
 
     const result = parseVideoTutorials(raw);
 
-    expect(result['2.2'].placements?.anyWizardKey?.default?.title).toBe('Generic guide');
+    expect(result['2.2'].placements?.anyWizardKey?.default?.video?.title).toBe(
+      'Generic guide',
+    );
+  });
+
+  it('should accept a placement with only video', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            anyWizardKey: {
+              default: {
+                video: {
+                  youtubeVideoId: 'xyz987GHI12',
+                  title: 'Generic guide',
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = parseVideoTutorials(raw);
+
+    expect(result['2.2'].placements?.anyWizardKey?.default).toEqual({
+      video: {
+        youtubeVideoId: 'xyz987GHI12',
+        title: 'Generic guide',
+      },
+    });
+  });
+
+  it('should accept a placement with only docs', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            anyWizardKey: {
+              default: {
+                docs: [
+                  {
+                    docsTitle: 'Generic docs',
+                    docsUrl: 'https://docs.defguard.net/generic',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = parseVideoTutorials(raw);
+
+    expect(result['2.2'].placements?.anyWizardKey?.default).toEqual({
+      docs: [
+        {
+          docsTitle: 'Generic docs',
+          docsUrl: 'https://docs.defguard.net/generic',
+        },
+      ],
+    });
+  });
+
+  it('should accept multiple docs links in a placement', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            anyWizardKey: {
+              default: {
+                docs: [
+                  {
+                    docsTitle: 'Generic docs',
+                    docsUrl: 'https://docs.defguard.net/generic',
+                  },
+                  {
+                    docsTitle: 'More docs',
+                    docsUrl: 'https://docs.defguard.net/generic/more',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = parseVideoTutorials(raw);
+
+    expect(result['2.2'].placements?.anyWizardKey?.default?.docs).toHaveLength(2);
+  });
+
+  it('should reject an empty docs array when docs is present', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            anyWizardKey: {
+              default: {
+                docs: [],
+              },
+            },
+          },
+        },
+      },
+    };
+
+    expect(() => parseVideoTutorials(raw)).toThrow();
+  });
+
+  it('should reject a placement with neither video nor docs', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [],
+          placements: {
+            anyWizardKey: {
+              default: {},
+            },
+          },
+        },
+      },
+    };
+
+    expect(() => parseVideoTutorials(raw)).toThrow();
   });
 });

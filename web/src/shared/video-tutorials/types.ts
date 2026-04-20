@@ -11,11 +11,16 @@ export interface VideoTutorial extends PlayableVideo {
   docsUrl: string;
 }
 
-export interface VideoGuidePlacement extends PlayableVideo {
-  /** Documentation link title shown in the migration wizard card. */
+export interface VideoGuideDocLink {
+  /** Documentation link title shown in the wizard card. */
   docsTitle: string;
   /** External documentation URL. */
   docsUrl: string;
+}
+
+export interface VideoGuidePlacement {
+  video?: PlayableVideo;
+  docs?: VideoGuideDocLink[];
 }
 
 export interface VideoGuidePlacementGroup {
