@@ -68,9 +68,9 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
               </AppText>
             </div>
             <SizedBox height={ThemeSpacing.Md} />
-            <div className="doc-cards">
+            <div className="doc-card">
               {videoGuide.docs!.map((doc) => (
-                <div className="doc-card" key={`${doc.docsTitle}-${doc.docsUrl}`}>
+                <div className="doc-link-row" key={`${doc.docsTitle}-${doc.docsUrl}`}>
                   <ExternalLink href={doc.docsUrl} target="_blank" rel="noreferrer">
                     {doc.docsTitle}
                   </ExternalLink>

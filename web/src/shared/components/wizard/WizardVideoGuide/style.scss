@@ -31,19 +31,20 @@
   }
 
   .doc-card {
+    display: flex;
+    flex-direction: column;
     padding: var(--spacing-lg);
     border: var(--border-1) solid var(--border-default);
     border-radius: var(--radius-lg);
     background-color: var(--bg-default);
+    gap: var(--spacing-md);
 
     .external-link {
       font: var(--t-body-sm-400);
     }
   }
 
-  .doc-cards {
+  .doc-link-row {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
   }
 }
