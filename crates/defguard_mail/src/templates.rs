@@ -6,7 +6,7 @@ use defguard_common::{
     db::models::{Session, Settings, user::MFAMethod},
     types::UrlParseError,
 };
-use pulldown_cmark::{Event, Parser, html};
+use pulldown_cmark::{Event, HeadingLevel, Parser, Tag, TagEnd, html};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::Value;
@@ -192,6 +192,83 @@ pub async fn desktop_start_mail(
     Ok(())
 }
 
+/// Iterator that enforces the supported subset of CommonMark
+/// so that only elements with a corresponding rule in `MARKDOWN_EMAIL_STYLES`
+/// are emitted to the HTML renderer.
+struct EmailEventFilter<'a, I: Iterator<Item = Event<'a>>> {
+    iter: I,
+    skip_depth: usize,
+}
+
+impl<'a, I: Iterator<Item = Event<'a>>> EmailEventFilter<'a, I> {
+    fn new(iter: I) -> Self {
+        Self {
+            iter,
+            skip_depth: 0,
+        }
+    }
+}
+
+impl<'a, I: Iterator<Item = Event<'a>>> Iterator for EmailEventFilter<'a, I> {
+    type Item = Event<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let event = self.iter.next()?;
+
+            // Inside a skipped block: track nesting depth and discard.
+            if self.skip_depth > 0 {
+                match &event {
+                    Event::Start(_) => self.skip_depth += 1,
+                    Event::End(_) => self.skip_depth -= 1,
+                    _ => {}
+                }
+                continue;
+            }
+
+            return Some(match event {
+                // block elements without styles: skip entirely
+                Event::Start(Tag::BlockQuote(_) | Tag::List(Some(_)) | Tag::CodeBlock(_)) => {
+                    self.skip_depth = 1;
+                    continue;
+                }
+
+                // inline elements without styles: drop the tag, keep text
+                Event::Start(Tag::Emphasis | Tag::Strikethrough)
+                | Event::End(TagEnd::Emphasis | TagEnd::Strikethrough) => continue,
+
+                // inline code: render as plain text
+                Event::Code(text) => Event::Text(text),
+
+                // headings: degrade h3-h6 to h2
+                Event::Start(Tag::Heading {
+                    level,
+                    id,
+                    classes,
+                    attrs,
+                }) if !matches!(level, HeadingLevel::H1 | HeadingLevel::H2) => {
+                    Event::Start(Tag::Heading {
+                        level: HeadingLevel::H2,
+                        id,
+                        classes,
+                        attrs,
+                    })
+                }
+                Event::End(TagEnd::Heading(level))
+                    if !matches!(level, HeadingLevel::H1 | HeadingLevel::H2) =>
+                {
+                    Event::End(TagEnd::Heading(HeadingLevel::H2))
+                }
+
+                // raw HTML: strip
+                Event::Html(_) | Event::InlineHtml(_) => continue,
+
+                other => other,
+            });
+        }
+    }
+}
+
 static MARKDOWN_EMAIL_STYLES: &str = r#"
 h1 { font-size: 24px; font-weight: 600; color: #141517; line-height: 32px; font-family: Geist, Arial, sans-serif; }
 h2 { font-size: 16px; font-weight: 400; color: #4A5059; line-height: 24px; font-family: Geist, Arial, sans-serif; }
@@ -204,10 +281,10 @@ hr { border-top: 1px solid #DFE3E9; }
 "#;
 
 /// Renders a markdown string to an inline-styled HTML fragment.
-/// Raw HTML blocks andainline HTML are stripped.
+/// Only elements with a corresponding rule in `MARKDOWN_EMAIL_STYLES` are
+/// rendered; everything else is stripped or degraded (see `EmailEventFilter`).
 pub fn markdown_to_html(content: &str) -> String {
-    let parser = Parser::new(content)
-        .filter(|event| !matches!(event, Event::Html(_) | Event::InlineHtml(_)));
+    let parser = EmailEventFilter::new(Parser::new(content));
     let mut raw_html = String::new();
     html::push_html(&mut raw_html, parser);
 

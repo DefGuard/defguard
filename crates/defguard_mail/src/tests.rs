@@ -394,6 +394,178 @@ fn send_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
     tokio::time::sleep(Duration::from_secs(2)).await;
 }
 
+mod markdown_to_html {
+    use crate::templates::markdown_to_html;
+
+    fn has_tag(html: &str, tag: &str) -> bool {
+        html.contains(&format!("<{tag}"))
+    }
+
+    #[test]
+    fn h1_is_rendered_with_style() {
+        let html = markdown_to_html("# Heading");
+        assert!(has_tag(&html, "h1"), "h1 tag missing: {html}");
+        assert!(
+            html.contains("style="),
+            "h1 must carry an inline style: {html}"
+        );
+    }
+
+    #[test]
+    fn h2_is_rendered_with_style() {
+        let html = markdown_to_html("## Heading");
+        assert!(has_tag(&html, "h2"), "h2 tag missing: {html}");
+        assert!(
+            html.contains("style="),
+            "h2 must carry an inline style: {html}"
+        );
+    }
+
+    #[test]
+    fn bold_is_rendered() {
+        let html = markdown_to_html("**bold**");
+        assert!(has_tag(&html, "strong"), "strong tag missing: {html}");
+    }
+
+    #[test]
+    fn unordered_list_is_rendered_with_style() {
+        let html = markdown_to_html("- First\n- Second");
+        assert!(has_tag(&html, "ul"), "ul tag missing: {html}");
+        assert!(has_tag(&html, "li"), "li tag missing: {html}");
+        assert!(
+            html.contains("style="),
+            "list items must carry an inline style: {html}"
+        );
+    }
+
+    #[test]
+    fn horizontal_rule_is_rendered_with_style() {
+        let html = markdown_to_html("---");
+        assert!(has_tag(&html, "hr"), "hr tag missing: {html}");
+        assert!(
+            html.contains("style="),
+            "hr must carry an inline style: {html}"
+        );
+    }
+
+    #[test]
+    fn link_is_rendered_with_style() {
+        let html = markdown_to_html("[click](https://example.com)");
+        assert!(has_tag(&html, "a"), "a tag missing: {html}");
+        assert!(html.contains("https://example.com"), "href missing: {html}");
+        assert!(
+            html.contains("style="),
+            "a must carry an inline style: {html}"
+        );
+    }
+
+    #[test]
+    fn blockquote_is_stripped() {
+        let html = markdown_to_html("> secret content");
+        assert!(
+            !has_tag(&html, "blockquote"),
+            "blockquote must be stripped: {html}"
+        );
+        assert!(
+            !html.contains("secret content"),
+            "blockquote content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn ordered_list_is_stripped() {
+        let html = markdown_to_html("1. First\n2. Second");
+        assert!(!has_tag(&html, "ol"), "ol must be stripped: {html}");
+        assert!(
+            !html.contains("First"),
+            "ordered list content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn code_block_is_stripped() {
+        let html = markdown_to_html("```\nsome code\n```");
+        assert!(!has_tag(&html, "pre"), "pre must be stripped: {html}");
+        assert!(!has_tag(&html, "code"), "code must be stripped: {html}");
+        assert!(
+            !html.contains("some code"),
+            "code block content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn nested_unsupported_block_is_stripped() {
+        let html = markdown_to_html("> 1. nested item");
+        assert!(
+            !has_tag(&html, "blockquote"),
+            "blockquote must be stripped: {html}"
+        );
+        assert!(
+            !has_tag(&html, "ol"),
+            "ol inside blockquote must be stripped: {html}"
+        );
+        assert!(
+            !html.contains("nested item"),
+            "nested content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn italic_tag_is_stripped_but_text_kept() {
+        let html = markdown_to_html("*italic text*");
+        assert!(!has_tag(&html, "em"), "em must be stripped: {html}");
+        assert!(
+            html.contains("italic text"),
+            "italic text content must be preserved: {html}"
+        );
+    }
+
+    #[test]
+    fn inline_code_becomes_plain_text() {
+        let html = markdown_to_html("`inline code`");
+        assert!(!has_tag(&html, "code"), "code tag must be stripped: {html}");
+        assert!(
+            html.contains("inline code"),
+            "inline code text must be preserved: {html}"
+        );
+    }
+
+    #[test]
+    fn h3_is_degraded_to_h2() {
+        let html = markdown_to_html("### Heading");
+        assert!(has_tag(&html, "h2"), "h3 must be degraded to h2: {html}");
+        assert!(!has_tag(&html, "h3"), "h3 must not appear: {html}");
+    }
+
+    #[test]
+    fn h6_is_degraded_to_h2() {
+        let html = markdown_to_html("###### Deep heading");
+        assert!(has_tag(&html, "h2"), "h6 must be degraded to h2: {html}");
+        assert!(!has_tag(&html, "h6"), "h6 must not appear: {html}");
+    }
+
+    #[test]
+    fn raw_html_is_stripped() {
+        let html = markdown_to_html("<script>alert('xss')</script> text");
+        assert!(
+            !html.contains("<script>"),
+            "raw HTML script tag must be stripped: {html}"
+        );
+    }
+
+    #[test]
+    fn bold_preserved_italic_stripped_in_same_paragraph() {
+        let html = markdown_to_html("**bold** and *italic* together");
+        assert!(has_tag(&html, "strong"), "strong must be preserved: {html}");
+        assert!(!has_tag(&html, "em"), "em must be stripped: {html}");
+        assert!(
+            html.contains("italic"),
+            "italic text must be preserved: {html}"
+        );
+        assert!(html.contains("bold"), "bold text must be preserved: {html}");
+    }
+}
+
 #[test]
 fn test_mfa_configured_subject_totp() {
     // TOTP
