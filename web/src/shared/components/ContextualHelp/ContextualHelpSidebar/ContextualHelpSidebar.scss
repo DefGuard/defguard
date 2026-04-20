@@ -1,0 +1,126 @@
+.contextual-help {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4xl);
+
+  &-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .section-title {
+    font: var(--t-body-primary-500);
+    color: var(--fg-default);
+    white-space: nowrap;
+  }
+
+  // FAQ
+  .faq-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: var(--bg-default);
+    border: 1px solid var(--border-disabled);
+    border-radius: var(--radius-lg);
+  }
+
+  .faq-item {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: flex-start;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  .faq-item-icon {
+    flex-shrink: 0;
+  }
+
+  .faq-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .faq-question {
+    font: var(--t-body-sm-400);
+    color: var(--fg-action);
+    margin: 0;
+
+    &.open {
+      font: var(--t-body-sm-500);
+      color: var(--fg-default);
+    }
+  }
+
+  .faq-answer {
+    font: var(--t-body-sm-400);
+    color: var(--fg-faded);
+    margin: 0;
+  }
+
+  // Related docs
+  .docs-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .docs-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-decoration: none;
+  }
+
+  .docs-icon-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 100px;
+    background: var(--bg-action-muted);
+  }
+
+  .docs-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font: var(--t-body-sm-400);
+    color: var(--fg-action);
+  }
+
+  .docs-external-icon {
+    flex-shrink: 0;
+  }
+
+  // Best practices
+  .practices-card {
+    padding: var(--spacing-lg);
+    background: var(--bg-disabled);
+    border-radius: var(--radius-lg);
+
+    .markdown-render {
+      font: var(--t-body-sm-400);
+      color: var(--fg-faded);
+    }
+  }
+}
