@@ -6,6 +6,7 @@ use defguard_common::{
     db::models::{Session, Settings, user::MFAMethod},
     types::UrlParseError,
 };
+use pulldown_cmark::{Event, Parser, html};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::Value;
@@ -191,6 +192,34 @@ pub async fn desktop_start_mail(
     Ok(())
 }
 
+static MARKDOWN_EMAIL_STYLES: &str = r#"
+h1 { font-size: 24px; font-weight: 600; color: #141517; line-height: 32px; font-family: Geist, Arial, sans-serif; }
+h2 { font-size: 16px; font-weight: 400; color: #4A5059; line-height: 24px; font-family: Geist, Arial, sans-serif; }
+p { font-size: 16px; font-weight: 400; color: #4A5059; line-height: 24px; font-family: Geist, Arial, sans-serif; }
+a { color: #3961DB; text-decoration: underline; }
+ul { list-style: disc; padding-left: 21px; }
+li { font-size: 14px; font-weight: 400; color: #4A5059; line-height: 20px; font-family: Geist, Arial, sans-serif; }
+strong, b { font-weight: 600; }
+hr { border-top: 1px solid #DFE3E9; }
+"#;
+
+/// Renders a markdown string to an inline-styled HTML fragment.
+/// Raw HTML blocks andainline HTML are stripped.
+pub fn markdown_to_html(content: &str) -> String {
+    let parser = Parser::new(content)
+        .filter(|event| !matches!(event, Event::Html(_) | Event::InlineHtml(_)));
+    let mut raw_html = String::new();
+    html::push_html(&mut raw_html, parser);
+
+    match css_inline::inline_fragment(&raw_html, MARKDOWN_EMAIL_STYLES) {
+        Ok(styled) => styled,
+        Err(err) => {
+            warn!("Failed to apply inline styles to markdown HTML: {err}");
+            raw_html
+        }
+    }
+}
+
 /// Welcome message sent when activating an account through enrollment.
 /// Its content is stored in markdown, so it's parsed into HTML and plain text.
 pub fn enrollment_welcome_mail(
@@ -203,10 +232,7 @@ pub fn enrollment_welcome_mail(
         get_base_tera_mjml(Context::new(), None, ip_address, device_info)?;
 
     debug!("Render welcome mail template for user enrollment");
-    // Convert content to HTML.
-    let parser = pulldown_cmark::Parser::new(content);
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
+    let html_output = markdown_to_html(content);
 
     context.insert("welcome_message_content", &html_output);
 

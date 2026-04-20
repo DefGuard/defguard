@@ -5,9 +5,7 @@
 <mj-section>
   <mj-column mj-class="s-3xl">
     <mj-text>
-      <p>
-        {{ welcome_message_content }}
-      </p>
+      {{ welcome_message_content }}
     </mj-text>
   </mj-column>
 </mj-section>
