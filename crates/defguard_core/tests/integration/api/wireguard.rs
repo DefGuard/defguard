@@ -568,7 +568,7 @@ async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
             PublicKey = {}\n\
             AllowedIPs = 10.1.1.0/24\n\
             Endpoint = 192.168.4.14:55555\n\
-            PersistentKeepalive = 300",
+            PersistentKeepalive = 25",
             network_from_details.pubkey
         )
     );
