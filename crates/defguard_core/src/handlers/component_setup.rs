@@ -50,7 +50,7 @@ use tracing::Instrument;
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
     enterprise::is_enterprise_license_active,
-    letsencrypt::{ACME_TIMEOUT_SECS, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
+    letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
@@ -1175,8 +1175,7 @@ pub async fn stream_proxy_acme(
         });
 
         let mut current_step: &'static str = "Connecting";
-        let deadline = tokio::time::Instant::now()
-            + tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS);
+        let deadline = tokio::time::Instant::now() + ACME_TIMEOUT;
 
         // Drain progress steps until the ACME task finishes (channel closed) or times out.
         loop {
@@ -1199,7 +1198,7 @@ pub async fn stream_proxy_acme(
                         current_step,
                         format!(
                             "ACME certificate issuance timed out after \
-                             {ACME_TIMEOUT_SECS} seconds."
+                             {} seconds.", ACME_TIMEOUT.as_secs()
                         ),
                         None,
                     ));

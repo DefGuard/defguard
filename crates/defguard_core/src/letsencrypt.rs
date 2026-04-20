@@ -23,9 +23,9 @@ use tonic::{
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
 #[cfg(not(test))]
-pub const ACME_TIMEOUT_SECS: u64 = 300;
+pub const ACME_TIMEOUT: Duration = Duration::from_secs(300);
 #[cfg(test)]
-pub const ACME_TIMEOUT_SECS: u64 = 1;
+pub const ACME_TIMEOUT: Duration = Duration::from_secs(1);
 const LETSENCRYPT_EXPIRY_THRESHOLD: TimeDelta = TimeDelta::days(14);
 
 #[derive(Debug, Error)]
@@ -38,8 +38,8 @@ pub(crate) enum LetsencryptError {
     ProxyListLoadFailed(sqlx::Error),
     #[error("No Edge found in database")]
     NoProxyFound,
-    #[error("ACME certificate issuance timed out after {timeout_secs} seconds")]
-    AcmeTimedOut { timeout_secs: u64 },
+    #[error("ACME certificate issuance timed out after {} seconds", timeout.as_secs())]
+    AcmeTimedOut { timeout: Duration },
     #[error("Failed to reload certificates for saving: {0}")]
     CertificateReloadFailed(sqlx::Error),
     #[error("Failed to save certificate: {0}")]
@@ -118,7 +118,7 @@ pub(crate) async fn do_letsencrypt_refresh(
     let (progress_tx, _progress_rx) = unbounded_channel::<AcmeStep>();
 
     match tokio::time::timeout(
-        tokio::time::Duration::from_secs(ACME_TIMEOUT_SECS),
+        ACME_TIMEOUT,
         call_proxy_trigger_acme(
             pool,
             &proxy_host,
@@ -169,10 +169,11 @@ pub(crate) async fn do_letsencrypt_refresh(
         Err(_) => {
             error!(
                 "ACME certificate issuance timed out after \
-                 {ACME_TIMEOUT_SECS} seconds."
+                 {}.",
+                ACME_TIMEOUT.as_secs(),
             );
             return Err(LetsencryptError::AcmeTimedOut {
-                timeout_secs: ACME_TIMEOUT_SECS,
+                timeout: ACME_TIMEOUT,
             });
         }
     }
@@ -363,7 +364,7 @@ mod tests {
         transport::{Identity, Server, ServerTlsConfig},
     };
 
-    use super::{ACME_TIMEOUT_SECS, LetsencryptError, do_letsencrypt_refresh};
+    use super::{ACME_TIMEOUT, LetsencryptError, do_letsencrypt_refresh};
 
     const TEST_ACCOUNT_JSON: &str = r#"{"account_url":"https://acme.example/account/1"}"#;
 
@@ -777,7 +778,7 @@ mod tests {
 
         let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
         let result = timeout(
-            Duration::from_secs(ACME_TIMEOUT_SECS + 5),
+            ACME_TIMEOUT + Duration::from_secs(5),
             do_letsencrypt_refresh(&pool, proxy_control_tx),
         )
         .await
@@ -785,7 +786,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(LetsencryptError::AcmeTimedOut { timeout_secs }) if timeout_secs == ACME_TIMEOUT_SECS
+            Err(LetsencryptError::AcmeTimedOut { timeout }) if timeout == ACME_TIMEOUT
         ));
 
         drop(mock_server);
