@@ -47,8 +47,15 @@ export function useWizardVideoGuidePlacement(
   placementKey: string | undefined,
   stepKey?: string | number,
 ): VideoGuidePlacement | null {
-  const { data } = useQuery(videoTutorialsQueryOptions);
-  const { data: appVersion } = useQuery(getVersionQueryOptions);
+  const isEnabled = Boolean(placementKey);
+  const { data } = useQuery({
+    ...videoTutorialsQueryOptions,
+    enabled: isEnabled,
+  });
+  const { data: appVersion } = useQuery({
+    ...getVersionQueryOptions,
+    enabled: isEnabled,
+  });
 
   if (!placementKey || !data || !appVersion) return EMPTY_VIDEO_GUIDE_PLACEMENT;
   return resolveVideoGuidePlacement(data, appVersion, placementKey, stepKey);
