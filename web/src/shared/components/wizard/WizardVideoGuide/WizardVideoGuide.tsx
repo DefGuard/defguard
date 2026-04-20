@@ -18,10 +18,10 @@ type Props = {
 
 export const WizardVideoGuide = ({ videoGuide }: Props) => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
-  const hasVideo = Boolean(videoGuide.video);
+  const video = videoGuide.video;
   const hasDocs = Boolean(videoGuide.docs?.length);
 
-  if (!hasVideo && !hasDocs) {
+  if (!video && !hasDocs) {
     return null;
   }
 
@@ -30,7 +30,7 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
       <div id="wizard-video-support">
         <SizedBox height={ThemeSpacing.Xl5} />
 
-        {hasVideo && (
+        {video && (
           <>
             <div className="support-header">
               <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>
@@ -39,10 +39,14 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
               </AppText>
             </div>
             <SizedBox height={ThemeSpacing.Md} />
-            <button type="button" className="video-card" onClick={() => setIsVideoOpen(true)}>
+            <button
+              type="button"
+              className="video-card"
+              onClick={() => setIsVideoOpen(true)}
+            >
               <Thumbnail
-                url={`https://img.youtube.com/vi/${videoGuide.video!.youtubeVideoId}/hqdefault.jpg`}
-                title={videoGuide.video!.title}
+                url={`https://img.youtube.com/vi/${video?.youtubeVideoId}/hqdefault.jpg`}
+                title={video?.title ?? ''}
               />
               <div className="video-info">
                 <AppText
@@ -50,14 +54,14 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
                   font={TextStyle.TBodySm400}
                   color={ThemeVariable.FgFaded}
                 >
-                  {videoGuide.video!.title}
+                  {video?.title}
                 </AppText>
               </div>
             </button>
           </>
         )}
 
-        {hasVideo && hasDocs && <Divider spacing={ThemeSpacing.Xl2} />}
+        {video && hasDocs && <Divider spacing={ThemeSpacing.Xl2} />}
 
         {hasDocs && (
           <>
@@ -69,7 +73,7 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
             </div>
             <SizedBox height={ThemeSpacing.Md} />
             <div className="doc-card">
-              {videoGuide.docs!.map((doc) => (
+              {videoGuide.docs?.map((doc) => (
                 <div className="doc-link-row" key={`${doc.docsTitle}-${doc.docsUrl}`}>
                   <ExternalLink href={doc.docsUrl} target="_blank" rel="noreferrer">
                     {doc.docsTitle}
@@ -82,9 +86,9 @@ export const WizardVideoGuide = ({ videoGuide }: Props) => {
       </div>
       <SizedBox height={ThemeSpacing.Xl5} />
 
-      {hasVideo && (
+      {video && (
         <VideoOverlay
-          video={videoGuide.video!}
+          video={video}
           isOpen={isVideoOpen}
           onClose={() => setIsVideoOpen(false)}
           afterClose={() => setIsVideoOpen(false)}
