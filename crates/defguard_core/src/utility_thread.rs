@@ -1,14 +1,17 @@
 use std::{collections::HashSet, time::Duration};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_common::db::models::{
-    Certificates, CoreCertSource, ProxyCertSource, User, WireguardNetwork,
-    wireguard::ServiceLocationMode,
+use defguard_common::{
+    db::models::{
+        Certificates, CoreCertSource, ProxyCertSource, User, WireguardNetwork,
+        wireguard::ServiceLocationMode,
+    },
+    types::proxy::ProxyControlMessage,
 };
 use defguard_mail::templates;
 use sqlx::{PgConnection, PgPool, query_as};
 use tokio::{
-    sync::broadcast::Sender,
+    sync::{broadcast::Sender, mpsc},
     time::{Instant, sleep},
 };
 use tracing::Instrument;
@@ -23,6 +26,7 @@ use crate::{
         limits::update_counts,
     },
     grpc::GatewayEvent,
+    letsencrypt::do_letsencrypt_refresh,
     location_management::allowed_peers::get_location_allowed_peers,
     updates::do_new_version_check,
 };
@@ -33,6 +37,7 @@ const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
 const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
+const LETSENCRYPT_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24;
 const CERTIFICATE_EXPIRY_CHECK_INTERVAL: u64 = 60 * 60 * 24; // 1 day
 const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 
@@ -40,6 +45,7 @@ const ACL_EXPIRY_SYSTEM_ACTOR: &str = "system:acl-expiry";
 pub async fn run_utility_thread(
     pool: &PgPool,
     wireguard_tx: Sender<GatewayEvent>,
+    proxy_control_tx: mpsc::Sender<ProxyControlMessage>,
 ) -> Result<(), anyhow::Error> {
     let mut last_count_update = Instant::now();
     let mut last_directory_sync = Instant::now();
@@ -47,6 +53,7 @@ pub async fn run_utility_thread(
     let mut last_ldap_sync = Instant::now();
     let mut last_expired_acl_rules_check = Instant::now();
     let mut last_enterprise_status_check = Instant::now();
+    let mut last_letsencrypt_expiry_check = Instant::now();
     let mut last_certificate_check = Instant::now();
 
     // helper variable which stores previous enterprise features status
@@ -98,11 +105,21 @@ pub async fn run_utility_thread(
         }
     };
 
+    let letsencrypt_refresh_task = || async {
+        if let Err(e) = do_letsencrypt_refresh(pool, proxy_control_tx.clone())
+            .instrument(info_span!("letsencrypt_refresh_task"))
+            .await
+        {
+            error!("There was an error while performing letsencrypt refresh task: {e}");
+        }
+    };
+
     directory_sync_task().await;
     count_update_task().await;
     updates_check_task().await;
     ldap_sync_task().await;
     expired_acl_rules_task().await;
+    letsencrypt_refresh_task().await;
     check_certificates(pool).await;
 
     loop {
@@ -138,27 +155,32 @@ pub async fn run_utility_thread(
             last_expired_acl_rules_check = Instant::now();
         }
 
+        // Check LE cert expiry dates and refresh if necessary
+        if last_letsencrypt_expiry_check.elapsed().as_secs() >= LETSENCRYPT_EXPIRY_CHECK_INTERVAL {
+            letsencrypt_refresh_task().await;
+            last_letsencrypt_expiry_check = Instant::now();
+        }
+
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
             let new_enterprise_enabled = is_business_license_active();
-            if new_enterprise_enabled == enterprise_enabled {
-                continue;
-            }
-            debug!(
-                "Enterprise feature status changed from {enterprise_enabled} to \
-                {new_enterprise_enabled}"
-            );
-            if let Err(err) =
-                enterprise_status_check(pool, wireguard_tx.clone(), new_enterprise_enabled)
-                    .instrument(info_span!("enterprise_status_check"))
-                    .await
-            {
-                error!("Failed to check enterprise status: {err}");
-            } else {
-                // update status
-                enterprise_enabled = new_enterprise_enabled;
-            }
             last_enterprise_status_check = Instant::now();
+            if new_enterprise_enabled != enterprise_enabled {
+                debug!(
+                    "Enterprise feature status changed from {enterprise_enabled} to \
+                    {new_enterprise_enabled}"
+                );
+                if let Err(err) =
+                    enterprise_status_check(pool, wireguard_tx.clone(), new_enterprise_enabled)
+                        .instrument(info_span!("enterprise_status_check"))
+                        .await
+                {
+                    error!("Failed to check enterprise status: {err}");
+                } else {
+                    // update status
+                    enterprise_enabled = new_enterprise_enabled;
+                }
+            }
         }
 
         // Check certificates.
