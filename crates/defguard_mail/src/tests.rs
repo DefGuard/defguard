@@ -29,6 +29,11 @@ fn dg25_8_server_side_template_injection() {
     assert!(tera.render("text", &Context::new()).is_err());
 }
 
+/// Delay, so send_and_forget() can process the message.
+async fn delay() {
+    tokio::time::sleep(Duration::from_secs(2)).await;
+}
+
 /// Set SMTP settings from environment variables.
 async fn set_smtp_settings(pool: &PgPool) {
     let config = DefGuardConfig::new_test_config();
@@ -66,8 +71,7 @@ fn send_desktop_start(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -101,8 +105,7 @@ fn send_new_device_added(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -124,8 +127,7 @@ fn send_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -148,8 +150,7 @@ fn send_new_account(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -171,8 +172,7 @@ fn send_mfa_activation(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -196,8 +196,7 @@ fn send_enrollment_admin_notification(_: PgPoolOptions, options: PgConnectOption
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -220,8 +219,7 @@ fn send_gateway_disconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -244,8 +242,7 @@ fn send_gateway_reconnected_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -264,8 +261,7 @@ fn send_mfa_configured_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -280,8 +276,7 @@ fn send_new_device_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -303,8 +298,7 @@ fn send_new_device_oidc_login_mail(_: PgPoolOptions, options: PgConnectOptions) 
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -327,8 +321,7 @@ fn send_password_reset_mail(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -342,8 +335,7 @@ fn send_password_reset_success_mail(_: PgPoolOptions, options: PgConnectOptions)
         .await
         .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -357,8 +349,7 @@ fn send_test_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -376,8 +367,7 @@ fn send_support_data_mail(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
 }
 
 #[ignore = "requires SMTP server"]
@@ -390,8 +380,47 @@ fn send_enrollment_welcome_mail(_: PgPoolOptions, options: PgConnectOptions) {
     templates::enrollment_welcome_mail(&env::var("SMTP_TO").unwrap(), markdown, None, None)
         .unwrap();
 
-    // Delay, so send_and_forget() can process the message.
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    delay().await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_certificate_expiration(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let expiration = Utc::now().naive_utc();
+    let mut conn = pool.begin().await.unwrap();
+    templates::certificate_expiration_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        "Dummy",
+        expiration,
+    )
+    .await
+    .unwrap();
+
+    delay().await;
+}
+
+#[ignore = "requires SMTP server"]
+#[sqlx::test]
+fn send_certificate_expired(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_smtp_settings(&pool).await;
+
+    let expiration = Utc::now().naive_utc();
+    let mut conn = pool.begin().await.unwrap();
+    templates::certificate_expired_mail(
+        &env::var("SMTP_TO").unwrap(),
+        &mut conn,
+        "Dummy",
+        expiration,
+    )
+    .await
+    .unwrap();
+
+    delay().await;
 }
 
 #[test]
