@@ -22,7 +22,8 @@ export const ContextualHelpKey = {
   Support: 'support',
 } as const;
 
-export type ContextualHelpKey = (typeof ContextualHelpKey)[keyof typeof ContextualHelpKey];
+export type ContextualHelpKey =
+  (typeof ContextualHelpKey)[keyof typeof ContextualHelpKey];
 
 export interface ContextualHelpFaq {
   question: string;
