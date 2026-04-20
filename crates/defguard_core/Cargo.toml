@@ -31,7 +31,6 @@ bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 humantime = { workspace = true }
-hyper-rustls = { workspace = true }
 # match version used by sqlx
 ipnetwork = { workspace = true }
 jsonwebkey = { workspace = true }
