@@ -98,5 +98,13 @@
   "migration_wizard_ca_info_label_common_name": "Common Name",
   "migration_wizard_ca_info_label_validity": "Validity",
   "migration_wizard_ca_validity_unknown": "—",
-  "migration_wizard_ca_validity_less_than_year": "Less than a year"
+  "migration_wizard_ca_validity_less_than_year": "Less than a year",
+  "migration_wizard_locations_title": "VPN Locations Migration",
+  "migration_wizard_locations_subtitle": "We will verify the connection, ensure the port is open, and confirm the gateway is running the correct version. Any errors will be displayed, allowing you to fix issues and retry during the process.",
+  "migration_wizard_locations_complete_snackbar": "Migration completed",
+  "migration_wizard_locations_firewall_info": "By clicking the button below, you confirm that the required firewall changes have been made and that the Core can connect to this gateway on TCP port 50066. In case you have any question please read our documentation following the link in the bottom section.",
+  "migration_wizard_locations_progress": "Migrate {current} of {total} location(s):",
+  "migration_wizard_locations_unknown": "Unknown",
+  "migration_wizard_locations_start_button": "Start migration",
+  "migration_wizard_locations_skip_button": "Skip location"
 }

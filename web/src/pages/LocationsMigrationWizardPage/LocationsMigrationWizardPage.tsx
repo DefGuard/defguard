@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep } from 'radashi';
 import { useCallback } from 'react';
 import Skeleton from 'react-loading-skeleton';
+import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
 import { Controls } from '../../shared/components/Controls/Controls';
 import { WizardWelcomePage } from '../../shared/components/wizard/WizardWelcomePage/WizardWelcomePage';
@@ -19,17 +20,15 @@ import { useGatewayWizardStore } from '../GatewaySetupPage/useGatewayWizardStore
 import { useMigrationWizardStore } from '../MigrationWizardPage/store/useMigrationWizardStore';
 import { MigrationWizardStep } from '../MigrationWizardPage/types';
 
-const subtitle = `We will verify the connection, ensure the port is open, and confirm the gateway is running the correct version. Any errors will be displayed, allowing you to fix issues and retry during the process.`;
-
 export const LocationsMigrationWizardPage = () => {
   return (
     <WizardWelcomePage
       containerProps={{
         id: 'locations-migration-page',
       }}
-      title={`VPN Locations Migration`}
+      title={m.migration_wizard_locations_title()}
       displayDocs={false}
-      subtitle={subtitle}
+      subtitle={m.migration_wizard_locations_subtitle()}
       content={<Content />}
     />
   );
@@ -52,7 +51,7 @@ const Content = () => {
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: migrationWizardFinishPromise,
     onSuccess: () => {
-      Snackbar.default(`Migration completed`);
+      Snackbar.default(m.migration_wizard_locations_complete_snackbar());
       navigate({ to: '/vpn-overview', replace: true });
       setTimeout(() => {
         useMigrationWizardStore.getState().resetState();
@@ -106,18 +105,22 @@ const Content = () => {
       <Divider />
       <SizedBox height={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
-        {`By clicking the button below, you confirm that the required firewall changes have been made and that the Core can connect to this gateway on TCP port 5055. In case you have any question please read our documentation following the link in the bottom section.`}
+        {m.migration_wizard_locations_firewall_info()}
       </AppText>
       <SizedBox height={ThemeSpacing.Lg} />
       <Divider />
       <SizedBox height={ThemeSpacing.Lg} />
       <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgFaded}>
-        {`Migrate ${currentLocationIndex + 1} of ${locationsState.locations.length} location(s):`}
+        {m.migration_wizard_locations_progress({
+          current: currentLocationIndex + 1,
+          total: locationsState.locations.length,
+        })}
       </AppText>
       {isLoading && <Skeleton width={160} height={28} />}
       {!isLoading && isPresent(locationsDisplay) && (
         <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgFaded}>
-          {locationsDisplay[locationsState.current_location] ?? `Unknown`}
+          {locationsDisplay[locationsState.current_location] ??
+            m.migration_wizard_locations_unknown()}
         </AppText>
       )}
       <SizedBox height={ThemeSpacing.Xl2} />
@@ -125,12 +128,12 @@ const Content = () => {
       <SizedBox height={ThemeSpacing.Xl2} />
       <Controls>
         <Button
-          text={`Start migration`}
+          text={m.migration_wizard_locations_start_button()}
           disabled={finishPending || isLoading}
           onClick={handleStart}
         />
         <Button
-          text={`Skip location`}
+          text={m.migration_wizard_locations_skip_button()}
           variant={'outlined'}
           loading={finishPending}
           disabled={isLoading}
