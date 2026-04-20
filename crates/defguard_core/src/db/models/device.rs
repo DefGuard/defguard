@@ -604,11 +604,12 @@ impl Device<Id> {
             PublicKey = {}\n\
             {allowed_ips}\
             Endpoint = {}:{}\n\
-            PersistentKeepalive = 300",
+            PersistentKeepalive = {}",
             wireguard_network_device.wireguard_ips.as_csv(),
             location.pubkey,
             location.endpoint,
             location.port,
+            location.keepalive_interval,
         )
     }
 
