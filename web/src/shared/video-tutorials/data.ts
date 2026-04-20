@@ -46,7 +46,7 @@ const sectionSchema = z
   })
   .strip();
 
-const migrationWizardPlacementSchema = z
+const placementSchema = z
   .object({
     youtubeVideoId: z
       .string()
@@ -60,18 +60,14 @@ const migrationWizardPlacementSchema = z
   })
   .strip();
 
-const migrationWizardPlacementGroupSchema = z
+const placementGroupSchema = z
   .object({
-    default: migrationWizardPlacementSchema.optional(),
-    steps: z.record(z.string(), migrationWizardPlacementSchema).optional(),
+    default: placementSchema.optional(),
+    steps: z.record(z.string(), placementSchema).optional(),
   })
   .strip();
 
-const placementsSchema = z
-  .object({
-    migrationWizard: migrationWizardPlacementGroupSchema.optional(),
-  })
-  .strip();
+const placementsSchema = z.record(z.string(), placementGroupSchema);
 
 const versionEntrySchema = z
   .object({

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMatches } from '@tanstack/react-router';
 import { useApp } from '../hooks/useApp';
-import { videoTutorialsQueryOptions } from '../query';
+import { getVersionQueryOptions, videoTutorialsQueryOptions } from '../query';
 import { resolveSections, resolveVideoGuidePlacement } from './resolver';
 import { canonicalizeRouteKey } from './route-key';
 import type { VideoGuidePlacement, VideoTutorial, VideoTutorialsSection } from './types';
@@ -48,7 +48,7 @@ export function useWizardVideoGuidePlacement(
   stepKey?: string | number,
 ): VideoGuidePlacement | null {
   const { data } = useQuery(videoTutorialsQueryOptions);
-  const appVersion = useApp((s) => s.appInfo.version);
+  const { data: appVersion } = useQuery(getVersionQueryOptions);
 
   if (!placementKey || !data || !appVersion) return EMPTY_VIDEO_GUIDE_PLACEMENT;
   return resolveVideoGuidePlacement(data, appVersion, placementKey, stepKey);

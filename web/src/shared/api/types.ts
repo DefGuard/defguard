@@ -488,6 +488,10 @@ export interface ApplicationInfo {
   ldap_info: LdapInfo;
 }
 
+export interface VersionResponse {
+  version: string;
+}
+
 export interface UpdateInfo {
   version: string;
   release_date: string;

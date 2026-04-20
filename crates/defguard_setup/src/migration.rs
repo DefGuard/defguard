@@ -52,6 +52,7 @@ use crate::handlers::{
         finish_setup, get_migration_state, migration_set_external_url_settings,
         migration_set_internal_url_settings, update_migration_state,
     },
+    version::get_version,
 };
 
 /// FIXME: This is a workaround which enables us to reuse the same API handlers
@@ -104,6 +105,7 @@ pub fn build_migration_webapp(
             "/api/v1",
             Router::new()
                 .route("/health", get(health_check))
+                .route("/version", get(get_version))
                 .route("/info", get(get_app_info))
                 .route("/me", get(me))
                 .route("/session-info", get(get_session_info))
