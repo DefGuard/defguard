@@ -567,8 +567,6 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
-  info: () => client.get<ApplicationInfo>('/info'),
-  getVersion: () => client.get<VersionResponse>('/version'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
   support: {
     getSupportData: () => client.get<object>('/support/configuration'),

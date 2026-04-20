@@ -272,7 +272,7 @@ export const getSessionInfoQueryOptions = queryOptions({
 });
 
 export const getVersionQueryOptions = queryOptions({
-  queryFn: api.getVersion,
+  queryFn: api.app.version,
   queryKey: ['version'],
   select: (resp) => resp.data.version,
   refetchOnMount: true,
