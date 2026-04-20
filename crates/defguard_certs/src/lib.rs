@@ -3,8 +3,8 @@ use std::str::FromStr;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
 use rcgen::{
-    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
-    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
+    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
+    Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
 };
 use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
 use thiserror::Error;
@@ -13,6 +13,8 @@ use x509_parser::{
     extensions::{GeneralName, ParsedExtension},
     parse_x509_certificate,
 };
+
+pub use rcgen::ExtendedKeyUsagePurpose;
 
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
