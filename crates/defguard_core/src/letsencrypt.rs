@@ -126,7 +126,7 @@ pub(crate) async fn do_letsencrypt_refresh(
         ACME_TIMEOUT,
         call_proxy_trigger_acme(
             pool,
-            &proxy.into(),
+            &proxy,
             domain.clone(),
             account_credentials_json,
             progress_tx,
@@ -458,6 +458,7 @@ mod tests {
 
     struct MockAcmeServer {
         port: u16,
+        server_cert_serial: String,
         task: JoinHandle<()>,
     }
 
@@ -468,7 +469,7 @@ mod tests {
             behavior: MockAcmeBehavior,
         ) -> Self {
             init_rustls_crypto_provider();
-            let identity = make_server_identity(ca, common_name);
+            let (identity, server_cert_serial) = make_server_identity(ca, common_name);
             let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0))
                 .await
                 .expect("failed to bind mock ACME server");
@@ -489,7 +490,11 @@ mod tests {
 
             tokio::task::yield_now().await;
 
-            Self { port, task }
+            Self {
+                port,
+                server_cert_serial,
+                task,
+            }
         }
     }
 
@@ -499,7 +504,10 @@ mod tests {
         }
     }
 
-    fn make_server_identity(ca: &CertificateAuthority<'_>, common_name: &str) -> Identity {
+    fn make_server_identity(
+        ca: &CertificateAuthority<'_>,
+        common_name: &str,
+    ) -> (Identity, String) {
         let key_pair = generate_key_pair().expect("failed to generate key pair");
         let san = vec![common_name.to_string()];
         let dn = vec![(DnType::CommonName, common_name)];
@@ -507,12 +515,15 @@ mod tests {
         let cert = ca
             .sign_server_cert(&csr)
             .expect("failed to sign server cert");
+        let serial = defguard_certs::CertificateInfo::from_der(cert.der())
+            .expect("failed to parse server cert info")
+            .serial;
         let cert_pem =
             defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
         let key_pem =
             defguard_certs::der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)
                 .expect("key PEM");
-        Identity::from_pem(cert_pem, key_pem)
+        (Identity::from_pem(cert_pem, key_pem), serial)
     }
 
     fn init_rustls_crypto_provider() {
@@ -592,9 +603,19 @@ mod tests {
         certs.save(pool).await.expect("failed to save LE certs");
     }
 
-    async fn create_proxy(pool: &sqlx::PgPool, address: &str, port: u16) {
+    async fn create_proxy(
+        pool: &sqlx::PgPool,
+        address: &str,
+        port: u16,
+        certificate_serial: &str,
+        core_client_cert: &defguard_certs::CoreClientCert,
+    ) {
         let mut proxy = Proxy::new("test-proxy", address, i32::from(port), "tester");
         proxy.enabled = true;
+        proxy.certificate_serial = Some(certificate_serial.to_string());
+        proxy.core_client_cert_der = Some(core_client_cert.cert_der.clone());
+        proxy.core_client_cert_key_der = Some(core_client_cert.key_der.clone());
+        proxy.core_client_cert_expiry = Some(core_client_cert.expiry);
         proxy.save(pool).await.expect("failed to save proxy");
     }
 
@@ -701,7 +722,17 @@ mod tests {
             },
         )
         .await;
-        create_proxy(&pool, "localhost", mock_server.port).await;
+        let core_client_cert = ca
+            .issue_core_client_cert("localhost")
+            .expect("failed to issue core client cert");
+        create_proxy(
+            &pool,
+            "localhost",
+            mock_server.port,
+            &mock_server.server_cert_serial,
+            &core_client_cert,
+        )
+        .await;
 
         let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
         let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
@@ -754,7 +785,17 @@ mod tests {
             MockAcmeBehavior::RpcError(Status::unavailable("rpc unavailable")),
         )
         .await;
-        create_proxy(&pool, "localhost", mock_server.port).await;
+        let core_client_cert = ca
+            .issue_core_client_cert("localhost")
+            .expect("failed to issue core client cert");
+        create_proxy(
+            &pool,
+            "localhost",
+            mock_server.port,
+            &mock_server.server_cert_serial,
+            &core_client_cert,
+        )
+        .await;
 
         let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
         let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
@@ -778,7 +819,17 @@ mod tests {
         seed_letsencrypt_cert(&pool, &ca, "localhost", 1).await;
 
         let mock_server = MockAcmeServer::start(&ca, "localhost", MockAcmeBehavior::Hang).await;
-        create_proxy(&pool, "localhost", mock_server.port).await;
+        let core_client_cert = ca
+            .issue_core_client_cert("localhost")
+            .expect("failed to issue core client cert");
+        create_proxy(
+            &pool,
+            "localhost",
+            mock_server.port,
+            &mock_server.server_cert_serial,
+            &core_client_cert,
+        )
+        .await;
 
         let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
         let result = timeout(
