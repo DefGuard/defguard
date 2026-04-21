@@ -592,6 +592,95 @@ mod tests {
         );
     }
 
+    /// Verify that the CA can sign a CSR generated externally with a NIST P-256
+    /// (secp256r1) key pair
+    #[test]
+    fn test_sign_external_p256_csr_via_from_der() {
+        use rcgen::PKCS_ECDSA_P256_SHA256;
+
+        let device_key = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
+        let csr_built = Csr::new(
+            &device_key,
+            &["device.example.com".to_string()],
+            vec![(rcgen::DnType::CommonName, "device.example.com")],
+        )
+        .unwrap();
+
+        let csr_der = csr_built.to_der().to_vec();
+        let csr = Csr::from_der(&csr_der).unwrap();
+
+        let ca = CertificateAuthority::new("Defguard CA", "ca@example.com", 365).unwrap();
+        let signed = ca.sign_server_cert(&csr).unwrap();
+
+        // The signed certificate must carry the device's EC (P-256) public key.
+        // EC public key OID: 1.2.840.10045.2.1
+        let (_, parsed) = x509_parser::parse_x509_certificate(signed.der()).unwrap();
+        let spki_alg_oid = parsed
+            .tbs_certificate
+            .subject_pki
+            .algorithm
+            .algorithm
+            .to_id_string();
+        assert_eq!(
+            spki_alg_oid, "1.2.840.10045.2.1",
+            "signed certificate must carry an EC (P-256) public key"
+        );
+
+        // The subject public key in the signed cert must match the device key.
+        let cert_pub_key_bytes = parsed.tbs_certificate.subject_pki.subject_public_key.data;
+        let device_pub_key_bytes = device_key.public_key_raw();
+        assert_eq!(
+            cert_pub_key_bytes, device_pub_key_bytes,
+            "signed certificate public key must match the device's P-256 public key"
+        );
+    }
+
+    /// Verify that the CA can sign a CSR produced by an external tool (OpenSSL)
+    /// using a real NIST P-256 key.
+    /// The CSR was produced with:
+    ///   openssl ecparam -name prime256v1 -genkey -noout -out device.key
+    ///   openssl req -new -key device.key \
+    ///     -subj "/CN=device.example.com" \
+    ///     -addext "subjectAltName=DNS:device.example.com" \
+    ///     -out device.csr
+    #[test]
+    fn test_sign_openssl_p256_csr() {
+        const CSR_PEM: &str = "-----BEGIN CERTIFICATE REQUEST-----
+MIIBBzCBrwIBADAdMRswGQYDVQQDDBJkZXZpY2UuZXhhbXBsZS5jb20wWTATBgcq
+hkjOPQIBBggqhkjOPQMBBwNCAARd5+5mjOxyatISxK98hF2LmOwsjuFOlCQbe7u7
+vTJ70sC39Z9U8u4BwbSUl2fyRuKMwOCMt29dffKFoJz4EvMRoDAwLgYJKoZIhvcN
+AQkOMSEwHzAdBgNVHREEFjAUghJkZXZpY2UuZXhhbXBsZS5jb20wCgYIKoZIzj0E
+AwIDRwAwRAIgb38FDcxhdMUoGb+wDM8wHtVjKO2bKjxOMdbEloxhxK0CIHJMIxiu
+mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
+-----END CERTIFICATE REQUEST-----";
+
+        let b64: String = CSR_PEM
+            .lines()
+            .filter(|l| !l.starts_with("-----"))
+            .collect();
+        let csr_der = BASE64_STANDARD.decode(b64).unwrap();
+
+        let csr = Csr::from_der(&csr_der).unwrap();
+
+        let ca = CertificateAuthority::new("Defguard CA", "ca@example.com", 365).unwrap();
+        let signed = ca.sign_server_cert(&csr).unwrap();
+
+        // EC public key OID: 1.2.840.10045.2.1
+        let (_, parsed) = x509_parser::parse_x509_certificate(signed.der()).unwrap();
+        let spki = &parsed.tbs_certificate.subject_pki;
+        assert_eq!(
+            spki.algorithm.algorithm.to_id_string(),
+            "1.2.840.10045.2.1",
+            "signed certificate must carry an EC (P-256) public key"
+        );
+        // Confirm it is a 256-bit EC point (uncompressed: 65 bytes).
+        assert_eq!(
+            spki.subject_public_key.data.len(),
+            65,
+            "EC P-256 public key must be 65 bytes (uncompressed point)"
+        );
+    }
+
     #[test]
     fn test_csr_verify_hostname_extra_san_rejected() {
         let key = generate_key_pair().unwrap();
