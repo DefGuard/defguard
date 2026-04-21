@@ -15,11 +15,11 @@ use reqwest::{
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::timeout;
 
 use super::common::{
     SHUTDOWN_TIMEOUT, init_settings_with_secret_key, make_migration_test_client, seed_admin_user,
 };
-use tokio::time::timeout;
 
 async fn assert_migration_step(pool: &sqlx::PgPool, expected_variant: &str) {
     let state = MigrationWizardState::get(pool)

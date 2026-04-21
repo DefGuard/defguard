@@ -7,7 +7,10 @@ use defguard_common::db::{
 use ldap3::{Mod, SearchEntry};
 use sqlx::PgExecutor;
 
-use super::{LDAPConfig, error::{LdapError, sanitize_ldap_string}};
+use super::{
+    LDAPConfig,
+    error::{LdapError, sanitize_ldap_string},
+};
 use crate::{handlers::user::check_username, hashset};
 
 pub(crate) enum UserObjectClass {
