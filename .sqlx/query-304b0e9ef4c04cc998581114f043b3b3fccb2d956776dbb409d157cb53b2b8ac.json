@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wizard\n             SET initial_setup_state = NULL\n             WHERE is_singleton",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "304b0e9ef4c04cc998581114f043b3b3fccb2d956776dbb409d157cb53b2b8ac"
+}

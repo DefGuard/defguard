@@ -22,7 +22,7 @@ pub(super) async fn refresh_certs(pool: &PgPool, tx: &watch::Sender<Arc<HashMap<
             let certs = collect_certs(
                 gateways
                     .into_iter()
-                    .map(|gateway| (gateway.id, gateway.certificate)),
+                    .map(|gateway| (gateway.id, gateway.certificate_serial)),
             );
             let _ = tx.send(Arc::new(certs));
         }
@@ -107,19 +107,19 @@ mod tests {
         assert!(!published.contains_key(&gateway_without_cert.id));
         assert!(!published.contains_key(&999));
 
-        gateway_with_cert.certificate = Some("cert-2".to_string());
+        gateway_with_cert.certificate_serial = Some("cert-2".to_string());
         gateway_with_cert
             .save(&pool)
             .await
             .expect("failed to update gateway certificate for cert refresh tests");
 
-        gateway_without_cert.certificate = Some("cert-4".to_string());
+        gateway_without_cert.certificate_serial = Some("cert-4".to_string());
         gateway_without_cert
             .save(&pool)
             .await
             .expect("failed to add gateway certificate for cert refresh tests");
 
-        gateway_with_new_cert.certificate = None;
+        gateway_with_new_cert.certificate_serial = None;
         gateway_with_new_cert
             .save(&pool)
             .await
@@ -172,7 +172,7 @@ mod tests {
             51820,
             "test-admin".to_string(),
         );
-        gateway.certificate = certificate.map(str::to_owned);
+        gateway.certificate_serial = certificate.map(str::to_owned);
 
         gateway
             .save(pool)

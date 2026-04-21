@@ -7,7 +7,10 @@ use std::{
 };
 
 use axum_extra::extract::cookie::Key;
-use defguard_certs::{CertificateAuthority, Csr, DnType, PemLabel, der_to_pem, generate_key_pair};
+use defguard_certs::{
+    CertificateAuthority, Csr, DnType, ExtendedKeyUsagePurpose, PemLabel, der_to_pem,
+    generate_key_pair,
+};
 pub use defguard_common::db::setup_pool;
 use defguard_common::{
     VERSION,
@@ -255,7 +258,7 @@ pub(crate) fn generate_test_cert_pem(common_name: &str) -> (String, String) {
     let san = vec![common_name.to_string()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
-    let cert = ca.sign_csr(&csr).unwrap();
+    let cert = ca.sign_server_cert(&csr).unwrap();
     let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
     let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
     (cert_pem, key_pem)
@@ -267,7 +270,9 @@ pub(crate) fn generate_expired_test_cert_pem(common_name: &str) -> (String, Stri
     let san = vec![common_name.to_string()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
-    let cert = ca.sign_csr_with_validity(&csr, 0).unwrap();
+    let cert = ca
+        .sign_csr_with_validity(&csr, 0, &[ExtendedKeyUsagePurpose::ServerAuth])
+        .unwrap();
     let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
     let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
     (cert_pem, key_pem)

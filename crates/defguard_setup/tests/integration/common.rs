@@ -1,6 +1,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
+    time::Duration,
 };
 
 use axum::serve;
@@ -26,7 +27,9 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
 
-#[allow(dead_code)]
+pub const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(1);
+pub const SESSION_COOKIE_NAME: &str = "defguard_session";
+
 pub const TEST_SECRET_KEY: &str =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
@@ -84,7 +87,6 @@ impl TestClient {
     }
 }
 
-#[allow(dead_code)]
 pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Receiver<()>) {
     let (setup_shutdown_tx, setup_shutdown_rx) = oneshot::channel::<()>();
     let app = build_setup_webapp(
@@ -99,7 +101,6 @@ pub async fn make_setup_test_client(pool: PgPool) -> (TestClient, oneshot::Recei
     (TestClient::new(app, listener), setup_shutdown_rx)
 }
 
-#[allow(dead_code)]
 pub async fn make_migration_test_client(
     pool: PgPool,
 ) -> (
@@ -114,7 +115,7 @@ pub async fn make_migration_test_client(
         setup_shutdown_tx,
     );
     // We must keep `webapp` alive to prevent its event receiver channels from
-    // being dropped — if they are dropped the `emit_event` call in the auth
+    // being dropped - if they are dropped the `emit_event` call in the auth
     // handler will fail with "channel closed".
     let router = webapp.router.clone();
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
@@ -127,7 +128,6 @@ pub async fn make_migration_test_client(
 /// Initialise settings with a known secret key so `build_migration_webapp` can
 /// call `secret_key_required()` without panicking. Also initialises SERVER_CONFIG
 /// so the auth handler can call `server_config()`.
-#[allow(dead_code)]
 pub async fn init_settings_with_secret_key(pool: &PgPool) {
     initialize_current_settings(pool)
         .await
@@ -146,7 +146,6 @@ pub async fn init_settings_with_secret_key(pool: &PgPool) {
 
 /// Creates an admin group + admin user and returns the user.
 /// `User::is_admin()` checks group membership, not a column flag.
-#[allow(dead_code)]
 pub async fn seed_admin_user(pool: &PgPool, username: &str, password: &str) -> User<Id> {
     let mut admin_group = Group::new("admins");
     admin_group.is_admin = true;

@@ -29,7 +29,7 @@ use defguard_common::{
     utils::strip_scheme,
 };
 use defguard_proto::{
-    common::{CertificateInfo, DerPayload},
+    common::{CertBundle, CertificateInfo},
     gateway::gateway_setup_client::GatewaySetupClient,
     proxy::{AcmeStep, proxy_setup_client::ProxySetupClient},
 };
@@ -38,7 +38,13 @@ use futures::Stream;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::mpsc::{Sender, UnboundedReceiver, unbounded_channel};
+use tokio::{
+    sync::{
+        mpsc::{Sender, UnboundedReceiver, unbounded_channel},
+        oneshot,
+    },
+    time::{Instant, sleep_until, timeout},
+};
 use tokio_stream::StreamExt;
 use tonic::{
     Request, Status,
@@ -57,6 +63,11 @@ use crate::{
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
+/// Maximum lifetime of a one-time setup session token.
+/// The setup handshake must complete within this window; tokens that outlive
+/// it are useless and limiting the expiry reduces the damage window if the
+/// token is captured from the plaintext setup channel.
+const SETUP_TOKEN_EXPIRY_SECS: u64 = 300;
 
 /// Guard that aborts a tokio task when dropped
 struct TaskGuard(tokio::task::JoinHandle<()>);
@@ -348,7 +359,7 @@ pub async fn setup_proxy_tls_stream(
             defguard_common::auth::claims::ClaimsType::Gateway,
             url.to_string(),
             TOKEN_CLIENT_ID.to_string(),
-            u32::MAX.into(),
+            SETUP_TOKEN_EXPIRY_SECS,
         )
         .to_jwt()
         {
@@ -373,7 +384,7 @@ pub async fn setup_proxy_tls_stream(
              request.grpc_port
         );
 
-        let response_with_metadata = match tokio::time::timeout(CONNECTION_TIMEOUT, client.start(())).await {
+        let response_with_metadata = match timeout(CONNECTION_TIMEOUT, client.start(())).await {
             Ok(Ok(response)) => response,
             Ok(Err(status)) => {
                 let error_msg = status.message();
@@ -510,6 +521,11 @@ pub async fn setup_proxy_tls_stream(
             }
         };
 
+        if let Err(e) = csr.verify_hostname(hostname) {
+            yield Ok(flow.error(&format!("CSR hostname validation failed: {e}")));
+            return;
+        }
+
         debug!("Received certificate signing request from Edge for hostname: {hostname}");
 
         // Step 5: Sign certificate
@@ -534,7 +550,7 @@ pub async fn setup_proxy_tls_stream(
 
         debug!("Certificate authority loaded and ready to sign certificates");
 
-        let cert = match ca.sign_csr(&csr) {
+        let cert = match ca.sign_server_cert(&csr) {
             Ok(c) => c,
             Err(e) => {
                 yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
@@ -547,7 +563,20 @@ pub async fn setup_proxy_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        if let Err(e) = client.send_cert(DerPayload { der_data: cert.der().to_vec() }).await {
+        let core_client = match ca.issue_core_client_cert(&request.common_name) {
+            Ok(c) => c,
+            Err(e) => {
+                yield Ok(flow.error(&format!("Failed to issue Core client certificate: {e}")));
+                return;
+            }
+        };
+
+        let bundle = CertBundle {
+            component_cert_der: cert.der().to_vec(),
+            ca_cert_der: ca_cert_der.clone(),
+            core_client_cert_der: core_client.cert_der.clone(),
+        };
+        if let Err(e) = client.send_cert(bundle).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
         }
@@ -571,8 +600,11 @@ pub async fn setup_proxy_tls_stream(
             i32::from(request.grpc_port),
             session.user.fullname().as_str(),
         );
-        proxy.certificate = Some(serial);
+        proxy.certificate_serial = Some(serial);
         proxy.certificate_expiry = Some(expiry);
+        proxy.core_client_cert_der = Some(core_client.cert_der);
+        proxy.core_client_cert_key_der = Some(core_client.key_der);
+        proxy.core_client_cert_expiry = Some(core_client.expiry);
 
         let proxy = match proxy.save(&pool).await {
             Ok(p) => p,
@@ -776,7 +808,7 @@ pub async fn setup_gateway_tls_stream(
             defguard_common::auth::claims::ClaimsType::Gateway,
             url.to_string(),
             TOKEN_CLIENT_ID.to_string(),
-            u32::MAX.into(),
+             SETUP_TOKEN_EXPIRY_SECS,
         )
         .to_jwt()
         {
@@ -803,7 +835,7 @@ pub async fn setup_gateway_tls_stream(
         debug!("Initiating connection to Gateway at {ip_or_domain}:{}",
             request.grpc_port);
 
-        let response_with_metadata = match tokio::time::timeout(
+        let response_with_metadata = match timeout(
             CONNECTION_TIMEOUT,
             client.start(())
         ).await {
@@ -952,6 +984,11 @@ pub async fn setup_gateway_tls_stream(
             }
         };
 
+        if let Err(e) = csr.verify_hostname(hostname) {
+            yield Ok(flow.error(&format!("CSR hostname validation failed: {e}")));
+            return;
+        }
+
         debug!("Received certificate signing request from Gateway for hostname: {hostname}");
 
         // Step 5: Sign certificate
@@ -980,7 +1017,7 @@ pub async fn setup_gateway_tls_stream(
 
         debug!("Certificate authority loaded and ready to sign certificates");
 
-        let cert = match ca.sign_csr(&csr) {
+        let cert = match ca.sign_server_cert(&csr) {
             Ok(c) => c,
             Err(e) => {
                 yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
@@ -993,11 +1030,20 @@ pub async fn setup_gateway_tls_stream(
         // Step 6: Configure TLS
         yield Ok(flow.step(SetupStep::ConfiguringTls));
 
-        let response = DerPayload {
-            der_data: cert.der().to_vec(),
+        let core_client = match ca.issue_core_client_cert(&request.common_name) {
+            Ok(c) => c,
+            Err(e) => {
+                yield Ok(flow.error(&format!("Failed to issue Core client certificate: {e}")));
+                return;
+            }
         };
 
-        if let Err(e) = client.send_cert(response).await {
+        let bundle = CertBundle {
+            component_cert_der: cert.der().to_vec(),
+            ca_cert_der: ca_cert_der.clone(),
+            core_client_cert_der: core_client.cert_der.clone(),
+        };
+        if let Err(e) = client.send_cert(bundle).await {
             yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
             return;
         }
@@ -1028,8 +1074,11 @@ pub async fn setup_gateway_tls_stream(
             session.user.fullname(),
         );
 
-        gateway.certificate = Some(serial);
+        gateway.certificate_serial = Some(serial);
         gateway.certificate_expiry = Some(expiry);
+        gateway.core_client_cert_der = Some(core_client.cert_der);
+        gateway.core_client_cert_key_der = Some(core_client.key_der);
+        gateway.core_client_cert_expiry = Some(core_client.expiry);
 
         if let Err(err) = gateway.save(&pool).await {
             yield Ok(flow.error(&format!("Failed to save Gateway to database: {err}")));
@@ -1123,7 +1172,7 @@ pub async fn stream_proxy_acme(
 
         let account_credentials_json = certs.acme_account_credentials.clone().unwrap_or_default();
 
-        let proxies = match Proxy::list(&pool).await {
+        let proxies = match Proxy::all_enabled(&pool).await {
             Ok(list) => list,
             Err(e) => {
                 yield Ok(acme_error_event(
@@ -1146,8 +1195,8 @@ pub async fn stream_proxy_acme(
             return;
         };
 
-        let proxy_host = proxy.address.clone();
-        let proxy_port = proxy.port as u16;
+        let proxy_host = &proxy.address;
+        let proxy_port = proxy.port;
         info!(
             "Triggering ACME HTTP-01 via Edge gRPC TriggerAcme for domain: {domain} \
              Edge={proxy_host}:{proxy_port}"
@@ -1156,7 +1205,7 @@ pub async fn stream_proxy_acme(
         let (progress_tx, mut progress_rx) =
             unbounded_channel::<AcmeStep>();
         let (result_tx, result_rx) =
-            tokio::sync::oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
+            oneshot::channel::<Result<(String, String, String), (String, Vec<String>)>>();
 
         let pool_clone = pool.clone();
         let domain_clone = domain.clone();
@@ -1164,8 +1213,7 @@ pub async fn stream_proxy_acme(
         tokio::spawn(async move {
             let result = call_proxy_trigger_acme(
                 &pool_clone,
-                &proxy_host,
-                proxy_port,
+                &proxy,
                 domain_clone,
                 acct_creds_clone,
                 progress_tx,
@@ -1175,7 +1223,7 @@ pub async fn stream_proxy_acme(
         });
 
         let mut current_step: &'static str = "Connecting";
-        let deadline = tokio::time::Instant::now() + ACME_TIMEOUT;
+        let deadline = Instant::now() + ACME_TIMEOUT;
 
         // Drain progress steps until the ACME task finishes (channel closed) or times out.
         loop {
@@ -1193,7 +1241,7 @@ pub async fn stream_proxy_acme(
                     }
                 }
 
-                () = tokio::time::sleep_until(deadline) => {
+                () = sleep_until(deadline) => {
                     yield Ok(acme_error_event(
                         current_step,
                         format!(

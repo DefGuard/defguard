@@ -18,6 +18,7 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
 };
 use tera::Context;
+use tokio::time::sleep;
 
 use super::{Attachment, mail::MailMessage, templates};
 
@@ -31,7 +32,7 @@ fn dg25_8_server_side_template_injection() {
 
 /// Delay, so send_and_forget() can process the message.
 async fn delay() {
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 /// Set SMTP settings from environment variables.

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"version\",\"enabled\",\"certificate\",\"certificate_expiry\",\"modified_at\",\"modified_by\" FROM \"proxy\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"version\",\"enabled\",\"certificate_serial\",\"certificate_expiry\",\"modified_at\",\"modified_by\",\"core_client_cert_der\",\"core_client_cert_key_der\",\"core_client_cert_expiry\" FROM \"proxy\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -45,7 +45,7 @@
       },
       {
         "ordinal": 8,
-        "name": "certificate",
+        "name": "certificate_serial",
         "type_info": "Text"
       },
       {
@@ -62,6 +62,21 @@
         "ordinal": 11,
         "name": "modified_by",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "core_client_cert_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 13,
+        "name": "core_client_cert_key_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 14,
+        "name": "core_client_cert_expiry",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -81,8 +96,11 @@
       true,
       true,
       false,
-      false
+      false,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "bcb405dc3159cd72c5ccebf29bf4b6163ee0e324cd95cbf3e32d025b5ba7fcbb"
+  "hash": "eb50eae3a1786cf685b8ec084e905afc8c9c0ae34ffe29bf6adb2a89f1ae6edb"
 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wizard\n             SET auto_adoption_state = NULL\n             WHERE is_singleton",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f2eab45b5d87910672e8970e662b99e657fce3a80d9eb42760728db17d8d844e"
+}

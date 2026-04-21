@@ -1166,7 +1166,7 @@ async fn test_totp_enable_persists(_: PgPoolOptions, options: PgConnectOptions) 
 
     client.login_user("hpotter", "pass123").await;
 
-    // Init TOTP — the secret is returned directly, no SMTP required.
+    // Init TOTP - the secret is returned directly, no SMTP required.
     let response = client.post("/api/v1/auth/totp/init").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let auth_totp: AuthTotp = response.json().await;

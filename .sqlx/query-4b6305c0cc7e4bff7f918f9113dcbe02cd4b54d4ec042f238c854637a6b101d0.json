@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"location_id\",\"name\",\"address\",\"port\",\"connected_at\",\"disconnected_at\",\"certificate\",\"certificate_expiry\",\"version\",\"enabled\",\"modified_at\",\"modified_by\" FROM \"gateway\" LIMIT $1 OFFSET $2",
+  "query": "SELECT g.id, g.location_id, g.name, g.address, g.port, g.connected_at, g.disconnected_at, CASE WHEN g.connected_at IS NULL THEN false WHEN g.disconnected_at IS NULL THEN true WHEN g.connected_at >= g.disconnected_at THEN true ELSE false END AS \"connected!\", g.certificate_serial, g.certificate_expiry, g.version, g.enabled, g.modified_at, g.modified_by, wn.name AS location_name FROM gateway g JOIN wireguard_network wn ON g.location_id = wn.id",
   "describe": {
     "columns": [
       {
@@ -40,40 +40,47 @@
       },
       {
         "ordinal": 7,
-        "name": "certificate",
-        "type_info": "Text"
+        "name": "connected!",
+        "type_info": "Bool"
       },
       {
         "ordinal": 8,
+        "name": "certificate_serial",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "version",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "modified_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "location_name",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -83,13 +90,15 @@
       false,
       true,
       true,
+      null,
       true,
       true,
       true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "19ad6391ddfb43ab2f1100aefab048e985a9c6ba7c02475756c3e40e9a66b450"
+  "hash": "4b6305c0cc7e4bff7f918f9113dcbe02cd4b54d4ec042f238c854637a6b101d0"
 }

@@ -1,12 +1,15 @@
-use std::time::Duration;
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chrono::{NaiveDateTime, TimeDelta, Utc};
-use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
-    db::models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
+    db::{
+        Id,
+        models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
+    },
     types::proxy::ProxyControlMessage,
 };
+use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_mail::templates;
 use defguard_proto::proxy::{
     AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
@@ -14,12 +17,14 @@ use defguard_proto::proxy::{
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use sqlx::PgPool;
 use thiserror::Error;
-use tokio::sync::mpsc::{self, UnboundedSender, unbounded_channel};
-use tonic::{
-    Request,
-    service::Interceptor,
-    transport::{Certificate, ClientTlsConfig, Endpoint},
+use tokio::{
+    sync::{
+        mpsc::{self, UnboundedSender, unbounded_channel},
+        watch,
+    },
+    time::timeout,
 };
+use tonic::{Request, service::Interceptor};
 
 /// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
 #[cfg(not(test))]
@@ -117,12 +122,11 @@ pub(crate) async fn do_letsencrypt_refresh(
 
     let (progress_tx, _progress_rx) = unbounded_channel::<AcmeStep>();
 
-    match tokio::time::timeout(
+    match timeout(
         ACME_TIMEOUT,
         call_proxy_trigger_acme(
             pool,
-            &proxy_host,
-            proxy_port,
+            &proxy,
             domain.clone(),
             account_credentials_json,
             progress_tx,
@@ -237,8 +241,7 @@ pub(crate) fn acme_step_name(step: AcmeStep) -> &'static str {
 /// collected during the ACME run (sent by the proxy via an [`AcmeLogs`] event).
 pub(crate) async fn call_proxy_trigger_acme(
     pool: &PgPool,
-    proxy_host: &str,
-    proxy_port: u16,
+    proxy: &Proxy<Id>,
     domain: String,
     account_credentials_json: String,
     progress_tx: UnboundedSender<AcmeStep>,
@@ -253,32 +256,29 @@ pub(crate) async fn call_proxy_trigger_acme(
         )
     })?;
 
-    let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
-        .map_err(|e| (format!("Failed to convert CA cert to PEM: {e}"), Vec::new()))?;
-
-    let endpoint_str = format!("https://{proxy_host}:{proxy_port}");
-    let endpoint = Endpoint::from_shared(endpoint_str)
-        .map_err(|e| (format!("Failed to build Edge endpoint: {e}"), Vec::new()))?
-        .http2_keep_alive_interval(Duration::from_secs(5))
-        .tcp_keepalive(Some(Duration::from_secs(5)))
-        .keep_alive_while_idle(true);
-
-    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(cert_pem));
-    let endpoint = endpoint.tls_config(tls).map_err(|e| {
+    let cert_serial = proxy.certificate_serial.as_deref().ok_or_else(|| {
         (
-            format!("Failed to configure TLS for Edge endpoint: {e}"),
+            "Edge certificate serial not provisioned".to_string(),
             Vec::new(),
         )
     })?;
+
+    // Seed a one-shot serial map so the rustls verifier validates the server cert serial.
+    let (_, certs_rx) = watch::channel(Arc::new(HashMap::from([(
+        proxy.id,
+        cert_serial.to_string(),
+    )])));
+
+    let channel = proxy_mtls_channel(proxy, &ca_cert_der, certs_rx)
+        .map_err(|e| (format!("Failed to build mTLS channel: {e}"), Vec::new()))?;
 
     let version = Version::parse(VERSION)
         .map_err(|e| (format!("Failed to parse core version: {e}"), Vec::new()))?;
     let version_interceptor = ClientVersionInterceptor::new(version);
 
-    let mut client =
-        ProxyClient::with_interceptor(endpoint.connect_lazy(), move |req: Request<()>| {
-            version_interceptor.clone().call(req)
-        });
+    let mut client = ProxyClient::with_interceptor(channel, move |req: Request<()>| {
+        version_interceptor.clone().call(req)
+    });
 
     let mut stream = client
         .trigger_acme(AcmeChallenge {
@@ -338,7 +338,9 @@ mod tests {
         time::Duration,
     };
 
-    use defguard_certs::{CertificateAuthority, Csr, DnType, PemLabel, generate_key_pair};
+    use defguard_certs::{
+        CertificateAuthority, Csr, DnType, ExtendedKeyUsagePurpose, PemLabel, generate_key_pair,
+    };
     use defguard_common::{
         db::{
             models::{Certificates, ProxyCertSource, Settings, User, proxy::Proxy},
@@ -455,6 +457,7 @@ mod tests {
 
     struct MockAcmeServer {
         port: u16,
+        server_cert_serial: String,
         task: JoinHandle<()>,
     }
 
@@ -465,7 +468,7 @@ mod tests {
             behavior: MockAcmeBehavior,
         ) -> Self {
             init_rustls_crypto_provider();
-            let identity = make_server_identity(ca, common_name);
+            let (identity, server_cert_serial) = make_server_identity(ca, common_name);
             let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0))
                 .await
                 .expect("failed to bind mock ACME server");
@@ -486,7 +489,11 @@ mod tests {
 
             tokio::task::yield_now().await;
 
-            Self { port, task }
+            Self {
+                port,
+                server_cert_serial,
+                task,
+            }
         }
     }
 
@@ -496,18 +503,26 @@ mod tests {
         }
     }
 
-    fn make_server_identity(ca: &CertificateAuthority<'_>, common_name: &str) -> Identity {
+    fn make_server_identity(
+        ca: &CertificateAuthority<'_>,
+        common_name: &str,
+    ) -> (Identity, String) {
         let key_pair = generate_key_pair().expect("failed to generate key pair");
         let san = vec![common_name.to_string()];
         let dn = vec![(DnType::CommonName, common_name)];
         let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
-        let cert = ca.sign_csr(&csr).expect("failed to sign server cert");
+        let cert = ca
+            .sign_server_cert(&csr)
+            .expect("failed to sign server cert");
+        let serial = defguard_certs::CertificateInfo::from_der(cert.der())
+            .expect("failed to parse server cert info")
+            .serial;
         let cert_pem =
             defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
         let key_pem =
             defguard_certs::der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)
                 .expect("key PEM");
-        Identity::from_pem(cert_pem, key_pem)
+        (Identity::from_pem(cert_pem, key_pem), serial)
     }
 
     fn init_rustls_crypto_provider() {
@@ -567,7 +582,7 @@ mod tests {
         let dn = vec![(DnType::CommonName, common_name)];
         let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
         let cert = ca
-            .sign_csr_with_validity(&csr, valid_for_days)
+            .sign_csr_with_validity(&csr, valid_for_days, &[ExtendedKeyUsagePurpose::ServerAuth])
             .expect("failed to sign cert");
         let cert_pem =
             defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM");
@@ -587,9 +602,19 @@ mod tests {
         certs.save(pool).await.expect("failed to save LE certs");
     }
 
-    async fn create_proxy(pool: &sqlx::PgPool, address: &str, port: u16) {
+    async fn create_proxy(
+        pool: &sqlx::PgPool,
+        address: &str,
+        port: u16,
+        certificate_serial: &str,
+        core_client_cert: &defguard_certs::CoreClientCert,
+    ) {
         let mut proxy = Proxy::new("test-proxy", address, i32::from(port), "tester");
         proxy.enabled = true;
+        proxy.certificate_serial = Some(certificate_serial.to_string());
+        proxy.core_client_cert_der = Some(core_client_cert.cert_der.clone());
+        proxy.core_client_cert_key_der = Some(core_client_cert.key_der.clone());
+        proxy.core_client_cert_expiry = Some(core_client_cert.expiry);
         proxy.save(pool).await.expect("failed to save proxy");
     }
 
@@ -673,7 +698,7 @@ mod tests {
             let san = vec!["localhost".to_string()];
             let dn = vec![(DnType::CommonName, "localhost")];
             let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
-            let cert = ca.sign_csr(&csr).expect("failed to sign cert");
+            let cert = ca.sign_server_cert(&csr).expect("failed to sign cert");
             (
                 defguard_certs::der_to_pem(cert.der(), PemLabel::Certificate).expect("cert PEM"),
                 defguard_certs::der_to_pem(
@@ -696,7 +721,17 @@ mod tests {
             },
         )
         .await;
-        create_proxy(&pool, "localhost", mock_server.port).await;
+        let core_client_cert = ca
+            .issue_core_client_cert("localhost")
+            .expect("failed to issue core client cert");
+        create_proxy(
+            &pool,
+            "localhost",
+            mock_server.port,
+            &mock_server.server_cert_serial,
+            &core_client_cert,
+        )
+        .await;
 
         let (proxy_control_tx, mut proxy_control_rx) = mpsc::channel(8);
         let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
@@ -749,7 +784,17 @@ mod tests {
             MockAcmeBehavior::RpcError(Status::unavailable("rpc unavailable")),
         )
         .await;
-        create_proxy(&pool, "localhost", mock_server.port).await;
+        let core_client_cert = ca
+            .issue_core_client_cert("localhost")
+            .expect("failed to issue core client cert");
+        create_proxy(
+            &pool,
+            "localhost",
+            mock_server.port,
+            &mock_server.server_cert_serial,
+            &core_client_cert,
+        )
+        .await;
 
         let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
         let result = do_letsencrypt_refresh(&pool, proxy_control_tx).await;
@@ -773,7 +818,17 @@ mod tests {
         seed_letsencrypt_cert(&pool, &ca, "localhost", 1).await;
 
         let mock_server = MockAcmeServer::start(&ca, "localhost", MockAcmeBehavior::Hang).await;
-        create_proxy(&pool, "localhost", mock_server.port).await;
+        let core_client_cert = ca
+            .issue_core_client_cert("localhost")
+            .expect("failed to issue core client cert");
+        create_proxy(
+            &pool,
+            "localhost",
+            mock_server.port,
+            &mock_server.server_cert_serial,
+            &core_client_cert,
+        )
+        .await;
 
         let (proxy_control_tx, _proxy_control_rx) = mpsc::channel(8);
         let result = timeout(

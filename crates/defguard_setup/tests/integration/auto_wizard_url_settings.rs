@@ -23,14 +23,14 @@ use reqwest::{
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-mod common;
-use common::make_setup_test_client;
+use crate::common::{SESSION_COOKIE_NAME, TestClient};
 
-const SESSION_COOKIE_NAME: &str = "defguard_session";
+use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
+use tokio::{sync::oneshot, time::timeout};
 
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,
-) -> (common::TestClient, tokio::sync::oneshot::Receiver<()>) {
+) -> (TestClient, oneshot::Receiver<()>) {
     Wizard::init(pool, true, &DefGuardConfig::new_test_config())
         .await
         .expect("Failed to init wizard");
@@ -58,7 +58,7 @@ fn generate_test_cert_pem(common_name: &str) -> (String, String) {
     let san = vec![common_name.to_string()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
-    let cert = ca.sign_csr(&csr).unwrap();
+    let cert = ca.sign_server_cert(&csr).unwrap();
     let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
     let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
     (cert_pem, key_pem)
@@ -541,6 +541,6 @@ async fn test_auto_adoption_full_flow_new_url_steps(_: PgPoolOptions, options: P
     assert!(wizard.completed);
     assert_eq!(wizard.active_wizard, ActiveWizard::None);
 
-    let shutdown = tokio::time::timeout(std::time::Duration::from_secs(1), shutdown_rx).await;
+    let shutdown = timeout(SHUTDOWN_TIMEOUT, shutdown_rx).await;
     assert!(matches!(shutdown, Ok(Ok(()))));
 }
