@@ -68,10 +68,7 @@
         }
       }
     }
-
-
   }
-
 
   // Related docs
   .docs-card {
@@ -87,33 +84,33 @@
       align-items: center;
       gap: var(--spacing-md);
       text-decoration: none;
-    }
 
-    .docs-icon-badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      width: 32px;
-      height: 32px;
-      border-radius: 100px;
-      background: var(--bg-action-muted);
-    }
+      .badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 100px;
+        background: var(--bg-action-muted);
 
-    .docs-link {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      font: var(--t-body-sm-400);
-      color: var(--fg-action);
-    }
+        .icon {
+          flex-shrink: 0;
+        }
+      }
 
-    .docs-external-icon {
-      flex-shrink: 0;
+      .link {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font: var(--t-body-sm-400);
+
+        span {
+          color: var(--fg-action);
+        }
+      }
     }
   }
-
-
 
   // Best practices
   .practices-card {

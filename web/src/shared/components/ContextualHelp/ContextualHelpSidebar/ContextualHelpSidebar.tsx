@@ -84,12 +84,12 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <div className="docs-icon-badge">
-                  <Icon icon={IconKind.ActivityNotes} />
+                <div className="badge">
+                  <Icon icon={IconKind.ActivityNotes} size={20} staticColor={ThemeVariable.FgAction} />
                 </div>
-                <div className="docs-link">
+                <div className="link">
                   <span>{doc.title}</span>
-                  <Icon icon={IconKind.OpenInNewWindow} className="docs-external-icon" />
+                  <Icon icon={IconKind.OpenInNewWindow} staticColor={ThemeVariable.FgAction}/>
                 </div>
               </a>
             ))}
