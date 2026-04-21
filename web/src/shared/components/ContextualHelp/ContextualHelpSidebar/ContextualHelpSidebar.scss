@@ -36,6 +36,7 @@
       gap: var(--spacing-lg);
       align-items: flex-start;
       cursor: pointer;
+      align-self: stretch;
 
       &:focus-visible {
         outline: none;
@@ -113,7 +114,7 @@
   }
 
   // Best practices
-  .practices-card {
+  .best-practices-card {
     padding: var(--spacing-lg);
     background: var(--bg-disabled);
     border-radius: var(--radius-lg);
@@ -121,6 +122,12 @@
     .markdown-render {
       font: var(--t-body-sm-400);
       color: var(--fg-faded);
+
+      ul,
+      ol {
+        padding-left: var(--spacing-lg);
+      }
     }
   }
+
 }

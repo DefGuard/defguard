@@ -26,7 +26,6 @@ const FaqItem = ({ question, answer }: FaqItemProps) => {
       className="faq-item"
       onClick={() => setOpen((v) => !v)}
       role="button"
-      tabIndex={0}
     >
       <Icon
         icon={open ? IconKind.MinusCircle : IconKind.PlusCircle}
@@ -105,7 +104,7 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
               {m.cmp_contextual_help_best_practices()}
             </span>
           </div>
-          <div className="practices-card">
+          <div className="best-practices-card">
             <RenderMarkdown content={bestPractices} />
           </div>
         </div>
