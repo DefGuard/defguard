@@ -26,6 +26,7 @@ use defguard_core::{
             webauthn_end, webauthn_finish, webauthn_init, webauthn_start,
         },
         component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream, stream_proxy_acme},
+        gateway::gateway_list,
         resource_display::get_locations_display,
         session_info::get_session_info,
         settings::{get_settings, get_settings_essentials, patch_settings},
@@ -133,6 +134,7 @@ pub fn build_migration_webapp(
                     "/network/{network_id}/gateways/setup",
                     get(setup_gateway_tls_stream),
                 )
+                .route("/gateway", get(gateway_list))
                 .nest(
                     "/migration",
                     Router::new()

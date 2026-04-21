@@ -98,7 +98,7 @@ pub struct GatewayUpdateData {
         ("api_token" = [])
     )
 )]
-pub(crate) async fn gateway_list(
+pub async fn gateway_list(
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
