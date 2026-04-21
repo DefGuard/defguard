@@ -30,47 +30,48 @@
     background: var(--bg-default);
     border: 1px solid var(--border-disabled);
     border-radius: var(--radius-lg);
-  }
 
-  .faq-item {
-    display: flex;
-    gap: var(--spacing-lg);
-    align-items: flex-start;
-    cursor: pointer;
+    .faq-item {
+      display: flex;
+      gap: var(--spacing-lg);
+      align-items: flex-start;
+      cursor: pointer;
 
-    &:focus-visible {
-      outline: none;
+      &:focus-visible {
+        outline: none;
+      }
+
+      .icon {
+        flex-shrink: 0;
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+
+        .question {
+          font: var(--t-body-sm-400);
+          color: var(--fg-action);
+          margin: 0;
+
+          &.open {
+            font: var(--t-body-sm-500);
+            color: var(--fg-default);
+          }
+        }
+
+        .answer {
+          font: var(--t-body-sm-400);
+          color: var(--fg-faded);
+          margin: 0;
+        }
+      }
     }
+
+
   }
 
-  .faq-item-icon {
-    flex-shrink: 0;
-  }
-
-  .faq-item-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    flex: 1;
-    min-width: 0;
-  }
-
-  .faq-question {
-    font: var(--t-body-sm-400);
-    color: var(--fg-action);
-    margin: 0;
-
-    &.open {
-      font: var(--t-body-sm-500);
-      color: var(--fg-default);
-    }
-  }
-
-  .faq-answer {
-    font: var(--t-body-sm-400);
-    color: var(--fg-faded);
-    margin: 0;
-  }
 
   // Related docs
   .docs-card {
@@ -80,37 +81,39 @@
     padding: var(--spacing-md);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
+
+    .docs-item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      text-decoration: none;
+    }
+
+    .docs-icon-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 100px;
+      background: var(--bg-action-muted);
+    }
+
+    .docs-link {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      font: var(--t-body-sm-400);
+      color: var(--fg-action);
+    }
+
+    .docs-external-icon {
+      flex-shrink: 0;
+    }
   }
 
-  .docs-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    text-decoration: none;
-  }
 
-  .docs-icon-badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 100px;
-    background: var(--bg-action-muted);
-  }
-
-  .docs-link {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    font: var(--t-body-sm-400);
-    color: var(--fg-action);
-  }
-
-  .docs-external-icon {
-    flex-shrink: 0;
-  }
 
   // Best practices
   .practices-card {

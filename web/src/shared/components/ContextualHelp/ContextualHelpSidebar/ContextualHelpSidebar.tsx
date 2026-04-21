@@ -7,6 +7,7 @@ import { RenderMarkdown } from '../../../defguard-ui/components/RenderMarkdown/R
 import { useContextualHelp } from '../hooks';
 import type { ContextualHelpKey } from '../types';
 import './ContextualHelpSidebar.scss';
+import { ThemeVariable } from '../../../defguard-ui/types';
 
 type Props = {
   pageKey: ContextualHelpKey;
@@ -29,12 +30,12 @@ const FaqItem = ({ question, answer }: FaqItemProps) => {
     >
       <Icon
         icon={open ? IconKind.MinusCircle : IconKind.PlusCircle}
-        className={clsx('faq-item-icon', { open })}
+        staticColor={open ? ThemeVariable.FgNeutral : ThemeVariable.FgAction}
       />
-      <div className="faq-item-content">
-        <p className={clsx('faq-question', { open })}>{question}</p>
+      <div className="content">
+        <p className={clsx('question', { open })}>{question}</p>
         <Fold open={open}>
-          <p className="faq-answer">{answer}</p>
+          <p className="answer">{answer}</p>
         </Fold>
       </div>
     </div>
