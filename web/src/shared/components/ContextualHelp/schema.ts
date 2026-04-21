@@ -23,11 +23,7 @@ const pageSchema = z
   })
   .strip();
 
-const versionEntrySchema = z
-  .object({
-    pages: z.record(z.string(), pageSchema),
-  })
-  .strip();
+const versionEntrySchema = z.record(z.string(), pageSchema);
 
 const mappingsSchema = z.object({
   versions: z.record(

@@ -40,8 +40,6 @@ export interface ContextualHelpPage {
   bestPractices?: string;
 }
 
-export interface ContextualHelpVersionEntry {
-  pages: Record<string, ContextualHelpPage>;
-}
+export type ContextualHelpVersionEntry = Record<string, ContextualHelpPage>;
 
 export type ContextualHelpMappings = Record<string, ContextualHelpVersionEntry>;

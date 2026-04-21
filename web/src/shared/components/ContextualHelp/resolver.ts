@@ -10,5 +10,5 @@ export function resolveContextualHelpPage(
   appVersionRaw: string,
   key: ContextualHelpKey,
 ): ContextualHelpPage | null {
-  return resolveVersion(mappings, appVersionRaw)?.pages[key] ?? null;
+  return resolveVersion(mappings, appVersionRaw)?.[key] ?? null;
 }
