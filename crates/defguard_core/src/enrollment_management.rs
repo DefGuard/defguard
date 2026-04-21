@@ -74,7 +74,6 @@ pub async fn start_user_enrollment(
                 }
                 Err(err) => {
                     error!("Error sending mail: {err}");
-                    return Err(TokenError::NotificationError(err.to_string()));
                 }
             }
         }

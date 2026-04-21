@@ -37,8 +37,6 @@ pub enum TokenError {
     AdminNotFound,
     #[error("User account is already activated")]
     AlreadyActive,
-    #[error("Failed to send enrollment notification: {0}")]
-    NotificationError(String),
     #[error("Enrollment welcome message not configured")]
     WelcomeMsgNotConfigured,
     #[error("Enrollment welcome email not configured")]
@@ -60,7 +58,6 @@ impl From<TokenError> for Status {
             | TokenError::AdminNotFound
             | TokenError::UserNotFound
             | TokenError::UserDisabled
-            | TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
