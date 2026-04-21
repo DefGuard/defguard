@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { cloneDeep } from 'radashi';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { MigrationWizardLocationState } from '../../../shared/api/types';
@@ -19,6 +19,7 @@ import {
   ThemeVariable,
 } from '../../../shared/defguard-ui/types';
 import {
+  getLocationsDisplayQueryOptions,
   getMigrationStateQueryOptions,
   getSessionInfoQueryOptions,
 } from '../../../shared/query';
@@ -33,6 +34,48 @@ export const SetupConfirmationStep = () => {
   const navigate = useNavigate();
 
   const isMigrationWizard = useGatewayWizardStore((s) => s.isMigrationWizard);
+  const migrationLocationState = useMigrationWizardStore((s) => s.location_state);
+
+  const { data: locationsDisplay } = useQuery(getLocationsDisplayQueryOptions);
+
+  const isLastLocationToMigrate = useMemo(() => {
+    if (!isMigrationWizard || !migrationLocationState) return false;
+    const currentLocationIndex = migrationLocationState.locations.indexOf(
+      migrationLocationState.current_location,
+    );
+    return currentLocationIndex === migrationLocationState.locations.length - 1;
+  }, [isMigrationWizard, migrationLocationState]);
+
+  const currentLocationName = useMemo(() => {
+    if (!isMigrationWizard || !migrationLocationState) return '';
+    return (
+      locationsDisplay?.[migrationLocationState.current_location] ??
+      `#${migrationLocationState.current_location}`
+    );
+  }, [isMigrationWizard, locationsDisplay, migrationLocationState]);
+
+  const cardHeader = useMemo((): { title: string; subtitle: string } => {
+    if (!isMigrationWizard) {
+      return {
+        title: m.gateway_setup_confirmation_title(),
+        subtitle: m.gateway_setup_confirmation_subtitle(),
+      };
+    }
+
+    if (isLastLocationToMigrate) {
+      return {
+        title: m.gateway_setup_confirmation_migration_last_title(),
+        subtitle: m.gateway_setup_confirmation_migration_last_subtitle(),
+      };
+    }
+
+    return {
+      title: m.gateway_setup_confirmation_migration_title(),
+      subtitle: m.gateway_setup_confirmation_migration_subtitle({
+        location: currentLocationName,
+      }),
+    };
+  }, [currentLocationName, isLastLocationToMigrate, isMigrationWizard]);
 
   const handleBack = () => {
     const networkId = useGatewayWizardStore.getState().network_id;
@@ -54,7 +97,7 @@ export const SetupConfirmationStep = () => {
         await queryClient.invalidateQueries({
           queryKey: getSessionInfoQueryOptions.queryKey,
         });
-        Snackbar.default(`Migration completed`);
+        Snackbar.default(m.migration_wizard_finish_success_snackbar());
         await navigate({ to: '/vpn-overview', replace: true });
         setTimeout(() => {
           useMigrationWizardStore.getState().resetState();
@@ -87,7 +130,7 @@ export const SetupConfirmationStep = () => {
   const { mutate: finish, isPending: finishPending } = useMutation({
     mutationFn: handleFinish,
     onError: (e) => {
-      Snackbar.error(`Unknown error occurred. Try again.`);
+      Snackbar.error(m.gateway_setup_adoption_error_default());
       console.error(e);
     },
   });
@@ -95,15 +138,15 @@ export const SetupConfirmationStep = () => {
   return (
     <WizardCard>
       <AppText font={TextStyle.TTitleH4} color={ThemeVariable.FgSuccess}>
-        {m.gateway_setup_confirmation_title()}
+        {cardHeader.title}
       </AppText>
       <SizedBox height={ThemeSpacing.Sm} />
       <AppText font={TextStyle.TBodyPrimary400} color={ThemeVariable.FgNeutral}>
-        {m.gateway_setup_confirmation_subtitle()}
+        {cardHeader.subtitle}
       </AppText>
+      <Divider spacing={ThemeSpacing.Xl2} />
       {!isMigrationWizard && (
         <>
-          <Divider spacing={ThemeSpacing.Xl2} />
           <ActionCard
             title={m.gateway_setup_add_multiple_gateways_title()}
             subtitle={m.gateway_setup_add_multiple_gateways_subtitle()}
@@ -130,7 +173,11 @@ export const SetupConfirmationStep = () => {
         <Controls>
           <div className="right">
             <Button
-              text={m.controls_finish()}
+              text={
+                isLastLocationToMigrate
+                  ? m.migration_wizard_confirmation_finish_control()
+                  : m.gateway_setup_adoption_controls_continue()
+              }
               onClick={() => finish()}
               loading={finishPending}
             />
