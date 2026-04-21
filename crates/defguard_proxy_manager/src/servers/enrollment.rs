@@ -369,10 +369,16 @@ impl EnrollmentServer {
         }
 
         debug!("Try to send welcome email...");
-        enrollment
+        match enrollment
             .send_welcome_email(conn, user, ip_address, device_info)
-            .await?;
-        info!("Welcome email sent to {} at {}", user.username, user.email);
+            .await
+        {
+            Ok(()) => info!("Welcome email sent to {} at {}", user.username, user.email),
+            Err(err) => warn!(
+                "Failed to send enrollment welcome email to {} at {}: {err}.",
+                user.username, user.email
+            ),
+        }
 
         Ok(())
     }

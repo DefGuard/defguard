@@ -26,6 +26,7 @@ humantime.workspace = true
 image = "0.25" # match with qrforge
 mrml = "6.0"
 qrforge = {version = "0.1", default-features = false, features = ["image"]}
+css-inline = "0.20.2"
 
 [dev-dependencies]
 claims.workspace = true

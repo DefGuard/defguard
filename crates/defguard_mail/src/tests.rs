@@ -423,6 +423,260 @@ fn send_certificate_expired(_: PgPoolOptions, options: PgConnectOptions) {
     delay().await;
 }
 
+mod markdown_to_html {
+    use crate::templates::markdown_to_html;
+
+    fn has_tag(html: &str, tag: &str) -> bool {
+        html.contains(&format!("<{tag}"))
+    }
+
+    #[test]
+    fn h1_has_inline_style() {
+        let html = markdown_to_html("# Title");
+        assert!(has_tag(&html, "h1"), "h1 tag missing: {html}");
+        assert!(html.contains("font-size: 24px"), "h1 font-size: {html}");
+        assert!(html.contains("#141517"), "h1 color: {html}");
+        assert!(html.contains("font-weight: 600"), "h1 font-weight: {html}");
+        assert!(html.contains("Title"), "h1 text missing: {html}");
+    }
+
+    #[test]
+    fn h2_has_inline_style() {
+        let html = markdown_to_html("## Subtitle");
+        assert!(has_tag(&html, "h2"), "h2 tag missing: {html}");
+        assert!(html.contains("font-size: 16px"), "h2 font-size: {html}");
+        assert!(html.contains("#4A5059"), "h2 color: {html}");
+        assert!(html.contains("Subtitle"), "h2 text missing: {html}");
+    }
+
+    #[test]
+    fn paragraph_has_inline_style() {
+        let html = markdown_to_html("Hello world");
+        assert!(has_tag(&html, "p"), "p tag missing: {html}");
+        assert!(html.contains("font-size: 14px"), "p font-size: {html}");
+        assert!(html.contains("#4A5059"), "p color: {html}");
+        assert!(html.contains("Hello world"), "p text missing: {html}");
+    }
+
+    #[test]
+    fn bold_has_inline_style() {
+        let html = markdown_to_html("**important**");
+        assert!(has_tag(&html, "strong"), "strong tag missing: {html}");
+        assert!(
+            html.contains("font-weight: 600"),
+            "strong font-weight: {html}"
+        );
+        assert!(html.contains("important"), "bold text missing: {html}");
+    }
+
+    #[test]
+    fn link_has_inline_style_and_href() {
+        let html = markdown_to_html("[click here](https://example.com)");
+        assert!(has_tag(&html, "a"), "a tag missing: {html}");
+        assert!(html.contains("https://example.com"), "href missing: {html}");
+        assert!(html.contains("#3961DB"), "a color: {html}");
+        assert!(html.contains("click here"), "link text missing: {html}");
+    }
+
+    #[test]
+    fn unordered_list_has_inline_styles() {
+        let html = markdown_to_html("- Alpha\n- Beta");
+        assert!(has_tag(&html, "ul"), "ul tag missing: {html}");
+        assert!(has_tag(&html, "li"), "li tag missing: {html}");
+        assert!(html.contains("Alpha"), "first item text missing: {html}");
+        assert!(html.contains("Beta"), "second item text missing: {html}");
+        assert!(html.contains("font-size: 14px"), "li font-size: {html}");
+    }
+
+    #[test]
+    fn h3_through_h6_are_demoted_to_h2() {
+        for (level, marker) in [(3, "###"), (4, "####"), (5, "#####"), (6, "######")] {
+            let html = markdown_to_html(&format!("{marker} Heading {level}"));
+            assert!(
+                has_tag(&html, "h2"),
+                "h{level} must be demoted to h2: {html}"
+            );
+            assert!(
+                !has_tag(&html, &format!("h{level}")),
+                "h{level} must not appear: {html}"
+            );
+            assert!(
+                html.contains(&format!("Heading {level}")),
+                "h{level} text must be preserved: {html}"
+            );
+        }
+    }
+
+    #[test]
+    fn horizontal_rule_is_stripped() {
+        let html = markdown_to_html("---");
+        assert!(!has_tag(&html, "hr"), "hr must be stripped: {html}");
+    }
+
+    #[test]
+    fn blockquote_is_stripped() {
+        let html = markdown_to_html("> confidential");
+        assert!(
+            !has_tag(&html, "blockquote"),
+            "blockquote tag must be stripped: {html}"
+        );
+        assert!(
+            !html.contains("confidential"),
+            "blockquote content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn ordered_list_is_stripped() {
+        let html = markdown_to_html("1. First\n2. Second");
+        assert!(!has_tag(&html, "ol"), "ol tag must be stripped: {html}");
+        assert!(
+            !html.contains("First"),
+            "ordered list content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn fenced_code_block_is_stripped() {
+        let html = markdown_to_html("```rust\nlet x = 1;\n```");
+        assert!(!has_tag(&html, "pre"), "pre tag must be stripped: {html}");
+        assert!(!has_tag(&html, "code"), "code tag must be stripped: {html}");
+        assert!(
+            !html.contains("let x"),
+            "code block content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn indented_code_block_is_stripped() {
+        let html = markdown_to_html("    indented block");
+        assert!(!has_tag(&html, "pre"), "pre tag must be stripped: {html}");
+        assert!(
+            !html.contains("indented block"),
+            "indented code block content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn inline_code_rendered_as_plain_text() {
+        let html = markdown_to_html("`fn main()`");
+        assert!(!has_tag(&html, "code"), "code tag must be stripped: {html}");
+        assert!(
+            html.contains("fn main()"),
+            "inline code text must be preserved: {html}"
+        );
+    }
+
+    #[test]
+    fn raw_block_html_is_stripped() {
+        let html = markdown_to_html("<div class=\"x\">content</div>");
+        assert!(
+            !html.contains("<div"),
+            "raw HTML div must be stripped: {html}"
+        );
+    }
+
+    #[test]
+    fn script_tag_is_stripped() {
+        // <script> opens an HTML block consuming its whole line, so "Safe paragraph"
+        // must be in a separate paragraph to survive stripping.
+        let html = markdown_to_html("<script>alert('xss')</script>\n\nSafe paragraph.");
+        assert!(
+            !html.contains("<script"),
+            "script tag must be stripped: {html}"
+        );
+        assert!(
+            html.contains("Safe paragraph"),
+            "surrounding text must survive: {html}"
+        );
+    }
+
+    #[test]
+    fn inline_html_is_stripped() {
+        let html = markdown_to_html("before <b>inline</b> after");
+        assert!(
+            !html.contains("<b>"),
+            "inline HTML b tag must be stripped: {html}"
+        );
+    }
+
+    #[test]
+    fn nested_unsupported_blocks_are_fully_stripped() {
+        let html = markdown_to_html("> 1. nested item");
+        assert!(
+            !has_tag(&html, "blockquote"),
+            "blockquote must be stripped: {html}"
+        );
+        assert!(!has_tag(&html, "ol"), "ol must be stripped: {html}");
+        assert!(
+            !html.contains("nested item"),
+            "nested content must not appear: {html}"
+        );
+    }
+
+    #[test]
+    fn bold_and_italic_in_same_paragraph() {
+        let html = markdown_to_html("**bold** and *italic* together");
+        assert!(has_tag(&html, "strong"), "strong must be present: {html}");
+        assert!(!has_tag(&html, "em"), "em must be stripped: {html}");
+        assert!(html.contains("bold"), "bold text must survive: {html}");
+        assert!(html.contains("italic"), "italic text must survive: {html}");
+    }
+
+    #[test]
+    fn bold_inside_link() {
+        let html = markdown_to_html("[**bold link**](https://example.com)");
+        assert!(has_tag(&html, "a"), "a tag missing: {html}");
+        assert!(has_tag(&html, "strong"), "strong inside a missing: {html}");
+        assert!(html.contains("https://example.com"), "href missing: {html}");
+        assert!(html.contains("bold link"), "link text missing: {html}");
+    }
+
+    #[test]
+    fn multiple_paragraphs_are_each_styled() {
+        let html = markdown_to_html("First paragraph.\n\nSecond paragraph.");
+        assert!(
+            html.matches("<p").count() >= 2,
+            "expected at least two p tags: {html}"
+        );
+        assert!(html.contains("First paragraph"), "first p text: {html}");
+        assert!(html.contains("Second paragraph"), "second p text: {html}");
+    }
+
+    #[test]
+    fn hr_surrounded_by_paragraphs_is_stripped() {
+        let html = markdown_to_html("Before.\n\n---\n\nAfter.");
+        assert!(!has_tag(&html, "hr"), "hr must be stripped: {html}");
+        assert!(
+            html.contains("Before"),
+            "text before hr must survive: {html}"
+        );
+        assert!(html.contains("After"), "text after hr must survive: {html}");
+    }
+
+    #[test]
+    fn empty_input_produces_no_tags() {
+        let html = markdown_to_html("");
+        assert!(
+            html.trim().is_empty(),
+            "empty input must produce no output: {html}"
+        );
+    }
+
+    #[test]
+    fn plain_text_is_wrapped_in_paragraph() {
+        let html = markdown_to_html("Just some text.");
+        assert!(
+            has_tag(&html, "p"),
+            "plain text must be wrapped in p: {html}"
+        );
+        assert!(
+            html.contains("Just some text"),
+            "text must be preserved: {html}"
+        );
+    }
+}
+
 #[test]
 fn test_mfa_configured_subject_totp() {
     // TOTP
