@@ -52,9 +52,9 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
     <div className="contextual-help">
       {faqs && faqs.length > 0 && (
         <div className="contextual-help-section">
-          <div className="section-header">
+          <div className="header">
             <Icon icon={IconKind.Chat} />
-            <span className="section-title">{m.cmp_contextual_help_faq()}</span>
+            <span className="title">{m.cmp_contextual_help_faq()}</span>
           </div>
           <div className="faq-card">
             {faqs.map((faq, i) => (
@@ -66,9 +66,9 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
 
       {relatedDocs && relatedDocs.length > 0 && (
         <div className="contextual-help-section">
-          <div className="section-header">
+          <div className="header">
             <Icon icon={IconKind.File} />
-            <span className="section-title">{m.cmp_contextual_help_related_docs()}</span>
+            <span className="title">{m.cmp_contextual_help_related_docs()}</span>
           </div>
           <div className="docs-card">
             {relatedDocs.map((doc, i) => (
@@ -101,11 +101,9 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
 
       {bestPractices && (
         <div className="contextual-help-section">
-          <div className="section-header">
+          <div className="header">
             <Icon icon={IconKind.LightBulb} />
-            <span className="section-title">
-              {m.cmp_contextual_help_best_practices()}
-            </span>
+            <span className="title">{m.cmp_contextual_help_best_practices()}</span>
           </div>
           <div className="best-practices-card">
             <RenderMarkdown content={bestPractices} />
