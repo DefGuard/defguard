@@ -276,7 +276,7 @@ p { font-size: 14px; font-weight: 400; color: #4A5059; line-height: 20px; font-f
 a { color: #3961DB; text-decoration: underline; font-size: 14px; line-height: 20px; }
 ul { list-style: disc; margin: 0 0 12px 0; padding: 0; }
 li { font-size: 14px; font-weight: 400; color: #4A5059; line-height: 20px; font-family: Geist, Arial, sans-serif; margin-left: 21px; }
-strong, b { font-weight: 500; }
+strong, b { font-weight: 600; }
 "#;
 
 /// Renders a markdown string to an inline-styled HTML fragment.

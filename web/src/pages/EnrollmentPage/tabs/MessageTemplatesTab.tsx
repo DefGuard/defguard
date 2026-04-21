@@ -30,6 +30,7 @@ const messageTemplatesHelpVariables = [
   ['{{ admin_phone }}', m.settings_enrollment_template_help_admin_phone()],
   ['{{ admin_email }}', m.settings_enrollment_template_help_admin_email()],
   ['{{ defguard_url }}', m.settings_enrollment_template_help_defguard_url()],
+  ['{{ defguard_version }}', m.settings_enrollment_template_help_defguard_version()],
 ] as const;
 
 const messageTemplatesHelpMarkdown = [
