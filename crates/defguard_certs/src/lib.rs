@@ -2,6 +2,7 @@ use std::{net::IpAddr, str::FromStr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
+pub use rcgen::ExtendedKeyUsagePurpose;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
     Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
@@ -13,8 +14,6 @@ use x509_parser::{
     extensions::{GeneralName, ParsedExtension},
     parse_x509_certificate,
 };
-
-pub use rcgen::ExtendedKeyUsagePurpose;
 
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);

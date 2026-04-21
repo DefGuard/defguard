@@ -34,9 +34,8 @@ use tokio::{
     time::timeout,
 };
 
-use crate::common::SESSION_COOKIE_NAME;
-
 use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
+use crate::common::SESSION_COOKIE_NAME;
 
 async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
     let step = InitialSetupState::get(pool)

@@ -62,6 +62,8 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
+#[cfg(test)]
+use tonic::transport::Endpoint;
 use tonic::{
     Code, Request, Streaming, service::interceptor::InterceptedService, transport::Channel,
 };
@@ -72,8 +74,6 @@ use crate::{
     HandlerTxMap, ProxyError, ProxyTxSet, TEN_SECS,
     servers::{EnrollmentServer, PasswordResetServer},
 };
-#[cfg(test)]
-use tonic::transport::Endpoint;
 
 const VERSION_ZERO: Version = Version::new(0, 0, 0);
 
