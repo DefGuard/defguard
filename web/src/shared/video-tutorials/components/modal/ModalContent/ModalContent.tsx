@@ -67,16 +67,22 @@ export const ModalContent = ({
                   })}
                 </span>
               </Link>
-              <a
-                href={selectedVideo.docsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="tutorials-modal-link tutorials-modal-link--external"
-              >
-                <Icon icon="arrow-small" size={16} rotationDirection={Direction.RIGHT} />
-                <span>{m.cmp_video_tutorials_modal_learn_more()}</span>
-                <Icon icon="open-in-new-window" size={16} />
-              </a>
+              {selectedVideo.docsUrl && (
+                <a
+                  href={selectedVideo.docsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="tutorials-modal-link tutorials-modal-link--external"
+                >
+                  <Icon
+                    icon="arrow-small"
+                    size={16}
+                    rotationDirection={Direction.RIGHT}
+                  />
+                  <span>{m.cmp_video_tutorials_modal_learn_more()}</span>
+                  <Icon icon="open-in-new-window" size={16} />
+                </a>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseVideoTutorials } from '../src/shared/video-tutorials/data';
+import { matchesVideoRouteContext } from '../src/shared/video-tutorials/resolved';
 import {
   resolveSections,
   resolveVideoGuidePlacement,
@@ -89,12 +90,20 @@ describe('parseVersion', () => {
 // Shared fixture helpers
 // ---------------------------------------------------------------------------
 
-const makeVideo = (id: string, appRoute: string) => ({
+const makeVideo = (
+  id: string,
+  appRoute: string,
+  overrides: Partial<{
+    contextAppRoutes: string[];
+    docsUrl: string | undefined;
+  }> = {},
+) => ({
   youtubeVideoId: id,
   title: `Video ${id}`,
   description: `Description for ${id}`,
   appRoute,
   docsUrl: 'https://docs.defguard.net/test',
+  ...overrides,
 });
 
 const makeMappings = (): VideoTutorialsMappings => ({
@@ -268,6 +277,34 @@ describe('resolveSections', () => {
 
     expect(result).toHaveLength(2);
     expect(result[1].name).toBe('Admin');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// matchesVideoRouteContext
+// ---------------------------------------------------------------------------
+
+describe('matchesVideoRouteContext', () => {
+  it('should match the primary appRoute', () => {
+    const video = makeVideo('abcDEFghiJK', '/users');
+
+    expect(matchesVideoRouteContext(video, '/users')).toBe(true);
+  });
+
+  it('should match a contextAppRoutes entry', () => {
+    const video = makeVideo('abcDEFghiJK', '/users', {
+      contextAppRoutes: ['/groups', '/settings/'],
+    });
+
+    expect(matchesVideoRouteContext(video, '/settings')).toBe(true);
+  });
+
+  it('should return false when neither appRoute nor contextAppRoutes match', () => {
+    const video = makeVideo('abcDEFghiJK', '/users', {
+      contextAppRoutes: ['/groups'],
+    });
+
+    expect(matchesVideoRouteContext(video, '/settings')).toBe(false);
   });
 });
 
@@ -523,6 +560,63 @@ describe('parseVideoTutorials', () => {
     );
   });
 
+  it('should accept missing docsUrl', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [
+            {
+              name: 'Test',
+              videos: [
+                {
+                  youtubeVideoId: 'abcDEFghiJK',
+                  title: 'Test video',
+                  description: 'A test description',
+                  appRoute: '/users',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    const result = parseVideoTutorials(raw);
+
+    expect(result['2.2'].sections[0].videos[0].docsUrl).toBeUndefined();
+  });
+
+  it('should accept contextAppRoutes when present', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [
+            {
+              name: 'Test',
+              videos: [
+                {
+                  youtubeVideoId: 'abcDEFghiJK',
+                  title: 'Test video',
+                  description: 'A test description',
+                  appRoute: '/users',
+                  contextAppRoutes: ['/groups', '/settings/'],
+                  docsUrl: 'https://docs.defguard.net/users',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    const result = parseVideoTutorials(raw);
+
+    expect(result['2.2'].sections[0].videos[0].contextAppRoutes).toEqual([
+      '/groups',
+      '/settings/',
+    ]);
+  });
+
   it('should reject an invalid youtubeVideoId (not 11 chars)', () => {
     const raw = {
       versions: {
@@ -619,6 +713,58 @@ describe('parseVideoTutorials', () => {
     expect(() => parseVideoTutorials(raw)).toThrow();
   });
 
+  it('should reject contextAppRoutes entries missing a leading slash', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [
+            {
+              name: 'Test',
+              videos: [
+                {
+                  youtubeVideoId: 'abcDEFghiJK',
+                  title: 'Title',
+                  description: 'Desc',
+                  appRoute: '/users',
+                  contextAppRoutes: ['groups'],
+                  docsUrl: 'https://docs.defguard.net',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    expect(() => parseVideoTutorials(raw)).toThrow();
+  });
+
+  it('should reject an empty contextAppRoutes array', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [
+            {
+              name: 'Test',
+              videos: [
+                {
+                  youtubeVideoId: 'abcDEFghiJK',
+                  title: 'Title',
+                  description: 'Desc',
+                  appRoute: '/users',
+                  contextAppRoutes: [],
+                  docsUrl: 'https://docs.defguard.net',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    expect(() => parseVideoTutorials(raw)).toThrow();
+  });
+
   it('should reject an invalid docsUrl', () => {
     const raw = {
       versions: {
@@ -693,6 +839,37 @@ describe('parseVideoTutorials', () => {
       },
     };
     const result = parseVideoTutorials(raw);
+    expect(
+      (result['2.2'].sections[0].videos[0] as Record<string, unknown>)['unknownField'],
+    ).toBeUndefined();
+  });
+
+  it('should preserve contextAppRoutes while stripping unknown video fields', () => {
+    const raw = {
+      versions: {
+        '2.2': {
+          sections: [
+            {
+              name: 'Test',
+              videos: [
+                {
+                  youtubeVideoId: 'abcDEFghiJK',
+                  title: 'Test',
+                  description: 'Desc',
+                  appRoute: '/users',
+                  contextAppRoutes: ['/groups'],
+                  docsUrl: 'https://docs.defguard.net',
+                  unknownField: 'ignored',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    const result = parseVideoTutorials(raw);
+
+    expect(result['2.2'].sections[0].videos[0].contextAppRoutes).toEqual(['/groups']);
     expect(
       (result['2.2'].sections[0].videos[0] as Record<string, unknown>)['unknownField'],
     ).toBeUndefined();

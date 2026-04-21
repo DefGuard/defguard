@@ -35,7 +35,11 @@ const videoTutorialSchema = z
     title: z.string().min(1, 'title must be non-empty'),
     description: z.string().min(1, 'description must be non-empty'),
     appRoute: z.string().regex(/^\//, 'appRoute must start with "/"'),
-    docsUrl: z.string().url('docsUrl must be a valid URL'),
+    contextAppRoutes: z
+      .array(z.string().regex(/^\//, 'contextAppRoutes entries must start with "/"'))
+      .min(1, 'contextAppRoutes must contain at least one item')
+      .optional(),
+    docsUrl: z.string().url('docsUrl must be a valid URL').optional(),
   })
   .strip();
 
