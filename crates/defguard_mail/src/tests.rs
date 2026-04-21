@@ -434,7 +434,7 @@ mod markdown_to_html {
         let html = markdown_to_html("**important**");
         assert!(has_tag(&html, "strong"), "strong tag missing: {html}");
         assert!(
-            html.contains("font-weight: 500"),
+            html.contains("font-weight: 600"),
             "strong font-weight: {html}"
         );
         assert!(html.contains("important"), "bold text missing: {html}");
