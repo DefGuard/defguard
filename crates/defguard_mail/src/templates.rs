@@ -260,8 +260,8 @@ impl<'a, I: Iterator<Item = Event<'a>>> Iterator for EmailEventFilter<'a, I> {
                     Event::End(TagEnd::Heading(HeadingLevel::H2))
                 }
 
-                // raw HTML: strip
-                Event::Html(_) | Event::InlineHtml(_) => continue,
+                // raw HTML and horizontal rules: strip
+                Event::Html(_) | Event::InlineHtml(_) | Event::Rule => continue,
 
                 other => other,
             });
@@ -277,7 +277,6 @@ a { color: #3961DB; text-decoration: underline; font-size: 14px; line-height: 20
 ul { list-style: disc; margin: 0 0 8px 0; padding: 0; }
 li { font-size: 14px; font-weight: 400; color: #4A5059; line-height: 20px; font-family: Geist, Arial, sans-serif; margin-left: 21px; }
 strong, b { font-weight: 500; }
-hr { border-top: 1px solid #DFE3E9; }
 "#;
 
 /// Renders a markdown string to an inline-styled HTML fragment.
