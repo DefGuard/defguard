@@ -7,7 +7,7 @@ use defguard_common::db::{
 use ldap3::{Mod, SearchEntry};
 use sqlx::PgExecutor;
 
-use super::{LDAPConfig, error::LdapError};
+use super::{LDAPConfig, error::{LdapError, sanitize_ldap_string}};
 use crate::{handlers::user::check_username, hashset};
 
 pub(crate) enum UserObjectClass {
@@ -45,12 +45,12 @@ pub(crate) fn user_from_searchentry(
     if let Some(rdn) = extract_rdn_value(&entry.dn) {
         user.ldap_rdn = Some(rdn);
     } else {
-        return Err(LdapError::InvalidDN(entry.dn.clone()));
+        return Err(LdapError::InvalidDN(sanitize_ldap_string(&entry.dn)));
     }
     if let Some(dn_path) = extract_dn_path(&entry.dn) {
         user.ldap_user_path = Some(dn_path);
     } else {
-        return Err(LdapError::InvalidDN(entry.dn.clone()));
+        return Err(LdapError::InvalidDN(sanitize_ldap_string(&entry.dn)));
     }
     // Print the warning only if everything else checks out
     if check_username(username).is_err() {

@@ -4,7 +4,7 @@ use thiserror::Error;
 /// Strips null bytes and non-printable control characters from LDAP error strings.
 /// LDAP server responses may embed raw binary data or null terminators in diagnostic
 /// fields (e.g. `LdapResult.text`, `LdapResult.matched`) that corrupt log output.
-fn sanitize_ldap_string(s: &str) -> String {
+pub(super) fn sanitize_ldap_string(s: &str) -> String {
     s.chars()
         .filter(|&c| c == '\n' || c == '\t' || !c.is_control())
         .collect()
