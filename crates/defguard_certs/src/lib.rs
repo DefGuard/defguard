@@ -147,7 +147,7 @@ impl CertificateAuthority<'_> {
         Ok(cert)
     }
 
-    /// Issue a Core gRPC client certificate for a specific Gateway or Proxy.
+    /// Issue a Core gRPC client certificate for a specific Gateway or Edge.
     ///
     /// Generates a fresh key pair, creates a CSR with `common_name` as both
     /// the Subject CN and the SAN DNS name, signs it with `ClientAuth` EKU,
@@ -192,7 +192,7 @@ impl CertificateAuthority<'_> {
     }
 }
 
-/// A Core gRPC client certificate issued for a specific Gateway or Proxy component.
+/// A Core gRPC client certificate issued for a specific Gateway or Edge component.
 ///
 /// The DER bytes are stored in the database; the key bytes never leave Core.
 pub struct CoreClientCert {
