@@ -143,7 +143,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let has_auto_adopt_flags = config.adopt_edge.is_some() && config.adopt_gateway.is_some();
-    let mut wizard = Wizard::init(&pool, has_auto_adopt_flags, &config).await?;
+    let wizard = Wizard::init(&pool, has_auto_adopt_flags, &config).await?;
 
     Settings::initialize_runtime_defaults(&pool).await?;
     SERVER_CONFIG.set(config.clone()).ok();
@@ -182,9 +182,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    wizard
-        .update_last_version_migrated_to(&pool, CARGO_VERSION)
-        .await?;
+    Wizard::update_last_version_migrated_to(&pool, CARGO_VERSION).await?;
 
     // Reload settings from database after setup completion to ensure any changes made during setup
     // are reflected in the in-memory settings.

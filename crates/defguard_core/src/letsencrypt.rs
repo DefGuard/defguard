@@ -333,8 +333,8 @@ mod tests {
     use std::{
         net::{IpAddr, Ipv4Addr, SocketAddr},
         pin::Pin,
-        sync::Arc,
-        sync::Once,
+        str::FromStr,
+        sync::{Arc, Once},
         time::Duration,
     };
 
@@ -351,7 +351,6 @@ mod tests {
         AcmeCertificate, AcmeIssueEvent, AcmeLogs, AcmeProgress, AcmeStep, proxy_server,
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-    use std::str::FromStr;
     use tokio::{
         net::TcpListener,
         sync::{Mutex, mpsc},

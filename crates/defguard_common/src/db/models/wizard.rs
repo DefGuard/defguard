@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, Type, query, query_as};
+use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use tracing::{error, info};
 use url::Url;
 
@@ -214,15 +214,12 @@ impl Wizard {
         }
     }
 
-    pub async fn update_last_version_migrated_to<'e, E>(
-        &mut self,
-        executor: E,
+    pub async fn update_last_version_migrated_to(
+        pool: &PgPool,
         version: &str,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        self.last_version_migrated_to = Some(version.to_string());
-        self.save(executor).await
+    ) -> Result<(), sqlx::Error> {
+        let mut wizard = Self::get(pool).await?;
+        wizard.last_version_migrated_to = Some(version.to_string());
+        wizard.save(pool).await
     }
 }
