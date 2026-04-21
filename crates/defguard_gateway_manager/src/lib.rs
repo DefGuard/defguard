@@ -278,6 +278,9 @@ impl GatewayManager {
         }
     }
 
+    /// Records that the manager finished processing a pg_notify for the given gateway.
+    /// Tests block on `wait_for_gateway_notification_count` to synchronize against the
+    /// manager's async loop before asserting side effects.
     #[cfg(test)]
     fn note_gateway_notification_for_tests(&self, gateway_id: Id) {
         self.test_support.note_gateway_notification(gateway_id);
