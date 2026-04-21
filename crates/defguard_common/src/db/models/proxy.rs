@@ -6,10 +6,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, query, query_as};
 use utoipa::ToSchema;
 
-use crate::{
-    db::{Id, NoId},
-    types::proxy::ProxyInfo,
-};
+use crate::db::{Id, NoId};
 
 #[derive(Clone, Deserialize, Model, Serialize, ToSchema, PartialEq)]
 pub struct Proxy<I = NoId> {
@@ -149,16 +146,10 @@ impl Proxy<Id> {
         .await
     }
 
-    pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<ProxyInfo>> {
-        query_as!(
-            ProxyInfo,
-            "SELECT id, name, address, port, connected_at, disconnected_at, \
-             version, enabled, certificate_serial, certificate_expiry, \
-             modified_at, modified_by \
-             FROM proxy",
-        )
-        .fetch_all(pool)
-        .await
+    pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<Self>> {
+        query_as!(Self, "SELECT * FROM proxy",)
+            .fetch_all(pool)
+            .await
     }
 
     pub async fn mark_connected(&mut self, pool: &PgPool, version: String) -> sqlx::Result<()> {

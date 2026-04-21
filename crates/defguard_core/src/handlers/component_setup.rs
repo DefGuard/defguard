@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::VecDeque,
     convert::Infallible,
     sync::{Arc, Mutex, PoisonError},
     time::Duration,
@@ -28,7 +28,6 @@ use defguard_common::{
     types::proxy::ProxyControlMessage,
     utils::strip_scheme,
 };
-use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
     common::{CertBundle, CertificateInfo},
     gateway::gateway_setup_client::GatewaySetupClient,
@@ -41,8 +40,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel},
-        oneshot, watch,
+        mpsc::{Sender, UnboundedReceiver, unbounded_channel},
+        oneshot,
     },
     time::{Instant, sleep_until, timeout},
 };
@@ -1136,143 +1135,6 @@ fn acme_error_event(step: &'static str, message: String, logs: Option<Vec<String
     })
     .unwrap_or_else(|_| format!(r#"{{"step":"{step}","error":true,"message":"{message}"}}"#));
     Event::default().data(body)
-}
-
-/// Maps a proto [`AcmeStep`] to the SSE step string expected by the frontend.
-fn acme_step_name(step: AcmeStep) -> &'static str {
-    match step {
-        AcmeStep::Unspecified | AcmeStep::Connecting => "Connecting",
-        AcmeStep::CheckingDomain => "CheckingDomain",
-        AcmeStep::ValidatingDomain => "ValidatingDomain",
-        AcmeStep::IssuingCertificate => "IssuingCertificate",
-    }
-}
-
-fn parse_cert_expiry(cert_pem: &str) -> Option<NaiveDateTime> {
-    let der = defguard_certs::parse_pem_certificate(cert_pem)
-        .map_err(|e| warn!("Failed to parse ACME cert PEM for expiry: {e}"))
-        .ok()?;
-    defguard_certs::CertificateInfo::from_der(&der)
-        .map(|info| info.not_after)
-        .map_err(|e| warn!("Failed to extract expiry from ACME cert: {e}"))
-        .ok()
-}
-
-fn public_proxy_hostname() -> Result<String, String> {
-    let public_proxy_url = Settings::get_current_settings().public_proxy_url;
-    let url = public_proxy_url.trim();
-
-    if url.is_empty() {
-        return Err(
-            "Public Edge URL is not configured. Please re-submit the external URL settings \
-             with a Let's Encrypt domain."
-                .to_string(),
-        );
-    }
-
-    Url::parse(url)
-        .ok()
-        .and_then(|u| u.host_str().map(ToString::to_string))
-        .filter(|host| !host.is_empty())
-        .ok_or_else(|| {
-            "Public Edge URL is not configured with a valid hostname. Please re-submit the \
-             external URL settings with a valid domain."
-                .to_string()
-        })
-}
-
-/// Connects to the proxy's permanent `Proxy` gRPC service and calls `TriggerAcme`.
-///
-/// Returns `(cert_pem, key_pem, account_credentials_json)` on success, or
-/// `(error_message, log_lines)` on failure where `log_lines` are the proxy log entries
-/// collected during the ACME run (sent by the proxy via an [`AcmeLogs`] event).
-async fn call_proxy_trigger_acme(
-    pool: &PgPool,
-    proxy: &Proxy<Id>,
-    domain: String,
-    account_credentials_json: String,
-    progress_tx: UnboundedSender<AcmeStep>,
-) -> Result<(String, String, String), (String, Vec<String>)> {
-    let certs = Certificates::get_or_default(pool)
-        .await
-        .map_err(|e| (format!("Failed to load certificates: {e}"), Vec::new()))?;
-    let ca_cert_der = certs.ca_cert_der.ok_or_else(|| {
-        (
-            "CA certificate not found in settings".to_string(),
-            Vec::new(),
-        )
-    })?;
-
-    let cert_serial = proxy.certificate_serial.as_deref().ok_or_else(|| {
-        (
-            "Edge certificate serial not provisioned".to_string(),
-            Vec::new(),
-        )
-    })?;
-
-    // Seed a one-shot serial map so the rustls verifier validates the server cert serial.
-    let (_, certs_rx) = watch::channel(Arc::new(HashMap::from([(
-        proxy.id,
-        cert_serial.to_string(),
-    )])));
-
-    let channel = proxy_mtls_channel(proxy, &ca_cert_der, certs_rx)
-        .map_err(|e| (format!("Failed to build mTLS channel: {e}"), Vec::new()))?;
-
-    let version = Version::parse(VERSION)
-        .map_err(|e| (format!("Failed to parse core version: {e}"), Vec::new()))?;
-    let version_interceptor = ClientVersionInterceptor::new(version);
-
-    let mut client = ProxyClient::with_interceptor(channel, move |req: Request<()>| {
-        version_interceptor.clone().call(req)
-    });
-
-    let mut stream = client
-        .trigger_acme(AcmeChallenge {
-            domain: domain.clone(),
-            account_credentials_json,
-        })
-        .await
-        .map_err(|e| (format!("TriggerAcme RPC failed: {e}"), Vec::new()))?
-        .into_inner();
-
-    let mut collected_logs: Vec<String> = Vec::new();
-
-    loop {
-        match stream.message().await {
-            Ok(Some(event)) => match event.payload {
-                Some(acme_issue_event::Payload::Progress(p)) => {
-                    if let Ok(step) = AcmeStep::try_from(p.step) {
-                        let _ = progress_tx.send(step);
-                    }
-                }
-                Some(acme_issue_event::Payload::Certificate(cert)) => {
-                    return Ok((cert.cert_pem, cert.key_pem, cert.account_credentials_json));
-                }
-                Some(acme_issue_event::Payload::Logs(AcmeLogs { lines })) => {
-                    collected_logs = lines;
-                }
-                None => {
-                    return Err((
-                        "TriggerAcme stream sent an event with no payload".to_string(),
-                        collected_logs,
-                    ));
-                }
-            },
-            Ok(None) => {
-                return Err((
-                    "TriggerAcme stream ended without delivering a certificate".to_string(),
-                    collected_logs,
-                ));
-            }
-            Err(e) => {
-                return Err((
-                    format!("Failed to read TriggerAcme response: {e}"),
-                    collected_logs,
-                ));
-            }
-        }
-    }
 }
 
 /// Streams Let's Encrypt certificate issuance progress as Server-Sent Events.

@@ -22,8 +22,6 @@ use tokio::time::sleep;
 
 use super::{Attachment, mail::MailMessage, templates};
 
-const SEND_DELAY: Duration = Duration::from_secs(2);
-
 #[test]
 fn dg25_8_server_side_template_injection() {
     let mut tera = templates::safe_tera();
@@ -34,7 +32,7 @@ fn dg25_8_server_side_template_injection() {
 
 /// Delay, so send_and_forget() can process the message.
 async fn delay() {
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    sleep(Duration::from_secs(2)).await;
 }
 
 /// Set SMTP settings from environment variables.
