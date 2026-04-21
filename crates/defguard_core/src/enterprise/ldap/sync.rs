@@ -161,17 +161,17 @@ pub(super) fn compute_user_sync_changes(
     let mut ldap_identifiers = HashSet::with_capacity(all_ldap_users.len());
     let defguard_identifiers = all_defguard_users
         .iter()
-        .map(|u| ldap_config.user_dn_from_user(u))
+        .map(|u| ldap_config.user_dn_for_user(u))
         .collect::<HashSet<_>>();
 
     trace!("Defguard identifiers: {defguard_identifiers:?}");
     trace!("LDAP identifiers: {ldap_identifiers:?}");
 
     for user in all_ldap_users.drain(..) {
-        ldap_identifiers.insert(ldap_config.user_dn_from_user(&user));
+        ldap_identifiers.insert(ldap_config.user_dn_for_user(&user));
 
         debug!("Checking if user {} is in Defguard", user.username);
-        if !defguard_identifiers.contains(&ldap_config.user_dn_from_user(&user)) {
+        if !defguard_identifiers.contains(&ldap_config.user_dn_for_user(&user)) {
             debug!("User {} not found in Defguard", user.username);
             match authority {
                 Authority::LDAP => add_defguard.push(user),
@@ -182,7 +182,7 @@ pub(super) fn compute_user_sync_changes(
 
     for user in all_defguard_users.drain(..) {
         debug!("Checking if user {} is in LDAP", user.username);
-        if !ldap_identifiers.contains(&ldap_config.user_dn_from_user(&user)) {
+        if !ldap_identifiers.contains(&ldap_config.user_dn_for_user(&user)) {
             debug!("User {} not found in LDAP", user.username);
             match authority {
                 Authority::LDAP => {
@@ -260,9 +260,9 @@ pub(super) fn compute_group_sync_changes<'a>(
             let missing_from_defguard = ldap_members
                 .iter()
                 .filter(|u| {
-                    !members.iter().any(|m| {
-                        ldap_config.user_dn_from_user(m) == ldap_config.user_dn_from_user(u)
-                    })
+                    !members
+                        .iter()
+                        .any(|m| ldap_config.user_dn_for_user(m) == ldap_config.user_dn_for_user(u))
                 })
                 .copied()
                 .collect::<HashSet<_>>();
@@ -270,9 +270,9 @@ pub(super) fn compute_group_sync_changes<'a>(
             let missing_from_ldap = members
                 .iter()
                 .filter(|m| {
-                    !ldap_members.iter().any(|u| {
-                        ldap_config.user_dn_from_user(m) == ldap_config.user_dn_from_user(u)
-                    })
+                    !ldap_members
+                        .iter()
+                        .any(|u| ldap_config.user_dn_for_user(m) == ldap_config.user_dn_for_user(u))
                 })
                 .cloned()
                 .collect::<HashSet<_>>();
@@ -440,7 +440,7 @@ pub(super) fn extract_intersecting_users(
         if let Some(ldap_user) = ldap_users
             .iter()
             .position(|u| {
-                ldap_config.user_dn_from_user(u) == ldap_config.user_dn_from_user(defguard_user)
+                ldap_config.user_dn_for_user(u) == ldap_config.user_dn_for_user(defguard_user)
             })
             .map(|i| ldap_users.remove(i))
         {
@@ -451,7 +451,7 @@ pub(super) fn extract_intersecting_users(
     for user in intersecting_users_ldap {
         if let Some(defguard_user) = defguard_users
             .iter()
-            .position(|u| ldap_config.user_dn_from_user(u) == ldap_config.user_dn_from_user(&user))
+            .position(|u| ldap_config.user_dn_for_user(u) == ldap_config.user_dn_for_user(&user))
             .map(|i| defguard_users.remove(i))
         {
             intersecting_users.push((user, defguard_user));
@@ -526,7 +526,7 @@ impl super::LDAPConnection {
             Authority::LDAP
         };
 
-        let user_dn = self.config.user_dn_from_user(user);
+        let user_dn = self.config.user_dn_for_user(user);
         let ldap_user = self.get_user_by_dn(user).await?;
         let defguard_groups = user.member_of_names(pool).await?;
         let ldap_groups = self.get_user_groups(&user_dn).await?;
@@ -863,8 +863,8 @@ impl super::LDAPConnection {
             if let Some(defguard_user) =
                 User::find_by_username(&mut *transaction, &user.username).await?
             {
-                let defguard_user_dn = self.config.user_dn_from_user(&defguard_user);
-                let ldap_user_dn = self.config.user_dn_from_user(&user);
+                let defguard_user_dn = self.config.user_dn_for_user(&defguard_user);
+                let ldap_user_dn = self.config.user_dn_for_user(&user);
                 if defguard_user_dn == ldap_user_dn {
                     debug!(
                         "User {} (DN: {}) already exists in Defguard, skipping...",

@@ -147,12 +147,12 @@ fn test_user_dn() {
 }
 
 #[test]
-fn test_user_dn_from_user() {
+fn test_user_dn_for_user() {
     let config = LDAPConfig::default();
 
     // User without stored LDAP data uses default search base
     let user = make_test_user("testuser", None, None);
-    let dn = config.user_dn_from_user(&user);
+    let dn = config.user_dn_for_user(&user);
     assert_eq!(dn, "cn=testuser,ou=users,dc=example,dc=com");
 
     // User with stored RDN and path uses the stored path instead of default
@@ -161,7 +161,7 @@ fn test_user_dn_from_user() {
         Some("testuser".to_string()),
         Some("ou=admins,dc=example,dc=com".to_string()),
     );
-    let dn = config.user_dn_from_user(&user);
+    let dn = config.user_dn_for_user(&user);
     assert_eq!(dn, "cn=testuser,ou=admins,dc=example,dc=com");
 
     // RDN value takes precedence over username when available
@@ -170,7 +170,7 @@ fn test_user_dn_from_user() {
         Some("testuser3".to_string()),
         Some("ou=people,dc=example,dc=com".to_string()),
     );
-    let dn = config.user_dn_from_user(&user);
+    let dn = config.user_dn_for_user(&user);
     assert_eq!(dn, "cn=testuser3,ou=people,dc=example,dc=com");
 
     // Custom RDN attribute affects the final DN format
@@ -179,7 +179,7 @@ fn test_user_dn_from_user() {
         ..LDAPConfig::default()
     };
     let user = make_test_user("user4", Some("testuser4".to_string()), None);
-    let dn = config.user_dn_from_user(&user);
+    let dn = config.user_dn_for_user(&user);
     assert_eq!(dn, "uid=testuser4,ou=users,dc=example,dc=com");
 }
 
@@ -363,7 +363,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(ldap_conn.test_client.events_match(
         &[
             LdapEvent::ObjectAdded {
-                dn: ldap_conn.config.user_dn_from_user(&active_user_not_in_ldap),
+                dn: ldap_conn.config.user_dn_for_user(&active_user_not_in_ldap),
                 attrs: user_to_test_attrs(
                     &active_user_not_in_ldap,
                     Some(PASSWORD),
@@ -371,7 +371,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 ),
             },
             LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.user_dn_from_user(&inactive_user_in_ldap),
+                dn: ldap_conn.config.user_dn_for_user(&inactive_user_in_ldap),
             },
         ],
         false
@@ -425,7 +425,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 dn: ldap_conn.config.group_dn(&group.name),
             },
             LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.user_dn_from_user(&active_user_in_ldap),
+                dn: ldap_conn.config.user_dn_for_user(&active_user_in_ldap),
             }
         ],
         true
@@ -468,11 +468,11 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 new_dn: ldap_conn.config.group_dn(&group.name),
                 mods: vec![Mod::Delete(
                     ldap_conn.config.ldap_group_member_attr.clone(),
-                    hashset![ldap_conn.config.user_dn_from_user(&active_user_in_ldap)],
+                    hashset![ldap_conn.config.user_dn_for_user(&active_user_in_ldap)],
                 )],
             },
             LdapEvent::ObjectDeleted {
-                dn: ldap_conn.config.user_dn_from_user(&active_user_in_ldap),
+                dn: ldap_conn.config.user_dn_for_user(&active_user_in_ldap),
             },
         ],
         true,
@@ -505,7 +505,7 @@ async fn test_update_users_state(_: PgPoolOptions, options: PgConnectOptions) {
                 LdapEvent::ObjectDeleted {
                     dn: ldap_conn
                         .config
-                        .user_dn_from_user(&another_active_user_in_ldap),
+                        .user_dn_for_user(&another_active_user_in_ldap),
                 },
             ],
             true,
