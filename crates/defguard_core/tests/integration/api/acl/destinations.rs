@@ -1,7 +1,3 @@
-use std::time::Duration;
-
-use tokio::time::sleep;
-
 use super::*;
 
 #[sqlx::test]
@@ -555,8 +551,6 @@ async fn test_destination_audit_fields_track_acting_user_across_mutations(
     assert_ne!(created_destination_row.modified_by, "admin");
     let created_modified_at = created_destination_row.modified_at;
 
-    sleep(Duration::from_millis(2)).await;
-
     let mut destination_update = created_destination.clone();
     destination_update.name = "destination updated by hpotter".to_string();
     let response = client
@@ -583,8 +577,6 @@ async fn test_destination_audit_fields_track_acting_user_across_mutations(
     );
     assert!(updated_destination_row.modified_at > created_modified_at);
     let updated_modified_at = updated_destination_row.modified_at;
-
-    sleep(Duration::from_millis(2)).await;
 
     let response = client
         .put("/api/v1/acl/destination/apply")

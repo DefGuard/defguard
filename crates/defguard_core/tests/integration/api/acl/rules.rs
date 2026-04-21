@@ -1,7 +1,3 @@
-use std::time::Duration;
-
-use tokio::time::sleep;
-
 use super::*;
 use crate::api::PaginatedApiResponse;
 
@@ -1413,8 +1409,6 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     assert_ne!(created_rule_row.modified_by, "admin");
     let created_modified_at = created_rule_row.modified_at;
 
-    sleep(Duration::from_millis(2)).await;
-
     let mut updated_rule = created_rule.clone();
     updated_rule.name = "rule updated by hpotter".to_string();
     let response = client
@@ -1432,8 +1426,6 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     assert_eq!(updated_rule_row.name, "rule updated by hpotter");
     assert!(updated_rule_row.modified_at > created_modified_at);
     let updated_modified_at = updated_rule_row.modified_at;
-
-    sleep(Duration::from_millis(2)).await;
 
     let response = client
         .put("/api/v1/acl/rule/apply")
