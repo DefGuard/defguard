@@ -115,6 +115,7 @@ import type {
   UserProfileResponse,
   ValidateDeviceIpsRequest,
   ValidateIpAssignmentRequest,
+  VersionResponse,
   WebauthnLoginStartResponse,
   WebauthnRegisterFinishRequest,
   WebauthnRegisterStartResponse,
@@ -191,6 +192,7 @@ const api = {
   },
   app: {
     info: () => client.get<ApplicationInfo>('/info'),
+    version: () => client.get<VersionResponse>('/version'),
     updates: () => client.get<UpdateInfo | null>('/updates'),
   },
   user: {
@@ -565,7 +567,6 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
-  info: () => client.get<ApplicationInfo>('/info'),
   getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
   support: {
     getSupportData: () => client.get<object>('/support/configuration'),

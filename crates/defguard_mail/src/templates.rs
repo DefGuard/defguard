@@ -363,6 +363,31 @@ pub async fn gateway_disconnected_mail(
     Ok(())
 }
 
+/// Notification about failed Letsencrypt cert refresh process.
+pub async fn letsencrypt_cert_refresh_failed_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    error_message: &str,
+    logs: &str,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+    context.insert("error_message", error_message);
+
+    let now = Utc::now();
+    let attachment = Attachment::new(
+        format!("defguard-letsencrypt-refresh-logs-{now}.txt"),
+        logs.into(),
+    );
+    let message = MailMessage::LetsencryptCertRefreshFailed;
+    message.fill_context(conn, &mut context).await?;
+    message
+        .mail(&mut tera, &context, to)?
+        .set_attachments(vec![attachment])
+        .send_and_forget();
+
+    Ok(())
+}
+
 /// Notification about reconnected Gateway.
 pub async fn gateway_reconnected_mail(
     to: &str,
@@ -479,6 +504,50 @@ pub async fn password_reset_success_mail(
         get_base_tera_mjml(Context::new(), None, ip_address, device_info)?;
 
     let message = MailMessage::PasswordResetDone;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
+}
+
+/// Certificate is about to expire.
+pub async fn certificate_expiration_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    certificate_type: &str,
+    expiration: NaiveDateTime,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
+    context.insert("cert_type", certificate_type);
+    context.insert(
+        "exp_date",
+        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
+    );
+
+    let message = MailMessage::CertificateExpiration;
+    message.fill_context(conn, &mut context).await?;
+    message.mail(&mut tera, &context, to)?.send_and_forget();
+
+    Ok(())
+}
+
+/// Certificate has expired.
+pub async fn certificate_expired_mail(
+    to: &str,
+    conn: &mut PgConnection,
+    certificate_type: &str,
+    expiration: NaiveDateTime,
+) -> Result<(), TemplateError> {
+    let (mut tera, mut context) = get_base_tera_mjml(Context::new(), None, None, None)?;
+
+    context.insert("cert_type", certificate_type);
+    context.insert(
+        "exp_date",
+        &expiration.format(MAIL_DATETIME_FORMAT).to_string(),
+    );
+
+    let message = MailMessage::CertificateExpired;
     message.fill_context(conn, &mut context).await?;
     message.mail(&mut tera, &context, to)?.send_and_forget();
 

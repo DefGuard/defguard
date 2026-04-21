@@ -271,6 +271,15 @@ export const getSessionInfoQueryOptions = queryOptions({
   refetchOnWindowFocus: false,
 });
 
+export const getVersionQueryOptions = queryOptions({
+  queryFn: api.app.version,
+  queryKey: ['version'],
+  select: (resp) => resp.data.version,
+  refetchOnMount: true,
+  refetchOnReconnect: true,
+  refetchOnWindowFocus: false,
+});
+
 export const getSettingsEssentialsQueryOptions = queryOptions({
   queryFn: api.settings.getSettingsEssentials,
   queryKey: ['settings_essentials'],

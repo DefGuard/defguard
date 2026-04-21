@@ -1,0 +1,23 @@
+{% import "macros.mjml" as macros %}
+{% extends "base.mjml" %}
+{% block content %}
+
+{{ macros::email_header() }}
+
+<mj-section>  <mj-column mj-class="s-3xl">
+    <mj-text>
+      <p>
+        {{ content }}
+      </p>
+      {% if error_message %}
+      <p>
+        Error: {{ error_message }}
+      </p>
+      {% endif %}
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+{{ macros::footer_divider() }}
+
+{% endblock content %}

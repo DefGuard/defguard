@@ -246,14 +246,14 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetch admin data.");
+        debug!("Fetch admin data");
         if self.admin_id.is_none() {
-            debug!("Admin don't have id. Stop fetching data...");
+            debug!("Admin doesn't have ID; stop fetching data");
             return Ok(None);
         }
 
         let admin_id = self.admin_id.unwrap();
-        debug!("Trying to find admin using id {admin_id}");
+        debug!("Trying to find admin using ID {admin_id}");
         let user = User::find_by_id(executor, admin_id).await?;
         debug!("Fetched admin {user:?}.");
 
@@ -267,7 +267,7 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Deleting unused tokens for the user.");
+        debug!("Deleting unused tokens for the user");
         let result = query!(
             "DELETE FROM token \
             WHERE user_id = $1 \
@@ -277,7 +277,7 @@ impl Token {
         .execute(executor)
         .await?;
         info!(
-            "Deleted {} unused enrollment tokens for the user.",
+            "Deleted {} unused enrollment tokens for the user",
             result.rows_affected()
         );
 

@@ -52,7 +52,7 @@ jobs:
             fi
             
             echo "Uploading $deb_file to $codename"
-            deb-s3 upload -l \
+            deb-s3 upload -p -l \
               --bucket=apt.defguard.net \
               --access-key-id=${{ secrets.AWS_ACCESS_KEY_APT }} \
               --secret-access-key=${{ secrets.AWS_SECRET_KEY_APT }} \

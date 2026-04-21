@@ -341,7 +341,7 @@ impl Csr<'_> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy)]
 pub enum PemLabel {
     Certificate,
     PrivateKey,

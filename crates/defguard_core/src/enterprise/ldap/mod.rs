@@ -576,7 +576,7 @@ impl LDAPConnection {
                 info!("Found LDAP user with DN: {dn}");
                 user_from_searchentry(&entry, &user.username, None)
             }
-            None => Err(LdapError::ObjectNotFound(format!("User {dn} not found",))),
+            None => Err(LdapError::ObjectNotFound(format!("User {dn} not found"))),
         }
     }
 

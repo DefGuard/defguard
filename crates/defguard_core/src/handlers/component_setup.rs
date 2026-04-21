@@ -10,7 +10,6 @@ use axum::{
     extract::{Path, Query},
     response::sse::{Event, KeepAlive, Sse},
 };
-use chrono::NaiveDateTime;
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
@@ -33,10 +32,7 @@ use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
     common::{CertBundle, CertificateInfo},
     gateway::gateway_setup_client::GatewaySetupClient,
-    proxy::{
-        AcmeChallenge, AcmeLogs, AcmeStep, acme_issue_event, proxy_client::ProxyClient,
-        proxy_setup_client::ProxySetupClient,
-    },
+    proxy::{AcmeStep, proxy_setup_client::ProxySetupClient},
 };
 use defguard_version::{Version, client::ClientVersionInterceptor};
 use futures::Stream;
@@ -61,6 +57,7 @@ use tracing::Instrument;
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
     enterprise::is_enterprise_license_active,
+    letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
@@ -1109,9 +1106,6 @@ pub async fn setup_gateway_tls_stream(
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
-/// Maximum time (seconds) allowed for the ACME flow to complete end-to-end.
-const ACME_TIMEOUT_SECS: u64 = 300;
-
 #[derive(Debug, Serialize)]
 struct AcmeSetupResponse {
     step: &'static str,
@@ -1305,10 +1299,11 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let domain = match public_proxy_hostname() {
+        let settings = Settings::get_current_settings();
+        let domain = match settings.proxy_hostname() {
             Ok(domain) => domain,
-            Err(message) => {
-                yield Ok(acme_error_event("Connecting", message, None));
+            Err(err) => {
+                yield Ok(acme_error_event("Connecting", err.to_string(), None));
                 return;
             }
         };
@@ -1366,8 +1361,7 @@ pub async fn stream_proxy_acme(
         });
 
         let mut current_step: &'static str = "Connecting";
-        let deadline = Instant::now()
-            + Duration::from_secs(ACME_TIMEOUT_SECS);
+        let deadline = Instant::now() + ACME_TIMEOUT;
 
         // Drain progress steps until the ACME task finishes (channel closed) or times out.
         loop {
@@ -1390,7 +1384,7 @@ pub async fn stream_proxy_acme(
                         current_step,
                         format!(
                             "ACME certificate issuance timed out after \
-                             {ACME_TIMEOUT_SECS} seconds."
+                             {} seconds.", ACME_TIMEOUT.as_secs()
                         ),
                         None,
                     ));

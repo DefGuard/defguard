@@ -18,55 +18,82 @@ type Props = {
 
 export const WizardVideoGuide = ({ videoGuide }: Props) => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const video = videoGuide.video;
+  const hasDocs = Boolean(videoGuide.docs?.length);
+
+  if (!video && !hasDocs) {
+    return null;
+  }
 
   return (
     <>
       <div id="wizard-video-support">
         <SizedBox height={ThemeSpacing.Xl5} />
 
-        <div className="support-header">
-          <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>
-          <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
-            {m.migration_wizard_support_video_guide()}
-          </AppText>
-        </div>
-        <SizedBox height={ThemeSpacing.Md} />
-        <button type="button" className="video-card" onClick={() => setIsVideoOpen(true)}>
-          <Thumbnail
-            url={`https://img.youtube.com/vi/${videoGuide.youtubeVideoId}/hqdefault.jpg`}
-            title={videoGuide.title}
-          />
-          <div className="video-info">
-            <AppText
-              className="video-title"
-              font={TextStyle.TBodySm400}
-              color={ThemeVariable.FgFaded}
+        {video && (
+          <>
+            <div className="support-header">
+              <Helper size={16}>{m.migration_wizard_support_video_guide_helper()}</Helper>
+              <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
+                {m.migration_wizard_support_video_guide()}
+              </AppText>
+            </div>
+            <SizedBox height={ThemeSpacing.Md} />
+            <button
+              type="button"
+              className="video-card"
+              onClick={() => setIsVideoOpen(true)}
             >
-              {videoGuide.title}
-            </AppText>
-          </div>
-        </button>
-        <Divider spacing={ThemeSpacing.Xl2} />
-        <div className="support-header">
-          <Icon icon="file" size={16} staticColor={ThemeVariable.FgMuted} />
-          <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
-            {m.migration_wizard_support_related_documentation()}
-          </AppText>
-        </div>
-        <SizedBox height={ThemeSpacing.Md} />
-        <div className="doc-card">
-          <ExternalLink href={videoGuide.docsUrl} target="_blank" rel="noreferrer">
-            {videoGuide.docsTitle}
-          </ExternalLink>
-        </div>
-      </div>
+              <Thumbnail
+                url={`https://img.youtube.com/vi/${video?.youtubeVideoId}/hqdefault.jpg`}
+                title={video?.title ?? ''}
+              />
+              <div className="video-info">
+                <AppText
+                  className="video-title"
+                  font={TextStyle.TBodySm400}
+                  color={ThemeVariable.FgFaded}
+                >
+                  {video?.title}
+                </AppText>
+              </div>
+            </button>
+          </>
+        )}
 
-      <VideoOverlay
-        video={videoGuide}
-        isOpen={isVideoOpen}
-        onClose={() => setIsVideoOpen(false)}
-        afterClose={() => setIsVideoOpen(false)}
-      />
+        {video && hasDocs && <Divider spacing={ThemeSpacing.Xl2} />}
+
+        {hasDocs && (
+          <>
+            <div className="support-header">
+              <Icon icon="file" size={16} staticColor={ThemeVariable.FgMuted} />
+              <AppText font={TextStyle.TBodySm500} color={ThemeVariable.FgFaded}>
+                {m.migration_wizard_support_related_documentation()}
+              </AppText>
+            </div>
+            <SizedBox height={ThemeSpacing.Md} />
+            <div className="doc-card">
+              {videoGuide.docs?.map((doc) => (
+                <div className="doc-link-row" key={`${doc.docsTitle}-${doc.docsUrl}`}>
+                  <ExternalLink href={doc.docsUrl} target="_blank" rel="noreferrer">
+                    {doc.docsTitle}
+                  </ExternalLink>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <SizedBox height={ThemeSpacing.Xl5} />
+
+      {video && (
+        <VideoOverlay
+          video={video}
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          afterClose={() => setIsVideoOpen(false)}
+        />
+      )}
     </>
   );
 };
