@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{net::IpAddr, str::FromStr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
@@ -315,7 +315,7 @@ impl Csr<'_> {
             )));
         }
 
-        let expected_ip: Option<std::net::IpAddr> = expected_hostname.parse().ok();
+        let expected_ip: Option<IpAddr> = expected_hostname.parse().ok();
 
         for san in sans {
             let matches = match san {
@@ -327,7 +327,7 @@ impl Csr<'_> {
             };
             if !matches {
                 return Err(CertificateError::HostnameMismatch(format!(
-                    "CSR SAN does not match expected hostname {expected_hostname:?}"
+                    "CSR SAN does not match expected hostname {expected_hostname}"
                 )));
             }
         }
@@ -435,7 +435,7 @@ mod tests {
             ],
         )
         .unwrap();
-        let signed_cert: Certificate = ca.sign_server_cert(&csr).unwrap();
+        let signed_cert = ca.sign_server_cert(&csr).unwrap();
         assert!(signed_cert.pem().contains("BEGIN CERTIFICATE"));
     }
 
@@ -451,7 +451,7 @@ mod tests {
             vec![(rcgen::DnType::CommonName, "example.com")],
         )
         .unwrap();
-        let signed_cert: Certificate = ca
+        let signed_cert = ca
             .sign_csr_with_validity(&csr, 90, &[ExtendedKeyUsagePurpose::ServerAuth])
             .unwrap();
         let der = signed_cert.der();
