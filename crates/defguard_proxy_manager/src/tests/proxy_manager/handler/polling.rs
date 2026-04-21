@@ -54,7 +54,7 @@ async fn test_polling_requires_business_license(_: PgPoolOptions, options: PgCon
     let mut context = HandlerTestContext::new(options).await;
     complete_proxy_handshake(&mut context).await;
 
-    // Explicitly clear any license — polling should be refused.
+    // Explicitly clear any license - polling should be refused.
     clear_test_license();
 
     let (_user, device) = create_user_with_device(&context.pool).await;

@@ -13,7 +13,7 @@ type Props = {
 
 export const TopBarLicenseFloating = ({ license, ...props }: Props) => {
   const warning = useMemo(() => {
-    if (!license || !license.limits) return false;
+    if (!license?.limits) return false;
     if (
       license.limits.users.current > 0 &&
       license.limits.users.limit / license.limits.users.current < 2.0

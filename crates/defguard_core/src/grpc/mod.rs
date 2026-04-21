@@ -181,11 +181,12 @@ impl InstanceInfo {
             .map(|provider| provider.display_name.clone())
             .unwrap_or_default();
         let url = Settings::url()?;
+        let proxy_url = settings.proxy_public_url()?;
         Ok(Self {
             id: settings.uuid,
-            name: settings.instance_name.clone(),
+            name: settings.instance_name,
             url,
-            proxy_url: settings.proxy_public_url()?,
+            proxy_url,
             username: username.into(),
             client_traffic_policy: enterprise_settings.client_traffic_policy,
             enterprise_enabled: is_business_license_active(),

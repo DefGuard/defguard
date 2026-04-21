@@ -671,7 +671,7 @@ impl super::LDAPConnection {
         let mut sync_group_members = HashSet::new();
         for sync_group in &sync_groups {
             let members = sync_group.members(pool).await?;
-            sync_group_members.extend(members.into_iter());
+            sync_group_members.extend(members);
         }
 
         let mut all_ldap_users = self.get_all_users().await?;

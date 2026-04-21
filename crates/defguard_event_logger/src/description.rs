@@ -239,7 +239,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             new_name.clone().unwrap_or_default()
         )),
         DefguardEvent::ClientConfigurationTokenAdded { user } => {
-            Some(format!("Added client configuration token for user {user}",))
+            Some(format!("Added client configuration token for user {user}"))
         }
         DefguardEvent::UserSnatBindingAdded { user, binding } => Some(format!(
             "Devices owned by user {user} bound to public IP {}",

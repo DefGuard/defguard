@@ -30,21 +30,14 @@ const messageTemplatesHelpVariables = [
   ['{{ admin_phone }}', m.settings_enrollment_template_help_admin_phone()],
   ['{{ admin_email }}', m.settings_enrollment_template_help_admin_email()],
   ['{{ defguard_url }}', m.settings_enrollment_template_help_defguard_url()],
+  ['{{ defguard_version }}', m.settings_enrollment_template_help_defguard_version()],
 ] as const;
 
 const messageTemplatesHelpMarkdown = [
-  ['#, ##, ###', m.settings_enrollment_template_help_markdown_headings(), 'medium'],
-  ['*text*', m.settings_enrollment_template_help_markdown_italic()],
+  ['#, ##', m.settings_enrollment_template_help_markdown_headings(), 'medium'],
   ['**text**', m.settings_enrollment_template_help_markdown_bold()],
-  ['***text***', m.settings_enrollment_template_help_markdown_bold_italic()],
-  ['> text', m.settings_enrollment_template_help_markdown_blockquote()],
-  ['- item or 1. item', m.settings_enrollment_template_help_markdown_lists()],
-  ['`code`', m.settings_enrollment_template_help_markdown_inline_code()],
-  ['```code```', m.settings_enrollment_template_help_markdown_code_block()],
-  ['***', m.settings_enrollment_template_help_markdown_horizontal_line()],
+  ['- item', m.settings_enrollment_template_help_markdown_lists()],
   ['[text](url)', m.settings_enrollment_template_help_markdown_link()],
-  ['| and ---', m.settings_enrollment_template_help_markdown_tables()],
-  ['\\', m.settings_enrollment_template_help_markdown_escape()],
 ] as const;
 
 const messageTemplatesFormSchema = z.object({

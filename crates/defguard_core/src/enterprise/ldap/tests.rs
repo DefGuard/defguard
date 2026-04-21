@@ -3446,7 +3446,7 @@ async fn test_sync_does_not_send_invite_when_flags_disabled(
     let pool = setup_pool(options).await;
     let _ = initialize_current_settings(&pool).await;
 
-    // Create an admin so find_admins() would have something to return — we want to prove
+    // Create an admin so find_admins() would have something to return - we want to prove
     // the early-return on the flag guard, not the no-admin guard.
     make_test_admin(&pool, "sync_admin_nodisabled").await;
 
@@ -3522,7 +3522,7 @@ async fn test_sync_invite_skipped_when_send_invite_flag_disabled(
 /// syncing a new LDAP user must create an enrollment token and set `enrollment_pending = true`.
 ///
 /// SMTP is configured in settings but no real SMTP server is reachable, so `new_account_mail`
-/// will fail — but the token and flag are persisted before the mail attempt, so the DB side
+/// will fail - but the token and flag are persisted before the mail attempt, so the DB side
 /// effects are still observable.
 #[sqlx::test]
 async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: PgConnectOptions) {
@@ -3572,7 +3572,7 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
         "Token should belong to the synced user"
     );
 
-    // Second sync: user already exists in Defguard — must NOT create a second token.
+    // Second sync: user already exists in Defguard - must NOT create a second token.
     ldap_conn.sync(&pool, false).await.unwrap();
 
     let tokens = Token::fetch_all(&pool).await.unwrap();
@@ -3584,7 +3584,7 @@ async fn test_sync_sends_invite_when_flags_enabled(_: PgPoolOptions, options: Pg
 }
 
 /// When both invite flags are on but there are no active admins in Defguard, the sync must
-/// succeed and the user must be saved — the invite is silently skipped with a logged error.
+/// succeed and the user must be saved - the invite is silently skipped with a logged error.
 #[sqlx::test]
 async fn test_sync_invite_skipped_when_no_admin_exists(
     _: PgPoolOptions,
@@ -3687,7 +3687,7 @@ async fn test_ldap_login_sends_invite_when_flags_enabled(
         "Token should belong to the logged-in user"
     );
 
-    // Second login: user now exists in Defguard — must NOT create a second token.
+    // Second login: user now exists in Defguard - must NOT create a second token.
     let result =
         login_through_ldap_with_connection(&pool, &mut ldap_conn, "login_invite_user", PASSWORD)
             .await;

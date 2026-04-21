@@ -90,7 +90,7 @@ pub async fn send_support_data(
             "version": g.version.as_deref().unwrap_or("unknown"),
             "address": g.address,
             "port": g.port,
-            "certificate": g.certificate,
+            "certificate": g.certificate_serial,
             "name": g.name,
             "connected_at": g.connected_at,
         })).collect::<Vec<_>>(),

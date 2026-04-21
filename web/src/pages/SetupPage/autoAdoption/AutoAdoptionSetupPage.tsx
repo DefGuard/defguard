@@ -262,6 +262,7 @@ export const AutoAdoptionSetupPage = () => {
       subtitle={m.initial_setup_auto_adoption_wizard_subtitle()}
       title={m.initial_setup_auto_adoption_wizard_title()}
       steps={stepsConfig}
+      videoGuidePlacementKey="autoAdoptionWizard"
       isOnWelcomePage={!isAutoAdoptionFlowStarted}
       welcomePageConfig={{
         title: m.initial_setup_auto_adoption_welcome_title(),

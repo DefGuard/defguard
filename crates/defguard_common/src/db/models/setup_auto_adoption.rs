@@ -85,7 +85,7 @@ impl AutoAdoptionWizardState {
     where
         E: PgExecutor<'e>,
     {
-        query(
+        query!(
             "UPDATE wizard
              SET auto_adoption_state = NULL
              WHERE is_singleton",

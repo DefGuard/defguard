@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import z from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -9,6 +10,7 @@ import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedB
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
+import { getEdgesQueryOptions } from '../../../shared/query';
 import { Validate } from '../../../shared/validate';
 import { EdgeSetupStep } from '../types';
 import { useEdgeWizardStore } from '../useEdgeWizardStore';
@@ -23,6 +25,7 @@ type StoreValues = {
 
 export const SetupEdgeComponentStep = () => {
   const setActiveStep = useEdgeWizardStore((s) => s.setActiveStep);
+  const { data: edges } = useQuery(getEdgesQueryOptions);
 
   const defaultValues = useEdgeWizardStore(
     useShallow(
@@ -49,7 +52,11 @@ export const SetupEdgeComponentStep = () => {
       z.object({
         common_name: z
           .string()
-          .min(1, m.edge_setup_component_error_common_name_required()),
+          .min(1, m.edge_setup_component_error_common_name_required())
+          .refine(
+            (val) => !edges?.some((e) => e.name === val),
+            m.edge_setup_component_error_common_name_duplicate(),
+          ),
         ip_or_domain: z
           .string()
           .min(1, m.edge_setup_component_error_ip_or_domain_required())
@@ -65,7 +72,7 @@ export const SetupEdgeComponentStep = () => {
           .min(1, m.edge_setup_component_error_grpc_port_required())
           .max(65535, m.edge_setup_component_error_grpc_port_max()),
       }),
-    [],
+    [edges],
   );
 
   const form = useAppForm({

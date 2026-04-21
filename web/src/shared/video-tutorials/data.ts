@@ -46,25 +46,45 @@ const sectionSchema = z
   })
   .strip();
 
-const migrationWizardPlacementSchema = z
+const placementSchema = z
   .object({
-    youtubeVideoId: z
-      .string()
-      .regex(
-        /^[A-Za-z0-9_-]{11}$/,
-        'youtubeVideoId must be exactly 11 alphanumeric/-/_ chars',
-      ),
-    title: z.string().min(1, 'title must be non-empty'),
-    docsTitle: z.string().min(1, 'docsTitle must be non-empty'),
-    docsUrl: z.string().url('docsUrl must be a valid URL'),
+    video: z
+      .object({
+        youtubeVideoId: z
+          .string()
+          .regex(
+            /^[A-Za-z0-9_-]{11}$/,
+            'youtubeVideoId must be exactly 11 alphanumeric/-/_ chars',
+          ),
+        title: z.string().min(1, 'title must be non-empty'),
+      })
+      .strip()
+      .optional(),
+    docs: z
+      .array(
+        z
+          .object({
+            docsTitle: z.string().min(1, 'docsTitle must be non-empty'),
+            docsUrl: z.string().url('docsUrl must be a valid URL'),
+          })
+          .strip(),
+      )
+      .min(1, 'docs must contain at least one item')
+      .optional(),
+  })
+  .refine((value) => Boolean(value.video || value.docs), {
+    message: 'placement must define at least one of video or docs',
   })
   .strip();
 
-const placementsSchema = z
+const placementGroupSchema = z
   .object({
-    migrationWizard: migrationWizardPlacementSchema.optional(),
+    default: placementSchema.optional(),
+    steps: z.record(z.string(), placementSchema).optional(),
   })
   .strip();
+
+const placementsSchema = z.record(z.string(), placementGroupSchema);
 
 const versionEntrySchema = z
   .object({

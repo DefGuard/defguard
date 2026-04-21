@@ -11,7 +11,7 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   const page = await context.newPage();
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
-  await page.goto(routes.base + routes.openid_apps, { waitUntil: 'networkidle' });
+  await page.goto(routes.base + routes.openid_apps, { waitUntil: 'load' });
   await page.getByTestId('add-new-app').click();
   await page.getByTestId('field-name').fill(client.name);
 
@@ -25,9 +25,8 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   for (const scope of client.scopes) {
     await page.getByTestId(`field-scope-${scope}`).click();
   }
-  await page.getByTestId('save-settings').click();
   const responsePromise = page.waitForResponse('**/oauth');
-
+  await page.getByTestId('save-settings').click();
   const resp = await responsePromise;
   expect(resp.status()).toBe(201);
   await context.close();

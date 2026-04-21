@@ -28,7 +28,7 @@ pub struct GatewayInfo {
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
     pub connected: bool,
-    pub certificate: Option<String>,
+    pub certificate_serial: Option<String>,
     pub certificate_expiry: Option<NaiveDateTime>,
     pub version: Option<String>,
     pub enabled: bool,
@@ -41,16 +41,19 @@ impl GatewayInfo {
     pub async fn list(pool: &PgPool) -> sqlx::Result<Vec<Self>> {
         query_as!(
             Self,
-            "SELECT gateway.*, \
+            "SELECT \
+                g.id, g.location_id, g.name, g.address, g.port, g.connected_at, g.disconnected_at, \
                 CASE \
-                    WHEN gateway.connected_at IS NULL THEN false \
-                    WHEN gateway.disconnected_at IS NULL THEN true \
-                    WHEN gateway.connected_at >= gateway.disconnected_at THEN true \
+                    WHEN g.connected_at IS NULL THEN false \
+                    WHEN g.disconnected_at IS NULL THEN true \
+                    WHEN g.connected_at >= g.disconnected_at THEN true \
                     ELSE false \
                 END AS \"connected!\", \
+                g.certificate_serial, g.certificate_expiry, g.version, \
+                g.enabled, g.modified_at, g.modified_by, \
                 wn.name AS location_name \
-            FROM gateway \
-            JOIN wireguard_network wn ON gateway.location_id = wn.id",
+            FROM gateway g \
+            JOIN wireguard_network wn ON g.location_id = wn.id",
         )
         .fetch_all(pool)
         .await
@@ -59,16 +62,19 @@ impl GatewayInfo {
     pub async fn find_by_location_id(pool: &PgPool, location_id: Id) -> sqlx::Result<Vec<Self>> {
         query_as!(
             Self,
-            "SELECT gateway.*, \
+            "SELECT \
+                g.id, g.location_id, g.name, g.address, g.port, g.connected_at, g.disconnected_at, \
                 CASE \
-                    WHEN gateway.connected_at IS NULL THEN false \
-                    WHEN gateway.disconnected_at IS NULL THEN true \
-                    WHEN gateway.connected_at >= gateway.disconnected_at THEN true \
+                    WHEN g.connected_at IS NULL THEN false \
+                    WHEN g.disconnected_at IS NULL THEN true \
+                    WHEN g.connected_at >= g.disconnected_at THEN true \
                     ELSE false \
                 END AS \"connected!\", \
+                g.certificate_serial, g.certificate_expiry, g.version, \
+                g.enabled, g.modified_at, g.modified_by, \
                 wn.name AS location_name \
-            FROM gateway \
-            JOIN wireguard_network wn ON gateway.location_id = wn.id \
+            FROM gateway g \
+            JOIN wireguard_network wn ON g.location_id = wn.id \
             WHERE location_id = $1",
             location_id
         )
@@ -98,7 +104,7 @@ pub struct GatewayUpdateData {
         ("api_token" = [])
     )
 )]
-pub(crate) async fn gateway_list(
+pub async fn gateway_list(
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,

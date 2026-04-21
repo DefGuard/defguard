@@ -116,10 +116,10 @@ impl NetworkDeviceInfo {
 }
 
 #[derive(Serialize)]
-struct DeviceWireGuardConfig {
-    network_id: Id,
-    network_name: String,
-    config: String,
+pub(crate) struct DeviceWireGuardConfig {
+    pub(crate) network_id: Id,
+    pub(crate) network_name: String,
+    pub(crate) config: String,
 }
 
 /// For a given device, retrieve all WireGuard configuations for all networks.

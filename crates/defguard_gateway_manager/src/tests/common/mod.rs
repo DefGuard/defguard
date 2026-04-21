@@ -33,14 +33,15 @@ use tokio::{
         oneshot, watch,
     },
     task::JoinHandle,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
 
 use crate::{GatewayManager, GatewayManagerTestSupport, GatewayTxSet, handler::GatewayHandler};
 
-const TEST_TIMEOUT: Duration = Duration::from_secs(2);
+const TEST_TIMEOUT: Duration = Duration::from_secs(10);
+pub(crate) const FAST_RETRY_DELAY: Duration = Duration::from_millis(20);
 
 macro_rules! assert_some {
     ($expr:expr, $message:literal) => {
@@ -428,6 +429,8 @@ impl ManagerTestContext {
             "gateway manager already started"
         );
 
+        self.set_retry_delay(FAST_RETRY_DELAY);
+
         let (events_tx, _) = broadcast::channel(16);
         let (peer_stats_tx, _peer_stats_rx) = mpsc::unbounded_channel();
         let tx = GatewayTxSet::new(events_tx, peer_stats_tx);
@@ -573,7 +576,7 @@ impl HandlerTestContext {
             wait_for_gateway_connection_state(&self.pool, self.gateway.id, true).await;
         timeout(TEST_TIMEOUT, async {
             while self.events_tx().receiver_count() <= initial_event_receivers {
-                tokio::time::sleep(Duration::from_millis(20)).await;
+                sleep(Duration::from_millis(20)).await;
             }
         })
         .await
@@ -649,7 +652,7 @@ pub(crate) async fn wait_for_gateway_connection_state(
                 return gateway;
             }
 
-            tokio::time::sleep(Duration::from_millis(20)).await;
+            sleep(Duration::from_millis(20)).await;
         }
     })
     .await

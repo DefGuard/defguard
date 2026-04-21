@@ -10,9 +10,11 @@ rust-version.workspace = true
 [dependencies]
 defguard_common.workspace = true
 http = "1.1"
+hyper-rustls.workspace = true
 rustls = { version = "0.23", features = ["ring"] }
 thiserror.workspace = true
 tokio.workspace = true
+tonic.workspace = true
 tower-service = "0.3"
 x509-parser = "0.18"
 tracing.workspace = true

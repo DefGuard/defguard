@@ -45,6 +45,7 @@ pub(crate) async fn proxy_list(
 ) -> ApiResult {
     debug!("User {} displaying proxy list", session.user.username);
     let proxies = Proxy::list(&appstate.pool).await?;
+    let proxies: Vec<ProxyInfo> = proxies.into_iter().map(Into::into).collect();
     info!("User {} displayed proxy list", session.user.username);
 
     Ok(ApiResponse::json(proxies, StatusCode::OK))

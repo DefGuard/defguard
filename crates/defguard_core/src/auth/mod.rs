@@ -52,7 +52,7 @@ where
                     })?;
             if let Some(header) = maybe_auth_header {
                 let token_string = header.token();
-                debug!("Trying to authorize request using API token: {token_string}");
+                debug!("Trying to authorize request using API token");
                 return match ApiToken::try_find_by_auth_token(&pool, token_string).await {
                     Ok(Some(api_token)) => {
                         // create a dummy session and don't store it in the DB

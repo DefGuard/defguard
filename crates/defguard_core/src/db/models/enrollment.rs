@@ -37,8 +37,6 @@ pub enum TokenError {
     AdminNotFound,
     #[error("User account is already activated")]
     AlreadyActive,
-    #[error("Failed to send enrollment notification: {0}")]
-    NotificationError(String),
     #[error("Enrollment welcome message not configured")]
     WelcomeMsgNotConfigured,
     #[error("Enrollment welcome email not configured")]
@@ -60,7 +58,6 @@ impl From<TokenError> for Status {
             | TokenError::AdminNotFound
             | TokenError::UserNotFound
             | TokenError::UserDisabled
-            | TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
@@ -246,14 +243,14 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetch admin data.");
+        debug!("Fetch admin data");
         if self.admin_id.is_none() {
-            debug!("Admin don't have id. Stop fetching data...");
+            debug!("Admin doesn't have ID; stop fetching data");
             return Ok(None);
         }
 
         let admin_id = self.admin_id.unwrap();
-        debug!("Trying to find admin using id {admin_id}");
+        debug!("Trying to find admin using ID {admin_id}");
         let user = User::find_by_id(executor, admin_id).await?;
         debug!("Fetched admin {user:?}.");
 
@@ -267,7 +264,7 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Deleting unused tokens for the user.");
+        debug!("Deleting unused tokens for the user");
         let result = query!(
             "DELETE FROM token \
             WHERE user_id = $1 \
@@ -277,7 +274,7 @@ impl Token {
         .execute(executor)
         .await?;
         info!(
-            "Deleted {} unused enrollment tokens for the user.",
+            "Deleted {} unused enrollment tokens for the user",
             result.rows_affected()
         );
 

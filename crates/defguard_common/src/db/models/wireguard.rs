@@ -347,6 +347,33 @@ impl WireguardNetwork<Id> {
         .await
     }
 
+    /// Gets all non-MFA locations a user device is allowed to access.
+    /// Locations requiring MFA (Internal/External) are excluded — their connections
+    /// are managed by the defguard client and cannot be represented as a static config.
+    pub async fn find_user_device_networks<'e, E>(
+        executor: E,
+        device_id: Id,
+    ) -> sqlx::Result<Vec<Self>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, mtu, fwmark, \
+            allowed_ips, allow_all_groups, connected_at,  keepalive_interval, \
+            peer_disconnect_threshold, acl_enabled, acl_default_allow, \
+            location_mfa_mode \"location_mfa_mode: LocationMfaMode\", \
+            service_location_mode \"service_location_mode: ServiceLocationMode\" \
+            FROM wireguard_network WHERE id IN \
+            (SELECT wireguard_network_id FROM wireguard_network_device \
+            WHERE device_id = $1) \
+            AND location_mfa_mode = 'disabled'",
+            device_id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Find all for a given rule `Id`.
     pub async fn all_for_rule<'e, E>(executor: E, rule_id: Id) -> sqlx::Result<Vec<Self>>
     where

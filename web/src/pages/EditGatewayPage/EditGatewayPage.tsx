@@ -15,7 +15,11 @@ import { useAppForm } from '../../shared/form';
 import { formChangeLogic } from '../../shared/formLogic';
 import { openModal } from '../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../shared/hooks/modalControls/modalTypes';
-import { getGatewayQueryOptions, getLocationQueryOptions } from '../../shared/query';
+import {
+  getGatewayQueryOptions,
+  getGatewaysQueryOptions,
+  getLocationQueryOptions,
+} from '../../shared/query';
 
 export const EditGatewayPage = () => {
   const { gatewayId } = useParams({
@@ -41,23 +45,9 @@ export const EditGatewayPage = () => {
   );
 };
 
-const formSchema = z.object({
-  name: z.string(m.form_error_required()).min(1, m.form_error_required()),
-  address: z.string().nullable(),
-  port: z.number().nullable(),
-  connected_at: z.string().nullable(),
-  disconnected_at: z.string().nullable(),
-  enabled: z.boolean(),
-  modified_at: z.string(),
-  modified_by: z.string(),
-  version: z.string().nullable(),
-  location_id: z.number(),
-});
-
-type FormFields = z.infer<typeof formSchema>;
-
 const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
   const navigate = useNavigate();
+  const { data: gateways } = useSuspenseQuery(getGatewaysQueryOptions);
   const { data: location } = useSuspenseQuery(
     getLocationQueryOptions(gateway.location_id),
   );
@@ -74,6 +64,31 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
       Snackbar.error(m.gateway_edit_failed());
     },
   });
+
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        name: z
+          .string(m.form_error_required())
+          .min(1, m.form_error_required())
+          .refine(
+            (val) => val === gateway.name || !gateways?.some((g) => g.name === val),
+            m.gateway_edit_error_name_duplicate(),
+          ),
+        address: z.string().nullable(),
+        port: z.number().nullable(),
+        connected_at: z.string().nullable(),
+        disconnected_at: z.string().nullable(),
+        enabled: z.boolean(),
+        modified_at: z.string(),
+        modified_by: z.string(),
+        version: z.string().nullable(),
+        location_id: z.number(),
+      }),
+    [gateways, gateway.name],
+  );
+
+  type FormFields = z.infer<typeof formSchema>;
 
   const defaultValues = useMemo((): FormFields => ({ ...gateway }), [gateway]);
 

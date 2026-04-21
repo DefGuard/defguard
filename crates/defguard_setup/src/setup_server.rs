@@ -36,6 +36,7 @@ use crate::handlers::{
         setup_login, setup_session, upload_ca,
     },
     session_info::get_session_info,
+    version::get_version,
 };
 
 pub fn build_setup_webapp(
@@ -54,6 +55,7 @@ pub fn build_setup_webapp(
             "/api/v1",
             Router::<()>::new()
                 .route("/health", get(health_check))
+                .route("/version", get(get_version))
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/session-info", get(get_session_info))
                 .route("/network/display", get(get_locations_display))

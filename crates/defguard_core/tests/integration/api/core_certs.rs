@@ -7,7 +7,9 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use super::common::{generate_test_cert_pem, make_test_client, setup_pool};
+use super::common::{
+    generate_expired_test_cert_pem, generate_test_cert_pem, make_test_client, setup_pool,
+};
 
 async fn seed_ca(pool: &sqlx::PgPool) {
     let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
@@ -46,6 +48,9 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    // Don't touch the URL if setting no cert
+    assert_eq!(settings.defguard_url, "https://defguard.example.com");
 
     let saved = Certificates::get(&pool).await.unwrap().unwrap();
     assert_eq!(saved.core_http_cert_source, CoreCertSource::None);
@@ -55,12 +60,17 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
 
     seed_ca(&pool).await;
 
+    settings.defguard_url = "http://defguard.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let response = client
         .post("/api/v1/core/cert/internal_url_settings")
         .json(&json!({ "ssl_type": "defguard_ca" }))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    // Url schema changed to https
+    assert_eq!(settings.defguard_url, "https://defguard.example.com");
 
     let body: serde_json::Value = response.json::<serde_json::Value>().await;
     assert!(!body["cert_info"].is_null());
@@ -77,6 +87,8 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
             .contains("BEGIN CERTIFICATE")
     );
 
+    settings.defguard_url = "http://defguard.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let (cert_pem, key_pem) = generate_test_cert_pem("uploaded.example.com");
     let response = client
         .post("/api/v1/core/cert/internal_url_settings")
@@ -88,6 +100,9 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    // Url schema changed to https
+    assert_eq!(settings.defguard_url, "https://defguard.example.com");
 
     let body: serde_json::Value = response.json::<serde_json::Value>().await;
     assert_eq!(body["cert_info"]["common_name"], "uploaded.example.com");
@@ -96,6 +111,8 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
     assert_eq!(saved.core_http_cert_source, CoreCertSource::Custom);
     assert!(saved.core_http_cert_expiry.is_some());
 
+    settings.defguard_url = "http://defguard.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
     let (_, mismatched_key_pem) = generate_test_cert_pem("different.example.com");
     let response = client
         .post("/api/v1/core/cert/internal_url_settings")
@@ -107,6 +124,9 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let mut settings = Settings::get(&pool).await.unwrap().unwrap();
+    // Url schema unchanged on errors
+    assert_eq!(settings.defguard_url, "http://defguard.example.com");
 
     let response = client
         .post("/api/v1/core/cert/internal_url_settings")
@@ -117,4 +137,23 @@ async fn test_internal_url_settings_endpoint(_: PgPoolOptions, options: PgConnec
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    settings.defguard_url = "http://defguard.example.com".to_string();
+    update_current_settings(&pool, settings).await.unwrap();
+    let (expired_cert_pem, expired_key_pem) = generate_expired_test_cert_pem("expired.example.com");
+    let response = client
+        .post("/api/v1/core/cert/internal_url_settings")
+        .json(&json!({
+            "ssl_type": "own_cert",
+            "cert_pem": expired_cert_pem,
+            "key_pem": expired_key_pem
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let settings = Settings::get(&pool).await.unwrap().unwrap();
+    // Url schema unchanged on errors
+    assert_eq!(settings.defguard_url, "http://defguard.example.com");
+    let body: serde_json::Value = response.json().await;
+    assert_eq!(body["msg"], "Certificate has expired");
 }

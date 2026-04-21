@@ -2,6 +2,7 @@ use defguard_common::db::models::User;
 use defguard_core::events::{BidiStreamEventType, PasswordResetEvent};
 use defguard_proto::proxy::core_response;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use tokio::time::timeout;
 
 use super::support::{
     STRONG_PASSWORD, assert_error_response, complete_proxy_handshake, create_enrollment_token,
@@ -64,7 +65,7 @@ async fn test_password_reset_start_returns_deadline(_: PgPoolOptions, options: P
     assert!(deadline > 0, "deadline_timestamp must be positive");
 
     // A BidiStreamEvent::PasswordReset(PasswordResetStarted) must have been emitted.
-    let event = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+    let event = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
         .await
         .expect("timed out waiting for BidiStreamEvent")
         .expect("bidi_events_rx closed");
@@ -104,7 +105,7 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
         ),
         "start must succeed"
     );
-    let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Reset the password.
     const NEW_PASSWORD: &str = "NewPass2!";
@@ -134,7 +135,7 @@ async fn test_password_reset_completes_successfully(_: PgPoolOptions, options: P
     );
 
     // A BidiStreamEvent::PasswordReset(PasswordResetCompleted) must have been emitted.
-    let event = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
+    let event = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv())
         .await
         .expect("timed out waiting for BidiStreamEvent")
         .expect("bidi_events_rx closed");
@@ -176,7 +177,7 @@ async fn test_password_reset_weak_password_returns_error(
         ),
         "start must succeed"
     );
-    let _ = tokio::time::timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
+    let _ = timeout(TEST_TIMEOUT, context.bidi_events_rx.recv()).await;
 
     // Submit a weak password.
     let response = send_password_reset(&mut context, &token.id, "weak").await;

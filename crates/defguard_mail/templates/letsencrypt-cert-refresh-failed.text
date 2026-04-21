@@ -1,0 +1,5 @@
+{{ title }}
+{% if content %}{{ content }}{% endif %}
+{% if error_message %}
+Error: {{ error_message }}
+{% endif %}

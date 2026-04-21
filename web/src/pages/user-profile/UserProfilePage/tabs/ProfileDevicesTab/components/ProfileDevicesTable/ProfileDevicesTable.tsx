@@ -197,6 +197,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
         size: 300,
         minSize: 300,
         enableSorting: true,
+        sortingFn: 'text',
         meta: {
           flex: true,
         },

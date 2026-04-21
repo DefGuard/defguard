@@ -305,73 +305,78 @@ export const UsersTable = () => {
             ],
           };
 
+          const userMainActionsItems: MenuItemProps[] = [
+            {
+              text: m.users_row_menu_edit(),
+              icon: 'edit',
+              onClick: () => {
+                openModal(ModalName.EditUserModal, {
+                  user: rowData,
+                  reservedEmails,
+                  reservedUsernames,
+                });
+              },
+            },
+            {
+              text: m.users_row_menu_change_password(),
+              icon: 'lock-open',
+              testId: 'change-password',
+              onClick: () => {
+                openModal(ModalName.ChangePassword, {
+                  adminForm: rowData.username !== authUsername,
+                  user: rowData,
+                });
+              },
+            },
+            {
+              text: m.users_row_menu_go_profile(),
+              icon: 'profile',
+              onClick: () => {
+                navigate({
+                  to: '/user/$username',
+                  params: {
+                    username: rowData.username,
+                  },
+                });
+              },
+            },
+            {
+              text: m.users_row_menu_edit_groups(),
+              icon: 'add-group',
+              testId: 'edit-groups',
+              onClick: () => {
+                useSelectionModal.setState({
+                  isOpen: true,
+                  options: groupsOptions,
+                  title: m.modal_edit_user_groups_title(),
+                  selected: new Set(rowData.groups),
+                  onSubmit: (selected) => {
+                    handleEditGroups(rowData, selected as string[]);
+                  },
+                });
+              },
+            },
+          ];
+
+          if (rowData.devices.length > 0) {
+            userMainActionsItems.push({
+              text: m.users_row_menu_ip_settings(),
+              icon: IconKind.Gateway,
+              testId: 'assign-ip',
+              onClick: async () => {
+                const response = await api.device.getUserDeviceIps(rowData.username);
+                openModal(ModalName.AssignUserIP, {
+                  user: rowData,
+                  locationData: response.data,
+                  hasDevices: rowData.devices.length > 0,
+                });
+              },
+            });
+          }
+
           const menuItems: MenuItemsGroup[] = [
             {
-              items: [
-                {
-                  text: m.users_row_menu_edit(),
-                  icon: 'edit',
-                  onClick: () => {
-                    openModal(ModalName.EditUserModal, {
-                      user: rowData,
-                      reservedEmails,
-                      reservedUsernames,
-                    });
-                  },
-                },
-                {
-                  text: m.users_row_menu_change_password(),
-                  icon: 'lock-open',
-                  testId: 'change-password',
-                  onClick: () => {
-                    openModal(ModalName.ChangePassword, {
-                      adminForm: rowData.username !== authUsername,
-                      user: rowData,
-                    });
-                  },
-                },
-                {
-                  text: m.users_row_menu_go_profile(),
-                  icon: 'profile',
-                  onClick: () => {
-                    navigate({
-                      to: '/user/$username',
-                      params: {
-                        username: rowData.username,
-                      },
-                    });
-                  },
-                },
-                {
-                  text: m.users_row_menu_edit_groups(),
-                  icon: 'add-group',
-                  testId: 'edit-groups',
-                  onClick: () => {
-                    useSelectionModal.setState({
-                      isOpen: true,
-                      options: groupsOptions,
-                      title: m.modal_edit_user_groups_title(),
-                      selected: new Set(rowData.groups),
-                      onSubmit: (selected) => {
-                        handleEditGroups(rowData, selected as string[]);
-                      },
-                    });
-                  },
-                },
-                {
-                  text: m.users_row_menu_ip_settings(),
-                  icon: IconKind.Gateway,
-                  testId: 'assign-ip',
-                  onClick: async () => {
-                    const response = await api.device.getUserDeviceIps(rowData.username);
-                    openModal(ModalName.AssignUserIP, {
-                      user: rowData,
-                      locationData: response.data,
-                      hasDevices: rowData.devices.length > 0,
-                    });
-                  },
-                },
-              ],
+              items: userMainActionsItems,
             },
             {
               items: [
@@ -710,18 +715,20 @@ export const UsersTable = () => {
   return (
     <>
       <TableTop text={m.users_header_title()}>
-        {Object.keys(selected).length > 0 && isPresent(groups) && (
+        {table.getFilteredSelectedRowModel().rows.length > 0 && isPresent(groups) && (
           <Button
             variant="outlined"
             text={m.users_bulk_assign_to_groups()}
             iconLeft="add-group"
             testId="bulk-assign"
             onClick={() => {
-              const userIds = Object.keys(selected).map(Number);
+              const selectedUsers = table
+                .getFilteredSelectedRowModel()
+                .rows.map((row) => row.original.id);
               openModal(ModalName.AssignGroupsToUsers, {
                 groups,
-                users: userIds,
-                onSuccess: () => setSelected({}),
+                users: selectedUsers,
+                onSuccess: () => table.resetRowSelection(),
               });
             }}
           />
@@ -733,18 +740,16 @@ export const UsersTable = () => {
         />
         <Button {...addButtonProps} />
       </TableTop>
-      {rows.length === 0 && search.length > 0 && (
+      <TableBody
+        table={table}
+        renderExpandedRow={renderExpanded}
+        expandedHeaders={expandedHeader}
+      />
+      {rows.length === 0 && (search.length > 0 || columnFilters.length > 0) && (
         <EmptyStateFlexible
           icon="search"
           title={m.search_empty_common_title()}
           subtitle={m.search_empty_common_subtitle()}
-        />
-      )}
-      {rows.length > 0 && (
-        <TableBody
-          table={table}
-          renderExpandedRow={renderExpanded}
-          expandedHeaders={expandedHeader}
         />
       )}
     </>

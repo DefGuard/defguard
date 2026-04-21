@@ -165,7 +165,7 @@ use crate::{
             add_device, add_user_devices, count_networks, create_network, delete_device,
             delete_network, download_config, gateway_status, get_device, import_network,
             list_devices, list_networks, list_user_devices, modify_device, modify_network,
-            network_details,
+            network_details, user_device_configs,
         },
         worker::{create_job, create_worker_token, job_status, list_workers, remove_worker},
     },
@@ -186,6 +186,7 @@ pub mod events;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;
+pub mod letsencrypt;
 pub mod location_management;
 pub mod setup_logs;
 pub mod support;
@@ -511,6 +512,7 @@ pub fn build_webapp(
                 "/device/{device_id}",
                 put(modify_device).get(get_device).delete(delete_device),
             )
+            .route("/device/{device_id}/config", get(user_device_configs))
             .route("/device", get(list_devices))
             .route("/device/user/{username}", get(list_user_devices))
             .route(
@@ -697,13 +699,10 @@ pub async fn run_web_server(
         let app = webapp
             .clone()
             .into_make_service_with_connect_info::<SocketAddr>();
-        let current_tls_cert_pair = Certificates::get_or_default(&pool)
-            .await
-            .map(|c| {
-                c.core_http_cert_pair()
-                    .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
-            })
-            .unwrap_or(None);
+        let current_tls_cert_pair = Certificates::get_or_default(&pool).await.map_or(None, |c| {
+            c.core_http_cert_pair()
+                .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
+        });
 
         let mut server_task = tokio::spawn(async move {
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
@@ -810,6 +809,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     let wizard = Wizard {
         active_wizard: ActiveWizard::None,
         completed: true,
+        last_version_migrated_to: None,
     };
     // Ensure wizard is initialized, then overwrite with completed state
     let _ = Wizard::init(&pool, false, config).await;

@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, Type, query, query_as};
+use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use tracing::{error, info};
 use url::Url;
 
@@ -45,6 +45,7 @@ impl fmt::Display for ActiveWizard {
 pub struct Wizard {
     pub active_wizard: ActiveWizard,
     pub completed: bool,
+    pub last_version_migrated_to: Option<String>,
 }
 
 impl Wizard {
@@ -53,10 +54,11 @@ impl Wizard {
         E: PgExecutor<'e>,
     {
         query!(
-            "UPDATE wizard SET active_wizard = $1, completed = $2 \
+            "UPDATE wizard SET active_wizard = $1, completed = $2, last_version_migrated_to = $3 \
             WHERE is_singleton",
             self.active_wizard as ActiveWizard,
-            self.completed
+            self.completed,
+            self.last_version_migrated_to
         )
         .execute(executor)
         .await?;
@@ -70,7 +72,7 @@ impl Wizard {
     {
         let row = query_as!(
             Wizard,
-            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed \
+            "SELECT active_wizard \"active_wizard!: ActiveWizard\", completed, last_version_migrated_to \
             FROM wizard WHERE is_singleton LIMIT 1",
         )
         .fetch_one(executor)
@@ -79,6 +81,7 @@ impl Wizard {
         Ok(Self {
             active_wizard: row.active_wizard,
             completed: row.completed,
+            last_version_migrated_to: row.last_version_migrated_to,
         })
     }
 
@@ -209,5 +212,14 @@ impl Wizard {
             }
             _ => Ok(true),
         }
+    }
+
+    pub async fn update_last_version_migrated_to(
+        pool: &PgPool,
+        version: &str,
+    ) -> Result<(), sqlx::Error> {
+        let mut wizard = Self::get(pool).await?;
+        wizard.last_version_migrated_to = Some(version.to_string());
+        wizard.save(pool).await
     }
 }

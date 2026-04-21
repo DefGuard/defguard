@@ -1,4 +1,4 @@
-name: Publish to GitHub registry
+name: Make a new release
 on:
   push:
     tags:
@@ -12,6 +12,12 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  SQLX_OFFLINE: "1"
+  # sccache
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
 
 jobs:
   build-docker-release:
@@ -52,42 +58,26 @@ jobs:
     steps:
       - name: Create GitHub release
         id: release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        uses: shogo82148/actions-create-release@v1
         with:
           draft: true
           generate_release_notes: true
 
   create-sbom:
-    needs: [create-release, build-docker-release]
+    needs:
+      - create-release
+      - build-docker-release
     uses: ./.github/workflows/sbom.yml
     with:
       upload_url: ${{ needs.create-release.outputs.upload_url }}
 
   build-binaries:
-    needs: [create-release]
+    needs:
+      - create-release
     runs-on:
       - self-hosted
       - Linux
       - X64
-
-    strategy:
-      fail-fast: false
-      matrix:
-        build: [linux, linux-arm64, freebsd]
-        include:
-          - build: linux
-            arch: amd64
-            target: x86_64-unknown-linux-gnu
-          - build: linux-arm64
-            arch: arm64
-            target: aarch64-unknown-linux-gnu
-          - build: freebsd
-            arch: amd64
-            target: x86_64-unknown-freebsd
-
-    permissions:
-      contents: write # needed to upload release assets
 
     steps:
       # Store the version, stripping any v-prefix
@@ -102,121 +92,178 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup `packer`
-        uses: hashicorp/setup-packer@main
-        id: setup
-
-      - name: Install Rust stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.89.0 # "stable" causes rust-lld: error on aarch64-linux
-          target: ${{ matrix.target }}
-          override: true
-
-      - name: Set up Docker BuildX
-        uses: docker/setup-buildx-action@v4
-        with:
-          buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["dockerhub-proxy.teonite.net"]
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
-          version: 10.17
-
-      - name: Use Node.js 24
+      - name: Install NodeJS
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 25
 
-      - name: Install frontend dependencies
-        run: pnpm install --ignore-scripts --frozen-lockfile
-        working-directory: web
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
 
+      # Change to '--frozen-lockfile' once this gets fixed:
+      # https://github.com/pnpm/action-setup/issues/40
       - name: Build frontend
-        run: pnpm build
         working-directory: web
+        run: |
+          pnpm install --ignore-scripts --no-frozen-lockfile
+          pnpm build
 
-      - name: Build release binary
-        uses: actions-rs/cargo@v1
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
-          use-cross: true
-          command: build
-          args: --locked --release --target ${{ matrix.target }}
+          targets: "aarch64-unknown-linux-gnu"
 
-      - name: Rename binary
-        run: mv target/${{ matrix.target }}/release/defguard defguard-${{ github.ref_name }}-${{ matrix.target }}
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Tar
-        uses: a7ul/tar-action@v1.2.0
-        with:
-          command: c
-          files: |
-            defguard-${{ github.ref_name }}-${{ matrix.target }}
-          outPath: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+      - name: Build Linux x86_64 binary
+        run: |
+          cargo build --locked --release --target x86_64-unknown-linux-gnu
+          mv target/x86_64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
+          tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.tar.gz \
+            defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu
 
-      - name: Upload release archive
-        uses: actions/upload-release-asset@v1.0.2
+      - name: Build Linux aarch64 binary
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
-          asset_name: defguard-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
-          asset_content_type: application/octet-stream
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          PKG_CONFIG_SYSROOT_DIR: /usr/lib/aarch64-linux-gnu
+        run: |
+          cargo build --locked --release --target aarch64-unknown-linux-gnu
+          mv target/aarch64-unknown-linux-gnu/release/defguard defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
+          tar -zcf defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.tar.gz \
+            defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu
 
-      - name: Build DEB package
-        if: matrix.build == 'linux'
+      - name: Build FreeBSD binary
+        run: |
+          rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
+          ssh root@freebsd 'cd work/defguard && cargo build --locked --release'
+          scp root@freebsd:work/defguard/target/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
+          tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
+            defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
+
+      - name: Build x86_64 DEB package
         uses: defGuard/fpm-action@main
         with:
-          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
+          fpm_args:
+            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
+            defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts: "--architecture amd64 --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb"
 
-      - name: Upload DEB
-        if: matrix.build == 'linux'
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
-          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.deb
-          asset_content_type: application/octet-stream
-
-      - name: Build RPM package
-        if: matrix.build == 'linux'
+      - name: Build aarch64 DEB package
         uses: defGuard/fpm-action@main
         with:
-          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env-template=/etc/defguard/core.conf"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
+          fpm_args:
+            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
+            defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts: "--architecture arm64 --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb"
 
-      - name: Upload RPM
-        if: matrix.build == 'linux'
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build x86_64 RPM package
+        uses: defGuard/fpm-action@main
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
-          asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
-          asset_content_type: application/octet-stream
+          fpm_args:
+            "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
+            defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts: "--architecture amd64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm"
+
+      - name: Build aarch64 RPM package
+        uses: defGuard/fpm-action@main
+        with:
+          fpm_args:
+            "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
+            defguard.service=/usr/lib/systemd/system/defguard.service
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts: "--architecture arm64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm"
 
       - name: Build FreeBSD package
-        if: matrix.build == 'freebsd'
         uses: defGuard/fpm-action@main
         with:
-          fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*' --depends openssl"
+          fpm_args:
+            "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
+            defguard.service.freebsd=/usr/local/etc/rc.d/defguard
+            .env.example=/etc/defguard/core.conf"
+          fpm_opts: "--architecture amd64 --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg --freebsd-osversion '*' --depends openssl"
 
-      - name: Upload FreeBSD
-        if: matrix.build == 'freebsd'
-        uses: actions/upload-release-asset@v1.0.2
+      - name: Upload Linux x86_64 archive
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
-          asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
-          asset_content_type: application/octet-stream
+          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.tar.gz
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload Linux aarch64 archive
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.tar.gz
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload FreeBSD x86_64 archive
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload Linux x86_64 DEB
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload Linux aarch64 DEB
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload Linux x86_64 RPM
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload Linux aarch64 RPM
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm
+          asset_content_type: application/gzip
+          overwrite: true
+
+      - name: Upload FreeBSD package
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
+          asset_content_type: application/x-pkg
+          overwrite: true

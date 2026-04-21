@@ -4,14 +4,15 @@ The video tutorials module displays YouTube-based help content sourced from the
 update service. It now powers two kinds of UI:
 
 - route-bound tutorials inside the authenticated app shell
-- placement-specific help content, currently the migration wizard sidebar block
+- placement-specific help content in wizard sidebars
 
 The configuration is fetched as static JSON from
 `https://pkgs.defguard.net/api/content/video-tutorials` by default.
 
 Route-based tutorials are mounted in `src/routes/_authorized/_default.tsx` and
-remain available across the authenticated layout. Placement-based migration
-content is rendered inside the migration wizard flow under `/_wizard/migration`.
+remain available across the authenticated layout. Placement-based content is
+rendered inside wizard step layouts under `/_wizard/migration` and
+`/_wizard/setup`.
 
 A launcher button (`NavTutorialsButton`) is shown in the navigation only when
 the resolved app version contains at least one tutorial section with videos.
@@ -25,9 +26,10 @@ when at least one route-matched video is available for the current page.
 Clicking it opens a floating list of video cards with thumbnails and titles.
 Clicking on a specific card opens a modal with an embedded YouTube player.
 
-The migration wizard uses the same JSON source, but reads a dedicated
-`placements.migrationWizard` entry from the resolved version and renders a
-thumbnail plus documentation card in the sidebar.
+Wizards use the same JSON source, but read a dedicated placement entry from the
+resolved version and render a thumbnail plus documentation card in the sidebar.
+Current placement keys are `migrationWizard`, `initialSetupWizard`, and
+`autoAdoptionWizard`.
 
 While a video is loading a skeleton placeholder is shown; if the video fails to
 load within 8 seconds, a "Video unavailable" message is displayed instead with
@@ -159,16 +161,84 @@ endpoint on the same server.
           ]
         }
       ],
-      "placements": {
-        "migrationWizard": {
-          "youtubeVideoId": "xyz987GHI12",
-          "title": "Migration wizard guide",
-          "docsTitle": "Defguard Configuration Guide",
-          "docsUrl": "https://docs.defguard.net/migration"
+        "placements": {
+          "migrationWizard": {
+            "default": {
+              "video": {
+                "youtubeVideoId": "xyz987GHI12",
+                "title": "Migration wizard guide"
+              },
+              "docs": [
+                {
+                  "docsTitle": "Defguard Configuration Guide",
+                  "docsUrl": "https://docs.defguard.net/migration"
+                }
+              ]
+            },
+            "steps": {
+              "ca": {
+                "video": {
+                  "youtubeVideoId": "aaaBBBccc11",
+                  "title": "Certificate authority guide"
+                },
+                "docs": [
+                  {
+                    "docsTitle": "Certificate authority documentation",
+                    "docsUrl": "https://docs.defguard.net/migration/ca"
+                  },
+                  {
+                    "docsTitle": "Certificate authority troubleshooting",
+                    "docsUrl": "https://docs.defguard.net/migration/ca/troubleshooting"
+                  }
+                ]
+              }
+            }
+          },
+          "initialSetupWizard": {
+            "default": {
+              "video": {
+                "youtubeVideoId": "bbbCCCddd22",
+                "title": "Initial setup guide"
+              },
+              "docs": [
+                {
+                  "docsTitle": "Initial setup documentation",
+                  "docsUrl": "https://docs.defguard.net/setup"
+                }
+              ]
+            },
+            "steps": {
+              "adminUser": {
+                "docs": [
+                  {
+                    "docsTitle": "Admin user documentation",
+                    "docsUrl": "https://docs.defguard.net/setup/admin-user"
+                  }
+                ]
+              }
+            }
+          },
+          "autoAdoptionWizard": {
+            "default": {
+              "docs": [
+                {
+                  "docsTitle": "Auto adoption documentation",
+                  "docsUrl": "https://docs.defguard.net/auto-adoption"
+                }
+              ]
+            },
+            "steps": {
+              "vpnSettings": {
+                "video": {
+                  "youtubeVideoId": "eeeFFFggg55",
+                  "title": "VPN settings guide"
+                }
+              }
+            }
+          }
         }
       }
-    }
-  }
+   }
 }
 ```
 
@@ -184,14 +254,48 @@ Route tutorial video fields:
 | `appRoute` | Yes | Must start with `/`. Use TanStack Router route definition paths (e.g. `/vpn-overview`, `/vpn-overview/$locationId`), not runtime URLs with concrete param values. |
 | `docsUrl` | Yes | Valid URL. Shown as the external documentation link in the tutorials modal. |
 
-Migration placement fields:
+Wizard placement fields:
 
 | Field | Required | Description |
 |---|---|---|
-| `youtubeVideoId` | Yes | Used to render the thumbnail and embedded player in the migration sidebar. |
+| `video` | No | Optional video block shown in the wizard sidebar. |
+| `docs` | No | Optional non-empty array of documentation links shown one under another in the wizard sidebar. |
+
+`video` fields:
+
+| Field | Required | Description |
+|---|---|---|
+| `youtubeVideoId` | Yes | Used to render the thumbnail and embedded player in the wizard sidebar. |
 | `title` | Yes | Displayed next to the thumbnail and used as the iframe title. |
-| `docsTitle` | Yes | Text shown in the migration documentation card. |
-| `docsUrl` | Yes | External URL opened from the migration documentation card. |
+
+`docs` item fields:
+
+| Field | Required | Description |
+|---|---|---|
+| `docsTitle` | Yes | Text shown in the wizard documentation card. |
+| `docsUrl` | Yes | External URL opened from the wizard documentation card. |
+
+Wizard placement structure:
+
+- `default`: optional fallback guide used when the current step has no dedicated entry
+- `steps`: optional map of step key to guide data
+
+Each placement object must define at least one of `video` or `docs`.
+If `docs` is present, it must contain at least one item.
+
+`placements` is a string-keyed record, so placement keys are not hardcoded in the
+schema. The application currently uses these keys:
+
+- `migrationWizard`
+- `initialSetupWizard`
+- `autoAdoptionWizard`
+
+The keys in each placement's `steps` map should match frontend step IDs.
+Examples:
+
+- Migration: `general`, `ca`, `caSummary`, `edgeDeployment`, `edge`, `edgeAdoption`, `internalUrlSettings`, `internalUrlSslConfig`, `externalUrlSettings`, `externalUrlSslConfig`, `confirmation`, `welcome`
+- Initial setup: `adminUser`, `generalConfig`, `certificateAuthority`, `certificateAuthoritySummary`, `edgeDeploy`, `edgeComponent`, `edgeAdoption`, `internalUrlSettings`, `internalUrlSslConfig`, `externalUrlSettings`, `externalUrlSslConfig`, `confirmation`
+- Auto adoption: `adminUser`, `internalUrlSettings`, `internalUrlSslConfig`, `externalUrlSettings`, `externalUrlSslConfig`, `vpnSettings`, `mfaSetup`, `summary`
 
 ### Section structure
 
@@ -199,6 +303,8 @@ Each version value is an object with:
 
 - `sections`: ordered route-based tutorial sections
 - `placements`: optional surface-specific content entries
+
+`sections` is required for every version entry, but it may be an empty array.
 
 Sections are displayed in the order they appear in the array; videos within a
 section are displayed in their array order.
@@ -225,11 +331,21 @@ Rules:
 Consumers built on top of that selected version:
 
 - `resolveSections()` returns `selectedVersion.sections`
-- `resolveVideoGuidePlacement()` returns `selectedVersion.placements?[placementKey]`
+- `resolveVideoGuidePlacement()` returns a step-aware placement from the selected version
 
 There is no fallback to older versions once a newer eligible version has been
-selected. If `2.2` is selected and omits `placements.migrationWizard`, the
-migration wizard shows nothing even if `2.1` defined that placement.
+selected. If `2.2` is selected and omits a placement key, that wizard shows
+nothing even if `2.1` defined that placement.
+
+Within the selected version, wizard guide resolution uses this fallback order:
+
+1. `placements[placementKey].steps[currentStep]`
+2. `placements[placementKey].default`
+3. `null`
+
+Fallback to `default` only happens when the whole step entry is missing.
+If a step entry exists with only `docs` or only `video`, it is used as-is and is
+not merged with `default`.
 
 ---
 

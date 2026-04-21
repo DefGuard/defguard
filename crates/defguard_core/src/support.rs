@@ -30,6 +30,7 @@ pub(crate) async fn dump_config(conn: &mut PgConnection) -> Result<Value, serde_
     let settings = match Settings::get(&mut *conn).await {
         Ok(Some(mut settings)) => {
             settings.smtp_password = None;
+            settings.ldap_bind_password = None;
             json!(settings)
         }
         Ok(None) => json!({"error": "Settings not found"}),

@@ -40,7 +40,7 @@ async fn test_manager_starts_all_enabled_proxies_on_startup(
     context.finish().await;
 }
 
-/// Two enabled proxies at startup — both complete their handshake and both
+/// Two enabled proxies at startup - both complete their handshake and both
 /// appear as connected in the DB.  Verifies that the manager spawns independent
 /// handler tasks and that they do not interfere with each other.
 #[sqlx::test]
@@ -57,7 +57,7 @@ async fn test_two_proxies_connect_independently(_: PgPoolOptions, options: PgCon
 
     context.start().await;
 
-    // Both handshakes must complete — order is not guaranteed.
+    // Both handshakes must complete - order is not guaranteed.
     complete_manager_proxy_handshake(&mut mock_a).await;
     complete_manager_proxy_handshake(&mut mock_b).await;
 
@@ -105,7 +105,7 @@ async fn test_start_connection_adds_proxy_at_runtime(_: PgPoolOptions, options: 
     let mut mock_b = MockProxyHarness::start().await;
     context.register_proxy_mock(&proxy_b, &mock_b);
 
-    // Third proxy: disabled — manager must not start it.
+    // Third proxy: disabled - manager must not start it.
     let proxy_c = create_proxy_with_enabled(&context.pool, false).await;
     let mut mock_c = MockProxyHarness::start().await;
     context.register_proxy_mock(&proxy_c, &mock_c);
@@ -167,7 +167,7 @@ async fn test_start_connection_adds_proxy_at_runtime(_: PgPoolOptions, options: 
 }
 
 /// One proxy's stream closes and reconnects to a replacement mock server at the
-/// same socket path.  The other proxy must remain connected throughout — the
+/// same socket path.  The other proxy must remain connected throughout - the
 /// reconnect must be fully isolated to the affected handler task.
 #[sqlx::test]
 async fn test_one_proxy_reconnects_while_other_stays_connected(
@@ -177,7 +177,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
     let mut context = ManagerTestContext::new(options).await;
     context.set_retry_delay(FAST_RETRY_DELAY);
 
-    // Proxy A: reconnects — use a fixed socket path so we can start a replacement.
+    // Proxy A: reconnects - use a fixed socket path so we can start a replacement.
     let proxy_a = create_proxy(&context.pool).await;
     let socket_a = mock_proxy_socket_path();
     context.register_proxy_socket_path(
@@ -185,7 +185,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
         socket_a.clone(),
     );
 
-    // Proxy B: stable — standard mock.
+    // Proxy B: stable - standard mock.
     let proxy_b = create_proxy(&context.pool).await;
     let mut mock_b = MockProxyHarness::start().await;
     context.register_proxy_mock(&proxy_b, &mock_b);
@@ -195,7 +195,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
         .wait_for_handler_spawn_attempt_count(proxy_a.id, 1)
         .await;
 
-    // First mock for proxy A — will be closed to trigger a reconnect.
+    // First mock for proxy A - will be closed to trigger a reconnect.
     let mut mock_a1 = MockProxyHarness::start_at(socket_a.clone()).await;
     mock_a1.wait_for_connection_count(1).await;
     complete_manager_proxy_handshake(&mut mock_a1).await;
@@ -207,7 +207,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
 
     let initial_spawn_count_a = context.handler_spawn_attempt_count(proxy_a.id);
 
-    // Close proxy A's stream — triggers internal retry loop in handler A.
+    // Close proxy A's stream - triggers internal retry loop in handler A.
     mock_a1.close_stream();
     wait_for_proxy_connection_state(&context.pool, proxy_a.id, false).await;
 
@@ -217,7 +217,7 @@ async fn test_one_proxy_reconnects_while_other_stays_connected(
     complete_manager_proxy_handshake(&mut mock_a2).await;
     wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
 
-    // Handler A reused its existing task — no new supervisor spawned.
+    // Handler A reused its existing task - no new supervisor spawned.
     assert_eq!(
         context.handler_spawn_attempt_count(proxy_a.id),
         initial_spawn_count_a,
@@ -296,7 +296,7 @@ async fn test_shutdown_control_message_disconnects_without_purge(
     complete_manager_proxy_handshake(&mut mock_proxy).await;
     wait_for_proxy_connection_state(&context.pool, proxy.id, true).await;
 
-    // Send ShutdownConnection — purge() RPC must NOT be called.
+    // Send ShutdownConnection - purge() RPC must NOT be called.
     context
         .proxy_control_tx
         .send(ProxyControlMessage::ShutdownConnection(proxy.id))
@@ -338,7 +338,7 @@ async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: P
     wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
     wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
 
-    // Send Purge targeting proxy A only — purge() RPC MUST be called on A.
+    // Send Purge targeting proxy A only - purge() RPC MUST be called on A.
     context
         .proxy_control_tx
         .send(ProxyControlMessage::Purge(proxy_a.id))
@@ -353,7 +353,7 @@ async fn test_purge_control_message_calls_purge_rpc(_: PgPoolOptions, options: P
         "proxy A should be disconnected after Purge"
     );
 
-    // Proxy B must be completely unaffected — not purged, still connected.
+    // Proxy B must be completely unaffected - not purged, still connected.
     assert_eq!(
         mock_b.purge_count(),
         0,
@@ -388,7 +388,7 @@ async fn test_manager_retries_after_stream_close_single_supervisor(
         .wait_for_handler_spawn_attempt_count(proxy.id, 1)
         .await;
 
-    // First mock server — accept one connection, then close the stream.
+    // First mock server - accept one connection, then close the stream.
     let mut mock_proxy = MockProxyHarness::start_at(socket_path.clone()).await;
     mock_proxy.wait_for_connection_count(1).await;
     complete_manager_proxy_handshake(&mut mock_proxy).await;
@@ -421,7 +421,7 @@ async fn test_manager_retries_after_stream_close_single_supervisor(
 ///
 /// 1. Start the manager with two enabled proxies (both mocked and connected).
 /// 2. Verify both report as connected in the DB.
-/// 3. Send `ShutdownConnection` for the second proxy — exactly what
+/// 3. Send `ShutdownConnection` for the second proxy - exactly what
 ///    `trim_gateways_and_edges` would send after calling
 ///    `Proxy::leave_one_enabled`.
 /// 4. Assert the second proxy is now disconnected in the DB.
@@ -475,7 +475,7 @@ async fn test_license_expiry_shuts_down_excess_proxy_only(
         "ShutdownConnection must not trigger a purge RPC on the excess proxy"
     );
 
-    // The retained proxy must still be connected — license expiry must not
+    // The retained proxy must still be connected - license expiry must not
     // affect proxies that are allowed to remain.
     let after_keep = wait_for_proxy_connection_state(&context.pool, proxy_keep.id, true).await;
     assert!(

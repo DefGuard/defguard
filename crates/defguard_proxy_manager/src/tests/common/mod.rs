@@ -41,7 +41,7 @@ use tokio::{
         oneshot, watch,
     },
     task::JoinHandle,
-    time::timeout,
+    time::{sleep, timeout},
 };
 use tokio_stream::{once, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status, Streaming, transport::Server};
@@ -53,6 +53,8 @@ pub(crate) const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub(crate) const CORE_RESPONSE_TIMEOUT: Duration = Duration::from_millis(200);
 
 pub(crate) const PROXY_CONNECT_DELAY: Duration = Duration::from_millis(20);
+
+pub(crate) const RECEIVE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Minimum proxy version that passes `is_proxy_version_supported()`.
 const MOCK_PROXY_VERSION: defguard_version::Version = defguard_version::Version::new(2, 0, 0);
@@ -606,7 +608,7 @@ impl ManagerTestContext {
         );
         let manager_task = tokio::spawn(async move { manager.run().await });
 
-        // No PgListener in proxy manager — just yield to let the manager start.
+        // No PgListener in proxy manager - just yield to let the manager start.
         tokio::task::yield_now().await;
 
         self.manager_task = Some(manager_task);
@@ -662,7 +664,7 @@ pub(crate) async fn wait_for_proxy_connection_state(
             if proxy.is_connected() == expected_connected {
                 return proxy;
             }
-            tokio::time::sleep(PROXY_CONNECT_DELAY).await;
+            sleep(PROXY_CONNECT_DELAY).await;
         }
     })
     .await
@@ -695,7 +697,7 @@ pub(crate) fn build_proxy_with_enabled(enabled: bool) -> Proxy<NoId> {
 }
 
 // ---------------------------------------------------------------------------
-// MockOidcProvider — a minimal OIDC identity provider for tests
+// MockOidcProvider - a minimal OIDC identity provider for tests
 // ---------------------------------------------------------------------------
 
 /// Shared state injected into axum route handlers.

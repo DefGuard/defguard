@@ -1,10 +1,10 @@
-use std::str::FromStr;
+use std::{net::IpAddr, str::FromStr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
 use rcgen::{
-    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams,
-    ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
+    BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
+    Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
 };
 use rustls_pki_types::{CertificateDer, CertificateSigningRequestDer, pem::PemObject};
 use thiserror::Error;
@@ -13,6 +13,8 @@ use x509_parser::{
     extensions::{GeneralName, ParsedExtension},
     parse_x509_certificate,
 };
+
+pub use rcgen::ExtendedKeyUsagePurpose;
 
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
@@ -26,6 +28,8 @@ pub enum CertificateError {
     ParsingError(String),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error("CSR hostname mismatch: {0}")]
+    HostnameMismatch(String),
 }
 
 pub struct CertificateAuthority<'a> {
@@ -92,16 +96,37 @@ impl CertificateAuthority<'_> {
         Self::from_key_cert_params(ca_key_pair, ca_params)
     }
 
-    pub fn sign_csr(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
-        // TODO: make validity configurable?
-        self.sign_csr_with_validity(csr, DEFAULT_CERT_VALIDITY_DAYS)
+    /// Sign a server-facing component certificate (`ServerAuth` EKU only).
+    ///
+    /// Use [`sign_client_cert`] for Core gRPC client certificates, or
+    /// [`sign_csr_with_validity`] when custom validity is needed.
+    pub fn sign_server_cert(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
+        self.sign_csr_with_validity(
+            csr,
+            DEFAULT_CERT_VALIDITY_DAYS,
+            &[ExtendedKeyUsagePurpose::ServerAuth],
+        )
     }
 
-    /// Sign CSR with explicit validity in days.
+    /// Sign a Core gRPC client certificate (`ClientAuth` EKU only).
+    pub fn sign_client_cert(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
+        self.sign_csr_with_validity(
+            csr,
+            DEFAULT_CERT_VALIDITY_DAYS,
+            &[ExtendedKeyUsagePurpose::ClientAuth],
+        )
+    }
+
+    /// Sign a CSR with explicit validity in days and extended key usages.
+    ///
+    /// `extended_key_usages` controls which EKUs are encoded in the signed
+    /// certificate.  Pass `&[ServerAuth]` for component server certs and
+    /// `&[ClientAuth]` for Core gRPC client certs.
     pub fn sign_csr_with_validity(
         &self,
         csr: &Csr,
         days_valid: i64,
+        extended_key_usages: &[ExtendedKeyUsagePurpose],
     ) -> Result<Certificate, CertificateError> {
         let mut csr_params = csr.params()?;
 
@@ -116,13 +141,35 @@ impl CertificateAuthority<'_> {
             KeyUsagePurpose::DigitalSignature,
             KeyUsagePurpose::KeyEncipherment,
         ];
-        csr_params.params.extended_key_usages = vec![
-            ExtendedKeyUsagePurpose::ServerAuth,
-            ExtendedKeyUsagePurpose::ClientAuth,
-        ];
+        csr_params.params.extended_key_usages = extended_key_usages.to_vec();
 
         let cert = csr_params.signed_by(&self.issuer)?;
         Ok(cert)
+    }
+
+    /// Issue a Core gRPC client certificate for a specific Gateway or Edge.
+    ///
+    /// Generates a fresh key pair, creates a CSR with `common_name` as both
+    /// the Subject CN and the SAN DNS name, signs it with `ClientAuth` EKU,
+    /// and returns all materials needed to store in the database and build a
+    /// [`CertBundle`].
+    pub fn issue_core_client_cert(
+        &self,
+        common_name: &str,
+    ) -> Result<CoreClientCert, CertificateError> {
+        let key_pair = generate_key_pair()?;
+        let csr = Csr::new(
+            &key_pair,
+            &[common_name.to_string()],
+            vec![(rcgen::DnType::CommonName, common_name)],
+        )?;
+        let cert = self.sign_client_cert(&csr)?;
+        let expiry = CertificateInfo::from_der(cert.der())?.not_after;
+        Ok(CoreClientCert {
+            cert_der: cert.der().to_vec(),
+            key_der: key_pair.serialized_der().to_vec(),
+            expiry,
+        })
     }
 
     pub fn cert_pem(&self) -> Result<String, CertificateError> {
@@ -143,6 +190,18 @@ impl CertificateAuthority<'_> {
         let CertificateInfo { not_after, .. } = CertificateInfo::from_der(&self.cert_der)?;
         Ok(not_after)
     }
+}
+
+/// A Core gRPC client certificate issued for a specific Gateway or Edge component.
+///
+/// The DER bytes are stored in the database; the key bytes never leave Core.
+pub struct CoreClientCert {
+    /// DER-encoded client certificate signed with `ClientAuth` EKU.
+    pub cert_der: Vec<u8>,
+    /// DER-encoded private key for the client certificate.
+    pub key_der: Vec<u8>,
+    /// Certificate expiry timestamp (UTC).
+    pub expiry: NaiveDateTime,
 }
 
 pub struct CertificateInfo {
@@ -241,13 +300,48 @@ impl Csr<'_> {
         Ok(params)
     }
 
+    /// Verify that the CSR's SAN list contains exactly `expected_hostname` and
+    /// nothing else. The hostname may be a DNS name or an IP address literal.
+    ///
+    /// This is used during component setup to ensure the component has not
+    /// substituted a different hostname in the CSR it returns to Core.
+    pub fn verify_hostname(&self, expected_hostname: &str) -> Result<(), CertificateError> {
+        let params = self.params()?;
+        let sans = &params.params.subject_alt_names;
+
+        if sans.is_empty() {
+            return Err(CertificateError::HostnameMismatch(format!(
+                "CSR contains no SANs; expected {expected_hostname:?}"
+            )));
+        }
+
+        let expected_ip: Option<IpAddr> = expected_hostname.parse().ok();
+
+        for san in sans {
+            let matches = match san {
+                rcgen::SanType::IpAddress(ip) => expected_ip.is_some_and(|e| &e == ip),
+                rcgen::SanType::DnsName(name) => {
+                    expected_ip.is_none() && name.as_str() == expected_hostname
+                }
+                _ => false,
+            };
+            if !matches {
+                return Err(CertificateError::HostnameMismatch(format!(
+                    "CSR SAN does not match expected hostname {expected_hostname}"
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
     #[must_use]
     pub fn to_der(&self) -> &[u8] {
         self.csr.as_ref()
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy)]
 pub enum PemLabel {
     Certificate,
     PrivateKey,
@@ -329,7 +423,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sign_csr() {
+    fn test_sign_server_cert() {
         let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 10).unwrap();
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
@@ -341,7 +435,7 @@ mod tests {
             ],
         )
         .unwrap();
-        let signed_cert: Certificate = ca.sign_csr(&csr).unwrap();
+        let signed_cert = ca.sign_server_cert(&csr).unwrap();
         assert!(signed_cert.pem().contains("BEGIN CERTIFICATE"));
     }
 
@@ -357,7 +451,9 @@ mod tests {
             vec![(rcgen::DnType::CommonName, "example.com")],
         )
         .unwrap();
-        let signed_cert: Certificate = ca.sign_csr_with_validity(&csr, 90).unwrap();
+        let signed_cert = ca
+            .sign_csr_with_validity(&csr, 90, &[ExtendedKeyUsagePurpose::ServerAuth])
+            .unwrap();
         let der = signed_cert.der();
         let (_rem, parsed) = parse_x509_certificate(der).unwrap();
         let validity = parsed.tbs_certificate.validity;
@@ -464,5 +560,53 @@ mod tests {
         // Parse the PEM back to DER and ensure it matches the original
         let parsed = parse_pem_certificate(&pem).unwrap();
         assert_eq!(parsed, ca.cert_der);
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_dns_ok() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(&key, &["proxy.example.com".to_string()], vec![]).unwrap();
+        assert!(
+            csr.verify_hostname("proxy.example.com").is_ok(),
+            "matching DNS SAN should pass"
+        );
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_ip_ok() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(&key, &["10.0.0.1".to_string()], vec![]).unwrap();
+        assert!(
+            csr.verify_hostname("10.0.0.1").is_ok(),
+            "matching IP SAN should pass"
+        );
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_mismatch() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(&key, &["evil.attacker.com".to_string()], vec![]).unwrap();
+        assert!(
+            csr.verify_hostname("proxy.example.com").is_err(),
+            "mismatched DNS SAN should fail"
+        );
+    }
+
+    #[test]
+    fn test_csr_verify_hostname_extra_san_rejected() {
+        let key = generate_key_pair().unwrap();
+        let csr = Csr::new(
+            &key,
+            &[
+                "proxy.example.com".to_string(),
+                "evil.extra.com".to_string(),
+            ],
+            vec![],
+        )
+        .unwrap();
+        assert!(
+            csr.verify_hostname("proxy.example.com").is_err(),
+            "CSR with extra SANs beyond the expected hostname should fail"
+        );
     }
 }
