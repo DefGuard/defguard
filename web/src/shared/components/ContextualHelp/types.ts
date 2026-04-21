@@ -17,7 +17,6 @@ export const ContextualHelpKey = {
   SettingsEdgeCoreCerts: 'settings-edge-core-certs',
   // Enrollment settings tabs
   EnrollmentGeneral: 'enrollment-general',
-  EnrollmentMessageTemplates: 'enrollment-message-templates',
   // Support page
   Support: 'support',
 } as const;
