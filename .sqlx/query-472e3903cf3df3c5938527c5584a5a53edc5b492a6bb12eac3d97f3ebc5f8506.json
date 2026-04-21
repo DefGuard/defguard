@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, connected_at, disconnected_at, version, enabled, certificate_serial, certificate_expiry, modified_at, modified_by FROM proxy",
+  "query": "SELECT * FROM proxy",
   "describe": {
     "columns": [
       {
@@ -35,33 +35,48 @@
       },
       {
         "ordinal": 6,
-        "name": "version",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 7,
-        "name": "enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 8,
-        "name": "certificate_serial",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
         "name": "certificate_expiry",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 10,
+        "ordinal": 7,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "modified_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
+        "name": "certificate_serial",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
         "name": "modified_by",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "core_client_cert_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 13,
+        "name": "core_client_cert_key_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 14,
+        "name": "core_client_cert_expiry",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -75,12 +90,15 @@
       true,
       true,
       true,
+      true,
+      false,
+      true,
+      false,
       false,
       true,
       true,
-      false,
-      false
+      true
     ]
   },
-  "hash": "8a9afd0b7e2f96be85230b35190fab658d841589e7670a4b3fcbc9d53cd1c250"
+  "hash": "472e3903cf3df3c5938527c5584a5a53edc5b492a6bb12eac3d97f3ebc5f8506"
 }
