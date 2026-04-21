@@ -433,7 +433,10 @@ mod markdown_to_html {
     fn bold_has_inline_style() {
         let html = markdown_to_html("**important**");
         assert!(has_tag(&html, "strong"), "strong tag missing: {html}");
-        assert!(html.contains("font-weight: 500"), "strong font-weight: {html}");
+        assert!(
+            html.contains("font-weight: 500"),
+            "strong font-weight: {html}"
+        );
         assert!(html.contains("important"), "bold text missing: {html}");
     }
 
@@ -441,10 +444,7 @@ mod markdown_to_html {
     fn link_has_inline_style_and_href() {
         let html = markdown_to_html("[click here](https://example.com)");
         assert!(has_tag(&html, "a"), "a tag missing: {html}");
-        assert!(
-            html.contains("https://example.com"),
-            "href missing: {html}"
-        );
+        assert!(html.contains("https://example.com"), "href missing: {html}");
         assert!(html.contains("#3961DB"), "a color: {html}");
         assert!(html.contains("click here"), "link text missing: {html}");
     }
@@ -461,12 +461,7 @@ mod markdown_to_html {
 
     #[test]
     fn h3_through_h6_are_demoted_to_h2() {
-        for (level, marker) in [
-            (3, "###"),
-            (4, "####"),
-            (5, "#####"),
-            (6, "######"),
-        ] {
+        for (level, marker) in [(3, "###"), (4, "####"), (5, "#####"), (6, "######")] {
             let html = markdown_to_html(&format!("{marker} Heading {level}"));
             assert!(
                 has_tag(&html, "h2"),
@@ -604,10 +599,7 @@ mod markdown_to_html {
         let html = markdown_to_html("[**bold link**](https://example.com)");
         assert!(has_tag(&html, "a"), "a tag missing: {html}");
         assert!(has_tag(&html, "strong"), "strong inside a missing: {html}");
-        assert!(
-            html.contains("https://example.com"),
-            "href missing: {html}"
-        );
+        assert!(html.contains("https://example.com"), "href missing: {html}");
         assert!(html.contains("bold link"), "link text missing: {html}");
     }
 
@@ -626,21 +618,33 @@ mod markdown_to_html {
     fn hr_surrounded_by_paragraphs_is_stripped() {
         let html = markdown_to_html("Before.\n\n---\n\nAfter.");
         assert!(!has_tag(&html, "hr"), "hr must be stripped: {html}");
-        assert!(html.contains("Before"), "text before hr must survive: {html}");
+        assert!(
+            html.contains("Before"),
+            "text before hr must survive: {html}"
+        );
         assert!(html.contains("After"), "text after hr must survive: {html}");
     }
 
     #[test]
     fn empty_input_produces_no_tags() {
         let html = markdown_to_html("");
-        assert!(html.trim().is_empty(), "empty input must produce no output: {html}");
+        assert!(
+            html.trim().is_empty(),
+            "empty input must produce no output: {html}"
+        );
     }
 
     #[test]
     fn plain_text_is_wrapped_in_paragraph() {
         let html = markdown_to_html("Just some text.");
-        assert!(has_tag(&html, "p"), "plain text must be wrapped in p: {html}");
-        assert!(html.contains("Just some text"), "text must be preserved: {html}");
+        assert!(
+            has_tag(&html, "p"),
+            "plain text must be wrapped in p: {html}"
+        );
+        assert!(
+            html.contains("Just some text"),
+            "text must be preserved: {html}"
+        );
     }
 }
 
