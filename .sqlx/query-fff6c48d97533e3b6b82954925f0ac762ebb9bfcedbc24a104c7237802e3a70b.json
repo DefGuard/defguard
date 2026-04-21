@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wizard\n             SET migration_wizard_state = $1\n             WHERE is_singleton",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fff6c48d97533e3b6b82954925f0ac762ebb9bfcedbc24a104c7237802e3a70b"
+}

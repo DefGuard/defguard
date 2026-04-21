@@ -184,8 +184,8 @@ impl IncompatibleComponents {
             .expect("Failed to read-lock IncompatibleComponents")
             .proxy
             .as_ref()
-            .filter(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
-            .is_some()
+            .as_ref()
+            .is_some_and(|proxy| (now - proxy.created) > OUTDATED_COMPONENT_LIFETIME)
         {
             return true;
         }

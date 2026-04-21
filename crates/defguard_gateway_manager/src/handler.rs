@@ -149,9 +149,27 @@ impl GatewayHandler {
                 "Core CA is not setup, can't create a Gateway endpoint".to_string(),
             ));
         };
-        let tls_config =
-            tls_certs::client_config(&ca_cert_der, self.certs_rx.clone(), self.gateway.id)
-                .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
+        let Some(core_client_cert_der) = self.gateway.core_client_cert_der.as_deref() else {
+            return Err(GatewayError::EndpointError(format!(
+                "Core client certificate not provisioned for gateway id={}",
+                self.gateway.id
+            )));
+        };
+        let Some(core_client_cert_key_der) = self.gateway.core_client_cert_key_der.as_deref()
+        else {
+            return Err(GatewayError::EndpointError(format!(
+                "Core client certificate key not provisioned for gateway id={}",
+                self.gateway.id
+            )));
+        };
+        let tls_config = tls_certs::client_config(
+            &ca_cert_der,
+            self.certs_rx.clone(),
+            self.gateway.id,
+            core_client_cert_der,
+            core_client_cert_key_der,
+        )
+        .map_err(|err| GatewayError::EndpointError(err.to_string()))?;
         let connector = HttpsConnectorBuilder::new()
             .with_tls_config(tls_config)
             .https_only()

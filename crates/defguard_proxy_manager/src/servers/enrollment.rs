@@ -369,10 +369,16 @@ impl EnrollmentServer {
         }
 
         debug!("Try to send welcome email...");
-        enrollment
+        match enrollment
             .send_welcome_email(conn, user, ip_address, device_info)
-            .await?;
-        info!("Welcome email sent to {} at {}", user.username, user.email);
+            .await
+        {
+            Ok(()) => info!("Welcome email sent to {} at {}", user.username, user.email),
+            Err(err) => warn!(
+                "Failed to send enrollment welcome email to {} at {}: {err}.",
+                user.username, user.email
+            ),
+        }
 
         Ok(())
     }
@@ -837,13 +843,13 @@ impl EnrollmentServer {
             })
             .collect::<Vec<DeviceConfig>>();
 
-        let template_locations: Vec<TemplateLocation> = configs
+        let template_locations = configs
             .iter()
             .map(|c| TemplateLocation {
                 name: c.network_name.clone(),
                 assigned_ips: c.address.as_csv(),
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         debug!(
             "Sending device created mail for device {}, user {}({:?})",

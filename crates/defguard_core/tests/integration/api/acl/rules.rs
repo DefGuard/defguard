@@ -568,7 +568,7 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = make_test_client(pool).await;
     authenticate_admin(&mut client).await;
 
-    // rule — empty address and port strings are parse-safe; use any_* flags so validation passes
+    // rule - empty address and port strings are parse-safe; use any_* flags so validation passes
     let mut rule = make_rule();
     rule.addresses = String::new();
     rule.ports = String::new();
@@ -1409,8 +1409,6 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     assert_ne!(created_rule_row.modified_by, "admin");
     let created_modified_at = created_rule_row.modified_at;
 
-    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
-
     let mut updated_rule = created_rule.clone();
     updated_rule.name = "rule updated by hpotter".to_string();
     let response = client
@@ -1428,8 +1426,6 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     assert_eq!(updated_rule_row.name, "rule updated by hpotter");
     assert!(updated_rule_row.modified_at > created_modified_at);
     let updated_modified_at = updated_rule_row.modified_at;
-
-    tokio::time::sleep(std::time::Duration::from_millis(2)).await;
 
     let response = client
         .put("/api/v1/acl/rule/apply")

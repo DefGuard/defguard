@@ -300,6 +300,10 @@ pub enum MailMessage {
     UserImportBlocked,
     /// Enrollment notification for admins.
     EnrollmentNotification,
+    /// Letsencrypt certificate refresh failed.
+    LetsencryptCertRefreshFailed,
+    CertificateExpiration,
+    CertificateExpired,
 }
 
 impl MailMessage {
@@ -332,6 +336,11 @@ impl MailMessage {
             Self::PasswordResetDone => "Defguard: Password reset success".to_string(),
             Self::UserImportBlocked => "User import blocked".to_string(),
             Self::EnrollmentNotification => "Defguard: User enrollment completed".to_string(),
+            Self::LetsencryptCertRefreshFailed => {
+                "Defguard: automatic Let's Encrypt certificate refresh failed".to_string()
+            }
+            Self::CertificateExpiration => "Defguard: Certificate expiration".to_string(),
+            Self::CertificateExpired => "Defguard: Certificate has expired".to_string(),
         }
     }
 
@@ -354,6 +363,9 @@ impl MailMessage {
             Self::PasswordResetDone => "password-reset-done",
             Self::UserImportBlocked => "user-import-blocked",
             Self::EnrollmentNotification => "enrollment-admin-notification",
+            Self::LetsencryptCertRefreshFailed => "letsencrypt-cert-refresh-failed",
+            Self::CertificateExpiration => "certificate-expiration",
+            Self::CertificateExpired => "certificate-expired",
         }
     }
 
@@ -378,6 +390,12 @@ impl MailMessage {
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.mjml")
             }
+            Self::LetsencryptCertRefreshFailed => {
+                include_str!("../templates/letsencrypt-cert-refresh-failed.mjml")
+            }
+            Self::CertificateExpiration | Self::CertificateExpired => {
+                include_str!("../templates/certificate-expiration.mjml")
+            }
         }
     }
 
@@ -401,6 +419,12 @@ impl MailMessage {
             Self::UserImportBlocked => include_str!("../templates/plain-notification.text"),
             Self::EnrollmentNotification => {
                 include_str!("../templates/enrollment-admin-notification.text")
+            }
+            Self::LetsencryptCertRefreshFailed => {
+                include_str!("../templates/letsencrypt-cert-refresh-failed.text")
+            }
+            Self::CertificateExpiration | Self::CertificateExpired => {
+                include_str!("../templates/certificate-expiration.text")
             }
         }
     }

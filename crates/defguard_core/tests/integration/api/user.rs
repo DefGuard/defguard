@@ -1165,7 +1165,7 @@ async fn test_modify_user_admin_updates_other_user(_: PgPoolOptions, options: Pg
     assert_eq!(updated.last_name, "UpdatedLast");
     assert_eq!(updated.email, "updated@hogwart.edu.uk");
     assert_eq!(updated.phone, Some("+48999888777".into()));
-    // mfa_method must NOT have changed — admin is not updating self
+    // mfa_method must NOT have changed - admin is not updating self
     assert_eq!(updated.mfa_method, old_user.mfa_method);
 
     client.verify_api_events(&[ApiEventType::UserModified {

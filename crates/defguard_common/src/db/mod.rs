@@ -59,8 +59,7 @@ pub enum TriggerOperation {
 }
 
 #[derive(Deserialize)]
-pub struct ChangeNotification<T> {
+pub struct ChangeNotification {
     pub operation: TriggerOperation,
-    pub old: Option<T>,
-    pub new: Option<T>,
+    pub id: Id,
 }

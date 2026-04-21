@@ -160,7 +160,7 @@ pub async fn apply_internal_url_settings(
             let san = vec![hostname.clone()];
             let dn = vec![(DnType::CommonName, hostname.as_str())];
             let csr = Csr::new(&key_pair, &san, dn)?;
-            let server_cert = ca.sign_csr(&csr)?;
+            let server_cert = ca.sign_server_cert(&csr)?;
 
             let cert_der = server_cert.der().to_vec();
             let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
@@ -300,7 +300,7 @@ pub async fn apply_external_url_settings(
             let san = vec![hostname.clone()];
             let dn = vec![(DnType::CommonName, hostname.as_str())];
             let csr = Csr::new(&key_pair, &san, dn)?;
-            let server_cert = ca.sign_csr(&csr)?;
+            let server_cert = ca.sign_server_cert(&csr)?;
 
             let cert_der = server_cert.der().to_vec();
             let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;

@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ca_cert_der, ca_key_der, ca_expiry, proxy_http_cert_source \"proxy_http_cert_source: ProxyCertSource\", proxy_http_cert_pem, proxy_http_cert_key_pem, proxy_http_cert_expiry, acme_domain, acme_account_credentials, core_http_cert_source \"core_http_cert_source: CoreCertSource\", core_http_cert_pem, core_http_cert_key_pem, core_http_cert_expiry FROM certificates WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ca_cert_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 1,
+        "name": "ca_key_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 2,
+        "name": "ca_expiry",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "proxy_http_cert_source: ProxyCertSource",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "proxy_http_cert_pem",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "proxy_http_cert_key_pem",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "proxy_http_cert_expiry",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "acme_domain",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "acme_account_credentials",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "core_http_cert_source: CoreCertSource",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "core_http_cert_pem",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "core_http_cert_key_pem",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "core_http_cert_expiry",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "596e16f2eeadb84764f11fa160723aed8fda4a3cd543b9cd020978fa66c6fea1"
+}

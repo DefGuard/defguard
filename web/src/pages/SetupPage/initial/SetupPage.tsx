@@ -159,6 +159,7 @@ export const SetupPage = () => {
       title={m.initial_setup_wizard_title()}
       steps={stepsConfig}
       id="setup-wizard"
+      videoGuidePlacementKey="initialSetupWizard"
       isOnWelcomePage={isOnWelcomePage}
       welcomePageConfig={{
         title: m.initial_setup_welcome_title(),

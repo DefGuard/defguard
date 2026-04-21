@@ -50,7 +50,7 @@
       },
       {
         "ordinal": 9,
-        "name": "certificate",
+        "name": "certificate_serial",
         "type_info": "Text"
       },
       {
@@ -62,6 +62,21 @@
         "ordinal": 11,
         "name": "enabled",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "core_client_cert_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 13,
+        "name": "core_client_cert_key_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 14,
+        "name": "core_client_cert_expiry",
+        "type_info": "Timestamp"
       }
     ],
     "parameters": {
@@ -79,7 +94,10 @@
       false,
       true,
       false,
-      false
+      false,
+      true,
+      true,
+      true
     ]
   },
   "hash": "27e7e18a7014af541fe5f8f051f78d61eebe6a79945324e98ca452b50d6abc90"

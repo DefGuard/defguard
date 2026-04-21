@@ -6,7 +6,7 @@ use std::{
 use anyhow::bail;
 use bytes::Bytes;
 use defguard_common::{
-    VERSION,
+    CARGO_VERSION, VERSION,
     config::{Command, DefGuardConfig, SERVER_CONFIG},
     db::{
         init_db,
@@ -182,6 +182,8 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
+    Wizard::update_last_version_migrated_to(&pool, CARGO_VERSION).await?;
+
     // Reload settings from database after setup completion to ensure any changes made during setup
     // are reflected in the in-memory settings.
     let settings = Settings::get(&pool).await?.ok_or_else(|| {
@@ -288,9 +290,9 @@ async fn main() -> Result<(), anyhow::Error> {
             settings.stats_purge_threshold()
         ), if settings.enable_stats_purge =>
             bail!("Periodic stats purge task returned early: {res:?}"),
-        res = run_periodic_license_check(&pool, proxy_control_tx) =>
+        res = run_periodic_license_check(&pool, proxy_control_tx.clone()) =>
             bail!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, gateway_tx.clone()) =>
+        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx) =>
             bail!("Utility thread returned early: {res:?}"),
         res = run_event_router(
             RouterReceiverSet::new(

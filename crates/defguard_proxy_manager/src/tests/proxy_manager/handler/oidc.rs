@@ -241,7 +241,7 @@ async fn test_auth_info_requires_oidc_provider(_: PgPoolOptions, options: PgConn
     complete_proxy_handshake(&mut context).await;
     set_test_license_business();
 
-    // No OIDC provider is inserted — but we still need a valid public proxy URL
+    // No OIDC provider is inserted - but we still need a valid public proxy URL
     // so that edge_callback_url() does not fail before the provider lookup.
     set_public_proxy_url(&context.pool, "http://proxy.example.com").await;
 
@@ -323,7 +323,7 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
         response.payload.as_ref().map(std::mem::discriminant)
     );
 
-    // ---- Step 3: ClientMfaFinish (no TOTP code — session is OIDC-completed) ----
+    // ---- Step 3: ClientMfaFinish (no TOTP code - session is OIDC-completed) ----
     let (_, psk) = send_mfa_finish(&mut context, &mfa_token, None).await;
     assert!(
         !psk.is_empty(),

@@ -31,8 +31,8 @@ pub enum WebError {
     Grpc(String),
     #[error("Webauthn registration error: {0}")]
     WebauthnRegistration(String),
-    #[error("Email MFA error: {0}")]
-    EmailMfa(String),
+    #[error("Email error: {0}")]
+    Email(String),
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
     #[error("Object already exists: {0}")]
@@ -165,8 +165,7 @@ impl From<TokenError> for WebError {
             | TokenError::TokenUsed
             | TokenError::UserDisabled => WebError::Authorization(err.to_string()),
             TokenError::AlreadyActive => WebError::BadRequest(err.to_string()),
-            TokenError::NotificationError(_)
-            | TokenError::WelcomeMsgNotConfigured
+            TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
@@ -211,7 +210,7 @@ impl From<UserError> for WebError {
             UserError::InvalidMfaState { username: _ } | UserError::DbError(_) => {
                 WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
-            UserError::EmailMfaError(msg) => WebError::EmailMfa(msg),
+            UserError::EmailMfaError(msg) => WebError::Email(msg),
         }
     }
 }

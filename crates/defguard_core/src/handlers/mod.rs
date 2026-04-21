@@ -135,7 +135,7 @@ impl From<WebError> for ApiResponse {
             | WebError::WebauthnRegistration(_)
             | WebError::Serialization(_)
             | WebError::ModelError(_)
-            | WebError::EmailMfa(_)
+            | WebError::Email(_)
             | WebError::ClientIpError
             | WebError::FirewallError(_)
             | WebError::ApiEventChannelError(_)

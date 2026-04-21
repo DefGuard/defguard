@@ -16,10 +16,22 @@ export function resolveVideoGuidePlacement(
   mappings: VideoTutorialsMappings,
   appVersionRaw: string,
   placementKey: string | undefined,
+  stepKey?: string,
 ): VideoGuidePlacement | null {
   if (!placementKey) {
     return null;
   }
 
-  return resolveVersion(mappings, appVersionRaw)?.placements?.[placementKey] ?? null;
+  const placementGroup = resolveVersion(mappings, appVersionRaw)?.placements?.[
+    placementKey
+  ];
+  if (!placementGroup) {
+    return null;
+  }
+
+  if (stepKey && placementGroup.steps?.[stepKey]) {
+    return placementGroup.steps[stepKey] ?? null;
+  }
+
+  return placementGroup.default ?? null;
 }

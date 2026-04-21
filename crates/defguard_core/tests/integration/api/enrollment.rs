@@ -407,7 +407,7 @@ async fn test_ldap_user_enrolled_via_api_when_remote_enrollment_disabled(
     user.ldap_remote_enrollment_completed = false;
     user.save(&pool).await.unwrap();
 
-    // ldap_remote_enrollment_enabled is false by default — no settings change needed.
+    // ldap_remote_enrollment_enabled is false by default - no settings change needed.
     let details = fetch_user_details(&client, &new_user.username).await;
     assert!(
         details.user.enrolled,

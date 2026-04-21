@@ -41,7 +41,7 @@ export const WizardPage = ({
   ...containerProps
 }: Props) => {
   const activeStep = steps[activeStepId];
-  const videoGuide = useWizardVideoGuidePlacement(videoGuidePlacementKey);
+  const videoGuide = useWizardVideoGuidePlacement(videoGuidePlacementKey, activeStepId);
 
   const visibleSteps = useMemo(
     () =>
