@@ -22,11 +22,7 @@ const FaqItem = ({ question, answer }: FaqItemProps) => {
   const [open, setOpen] = useState(false);
 
   return (
-    <div
-      className="faq-item"
-      onClick={() => setOpen((v) => !v)}
-      role="button"
-    >
+    <div className="faq-item" onClick={() => setOpen((v) => !v)} role="button">
       <Icon
         icon={open ? IconKind.MinusCircle : IconKind.PlusCircle}
         staticColor={open ? ThemeVariable.FgNeutral : ThemeVariable.FgAction}
@@ -84,11 +80,18 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
                 rel="noopener noreferrer"
               >
                 <div className="badge">
-                  <Icon icon={IconKind.ActivityNotes} size={20} staticColor={ThemeVariable.FgAction} />
+                  <Icon
+                    icon={IconKind.ActivityNotes}
+                    size={20}
+                    staticColor={ThemeVariable.FgAction}
+                  />
                 </div>
                 <div className="link">
                   <span>{doc.title}</span>
-                  <Icon icon={IconKind.OpenInNewWindow} staticColor={ThemeVariable.FgAction}/>
+                  <Icon
+                    icon={IconKind.OpenInNewWindow}
+                    staticColor={ThemeVariable.FgAction}
+                  />
                 </div>
               </a>
             ))}
