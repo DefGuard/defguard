@@ -182,9 +182,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    wizard
-        .update_last_version_migrated_to(&pool, CARGO_VERSION)
-        .await?;
+    Wizard::update_last_version_migrated_to(&pool, CARGO_VERSION).await?;
 
     // Reload settings from database after setup completion to ensure any changes made during setup
     // are reflected in the in-memory settings.
