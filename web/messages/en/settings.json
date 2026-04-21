@@ -124,7 +124,6 @@
   "settings_enrollment_template_help_markdown_headings": "Create headings.",
   "settings_enrollment_template_help_markdown_bold": "Bold text.",
   "settings_enrollment_template_help_markdown_lists": "Unordered list.",
-  "settings_enrollment_template_help_markdown_horizontal_line": "Horizontal line.",
   "settings_enrollment_template_help_markdown_link": "Link.",
   "settings_enrollment_section_duration_title": "Enrollment session duration",
   "settings_enrollment_section_duration_description": "Configure the expiration time of the unique token sent to a newly added user. This token is used to activate the account, and in this section administrators can control how long the token remains valid.",

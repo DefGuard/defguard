@@ -33,10 +33,9 @@ const messageTemplatesHelpVariables = [
 ] as const;
 
 const messageTemplatesHelpMarkdown = [
-  ['#, ##, ###', m.settings_enrollment_template_help_markdown_headings(), 'medium'],
+  ['#, ##', m.settings_enrollment_template_help_markdown_headings(), 'medium'],
   ['**text**', m.settings_enrollment_template_help_markdown_bold()],
   ['- item', m.settings_enrollment_template_help_markdown_lists()],
-  ['***', m.settings_enrollment_template_help_markdown_horizontal_line()],
   ['[text](url)', m.settings_enrollment_template_help_markdown_link()],
 ] as const;
 
