@@ -2,6 +2,7 @@ use std::{net::IpAddr, str::FromStr};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::NaiveDateTime;
+pub use rcgen::ExtendedKeyUsagePurpose;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, CertificateSigningRequestParams, IsCa,
     Issuer, KeyPair, KeyUsagePurpose, SigningKey, string::Ia5String,
@@ -13,8 +14,6 @@ use x509_parser::{
     extensions::{GeneralName, ParsedExtension},
     parse_x509_certificate,
 };
-
-pub use rcgen::ExtendedKeyUsagePurpose;
 
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
@@ -635,7 +634,9 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let signed = ca.sign_server_cert(&csr).unwrap();
         let (_, parsed) = x509_parser::parse_x509_certificate(signed.der()).unwrap();
         assert_p256_spki(&parsed);
-        assert_eku(&parsed, /* client_auth */ false, /* server_auth */ true);
+        assert_eku(
+            &parsed, /* client_auth */ false, /* server_auth */ true,
+        );
     }
 
     #[test]
@@ -645,14 +646,13 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let signed = ca.sign_client_cert(&csr).unwrap();
         let (_, parsed) = x509_parser::parse_x509_certificate(signed.der()).unwrap();
         assert_p256_spki(&parsed);
-        assert_eku(&parsed, /* client_auth */ true, /* server_auth */ false);
+        assert_eku(
+            &parsed, /* client_auth */ true, /* server_auth */ false,
+        );
     }
 
     fn csr_from_pem(pem: &str) -> Csr<'static> {
-        let b64: String = pem
-            .lines()
-            .filter(|l| !l.starts_with("-----"))
-            .collect();
+        let b64: String = pem.lines().filter(|l| !l.starts_with("-----")).collect();
         let der = BASE64_STANDARD.decode(b64).unwrap();
         Csr::from_der(&der).unwrap()
     }

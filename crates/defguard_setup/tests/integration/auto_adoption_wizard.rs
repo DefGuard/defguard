@@ -28,9 +28,8 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::common::SESSION_COOKIE_NAME;
-
 use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
+use crate::common::SESSION_COOKIE_NAME;
 
 fn init_tracing_once() {
     static ONCE: Once = Once::new();
