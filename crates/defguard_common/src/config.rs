@@ -3,18 +3,18 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
+use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
 use reqwest::Url;
 use rsa::{
+    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
-    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::{db::models::Settings, VERSION};
+use crate::{VERSION, db::models::Settings};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -370,11 +370,15 @@ mod tests {
         );
 
         // only one flag at a time: must be an error
-        assert!(make_config(Some("edge.example.com:8080"), None)
-            .validate_adopt_flags()
-            .is_err());
-        assert!(make_config(None, Some("gw.example.com:8080"))
-            .validate_adopt_flags()
-            .is_err());
+        assert!(
+            make_config(Some("edge.example.com:8080"), None)
+                .validate_adopt_flags()
+                .is_err()
+        );
+        assert!(
+            make_config(None, Some("gw.example.com:8080"))
+                .validate_adopt_flags()
+                .is_err()
+        );
     }
 }
