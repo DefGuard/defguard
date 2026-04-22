@@ -45,7 +45,9 @@ const waitForAutoAdoption = async () => {
             return;
           }
         }
-      } catch (_) {}
+      } catch {
+        // Ignore errors and retry.
+      }
       setTimeout(check, 2000);
     };
     check();
