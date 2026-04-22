@@ -837,6 +837,7 @@ impl Settings {
         Ok(secret_key)
     }
 
+    /// Builds the runtime OpenID signing key from stored DER bytes or returns an error if missing or invalid.
     pub fn openid_key_required(
         &self,
     ) -> Result<CoreRsaPrivateSigningKey, SettingsInitializationError> {
