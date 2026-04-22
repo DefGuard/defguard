@@ -3,6 +3,7 @@ import { m } from '../../../../../paraglide/messages';
 import { Icon } from '../../../../defguard-ui/components/Icon/Icon';
 import { IconButton } from '../../../../defguard-ui/components/IconButton/IconButton';
 import { Direction } from '../../../../defguard-ui/types';
+import { isPresent } from '../../../../defguard-ui/utils/isPresent';
 import { getNavRoot } from '../../../route-key';
 import { getRouteLabel } from '../../../route-label';
 import { useVideoTutorialsModal } from '../../../store';
@@ -67,7 +68,7 @@ export const ModalContent = ({
                   })}
                 </span>
               </Link>
-              {selectedVideo.docsUrl && (
+              {isPresent(selectedVideo.docsUrl) && (
                 <a
                   href={selectedVideo.docsUrl}
                   target="_blank"
