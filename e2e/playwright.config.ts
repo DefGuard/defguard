@@ -35,6 +35,9 @@ export default defineConfig({
     '**/externalopenid.spec.ts',
     '**/externalopenidmfa.spec.ts',
     '**/openid.spec.ts',
+    // These wizards use dedicated config files with their own globalSetup.
+    '**/autoAdoptionWizard.spec.ts',
+    '**/migrationWizard.spec.ts',
   ],
   /* Run tests in files in parallel */
   fullyParallel: false,
