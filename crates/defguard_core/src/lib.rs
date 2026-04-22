@@ -64,9 +64,16 @@ use regex::Regex;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedReceiver, UnboundedSender},
+use tokio::{
+    spawn,
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+    },
+    time::sleep,
+};
+use tower_governor::{
+    GovernorLayer, governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor,
 };
 use tower_http::{
     timeout::TimeoutLayer,
@@ -217,6 +224,9 @@ const NETWORK_IMPORT_BODY_LIMIT: usize = 4 * 1024 * 1024; // 4 MB
 /// Maximum time a single request may take before the server returns 408.
 /// Applies to all routes except long-lived SSE streams.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// How often the rate limiter evicts stale per-IP entries from its in-memory store.
+const RATE_LIMITER_CLEANUP_PERIOD: Duration = Duration::from_secs(60);
 
 static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
@@ -712,7 +722,7 @@ pub async fn run_web_server(
 
     let tls_active = Arc::new(AtomicBool::new(false));
 
-    let webapp = build_webapp(
+    let mut webapp = build_webapp(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
@@ -729,6 +739,39 @@ pub async fn run_web_server(
     );
     info!("Started web services");
     let server_config = server_config();
+
+    // Setup rate limiter. Both fields default to non-zero so limiting is on by default;
+    // operators can set either env var to 0 to disable.
+    debug!(
+        "Configuring rate limiter, per_second: {}, burst: {}",
+        server_config.rate_limit_per_second, server_config.rate_limit_burst
+    );
+    let governor_conf = GovernorConfigBuilder::default()
+        .key_extractor(SmartIpKeyExtractor)
+        .per_second(server_config.rate_limit_per_second)
+        .burst_size(server_config.rate_limit_burst)
+        .finish();
+    if let Some(conf) = governor_conf {
+        let governor_limiter = conf.limiter().clone();
+        spawn(async move {
+            loop {
+                sleep(RATE_LIMITER_CLEANUP_PERIOD).await;
+                debug!(
+                    "Cleaning-up rate limiter storage, current size: {}",
+                    governor_limiter.len()
+                );
+                governor_limiter.retain_recent();
+            }
+        });
+        info!(
+            "Rate limiter configured: {} req/s per IP, burst {}",
+            server_config.rate_limit_per_second, server_config.rate_limit_burst
+        );
+        webapp = webapp.layer(GovernorLayer::new(conf));
+    } else {
+        info!("Rate limiting disabled (per_second or burst is 0)");
+    }
+
     let addr = SocketAddr::new(
         server_config
             .http_bind_address

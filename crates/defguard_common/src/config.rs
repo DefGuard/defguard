@@ -184,6 +184,16 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_ADOPT_EDGE")]
     pub adopt_edge: Option<String>,
+
+    /// Maximum number of requests per second per client IP before rate limiting kicks in.
+    /// Set to 0 to disable rate limiting.
+    #[arg(long, env = "DEFGUARD_RATELIMIT_PERSECOND", default_value_t = 10)]
+    pub rate_limit_per_second: u64,
+
+    /// Maximum burst size for the rate limiter (token bucket capacity per client IP).
+    /// Set to 0 to disable rate limiting.
+    #[arg(long, env = "DEFGUARD_RATELIMIT_BURST", default_value_t = 100)]
+    pub rate_limit_burst: u32,
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -283,6 +293,8 @@ impl DefGuardConfig {
             grpc_bind_address: None,
             adopt_gateway: None,
             adopt_edge: None,
+            rate_limit_per_second: 10,
+            rate_limit_burst: 100,
         };
 
         config
