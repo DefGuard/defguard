@@ -11,6 +11,7 @@ use std::{
 use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
+    extract::DefaultBodyLimit,
     http::{Request, StatusCode},
     middleware,
     routing::{delete, get, post, put},
@@ -202,6 +203,13 @@ extern crate tracing;
 
 #[macro_use]
 extern crate serde;
+
+/// Default request body size limit applied globally to every route.
+const REQUEST_BODY_LIMIT: usize = 256 * 1024; // 256 KB
+
+/// Raised body size limit for the WireGuard config import endpoint, which may
+/// carry configs with hundreds of peers.
+const NETWORK_IMPORT_BODY_LIMIT: usize = 4 * 1024 * 1024; // 4 MB
 
 static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
@@ -559,7 +567,10 @@ pub fn build_webapp(
             .route("/network", post(create_network).get(list_networks))
             .route("/network/count", get(count_networks))
             .route("/network/display", get(get_locations_display))
-            .route("/network/import", post(import_network))
+            .route(
+                "/network/import",
+                post(import_network).layer(DefaultBodyLimit::max(NETWORK_IMPORT_BODY_LIMIT)),
+            )
             .route("/network/stats", get(locations_overview_stats))
             .route("/network/gateways", get(all_gateways_status))
             .route(
@@ -654,6 +665,9 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        // Global request body size limit. Per-route layers (e.g. /network/import) can
+        // override this by applying a larger DefaultBodyLimit closer to the handler.
+        .layer(DefaultBodyLimit::max(REQUEST_BODY_LIMIT))
         .merge(swagger)
 }
 
