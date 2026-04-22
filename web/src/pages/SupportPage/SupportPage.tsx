@@ -1,6 +1,10 @@
 import './styles.scss';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../shared/components/ContextualHelp';
 import { Page } from '../../shared/components/Page/Page';
 import { SettingsCard } from '../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../shared/components/SettingsHeader/SettingsHeader';
@@ -21,7 +25,10 @@ import { downloadFile } from '../../shared/utils/download';
 export const SupportPage = () => {
   return (
     <Page title={m.support_page_title()}>
-      <SettingsLayout id="support-page-content">
+      <SettingsLayout
+        id="support-page-content"
+        suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.Support} />}
+      >
         <SettingsHeader
           icon="support"
           title={m.support_page_title()}

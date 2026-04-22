@@ -6,6 +6,10 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { Settings } from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
@@ -49,7 +53,11 @@ export const SettingsInstancePage = () => {
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
-      <SettingsLayout>
+      <SettingsLayout
+        suggestion={
+          <ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsInstance} />
+        }
+      >
         <SettingsHeader
           icon="customize"
           title={m.settings_instance_title()}

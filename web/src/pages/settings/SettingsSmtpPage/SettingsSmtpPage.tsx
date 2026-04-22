@@ -10,6 +10,10 @@ import {
   type SmtpEncryptionValue,
 } from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
@@ -56,7 +60,9 @@ export const SettingsSmtpPage = () => {
   return (
     <Page id="settings-smtp-page" title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
-      <SettingsLayout>
+      <SettingsLayout
+        suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsSmtp} />}
+      >
         <SettingsHeader
           title={m.settings_smtp_title()}
           subtitle={m.settings_smtp_subtitle()}

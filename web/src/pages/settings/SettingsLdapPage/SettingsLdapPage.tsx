@@ -1,5 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
@@ -66,7 +70,9 @@ export const SettingsLdapPage = () => {
   return (
     <Page id="settings-ldap-page" title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
-      <SettingsLayout>
+      <SettingsLayout
+        suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsLdap} />}
+      >
         <SettingsHeader
           icon={IconKind.Servers}
           title={m.settings_ldap_title()}

@@ -2,6 +2,10 @@ import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
 import { updateServiceApi, updateServiceClient } from './api/update-service';
+import {
+  contextualHelpPath,
+  parseContextualHelp,
+} from './components/ContextualHelp/data';
 import { resourceDisplayMap } from './utils/resourceById';
 import { parseVideoTutorials, videoTutorialsPath } from './video-tutorials/data';
 
@@ -134,6 +138,24 @@ export const videoTutorialsQueryOptions = queryOptions({
   // Mappings are version-tied and won't meaningfully change within a session.
   staleTime: Infinity,
   // Silent failure: if the fetch or parse fails, the widget simply won't appear.
+  retry: false,
+});
+
+export const contextualHelpQueryOptions = queryOptions({
+  queryKey: ['update-service', 'contextual-help'],
+  queryFn: () => updateServiceClient.get<unknown>(contextualHelpPath),
+  select: (resp) => {
+    try {
+      return parseContextualHelp(resp.data);
+    } catch (err) {
+      console.error(
+        '[contextual-help] Fetched successfully but failed to parse response:',
+        err,
+      );
+      throw err;
+    }
+  },
+  staleTime: Infinity,
   retry: false,
 });
 

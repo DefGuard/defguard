@@ -1,5 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { m } from '../../../../../paraglide/messages';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../../../shared/components/ContextualHelp';
 import { SettingsLayout } from '../../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -10,7 +14,10 @@ export const SettingsCertificatesTab = () => {
   const certificateWarningState = useCertificatesWarningState();
 
   return (
-    <SettingsLayout id="certificates-settings">
+    <SettingsLayout
+      id="certificates-settings"
+      suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsCerts} />}
+    >
       <Link to="/settings/ca">
         <SectionSelect
           image="certificate-authority"
