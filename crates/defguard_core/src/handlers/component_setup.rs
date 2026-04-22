@@ -6,8 +6,9 @@ use std::{
 };
 
 use axum::{
-    Extension,
+    Extension, Json,
     extract::{Path, Query},
+    http::StatusCode,
     response::sse::{Event, KeepAlive, Sse},
 };
 use defguard_certs::der_to_pem;
@@ -40,7 +41,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tokio::{
     sync::{
-        mpsc::{Sender, UnboundedReceiver, unbounded_channel},
+        mpsc::{Sender, UnboundedReceiver, UnboundedSender, unbounded_channel},
         oneshot,
     },
     time::{Instant, sleep_until, timeout},
@@ -56,6 +57,7 @@ use tracing::Instrument;
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
     enterprise::is_enterprise_license_active,
+    error::WebError,
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
     setup_logs::scope_setup_logs,
     version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
@@ -113,6 +115,13 @@ pub struct SetupResponse {
     pub message: Option<String>,
     pub logs: Option<Vec<String>>,
     pub error: bool,
+}
+
+pub(crate) enum AdoptionProgress {
+    Step(SetupStep),
+    Version(String),
+    /// A log line streamed from the gateway's `Start` RPC during setup.
+    Log(String),
 }
 
 #[derive(Clone)]
@@ -670,6 +679,310 @@ pub async fn setup_proxy_tls_stream(
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
+/// Core adoption logic: performs the full gateway mTLS handshake and saves the gateway to DB.
+///
+/// Sends progress events over `progress_tx` when provided (SSE flow); passes `None` for the
+/// direct REST endpoint.
+async fn perform_gateway_adoption(
+    pool: &PgPool,
+    network_id: Id,
+    name: String,
+    ip_or_domain_raw: String,
+    grpc_port: u16,
+    modified_by: String,
+    progress_tx: Option<UnboundedSender<AdoptionProgress>>,
+) -> Result<Gateway<Id>, String> {
+    macro_rules! step {
+        ($s:expr) => {
+            if let Some(ref tx) = progress_tx {
+                let _ = tx.send(AdoptionProgress::Step($s));
+            }
+        };
+    }
+
+    let ip_or_domain = strip_scheme(&ip_or_domain_raw);
+
+    // License check: non-enterprise installs are limited to one gateway per network.
+    if !is_enterprise_license_active() {
+        match Gateway::find_by_location_id(pool, network_id).await {
+            Ok(gateways) if !gateways.is_empty() => {
+                return Err("Enterprise license is required.".to_string());
+            }
+            Err(e) => {
+                return Err(format!("Reading current gateways failed! error {e}"));
+            }
+            _ => {}
+        }
+    }
+
+    // Step 1: Check configuration
+    step!(SetupStep::CheckingConfiguration);
+
+    match Gateway::find_by_url(pool, ip_or_domain, grpc_port).await {
+        Ok(Some(gateway)) => {
+            return Err(format!(
+                "A Gateway with URL {ip_or_domain}:{grpc_port} is already registered with \
+                name \"{}\".",
+                gateway.name
+            ));
+        }
+        Err(e) => {
+            return Err(format!("Failed to query existing Gateway: {e}"));
+        }
+        Ok(None) => {
+            debug!("Verified no existing Gateway registration for {ip_or_domain}:{grpc_port}");
+        }
+    }
+
+    let url_str = format!("http://{ip_or_domain}:{grpc_port}");
+    let url = Url::parse(&url_str).map_err(|e| format!("Invalid URL: {e}"))?;
+
+    debug!("Successfully validated Gateway address: {url_str}");
+
+    let endpoint = Endpoint::from_shared(url.to_string())
+        .map_err(|e| format!("Failed to create endpoint: {e}"))?
+        .http2_keep_alive_interval(Duration::from_secs(5))
+        .tcp_keepalive(Some(Duration::from_secs(5)))
+        .keep_alive_while_idle(true);
+
+    debug!("Connection endpoint configured with keep-alive settings");
+
+    let certs = match Certificates::get(pool).await {
+        Ok(Some(c)) => c,
+        Ok(None) => return Err("CA certificate not found".to_string()),
+        Err(e) => return Err(format!("Failed to load certificates: {e}")),
+    };
+
+    let ca_cert_der = certs
+        .ca_cert_der
+        .ok_or_else(|| "CA certificate not found in settings".to_string())?;
+
+    let cert_pem = der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate)
+        .map_err(|e| format!("Failed to convert CA cert DER to PEM: {e}"))?;
+
+    let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
+
+    debug!("Loaded CA certificate for secure communication");
+
+    let endpoint = endpoint
+        .tls_config(tls)
+        .map_err(|e| format!("Failed to configure TLS for endpoint: {e}"))?;
+
+    debug!("Prepared secure connection endpoint for Gateway at {ip_or_domain}:{grpc_port}");
+
+    let version = Version::parse(VERSION).map_err(|e| format!("Failed to parse version: {e}"))?;
+
+    // Step 2: Check availability
+    step!(SetupStep::CheckingAvailability);
+
+    let token = Claims::new(
+        defguard_common::auth::claims::ClaimsType::Gateway,
+        url.to_string(),
+        TOKEN_CLIENT_ID.to_string(),
+        SETUP_TOKEN_EXPIRY_SECS,
+    )
+    .to_jwt()
+    .map_err(|e| format!("Failed to generate setup token: {e}"))?;
+
+    debug!("Generated secure setup token for Gateway authentication");
+
+    let version_interceptor = ClientVersionInterceptor::new(version.clone());
+    let auth_interceptor = AuthInterceptor::new(token);
+    let mut client = GatewaySetupClient::with_interceptor(
+        endpoint.connect_lazy(),
+        move |mut req: Request<()>| {
+            req = version_interceptor.clone().call(req)?;
+            auth_interceptor.clone().call(req)
+        },
+    );
+
+    debug!("Initiating connection to Gateway at {ip_or_domain}:{grpc_port}");
+
+    let response_with_metadata = match timeout(CONNECTION_TIMEOUT, client.start(())).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(status)) => {
+            let error_msg = status.message();
+            if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
+                return Err(format!(
+                    "Failed to connect to Gateway at {ip_or_domain}:{grpc_port}: {error_msg}. \
+                    This may indicate that the Gateway is already configured with TLS. \
+                    Please, check if the Gateway has already been set up.",
+                ));
+            }
+            return Err(format!(
+                "Failed to connect to Gateway at {ip_or_domain}:{grpc_port}: {error_msg}. \
+                Please ensure the address and port are correct and that the Gateway is running.",
+            ));
+        }
+        Err(_) => {
+            return Err(format!(
+                "Connection to Gateway at {ip_or_domain}:{grpc_port} timed out after {} seconds.",
+                CONNECTION_TIMEOUT.as_secs(),
+            ));
+        }
+    };
+
+    debug!("Successfully connected to Gateway");
+
+    // Step 3: Check version
+    step!(SetupStep::CheckingVersion);
+
+    let gateway_version = response_with_metadata
+        .metadata()
+        .get(defguard_version::VERSION_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .map(defguard_version::Version::parse)
+        .transpose()
+        .unwrap_or(None);
+
+    debug!("Gateway metadata: {:?}", response_with_metadata.metadata());
+    debug!("Gateway version: {gateway_version:?}");
+
+    let gw_version =
+        gateway_version.ok_or_else(|| "Failed to determine Gateway version".to_string())?;
+
+    if gw_version < MIN_GATEWAY_VERSION {
+        return Err(format!(
+            "Gateway version {gw_version} is older than Core version {version}. \
+            Please update the Gateway component.",
+        ));
+    }
+
+    debug!("Gateway version {gw_version} is compatible with Core version {version}");
+
+    if let Some(ref tx) = progress_tx {
+        let _ = tx.send(AdoptionProgress::Version(gw_version.to_string()));
+    }
+
+    // Forward gateway log entries to the progress channel while CSR/cert steps run.
+    let mut log_stream = response_with_metadata.into_inner();
+    let tx_for_logs = progress_tx.clone();
+    let log_task = tokio::spawn(async move {
+        while let Some(result) = log_stream.next().await {
+            if let Some(ref tx) = tx_for_logs {
+                let line = match result {
+                    Ok(entry) => {
+                        let level = entry
+                            .level
+                            .strip_prefix("Level(")
+                            .and_then(|s| s.strip_suffix(")"))
+                            .unwrap_or(&entry.level)
+                            .to_uppercase();
+                        format!(
+                            "{} {} {}: message={}",
+                            entry.timestamp, level, entry.target, entry.message
+                        )
+                    }
+                    Err(e) => format!("Error reading gateway log: {e}"),
+                };
+                if tx.send(AdoptionProgress::Log(line)).is_err() {
+                    break;
+                }
+            }
+        }
+    });
+
+    // Step 4: Obtain CSR
+    step!(SetupStep::ObtainingCsr);
+
+    let hostname = url
+        .host_str()
+        .ok_or_else(|| "URL does not have a valid host".to_string())?
+        .to_string();
+
+    let csr_response = client
+        .get_csr(CertificateInfo {
+            cert_hostname: hostname.clone(),
+        })
+        .await
+        .map_err(|e| format!("Failed to obtain CSR: {e}"))?
+        .into_inner();
+
+    let csr = defguard_certs::Csr::from_der(&csr_response.der_data)
+        .map_err(|e| format!("Failed to parse CSR: {e}"))?;
+
+    csr.verify_hostname(&hostname)
+        .map_err(|e| format!("CSR hostname validation failed: {e}"))?;
+
+    debug!("Received certificate signing request from Gateway for hostname: {hostname}");
+
+    // Step 5: Sign certificate
+    step!(SetupStep::SigningCertificate);
+
+    let ca_key_pair = certs
+        .ca_key_der
+        .ok_or_else(|| "CA key pair not found in settings".to_string())?;
+
+    let ca =
+        defguard_certs::CertificateAuthority::from_cert_der_key_pair(&ca_cert_der, &ca_key_pair)
+            .map_err(|e| format!("Failed to create CA: {e}"))?;
+
+    debug!("Certificate authority loaded and ready to sign certificates");
+
+    let cert = ca
+        .sign_server_cert(&csr)
+        .map_err(|e| format!("Failed to sign CSR: {e}"))?;
+
+    debug!("Successfully signed certificate for Gateway");
+
+    // Step 6: Configure TLS
+    step!(SetupStep::ConfiguringTls);
+
+    let core_client = ca
+        .issue_core_client_cert(&name)
+        .map_err(|e| format!("Failed to issue Core client certificate: {e}"))?;
+
+    let bundle = CertBundle {
+        component_cert_der: cert.der().to_vec(),
+        ca_cert_der: ca_cert_der.clone(),
+        core_client_cert_der: core_client.cert_der.clone(),
+    };
+
+    client
+        .send_cert(bundle)
+        .await
+        .map_err(|e| format!("Failed to send certificate: {e}"))?;
+
+    // Abort the log-forwarding task to drop the h2 receiver and send RST_STREAM.
+    // The gateway's GatewaySetup gRPC server can now complete its graceful shutdown
+    // and restart with the new TLS identity.
+    log_task.abort();
+
+    debug!("Certificate successfully delivered to Gateway");
+
+    let defguard_certs::CertificateInfo {
+        not_after: expiry,
+        serial,
+        ..
+    } = defguard_certs::CertificateInfo::from_der(cert.der())
+        .map_err(|e| format!("Failed to get certificate expiry: {e}"))?;
+
+    debug!("Certificate expiry date determined: {expiry}");
+
+    let mut gateway = Gateway::new(
+        network_id,
+        name,
+        ip_or_domain.to_owned(),
+        grpc_port.into(),
+        modified_by,
+    );
+
+    gateway.certificate_serial = Some(serial);
+    gateway.certificate_expiry = Some(expiry);
+    gateway.core_client_cert_der = Some(core_client.cert_der);
+    gateway.core_client_cert_key_der = Some(core_client.key_der);
+    gateway.core_client_cert_expiry = Some(core_client.expiry);
+
+    let saved = gateway
+        .save(pool)
+        .await
+        .map_err(|e| format!("Failed to save Gateway to database: {e}"))?;
+
+    debug!("Gateway setup completed successfully");
+
+    Ok(saved)
+}
+
 /// This is the endpoint responsible for the whole gateway TLS setup flow.
 /// It uses Server-Sent Events (SSE) to stream progress updates back to the frontend in real-time.
 // This is a get request, since HTML's EventSource only supports GET
@@ -682,427 +995,105 @@ pub async fn setup_gateway_tls_stream(
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (log_tx, log_rx) = unbounded_channel::<String>();
     let log_buffer = Arc::new(Mutex::new(VecDeque::new()));
-    let inner_log_buffer = Arc::clone(&log_buffer);
-    let inner_stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, inner_log_buffer.clone());
+    let (progress_tx, mut progress_rx) = unbounded_channel::<AdoptionProgress>();
 
-        // check if tries to add more then 1 gateway to network without enterprise license
-        if !is_enterprise_license_active() {
-            match Gateway::find_by_location_id(&pool, network_id).await {
-                Ok(gateways) => {
-                    if !gateways.is_empty() {
-                        yield Ok(flow.error("Enterprise license is required."));
-                        return;
-                    }
-                },
-                Err(e) => {
-                    yield Ok(flow.error(&format!("Reading current gateways failed! error {e}")));
-                    return;
-                }
-            }
-        }
-
-        // Step 1: Check configuration
-        yield Ok(
-            flow.step(SetupStep::CheckingConfiguration)
-        );
-
-        let ip_or_domain = strip_scheme(&request.ip_or_domain);
-
-        match Gateway::find_by_url(&pool, ip_or_domain, request.grpc_port).await {
-            Ok(Some(gateway)) => {
-               yield Ok(flow.error(&format!("A Gateway with URL {ip_or_domain}:{} is already registered with \
-                   name \"{}\".",  request.grpc_port, gateway.name)));
-               return;
-            }
-            Ok(None) => {
-                debug!("Verified no existing Gateway registration for {ip_or_domain}:{}",
-                    request.grpc_port);
-            },
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to query existing Gateway: {e}")));
-                return;
-            }
-        }
-
-        let url_str = format!("http://{ip_or_domain}:{}",  request.grpc_port);
-        let url = match Url::parse(&url_str) {
-            Ok(u) => u,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Invalid URL: {e}")));
-                return;
-            }
-        };
-
-        debug!("Successfully validated Gateway address: {url_str}");
-
-        let endpoint = match Endpoint::from_shared(url.to_string()) {
-            Ok(e) => e,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to create endpoint: {e}")));
-                return;
-            }
-        };
-
-        let endpoint = endpoint
-            .http2_keep_alive_interval(Duration::from_secs(5))
-            .tcp_keepalive(Some(Duration::from_secs(5)))
-            .keep_alive_while_idle(true);
-
-        debug!("Connection endpoint configured with keep-alive settings");
-
-        let certs = match Certificates::get(&pool).await {
-            Ok(Some(c)) => c,
-            Ok(None) => {
-                yield Ok(flow.error("CA certificate not found"));
-                return;
-            }
-            Err(err) => {
-                yield Ok(flow.error(&format!("Failed to load certificates: {err}")));
-                return;
-            }
-        };
-        let Some(ca_cert_der) = certs.ca_cert_der.clone() else {
-            yield Ok(flow.error("CA certificate not found in settings"));
-            return;
-        };
-
-        let cert_pem = match der_to_pem(&ca_cert_der, defguard_certs::PemLabel::Certificate) {
-            Ok(pem) => pem,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to convert CA cert DER to PEM: {e}")));
-                return;
-            }
-        };
-        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(&cert_pem));
-
-        debug!("Loaded CA certificate for secure communication");
-
-        let endpoint = match endpoint.tls_config(tls) {
-            Ok(e) => e,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to configure TLS for endpoint: {e}")));
-                return;
-            }
-        };
-
-        debug!("Prepared secure connection endpoint for Gateway at {ip_or_domain}:{}",
-            request.grpc_port);
-
-        let version = match Version::parse(VERSION) {
-            Ok(v) => v,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to parse version: {e}")));
-                return;
-            }
-        };
-
-        // Step 2: Check availability
-        yield Ok(
-            flow.step(SetupStep::CheckingAvailability)
-        );
-
-        let version_clone = version.clone();
-
-        let token = match Claims::new(
-            defguard_common::auth::claims::ClaimsType::Gateway,
-            url.to_string(),
-            TOKEN_CLIENT_ID.to_string(),
-             SETUP_TOKEN_EXPIRY_SECS,
-        )
-        .to_jwt()
-        {
-            Ok(token) => token,
-            Err(err) => {
-                yield Ok(flow.error(&format!("Failed to generate setup token: {err}")));
-                return;
-            }
-        };
-
-        debug!("Generated secure setup token for Gateway authentication");
-
-        let version_interceptor = ClientVersionInterceptor::new(version);
-        let auth_interceptor = AuthInterceptor::new(token);
-
-        let mut client = GatewaySetupClient::with_interceptor(
-            endpoint.connect_lazy(),
-            move |mut req: Request<()>| {
-            req = version_interceptor.clone().call(req)?;
-            auth_interceptor.clone().call(req)
-            }
-        );
-
-        debug!("Initiating connection to Gateway at {ip_or_domain}:{}",
-            request.grpc_port);
-
-        let response_with_metadata = match timeout(
-            CONNECTION_TIMEOUT,
-            client.start(())
-        ).await {
-            Ok(Ok(response)) => response,
-            Ok(Err(status)) => {
-                let error_msg = status.message();
-                if error_msg.contains("h2 protocol error") || error_msg.contains("http2 error") {
-                    yield Ok(flow.error(&format!(
-                        "Failed to connect to Gateway at {ip_or_domain}:{}: {error_msg}. This may indicate \
-                        that the Gateway is already configured with TLS. Please, check if the \
-                        Gateway has already been set up.",
-                         request.grpc_port,
-                    )));
-                } else {
-                    yield Ok(flow.error(&format!(
-                        "Failed to connect to Gateway at {ip_or_domain}:{}: {error_msg}. Please ensure the \
-                        address and port are correct and that the Gateway is running.",
-                         request.grpc_port
-                    )));
-                }
-                return;
-            }
-            Err(_) => {
-                yield Ok(flow.error(&format!(
-                    "Connection to Gateway at {ip_or_domain}:{} timed out after 10 seconds.",
-                     request.grpc_port
-                )));
-                return;
-            }
-        };
-
-        debug!("Successfully connected to Gateway");
-
-        // Step 3: Check version
-        yield Ok(flow.step(SetupStep::CheckingVersion));
-
-        let gateway_version = response_with_metadata
-            .metadata()
-            .get(defguard_version::VERSION_HEADER)
-            .and_then(|v| v.to_str().ok())
-            .map(defguard_version::Version::parse)
-            .transpose()
-            .unwrap_or(None);
-
-        debug!("Gateway metadata: {:?}", response_with_metadata.metadata());
-        debug!("Gateway version: {gateway_version:?}");
-
-        if let Some(gateway_version) = gateway_version {
-            if gateway_version < MIN_GATEWAY_VERSION {
-                yield Ok(flow.error(&format!(
-                    "Gateway version {gateway_version} is older than Core version {version_clone}. \
-                    Please update the Gateway component.",
-                )));
-                return;
-            }
-
-            debug!("Gateway version {gateway_version} is compatible with Core version \
-                {version_clone}");
-
-            let response = SetupResponse {
-                step: SetupStep::CheckingVersion,
-                version: Some(gateway_version.to_string()),
-                message: None,
-                logs: None,
-                error: false,
-            };
-
-            match serde_json::to_string(&response) {
-                Ok(body) => {
-                    yield Ok(
-                        Event::default().data(body)
-                    );
-                },
-                Err(e) => {
-                    yield Ok(flow.error(&format!("Failed to serialize version response: {e}")));
-                    return;
-                }
-            }
-        } else {
-            yield Ok(flow.error("Failed to determine Gateway version"));
-            return;
-        }
-
-        let mut response = response_with_metadata.into_inner();
-
-        let spawn_log_buffer = inner_log_buffer.clone();
-        let log_reader_task = tokio::spawn(
-            scope_setup_logs(spawn_log_buffer, async move {
-                while let Some(log_entry) = response.next().await {
-                    match log_entry {
-                        Ok(entry) => {
-                            let level = entry
-                                .level
-                                .strip_prefix("Level(")
-                                .and_then(|s| s.strip_suffix(")"))
-                                .unwrap_or(&entry.level)
-                                .to_uppercase();
-
-                            let formatted = format!(
-                                "{} {level} {}: message={}",
-                                entry.timestamp, entry.target, entry.message
-                            );
-                            if log_tx.send(formatted).is_err() {
-                                break;
-                            }
-                        }
-                        Err(e) => {
-                            let _ = log_tx.send(format!("Error reading log: {e}"));
-                            break;
-                        }
-                    }
-                }
-            })
-            .instrument(tracing::Span::current()),
-        );
-
-        // Create guard to ensure task is aborted on all exit paths
-        let _log_task_guard = TaskGuard(log_reader_task);
-
-        // Step 4: Obtain CSR
-        yield Ok(flow.step(SetupStep::ObtainingCsr));
-
-        let Some(hostname) = url.host_str() else {
-            yield Ok(flow.error("URL does not have a valid host"));
-            return;
-        };
-
-        let csr_response = match client
-            .get_csr(CertificateInfo {
-                cert_hostname: hostname.to_string(),
-            })
-            .await
-        {
-            Ok(r) => r.into_inner(),
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to obtain CSR: {e}")));
-                return;
-            }
-        };
-
-        let csr = match defguard_certs::Csr::from_der(&csr_response.der_data) {
-            Ok(c) => c,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to parse CSR: {e}")));
-                return;
-            }
-        };
-
-        if let Err(e) = csr.verify_hostname(hostname) {
-            yield Ok(flow.error(&format!("CSR hostname validation failed: {e}")));
-            return;
-        }
-
-        debug!("Received certificate signing request from Gateway for hostname: {hostname}");
-
-        // Step 5: Sign certificate
-        yield Ok(flow.step(SetupStep::SigningCertificate));
-
-        let Some(ca_cert_der) = certs.ca_cert_der else {
-            yield Ok(flow.error("CA certificate not found in settings"));
-            return;
-        };
-
-        let Some(ca_key_pair) = certs.ca_key_der else {
-            yield Ok(flow.error("CA key pair not found in settings"));
-            return;
-        };
-
-        let ca = match defguard_certs::CertificateAuthority::from_cert_der_key_pair(
-            &ca_cert_der,
-            &ca_key_pair,
-        ) {
-            Ok(c) => c,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to create CA: {e}")));
-                return;
-            }
-        };
-
-        debug!("Certificate authority loaded and ready to sign certificates");
-
-        let cert = match ca.sign_server_cert(&csr) {
-            Ok(c) => c,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to sign CSR: {e}")));
-                return;
-            }
-        };
-
-        debug!("Successfully signed certificate for Gateway");
-
-        // Step 6: Configure TLS
-        yield Ok(flow.step(SetupStep::ConfiguringTls));
-
-        let core_client = match ca.issue_core_client_cert(&request.common_name) {
-            Ok(c) => c,
-            Err(e) => {
-                yield Ok(flow.error(&format!("Failed to issue Core client certificate: {e}")));
-                return;
-            }
-        };
-
-        let bundle = CertBundle {
-            component_cert_der: cert.der().to_vec(),
-            ca_cert_der: ca_cert_der.clone(),
-            core_client_cert_der: core_client.cert_der.clone(),
-        };
-        if let Err(e) = client.send_cert(bundle).await {
-            yield Ok(flow.error(&format!("Failed to send certificate: {e}")));
-            return;
-        }
-
-        debug!("Certificate successfully delivered to Gateway");
-
-        let defguard_certs::CertificateInfo {
-            not_after: expiry,
-            serial,
-            ..
-        } = match defguard_certs::CertificateInfo::from_der(cert.der()) {
-            Ok(dt) => {
-            dt
-            },
-            Err(err) => {
-            yield Ok(flow.error(&format!("Failed to get certificate expiry: {err}")));
-            return;
-            }
-        };
-
-        debug!("Certificate expiry date determined: {expiry}");
-
-        let mut gateway = Gateway::new(
-            network_id,
-            request.common_name,
-            ip_or_domain.to_owned(),
-            request.grpc_port.into(),
-            session.user.fullname(),
-        );
-
-        gateway.certificate_serial = Some(serial);
-        gateway.certificate_expiry = Some(expiry);
-        gateway.core_client_cert_der = Some(core_client.cert_der);
-        gateway.core_client_cert_key_der = Some(core_client.key_der);
-        gateway.core_client_cert_expiry = Some(core_client.expiry);
-
-        if let Err(err) = gateway.save(&pool).await {
-            yield Ok(flow.error(&format!("Failed to save Gateway to database: {err}")));
-            return;
-        }
-
-        debug!("Gateway setup completed successfully");
-
-        // Step 7: Done
-        yield Ok(flow.step(SetupStep::Done));
-    };
-
+    let pool_clone = pool.clone();
+    let modified_by = session.user.fullname();
+    let task_log_buffer = Arc::clone(&log_buffer);
     let adoption_span = tracing::info_span!("gateway_adoption");
-    let stream = async_stream::stream! {
-        tokio::pin!(inner_stream);
-        while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
-            .instrument(adoption_span.clone())
+    let task_handle = tokio::spawn(
+        scope_setup_logs(task_log_buffer, async move {
+            perform_gateway_adoption(
+                &pool_clone,
+                network_id,
+                request.common_name,
+                request.ip_or_domain,
+                request.grpc_port,
+                modified_by,
+                Some(progress_tx),
+            )
             .await
-        {
-            yield item;
+        })
+        .instrument(adoption_span),
+    );
+
+    let stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, Arc::clone(&log_buffer));
+
+        loop {
+            match progress_rx.recv().await {
+                Some(AdoptionProgress::Step(step)) => {
+                    yield Ok(flow.step(step));
+                }
+                Some(AdoptionProgress::Version(v)) => {
+                    let response = SetupResponse {
+                        step: SetupStep::CheckingVersion,
+                        version: Some(v),
+                        message: None,
+                        logs: None,
+                        error: false,
+                    };
+                    match serde_json::to_string(&response) {
+                        Ok(body) => yield Ok(Event::default().data(body)),
+                        Err(e) => {
+                            yield Ok(flow.error(&format!(
+                                "Failed to serialize version response: {e}"
+                            )));
+                            return;
+                        }
+                    }
+                }
+                Some(AdoptionProgress::Log(line)) => {
+                    // Buffer the log line so it appears in any subsequent error event.
+                    let _ = log_tx.send(line);
+                }
+                None => break,
+            }
+        }
+
+        match task_handle.await {
+            Ok(Ok(_gateway)) => {
+                yield Ok(flow.step(SetupStep::Done));
+            }
+            Ok(Err(msg)) => {
+                yield Ok(flow.error(&msg));
+            }
+            Err(join_err) => {
+                yield Ok(flow.error(&format!("Gateway adoption task failed: {join_err}")));
+            }
         }
     };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GatewayAdoptRequest {
+    pub name: String,
+    pub ip_or_domain: String,
+    pub grpc_port: u16,
+}
+
+/// Programmatic gateway adoption endpoint.
+pub async fn adopt_gateway(
+    _admin: AdminOrSetupRole,
+    session: SessionInfo,
+    Path(network_id): Path<Id>,
+    Extension(pool): Extension<PgPool>,
+    Json(request): Json<GatewayAdoptRequest>,
+) -> Result<(StatusCode, Json<Gateway<Id>>), WebError> {
+    perform_gateway_adoption(
+        &pool,
+        network_id,
+        request.name,
+        request.ip_or_domain,
+        request.grpc_port,
+        session.user.fullname(),
+        None,
+    )
+    .await
+    .map(|gateway| (StatusCode::CREATED, Json(gateway)))
+    .map_err(WebError::BadRequest)
 }
 
 #[derive(Debug, Serialize)]

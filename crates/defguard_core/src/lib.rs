@@ -118,7 +118,7 @@ use crate::{
             totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
             webauthn_start,
         },
-        component_setup::setup_gateway_tls_stream,
+        component_setup::{adopt_gateway, setup_gateway_tls_stream},
         core_certs::{get_ca, get_certs, set_external_url_settings, set_internal_url_settings},
         forward_auth::forward_auth,
         gateway::{delete_gateway, gateway_details, gateway_list, update_gateway},
@@ -570,6 +570,11 @@ pub fn build_webapp(
             .route(
                 "/network/{network_id}/gateways/setup",
                 get(setup_gateway_tls_stream),
+            )
+            // Programmatic gateway adoption (REST)
+            .route(
+                "/network/{network_id}/gateways/adopt",
+                post(adopt_gateway),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
             .route("/network/{network_id}/devices", post(add_user_devices))
