@@ -68,7 +68,10 @@ use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
 };
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
+use tower_http::{
+    timeout::TimeoutLayer,
+    trace::{DefaultOnResponse, TraceLayer},
+};
 use tracing::Level;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -210,6 +213,10 @@ const REQUEST_BODY_LIMIT: usize = 256 * 1024; // 256 KB
 /// Raised body size limit for the WireGuard config import endpoint, which may
 /// carry configs with hundreds of peers.
 const NETWORK_IMPORT_BODY_LIMIT: usize = 4 * 1024 * 1024; // 4 MB
+
+/// Maximum time a single request may take before the server returns 408.
+/// Applies to all routes except long-lived SSE streams.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
@@ -410,10 +417,7 @@ pub fn build_webapp(
                 get(gateway_details)
                     .put(update_gateway)
                     .delete(delete_gateway),
-            )
-            // Proxy setup with SSE
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-            .route("/proxy/acme/stream", get(stream_proxy_acme)),
+            ),
     );
 
     // Enterprise features
@@ -579,11 +583,6 @@ pub fn build_webapp(
                     .delete(delete_network)
                     .get(network_details),
             )
-            // Gateway adding (uses SSE)
-            .route(
-                "/network/{network_id}/gateways/setup",
-                get(setup_gateway_tls_stream),
-            )
             .route("/network/{network_id}/gateways", get(gateway_status))
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
@@ -625,6 +624,21 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    // SSE routes are long-lived connections; they must not be wrapped by the
+    // request timeout. They are merged in after TimeoutLayer is applied to the
+    // main router so that they bypass the timeout while still receiving all
+    // other middleware (security headers, tracing, body limit, etc.).
+    let sse_routes: Router<AppState> = Router::new().nest(
+        "/api/v1",
+        Router::new()
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+            .route("/proxy/acme/stream", get(stream_proxy_acme))
+            .route(
+                "/network/{network_id}/gateways/setup",
+                get(setup_gateway_tls_stream),
+            ),
+    );
+
     let app_state = AppState::new(
         pool.clone(),
         webhook_tx,
@@ -639,13 +653,21 @@ pub fn build_webapp(
         tls_active,
     );
 
-    let webapp =
-        webapp
-            .layer(DefguardVersionLayer::new(version))
-            .layer(middleware::from_fn_with_state(
-                app_state.clone(),
-                headers::security_headers_middleware,
-            ));
+    let webapp = webapp
+        // Apply timeout to the main router BEFORE merging SSE routes so
+        // that long-lived streams bypass it.
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            REQUEST_TIMEOUT,
+        ))
+        .merge(sse_routes)
+        // Version and security headers are applied after the merge so that
+        // they cover all routes, including SSE.
+        .layer(DefguardVersionLayer::new(version))
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            headers::security_headers_middleware,
+        ));
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
