@@ -38,7 +38,7 @@ pub struct ProxyUpdateData {
         ("api_token" = [])
     )
 )]
-pub(crate) async fn proxy_list(
+pub async fn proxy_list(
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
