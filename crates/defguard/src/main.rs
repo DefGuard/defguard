@@ -94,7 +94,7 @@ async fn main() -> Result<(), anyhow::Error> {
     )
     .await;
 
-    if config.openid_signing_key.is_some() {
+    if Settings::get_current_settings().openid_key().is_some() {
         info!("Using RSA OpenID signing key");
     } else {
         info!("Using HMAC OpenID signing key");

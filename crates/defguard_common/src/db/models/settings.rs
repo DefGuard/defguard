@@ -2,10 +2,14 @@ use std::{collections::HashMap, fmt, net::IpAddr, time::Duration};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rand::{RngCore, rngs::OsRng};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use rsa::{
     RsaPrivateKey,
+    pkcs1::EncodeRsaPrivateKey,
     pkcs8::{DecodePrivateKey, EncodePrivateKey},
+    traits::PublicKeyParts,
 };
+use rsa::pkcs8::LineEnding;
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
@@ -383,6 +387,15 @@ impl Settings {
                     "failed to serialize RSA private key",
                 )
             })
+    }
+
+    #[must_use]
+    pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+        let key_der = self.openid_signing_key_der.as_deref()?;
+        let key = RsaPrivateKey::from_pkcs8_der(key_der).ok()?;
+        let pem = key.to_pkcs1_pem(LineEnding::default()).ok()?;
+        let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
+        CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
     }
 
     /// Parse `defguard_url` and reject unsupported host forms.

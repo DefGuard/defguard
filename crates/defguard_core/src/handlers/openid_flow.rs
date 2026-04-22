@@ -94,7 +94,7 @@ impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
 
 pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = server_config().openid_key() {
+    if let Some(openid_key) = Settings::get_current_settings().openid_key() {
         keys.push(openid_key.as_verification_key());
     }
 
@@ -874,9 +874,9 @@ pub async fn token(
                                 } else {
                                     GroupClaims { groups: None }
                                 };
-                                let config = server_config();
                                 let user_claims = UserClaims::from_user(&user, &client, &token);
                                 let base_url = Settings::url()?;
+                                let openid_key = Settings::get_current_settings().openid_key();
 
                                 match form.authorization_code_flow(
                                     &auth_code,
@@ -884,7 +884,7 @@ pub async fn token(
                                     (&user_claims).into(),
                                     &base_url,
                                     client.client_secret,
-                                    config.openid_key(),
+                                    openid_key,
                                     group_claims,
                                 ) {
                                     Ok(response) => {
