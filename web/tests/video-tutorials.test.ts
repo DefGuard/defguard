@@ -93,17 +93,15 @@ describe('parseVersion', () => {
 const makeVideo = (
   id: string,
   appRoute: string,
-  overrides: Partial<{
-    contextAppRoutes: string[];
-    docsUrl: string | undefined;
-  }> = {},
+  contextAppRoutes?: string[],
+  docsUrl = 'https://docs.defguard.net/test',
 ) => ({
   youtubeVideoId: id,
   title: `Video ${id}`,
   description: `Description for ${id}`,
   appRoute,
-  docsUrl: 'https://docs.defguard.net/test',
-  ...overrides,
+  contextAppRoutes,
+  docsUrl,
 });
 
 const makeMappings = (): VideoTutorialsMappings => ({
@@ -292,17 +290,13 @@ describe('matchesVideoRouteContext', () => {
   });
 
   it('should match a contextAppRoutes entry', () => {
-    const video = makeVideo('abcDEFghiJK', '/users', {
-      contextAppRoutes: ['/groups', '/settings/'],
-    });
+    const video = makeVideo('abcDEFghiJK', '/users', ['/groups', '/settings/']);
 
     expect(matchesVideoRouteContext(video, '/settings')).toBe(true);
   });
 
   it('should return false when neither appRoute nor contextAppRoutes match', () => {
-    const video = makeVideo('abcDEFghiJK', '/users', {
-      contextAppRoutes: ['/groups'],
-    });
+    const video = makeVideo('abcDEFghiJK', '/users', ['/groups']);
 
     expect(matchesVideoRouteContext(video, '/settings')).toBe(false);
   });
