@@ -599,9 +599,9 @@ async fn test_openid_flow_fails_when_rsa_key_is_missing_and_hmac_is_not_forced(
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
     let provider_metadata =
-        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client))
-            .await
-            .unwrap();
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client)).await;
+
+    assert!(provider_metadata.is_err());
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -619,44 +619,6 @@ async fn test_openid_flow_fails_when_rsa_key_is_missing_and_hmac_is_not_forced(
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let oauth2client: OAuth2Client<Id> = response.json().await;
-
-    let client_id = ClientId::new(oauth2client.client_id);
-    let client_secret = ClientSecret::new(oauth2client.client_secret);
-    let core_client =
-        CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(RedirectUrl::new(FAKE_REDIRECT_URI.into()).unwrap());
-    let (authorize_url, _csrf_state, _nonce) = core_client
-        .authorize_url(
-            AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
-            CsrfToken::new_random,
-            Nonce::new_random,
-        )
-        .url();
-
-    let uri = format!(
-        "{}?allow=true&{}",
-        authorize_url.path(),
-        authorize_url.query().unwrap()
-    );
-    let response = client.post(uri).send().await;
-    assert_eq!(response.status(), StatusCode::FOUND);
-    let location = response
-        .headers()
-        .get("Location")
-        .unwrap()
-        .to_str()
-        .unwrap();
-    let (_location, query) = location.split_once('?').unwrap();
-    let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
-
-    let token_response = core_client
-        .exchange_code(AuthorizationCode::new(auth_response.code.into()))
-        .unwrap()
-        .request_async(&|r| http_client(r, &client))
-        .await;
-
-    assert!(token_response.is_err());
 }
 
 #[sqlx::test]
