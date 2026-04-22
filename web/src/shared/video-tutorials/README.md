@@ -156,6 +156,10 @@ endpoint on the same server.
               "title": "Defguard overview",
               "description": "A high-level walkthrough of Defguard.",
               "appRoute": "/vpn-overview",
+              "contextAppRoutes": [
+                "/vpn-overview/$locationId",
+                "/settings/"
+              ],
               "docsUrl": "https://docs.defguard.net/introduction"
             }
           ]
@@ -252,7 +256,8 @@ Route tutorial video fields:
 | `title` | Yes | Non-empty string. Displayed in the section list and as the heading above the player. |
 | `description` | Yes | Non-empty string. Displayed as body text below the player in the tutorials modal. |
 | `appRoute` | Yes | Must start with `/`. Use TanStack Router route definition paths (e.g. `/vpn-overview`, `/vpn-overview/$locationId`), not runtime URLs with concrete param values. |
-| `docsUrl` | Yes | Valid URL. Shown as the external documentation link in the tutorials modal. |
+| `contextAppRoutes` | No | Optional non-empty array of additional in-app route definition paths where the tutorial should also appear. Each entry must start with `/`. |
+| `docsUrl` | No | Optional valid URL. When present, shown as the external documentation link in the tutorials modal. |
 
 Wizard placement fields:
 
@@ -359,12 +364,19 @@ route definition string, never an instantiated URL with real param values.
 For example, when the user is on `/vpn-overview/42`, TanStack Router reports
 `fullPath` as `/vpn-overview/$locationId` (the template). Canonicalization trims
 whitespace, ensures a leading `/`, and strips a trailing `/`. The same
-canonicalization is applied to every `video.appRoute` value before comparison.
+canonicalization is applied to every `video.appRoute` and `video.contextAppRoutes`
+value before comparison.
+
+A route tutorial is shown when the current route matches either:
+
+- `appRoute`
+- any entry in `contextAppRoutes`
 
 ### Parameterized routes
 
-A video with `appRoute: "/vpn-overview/$locationId"` matches whenever the user
-is on any location detail page, regardless of the concrete `locationId` in the
+A video with `appRoute: "/vpn-overview"` and
+`contextAppRoutes: ["/vpn-overview/$locationId"]` matches both the overview page
+and any location detail page, regardless of the concrete `locationId` in the
 URL. Tutorials are associated with route shapes, not specific records.
 
 Do not use runtime URLs as `appRoute`. A value like `/vpn-overview/42` will

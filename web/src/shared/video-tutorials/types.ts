@@ -7,8 +7,10 @@ export interface VideoTutorial extends PlayableVideo {
   description: string;
   /** In-app route this video is associated with (must start with "/"). */
   appRoute: string;
+  /** Additional in-app routes where this tutorial should also be shown. */
+  contextAppRoutes?: string[];
   /** External documentation URL. */
-  docsUrl: string;
+  docsUrl?: string;
 }
 
 export interface VideoGuideDocLink {

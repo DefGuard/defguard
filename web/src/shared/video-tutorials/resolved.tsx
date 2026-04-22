@@ -14,6 +14,21 @@ const EMPTY_VIDEO_TUTORIALS: VideoTutorial[] = [];
 const EMPTY_SECTIONS: VideoTutorialsSection[] = [];
 const EMPTY_VIDEO_GUIDE_PLACEMENT: VideoGuidePlacement | null = null;
 
+export function matchesVideoRouteContext(
+  video: VideoTutorial,
+  routeKey: string,
+): boolean {
+  if (canonicalizeRouteKey(video.appRoute) === routeKey) {
+    return true;
+  }
+
+  return Boolean(
+    video.contextAppRoutes?.some(
+      (contextRoute) => canonicalizeRouteKey(contextRoute) === routeKey,
+    ),
+  );
+}
+
 /**
  * Derives the canonical route key for the current page from TanStack Router
  * matches, skipping pathless shell/layout routes.
@@ -73,5 +88,5 @@ export function useResolvedVideoTutorials(): VideoTutorial[] {
   if (!routeKey) return EMPTY_VIDEO_TUTORIALS;
   return sections
     .flatMap((s) => s.videos)
-    .filter((v) => canonicalizeRouteKey(v.appRoute) === routeKey);
+    .filter((video) => matchesVideoRouteContext(video, routeKey));
 }
