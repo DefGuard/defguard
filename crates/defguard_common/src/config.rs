@@ -71,10 +71,7 @@ pub struct DefGuardConfig {
     pub grpc_key: Option<String>,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
-    #[deprecated(
-        since = "2.0.0",
-        note = "Use auto-generated openid signing key"
-    )]
+    #[deprecated(since = "2.0.0", note = "Use auto-generated openid signing key")]
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
@@ -327,10 +324,7 @@ impl DefGuardConfig {
     }
 
     #[must_use]
-    #[deprecated(
-        since = "2.0.0",
-        note = "Use auto-generated openid signing key"
-    )]
+    #[deprecated(since = "2.0.0", note = "Use auto-generated openid signing key")]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
         #[allow(deprecated)]
         let key = self.openid_signing_key.as_ref()?;
