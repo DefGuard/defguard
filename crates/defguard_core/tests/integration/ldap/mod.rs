@@ -42,11 +42,15 @@ async fn set_ldap_settings(pool: &PgPool) {
     settings.ldap_member_attr = env::var("LDAP_MEMBER_ATTR").ok();
     settings.ldap_use_starttls = env::var("LDAP_STARTTLS").is_ok();
     settings.ldap_tls_verify_cert = env::var("LDAP_TLS_VERIFY").is_ok();
+    if env::var("LDAP_USES_AD").is_ok() {
+        settings.ldap_user_rdn_attr = Some(String::from("cn"));
+        settings.ldap_user_auxiliary_obj_classes = vec![String::from("user")];
+    }
     settings.ldap_enabled = true;
     set_settings(Some(settings));
 }
 
-#[ignore = "Requires LDAP server"]
+#[ignore = "requires LDAP server"]
 #[sqlx::test]
 async fn test_ldap(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
@@ -68,6 +72,7 @@ async fn test_ldap(_: PgPoolOptions, options: PgConnectOptions) {
 
     let mut ldap_conn = LDAPConnection::create().await.unwrap();
     ldap_conn.config.ldap_sync_groups = vec![String::from("testers")];
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
     // Try to remove user first, in case the previous test run failed.
     let _ = ldap_conn.delete_user(&user).await;
 
@@ -97,7 +102,7 @@ async fn test_ldap(_: PgPoolOptions, options: PgConnectOptions) {
     // Build user DN.
     let dn = format!(
         "{}={},{}",
-        ldap_conn.config.ldap_username_attr,
+        ldap_conn.config.get_rdn_attr(),
         user.ldap_rdn.as_ref().unwrap(),
         user.ldap_user_path.as_ref().unwrap()
     );
@@ -108,5 +113,47 @@ async fn test_ldap(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Cleanup
     ldap_conn.delete_group(&group.name).await.unwrap();
+    ldap_conn.delete_user(&user).await.unwrap();
+}
+
+#[ignore = "requires LDAP server"]
+#[sqlx::test]
+async fn test_special_characters(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    set_ldap_settings(&pool).await;
+
+    let mut ldap_conn = LDAPConnection::create().await.unwrap();
+    ldap_conn.config.ldap_uses_ad = env::var("LDAP_USES_AD").is_ok();
+
+    let password = "pass123";
+    let mut user = User::new(
+        "ハリー・ポッター",
+        Some(password),
+        "ハリー",
+        "ポッター",
+        "hari.potta@hogwards.jp",
+        None,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // Try to remove user first, in case the previous test run failed.
+    let _ = ldap_conn.delete_user(&user).await;
+    // Add user to LDAP.
+    ldap_conn
+        .add_user(&mut user, Some(password), &pool)
+        .await
+        .unwrap();
+
+    const TEST_GROUP: &str = "Wizards🪄,+\"\\<>=#🧙‍♂️";
+    // Add group to LDAP. This is redundant as `add_user_to_group` does the same.
+    ldap_conn
+        .add_group_with_members(TEST_GROUP, &[&user])
+        .await
+        .unwrap();
+
+    // Cleanup
+    ldap_conn.delete_group(TEST_GROUP).await.unwrap();
     ldap_conn.delete_user(&user).await.unwrap();
 }

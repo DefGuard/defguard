@@ -22,11 +22,10 @@ use reqwest::{
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-use crate::common::{SESSION_COOKIE_NAME, TestClient};
+use tokio::{sync::oneshot, time::timeout};
 
 use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
-use tokio::{sync::oneshot, time::timeout};
+use crate::common::{SESSION_COOKIE_NAME, TestClient};
 
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,

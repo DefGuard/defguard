@@ -221,7 +221,7 @@ impl LDAPConnection {
         // dn: user map
         let dn_map = all_ldap_users
             .iter()
-            .map(|u| (self.config.user_dn_from_user(u).to_lowercase(), u))
+            .map(|u| (self.config.user_dn_for_user(u).to_lowercase(), u))
             .collect::<HashMap<_, _>>();
 
         for entry in &mut membership_entries {

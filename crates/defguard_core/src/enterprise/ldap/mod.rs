@@ -10,7 +10,7 @@ use defguard_common::db::{
 };
 #[cfg(not(test))]
 use ldap3::Ldap;
-use ldap3::{Mod, ldap_escape};
+use ldap3::{Mod, dn_escape, ldap_escape};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
@@ -194,7 +194,7 @@ impl LDAPConfig {
     /// Returns the RDN attribute used for constructing user distinguished names.
     /// If the `ldap_user_rdn_attr` is not set, it defaults to `ldap_username_attr`.
     #[must_use]
-    pub(crate) fn get_rdn_attr(&self) -> &str {
+    pub fn get_rdn_attr(&self) -> &str {
         let attr = self
             .ldap_user_rdn_attr
             .as_deref()
@@ -211,20 +211,24 @@ impl LDAPConfig {
     /// Constructs user distinguished name.
     ///
     /// This function is used to construct the user's DN based on the RDN value and user path.
-    /// Prefer using `user_dn_from_user` method to ensure that the RDN value and user path are
+    /// Prefer using `user_dn_for_user` method to ensure that the RDN value and user path are
     /// correctly derived from the user object.
     ///
     /// Use it only if you need to construct a user DN manually.
     #[must_use]
     pub(crate) fn user_dn(&self, user_rdn_value: &str, user_path: &str) -> String {
-        format!("{}={user_rdn_value},{user_path}", self.get_rdn_attr())
+        format!(
+            "{}={},{user_path}",
+            self.get_rdn_attr(),
+            dn_escape(user_rdn_value)
+        )
     }
 
     /// Constructs the user's distinguished name based on the user object.
     /// This should be the preferred way of getting the user DN, as it
     /// ensures that the RDN value and user path is correctly derived from the user object.
     #[must_use]
-    pub(crate) fn user_dn_from_user<I>(&self, user: &User<I>) -> String {
+    pub(crate) fn user_dn_for_user<I>(&self, user: &User<I>) -> String {
         let path = if let Some(path) = &user.ldap_user_path {
             path.as_str()
         } else {
@@ -236,13 +240,15 @@ impl LDAPConfig {
     /// Constructs group distinguished name.
     ///
     /// Uses the `ldap_group_search_base` to construct the DN.
-    /// Note: This may turn out to be a problem if some groups are
-    /// are nested and have different DN paths.
+    /// Note: This may turn out to be a problem if some groups are nested and have different DN
+    /// paths.
     #[must_use]
     pub(crate) fn group_dn(&self, groupname: &str) -> String {
         format!(
-            "{}={groupname},{}",
-            self.ldap_groupname_attr, self.ldap_group_search_base,
+            "{}={},{}",
+            self.ldap_groupname_attr,
+            dn_escape(groupname),
+            self.ldap_group_search_base,
         )
     }
 
@@ -418,7 +424,7 @@ impl LDAPConnection {
             return Ok(true);
         }
 
-        let dn = self.config.user_dn_from_user(user);
+        let dn = self.config.user_dn_for_user(user);
 
         if !self.user_exists(user).await? {
             debug!("User {user} does not exist, not syncing user");
@@ -492,7 +498,7 @@ impl LDAPConnection {
     /// usernames which Defguard doesn't handle well.
     async fn user_exists<I>(&mut self, user: &User<I>) -> Result<bool, LdapError> {
         let username = &user.username;
-        let dn = self.config.user_dn_from_user(user);
+        let dn = self.config.user_dn_for_user(user);
         let username_exists = self.user_exists_by_username(username).await?;
         let dn_exists = self.user_exists_by_dn(&dn).await?;
         Ok(username_exists || dn_exists)
@@ -569,7 +575,7 @@ impl LDAPConnection {
     /// Retrieves user from LDAP by DN (Distinguished Name).
     /// Returns an error if the user doesn't exist at the specified DN.
     pub async fn get_user_by_dn<I>(&mut self, user: &User<I>) -> Result<User, LdapError> {
-        let dn = self.config.user_dn_from_user(user);
+        let dn = self.config.user_dn_for_user(user);
         debug!("Trying to retrieve LDAP user with the following DN: {dn}");
         match self.get(&dn).await? {
             Some(entry) => {
@@ -591,7 +597,7 @@ impl LDAPConnection {
         pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {user}");
-        let user_dn = self.config.user_dn_from_user(user);
+        let user_dn = self.config.user_dn_for_user(user);
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {user}");
@@ -691,7 +697,7 @@ impl LDAPConnection {
     /// First removes the user from all group memberships (if any), then deletes the user entry.
     pub async fn delete_user<I>(&mut self, user: &User<I>) -> Result<(), LdapError> {
         debug!("Deleting user {user}");
-        let dn = self.config.user_dn_from_user(user);
+        let dn = self.config.user_dn_for_user(user);
         debug!("Removing group memberships first...");
         let user_groups = self.get_user_groups(&dn).await?;
         debug!("Removing user from groups: {user_groups:?}");
@@ -736,7 +742,7 @@ impl LDAPConnection {
         password: &str,
     ) -> Result<(), LdapError> {
         debug!("Setting password for user {user}");
-        let user_dn = self.config.user_dn_from_user(user);
+        let user_dn = self.config.user_dn_for_user(user);
 
         if self.config.ldap_uses_ad {
             let unicode_pwd = hash::unicode_pwd(password);
@@ -808,7 +814,7 @@ impl LDAPConnection {
         // Extend the group attr with multiple members.
         let member_dns = members
             .iter()
-            .map(|member| self.config.user_dn_from_user(member))
+            .map(|member| self.config.user_dn_for_user(member))
             .collect::<Vec<_>>();
         let member_group_attr = self.config.ldap_group_member_attr.clone();
         let member_refs = member_dns
@@ -875,7 +881,7 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Adding user {user} to group {groupname} in LDAP, checking if that group exists...");
-        let user_dn = self.config.user_dn_from_user(user);
+        let user_dn = self.config.user_dn_for_user(user);
         if self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is already a member of group {groupname}, skipping");
             return Ok(());
@@ -911,7 +917,7 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Removing user {user} from group {groupname} in LDAP");
-        let user_dn = self.config.user_dn_from_user(user);
+        let user_dn = self.config.user_dn_for_user(user);
         if !self.is_member_of(&user_dn, groupname).await? {
             debug!("User {user} is not a member of group {groupname}, skipping");
             return Ok(());

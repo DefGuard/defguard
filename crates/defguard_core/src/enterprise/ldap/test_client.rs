@@ -192,13 +192,13 @@ impl TestClient {
     }
 
     pub(super) fn add_test_user(&mut self, user: &User, config: &LDAPConfig) {
-        let dn = config.user_dn_from_user(user);
+        let dn = config.user_dn_for_user(user);
         self.objects
             .insert(dn, Object::User(Box::new(user.clone())));
     }
 
     pub(super) fn remove_test_user(&mut self, user: &User, config: &LDAPConfig) {
-        let dn = config.user_dn_from_user(user);
+        let dn = config.user_dn_for_user(user);
         self.objects.remove(&dn);
     }
 
@@ -210,7 +210,7 @@ impl TestClient {
 
     pub(super) fn add_test_membership(&mut self, group: &Group, user: &User, config: &LDAPConfig) {
         let group_dn = config.group_dn(&group.name);
-        let user_dn = config.user_dn_from_user(user);
+        let user_dn = config.user_dn_for_user(user);
         self.memberships
             .entry(group_dn)
             .or_default()
@@ -224,7 +224,7 @@ impl TestClient {
         config: &LDAPConfig,
     ) {
         let group_dn = config.group_dn(&group.name);
-        let user_dn = config.user_dn_from_user(user);
+        let user_dn = config.user_dn_for_user(user);
         if let Some(members) = self.memberships.get_mut(&group_dn) {
             members.remove(&user_dn);
             if members.is_empty() {
@@ -437,7 +437,7 @@ impl LDAPConnection {
         let mut result = HashMap::new();
         let user_dns = all_ldap_users
             .iter()
-            .map(|user| self.config.user_dn_from_user(user))
+            .map(|user| self.config.user_dn_for_user(user))
             .collect::<HashSet<_>>();
         for (group_dn, member_dns) in memberships {
             let members = member_dns
@@ -446,7 +446,7 @@ impl LDAPConnection {
                     if user_dns.contains(member_dn) {
                         all_ldap_users
                             .iter()
-                            .find(|user| self.config.user_dn_from_user(user) == *member_dn)
+                            .find(|user| self.config.user_dn_for_user(user) == *member_dn)
                     } else {
                         None
                     }
@@ -599,7 +599,7 @@ pub(super) fn group_to_test_attrs<I>(
 
     if let Some(members) = members {
         for user in members {
-            let user_dn = config.user_dn_from_user(user);
+            let user_dn = config.user_dn_for_user(user);
             attrs.push((config.ldap_group_member_attr.clone(), hashset![user_dn]));
         }
     }
