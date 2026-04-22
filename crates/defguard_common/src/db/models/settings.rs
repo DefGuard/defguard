@@ -1411,6 +1411,39 @@ mod test {
         assert_eq!(settings.openid_signing_key_der, Some(existing));
     }
 
+    #[test]
+    fn test_openid_key_required_rejects_missing_key() {
+        let settings = Settings::default();
+
+        assert!(matches!(
+            settings.openid_key_required(),
+            Err(SettingsInitializationError::Missing("openid_signing_key_der"))
+        ));
+    }
+
+    #[test]
+    fn test_openid_key_required_rejects_invalid_der() {
+        let settings = Settings {
+            openid_signing_key_der: Some(vec![1, 2, 3]),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.openid_key_required(),
+            Err(SettingsInitializationError::Invalid("openid_signing_key_der", _))
+        ));
+    }
+
+    #[test]
+    fn test_openid_key_required_accepts_valid_der() {
+        let settings = Settings {
+            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der()),
+            ..Default::default()
+        };
+
+        assert!(settings.openid_key_required().is_ok());
+    }
+
     #[sqlx::test]
     #[allow(deprecated)]
     async fn test_update_from_config_persists_and_updates_current_settings(
