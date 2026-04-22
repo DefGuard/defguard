@@ -321,11 +321,6 @@ impl fmt::Debug for Settings {
             .field("mfa_code_timeout_seconds", &self.mfa_code_timeout_seconds)
             .field("public_proxy_url", &self.public_proxy_url)
             .field("default_admin_id", &self.default_admin_id)
-            .field("secret_key", &self.secret_key.as_ref().map(|_| "<redacted>"))
-            .field(
-                "openid_signing_key_der",
-                &self.openid_signing_key_der.as_ref().map(Vec::len),
-            )
             .finish_non_exhaustive()
     }
 }
