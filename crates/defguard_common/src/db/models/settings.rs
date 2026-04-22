@@ -352,13 +352,22 @@ impl Settings {
     }
 
     /// Generates a new RSA private key for OpenID signing and serializes it as PKCS#8 DER.
-    fn generate_openid_signing_key_der() -> Vec<u8> {
-        RsaPrivateKey::new(&mut OsRng, 2048)
-            .expect("failed to generate OpenID signing key")
-            .to_pkcs8_der()
-            .expect("failed to serialize OpenID signing key")
-            .as_bytes()
-            .to_vec()
+    fn generate_openid_signing_key_der() -> Result<Vec<u8>, SettingsInitializationError> {
+        let key = RsaPrivateKey::new(&mut OsRng, 2048).map_err(|_| {
+            SettingsInitializationError::Invalid(
+                "openid_signing_key_der",
+                "failed to generate OpenID signing key",
+            )
+        })?;
+
+        let key_der = key.to_pkcs8_der().map_err(|_| {
+            SettingsInitializationError::Invalid(
+                "openid_signing_key_der",
+                "failed to serialize OpenID signing key",
+            )
+        })?;
+
+        Ok(key_der.as_bytes().to_vec())
     }
 
     fn validate_openid_signing_key_der(key_der: &[u8]) -> Result<(), SettingsInitializationError> {
@@ -725,7 +734,8 @@ impl Settings {
                 Settings::validate_openid_signing_key_der(key_der)?;
             }
             None => {
-                settings.openid_signing_key_der = Some(Settings::generate_openid_signing_key_der());
+                settings.openid_signing_key_der =
+                    Some(Settings::generate_openid_signing_key_der()?);
             }
         }
 
@@ -905,7 +915,8 @@ impl Settings {
                     warn!(
                         "Invalid openid_signing_key provided in deprecated config, generating new one: {err}"
                     );
-                    self.openid_signing_key_der = Some(Settings::generate_openid_signing_key_der());
+                    self.openid_signing_key_der =
+                        Settings::generate_openid_signing_key_der().ok();
                 }
             }
         }
@@ -1393,7 +1404,7 @@ mod test {
     #[allow(deprecated)]
     fn test_apply_from_config_valid_openid_signing_key_overwrites_existing_value() {
         let mut settings = Settings {
-            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der()),
+            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der().unwrap()),
             ..Default::default()
         };
         let mut config = DefGuardConfig::new_test_config();
@@ -1408,7 +1419,7 @@ mod test {
 
     #[test]
     fn test_apply_from_config_keeps_openid_signing_key_when_config_is_none() {
-        let existing = Settings::generate_openid_signing_key_der();
+        let existing = Settings::generate_openid_signing_key_der().unwrap();
         let mut settings = Settings {
             openid_signing_key_der: Some(existing.clone()),
             ..Default::default()
@@ -1451,7 +1462,7 @@ mod test {
     #[test]
     fn test_openid_key_required_accepts_valid_der() {
         let settings = Settings {
-            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der()),
+            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der().unwrap()),
             ..Default::default()
         };
 
