@@ -133,5 +133,3 @@ export const dockerCreateMigrationState = () => {
       `"UPDATE wizard SET active_wizard = 'none', completed = false WHERE is_singleton"`,
   );
 };
-
-
