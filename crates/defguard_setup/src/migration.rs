@@ -27,6 +27,7 @@ use defguard_core::{
         },
         component_setup::{setup_gateway_tls_stream, setup_proxy_tls_stream, stream_proxy_acme},
         gateway::gateway_list,
+        proxy::proxy_list,
         resource_display::get_locations_display,
         session_info::get_session_info,
         settings::{get_settings, get_settings_essentials, patch_settings},
@@ -108,6 +109,7 @@ pub fn build_migration_webapp(
                 .route("/session-info", get(get_session_info))
                 .route("/settings_essentials", get(get_settings_essentials))
                 .route("/settings", get(get_settings).patch(patch_settings))
+                .route("/proxy", get(proxy_list))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .route("/proxy/acme/stream", get(stream_proxy_acme))
                 .route("/auth", post(authenticate))

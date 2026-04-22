@@ -11,13 +11,17 @@ use axum_extra::{
     headers::UserAgent,
 };
 use defguard_certs::{CertificateInfo, der_to_pem, parse_pem_certificate};
-use defguard_common::db::models::{
-    Certificates, Session, SessionState, Settings, User,
-    group::Group,
-    initial_setup_wizard::{InitialSetupState, InitialSetupStep},
-    settings::update_current_settings,
-    setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
-    wizard::{ActiveWizard, Wizard},
+use defguard_common::{
+    db::models::{
+        Certificates, Session, SessionState, Settings, User,
+        group::Group,
+        initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+        proxy::Proxy,
+        settings::update_current_settings,
+        setup_auto_adoption::{AutoAdoptionWizardState, AutoAdoptionWizardStep},
+        wizard::{ActiveWizard, Wizard},
+    },
+    types::proxy::ProxyInfo,
 };
 use defguard_core::{
     auth::{
@@ -516,4 +520,11 @@ pub async fn get_wizard_state(Extension(pool): Extension<PgPool>) -> ApiResult {
         },
         StatusCode::OK,
     ))
+}
+
+pub async fn proxy_list(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> ApiResult {
+    let proxies = Proxy::list(&pool).await?;
+    let proxies: Vec<ProxyInfo> = proxies.into_iter().map(Into::into).collect();
+
+    Ok(ApiResponse::json(proxies, StatusCode::OK))
 }

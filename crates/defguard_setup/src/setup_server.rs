@@ -32,8 +32,8 @@ use crate::handlers::{
         set_external_url_settings, set_internal_url_settings, set_mfa_settings, set_vpn_settings,
     },
     initial_wizard::{
-        create_admin, create_ca, finish_setup, get_ca, get_wizard_state, set_general_config,
-        setup_login, setup_session, upload_ca,
+        create_admin, create_ca, finish_setup, get_ca, get_wizard_state, proxy_list,
+        set_general_config, setup_login, setup_session, upload_ca,
     },
     session_info::get_session_info,
     version::get_version,
@@ -60,6 +60,7 @@ pub fn build_setup_webapp(
                 .route("/session-info", get(get_session_info))
                 .route("/network/display", get(get_locations_display))
                 .route("/wizard", get(get_wizard_state))
+                .route("/proxy", get(proxy_list))
                 .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
                 .route("/proxy/acme/stream", get(stream_proxy_acme))
                 .nest(
