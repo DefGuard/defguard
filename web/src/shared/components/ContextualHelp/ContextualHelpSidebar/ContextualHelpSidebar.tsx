@@ -8,6 +8,7 @@ import { useContextualHelp } from '../hooks';
 import type { ContextualHelpKey } from '../types';
 import './ContextualHelpSidebar.scss';
 import { ThemeVariable } from '../../../defguard-ui/types';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 
 type Props = {
   pageKey: ContextualHelpKey;
@@ -43,14 +44,13 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
   if (!page) return null;
 
   const { faqs, relatedDocs, bestPractices } = page;
-  const hasContent =
-    (faqs && faqs.length > 0) || (relatedDocs && relatedDocs.length > 0) || bestPractices;
+  const hasContent = isPresent(faqs) || isPresent(relatedDocs) || bestPractices;
 
   if (!hasContent) return null;
 
   return (
     <div className="contextual-help">
-      {faqs && faqs.length > 0 && (
+      {isPresent(faqs) && (
         <div className="contextual-help-section">
           <div className="header">
             <Icon icon={IconKind.Chat} />
@@ -64,7 +64,7 @@ export const ContextualHelpSidebar = ({ pageKey }: Props) => {
         </div>
       )}
 
-      {relatedDocs && relatedDocs.length > 0 && (
+      {isPresent(relatedDocs) && (
         <div className="contextual-help-section">
           <div className="header">
             <Icon icon={IconKind.File} />
