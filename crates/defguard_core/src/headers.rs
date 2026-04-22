@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, sync::LazyLock};
 
-use axum::http::{HeaderName, HeaderValue};
+use axum::http::{HeaderName, HeaderValue, Response, header};
 use defguard_common::db::{
     Id,
     models::{DeviceLoginEvent, User},
@@ -9,10 +9,50 @@ use defguard_mail::templates::{SessionContext, TemplateError, new_device_login_m
 use sqlx::PgPool;
 use uaparser::{Client, Parser, UserAgentParser};
 
-pub(crate) const CONTENT_SECURITY_POLICY_HEADER_NAME: HeaderName =
-    HeaderName::from_static("content-security-policy");
-pub(crate) const CONTENT_SECURITY_POLICY_HEADER_VALUE: HeaderValue =
-    HeaderValue::from_static("frame-ancestors 'none';");
+// Header name constants not yet present in the `http` crate v1.x standard set.
+const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-policy");
+const CROSS_ORIGIN_OPENER_POLICY: HeaderName =
+    HeaderName::from_static("cross-origin-opener-policy");
+const CROSS_ORIGIN_RESOURCE_POLICY: HeaderName =
+    HeaderName::from_static("cross-origin-resource-policy");
+
+/// Injects baseline security response headers on every response.
+pub(crate) async fn security_headers_middleware<B>(mut response: Response<B>) -> Response<B> {
+    let headers = response.headers_mut();
+    // `X-Content-Type-Options: nosniff` - prevents MIME-type sniffing/confusion attacks
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    // `Referrer-Policy: strict-origin-when-cross-origin` - avoids leaking internal URLs via Referer to external sites
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
+    // `Permissions-Policy: geolocation=(), camera=(), microphone=()` - disables unused browser APIs
+    headers.insert(
+        PERMISSIONS_POLICY,
+        HeaderValue::from_static("geolocation=(), camera=(), microphone=()"),
+    );
+    // `Cross-Origin-Opener-Policy: same-origin` - severs window.opener references, preventing reverse tabnapping
+    headers.insert(
+        CROSS_ORIGIN_OPENER_POLICY,
+        HeaderValue::from_static("same-origin"),
+    );
+    // `Cross-Origin-Resource-Policy: same-origin` - blocks cross-origin embedding of application resources
+    headers.insert(
+        CROSS_ORIGIN_RESOURCE_POLICY,
+        HeaderValue::from_static("same-origin"),
+    );
+    // `X-Frame-Options: DENY` - clickjacking defense for browsers without CSP frame-ancestors support
+    headers.insert(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
+    // `Content-Security-Policy: frame-ancestors 'none'` - prevents framing/clickjacking
+    // Use entry/or_insert so individual handlers can override CSP (e.g. per-request nonces)
+    headers
+        .entry(header::CONTENT_SECURITY_POLICY)
+        .or_insert(HeaderValue::from_static("frame-ancestors 'none';"));
+    response
+}
 
 pub static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|| {
     let regexes = include_bytes!("../user_agent_header_regexes.yaml");

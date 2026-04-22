@@ -9,6 +9,7 @@ use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
     http::{Request, StatusCode},
+    middleware,
     routing::{delete, get, post, put},
 };
 use axum_extra::extract::cookie::Key;
@@ -63,10 +64,7 @@ use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
 };
-use tower_http::{
-    set_header::SetResponseHeaderLayer,
-    trace::{DefaultOnResponse, TraceLayer},
-};
+use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -612,12 +610,11 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
-    let webapp = webapp.layer(DefguardVersionLayer::new(version)).layer(
-        SetResponseHeaderLayer::if_not_present(
-            headers::CONTENT_SECURITY_POLICY_HEADER_NAME,
-            headers::CONTENT_SECURITY_POLICY_HEADER_VALUE,
-        ),
-    );
+    let webapp = webapp
+        .layer(DefguardVersionLayer::new(version))
+        .layer(middleware::map_response(
+            headers::security_headers_middleware,
+        ));
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
