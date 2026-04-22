@@ -191,12 +191,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let settings = Settings::get_current_settings();
 
     #[allow(deprecated)]
-    if config.hmac.unwrap_or(false) {
+    if config.hmac {
         info!("Using HMAC OpenID signing key (forced by deprecated config flag)");
-    } else if settings.openid_key().is_some() {
-        info!("Using RSA OpenID signing key");
     } else {
-        info!("Using HMAC OpenID signing key");
+        info!("Using RSA OpenID signing key");
     }
 
     // create event channels for services

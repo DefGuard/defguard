@@ -116,7 +116,7 @@ pub struct OAuth2ClientExtractor(Option<OAuth2Client<Id>>);
 
 #[allow(deprecated)]
 fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, WebError> {
-    if server_config().hmac.unwrap_or(false) {
+    if server_config().hmac {
         Ok(None)
     } else {
         Settings::get_current_settings()

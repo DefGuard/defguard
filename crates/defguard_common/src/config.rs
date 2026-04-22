@@ -74,12 +74,12 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
 
-    #[arg(long, env = "DEFGUARD_HMAC")]
+    #[arg(long, env = "DEFGUARD_HMAC", default_value_t = false)]
     #[deprecated(
         since = "2.0.0",
         note = "Temporary compatibility flag for OpenID signing"
     )]
-    pub hmac: Option<bool>,
+    pub hmac: bool,
 
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse)]
     #[serde(skip_serializing)]
@@ -268,7 +268,7 @@ impl DefGuardConfig {
             grpc_cert: None,
             grpc_key: None,
             openid_signing_key: None,
-            hmac: None,
+            hmac: false,
             url: None,
             disable_stats_purge: None,
             stats_purge_frequency: None,
