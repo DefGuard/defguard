@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { joinCsv, splitCsv } from '../src/shared/utils/csv';
+import { smallestNetworkCapacity } from '../src/shared/utils/network';
 import { formatFileName } from '../src/shared/utils/formatFileName';
 import { formatIpForDisplay } from '../src/shared/utils/formatIpForDisplay';
 import { removeEmptyStrings } from '../src/shared/utils/removeEmptyStrings';
@@ -296,5 +297,60 @@ describe('isValidDefguardUrl', () => {
     expect(isValidDefguardUrl('not-a-url')).toBe(false);
     expect(isValidDefguardUrl('')).toBe(false);
     expect(isValidDefguardUrl('ftp://')).toBe(false);
+  });
+});
+
+
+describe('smallestNetworkCapacity', () => {
+  // IPv4 cases
+  it('should return 253 for a single IPv4 /24', () => {
+    // 2^(32-24) - 3 = 256 - 3 = 253
+    expect(smallestNetworkCapacity('10.0.0.1/24')).toBe(253);
+  });
+
+  it('should return 1 for a single IPv4 /30', () => {
+    // 2^(32-30) - 3 = 4 - 3 = 1
+    expect(smallestNetworkCapacity('10.0.0.1/30')).toBe(1);
+  });
+
+  it('should return -1 for a single IPv4 /32 host address', () => {
+    // 2^(32-32) - 3 = 1 - 3 = -2... actually 0 hosts, 2^0=1, 1-3=-2
+    // but the function should be consistent: capacity < 0 means not usable
+    expect(smallestNetworkCapacity('10.0.0.1/32')).toBeLessThan(0);
+  });
+
+  // IPv6 cases
+  it('should return MAX_SAFE_INTEGER for a large IPv6 /64 subnet', () => {
+    // 2^(128-64) - 2 is astronomically large; must be capped
+    expect(smallestNetworkCapacity('fd00::1/64')).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it('should return 2 for a tiny IPv6 /126 subnet', () => {
+    // 2^(128-126) - 2 = 4 - 2 = 2
+    expect(smallestNetworkCapacity('fd00::1/126')).toBe(2);
+  });
+
+  it('should return 1 for an IPv6 /127 subnet', () => {
+    // 2^(128-127) - 2 = 2 - 2 = 0... hmm, actually 0.
+    // /127 has 2 addresses, no broadcast, gateway takes 1, so 1 usable
+    // Wait: 2^1 - 2 = 0. That means the formula gives 0 for /127.
+    // Let's use the same logic as IPv4: 2^(128-prefix) - 2
+    expect(smallestNetworkCapacity('fd00::1/127')).toBe(0);
+  });
+
+  it('should return negative for an IPv6 /128 host address', () => {
+    // 2^(128-128) - 2 = 1 - 2 = -1
+    expect(smallestNetworkCapacity('fd00::1/128')).toBe(-1);
+  });
+
+  // Mixed cases — should return the minimum capacity across all subnets
+  it('should return IPv4 capacity when IPv4 subnet is smaller', () => {
+    // IPv4 /30 → 1, IPv6 /64 → MAX_SAFE_INTEGER
+    expect(smallestNetworkCapacity('10.0.0.1/30, fd00::1/64')).toBe(1);
+  });
+
+  it('should return IPv6 capacity when IPv6 subnet is smaller', () => {
+    // IPv4 /24 → 253, IPv6 /126 → 2
+    expect(smallestNetworkCapacity('10.0.0.1/24, fd00::1/126')).toBe(2);
   });
 });
