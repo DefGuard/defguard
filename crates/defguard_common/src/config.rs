@@ -332,6 +332,7 @@ impl DefGuardConfig {
         note = "Use auto-generated openid signing key"
     )]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+        #[allow(deprecated)]
         let key = self.openid_signing_key.as_ref()?;
         if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
             let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
