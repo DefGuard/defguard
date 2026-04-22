@@ -295,6 +295,30 @@ impl<I> WireguardNetwork<I> {
             self.set_address(parsed_addresses)
         }
     }
+
+    /// Check if given number of devices can fit in networks used by this location.
+    /// Note: `device_count` should include network and broadcast addresses.
+    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
+        debug!("Checking if {device_count} devices can fit in networks used by this location");
+        // If a given location uses multiple subnets, validate devices can fit them all.
+        for subnet in &self.address {
+            debug!("Checking if {device_count} devices can fit in network {subnet}");
+            match subnet.size() {
+                NetworkSize::V4(size) => {
+                    if device_count as u32 > size {
+                        return Err(WireguardNetworkError::NetworkTooSmall);
+                    }
+                }
+                NetworkSize::V6(size) => {
+                    if device_count as u128 > size {
+                        return Err(WireguardNetworkError::NetworkTooSmall);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl WireguardNetwork<Id> {
@@ -393,30 +417,6 @@ impl WireguardNetwork<Id> {
         )
         .fetch_all(executor)
         .await
-    }
-
-    /// Check if given number of devices can fit in networks used by this location.
-    /// Note: `device_count` should include network and broadcast addresses.
-    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
-        debug!("Checking if {device_count} devices can fit in networks used by location {self}");
-        // If a given location uses multiple subnets, validate devices can fit them all.
-        for subnet in &self.address {
-            debug!("Checking if {device_count} devices can fit in network {subnet}");
-            match subnet.size() {
-                NetworkSize::V4(size) => {
-                    if device_count as u32 > size {
-                        return Err(WireguardNetworkError::NetworkTooSmall);
-                    }
-                }
-                NetworkSize::V6(size) => {
-                    if device_count as u128 > size {
-                        return Err(WireguardNetworkError::NetworkTooSmall);
-                    }
-                }
-            }
-        }
-
-        Ok(())
     }
 
     /// Utility method to create WireGuard keypair
