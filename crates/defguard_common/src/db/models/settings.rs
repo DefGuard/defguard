@@ -1389,6 +1389,7 @@ mod test {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_apply_from_config_valid_openid_signing_key_overwrites_existing_value() {
         let mut settings = Settings {
             openid_signing_key_der: Some(Settings::generate_openid_signing_key_der()),
