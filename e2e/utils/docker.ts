@@ -6,6 +6,12 @@ const defguardPath = __dirname.split('e2e')[0];
 const dockerFilePath = path.resolve(defguardPath, 'docker-compose.e2e.yaml');
 const dockerCompose = `docker compose -f ${dockerFilePath}`;
 
+const dockerFilePathAutoAdoption = path.resolve(
+  defguardPath,
+  'docker-compose.e2e-auto-adoption.yaml',
+);
+const dockerComposeAutoAdoption = `docker compose -f ${dockerFilePathAutoAdoption}`;
+
 // Run a SQL statement in the postgres maintenance database.
 const psql = (sql: string) =>
   execSync(`${dockerCompose} exec db psql -U defguard -d postgres -c "${sql}"`);

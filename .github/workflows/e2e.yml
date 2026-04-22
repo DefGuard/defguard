@@ -113,17 +113,211 @@ jobs:
             ./e2e/playwright-report
           retention-days: 7
 
+  test-migration-wizard:
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+        instance-size:medium
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export image tag
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          if [[ "$BRANCH" == release/* ]]; then
+            IMAGE_TAG=${BRANCH//\//-}
+          else
+            IMAGE_TAG=$BRANCH
+          fi
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: "./e2e/.nvmrc"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
+          version: 10.17
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Pull images
+        run: docker compose --file './docker-compose.e2e.yaml' pull
+
+      - name: Install E2E dependencies
+        working-directory: ./e2e
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install playwright chromium
+        working-directory: ./e2e
+        run: |
+          if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+
+      - name: Run migration wizard tests
+        working-directory: ./e2e
+        env:
+          DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
+        run: pnpm playwright test --config playwright.config.migration.ts
+
+      - name: Stop compose
+        if: always()
+        run: docker compose --file './docker-compose.e2e.yaml' down
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-migration-wizard
+          path: |
+            ./e2e/playwright-report
+          retention-days: 7
+
+  test-auto-adoption-wizard:
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+        instance-size:medium
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export image tag
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          if [[ "$BRANCH" == release/* ]]; then
+            IMAGE_TAG=${BRANCH//\//-}
+          else
+            IMAGE_TAG=$BRANCH
+          fi
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: "./e2e/.nvmrc"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # FIXME: temporarily pinned because of https://github.com/pnpm/pnpm/pull/9959
+          version: 10.17
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Pull images
+        run: docker compose --file './docker-compose.e2e-auto-adoption.yaml' pull
+
+      - name: Install E2E dependencies
+        working-directory: ./e2e
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install playwright chromium
+        working-directory: ./e2e
+        run: |
+          if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+
+      - name: Run auto-adoption wizard tests
+        working-directory: ./e2e
+        env:
+          DEFGUARD_LICENSE_KEY: ${{ secrets.DEFGUARD_LICENSE_KEY }}
+        run: pnpm playwright test --config playwright.config.auto-adoption.ts
+
+      - name: Stop compose
+        if: always()
+        run: docker compose --file './docker-compose.e2e-auto-adoption.yaml' down
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-auto-adoption-wizard
+          path: |
+            ./e2e/playwright-report
+          retention-days: 7
+
   trigger-dev-deploy:
-    needs: test
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && needs.test.result == 'success' }}
+    needs: [test, test-migration-wizard, test-auto-adoption-wizard]
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' && needs.test.result == 'success' && needs.test-migration-wizard.result == 'success' && needs.test-auto-adoption-wizard.result == 'success' }}
     uses: ./.github/workflows/dev-deployment.yml
     secrets: inherit
 
   trigger-staging-deploy:
-    needs: test
+    needs: [test, test-migration-wizard, test-auto-adoption-wizard]
     if: |
       github.event_name != 'pull_request' &&
       startsWith(github.ref_name, 'release/') &&
-      needs.test.result == 'success'
+      needs.test.result == 'success' &&
+      needs.test-migration-wizard.result == 'success' &&
+      needs.test-auto-adoption-wizard.result == 'success'
     uses: ./.github/workflows/staging-deployment.yml
     secrets: inherit
