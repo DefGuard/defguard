@@ -351,6 +351,7 @@ impl Settings {
         BASE64_STANDARD.encode(bytes)
     }
 
+    /// Generates a new RSA private key for OpenID signing and serializes it as PKCS#8 DER.
     fn generate_openid_signing_key_der() -> Vec<u8> {
         RsaPrivateKey::new(&mut OsRng, 2048)
             .expect("failed to generate OpenID signing key")
@@ -371,6 +372,7 @@ impl Settings {
             })
     }
 
+    /// Serializes the deprecated config-provided OpenID RSA key as PKCS#8 DER for storage.
     fn openid_signing_key_der_from_config(
         key: &RsaPrivateKey,
     ) -> Result<Vec<u8>, SettingsInitializationError> {
@@ -384,6 +386,7 @@ impl Settings {
             })
     }
 
+    /// Builds the runtime OpenID signing key from the stored DER-encoded private key.
     #[must_use]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
         let key_der = self.openid_signing_key_der.as_deref()?;
