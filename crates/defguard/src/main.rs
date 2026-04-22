@@ -94,15 +94,6 @@ async fn main() -> Result<(), anyhow::Error> {
     )
     .await;
 
-    #[allow(deprecated)]
-    if config.hmac.unwrap_or(false) {
-        info!("Using HMAC OpenID signing key (forced by deprecated config flag)");
-    } else if Settings::get_current_settings().openid_key().is_some() {
-        info!("Using RSA OpenID signing key");
-    } else {
-        info!("Using HMAC OpenID signing key");
-    }
-
     // initialize global settings struct
     initialize_current_settings(&pool).await?;
 
@@ -198,6 +189,15 @@ async fn main() -> Result<(), anyhow::Error> {
     update_current_settings(&pool, settings).await?;
 
     let settings = Settings::get_current_settings();
+
+    #[allow(deprecated)]
+    if config.hmac.unwrap_or(false) {
+        info!("Using HMAC OpenID signing key (forced by deprecated config flag)");
+    } else if settings.openid_key().is_some() {
+        info!("Using RSA OpenID signing key");
+    } else {
+        info!("Using HMAC OpenID signing key");
+    }
 
     // create event channels for services
     let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
