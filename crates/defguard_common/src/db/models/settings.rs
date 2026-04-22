@@ -916,8 +916,7 @@ impl Settings {
                     warn!(
                         "Invalid openid_signing_key provided in deprecated config, generating new one: {err}"
                     );
-                    self.openid_signing_key_der =
-                        Settings::generate_openid_signing_key_der().ok();
+                    self.openid_signing_key_der = Settings::generate_openid_signing_key_der().ok();
                 }
             }
         }

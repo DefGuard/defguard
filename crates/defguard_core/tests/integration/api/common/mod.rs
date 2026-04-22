@@ -60,6 +60,7 @@ pub(crate) struct ClientState {
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
     pub test_user: User<Id>,
+    #[allow(dead_code)]
     pub config: DefGuardConfig,
 }
 
@@ -83,7 +84,6 @@ impl ClientState {
 
 pub(crate) async fn make_base_client(
     pool: PgPool,
-    #[allow(unused_variables)]
     config: DefGuardConfig,
     listener: TcpListener,
 ) -> (TestClient, ClientState) {

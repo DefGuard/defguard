@@ -45,7 +45,9 @@ pub(crate) async fn init_config(
         .await
         .map_err(|err| match err {
             SettingsInitializationError::Save(err) => err,
-            other => panic!("Could not initialize runtime default settings in the database: {other}"),
+            other => {
+                panic!("Could not initialize runtime default settings in the database: {other}")
+            }
         })
         .expect("Could not initialize runtime default settings in the database");
     set_test_license_business();
