@@ -60,6 +60,7 @@ pub(crate) struct ClientState {
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
     pub test_user: User<Id>,
+    #[allow(dead_code)]
     pub config: DefGuardConfig,
 }
 

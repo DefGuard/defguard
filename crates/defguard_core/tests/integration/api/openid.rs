@@ -3,7 +3,11 @@ use std::str::FromStr;
 use axum::http::header::ToStrError;
 use defguard_common::db::{
     Id,
-    models::{OAuth2AuthorizedApp, Settings, User, oauth2client::OAuth2Client},
+    models::{
+        OAuth2AuthorizedApp, Settings, User,
+        oauth2client::OAuth2Client,
+        settings::{OPENID_KEY_SIZE, update_current_settings},
+    },
 };
 use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
 use openidconnect::{
@@ -19,7 +23,7 @@ use reqwest::{
     StatusCode, Url,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderName, LOCATION, USER_AGENT},
 };
-use rsa::RsaPrivateKey;
+use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -31,6 +35,13 @@ use super::{
     },
 };
 use crate::api::PaginatedApiResponse;
+
+async fn seed_openid_signing_key(pool: &sqlx::PgPool) {
+    let mut settings = Settings::get_current_settings();
+    let key = RsaPrivateKey::new(&mut rand::thread_rng(), OPENID_KEY_SIZE).unwrap();
+    settings.openid_signing_key_der = Some(key.to_pkcs8_der().unwrap().as_bytes().to_vec());
+    update_current_settings(pool, settings).await.unwrap();
+}
 
 #[derive(Deserialize)]
 pub struct AuthenticationResponse<'r> {
@@ -108,7 +119,7 @@ async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (client, _) = make_test_client(pool.clone()).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -477,7 +488,7 @@ static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
 async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (client, _) = make_test_client(pool.clone()).await;
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
@@ -572,6 +583,43 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
         .await
         .unwrap();
     assert!(refresh_response.refresh_token().is_some());
+}
+
+#[sqlx::test]
+async fn test_openid_flow_fails_when_rsa_key_is_missing_and_hmac_is_not_forced(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool.clone()).await;
+
+    let mut settings = Settings::get_current_settings();
+    settings.openid_signing_key_der = None;
+    update_current_settings(&pool, settings).await.unwrap();
+
+    let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client)).await;
+
+    assert!(provider_metadata.is_err());
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let oauth2client = NewOpenIDClient {
+        name: "My test client".into(),
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[sqlx::test]
@@ -685,10 +733,7 @@ async fn dg25_25_openid_disabled_client_userinfo_fails(
     let pool = setup_pool(options).await;
 
     let (client, state) = make_test_client(pool).await;
-    let mut config = state.config;
-
-    let mut rng = rand::thread_rng();
-    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
+    seed_openid_signing_key(&state.pool).await;
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
@@ -816,10 +861,7 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
     let pool = setup_pool(options).await;
 
     let (client, state) = make_test_client(pool).await;
-    let mut config = state.config;
-
-    let mut rng = rand::thread_rng();
-    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
+    seed_openid_signing_key(&state.pool).await;
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 
@@ -1265,7 +1307,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
     let pool = setup_pool(options).await;
 
     let (client, state) = make_test_client(pool).await;
-    let mut config = state.config;
+    seed_openid_signing_key(&state.pool).await;
 
     let mut admin = User::find_by_username(&state.pool, "admin")
         .await
@@ -1274,9 +1316,6 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
     admin.phone = Some("+123456789".into());
     admin.save(&state.pool).await.unwrap();
-
-    let mut rng = rand::thread_rng();
-    config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
     let issuer_url = IssuerUrl::from_url(Settings::url().unwrap().clone());
 

@@ -94,7 +94,7 @@ impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
 
 pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = server_config().openid_key() {
+    if let Some(openid_key) = runtime_openid_key()? {
         keys.push(openid_key.as_verification_key());
     }
 
@@ -113,6 +113,21 @@ pub type DefguardIdTokenFields = IdTokenFields<
 
 pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;
 pub struct OAuth2ClientExtractor(Option<OAuth2Client<Id>>);
+
+#[allow(deprecated)]
+fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, WebError> {
+    if server_config().hmac {
+        Ok(None)
+    } else {
+        Settings::get_current_settings()
+            .openid_key_required()
+            .map(Some)
+            .map_err(|err| {
+                error!("OpenID signing key is unavailable: {err}");
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            })
+    }
+}
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
 impl<S> FromRequestParts<S> for OAuth2ClientExtractor
@@ -874,9 +889,9 @@ pub async fn token(
                                 } else {
                                     GroupClaims { groups: None }
                                 };
-                                let config = server_config();
                                 let user_claims = UserClaims::from_user(&user, &client, &token);
                                 let base_url = Settings::url()?;
+                                let openid_key = runtime_openid_key()?;
 
                                 match form.authorization_code_flow(
                                     &auth_code,
@@ -884,7 +899,7 @@ pub async fn token(
                                     (&user_claims).into(),
                                     &base_url,
                                     client.client_secret,
-                                    config.openid_key(),
+                                    openid_key,
                                     group_claims,
                                 ) {
                                     Ok(response) => {
