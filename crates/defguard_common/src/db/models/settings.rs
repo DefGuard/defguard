@@ -25,6 +25,7 @@ use crate::{
 };
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
+pub const OPENID_KEY_SIZE: usize = 2048;
 
 /// Initializes global `SETTINGS` struct at program startup
 pub async fn initialize_current_settings(pool: &PgPool) -> sqlx::Result<()> {
@@ -353,7 +354,7 @@ impl Settings {
 
     /// Generates a new RSA private key for OpenID signing and serializes it as PKCS#8 DER.
     fn generate_openid_signing_key_der() -> Result<Vec<u8>, SettingsInitializationError> {
-        let key = RsaPrivateKey::new(&mut OsRng, 2048).map_err(|_| {
+        let key = RsaPrivateKey::new(&mut OsRng, OPENID_KEY_SIZE).map_err(|_| {
             SettingsInitializationError::Invalid(
                 "openid_signing_key_der",
                 "failed to generate OpenID signing key",
@@ -1407,7 +1408,7 @@ mod test {
             ..Default::default()
         };
         let mut config = DefGuardConfig::new_test_config();
-        let configured_key = RsaPrivateKey::new(&mut OsRng, 2048).unwrap();
+        let configured_key = RsaPrivateKey::new(&mut OsRng, OPENID_KEY_SIZE).unwrap();
         let expected_der = configured_key.to_pkcs8_der().unwrap().as_bytes().to_vec();
         config.openid_signing_key = Some(configured_key);
 

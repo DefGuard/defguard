@@ -4,8 +4,9 @@ use axum::http::header::ToStrError;
 use defguard_common::db::{
     Id,
     models::{
-        OAuth2AuthorizedApp, Settings, User, oauth2client::OAuth2Client,
-        settings::update_current_settings,
+        OAuth2AuthorizedApp, Settings, User,
+        oauth2client::OAuth2Client,
+        settings::{OPENID_KEY_SIZE, update_current_settings},
     },
 };
 use defguard_core::handlers::{Auth, openid_clients::NewOpenIDClient};
@@ -37,7 +38,7 @@ use crate::api::PaginatedApiResponse;
 
 async fn seed_openid_signing_key(pool: &sqlx::PgPool) {
     let mut settings = Settings::get_current_settings();
-    let key = RsaPrivateKey::new(&mut rand::thread_rng(), 2048).unwrap();
+    let key = RsaPrivateKey::new(&mut rand::thread_rng(), OPENID_KEY_SIZE).unwrap();
     settings.openid_signing_key_der = Some(key.to_pkcs8_der().unwrap().as_bytes().to_vec());
     update_current_settings(pool, settings).await.unwrap();
 }
