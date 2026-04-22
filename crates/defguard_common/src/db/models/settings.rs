@@ -223,6 +223,7 @@ pub struct Settings {
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     pub secret_key: Option<String>,
+    #[serde(skip)]
     pub openid_signing_key_der: Option<Vec<u8>>,
     pub enable_stats_purge: bool,
     stats_purge_frequency_hours: i32,
