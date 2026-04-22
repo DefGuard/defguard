@@ -122,7 +122,10 @@ fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, WebError> {
         Settings::get_current_settings()
             .openid_key_required()
             .map(Some)
-            .map_err(|err| WebError::BadRequest(err.to_string()))
+            .map_err(|err| {
+                error!("OpenID signing key is unavailable: {err}");
+                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            })
     }
 }
 
