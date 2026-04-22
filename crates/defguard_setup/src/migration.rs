@@ -1,6 +1,6 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, Mutex, RwLock, atomic::AtomicBool},
 };
 
 use anyhow::anyhow;
@@ -93,6 +93,7 @@ pub fn build_migration_webapp(
         event_tx,
         incompatible_components,
         proxy_control_tx.clone(),
+        Arc::new(AtomicBool::new(false)),
     );
 
     let router = Router::new()

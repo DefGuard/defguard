@@ -8,7 +8,7 @@
 /// was sent after a successful cert operation without needing a real proxy process.
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     time::Duration,
 };
 
@@ -152,6 +152,7 @@ async fn make_test_client_with_proxy_rx(
         Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
+        Arc::new(AtomicBool::new(false)),
     );
 
     let client = TestClient::new(webapp, listener, api_event_rx);

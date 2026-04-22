@@ -3,7 +3,7 @@ pub(crate) mod client;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
 };
 
 use axum_extra::extract::cookie::Key;
@@ -152,6 +152,7 @@ pub(crate) async fn make_base_client(
         Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
+        Arc::new(AtomicBool::new(false)),
     );
 
     (

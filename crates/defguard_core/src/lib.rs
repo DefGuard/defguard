@@ -1,7 +1,10 @@
 #![allow(clippy::too_many_arguments)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, LazyLock, Mutex, RwLock},
+    sync::{
+        Arc, LazyLock, Mutex, RwLock,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 
@@ -233,6 +236,7 @@ pub fn build_webapp(
     version: Version,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    tls_active: Arc<AtomicBool>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -610,28 +614,33 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
-    let webapp = webapp
-        .layer(DefguardVersionLayer::new(version))
-        .layer(middleware::map_response(
-            headers::security_headers_middleware,
-        ));
+    let app_state = AppState::new(
+        pool.clone(),
+        webhook_tx,
+        webhook_rx,
+        wireguard_tx,
+        web_reload_tx,
+        key,
+        failed_logins,
+        event_tx,
+        incompatible_components,
+        proxy_control_tx.clone(),
+        tls_active,
+    );
+
+    let webapp =
+        webapp
+            .layer(DefguardVersionLayer::new(version))
+            .layer(middleware::from_fn_with_state(
+                app_state.clone(),
+                headers::security_headers_middleware,
+            ));
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
 
     webapp
-        .with_state(AppState::new(
-            pool.clone(),
-            webhook_tx,
-            webhook_rx,
-            wireguard_tx,
-            web_reload_tx,
-            key,
-            failed_logins,
-            event_tx,
-            incompatible_components,
-            proxy_control_tx.clone(),
-        ))
+        .with_state(app_state)
         .layer(Extension(pool))
         .layer(Extension(proxy_control_tx))
         .layer(
@@ -665,6 +674,8 @@ pub async fn run_web_server(
     let settings = Settings::get_current_settings();
     let key = Key::from(settings.secret_key_required()?.as_bytes());
 
+    let tls_active = Arc::new(AtomicBool::new(false));
+
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
@@ -678,6 +689,7 @@ pub async fn run_web_server(
         Version::parse(VERSION)?,
         incompatible_components,
         proxy_control_tx,
+        Arc::clone(&tls_active),
     );
     info!("Started web services");
     let server_config = server_config();
@@ -693,13 +705,14 @@ pub async fn run_web_server(
     loop {
         let handle = axum_server::Handle::new();
         let handle_clone = handle.clone();
-        let app = webapp
-            .clone()
-            .into_make_service_with_connect_info::<SocketAddr>();
         let current_tls_cert_pair = Certificates::get_or_default(&pool).await.map_or(None, |c| {
             c.core_http_cert_pair()
                 .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
         });
+        tls_active.store(current_tls_cert_pair.is_some(), Ordering::Relaxed);
+        let app = webapp
+            .clone()
+            .into_make_service_with_connect_info::<SocketAddr>();
 
         let mut server_task = tokio::spawn(async move {
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
