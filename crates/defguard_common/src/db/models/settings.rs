@@ -3,11 +3,10 @@ use std::{collections::HashMap, fmt, net::IpAddr, time::Duration};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
 use rand::{RngCore, rngs::OsRng};
-use rsa::pkcs8::LineEnding;
 use rsa::{
     RsaPrivateKey,
     pkcs1::EncodeRsaPrivateKey,
-    pkcs8::{DecodePrivateKey, EncodePrivateKey},
+    pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding},
     traits::PublicKeyParts,
 };
 use secrecy::ExposeSecret;
