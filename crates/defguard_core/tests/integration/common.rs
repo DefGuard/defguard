@@ -2,7 +2,9 @@ use defguard_common::{
     config::{DefGuardConfig, SERVER_CONFIG},
     db::models::{
         Settings, User,
-        settings::{initialize_current_settings, update_current_settings},
+        settings::{
+            SettingsInitializationError, initialize_current_settings, update_current_settings,
+        },
     },
 };
 use defguard_core::enterprise::license::{License, LicenseTier, SupportType, set_cached_license};
@@ -39,6 +41,13 @@ pub(crate) async fn init_config(
     update_current_settings(pool, settings)
         .await
         .expect("Could not update current settings in the database");
+    Settings::initialize_runtime_defaults(pool)
+        .await
+        .map_err(|err| match err {
+            SettingsInitializationError::Save(err) => err,
+            other => panic!("Could not initialize runtime default settings in the database: {other}"),
+        })
+        .expect("Could not initialize runtime default settings in the database");
     set_test_license_business();
 
     let _ = SERVER_CONFIG.set(config.clone());

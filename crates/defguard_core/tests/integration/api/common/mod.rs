@@ -83,6 +83,7 @@ impl ClientState {
 
 pub(crate) async fn make_base_client(
     pool: PgPool,
+    #[allow(unused_variables)]
     config: DefGuardConfig,
     listener: TcpListener,
 ) -> (TestClient, ClientState) {
