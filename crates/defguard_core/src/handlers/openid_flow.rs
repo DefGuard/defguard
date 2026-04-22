@@ -94,7 +94,7 @@ impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
 
 pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = runtime_openid_key() {
+    if let Some(openid_key) = runtime_openid_key()? {
         keys.push(openid_key.as_verification_key());
     }
 
@@ -115,11 +115,14 @@ pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, Co
 pub struct OAuth2ClientExtractor(Option<OAuth2Client<Id>>);
 
 #[allow(deprecated)]
-fn runtime_openid_key() -> Option<CoreRsaPrivateSigningKey> {
+fn runtime_openid_key() -> Result<Option<CoreRsaPrivateSigningKey>, WebError> {
     if server_config().hmac.unwrap_or(false) {
-        None
+        Ok(None)
     } else {
-        Settings::get_current_settings().openid_key()
+        Settings::get_current_settings()
+            .openid_key_required()
+            .map(Some)
+            .map_err(|err| WebError::BadRequest(err.to_string()))
     }
 }
 
@@ -885,7 +888,7 @@ pub async fn token(
                                 };
                                 let user_claims = UserClaims::from_user(&user, &client, &token);
                                 let base_url = Settings::url()?;
-                                let openid_key = runtime_openid_key();
+                                let openid_key = runtime_openid_key()?;
 
                                 match form.authorization_code_flow(
                                     &auth_code,

@@ -835,6 +835,20 @@ impl Settings {
         Ok(secret_key)
     }
 
+    pub fn openid_key_required(&self) -> Result<CoreRsaPrivateSigningKey, SettingsInitializationError> {
+        let key_der = self
+            .openid_signing_key_der
+            .as_deref()
+            .ok_or(SettingsInitializationError::Missing("openid_signing_key_der"))?;
+
+        Settings::validate_openid_signing_key_der(key_der)?;
+
+        self.openid_key().ok_or(SettingsInitializationError::Invalid(
+            "openid_signing_key_der",
+            "failed to build OpenID signing key",
+        ))
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
