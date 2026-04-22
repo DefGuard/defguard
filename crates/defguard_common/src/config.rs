@@ -3,18 +3,18 @@ use std::{net::IpAddr, sync::OnceLock};
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
-use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
+use openidconnect::{core::CoreRsaPrivateSigningKey, JsonWebKeyId};
 use reqwest::Url;
 use rsa::{
-    RsaPrivateKey,
     pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey},
     pkcs8::{DecodePrivateKey, LineEnding},
     traits::PublicKeyParts,
+    RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
-use crate::{VERSION, db::models::Settings};
+use crate::{db::models::Settings, VERSION};
 
 pub static SERVER_CONFIG: OnceLock<DefGuardConfig> = OnceLock::new();
 
@@ -73,6 +73,13 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
+
+    #[arg(long, env = "DEFGUARD_HMAC")]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Temporary compatibility flag for OpenID signing"
+    )]
+    pub hmac: Option<bool>,
 
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse)]
     #[serde(skip_serializing)]
@@ -261,6 +268,7 @@ impl DefGuardConfig {
             grpc_cert: None,
             grpc_key: None,
             openid_signing_key: None,
+            hmac: None,
             url: None,
             disable_stats_purge: None,
             stats_purge_frequency: None,
@@ -362,15 +370,11 @@ mod tests {
         );
 
         // only one flag at a time: must be an error
-        assert!(
-            make_config(Some("edge.example.com:8080"), None)
-                .validate_adopt_flags()
-                .is_err()
-        );
-        assert!(
-            make_config(None, Some("gw.example.com:8080"))
-                .validate_adopt_flags()
-                .is_err()
-        );
+        assert!(make_config(Some("edge.example.com:8080"), None)
+            .validate_adopt_flags()
+            .is_err());
+        assert!(make_config(None, Some("gw.example.com:8080"))
+            .validate_adopt_flags()
+            .is_err());
     }
 }

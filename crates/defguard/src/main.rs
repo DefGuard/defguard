@@ -94,7 +94,10 @@ async fn main() -> Result<(), anyhow::Error> {
     )
     .await;
 
-    if Settings::get_current_settings().openid_key().is_some() {
+    #[allow(deprecated)]
+    if config.hmac.unwrap_or(false) {
+        info!("Using HMAC OpenID signing key (forced by deprecated config flag)");
+    } else if Settings::get_current_settings().openid_key().is_some() {
         info!("Using RSA OpenID signing key");
     } else {
         info!("Using HMAC OpenID signing key");

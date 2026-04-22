@@ -94,7 +94,7 @@ impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
 
 pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
-    if let Some(openid_key) = Settings::get_current_settings().openid_key() {
+    if let Some(openid_key) = runtime_openid_key() {
         keys.push(openid_key.as_verification_key());
     }
 
@@ -113,6 +113,15 @@ pub type DefguardIdTokenFields = IdTokenFields<
 
 pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;
 pub struct OAuth2ClientExtractor(Option<OAuth2Client<Id>>);
+
+#[allow(deprecated)]
+fn runtime_openid_key() -> Option<CoreRsaPrivateSigningKey> {
+    if server_config().hmac.unwrap_or(false) {
+        None
+    } else {
+        Settings::get_current_settings().openid_key()
+    }
+}
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
 impl<S> FromRequestParts<S> for OAuth2ClientExtractor
@@ -876,7 +885,7 @@ pub async fn token(
                                 };
                                 let user_claims = UserClaims::from_user(&user, &client, &token);
                                 let base_url = Settings::url()?;
-                                let openid_key = Settings::get_current_settings().openid_key();
+                                let openid_key = runtime_openid_key();
 
                                 match form.authorization_code_flow(
                                     &auth_code,
