@@ -9,7 +9,6 @@ import { Button } from '../../../../../shared/defguard-ui/components/Button/Butt
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { downloadFile } from '../../../../../shared/utils/download';
-import caIcon from '../../../../SetupPage/assets/ca.png';
 import '../../../../SetupPage/autoAdoption/steps/style.scss';
 import { SettingsCoreCertificateWizardStep } from '../types';
 import { useSettingsCoreCertificateWizardStore } from '../useSettingsCoreCertificateWizardStore';
@@ -49,7 +48,6 @@ export const SettingsCoreCertificateWizardInternalUrlSslConfigStep = () => {
         certInfo={certInfo}
         caCertPem={caData?.ca_cert_pem}
         onDownloadCaCert={handleDownloadCaCert}
-        imageSrc={caIcon}
       />
       <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>
