@@ -315,7 +315,9 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
           <Button
             text={m.controls_continue()}
             onClick={() => useSettingsEdgeCertificateWizardStore.getState().next()}
-            disabled={isLetsEncryptProcessing || isLetsEncryptIncomplete || isLetsEncryptFailed}
+            disabled={
+              isLetsEncryptProcessing || isLetsEncryptIncomplete || isLetsEncryptFailed
+            }
           />
         </div>
       </Controls>

@@ -240,9 +240,7 @@ pub async fn apply_external_url_settings(
     let mut settings = Settings::get_current_settings();
     settings.public_proxy_url = match config.ssl_type {
         ExternalSslType::None | ExternalSslType::LetsEncrypt => public_proxy_url.to_string(),
-        ExternalSslType::DefguardCa | ExternalSslType::OwnCert => {
-            ensure_https(public_proxy_url)
-        }
+        ExternalSslType::DefguardCa | ExternalSslType::OwnCert => ensure_https(public_proxy_url),
     };
     update_current_settings(&mut *transaction, settings).await?;
 

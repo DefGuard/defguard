@@ -40,7 +40,7 @@ export const InternalSslResult = ({
     return (
       <div className="ssl-result-validated-card">
         <div className="ssl-result-validated-card-illustration">
-          {isPresent(imageSrc) && (<img src={imageSrc} loading="lazy" alt="" />)}
+          {isPresent(imageSrc) && <img src={imageSrc} loading="lazy" alt="" />}
         </div>
         <div className="ssl-result-validated-card-content">
           <div className="ssl-result-card-header">
@@ -65,7 +65,7 @@ export const InternalSslResult = ({
     return (
       <div className="ssl-result-validated-card">
         <div className="ssl-result-validated-card-illustration">
-          {isPresent(imageSrc) && (<img src={imageSrc} loading="lazy" alt="" />)}
+          {isPresent(imageSrc) && <img src={imageSrc} loading="lazy" alt="" />}
         </div>
         <div className="ssl-result-validated-card-content">
           <div className="ssl-result-card-header">

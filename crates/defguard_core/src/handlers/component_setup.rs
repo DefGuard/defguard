@@ -17,7 +17,13 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates, Settings, certificates::ProxyCertSource, gateway::Gateway, initial_setup_wizard::{InitialSetupState, InitialSetupStep}, proxy::Proxy, settings::update_current_settings, wizard::Wizard
+            Certificates, Settings,
+            certificates::ProxyCertSource,
+            gateway::Gateway,
+            initial_setup_wizard::{InitialSetupState, InitialSetupStep},
+            proxy::Proxy,
+            settings::update_current_settings,
+            wizard::Wizard,
         },
     },
     types::proxy::ProxyControlMessage,
@@ -49,7 +55,12 @@ use tonic::{
 use tracing::Instrument;
 
 use crate::{
-    auth::{AdminOrSetupRole, SessionInfo}, cert_settings::ensure_https, enterprise::is_enterprise_license_active, letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry}, setup_logs::scope_setup_logs, version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION}
+    auth::{AdminOrSetupRole, SessionInfo},
+    cert_settings::ensure_https,
+    enterprise::is_enterprise_license_active,
+    letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
+    setup_logs::scope_setup_logs,
+    version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
 };
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
