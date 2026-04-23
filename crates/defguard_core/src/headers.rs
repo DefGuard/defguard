@@ -81,7 +81,7 @@ pub(crate) async fn security_headers_middleware(
     if tls {
         headers.insert(
             header::STRICT_TRANSPORT_SECURITY,
-            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+            HeaderValue::from_static("max-age=31536000"),
         );
     }
 
