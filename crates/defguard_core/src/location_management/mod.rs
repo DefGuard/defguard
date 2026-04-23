@@ -93,8 +93,7 @@ pub(crate) async fn sync_location_allowed_devices(
         .collect();
 
     // Check if all devices can fit within network.
-    // Include network and broadcast addresses in the calculation.
-    let count = allowed_devices.len() + 3;
+    let count = allowed_devices.len();
     location.validate_network_size(count)?;
 
     // list all assigned IPs
@@ -134,8 +133,7 @@ pub(crate) async fn sync_allowed_devices_for_user(
         .collect();
 
     // Check if all devices can fit within network.
-    // Include network and broadcast addresses in the calculation.
-    let count = allowed_devices.len() + 3;
+    let count = allowed_devices.len();
     location.validate_network_size(count)?;
 
     // list all assigned IPs

@@ -4,10 +4,9 @@ import { matchesVideoRouteContext } from '../src/shared/video-tutorials/resolved
 import {
   resolveSections,
   resolveVideoGuidePlacement,
-  resolveVersion,
 } from '../src/shared/video-tutorials/resolver';
 import { canonicalizeRouteKey } from '../src/shared/video-tutorials/route-key';
-import { parseVersion } from '../src/shared/video-tutorials/version';
+import { parseVersion, resolveVersion } from '../src/shared/utils/resolveVersion';
 import type { VideoTutorialsMappings } from '../src/shared/video-tutorials/types';
 
 // ---------------------------------------------------------------------------
