@@ -49,7 +49,6 @@ export const SettingsCoreCertificateWizardInternalUrlSslConfigStep = () => {
         certInfo={certInfo}
         caCertPem={caData?.ca_cert_pem}
         onDownloadCaCert={handleDownloadCaCert}
-        imageSrc={caIcon}
       />
       <SizedBox height={ThemeSpacing.Xl3} />
       <Controls>

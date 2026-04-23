@@ -2,13 +2,14 @@ import { m } from '../../../../paraglide/messages';
 import type { CertInfo, InternalSslType } from '../../../api/types';
 import { Button } from '../../../defguard-ui/components/Button/Button';
 import { Divider } from '../../../defguard-ui/components/Divider/Divider';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 
 type Props = {
   sslType: InternalSslType | null;
   certInfo: CertInfo | null;
   caCertPem?: string | null;
   onDownloadCaCert: () => void;
-  imageSrc: string;
+  imageSrc?: string;
 };
 
 export const InternalSslResult = ({
@@ -39,7 +40,7 @@ export const InternalSslResult = ({
     return (
       <div className="ssl-result-validated-card">
         <div className="ssl-result-validated-card-illustration">
-          <img src={imageSrc} loading="lazy" alt="" />
+          {isPresent(imageSrc) && (<img src={imageSrc} loading="lazy" alt="" />)}
         </div>
         <div className="ssl-result-validated-card-content">
           <div className="ssl-result-card-header">
@@ -64,7 +65,7 @@ export const InternalSslResult = ({
     return (
       <div className="ssl-result-validated-card">
         <div className="ssl-result-validated-card-illustration">
-          <img src={imageSrc} loading="lazy" alt="" />
+          {isPresent(imageSrc) && (<img src={imageSrc} loading="lazy" alt="" />)}
         </div>
         <div className="ssl-result-validated-card-content">
           <div className="ssl-result-card-header">
