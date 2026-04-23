@@ -22,9 +22,8 @@ const mfaSchema = z.object({
 
 export const Route = createFileRoute('/auth')({
   beforeLoad: async ({ context }) => {
-    const sessionInfo = (
-      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
-    ).data;
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
     if (sessionInfo.active_wizard) {
       switch (sessionInfo.active_wizard) {
         case 'initial':

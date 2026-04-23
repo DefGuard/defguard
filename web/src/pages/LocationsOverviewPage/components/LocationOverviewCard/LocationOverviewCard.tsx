@@ -57,7 +57,6 @@ export const LocationOverviewCard = ({
       },
     ],
     refetchInterval: 30_000,
-    refetchOnMount: true,
     refetchOnReconnect: true,
     select: (response) => response.data,
     placeholderData: (prev) => prev,

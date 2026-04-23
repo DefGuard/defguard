@@ -9,8 +9,8 @@ export const Route = createFileRoute('/_authorized/_default/groups')({
   component: GroupsPage,
   loader: ({ context }) => {
     return Promise.all([
-      context.queryClient.ensureQueryData(getGroupsInfoQueryOptions),
-      context.queryClient.ensureQueryData(getUsersOverviewQueryOptions),
+      context.queryClient.fetchQuery(getGroupsInfoQueryOptions),
+      context.queryClient.fetchQuery(getUsersOverviewQueryOptions),
     ]);
   },
 });

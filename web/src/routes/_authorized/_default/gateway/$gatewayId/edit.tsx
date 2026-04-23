@@ -5,7 +5,7 @@ import { getGatewayQueryOptions } from '../../../../../shared/query';
 export const Route = createFileRoute('/_authorized/_default/gateway/$gatewayId/edit')({
   loader: async ({ context, params }) => {
     const parsedId = parseInt(params.gatewayId, 10);
-    return context.queryClient.ensureQueryData(getGatewayQueryOptions(parsedId));
+    return context.queryClient.fetchQuery(getGatewayQueryOptions(parsedId));
   },
   component: EditGatewayPage,
 });

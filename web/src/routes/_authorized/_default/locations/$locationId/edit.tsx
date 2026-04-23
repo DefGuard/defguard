@@ -6,6 +6,6 @@ export const Route = createFileRoute('/_authorized/_default/locations/$locationI
   component: EditLocationPage,
   loader: ({ context, params }) => {
     const parsedId = parseInt(params.locationId, 10);
-    return context.queryClient.ensureQueryData(getLocationQueryOptions(parsedId));
+    return context.queryClient.fetchQuery(getLocationQueryOptions(parsedId));
   },
 });

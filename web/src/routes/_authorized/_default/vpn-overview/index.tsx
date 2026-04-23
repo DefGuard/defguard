@@ -11,6 +11,6 @@ export const Route = createFileRoute('/_authorized/_default/vpn-overview/')({
   component: LocationsOverviewPage,
   validateSearch: searchSchema,
   loader: ({ context }) => {
-    return context.queryClient.ensureQueryData(getLocationsQueryOptions);
+    return context.queryClient.fetchQuery(getLocationsQueryOptions);
   },
 });
