@@ -275,7 +275,6 @@ export const getAppliedDestinationsQueryOptions = queryOptions({
 export const getLicenseInfoQueryOptions = queryOptions({
   queryFn: api.getLicenseInfo,
   queryKey: ['enterprise_info'],
-  select: (response) => response.data.license_info,
 });
 
 export const getActivityLogStreamsQueryOptions = queryOptions({
