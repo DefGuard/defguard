@@ -55,7 +55,6 @@
   },
   "pnpm": {
     "overrides": {
-      "//uuid": "Force uuid >= 14.0.0 to fix GHSA-w5hq-g745-h8pq (missing bounds check in v3/v5/v6). Both @inlang/sdk and @lix-js/sdk pull in older versions. Remove once upstream packages declare uuid@14 themselves.",
       "uuid": "^14.0.0"
     }
   },
