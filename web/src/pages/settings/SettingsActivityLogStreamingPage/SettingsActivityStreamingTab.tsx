@@ -4,6 +4,10 @@ import { useMemo } from 'react';
 import { m } from '../../../paraglide/messages';
 import type { LicenseInfo } from '../../../shared/api/types';
 import { businessBadgeProps } from '../../../shared/components/badges/BusinessBadge';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
@@ -51,7 +55,10 @@ export const SettingsActivityLogStreamingPage = () => {
   );
 
   return (
-    <SettingsLayout id="settings-activity-log-streaming-tab">
+    <SettingsLayout
+      id="settings-activity-log-streaming-tab"
+      suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsActivity} />}
+    >
       <SettingsHeader
         badgeProps={
           !isPresent(licenseInfo) && licenseInfoFetched ? businessBadgeProps : undefined

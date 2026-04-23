@@ -1,4 +1,8 @@
 import { Link, useNavigate } from '@tanstack/react-router';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
 import { SettingsLayout } from '../../../shared/components/SettingsLayout/SettingsLayout';
 import { ExternalProviderCard } from './components/ExternalProviderCard/ExternalProviderCard';
@@ -85,7 +89,10 @@ export const SettingsExternalOpenIdPage = () => {
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
-      <SettingsLayout id="settings-openid-page">
+      <SettingsLayout
+        id="settings-openid-page"
+        suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsOpenId} />}
+      >
         <SettingsHeader
           icon="openid"
           title={m.settings_openid_providers_title()}

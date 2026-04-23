@@ -4,6 +4,10 @@ import z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { Settings } from '../../../shared/api/types';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
 import { SettingsHeader } from '../../../shared/components/SettingsHeader/SettingsHeader';
@@ -47,7 +51,9 @@ export const GeneralTab = () => {
   const { data: settings } = useQuery(getSettingsQueryOptions);
 
   return (
-    <SettingsLayout>
+    <SettingsLayout
+      suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.EnrollmentGeneral} />}
+    >
       <SettingsHeader
         icon="key"
         title={m.settings_enrollment_general_title()}

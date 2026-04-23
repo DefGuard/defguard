@@ -32,3 +32,37 @@ export function compareVersions(a: ParsedVersion, b: ParsedVersion): number {
   if (a.minor !== b.minor) return a.minor - b.minor;
   return a.patch - b.patch;
 }
+
+/**
+ * Returns the sorted list of version keys that are eligible for the given app
+ * version (i.e. version key <= app version), ordered newest-to-oldest.
+ */
+function eligibleVersionsSorted(
+  mappings: Record<string, unknown>,
+  appVersion: ParsedVersion,
+): string[] {
+  return Object.keys(mappings)
+    .flatMap((key) => {
+      const parsed = parseVersion(key);
+      return parsed && compareVersions(parsed, appVersion) <= 0 ? [{ key, parsed }] : [];
+    })
+    .sort((a, b) => compareVersions(b.parsed, a.parsed))
+    .map(({ key }) => key);
+}
+
+/**
+ * Returns the newest eligible version entry (version key <= app version).
+ * Returns null if no eligible version exists or the app version is invalid.
+ */
+export function resolveVersion<T>(
+  mappings: Record<string, T>,
+  appVersionRaw: string,
+): T | null {
+  const appVersion = parseVersion(appVersionRaw);
+  if (!appVersion) return null;
+
+  const versions = eligibleVersionsSorted(mappings, appVersion);
+  if (versions.length === 0) return null;
+
+  return mappings[versions[0]];
+}

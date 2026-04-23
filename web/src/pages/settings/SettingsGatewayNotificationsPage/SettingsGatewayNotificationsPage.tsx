@@ -6,6 +6,10 @@ import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import type { SettingsGatewayNotifications } from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
@@ -38,7 +42,13 @@ export const SettingsGatewayNotificationsPage = () => {
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbsLinks} />
-      <SettingsLayout>
+      <SettingsLayout
+        suggestion={
+          <ContextualHelpSidebar
+            pageKey={ContextualHelpKey.SettingsGatewayNotifications}
+          />
+        }
+      >
         <SettingsHeader
           icon="notification"
           title={m.settings_gateway_notifications_title()}
