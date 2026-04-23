@@ -99,7 +99,7 @@ async fn make_test_client_with_proxy_rx(
         .await
         .expect("Could not bind ephemeral socket");
     let port = listener.local_addr().unwrap().port();
-    let _config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
+    let config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
     initialize_users(&pool).await;
     initialize_current_settings(&pool)
         .await
@@ -150,6 +150,7 @@ async fn make_test_client_with_proxy_rx(
         Arc::default(),
         proxy_control_tx,
         Arc::new(AtomicBool::new(false)),
+        &config,
     );
 
     let client = TestClient::new(webapp, listener, api_event_rx);
