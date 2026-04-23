@@ -8,14 +8,13 @@
 /// was sent after a successful cert operation without needing a real proxy process.
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     time::Duration,
 };
 
 use axum_extra::extract::cookie::Key;
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
-    VERSION,
     db::{
         models::{
             Certificates, ProxyCertSource, Settings,
@@ -35,7 +34,6 @@ use defguard_core::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use semver::Version;
 use serde_json::json;
 use sqlx::{
     PgPool,
@@ -149,9 +147,9 @@ async fn make_test_client_with_proxy_rx(
         key,
         failed_logins,
         api_event_tx,
-        Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
+        Arc::new(AtomicBool::new(false)),
     );
 
     let client = TestClient::new(webapp, listener, api_event_rx);
