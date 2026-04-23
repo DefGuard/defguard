@@ -17,12 +17,7 @@ use defguard_common::{
     db::{
         Id,
         models::{
-            Certificates, Settings,
-            certificates::ProxyCertSource,
-            gateway::Gateway,
-            initial_setup_wizard::{InitialSetupState, InitialSetupStep},
-            proxy::Proxy,
-            wizard::Wizard,
+            Certificates, Settings, certificates::ProxyCertSource, gateway::Gateway, initial_setup_wizard::{InitialSetupState, InitialSetupStep}, proxy::Proxy, settings::update_current_settings, wizard::Wizard
         },
     },
     types::proxy::ProxyControlMessage,
@@ -54,11 +49,7 @@ use tonic::{
 use tracing::Instrument;
 
 use crate::{
-    auth::{AdminOrSetupRole, SessionInfo},
-    enterprise::is_enterprise_license_active,
-    letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
-    setup_logs::scope_setup_logs,
-    version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION},
+    auth::{AdminOrSetupRole, SessionInfo}, cert_settings::ensure_https, enterprise::is_enterprise_license_active, letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry}, setup_logs::scope_setup_logs, version::{MIN_GATEWAY_VERSION, MIN_PROXY_VERSION}
 };
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
@@ -1161,7 +1152,7 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let settings = Settings::get_current_settings();
+        let mut settings = Settings::get_current_settings();
         let domain = match settings.proxy_hostname() {
             Ok(domain) => domain,
             Err(err) => {
@@ -1286,6 +1277,12 @@ pub async fn stream_proxy_acme(
                         ));
                         return;
                     }
+                }
+
+                // Ensure external url is HTTPS
+                settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
+                if let Err(err) = update_current_settings(&pool, settings).await {
+                    error!("Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}");
                 }
 
                 // Post-wizard: broadcast certs to the proxy via bidi channel.
