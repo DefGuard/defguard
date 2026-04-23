@@ -258,7 +258,6 @@ pub fn build_webapp(
     key: Key,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
-    version: Version,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
     tls_active: Arc<AtomicBool>,
@@ -670,14 +669,7 @@ pub fn build_webapp(
             StatusCode::REQUEST_TIMEOUT,
             REQUEST_TIMEOUT,
         ))
-        .merge(sse_routes)
-        // Version and security headers are applied after the merge so that
-        // they cover all routes, including SSE.
-        .layer(DefguardVersionLayer::new(version))
-        .layer(middleware::from_fn_with_state(
-            app_state.clone(),
-            headers::security_headers_middleware,
-        ));
+        .merge(sse_routes);
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
@@ -686,6 +678,9 @@ pub fn build_webapp(
         .with_state(app_state)
         .layer(Extension(pool))
         .layer(Extension(proxy_control_tx))
+        // swagger is merged before TraceLayer and DefaultBodyLimit so that those
+        // middleware layers cover swagger routes too.
+        .merge(swagger)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -700,7 +695,6 @@ pub fn build_webapp(
         // Global request body size limit. Per-route layers (e.g. /network/import) can
         // override this by applying a larger DefaultBodyLimit closer to the handler.
         .layer(DefaultBodyLimit::max(REQUEST_BODY_LIMIT))
-        .merge(swagger)
 }
 
 /// Runs core web server exposing REST API.
@@ -732,7 +726,6 @@ pub async fn run_web_server(
         key,
         failed_logins,
         event_tx,
-        Version::parse(VERSION)?,
         incompatible_components,
         proxy_control_tx,
         Arc::clone(&tls_active),
@@ -771,6 +764,16 @@ pub async fn run_web_server(
     } else {
         info!("Rate limiting disabled (per_second or burst is 0)");
     }
+
+    // Version and security headers are the outermost layers so that ALL short-circuit
+    // responses (408 timeout, 413 body-too-large, 429 rate-limited) and swagger routes
+    // also carry the baseline security headers and the server version header.
+    let tls_for_headers = Arc::clone(&tls_active);
+    webapp = webapp
+        .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
+        .layer(middleware::from_fn(move |req, next| {
+            headers::security_headers_middleware(Arc::clone(&tls_for_headers), req, next)
+        }));
 
     let addr = SocketAddr::new(
         server_config

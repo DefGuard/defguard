@@ -1,17 +1,17 @@
 use std::{
     borrow::Borrow,
-    sync::{LazyLock, atomic::Ordering},
+    sync::{
+        Arc, LazyLock,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use axum::{
     body::Body,
-    extract::State,
     http::{HeaderName, HeaderValue, Request, header},
     middleware::Next,
     response::Response,
 };
-
-use crate::appstate::AppState;
 use defguard_common::db::{
     Id,
     models::{DeviceLoginEvent, User},
@@ -29,7 +29,7 @@ const CROSS_ORIGIN_RESOURCE_POLICY: HeaderName =
 
 /// Injects baseline security response headers on every response.
 pub(crate) async fn security_headers_middleware(
-    State(state): State<AppState>,
+    tls_active: Arc<AtomicBool>,
     request: Request<Body>,
     next: Next,
 ) -> Response<Body> {
@@ -77,7 +77,7 @@ pub(crate) async fn security_headers_middleware(
         .or_insert(HeaderValue::from_static("frame-ancestors 'none';"));
 
     // `Strict-Transport-Security` - only sent over TLS; ignored and potentially harmful over plain HTTP (RFC 6797 §7.2)
-    let tls = state.tls_active.load(Ordering::Relaxed);
+    let tls = tls_active.load(Ordering::Relaxed);
     if tls {
         headers.insert(
             header::STRICT_TRANSPORT_SECURITY,

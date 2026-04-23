@@ -13,7 +13,6 @@ use defguard_certs::{
 };
 pub use defguard_common::db::setup_pool;
 use defguard_common::{
-    VERSION,
     config::DefGuardConfig,
     db::{
         Id,
@@ -31,7 +30,6 @@ use defguard_core::{
     handlers::{Auth, user::UserDetails},
 };
 use reqwest::{StatusCode, header::HeaderName};
-use semver::Version;
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::{
@@ -149,7 +147,6 @@ pub(crate) async fn make_base_client(
         key,
         failed_logins,
         api_event_tx,
-        Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
         Arc::new(AtomicBool::new(false)),

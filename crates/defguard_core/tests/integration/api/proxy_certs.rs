@@ -15,7 +15,6 @@ use std::{
 use axum_extra::extract::cookie::Key;
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
-    VERSION,
     db::{
         models::{
             Certificates, ProxyCertSource, Settings,
@@ -35,7 +34,6 @@ use defguard_core::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use semver::Version;
 use serde_json::json;
 use sqlx::{
     PgPool,
@@ -149,7 +147,6 @@ async fn make_test_client_with_proxy_rx(
         key,
         failed_logins,
         api_event_tx,
-        Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
         Arc::new(AtomicBool::new(false)),
