@@ -80,6 +80,7 @@ export const SetupEdgeDeployStep = ({ onBack, onNext }: SetupEdgeDeployStepProps
           setConfirmed((s) => !s);
         }}
         text={m.edge_setup_step_deploy_confirm()}
+        testId="edge-deploy-confirmed"
       />
       <Controls>
         {isPresent(onBack) && (

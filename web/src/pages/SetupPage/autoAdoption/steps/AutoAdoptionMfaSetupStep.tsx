@@ -31,12 +31,14 @@ export const AutoAdoptionMfaSetupStep = () => {
   return (
     <WizardCard>
       <InteractiveBlock
+        data-testid="mfa-disabled"
         value={mfaMode === LocationMfaMode.Disabled}
         onClick={() => setMfaMode(LocationMfaMode.Disabled)}
         title={m.initial_setup_auto_adoption_mfa_option_disabled_title()}
       />
       <SizedBox height={ThemeSpacing.Xl} />
       <InteractiveBlock
+        data-testid="mfa-internal"
         value={mfaMode === LocationMfaMode.Internal}
         onClick={() => setMfaMode(LocationMfaMode.Internal)}
         title={m.initial_setup_auto_adoption_mfa_option_internal_title()}
@@ -55,6 +57,7 @@ export const AutoAdoptionMfaSetupStep = () => {
       </InteractiveBlock>
       <SizedBox height={ThemeSpacing.Xl} />
       <InteractiveBlock
+        data-testid="mfa-external"
         value={false}
         disabled
         title={m.initial_setup_auto_adoption_mfa_option_external_title()}
