@@ -15,5 +15,8 @@ vulnerabilities:
     expired_at: 2026-03-30
     statement: "Not yet fixed in Debian"
   - id: CVE-2026-32763
-    expired_at: 2026-03-26
+    expired_at: 2026-03-30
     statement: "Waiting for upstream patch in paraglide"
+  - id: GHSA-w5hq-g745-h8pq
+    expired_at: 2026-03-30
+    statement: "Not yet fixed in dependencies'
