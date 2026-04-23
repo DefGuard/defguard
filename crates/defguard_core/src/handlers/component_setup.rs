@@ -1163,7 +1163,7 @@ pub async fn stream_proxy_acme(
             }
         };
 
-        let mut settings = Settings::get_current_settings();
+        let settings = Settings::get_current_settings();
         let domain = match settings.proxy_hostname() {
             Ok(domain) => domain,
             Err(err) => {
@@ -1291,6 +1291,7 @@ pub async fn stream_proxy_acme(
                 }
 
                 // Ensure external url is HTTPS
+                let mut settings = Settings::get_current_settings();
                 settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
                 if let Err(err) = update_current_settings(&pool, settings).await {
                     error!("Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}");
