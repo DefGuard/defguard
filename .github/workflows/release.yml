@@ -1,8 +1,6 @@
 name: Make a new release
 on:
   push:
-    branches:
-      - pkg
     tags:
       - v*.*.*
 
@@ -64,8 +62,6 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          release_name: pkg
-          tag_name: pkg
 
   create-sbom:
     needs:
@@ -87,8 +83,7 @@ jobs:
       # Store the version, stripping any v-prefix
       - name: Write release version
         run: |
-          # VERSION=${GITHUB_REF_NAME#v}
-          VERSION=2.0.0
+          VERSION=${GITHUB_REF_NAME#v}
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
