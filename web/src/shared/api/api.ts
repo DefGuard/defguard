@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
+import { narrowLicenseSupport } from '../utils/license';
 import { removeEmptyStrings } from '../utils/removeEmptyStrings';
 import { client } from './api-client';
 import { fetchAllPages, fetchPage } from './pagination';
@@ -64,6 +65,7 @@ import type {
   GroupInfo,
   IpValidation,
   LicenseCheckResponse,
+  LicenseInfo,
   LicenseInfoResponse,
   LocationConnectedNetworkDevice,
   LocationConnectedNetworkDevicesRequest,
@@ -567,7 +569,16 @@ const api = {
   getSessionInfo: () => client.get<SessionInfo>(`/session-info`),
   getActivityLog: (data?: ActivityLogRequestParams) =>
     fetchPage<ActivityLogEvent>(`/activity_log`, data),
-  getLicenseInfo: () => client.get<LicenseInfoResponse>(`/enterprise_info`),
+  getLicenseInfo: () =>
+    client
+      .get<LicenseInfoResponse>(`/enterprise_info`)
+      .then((res): LicenseInfo | null => {
+        if (res.data.license_info === null) return null;
+        return {
+          ...res.data.license_info,
+          support_type_narrow: narrowLicenseSupport(res.data.license_info),
+        };
+      }),
   support: {
     getSupportData: () => client.get<object>('/support/configuration'),
     getLogs: () => client.get<string>('/support/logs'),
@@ -575,3 +586,5 @@ const api = {
 } as const;
 
 export default api;
+
+type PublicKeyCredentialJSON = ReturnType<PublicKeyCredential['toJSON']>;

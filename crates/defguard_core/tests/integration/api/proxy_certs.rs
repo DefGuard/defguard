@@ -238,9 +238,9 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    // Url schema changed to https
+    // Url schema didn't change yet
     let mut settings = Settings::get(&pool).await.unwrap().unwrap();
-    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
+    assert_eq!(settings.public_proxy_url, "http://edge.example.com");
 
     let body: serde_json::Value = response.json().await;
     assert!(body["cert_info"].is_null());

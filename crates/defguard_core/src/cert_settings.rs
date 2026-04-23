@@ -94,7 +94,7 @@ pub struct ExternalUrlSettingsConfig {
     pub key_pem: Option<String>,
 }
 
-fn ensure_https(url: &str) -> String {
+pub(crate) fn ensure_https(url: &str) -> String {
     if let Some(rest) = url.strip_prefix("http://") {
         format!("https://{rest}")
     } else {
@@ -239,10 +239,8 @@ pub async fn apply_external_url_settings(
     // Modify url schema if necessary
     let mut settings = Settings::get_current_settings();
     settings.public_proxy_url = match config.ssl_type {
-        ExternalSslType::None => public_proxy_url.to_string(),
-        ExternalSslType::LetsEncrypt | ExternalSslType::DefguardCa | ExternalSslType::OwnCert => {
-            ensure_https(public_proxy_url)
-        }
+        ExternalSslType::None | ExternalSslType::LetsEncrypt => public_proxy_url.to_string(),
+        ExternalSslType::DefguardCa | ExternalSslType::OwnCert => ensure_https(public_proxy_url),
     };
     update_current_settings(&mut *transaction, settings).await?;
 
