@@ -153,7 +153,7 @@ jobs:
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
           fpm_opts:
             "--architecture amd64
@@ -170,7 +170,7 @@ jobs:
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
           fpm_opts:
             "--architecture arm64
@@ -187,7 +187,7 @@ jobs:
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
           fpm_opts:
             "--architecture amd64
@@ -204,7 +204,7 @@ jobs:
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
           fpm_opts:
             "--architecture arm64
@@ -221,7 +221,7 @@ jobs:
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
-            defguard.service.freebsd=/usr/local/etc/rc.d/defguard
+            freebsd/defguard=/usr/local/etc/rc.d/defguard
             .env.example=/etc/defguard/core.conf"
           fpm_opts:
             "--architecture amd64

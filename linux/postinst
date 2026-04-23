@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-SERVICE_NAME='defguard-proxy'
+SERVICE_NAME='defguard'
 
 case "${1}" in
 1 | configure)
