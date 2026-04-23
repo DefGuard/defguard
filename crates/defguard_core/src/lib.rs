@@ -1,14 +1,19 @@
 #![allow(clippy::too_many_arguments)]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, LazyLock, Mutex, RwLock},
+    sync::{
+        Arc, LazyLock, Mutex, RwLock,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 
 use anyhow::anyhow;
 use axum::{
     Extension, Json, Router,
+    extract::DefaultBodyLimit,
     http::{Request, StatusCode},
+    middleware,
     routing::{delete, get, post, put},
 };
 use axum_extra::extract::cookie::Key;
@@ -59,12 +64,19 @@ use regex::Regex;
 use secrecy::ExposeSecret;
 use semver::Version;
 use sqlx::PgPool;
-use tokio::sync::{
-    broadcast::Sender,
-    mpsc::{UnboundedReceiver, UnboundedSender},
+use tokio::{
+    spawn,
+    sync::{
+        broadcast::Sender,
+        mpsc::{UnboundedReceiver, UnboundedSender},
+    },
+    time::sleep,
+};
+use tower_governor::{
+    GovernorLayer, governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor,
 };
 use tower_http::{
-    set_header::SetResponseHeaderLayer,
+    timeout::TimeoutLayer,
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
@@ -202,6 +214,20 @@ extern crate tracing;
 #[macro_use]
 extern crate serde;
 
+/// Default request body size limit applied globally to every route.
+const REQUEST_BODY_LIMIT: usize = 256 * 1024; // 256 KB
+
+/// Raised body size limit for the WireGuard config import endpoint, which may
+/// carry configs with hundreds of peers.
+const NETWORK_IMPORT_BODY_LIMIT: usize = 4 * 1024 * 1024; // 4 MB
+
+/// Maximum time a single request may take before the server returns 408.
+/// Applies to all routes except long-lived SSE streams.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// How often the rate limiter evicts stale per-IP entries from its in-memory store.
+const RATE_LIMITER_CLEANUP_PERIOD: Duration = Duration::from_secs(60);
+
 static PHONE_NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\+?\d{1,3}\s?)?(\(\d{1,3}\)|\d{1,3})[-\s]?\d{1,4}[-\s]?\d{1,4}?$")
         .expect("Failed to parse phone number regex")
@@ -232,9 +258,9 @@ pub fn build_webapp(
     key: Key,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     event_tx: UnboundedSender<ApiEvent>,
-    version: Version,
     incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    tls_active: Arc<AtomicBool>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -400,10 +426,7 @@ pub fn build_webapp(
                 get(gateway_details)
                     .put(update_gateway)
                     .delete(delete_gateway),
-            )
-            // Proxy setup with SSE
-            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
-            .route("/proxy/acme/stream", get(stream_proxy_acme)),
+            ),
     );
 
     // Enterprise features
@@ -557,7 +580,10 @@ pub fn build_webapp(
             .route("/network", post(create_network).get(list_networks))
             .route("/network/count", get(count_networks))
             .route("/network/display", get(get_locations_display))
-            .route("/network/import", post(import_network))
+            .route(
+                "/network/import",
+                post(import_network).layer(DefaultBodyLimit::max(NETWORK_IMPORT_BODY_LIMIT)),
+            )
             .route("/network/stats", get(locations_overview_stats))
             .route("/network/gateways", get(all_gateways_status))
             .route(
@@ -565,11 +591,6 @@ pub fn build_webapp(
                 put(modify_network)
                     .delete(delete_network)
                     .get(network_details),
-            )
-            // Gateway adding (uses SSE)
-            .route(
-                "/network/{network_id}/gateways/setup",
-                get(setup_gateway_tls_stream),
             )
             .route("/network/{network_id}/gateways", get(gateway_status))
             .route("/network/{network_id}/devices", post(add_user_devices))
@@ -612,31 +633,54 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
-    let webapp = webapp.layer(DefguardVersionLayer::new(version)).layer(
-        SetResponseHeaderLayer::if_not_present(
-            headers::CONTENT_SECURITY_POLICY_HEADER_NAME,
-            headers::CONTENT_SECURITY_POLICY_HEADER_VALUE,
-        ),
+    // SSE routes are long-lived connections; they must not be wrapped by the
+    // request timeout. They are merged in after TimeoutLayer is applied to the
+    // main router so that they bypass the timeout while still receiving all
+    // other middleware (security headers, tracing, body limit, etc.).
+    let sse_routes: Router<AppState> = Router::new().nest(
+        "/api/v1",
+        Router::new()
+            .route("/proxy/setup/stream", get(setup_proxy_tls_stream))
+            .route("/proxy/acme/stream", get(stream_proxy_acme))
+            .route(
+                "/network/{network_id}/gateways/setup",
+                get(setup_gateway_tls_stream),
+            ),
     );
+
+    let app_state = AppState::new(
+        pool.clone(),
+        webhook_tx,
+        webhook_rx,
+        wireguard_tx,
+        web_reload_tx,
+        key,
+        failed_logins,
+        event_tx,
+        incompatible_components,
+        proxy_control_tx.clone(),
+        tls_active,
+    );
+
+    let webapp = webapp
+        // Apply timeout to the main router BEFORE merging SSE routes so
+        // that long-lived streams bypass it.
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            REQUEST_TIMEOUT,
+        ))
+        .merge(sse_routes);
 
     let swagger =
         SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
 
     webapp
-        .with_state(AppState::new(
-            pool.clone(),
-            webhook_tx,
-            webhook_rx,
-            wireguard_tx,
-            web_reload_tx,
-            key,
-            failed_logins,
-            event_tx,
-            incompatible_components,
-            proxy_control_tx.clone(),
-        ))
+        .with_state(app_state)
         .layer(Extension(pool))
         .layer(Extension(proxy_control_tx))
+        // swagger is merged before TraceLayer and DefaultBodyLimit so that those
+        // middleware layers cover swagger routes too.
+        .merge(swagger)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -648,7 +692,28 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
-        .merge(swagger)
+        // Global request body size limit. Per-route layers (e.g. /network/import) can
+        // override this by applying a larger DefaultBodyLimit closer to the handler.
+        .layer(DefaultBodyLimit::max(REQUEST_BODY_LIMIT))
+}
+
+/// Wraps a router with the outermost security layers: the version header and the
+/// baseline security headers middleware.
+///
+/// Called by both `run_web_server` and the integration-test helper so that
+/// test clients exercise the same middleware stack as the real server.
+pub fn apply_security_layers(router: Router, tls_active: Arc<AtomicBool>) -> Router {
+    let tls_for_headers = Arc::clone(&tls_active);
+    // Version and security headers are the outermost layers so that ALL short-circuit
+    // responses (408 timeout, 413 body-too-large, 429 rate-limited) and swagger routes
+    // also carry the baseline security headers and the server version header.
+    router
+        .layer(DefguardVersionLayer::new(
+            Version::parse(VERSION).expect("VERSION is a valid semver string"),
+        ))
+        .layer(middleware::from_fn(move |req, next| {
+            headers::security_headers_middleware(Arc::clone(&tls_for_headers), req, next)
+        }))
 }
 
 /// Runs core web server exposing REST API.
@@ -668,7 +733,9 @@ pub async fn run_web_server(
     let settings = Settings::get_current_settings();
     let key = Key::from(settings.secret_key_required()?.as_bytes());
 
-    let webapp = build_webapp(
+    let tls_active = Arc::new(AtomicBool::new(false));
+
+    let mut webapp = build_webapp(
         webhook_tx,
         webhook_rx,
         wireguard_tx,
@@ -678,12 +745,47 @@ pub async fn run_web_server(
         key,
         failed_logins,
         event_tx,
-        Version::parse(VERSION)?,
         incompatible_components,
         proxy_control_tx,
+        Arc::clone(&tls_active),
     );
     info!("Started web services");
     let server_config = server_config();
+
+    // Setup rate limiter. Both fields default to non-zero so limiting is on by default;
+    // operators can set either env var to 0 to disable.
+    debug!(
+        "Configuring rate limiter, per_second: {}, burst: {}",
+        server_config.rate_limit_per_second, server_config.rate_limit_burst
+    );
+    let governor_conf = GovernorConfigBuilder::default()
+        .key_extractor(SmartIpKeyExtractor)
+        .per_second(server_config.rate_limit_per_second)
+        .burst_size(server_config.rate_limit_burst)
+        .finish();
+    if let Some(conf) = governor_conf {
+        let governor_limiter = conf.limiter().clone();
+        spawn(async move {
+            loop {
+                sleep(RATE_LIMITER_CLEANUP_PERIOD).await;
+                debug!(
+                    "Cleaning-up rate limiter storage, current size: {}",
+                    governor_limiter.len()
+                );
+                governor_limiter.retain_recent();
+            }
+        });
+        info!(
+            "Rate limiter configured: {} req/s per IP, burst {}",
+            server_config.rate_limit_per_second, server_config.rate_limit_burst
+        );
+        webapp = webapp.layer(GovernorLayer::new(conf));
+    } else {
+        info!("Rate limiting disabled (per_second or burst is 0)");
+    }
+
+    webapp = apply_security_layers(webapp, Arc::clone(&tls_active));
+
     let addr = SocketAddr::new(
         server_config
             .http_bind_address
@@ -696,13 +798,14 @@ pub async fn run_web_server(
     loop {
         let handle = axum_server::Handle::new();
         let handle_clone = handle.clone();
-        let app = webapp
-            .clone()
-            .into_make_service_with_connect_info::<SocketAddr>();
         let current_tls_cert_pair = Certificates::get_or_default(&pool).await.map_or(None, |c| {
             c.core_http_cert_pair()
                 .map(|(cert, key)| (cert.to_owned(), key.to_owned()))
         });
+        tls_active.store(current_tls_cert_pair.is_some(), Ordering::Relaxed);
+        let app = webapp
+            .clone()
+            .into_make_service_with_connect_info::<SocketAddr>();
 
         let mut server_task = tokio::spawn(async move {
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {

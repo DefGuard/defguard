@@ -4,9 +4,8 @@ import { getSessionInfoQueryOptions } from '../../shared/query';
 
 export const Route = createFileRoute('/auth/')({
   beforeLoad: async ({ context }) => {
-    const sessionInfo = (
-      await context.queryClient.ensureQueryData(getSessionInfoQueryOptions)
-    ).data;
+    const sessionInfo = (await context.queryClient.fetchQuery(getSessionInfoQueryOptions))
+      .data;
 
     if (sessionInfo.authorized) {
       if (sessionInfo.is_admin) {

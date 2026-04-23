@@ -87,7 +87,6 @@ const ModalContent = () => {
     queryFn: api.auth.mfa.totp.init,
     queryKey: ['totp_setup_init'],
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
   });
 
   const qrData = useMemo(() => {

@@ -1,22 +1,7 @@
 ignorePaths:
-  - e2e/**
+- e2e/**
 
 vulnerabilities:
-  - id: CVE-2026-0861
-    expired_at: 2026-03-30
-    statement: "Not yet fixed in Debian"
-  - id: CVE-2025-15281
-    expired_at: 2026-03-30
-    statement: "Not yet fixed in Debian"
-  - id: CVE-2026-0915
-    expired_at: 2026-03-30
-    statement: "Not yet fixed in Debian"
-  - id: CVE-2025-7709
-    expired_at: 2026-03-30
-    statement: "Not yet fixed in Debian"
-  - id: CVE-2026-32763
-    expired_at: 2026-03-30
-    statement: "Waiting for upstream patch in paraglide"
-  - id: GHSA-w5hq-g745-h8pq
-    expired_at: 2026-03-30
-    statement: "Not yet fixed in dependencies'
+- id: GHSA-w5hq-g745-h8pq
+  expired_at: 2026-05-23
+  statement: "Waiting for upstream patch in paraglide"
