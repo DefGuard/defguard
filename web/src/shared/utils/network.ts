@@ -1,12 +1,25 @@
-import { toNumber } from 'lodash-es';
+import ipaddr from 'ipaddr.js';
 
 export const smallestNetworkCapacity = (network_address: string): number => {
-  let maximal_cidr = 0;
+  let minCapacity = Infinity;
   for (const address of network_address.split(',')) {
-    const cidr = toNumber(address.trim().split('/')[1]);
-    if (cidr > maximal_cidr) {
-      maximal_cidr = cidr;
+    const trimmed = address.trim();
+    try {
+      const [ip, prefix] = ipaddr.parseCIDR(trimmed);
+      let capacity: number;
+      if (ip.kind() === 'ipv4') {
+        capacity = 2 ** (32 - prefix) - 3;
+      } else {
+        // IPv6 has no broadcast address, so overhead is 2 (network + gateway)
+        const raw = 2 ** (128 - prefix) - 2;
+        capacity = Math.min(raw, Number.MAX_SAFE_INTEGER);
+      }
+      if (capacity < minCapacity) {
+        minCapacity = capacity;
+      }
+    } catch {
+      // unparseable entry — skip it
     }
   }
-  return 2 ** (32 - maximal_cidr) - 3;
+  return minCapacity === Infinity ? 0 : minCapacity;
 };

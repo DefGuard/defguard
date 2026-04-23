@@ -25,7 +25,6 @@ export const LoginEmail = () => {
     queryKey: ['auth', 'email'],
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    refetchOnMount: true,
   });
 
   const { mutateAsync } = useMutation({

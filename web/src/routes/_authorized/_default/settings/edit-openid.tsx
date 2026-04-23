@@ -5,6 +5,6 @@ import { getExternalProviderQueryOptions } from '../../../../shared/query';
 export const Route = createFileRoute('/_authorized/_default/settings/edit-openid')({
   component: SettingsEditOpenIdProviderPage,
   loader: ({ context }) => {
-    return context.queryClient.ensureQueryData(getExternalProviderQueryOptions);
+    return context.queryClient.fetchQuery(getExternalProviderQueryOptions);
   },
 });

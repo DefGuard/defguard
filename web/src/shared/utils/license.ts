@@ -1,6 +1,12 @@
 import dayjs from 'dayjs';
 import { m } from '../../paraglide/messages';
-import { type LicenseInfo, SupportType, type SupportTypeValue } from '../api/types';
+import {
+  type LicenseInfo,
+  type LicenseInfoApi,
+  SupportType,
+  type SupportTypeNarrowValue,
+  type SupportTypeValue,
+} from '../api/types';
 import { openModal } from '../hooks/modalControls/modalsSubjects';
 import { ModalName } from '../hooks/modalControls/modalTypes';
 
@@ -136,4 +142,17 @@ export const canUseEnterpriseFeature = (
     error: null,
     tierCheck: 'Enterprise',
   };
+};
+
+export const narrowLicenseSupport = (license: LicenseInfoApi): SupportTypeNarrowValue => {
+  switch (license.support_type) {
+    case 'Basic':
+    case 'BasicEnterprise':
+      return 'Basic';
+    case 'Direct':
+    case 'DirectEnterprise':
+      return 'Direct';
+    default:
+      return 'Free';
+  }
 };

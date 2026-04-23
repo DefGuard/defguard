@@ -23,8 +23,8 @@ export const Route = createFileRoute('/_authorized/_default/user/$username')({
   validateSearch: searchSchema,
   loader: ({ params, context: { queryClient } }) => {
     return Promise.all([
-      queryClient.ensureQueryData(userProfileQueryOptions(params.username)),
-      queryClient.ensureQueryData(getUserAuthKeysQueryOptions(params.username)),
+      queryClient.fetchQuery(userProfileQueryOptions(params.username)),
+      queryClient.fetchQuery(getUserAuthKeysQueryOptions(params.username)),
     ]);
   },
 });
