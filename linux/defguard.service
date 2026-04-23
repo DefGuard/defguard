@@ -5,8 +5,10 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-DynamicUser=yes
 User=defguard
+Group=defguard
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 EnvironmentFile=/etc/defguard/core.conf
 ExecStart=/usr/bin/defguard
 KillMode=process

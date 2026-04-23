@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+USERNAME=defguard
+
+if [ -x /usr/bin/systemctl ]; then
+	/usr/bin/systemctl --quiet daemon-reload || true
+fi
+
+if id -u ${USERNAME} >/dev/null 2>&1; then
+	echo "If no longer needed, remove ${USERNAME} manually: userdel ${USERNAME}"
+fi
