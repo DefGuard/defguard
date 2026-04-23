@@ -36,6 +36,7 @@ type AcmeStepState = {
   currentStep: AcmeStepId | null;
   isComplete: boolean;
   isProcessing: boolean;
+  isFailed: boolean;
   errorMessage: string | null;
   proxyLogs: string[];
 };
@@ -52,6 +53,7 @@ const defaultAcmeState: AcmeStepState = {
   currentStep: null,
   isComplete: false,
   isProcessing: false,
+  isFailed: false,
   errorMessage: null,
   proxyLogs: [],
 };
@@ -74,6 +76,7 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
       currentStep: event.step,
       isComplete: event.step === 'Done',
       isProcessing: event.step !== 'Done' && !event.error,
+      isFailed: Boolean(event.error),
       errorMessage: event.error
         ? (event.message ??
           m.initial_setup_auto_adoption_external_url_ssl_lets_encrypt_error_default())
@@ -301,6 +304,7 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
   const isLetsEncryptProcessing = sslType === 'lets_encrypt' && acmeState.isProcessing;
   const isLetsEncryptIncomplete =
     sslType === 'lets_encrypt' && !acmeState.isComplete && !acmeState.errorMessage;
+  const isLetsEncryptFailed = acmeState.isFailed;
 
   return (
     <WizardCard>
@@ -311,7 +315,7 @@ export const SettingsEdgeCertificateWizardExternalUrlSslConfigStep = () => {
           <Button
             text={m.controls_continue()}
             onClick={() => useSettingsEdgeCertificateWizardStore.getState().next()}
-            disabled={isLetsEncryptProcessing || isLetsEncryptIncomplete}
+            disabled={isLetsEncryptProcessing || isLetsEncryptIncomplete || isLetsEncryptFailed}
           />
         </div>
       </Controls>

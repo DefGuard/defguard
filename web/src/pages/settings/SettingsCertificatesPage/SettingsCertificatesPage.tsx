@@ -45,10 +45,15 @@ const breadcrumbs = [
   </Link>,
 ];
 
+
 export const SettingsCertificatesPage = () => {
+  const navigate = useNavigate();
+  const onBack = () => {
+    navigate({ to: "/settings" })
+  };
   return (
     <Page title={m.settings_page_title()}>
-      <Breadcrumbs links={breadcrumbs} />
+      <Breadcrumbs links={breadcrumbs} onBack={onBack} />
       <SettingsLayout
         suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsCerts} />}
       >
