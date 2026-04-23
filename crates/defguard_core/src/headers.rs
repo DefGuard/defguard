@@ -33,6 +33,7 @@ pub(crate) async fn security_headers_middleware(
     request: Request<Body>,
     next: Next,
 ) -> Response<Body> {
+    let is_api = request.uri().path().starts_with("/api/");
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
 
@@ -83,6 +84,12 @@ pub(crate) async fn security_headers_middleware(
             HeaderValue::from_static("max-age=31536000; includeSubDomains"),
         );
     }
+
+    // `Cache-Control: no-store` - prevents browsers and caches from storing sensitive API responses
+    if is_api {
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    }
+
     response
 }
 
