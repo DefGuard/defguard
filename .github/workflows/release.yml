@@ -148,45 +148,83 @@ jobs:
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts: "--architecture amd64 --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb"
+          fpm_opts:
+            "--architecture amd64
+            --output-type deb
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.deb
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build aarch64 DEB package
         uses: defGuard/fpm-action@main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts: "--architecture arm64 --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb"
+          fpm_opts:
+            "--architecture arm64
+            --output-type deb
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.deb
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build x86_64 RPM package
         uses: defGuard/fpm-action@main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts: "--architecture amd64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm"
+          fpm_opts:
+            "--architecture amd64
+            --output-type rpm
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-x86_64-unknown-linux-gnu.rpm
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build aarch64 RPM package
         uses: defGuard/fpm-action@main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu=/usr/bin/defguard
-            defguard.service=/usr/lib/systemd/system/defguard.service
+            linux/defguard.service=/usr/lib/systemd/system/defguard.service
             .env.example=/etc/defguard/core.conf"
-          fpm_opts: "--architecture arm64 --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm"
+          fpm_opts:
+            "--architecture arm64
+            --output-type rpm
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}-aarch64-unknown-linux-gnu.rpm
+            --before-install linux/preinst
+            --after-install linux/postinst
+            --before-remove linux/prerm
+            --after-remove linux/postrm"
 
       - name: Build FreeBSD package
         uses: defGuard/fpm-action@main
         with:
           fpm_args:
             "defguard-${{ env.VERSION }}-x86_64-unknown-freebsd=/usr/local/bin/defguard
-            defguard.service.freebsd=/usr/local/etc/rc.d/defguard
+            freebsd/defguard=/usr/local/etc/rc.d/defguard
             .env.example=/etc/defguard/core.conf"
-          fpm_opts: "--architecture amd64 --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg --freebsd-osversion '*' --depends openssl"
+          fpm_opts:
+            "--architecture amd64
+            --output-type freebsd
+            --version ${{ env.VERSION }}
+            --package defguard-${{ env.VERSION }}_x86_64-unknown-freebsd.pkg
+            --freebsd-osversion '*'
+            --depends openssl"
 
       - name: Upload Linux x86_64 archive
         uses: shogo82148/actions-upload-release-asset@v1
