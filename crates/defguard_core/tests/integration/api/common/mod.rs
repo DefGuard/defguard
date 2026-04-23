@@ -21,6 +21,7 @@ use defguard_common::{
     secret::SecretStringWrapper,
 };
 use defguard_core::{
+    apply_security_layers,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     db::AppEvent,
@@ -138,6 +139,7 @@ pub(crate) async fn make_base_client(
     );
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
 
+    let tls_active = Arc::new(AtomicBool::new(false));
     let webapp = build_webapp(
         tx,
         rx,
@@ -150,8 +152,9 @@ pub(crate) async fn make_base_client(
         api_event_tx,
         Arc::default(),
         proxy_control_tx,
-        Arc::new(AtomicBool::new(false)),
+        Arc::clone(&tls_active),
     );
+    let webapp = apply_security_layers(webapp, tls_active);
 
     (
         TestClient::new(webapp, listener, api_event_rx),

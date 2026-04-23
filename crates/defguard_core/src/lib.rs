@@ -697,6 +697,25 @@ pub fn build_webapp(
         .layer(DefaultBodyLimit::max(REQUEST_BODY_LIMIT))
 }
 
+/// Wraps a router with the outermost security layers: the version header and the
+/// baseline security headers middleware.
+///
+/// Called by both `run_web_server` and the integration-test helper so that
+/// test clients exercise the same middleware stack as the real server.
+pub fn apply_security_layers(router: Router, tls_active: Arc<AtomicBool>) -> Router {
+    let tls_for_headers = Arc::clone(&tls_active);
+    // Version and security headers are the outermost layers so that ALL short-circuit
+    // responses (408 timeout, 413 body-too-large, 429 rate-limited) and swagger routes
+    // also carry the baseline security headers and the server version header.
+    router
+        .layer(DefguardVersionLayer::new(
+            Version::parse(VERSION).expect("VERSION is a valid semver string"),
+        ))
+        .layer(middleware::from_fn(move |req, next| {
+            headers::security_headers_middleware(Arc::clone(&tls_for_headers), req, next)
+        }))
+}
+
 /// Runs core web server exposing REST API.
 #[instrument(skip_all)]
 pub async fn run_web_server(
@@ -765,15 +784,7 @@ pub async fn run_web_server(
         info!("Rate limiting disabled (per_second or burst is 0)");
     }
 
-    // Version and security headers are the outermost layers so that ALL short-circuit
-    // responses (408 timeout, 413 body-too-large, 429 rate-limited) and swagger routes
-    // also carry the baseline security headers and the server version header.
-    let tls_for_headers = Arc::clone(&tls_active);
-    webapp = webapp
-        .layer(DefguardVersionLayer::new(Version::parse(VERSION)?))
-        .layer(middleware::from_fn(move |req, next| {
-            headers::security_headers_middleware(Arc::clone(&tls_for_headers), req, next)
-        }));
+    webapp = apply_security_layers(webapp, Arc::clone(&tls_active));
 
     let addr = SocketAddr::new(
         server_config
