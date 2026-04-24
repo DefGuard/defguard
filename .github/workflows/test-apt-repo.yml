@@ -17,7 +17,7 @@ jobs:
       - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
       - instance-size:small
 
-    container: debian:trixie-slim
+    container: public.ecr.aws/docker/library/debian:trixie-slim
 
     strategy:
       fail-fast: false
