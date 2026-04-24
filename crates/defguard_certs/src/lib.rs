@@ -605,7 +605,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         )
         .unwrap();
 
-        let csr = Csr::from_der(&csr_built.to_der()).unwrap();
+        let csr = Csr::from_der(csr_built.to_der()).unwrap();
 
         let ca = CertificateAuthority::new("Defguard CA", "ca@example.com", 365).unwrap();
         let signed = ca.sign_server_cert(&csr).unwrap();
