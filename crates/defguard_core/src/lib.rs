@@ -661,15 +661,16 @@ pub fn build_webapp(
             "Rate limiter configured: {} req/s per IP, burst {}",
             server_config.rate_limit_per_second, server_config.rate_limit_burst
         );
-        Some(conf)
+        Some(Arc::new(conf))
     } else {
         info!("Rate limiting disabled (per_second or burst is 0)");
         None
     };
 
     // Apply rate-limiter to API routes only, leaving static asset routes unaffected.
-    let api_router = if let Some(conf) = governor_config {
-        api_router.layer(GovernorLayer::new(conf))
+    // Use Arc::clone so the same underlying limiter is shared with the SSE routes below.
+    let api_router = if let Some(ref conf) = governor_config {
+        api_router.layer(GovernorLayer::new(Arc::clone(conf)))
     } else {
         api_router
     };
@@ -691,6 +692,11 @@ pub fn build_webapp(
                 get(setup_gateway_tls_stream),
             ),
     );
+    let sse_routes = if let Some(conf) = governor_config {
+        sse_routes.layer(GovernorLayer::new(conf))
+    } else {
+        sse_routes
+    };
 
     let app_state = AppState::new(
         pool.clone(),
