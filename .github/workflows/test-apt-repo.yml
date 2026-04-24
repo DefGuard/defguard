@@ -1,0 +1,81 @@
+name: Test APT repository
+
+"on":
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  test-apt-install:
+    name: "${{ matrix.package }} / ${{ matrix.component }}"
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:small
+
+    container: public.ecr.aws/docker/library/debian:trixie-slim
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [defguard, defguard-proxy, defguard-gateway]
+        component: [release, pre-release]
+        include:
+          - package: defguard
+            github_repo: DefGuard/defguard
+          - package: defguard-proxy
+            github_repo: DefGuard/proxy
+          - package: defguard-gateway
+            github_repo: DefGuard/gateway
+
+    steps:
+      - name: Install prerequisites
+        run: apt-get update -y && apt-get install -y ca-certificates curl jq libmnl0 libnftnl11
+
+      - name: Add Defguard GPG key
+        run: |
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://apt.defguard.net/defguard.asc -o /etc/apt/keyrings/defguard.asc
+          chmod a+r /etc/apt/keyrings/defguard.asc
+
+      - name: Add Defguard APT repository
+        run: |
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/defguard.asc] https://apt.defguard.net/ trixie ${{ matrix.component }}" \
+            > /etc/apt/sources.list.d/defguard.list
+
+      - name: Update APT cache
+        run: apt-get update -y
+
+      - name: Get expected version from GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ matrix.component }}" = "release" ]; then
+            VERSION=$(curl -sf \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              https://api.github.com/repos/${{ matrix.github_repo }}/releases/latest \
+              | jq -r '.tag_name')
+          else
+            VERSION=$(curl -sf \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              https://api.github.com/repos/${{ matrix.github_repo }}/releases \
+              | jq -r '[.[] | select(.prerelease == true)][0].tag_name')
+          fi
+          VERSION="${VERSION#v}"
+          echo "Expected version: $VERSION"
+          echo "EXPECTED_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Install ${{ matrix.package }}
+        run: apt-get install -y ${{ matrix.package }}
+
+      - name: Verify ${{ matrix.package }} version
+        run: |
+          INSTALLED=$(dpkg -s ${{ matrix.package }} | grep '^Version:' | awk '{print $2}')
+          echo "Installed version: $INSTALLED"
+          echo "Expected version:  $EXPECTED_VERSION"
+          if [ "$INSTALLED" != "$EXPECTED_VERSION" ]; then
+            echo "Version mismatch!"
+            exit 1
+          fi
+          ${{ matrix.package }} -V
