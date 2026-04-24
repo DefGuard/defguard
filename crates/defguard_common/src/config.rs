@@ -302,8 +302,8 @@ impl DefGuardConfig {
             grpc_bind_address: None,
             adopt_gateway: None,
             adopt_edge: None,
-            rate_limit_per_second: 100,
-            rate_limit_burst: 1000,
+            rate_limit_per_second: 0,
+            rate_limit_burst: 0,
         };
 
         config
