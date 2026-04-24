@@ -1019,8 +1019,9 @@ pub async fn setup_gateway_tls_stream(
         .instrument(adoption_span),
     );
 
-    let stream = async_stream::stream! {
-        let mut flow = SetupFlow::new(log_rx, Arc::clone(&log_buffer));
+    let inner_log_buffer = Arc::clone(&log_buffer);
+    let inner_stream = async_stream::stream! {
+        let mut flow = SetupFlow::new(log_rx, inner_log_buffer);
 
         loop {
             match progress_rx.recv().await {
@@ -1063,6 +1064,20 @@ pub async fn setup_gateway_tls_stream(
             Err(join_err) => {
                 yield Ok(flow.error(&format!("Gateway adoption task failed: {join_err}")));
             }
+        }
+    };
+
+    // Wrap each poll of inner_stream in scope_setup_logs so that any error!() call
+    // inside flow.error() is captured into log_buffer before the event is drained.
+    // This mirrors how setup_proxy_tls_stream captures Core logs for its error events.
+    let stream_span = tracing::info_span!("gateway_adoption_stream");
+    let stream = async_stream::stream! {
+        tokio::pin!(inner_stream);
+        while let Some(item) = scope_setup_logs(log_buffer.clone(), inner_stream.next())
+            .instrument(stream_span.clone())
+            .await
+        {
+            yield item;
         }
     };
 
