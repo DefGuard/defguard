@@ -1,0 +1,47 @@
+name: Test APT repository
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  test-apt-install:
+    name: "${{ matrix.package }} / ${{ matrix.component }}"
+    runs-on:
+      - codebuild-defguard-core-runner-${{ github.run_id }}-${{ github.run_attempt }}
+      - instance-size:small
+
+    container: debian:trixie-slim
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [defguard, defguard-proxy, defguard-gateway]
+        component: [release, pre-release]
+
+    steps:
+      - name: Install prerequisites
+        run: apt-get update -y && apt-get install -y ca-certificates curl
+
+      - name: Add Defguard GPG key
+        run: |
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://apt.defguard.net/defguard.asc -o /etc/apt/keyrings/defguard.asc
+          chmod a+r /etc/apt/keyrings/defguard.asc
+
+      - name: Add Defguard APT repository
+        run: |
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/defguard.asc] https://apt.defguard.net/ trixie ${{ matrix.component }}" \
+            > /etc/apt/sources.list.d/defguard.list
+
+      - name: Update APT cache
+        run: apt-get update -y
+
+      - name: Install ${{ matrix.package }}
+        run: apt-get install -y ${{ matrix.package }}
+
+      - name: Verify ${{ matrix.package }} binary
+        run: ${{ matrix.package }} -V
