@@ -60,6 +60,9 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
 
+    #[arg(long, env = "DEFGUARD_HTTPS_PORT", default_value_t = 443)]
+    pub https_port: u16,
+
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
@@ -275,6 +278,7 @@ impl DefGuardConfig {
             database_user: "defguard".to_string(),
             database_password: SecretString::from(String::new()),
             http_port: 8000,
+            https_port: 443,
             grpc_port: 50055,
             grpc_cert: None,
             grpc_key: None,

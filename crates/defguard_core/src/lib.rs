@@ -806,12 +806,9 @@ pub async fn run_web_server(
 
     let webapp = apply_security_layers(webapp, Arc::clone(&tls_active));
 
-    let addr = SocketAddr::new(
-        server_config
-            .http_bind_address
-            .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-        server_config.http_port,
-    );
+    let bind_ip = server_config
+        .http_bind_address
+        .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
 
     let mut web_reload_rx = web_reload_tx.subscribe();
 
@@ -826,6 +823,12 @@ pub async fn run_web_server(
         let app = webapp
             .clone()
             .into_make_service_with_connect_info::<SocketAddr>();
+
+        let addr = if current_tls_cert_pair.is_some() {
+            SocketAddr::new(bind_ip, server_config.https_port)
+        } else {
+            SocketAddr::new(bind_ip, server_config.http_port)
+        };
 
         let mut server_task = tokio::spawn(async move {
             if let Some((cert_pem, key_pem)) = current_tls_cert_pair {
