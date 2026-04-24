@@ -153,6 +153,7 @@ pub(crate) async fn make_base_client(
         Arc::default(),
         proxy_control_tx,
         Arc::clone(&tls_active),
+        &config,
     );
     let webapp = apply_security_layers(webapp, tls_active);
 
