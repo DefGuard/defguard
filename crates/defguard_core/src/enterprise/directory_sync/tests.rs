@@ -620,6 +620,36 @@ mod test {
     }
 
     #[sqlx::test]
+    async fn test_sync_user_groups_if_configured_skips_for_users_target(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::Users,
+            false,
+        )
+        .await;
+        let user = make_test_user_and_device("testuser", &pool).await;
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 0);
+
+        sync_user_groups_if_configured(&user, &pool, &wg_tx)
+            .await
+            .unwrap();
+
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 0);
+    }
+
+    #[sqlx::test]
     async fn test_sync_target_all(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
 
