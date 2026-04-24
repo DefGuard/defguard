@@ -1,6 +1,9 @@
 name: Test APT repository
 
 on:
+  push:
+    branches:
+      - apt-test
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
