@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Install prerequisites
-        run: apt-get update -y && apt-get install -y ca-certificates curl jq libmnl0
+        run: apt-get update -y && apt-get install -y ca-certificates curl jq libmnl0 libnftnl11
 
       - name: Add Defguard GPG key
         run: |
