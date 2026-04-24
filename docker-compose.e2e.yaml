@@ -45,3 +45,13 @@ services:
     environment:
       DEFGUARD_PROXY_GRPC_PORT: 50051
       RUST_BACKTRACE: 1
+
+  gateway:
+    image: ghcr.io/defguard/gateway:${IMAGE_TAG}
+    ports:
+      - "50066:50066"
+    environment:
+      DEFGUARD_GATEWAY_GRPC_PORT: 50066
+      RUST_BACKTRACE: 1
+    cap_add:
+      - NET_ADMIN
