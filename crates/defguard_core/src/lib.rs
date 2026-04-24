@@ -595,10 +595,7 @@ pub fn build_webapp(
                     .get(network_details),
             )
             // Programmatic gateway adoption (REST)
-            .route(
-                "/network/{network_id}/gateways/adopt",
-                post(adopt_gateway),
-            )
+            .route("/network/{network_id}/gateways/adopt", post(adopt_gateway))
             .route("/network/{network_id}/gateways", get(gateway_status))
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
