@@ -145,6 +145,7 @@ export const MigrationWizardConfirmationStep = () => {
               setConfirm((s) => !s);
             }}
             text={m.migration_wizard_confirmation_checkbox_label()}
+            testId="confirm-migration"
           />
         </>
       )}
@@ -154,7 +155,6 @@ export const MigrationWizardConfirmationStep = () => {
             <Button
               variant="primary"
               text={m.migration_wizard_confirmation_finish_control()}
-              disabled={!confirm}
               loading={finishPending}
               onClick={() => {
                 finish();

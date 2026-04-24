@@ -21,7 +21,6 @@ export const AppInfoProvider = ({ children }: PropsWithChildren) => {
     enabled: isAuthenticated,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchOnMount: true,
     select: (resp) => resp.data,
   });
 
@@ -31,7 +30,6 @@ export const AppInfoProvider = ({ children }: PropsWithChildren) => {
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: true,
     select: (resp) => resp.data,
   });
 

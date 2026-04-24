@@ -461,7 +461,13 @@ export const SupportType = {
 export type LicenseTierValue = (typeof LicenseTier)[keyof typeof LicenseTier];
 export type SupportTypeValue = (typeof SupportType)[keyof typeof SupportType];
 
-export interface LicenseInfo {
+export type SupportTypeNarrowValue = 'Free' | 'Basic' | 'Direct';
+
+export interface LicenseInfo extends LicenseInfoApi {
+  support_type_narrow: SupportTypeNarrowValue;
+}
+
+export interface LicenseInfoApi {
   subscription: boolean;
   valid_until: string | null;
   expired: boolean;

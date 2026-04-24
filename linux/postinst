@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+SERVICE_NAME='defguard'
+
+case "${1}" in
+1 | configure)
+	if [ -x /usr/bin/systemctl ]; then
+		/usr/bin/systemctl daemon-reload
+		/usr/bin/systemctl enable ${SERVICE_NAME}
+		/usr/bin/systemctl --no-block start ${SERVICE_NAME}
+	fi
+	;;
+abort-upgrade | abort-remove | abort-deconfigure)
+	if [ -x /usr/bin/systemctl ]; then
+		/usr/bin/systemctl daemon-reload
+		if /usr/bin/systemctl is-enabled --quiet ${SERVICE_NAME}; then
+			/usr/bin/systemctl --no-block restart ${SERVICE_NAME}
+		fi
+	fi
+	;;
+esac

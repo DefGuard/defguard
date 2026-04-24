@@ -2,6 +2,10 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { m } from '../../../../../paraglide/messages';
 import type { LicenseInfo } from '../../../../../shared/api/types';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../../../shared/components/ContextualHelp';
 import { Controls } from '../../../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { SettingsCard } from '../../../../../shared/components/SettingsCard/SettingsCard';
@@ -38,7 +42,10 @@ export const SettingsLicenseTab = () => {
   const licenseState = getLicenseState(licenseInfo);
 
   return (
-    <SettingsLayout id="settings-license-tab">
+    <SettingsLayout
+      id="settings-license-tab"
+      suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsLicense} />}
+    >
       <SettingsHeader
         icon="credit-card"
         title={m.settings_license_title()}

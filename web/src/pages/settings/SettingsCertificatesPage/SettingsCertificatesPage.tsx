@@ -5,6 +5,10 @@ import { useCallback } from 'react';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { Controls } from '../../../shared/components/Controls/Controls';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
@@ -42,10 +46,16 @@ const breadcrumbs = [
 ];
 
 export const SettingsCertificatesPage = () => {
+  const navigate = useNavigate();
+  const onBack = () => {
+    navigate({ to: '/settings' });
+  };
   return (
     <Page title={m.settings_page_title()}>
-      <Breadcrumbs links={breadcrumbs} />
-      <SettingsLayout>
+      <Breadcrumbs links={breadcrumbs} onBack={onBack} />
+      <SettingsLayout
+        suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsCerts} />}
+      >
         <SettingsHeader
           icon="aliases"
           title={m.settings_certs_certs_title()}

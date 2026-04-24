@@ -1,0 +1,19 @@
+.wizard-success-header {
+  > .title {
+    font: var(--t-title-h4);
+    color: var(--fg-success);
+    padding-bottom: var(--spacing-sm);
+  }
+
+  > .content {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+
+    p,
+    span {
+      font: var(--t-body-primary-400);
+      color: var(--fg-neutral);
+    }
+  }
+}

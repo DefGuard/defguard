@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, public_proxy_url, default_admin_id, secret_key, enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, enrollment_token_timeout_hours, password_reset_token_timeout_hours, enrollment_session_timeout_minutes, password_reset_session_timeout_minutes FROM \"settings\" WHERE id = 1",
+  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, enrollment_send_welcome_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, ldap_use_starttls, ldap_tls_verify_cert, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: LdapSyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, ldap_user_rdn_attr, ldap_sync_groups, ldap_remote_enrollment_enabled, ldap_remote_enrollment_send_invite, openid_username_handling \"openid_username_handling: OpenIdUsernameHandling\", defguard_url, default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, public_proxy_url, default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, stats_purge_frequency_hours, stats_purge_threshold_days, enrollment_token_timeout_hours, password_reset_token_timeout_hours, enrollment_session_timeout_minutes, password_reset_session_timeout_minutes FROM \"settings\" WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -327,36 +327,41 @@
       },
       {
         "ordinal": 58,
+        "name": "openid_signing_key_der",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 59,
         "name": "enable_stats_purge",
         "type_info": "Bool"
       },
       {
-        "ordinal": 59,
+        "ordinal": 60,
         "name": "stats_purge_frequency_hours",
         "type_info": "Int4"
       },
       {
-        "ordinal": 60,
+        "ordinal": 61,
         "name": "stats_purge_threshold_days",
         "type_info": "Int4"
       },
       {
-        "ordinal": 61,
+        "ordinal": 62,
         "name": "enrollment_token_timeout_hours",
         "type_info": "Int4"
       },
       {
-        "ordinal": 62,
+        "ordinal": 63,
         "name": "password_reset_token_timeout_hours",
         "type_info": "Int4"
       },
       {
-        "ordinal": 63,
+        "ordinal": 64,
         "name": "enrollment_session_timeout_minutes",
         "type_info": "Int4"
       },
       {
-        "ordinal": 64,
+        "ordinal": 65,
         "name": "password_reset_session_timeout_minutes",
         "type_info": "Int4"
       }
@@ -423,6 +428,7 @@
       false,
       true,
       true,
+      true,
       false,
       false,
       false,
@@ -432,5 +438,5 @@
       false
     ]
   },
-  "hash": "fa5d5b618ddd5c71b09d1b22eec063b8e4b4cbaf79fee6e28f7703352588b8ab"
+  "hash": "94632716a5f1088ff341bd74a48aab41ede332cf22af3fa9ac264c9c9b6a47f2"
 }

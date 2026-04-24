@@ -3,7 +3,7 @@ pub(crate) mod client;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
 };
 
 use axum_extra::extract::cookie::Key;
@@ -13,7 +13,6 @@ use defguard_certs::{
 };
 pub use defguard_common::db::setup_pool;
 use defguard_common::{
-    VERSION,
     config::DefGuardConfig,
     db::{
         Id,
@@ -25,6 +24,7 @@ use defguard_common::{
     secret::SecretStringWrapper,
 };
 use defguard_core::{
+    apply_security_layers,
     auth::failed_login::FailedLoginMap,
     build_webapp,
     db::AppEvent,
@@ -34,7 +34,6 @@ use defguard_core::{
     handlers::{Auth, user::UserDetails},
 };
 use reqwest::{StatusCode, header::HeaderName};
-use semver::Version;
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::{
@@ -63,6 +62,7 @@ pub(crate) struct ClientState {
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
     pub test_user: User<Id>,
+    #[allow(dead_code)]
     pub config: DefGuardConfig,
 }
 
@@ -142,6 +142,7 @@ pub(crate) async fn make_base_client(
     );
     let (web_reload_tx, _web_reload_rx) = broadcast::channel::<()>(8);
 
+    let tls_active = Arc::new(AtomicBool::new(false));
     let webapp = build_webapp(
         tx,
         rx,
@@ -152,10 +153,12 @@ pub(crate) async fn make_base_client(
         key,
         failed_logins,
         api_event_tx,
-        Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
+        Arc::clone(&tls_active),
+        &config,
     );
+    let webapp = apply_security_layers(webapp, tls_active);
 
     (
         TestClient::new(webapp, listener, api_event_rx),

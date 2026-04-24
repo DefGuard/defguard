@@ -4,6 +4,10 @@ import { Suspense } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { m } from '../../../../paraglide/messages';
 import { businessBadgeProps } from '../../../../shared/components/badges/BusinessBadge';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../../shared/components/ContextualHelp';
 import { SettingsLayout } from '../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -13,7 +17,9 @@ import { canUseBusinessFeature } from '../../../../shared/utils/license';
 
 export const SettingsExternalProvidersTab = () => {
   return (
-    <SettingsLayout>
+    <SettingsLayout
+      suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsIdentity} />}
+    >
       <Suspense fallback={<LoaderSkeleton />}>
         <Content />
       </Suspense>

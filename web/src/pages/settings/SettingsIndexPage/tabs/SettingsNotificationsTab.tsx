@@ -1,5 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { m } from '../../../../paraglide/messages';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../../shared/components/ContextualHelp';
 import { SettingsLayout } from '../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -11,7 +15,11 @@ export const SettingsNotificationsTab = () => {
   const smtp = useApp((s) => s.appInfo.smtp_enabled);
 
   return (
-    <SettingsLayout>
+    <SettingsLayout
+      suggestion={
+        <ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsNotifications} />
+      }
+    >
       <Link to="/settings/smtp">
         <SectionSelect
           image="smtp"

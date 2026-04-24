@@ -60,7 +60,7 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Scan code with Trivy
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         env:
           TRIVY_SHOW_SUPPRESSED: 1
           TRIVY_IGNOREFILE: "./.trivyignore.yaml"

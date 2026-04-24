@@ -23,6 +23,7 @@ use defguard_common::{
             gateway::Gateway,
             initial_setup_wizard::{InitialSetupState, InitialSetupStep},
             proxy::Proxy,
+            settings::update_current_settings,
             wizard::Wizard,
         },
     },
@@ -56,6 +57,7 @@ use tracing::Instrument;
 
 use crate::{
     auth::{AdminOrSetupRole, SessionInfo},
+    cert_settings::ensure_https,
     enterprise::is_enterprise_license_active,
     error::WebError,
     letsencrypt::{ACME_TIMEOUT, acme_step_name, call_proxy_trigger_acme, parse_cert_expiry},
@@ -1277,6 +1279,13 @@ pub async fn stream_proxy_acme(
                         ));
                         return;
                     }
+                }
+
+                // Ensure external url is HTTPS
+                let mut settings = Settings::get_current_settings();
+                settings.public_proxy_url = ensure_https(&settings.public_proxy_url);
+                if let Err(err) = update_current_settings(&pool, settings).await {
+                    error!("Failed to update Settings::public_proxy_url to HTTPs after successful ACME challenge: {err}");
                 }
 
                 // Post-wizard: broadcast certs to the proxy via bidi channel.

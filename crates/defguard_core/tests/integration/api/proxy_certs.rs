@@ -8,14 +8,13 @@
 /// was sent after a successful cert operation without needing a real proxy process.
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     time::Duration,
 };
 
 use axum_extra::extract::cookie::Key;
 use defguard_certs::CertificateAuthority;
 use defguard_common::{
-    VERSION,
     db::{
         models::{
             Certificates, ProxyCertSource, Settings,
@@ -35,7 +34,6 @@ use defguard_core::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use semver::Version;
 use serde_json::json;
 use sqlx::{
     PgPool,
@@ -101,7 +99,7 @@ async fn make_test_client_with_proxy_rx(
         .await
         .expect("Could not bind ephemeral socket");
     let port = listener.local_addr().unwrap().port();
-    let _config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
+    let config = init_config(Some(&format!("http://localhost:{port}")), &pool).await;
     initialize_users(&pool).await;
     initialize_current_settings(&pool)
         .await
@@ -149,9 +147,10 @@ async fn make_test_client_with_proxy_rx(
         key,
         failed_logins,
         api_event_tx,
-        Version::parse(VERSION).unwrap(),
         Arc::default(),
         proxy_control_tx,
+        Arc::new(AtomicBool::new(false)),
+        &config,
     );
 
     let client = TestClient::new(webapp, listener, api_event_rx);
@@ -240,9 +239,9 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    // Url schema changed to https
+    // Url schema didn't change yet
     let mut settings = Settings::get(&pool).await.unwrap().unwrap();
-    assert_eq!(settings.public_proxy_url, "https://edge.example.com");
+    assert_eq!(settings.public_proxy_url, "http://edge.example.com");
 
     let body: serde_json::Value = response.json().await;
     assert!(body["cert_info"].is_null());

@@ -186,5 +186,8 @@
   "cmp_video_tutorials_modal_go_to": "Go to {page}",
   "cmp_video_tutorials_modal_learn_more": "Learn more in Documentation",
   "cmp_helper_overview_period_select": "",
-  "cmp_helper_search": ""
+  "cmp_helper_search": "",
+  "cmp_contextual_help_faq": "FAQ",
+  "cmp_contextual_help_related_docs": "Related documentation",
+  "cmp_contextual_help_best_practices": "Best practices"
 }

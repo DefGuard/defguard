@@ -2,6 +2,10 @@ import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ClientTrafficPolicy } from '../../../shared/api/types';
 import { Breadcrumbs } from '../../../shared/components/Breadcrumbs/Breadcrumbs';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../shared/components/ContextualHelp';
 import { DescriptionBlock } from '../../../shared/components/DescriptionBlock/DescriptionBlock';
 import { Page } from '../../../shared/components/Page/Page';
 import { SettingsCard } from '../../../shared/components/SettingsCard/SettingsCard';
@@ -45,7 +49,9 @@ export const SettingsClientPage = () => {
   return (
     <Page title={m.settings_page_title()}>
       <Breadcrumbs links={breadcrumbs} />
-      <SettingsLayout>
+      <SettingsLayout
+        suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsClient} />}
+      >
         <SettingsHeader
           icon="user"
           title={m.settings_client_title()}

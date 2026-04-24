@@ -495,3 +495,66 @@ async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgCon
         Err(NetworkAddressError::IsBroadcastAddress(..))
     );
 }
+
+// IPv4 /30 has 4 addresses: network (.0) + gateway (.1) + 1 host (.2) + broadcast (.3).
+// IPv4 overhead = 3 (network + broadcast + gateway), so exactly 1 device fits.
+#[test]
+fn test_validate_network_size_ipv4_boundary() {
+    let network = WireguardNetwork::default()
+        .try_set_address("10.0.0.1/30")
+        .unwrap();
+
+    // 1 device + 3 overhead = 4 = size → fits
+    assert!(
+        network.validate_network_size(1).is_ok(),
+        "IPv4 /30 should fit 1 device"
+    );
+    // 2 devices + 3 overhead = 5 > 4 → does not fit
+    assert!(
+        network.validate_network_size(2).is_err(),
+        "IPv4 /30 should not fit 2 devices"
+    );
+}
+
+// IPv6 /126 has 4 addresses: fd00::0 (network) + fd00::1 (gateway) + fd00::2 + fd00::3.
+// IPv6 has no broadcast, so overhead = 2 (network + gateway), and 2 devices fit.
+#[test]
+fn test_validate_network_size_ipv6_boundary() {
+    let network = WireguardNetwork::default()
+        .try_set_address("fd00::1/126")
+        .unwrap();
+
+    // 2 devices + 2 overhead = 4 = size → fits
+    assert!(
+        network.validate_network_size(2).is_ok(),
+        "IPv6 /126 should fit 2 devices"
+    );
+    // 3 devices + 2 overhead = 5 > 4 → does not fit
+    assert!(
+        network.validate_network_size(3).is_err(),
+        "IPv6 /126 should not fit 3 devices"
+    );
+}
+
+// Same subnet size (4 addresses), but IPv6 fits one more device than IPv4 because
+// IPv6 has no broadcast address.
+#[test]
+fn test_validate_network_size_ipv4_vs_ipv6() {
+    let ipv4_net = WireguardNetwork::default()
+        .try_set_address("10.0.0.1/30")
+        .unwrap();
+    let ipv6_net = WireguardNetwork::default()
+        .try_set_address("fd00::1/126")
+        .unwrap();
+
+    // IPv4: 2 devices + 3 overhead = 5 > 4 → too small
+    assert!(
+        ipv4_net.validate_network_size(2).is_err(),
+        "IPv4 /30 should not fit 2 devices (no room after network+broadcast+gateway)"
+    );
+    // IPv6: 2 devices + 2 overhead = 4 = size → fits (no broadcast in IPv6)
+    assert!(
+        ipv6_net.validate_network_size(2).is_ok(),
+        "IPv6 /126 should fit 2 devices (no broadcast address)"
+    );
+}

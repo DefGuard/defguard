@@ -41,8 +41,12 @@ async fn dg25_19_clickjacking_vulnerability(_: PgPoolOptions, options: PgConnect
 
     let response = client.get("/").send().await;
     let headers = response.headers();
-    let csp_header = headers.get("content-security-policy").unwrap();
-    let csp_value = csp_header.to_str().unwrap();
+    let csp_header = headers
+        .get("content-security-policy")
+        .expect("Content-Security-Policy header must be present on every response");
+    let csp_value = csp_header
+        .to_str()
+        .expect("CSP header value must be valid ASCII");
     assert!(
         csp_value.contains("frame-ancestors 'none'"),
         "CSP header should block all iframes with 'none' directive"

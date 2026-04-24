@@ -1,7 +1,14 @@
 use std::{collections::HashMap, fmt, net::IpAddr, time::Duration};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
+use openidconnect::{JsonWebKeyId, core::CoreRsaPrivateSigningKey};
 use rand::{RngCore, rngs::OsRng};
+use rsa::{
+    RsaPrivateKey,
+    pkcs1::EncodeRsaPrivateKey,
+    pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding},
+    traits::PublicKeyParts,
+};
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
@@ -18,6 +25,7 @@ use crate::{
 };
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
+pub const OPENID_KEY_SIZE: usize = 2048;
 
 /// Initializes global `SETTINGS` struct at program startup
 pub async fn initialize_current_settings(pool: &PgPool) -> sqlx::Result<()> {
@@ -215,6 +223,8 @@ pub struct Settings {
     pub default_admin_id: Option<Id>,
     // 1.6 config options
     pub secret_key: Option<String>,
+    #[serde(skip)]
+    pub openid_signing_key_der: Option<Vec<u8>>,
     pub enable_stats_purge: bool,
     stats_purge_frequency_hours: i32,
     stats_purge_threshold_days: i32,
@@ -342,6 +352,60 @@ impl Settings {
         BASE64_STANDARD.encode(bytes)
     }
 
+    /// Generates a new RSA private key for OpenID signing and serializes it as PKCS#8 DER.
+    fn generate_openid_signing_key_der() -> Result<Vec<u8>, SettingsInitializationError> {
+        let key = RsaPrivateKey::new(&mut OsRng, OPENID_KEY_SIZE).map_err(|_| {
+            SettingsInitializationError::Invalid(
+                "openid_signing_key_der",
+                "failed to generate OpenID signing key",
+            )
+        })?;
+
+        let key_der = key.to_pkcs8_der().map_err(|_| {
+            SettingsInitializationError::Invalid(
+                "openid_signing_key_der",
+                "failed to serialize OpenID signing key",
+            )
+        })?;
+
+        Ok(key_der.as_bytes().to_vec())
+    }
+
+    fn validate_openid_signing_key_der(key_der: &[u8]) -> Result<(), SettingsInitializationError> {
+        RsaPrivateKey::from_pkcs8_der(key_der)
+            .map(|_| ())
+            .map_err(|_| {
+                SettingsInitializationError::Invalid(
+                    "openid_signing_key_der",
+                    "invalid RSA private key",
+                )
+            })
+    }
+
+    /// Serializes the deprecated config-provided OpenID RSA key as PKCS#8 DER for storage.
+    fn openid_signing_key_der_from_config(
+        key: &RsaPrivateKey,
+    ) -> Result<Vec<u8>, SettingsInitializationError> {
+        key.to_pkcs8_der()
+            .map(|doc| doc.as_bytes().to_vec())
+            .map_err(|_| {
+                SettingsInitializationError::Invalid(
+                    "openid_signing_key_der",
+                    "failed to serialize RSA private key",
+                )
+            })
+    }
+
+    /// Builds the runtime OpenID signing key from the stored DER-encoded private key.
+    #[must_use]
+    pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+        let key_der = self.openid_signing_key_der.as_deref()?;
+        let key = RsaPrivateKey::from_pkcs8_der(key_der).ok()?;
+        let pem = key.to_pkcs1_pem(LineEnding::default()).ok()?;
+        let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
+        CoreRsaPrivateSigningKey::from_pem(pem.as_ref(), Some(key_id)).ok()
+    }
+
     /// Parse `defguard_url` and reject unsupported host forms.
     fn parse_defguard_url(&self) -> Result<Url, SettingsUrlError> {
         let url = Url::parse(&self.defguard_url)
@@ -426,7 +490,7 @@ impl Settings {
             defguard_url, \
             default_admin_group_name, authentication_period_days, mfa_code_timeout_seconds, \
             public_proxy_url, \
-            default_admin_id, secret_key, enable_stats_purge, \
+            default_admin_id, secret_key, openid_signing_key_der, enable_stats_purge, \
             stats_purge_frequency_hours, stats_purge_threshold_days, \
             enrollment_token_timeout_hours, password_reset_token_timeout_hours, \
             enrollment_session_timeout_minutes, password_reset_session_timeout_minutes \
@@ -542,13 +606,14 @@ impl Settings {
             public_proxy_url = $56, \
             default_admin_id = $57, \
             secret_key = $58, \
-            enable_stats_purge = $59, \
-            stats_purge_frequency_hours = $60, \
-            stats_purge_threshold_days = $61, \
-            enrollment_token_timeout_hours = $62, \
-            password_reset_token_timeout_hours = $63, \
-            enrollment_session_timeout_minutes = $64, \
-            password_reset_session_timeout_minutes = $65 \
+            openid_signing_key_der = $59, \
+            enable_stats_purge = $60, \
+            stats_purge_frequency_hours = $61, \
+            stats_purge_threshold_days = $62, \
+            enrollment_token_timeout_hours = $63, \
+            password_reset_token_timeout_hours = $64, \
+            enrollment_session_timeout_minutes = $65, \
+            password_reset_session_timeout_minutes = $66 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -608,6 +673,7 @@ impl Settings {
             self.public_proxy_url,
             self.default_admin_id,
             self.secret_key,
+            &self.openid_signing_key_der as &Option<Vec<u8>>,
             self.enable_stats_purge,
             self.stats_purge_frequency_hours,
             self.stats_purge_threshold_days,
@@ -661,6 +727,16 @@ impl Settings {
             }
             None => {
                 settings.secret_key = Some(Settings::generate_secret_key());
+            }
+        }
+
+        match settings.openid_signing_key_der.as_deref() {
+            Some(key_der) => {
+                Settings::validate_openid_signing_key_der(key_der)?;
+            }
+            None => {
+                settings.openid_signing_key_der =
+                    Some(Settings::generate_openid_signing_key_der()?);
             }
         }
 
@@ -772,6 +848,26 @@ impl Settings {
         Ok(secret_key)
     }
 
+    /// Builds the runtime OpenID signing key from stored DER bytes or returns an error if missing or invalid.
+    pub fn openid_key_required(
+        &self,
+    ) -> Result<CoreRsaPrivateSigningKey, SettingsInitializationError> {
+        let key_der =
+            self.openid_signing_key_der
+                .as_deref()
+                .ok_or(SettingsInitializationError::Missing(
+                    "openid_signing_key_der",
+                ))?;
+
+        Settings::validate_openid_signing_key_der(key_der)?;
+
+        self.openid_key()
+            .ok_or(SettingsInitializationError::Invalid(
+                "openid_signing_key_der",
+                "failed to build OpenID signing key",
+            ))
+    }
+
     pub fn proxy_public_url(&self) -> Result<Url, url::ParseError> {
         Url::parse(&self.public_proxy_url)
     }
@@ -809,6 +905,19 @@ impl Settings {
                 self.secret_key = Some(Settings::generate_secret_key());
             } else {
                 self.secret_key = Some(secret_key.to_string());
+            }
+        }
+        if let Some(openid_signing_key) = &config.openid_signing_key {
+            match Settings::openid_signing_key_der_from_config(openid_signing_key) {
+                Ok(key_der) => {
+                    self.openid_signing_key_der = Some(key_der);
+                }
+                Err(err) => {
+                    warn!(
+                        "Invalid openid_signing_key provided in deprecated config, generating new one: {err}"
+                    );
+                    self.openid_signing_key_der = Settings::generate_openid_signing_key_der().ok();
+                }
             }
         }
         if let Some(enrollment_url) = &config.enrollment_url {
@@ -957,6 +1066,7 @@ mod test {
 
     use humantime::Duration;
     use reqwest::Url;
+    use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
     use secrecy::SecretString;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
@@ -1290,6 +1400,75 @@ mod test {
         assert_eq!(settings.secret_key.as_deref(), Some(valid_secret.as_str()));
     }
 
+    #[test]
+    #[allow(deprecated)]
+    fn test_apply_from_config_valid_openid_signing_key_overwrites_existing_value() {
+        let mut settings = Settings {
+            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der().unwrap()),
+            ..Default::default()
+        };
+        let mut config = DefGuardConfig::new_test_config();
+        let configured_key = RsaPrivateKey::new(&mut OsRng, OPENID_KEY_SIZE).unwrap();
+        let expected_der = configured_key.to_pkcs8_der().unwrap().as_bytes().to_vec();
+        config.openid_signing_key = Some(configured_key);
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(settings.openid_signing_key_der, Some(expected_der));
+    }
+
+    #[test]
+    fn test_apply_from_config_keeps_openid_signing_key_when_config_is_none() {
+        let existing = Settings::generate_openid_signing_key_der().unwrap();
+        let mut settings = Settings {
+            openid_signing_key_der: Some(existing.clone()),
+            ..Default::default()
+        };
+        let config = DefGuardConfig::new_test_config();
+
+        settings.apply_from_config(&config);
+
+        assert_eq!(settings.openid_signing_key_der, Some(existing));
+    }
+
+    #[test]
+    fn test_openid_key_required_rejects_missing_key() {
+        let settings = Settings::default();
+
+        assert!(matches!(
+            settings.openid_key_required(),
+            Err(SettingsInitializationError::Missing(
+                "openid_signing_key_der"
+            ))
+        ));
+    }
+
+    #[test]
+    fn test_openid_key_required_rejects_invalid_der() {
+        let settings = Settings {
+            openid_signing_key_der: Some(vec![1, 2, 3]),
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            settings.openid_key_required(),
+            Err(SettingsInitializationError::Invalid(
+                "openid_signing_key_der",
+                _
+            ))
+        ));
+    }
+
+    #[test]
+    fn test_openid_key_required_accepts_valid_der() {
+        let settings = Settings {
+            openid_signing_key_der: Some(Settings::generate_openid_signing_key_der().unwrap()),
+            ..Default::default()
+        };
+
+        assert!(settings.openid_key_required().is_ok());
+    }
+
     #[sqlx::test]
     #[allow(deprecated)]
     async fn test_update_from_config_persists_and_updates_current_settings(
@@ -1346,6 +1525,32 @@ mod test {
 
         assert_eq!(current.webauthn_rp_id().unwrap(), "defguard.example.com");
         assert_eq!(from_db.webauthn_rp_id().unwrap(), "defguard.example.com");
+    }
+
+    #[sqlx::test]
+    async fn test_initialize_runtime_defaults_generates_openid_signing_key(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool).await.unwrap();
+
+        Settings::initialize_runtime_defaults(&pool).await.unwrap();
+
+        let current = Settings::get_current_settings();
+        let from_db = Settings::get(&pool).await.unwrap().unwrap();
+
+        let current_key = current
+            .openid_signing_key_der
+            .as_deref()
+            .expect("current settings should contain OpenID signing key");
+        let db_key = from_db
+            .openid_signing_key_der
+            .as_deref()
+            .expect("database settings should contain OpenID signing key");
+
+        assert!(RsaPrivateKey::from_pkcs8_der(current_key).is_ok());
+        assert!(RsaPrivateKey::from_pkcs8_der(db_key).is_ok());
     }
 
     #[test]

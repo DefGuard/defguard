@@ -2,6 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { m } from '../../../../paraglide/messages';
 import { businessBadgeProps } from '../../../../shared/components/badges/BusinessBadge';
+import {
+  ContextualHelpKey,
+  ContextualHelpSidebar,
+} from '../../../../shared/components/ContextualHelp';
 import { SettingsLayout } from '../../../../shared/components/SettingsLayout/SettingsLayout';
 import { SectionSelect } from '../../../../shared/defguard-ui/components/SectionSelect/SectionSelect';
 import { SizedBox } from '../../../../shared/defguard-ui/components/SizedBox/SizedBox';
@@ -14,7 +18,10 @@ export const SettingsGeneralTab = () => {
   const { data: licenseInfo } = useQuery(getLicenseInfoQueryOptions);
 
   return (
-    <SettingsLayout id="general-settings">
+    <SettingsLayout
+      id="general-settings"
+      suggestion={<ContextualHelpSidebar pageKey={ContextualHelpKey.SettingsGeneral} />}
+    >
       <Link to="/settings/instance">
         <SectionSelect
           image="customization"

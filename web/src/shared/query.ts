@@ -2,6 +2,10 @@ import { queryOptions } from '@tanstack/react-query';
 import api from './api/api';
 import { AclDeploymentState, type UserProfile } from './api/types';
 import { updateServiceApi, updateServiceClient } from './api/update-service';
+import {
+  contextualHelpPath,
+  parseContextualHelp,
+} from './components/ContextualHelp/data';
 import { resourceDisplayMap } from './utils/resourceById';
 import { parseVideoTutorials, videoTutorialsPath } from './video-tutorials/data';
 
@@ -46,7 +50,6 @@ export const getEdgesQueryOptions = queryOptions({
   queryFn: api.edge.getEdges,
   queryKey: ['edge'],
   select: (resp) => resp.data,
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
@@ -55,7 +58,6 @@ export const getGatewaysQueryOptions = queryOptions({
   queryKey: ['gateway'],
   select: (resp) => resp.data,
   refetchInterval: 30_000,
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
@@ -85,7 +87,6 @@ export const getUserMeQueryOptions = queryOptions({
   throwOnError: false,
   retry: false,
   refetchOnWindowFocus: false,
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
@@ -104,7 +105,6 @@ export const userProfileQueryOptions = (username: string) =>
       return res;
     },
     queryKey: ['user', username],
-    refetchOnMount: true,
     refetchOnReconnect: true,
   });
 
@@ -113,7 +113,6 @@ export const clientArtifactsQueryOptions = queryOptions({
   queryKey: ['update-service', 'artifacts'],
   staleTime: 180 * 1000,
   refetchOnWindowFocus: false,
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
@@ -137,12 +136,29 @@ export const videoTutorialsQueryOptions = queryOptions({
   retry: false,
 });
 
+export const contextualHelpQueryOptions = queryOptions({
+  queryKey: ['update-service', 'contextual-help'],
+  queryFn: () => updateServiceClient.get<unknown>(contextualHelpPath),
+  select: (resp) => {
+    try {
+      return parseContextualHelp(resp.data);
+    } catch (err) {
+      console.error(
+        '[contextual-help] Fetched successfully but failed to parse response:',
+        err,
+      );
+      throw err;
+    }
+  },
+  staleTime: Infinity,
+  retry: false,
+});
+
 export const getUserAuthKeysQueryOptions = (username: string) =>
   queryOptions({
     queryFn: () => api.user.getAuthKeys(username),
     queryKey: ['user', username, 'auth_key'],
     select: (response) => response.data,
-    refetchOnMount: true,
     refetchOnReconnect: true,
   });
 
@@ -151,7 +167,6 @@ export const getUserApiTokensQueryOptions = (username: string, admin: boolean) =
     queryFn: () => api.user.getApiTokens(username),
     queryKey: ['user', username, 'api_token'],
     select: (resp) => resp.data,
-    refetchOnMount: true,
     refetchOnReconnect: true,
     throwOnError: false,
     enabled: admin,
@@ -160,14 +175,12 @@ export const getUserApiTokensQueryOptions = (username: string, admin: boolean) =
 export const getUsersQueryOptions = queryOptions({
   queryFn: api.user.getUsers,
   queryKey: ['user'],
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
 export const getUsersOverviewQueryOptions = queryOptions({
   queryFn: api.user.getUsers,
   queryKey: ['user-overview'],
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
@@ -175,7 +188,6 @@ export const getGroupsInfoQueryOptions = queryOptions({
   queryFn: api.group.getGroupsInfo,
   queryKey: ['group-info'],
   select: (resp) => resp.data,
-  refetchOnMount: true,
   refetchOnReconnect: true,
 });
 
@@ -232,7 +244,13 @@ export const getAliasesQueryOptions = queryOptions({
 
 export const getAppliedAliasesQueryOptions = queryOptions({
   queryFn: api.acl.alias.getAliases,
-  queryKey: ['acl', 'alias'],
+  queryKey: [
+    'acl',
+    'alias',
+    {
+      state: AclDeploymentState.Applied,
+    },
+  ],
   select: (resp) =>
     resp.data.filter((alias) => alias.state === AclDeploymentState.Applied),
 });
@@ -245,7 +263,13 @@ export const getDestinationsQueryOptions = queryOptions({
 
 export const getAppliedDestinationsQueryOptions = queryOptions({
   queryFn: api.acl.destination.getDestinations,
-  queryKey: ['acl', 'destination'],
+  queryKey: [
+    'acl',
+    'destination',
+    {
+      state: AclDeploymentState.Applied,
+    },
+  ],
   select: (resp) =>
     resp.data.filter((destination) => destination.state === AclDeploymentState.Applied),
 });
@@ -253,7 +277,6 @@ export const getAppliedDestinationsQueryOptions = queryOptions({
 export const getLicenseInfoQueryOptions = queryOptions({
   queryFn: api.getLicenseInfo,
   queryKey: ['enterprise_info'],
-  select: (response) => response.data.license_info,
 });
 
 export const getActivityLogStreamsQueryOptions = queryOptions({
@@ -266,7 +289,6 @@ export const getSessionInfoQueryOptions = queryOptions({
   queryFn: api.getSessionInfo,
   queryKey: ['session-info'],
   select: (resp) => resp.data,
-  refetchOnMount: true,
   refetchOnReconnect: true,
   refetchOnWindowFocus: false,
 });
@@ -275,7 +297,6 @@ export const getVersionQueryOptions = queryOptions({
   queryFn: api.app.version,
   queryKey: ['version'],
   select: (resp) => resp.data.version,
-  refetchOnMount: true,
   refetchOnReconnect: true,
   refetchOnWindowFocus: false,
 });
@@ -285,7 +306,6 @@ export const getSettingsEssentialsQueryOptions = queryOptions({
   queryKey: ['settings_essentials'],
   retry: false,
   refetchOnWindowFocus: false,
-  refetchOnMount: true,
   refetchOnReconnect: true,
   staleTime: 60_000,
   select: (resp) => resp.data,

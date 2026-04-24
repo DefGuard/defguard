@@ -71,8 +71,16 @@ pub struct DefGuardConfig {
     pub grpc_key: Option<String>,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
+    #[deprecated(since = "2.0.0", note = "Use auto-generated openid signing key")]
     #[serde(skip_serializing)]
     pub openid_signing_key: Option<RsaPrivateKey>,
+
+    #[arg(long, env = "DEFGUARD_HMAC", default_value_t = false)]
+    #[deprecated(
+        since = "2.0.0",
+        note = "Temporary compatibility flag for OpenID signing"
+    )]
+    pub hmac: bool,
 
     #[arg(long, env = "DEFGUARD_URL", value_parser = Url::parse)]
     #[serde(skip_serializing)]
@@ -184,6 +192,16 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_ADOPT_EDGE")]
     pub adopt_edge: Option<String>,
+
+    /// Maximum number of requests per second per client IP before rate limiting kicks in.
+    /// Set to 0 to disable rate limiting.
+    #[arg(long, env = "DEFGUARD_RATELIMIT_PERSECOND", default_value_t = 100)]
+    pub rate_limit_per_second: u64,
+
+    /// Maximum burst size for the rate limiter (token bucket capacity per client IP).
+    /// Set to 0 to disable rate limiting.
+    #[arg(long, env = "DEFGUARD_RATELIMIT_BURST", default_value_t = 1000)]
+    pub rate_limit_burst: u32,
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -261,6 +279,7 @@ impl DefGuardConfig {
             grpc_cert: None,
             grpc_key: None,
             openid_signing_key: None,
+            hmac: false,
             url: None,
             disable_stats_purge: None,
             stats_purge_frequency: None,
@@ -283,6 +302,8 @@ impl DefGuardConfig {
             grpc_bind_address: None,
             adopt_gateway: None,
             adopt_edge: None,
+            rate_limit_per_second: 0,
+            rate_limit_burst: 0,
         };
 
         config
@@ -315,7 +336,9 @@ impl DefGuardConfig {
     }
 
     #[must_use]
+    #[deprecated(since = "2.0.0", note = "Use auto-generated openid signing key")]
     pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+        #[allow(deprecated)]
         let key = self.openid_signing_key.as_ref()?;
         if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
             let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));

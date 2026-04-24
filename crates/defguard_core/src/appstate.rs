@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock, atomic::AtomicBool};
 
 use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
@@ -36,6 +36,8 @@ pub struct AppState {
     pub event_tx: UnboundedSender<ApiEvent>,
     pub incompatible_components: Arc<RwLock<IncompatibleComponents>>,
     pub proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+    /// Reflects whether the HTTP server is currently running with TLS
+    pub tls_active: Arc<AtomicBool>,
 }
 
 impl AppState {
@@ -123,6 +125,7 @@ impl AppState {
         event_tx: UnboundedSender<ApiEvent>,
         incompatible_components: Arc<RwLock<IncompatibleComponents>>,
         proxy_control_tx: tokio::sync::mpsc::Sender<ProxyControlMessage>,
+        tls_active: Arc<AtomicBool>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -136,6 +139,7 @@ impl AppState {
             event_tx,
             incompatible_components,
             proxy_control_tx,
+            tls_active,
         }
     }
 }
