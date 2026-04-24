@@ -195,12 +195,12 @@ pub struct DefGuardConfig {
 
     /// Maximum number of requests per second per client IP before rate limiting kicks in.
     /// Set to 0 to disable rate limiting.
-    #[arg(long, env = "DEFGUARD_RATELIMIT_PERSECOND", default_value_t = 100)]
+    #[arg(long, env = "DEFGUARD_RATELIMIT_PERSECOND", default_value_t = 0)]
     pub rate_limit_per_second: u64,
 
     /// Maximum burst size for the rate limiter (token bucket capacity per client IP).
     /// Set to 0 to disable rate limiting.
-    #[arg(long, env = "DEFGUARD_RATELIMIT_BURST", default_value_t = 1000)]
+    #[arg(long, env = "DEFGUARD_RATELIMIT_BURST", default_value_t = 0)]
     pub rate_limit_burst: u32,
 }
 
