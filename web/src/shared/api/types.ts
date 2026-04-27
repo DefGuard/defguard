@@ -331,6 +331,7 @@ export interface DeviceNetworkInfo {
   network_name: string;
   last_connected_at?: string;
   last_connected_ip?: string;
+  location_mfa_mode: LocationMfaModeValue;
 }
 
 export interface Device {
