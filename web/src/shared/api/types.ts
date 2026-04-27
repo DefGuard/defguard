@@ -541,6 +541,7 @@ export interface AddDeviceResponseConfig {
   network_id: number;
   network_name: string;
   config: string;
+  location_mfa_mode: LocationMfaModeValue;
 }
 
 export interface AddDeviceResponse {
