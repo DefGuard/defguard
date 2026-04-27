@@ -126,6 +126,12 @@ export const dockerRestartAutoAdoption = () => {
   }
 };
 
+// Recreate the gateway container to clear its ephemeral TLS state.
+export const dockerRestartGateway = () => {
+  execSync(`${dockerCompose} rm -sf gateway && ${dockerCompose} up -d gateway`);
+  execSync(`sleep 3`);
+};
+
 // UPDATE rather than DELETE: Wizard::init() calls fetch_one on the singleton row,
 // which panics on an empty table. Resetting to active_wizard='none' + completed=false
 // lets the wizard detect the existing admin user and activate migration mode normally.

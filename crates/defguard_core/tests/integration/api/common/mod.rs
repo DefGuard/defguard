@@ -16,7 +16,10 @@ use defguard_common::{
     config::DefGuardConfig,
     db::{
         Id,
-        models::{Device, Settings, User, WireguardNetwork, settings::initialize_current_settings},
+        models::{
+            Certificates, Device, Settings, User, WireguardNetwork,
+            settings::initialize_current_settings,
+        },
     },
     secret::SecretStringWrapper,
 };
@@ -279,6 +282,31 @@ pub(crate) fn generate_expired_test_cert_pem(common_name: &str) -> (String, Stri
     let cert_pem = der_to_pem(cert.der(), PemLabel::Certificate).unwrap();
     let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey).unwrap();
     (cert_pem, key_pem)
+}
+
+/// Seed the database with a self-signed CA so that gateway/proxy adoption tests can proceed.
+pub(crate) async fn setup_ca(pool: &PgPool) {
+    let ca = CertificateAuthority::new("Test CA", "test@example.com", 365)
+        .expect("failed to create test CA");
+    let mut certs = Certificates::get_or_default(pool)
+        .await
+        .expect("failed to load certificates");
+    certs.ca_cert_der = Some(ca.cert_der().to_vec());
+    certs.ca_key_der = Some(ca.key_pair_der().to_vec());
+    certs.save(pool).await.expect("failed to save CA certs");
+}
+
+/// Override the global license cache with an Enterprise-tier license.
+pub(crate) fn set_enterprise_license() {
+    set_cached_license(Some(License::new(
+        "test_customer".to_string(),
+        false,
+        None,
+        None,
+        None,
+        LicenseTier::Enterprise,
+        SupportType::Basic,
+    )));
 }
 
 /// Set minimal SMTP fields on a [`Settings`] so that `smtp_configured()` returns `true`.

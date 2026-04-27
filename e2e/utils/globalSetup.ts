@@ -1,7 +1,12 @@
 import { chromium, request } from '@playwright/test';
 
 import { defaultUserAdmin, testsConfig } from '../config';
-import { dockerCheckContainers, dockerCreateSnapshot, dockerUp } from './docker';
+import {
+  dockerCheckContainers,
+  dockerCheckTemplateExists,
+  dockerCreateSnapshot,
+  dockerUp,
+} from './docker';
 import { loadEnv } from './loadEnv';
 
 const setLicense = async () => {
@@ -33,7 +38,7 @@ const setLicense = async () => {
   console.log('License key set.');
 };
 
-const waitForCore = async () => {
+export const waitForCore = async () => {
   const { default: http } = await import('http');
   const coreUrl = new URL(
     testsConfig.CORE_BASE_URL.replace('/api/v1', '') + '/api/v1/health',
@@ -55,7 +60,7 @@ const waitForCore = async () => {
   });
 };
 
-const runWizard = async () => {
+export const runWizard = async () => {
   const browser = await chromium.launch({ headless: !process.env.HEADED });
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -147,6 +152,11 @@ export default async function globalSetup() {
 
   if (!dockerCheckContainers()) {
     dockerUp();
+  }
+
+  if (dockerCheckTemplateExists()) {
+    console.log('Snapshot already exists, skipping wizard.');
+    return;
   }
 
   console.log('Waiting for Defguard Core to be ready...');
