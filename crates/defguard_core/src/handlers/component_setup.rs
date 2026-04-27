@@ -14,7 +14,7 @@ use axum::{
 use defguard_certs::der_to_pem;
 use defguard_common::{
     VERSION,
-    auth::claims::Claims,
+    auth::claims::{Claims, ClaimsType},
     db::{
         Id,
         models::{
@@ -67,6 +67,7 @@ use crate::{
 
 const TOKEN_CLIENT_ID: &str = "Defguard Core";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
+const KEEPALIVE: Duration = Duration::from_secs(5);
 /// Maximum lifetime of a one-time setup session token.
 /// The setup handshake must complete within this window; tokens that outlive
 /// it are useless and limiting the expiry reduces the damage window if the
@@ -308,8 +309,8 @@ pub async fn setup_proxy_tls_stream(
         };
 
         let endpoint = endpoint
-            .http2_keep_alive_interval(Duration::from_secs(5))
-            .tcp_keepalive(Some(Duration::from_secs(5)))
+            .http2_keep_alive_interval(KEEPALIVE)
+            .tcp_keepalive(Some(KEEPALIVE))
             .keep_alive_while_idle(true);
 
         debug!("Connection endpoint configured with keep-alive settings");
@@ -681,7 +682,7 @@ pub async fn setup_proxy_tls_stream(
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
-/// Core adoption logic: performs the full gateway mTLS handshake and saves the gateway to DB.
+/// Core adoption logic: performs the full gateway mTLS setup and saves the gateway to DB.
 ///
 /// Sends progress events over `progress_tx` when provided (SSE flow); passes `None` for the
 /// direct REST endpoint.
@@ -694,31 +695,26 @@ async fn perform_gateway_adoption(
     modified_by: String,
     progress_tx: Option<UnboundedSender<AdoptionProgress>>,
 ) -> Result<Gateway<Id>, String> {
-    macro_rules! step {
-        ($s:expr) => {
-            if let Some(ref tx) = progress_tx {
-                let _ = tx.send(AdoptionProgress::Step($s));
-            }
-        };
-    }
+    let step = |s| {
+        if let Some(ref tx) = progress_tx {
+            let _ = tx.send(AdoptionProgress::Step(s));
+        }
+    };
 
     let ip_or_domain = strip_scheme(&ip_or_domain_raw);
 
     // License check: non-enterprise installs are limited to one gateway per network.
     if !is_enterprise_license_active() {
-        match Gateway::find_by_location_id(pool, network_id).await {
-            Ok(gateways) if !gateways.is_empty() => {
-                return Err("Enterprise license is required.".to_string());
-            }
-            Err(e) => {
-                return Err(format!("Reading current gateways failed! error {e}"));
-            }
-            _ => {}
+        let gateways = Gateway::find_by_location_id(pool, network_id)
+            .await
+            .map_err(|e| format!("Failed to query existing Gateways: {e}"))?;
+        if !gateways.is_empty() {
+            return Err("Enterprise license is required.".to_string());
         }
     }
 
     // Step 1: Check configuration
-    step!(SetupStep::CheckingConfiguration);
+    step(SetupStep::CheckingConfiguration);
 
     match Gateway::find_by_url(pool, ip_or_domain, grpc_port).await {
         Ok(Some(gateway)) => {
@@ -743,8 +739,8 @@ async fn perform_gateway_adoption(
 
     let endpoint = Endpoint::from_shared(url.to_string())
         .map_err(|e| format!("Failed to create endpoint: {e}"))?
-        .http2_keep_alive_interval(Duration::from_secs(5))
-        .tcp_keepalive(Some(Duration::from_secs(5)))
+        .http2_keep_alive_interval(KEEPALIVE)
+        .tcp_keepalive(Some(KEEPALIVE))
         .keep_alive_while_idle(true);
 
     debug!("Connection endpoint configured with keep-alive settings");
@@ -775,10 +771,10 @@ async fn perform_gateway_adoption(
     let version = Version::parse(VERSION).map_err(|e| format!("Failed to parse version: {e}"))?;
 
     // Step 2: Check availability
-    step!(SetupStep::CheckingAvailability);
+    step(SetupStep::CheckingAvailability);
 
     let token = Claims::new(
-        defguard_common::auth::claims::ClaimsType::Gateway,
+        ClaimsType::Gateway,
         url.to_string(),
         TOKEN_CLIENT_ID.to_string(),
         SETUP_TOKEN_EXPIRY_SECS,
@@ -827,7 +823,7 @@ async fn perform_gateway_adoption(
     debug!("Successfully connected to Gateway");
 
     // Step 3: Check version
-    step!(SetupStep::CheckingVersion);
+    step(SetupStep::CheckingVersion);
 
     let gateway_version = response_with_metadata
         .metadata()
@@ -835,25 +831,23 @@ async fn perform_gateway_adoption(
         .and_then(|v| v.to_str().ok())
         .map(defguard_version::Version::parse)
         .transpose()
-        .unwrap_or(None);
+        .unwrap_or(None)
+        .ok_or("Failed to determine Gateway version")?;
 
     debug!("Gateway metadata: {:?}", response_with_metadata.metadata());
     debug!("Gateway version: {gateway_version:?}");
 
-    let gw_version =
-        gateway_version.ok_or_else(|| "Failed to determine Gateway version".to_string())?;
-
-    if gw_version < MIN_GATEWAY_VERSION {
+    if gateway_version < MIN_GATEWAY_VERSION {
         return Err(format!(
-            "Gateway version {gw_version} is older than Core version {version}. \
+            "Gateway version {gateway_version} is older than Core version {version}. \
             Please update the Gateway component.",
         ));
     }
 
-    debug!("Gateway version {gw_version} is compatible with Core version {version}");
+    debug!("Gateway version {gateway_version} is compatible with Core version {version}");
 
     if let Some(ref tx) = progress_tx {
-        let _ = tx.send(AdoptionProgress::Version(gw_version.to_string()));
+        let _ = tx.send(AdoptionProgress::Version(gateway_version.to_string()));
     }
 
     // Forward gateway log entries to the progress channel while CSR/cert steps run.
@@ -871,8 +865,8 @@ async fn perform_gateway_adoption(
                             .unwrap_or(&entry.level)
                             .to_uppercase();
                         format!(
-                            "{} {} {}: message={}",
-                            entry.timestamp, level, entry.target, entry.message
+                            "{} {level} {}: message={}",
+                            entry.timestamp, entry.target, entry.message
                         )
                     }
                     Err(e) => format!("Error reading gateway log: {e}"),
@@ -885,11 +879,11 @@ async fn perform_gateway_adoption(
     });
 
     // Step 4: Obtain CSR
-    step!(SetupStep::ObtainingCsr);
+    step(SetupStep::ObtainingCsr);
 
     let hostname = url
         .host_str()
-        .ok_or_else(|| "URL does not have a valid host".to_string())?
+        .ok_or("URL does not have a valid host")?
         .to_string();
 
     let csr_response = client
@@ -909,7 +903,7 @@ async fn perform_gateway_adoption(
     debug!("Received certificate signing request from Gateway for hostname: {hostname}");
 
     // Step 5: Sign certificate
-    step!(SetupStep::SigningCertificate);
+    step(SetupStep::SigningCertificate);
 
     let ca_key_pair = certs
         .ca_key_der
@@ -928,7 +922,7 @@ async fn perform_gateway_adoption(
     debug!("Successfully signed certificate for Gateway");
 
     // Step 6: Configure TLS
-    step!(SetupStep::ConfiguringTls);
+    step(SetupStep::ConfiguringTls);
 
     let core_client = ca
         .issue_core_client_cert(&name)

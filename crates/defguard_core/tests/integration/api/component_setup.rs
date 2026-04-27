@@ -6,6 +6,7 @@ use std::{
 };
 
 use defguard_certs::{Csr, DnType, generate_key_pair};
+use defguard_common::db::models::gateway::Gateway;
 use defguard_core::setup_logs::{CoreSetupLogLayer, MAX_CORE_LOG_LINES, scope_setup_logs};
 use defguard_proto::{
     common::{CertBundle, CertificateInfo, DerPayload, LogEntry},
@@ -13,7 +14,10 @@ use defguard_proto::{
 };
 use reqwest::StatusCode;
 use serde_json::Value;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 use tokio::{net::TcpListener, sync::Notify, task::JoinHandle, time::timeout};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
@@ -21,6 +25,7 @@ use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use super::common::{make_network, make_test_client, set_enterprise_license, setup_ca, setup_pool};
+use crate::api::common::client::TestClient;
 
 fn init_tracing_once() {
     static ONCE: Once = Once::new();
@@ -271,6 +276,8 @@ struct MockGatewaySetupHarness {
 }
 
 impl MockGatewaySetupHarness {
+    const CERT_TIMEOUT: Duration = Duration::from_secs(5);
+
     async fn start() -> Self {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
@@ -313,7 +320,7 @@ impl MockGatewaySetupHarness {
     }
 
     async fn wait_for_cert(&self) {
-        timeout(Duration::from_secs(5), self.state.cert_received.notified())
+        timeout(CERT_TIMEOUT, self.state.cert_received.notified())
             .await
             .expect("timed out waiting for certificate to be received by mock gateway");
     }
@@ -325,7 +332,7 @@ impl Drop for MockGatewaySetupHarness {
     }
 }
 
-async fn make_network_id(client: &super::common::client::TestClient, name: &str) -> i64 {
+async fn make_network_id(client: &TestClient, name: &str) -> i64 {
     make_network(client, name)
         .await
         .json::<Value>()
@@ -336,7 +343,7 @@ async fn make_network_id(client: &super::common::client::TestClient, name: &str)
 }
 
 /// Set up a logged-in admin client and a test network. Does NOT configure CA certificates.
-async fn setup_test_no_ca(pool: &sqlx::PgPool) -> (super::common::client::TestClient, i64) {
+async fn setup_test_no_ca(pool: &PgPool) -> (TestClient, i64) {
     let (mut client, _) = make_test_client(pool.clone()).await;
     client.login_user("admin", "pass123").await;
     let network_id = make_network_id(&client, "test-net").await;
@@ -344,7 +351,7 @@ async fn setup_test_no_ca(pool: &sqlx::PgPool) -> (super::common::client::TestCl
 }
 
 /// Set up a logged-in admin client, a test network, and a CA certificate.
-async fn setup_test_with_ca(pool: &sqlx::PgPool) -> (super::common::client::TestClient, i64) {
+async fn setup_test_with_ca(pool: &PgPool) -> (TestClient, i64) {
     let (client, network_id) = setup_test_no_ca(pool).await;
     setup_ca(pool).await;
     (client, network_id)
@@ -380,10 +387,9 @@ async fn test_adopt_gateway_rest(_: PgPoolOptions, options: PgConnectOptions) {
 
     harness.wait_for_cert().await;
 
-    let gateways =
-        defguard_common::db::models::gateway::Gateway::find_by_location_id(&pool, network_id)
-            .await
-            .expect("failed to query gateways");
+    let gateways = Gateway::find_by_location_id(&pool, network_id)
+        .await
+        .expect("failed to query gateways");
 
     assert_eq!(gateways.len(), 1, "expected exactly one gateway in DB");
     assert!(
@@ -563,10 +569,9 @@ async fn test_adopt_gateway_sse(_: PgPoolOptions, options: PgConnectOptions) {
 
     harness.wait_for_cert().await;
 
-    let gateways =
-        defguard_common::db::models::gateway::Gateway::find_by_location_id(&pool, network_id)
-            .await
-            .expect("failed to query gateways");
+    let gateways = Gateway::find_by_location_id(&pool, network_id)
+        .await
+        .expect("failed to query gateways");
 
     assert_eq!(gateways.len(), 1, "expected exactly one gateway in DB");
     assert!(
