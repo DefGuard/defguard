@@ -135,6 +135,9 @@ const DockerComposeTab = () => {
     ports:
       - "8080:8080"
       - "50051:50051"
+      - "443:443"
+    # Uncomment if you'd like Defguard to provision a certificate using Let's Encrypt.
+    #  - "80:80"
     # Uncomment the following if you are running on Debian 13 or later or have apparmor or SELinux setup
     #security_opt:
     #  - apparmor:unconfined
@@ -159,7 +162,7 @@ const DockerTab = () => {
         subtitle={m.edge_setup_step_deploy_tabs_docker_subtitle()}
       />
       <CodeSnippet
-        value={`docker run --restart unless-stopped --security-opt apparmor:unconfined -p 8080:8080 -p 50051:50051 -v ./.volumes/certs/edge:/etc/defguard/certs ghcr.io/defguard/defguard-proxy:latest`}
+        value={`docker run --restart unless-stopped --security-opt apparmor:unconfined -p 8080:8080 -p 50051:50051 -p 443:443 -p 80:80 -v ./.volumes/certs/edge:/etc/defguard/certs ghcr.io/defguard/defguard-proxy:latest`}
       />
     </>
   );
@@ -173,8 +176,8 @@ const PackageTab = () => {
         subtitle={m.edge_setup_step_deploy_tabs_package_subtitle()}
       />
       <CodeSnippet
-        value={`sudo apt update 
-sudo apt install -y ca-certificates curl 
+        value={`sudo apt update
+sudo apt install -y ca-certificates curl
 #Add official Defguard public GPG key
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://apt.defguard.net/defguard.asc -o /etc/apt/keyrings/defguard.asc
@@ -182,7 +185,7 @@ sudo chmod a+r /etc/apt/keyrings/defguard.asc
 
 #Add APT repository
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/defguard.asc] https://apt.defguard.net/ trixie release " | \
-   sudo tee /etc/apt/sources.list.d/defguard.list > /dev/null 
+   sudo tee /etc/apt/sources.list.d/defguard.list > /dev/null
 
 sudo apt update
 sudo apt install defguard-proxy`}
