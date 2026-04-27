@@ -13,7 +13,7 @@ import orderBy from 'lodash-es/orderBy';
 import { useCallback, useMemo } from 'react';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
-import type { UserDevice } from '../../../../../../../shared/api/types';
+import { LocationMfaMode, type UserDevice } from '../../../../../../../shared/api/types';
 import { useAddUserDeviceModal } from '../../../../../../../shared/components/modals/AddUserDeviceModal/store/useAddUserDeviceModal';
 import { Badge } from '../../../../../../../shared/defguard-ui/components/Badge/Badge';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Button/Button';
@@ -158,7 +158,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
           },
         });
       }
-      if (row.networks.length > 0) {
+      if (row.networks.some((n) => n.location_mfa_mode === LocationMfaMode.Disabled)) {
         items.push({
           text: m.profile_devices_menu_show_config(),
           onClick: () => {

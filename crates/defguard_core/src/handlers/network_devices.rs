@@ -15,7 +15,7 @@ use defguard_common::{
         models::{
             Device, DeviceConfig, DeviceType, Settings, User, WireguardNetwork,
             device::{DeviceInfo, WireguardNetworkDevice},
-            wireguard::NetworkAddressError,
+            wireguard::{LocationMfaMode, NetworkAddressError},
         },
     },
     utils::{SplitIp, split_ip},
@@ -120,6 +120,7 @@ pub(crate) struct DeviceWireGuardConfig {
     pub(crate) network_id: Id,
     pub(crate) network_name: String,
     pub(crate) config: String,
+    pub(crate) location_mfa_mode: LocationMfaMode,
 }
 
 /// For a given device, retrieve all WireGuard configuations for all networks.
@@ -162,6 +163,7 @@ pub(crate) async fn network_device_configs(
             network_id: network.id,
             network_name: network.name,
             config,
+            location_mfa_mode: network.location_mfa_mode.clone(),
         };
         result.push(device_config);
     }

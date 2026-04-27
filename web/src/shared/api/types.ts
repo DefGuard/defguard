@@ -330,6 +330,7 @@ export interface DeviceNetworkInfo {
   network_name: string;
   last_connected_at?: string;
   last_connected_ip?: string;
+  location_mfa_mode: LocationMfaModeValue;
 }
 
 export interface Device {
@@ -540,6 +541,7 @@ export interface AddDeviceResponseConfig {
   network_id: number;
   network_name: string;
   config: string;
+  location_mfa_mode: LocationMfaModeValue;
 }
 
 export interface AddDeviceResponse {

@@ -16,7 +16,7 @@ import { orderBy } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
 import api from '../../shared/api/api';
-import type { Device, User } from '../../shared/api/types';
+import { type Device, LocationMfaMode, type User } from '../../shared/api/types';
 import { useSelectionModal } from '../../shared/components/modals/SelectionModal/useSelectionModal';
 import type { SelectionOption } from '../../shared/components/SelectionSection/type';
 import { TableValuesListCell } from '../../shared/components/TableValuesListCell/TableValuesListCell';
@@ -558,7 +558,7 @@ export const UsersTable = () => {
         },
       ];
 
-      if (device.networks.length > 0) {
+      if (device.networks.some((n) => n.location_mfa_mode === LocationMfaMode.Disabled)) {
         items.push({
           text: m.profile_devices_menu_show_config(),
           onClick: () => {

@@ -1395,6 +1395,7 @@ pub(crate) async fn user_device_configs(
             network_id: location.id,
             network_name: location.name,
             config,
+            location_mfa_mode: location.location_mfa_mode.clone(),
         });
     }
 

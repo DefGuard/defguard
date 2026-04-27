@@ -1,4 +1,5 @@
 import type { AddDeviceResponse, AddDeviceResponseConfig } from '../../api/types';
+import { LocationMfaMode } from '../../api/types';
 import './style.scss';
 import { ZipArchive } from '@shortercode/webzip';
 import { useCallback, useMemo, useState } from 'react';
@@ -23,8 +24,11 @@ const configToOption = (
   value: item,
 });
 
+const configToLocationName = (item: AddDeviceResponseConfig): string =>
+  item.network_name.toLowerCase().replaceAll(' ', '-');
+
 const configToFilename = (item: AddDeviceResponseConfig): string =>
-  `${item.network_name.toLowerCase().replaceAll(' ', '-')}.txt`;
+  `${configToLocationName(item)}.conf`;
 
 type Props = { data: AddDeviceResponse; privateKey?: string };
 
@@ -33,9 +37,9 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   const { writeToClipboard } = useClipboard();
   const selectOptions = useMemo(
     () =>
-      response.configs.map(
-        (item): SelectOption<AddDeviceResponseConfig> => configToOption(item),
-      ),
+      response.configs
+        .filter((item) => item.location_mfa_mode === LocationMfaMode.Disabled)
+        .map((item): SelectOption<AddDeviceResponseConfig> => configToOption(item)),
     [response.configs],
   );
   const [selectedOption, setSelected] =
@@ -58,19 +62,23 @@ export const ModalDeviceConfigSection = ({ data: response, privateKey }: Props) 
   }, [selectedOption, privateKey]);
 
   const handleDownloadSelected = useCallback(() => {
-    downloadText(clipboardConfig, 'conf');
-  }, [clipboardConfig]);
+    if (!selectedOption) return;
+    downloadText(clipboardConfig, configToLocationName(selectedOption.value), 'conf');
+  }, [clipboardConfig, selectedOption]);
 
   const handleDownloadAll = useCallback(async () => {
     if (!response) return;
+    const nonMfaConfigs = response.configs.filter(
+      (c) => c.location_mfa_mode === LocationMfaMode.Disabled,
+    );
     let data: AddDeviceResponseConfig[] = [];
     if (isPresent(privateKey)) {
-      data = response.configs.map((c) => ({
+      data = nonMfaConfigs.map((c) => ({
         ...c,
         config: c.config.replace('YOUR_PRIVATE_KEY', privateKey as string),
       }));
     } else {
-      data = response.configs;
+      data = nonMfaConfigs;
     }
     const zip = new ZipArchive();
     for (const item of data) {

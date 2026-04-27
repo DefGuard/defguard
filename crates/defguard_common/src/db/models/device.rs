@@ -232,6 +232,7 @@ pub struct UserDeviceNetworkInfo {
     pub last_connected_ip: Option<String>,
     pub last_connected_at: Option<NaiveDateTime>,
     pub is_active: bool,
+    pub location_mfa_mode: LocationMfaMode,
 }
 
 impl UserDevice {
@@ -242,7 +243,8 @@ impl UserDevice {
 	            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
 				latest_successful_stats.endpoint \"device_endpoint?\", \
 	            latest_successful_session.connected_at \"last_connected_at?\", \
-	            latest_successful_session.state \"state?: VpnClientSessionState\" \
+	            latest_successful_session.state \"state?: VpnClientSessionState\", \
+                n.location_mfa_mode \"location_mfa_mode: LocationMfaMode\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN LATERAL ( \
@@ -297,6 +299,7 @@ impl UserDevice {
                     last_connected_ip: device_ip,
                     last_connected_at: r.last_connected_at,
                     is_active,
+                    location_mfa_mode: r.location_mfa_mode,
                 }
             })
             .collect::<Vec<_>>();

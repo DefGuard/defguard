@@ -197,7 +197,7 @@ const PageForm = () => {
       onSubmit: formSchema,
       onChange: formSchema,
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       const licenseCheckRes = canUseBusinessFeature(licenseInfo);
       if (!licenseCheckRes.result) {
         openModal(ModalName.UpgradeBusiness);
@@ -219,6 +219,7 @@ const PageForm = () => {
               .filter(Boolean)
           : [],
       });
+      formApi.reset(value);
     },
   });
 
