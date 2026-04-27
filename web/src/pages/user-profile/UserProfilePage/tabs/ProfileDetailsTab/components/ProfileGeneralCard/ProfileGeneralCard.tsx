@@ -51,7 +51,6 @@ const zodSchema = z.object({
     z.object({
       oauth2client_id: z.number().min(1, m.form_error_required()),
       oauth2client_name: z.string().trim().min(1, m.form_error_required()),
-      user_id: z.number().min(1, m.form_error_required()),
     }),
   ),
   is_active: z.boolean(),
