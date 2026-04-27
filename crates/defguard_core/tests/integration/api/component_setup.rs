@@ -320,7 +320,7 @@ impl MockGatewaySetupHarness {
     }
 
     async fn wait_for_cert(&self) {
-        timeout(CERT_TIMEOUT, self.state.cert_received.notified())
+        timeout(Self::CERT_TIMEOUT, self.state.cert_received.notified())
             .await
             .expect("timed out waiting for certificate to be received by mock gateway");
     }
