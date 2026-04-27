@@ -275,7 +275,6 @@ export type UserMfaMethodValue = (typeof UserMfaMethod)[keyof typeof UserMfaMeth
 export interface OAuth2AuthorizedApps {
   oauth2client_id: number;
   oauth2client_name: string;
-  user_id: number;
 }
 
 export interface User {

@@ -918,7 +918,7 @@ impl GatewayUpdatesHandler {
             })),
         }) {
             let msg = format!(
-                "Failed to send network update, network {}, update type: 2 (DELETE), error: {err}",
+                "Failed to send network update, network {}, update type: 3 (DELETE), error: {err}",
                 self.network,
             );
             error!(msg);
@@ -971,7 +971,7 @@ impl GatewayUpdatesHandler {
             })),
         }) {
             let msg = format!(
-                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 \
+                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 3 \
                 (DELETE), error: {err}",
                 self.network,
             );
