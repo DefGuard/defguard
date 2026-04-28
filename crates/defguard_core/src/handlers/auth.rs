@@ -496,6 +496,7 @@ pub async fn webauthn_finish(
             &mut conn,
             Some(&session.session.into()),
             &MFAMethod::Webauthn,
+            &user.first_name,
         )
         .await?;
         user.set_mfa_method(&mut *conn, MFAMethod::Webauthn).await?;
@@ -658,6 +659,7 @@ pub async fn totp_enable(
                 &mut conn,
                 Some(&session.session.into()),
                 &MFAMethod::OneTimePassword,
+                &user.first_name,
             )
             .await?;
             user.set_mfa_method(&mut *conn, MFAMethod::OneTimePassword)
@@ -838,6 +840,7 @@ pub async fn email_mfa_enable(
                 &mut conn,
                 Some(&session.session.into()),
                 &MFAMethod::Email,
+                &user.first_name,
             )
             .await?;
             user.set_mfa_method(&mut *conn, MFAMethod::Email).await?;

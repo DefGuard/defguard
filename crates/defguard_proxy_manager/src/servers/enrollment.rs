@@ -1074,7 +1074,10 @@ impl EnrollmentServer {
             .map_err(|_| Status::internal("Failed to get recovery codes.".to_string()))?
             .ok_or_else(|| Status::internal("Recovery codes not found".to_string()))?;
         if let Ok(mut conn) = self.pool.begin().await {
-            if let Err(err) = mfa_configured_mail(&user.email, &mut conn, None, &mfa_method).await {
+            if let Err(err) =
+                mfa_configured_mail(&user.email, &mut conn, None, &mfa_method, &user.first_name)
+                    .await
+            {
                 error!("Failed to send MFA configured email\nReason: {err}");
             }
         } else {

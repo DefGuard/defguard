@@ -393,9 +393,11 @@ pub async fn mfa_configured_mail(
     conn: &mut PgConnection,
     session: Option<&SessionContext>,
     method: &MFAMethod,
+    first_name: &str,
 ) -> Result<(), TemplateError> {
     let (mut tera, mut context) = get_base_tera_mjml(Context::new(), session, None, None)?;
 
+    context.insert("username", first_name);
     context.insert("mfa_method", &method);
 
     let message = MailMessage::MFAConfigured { method: *method };
