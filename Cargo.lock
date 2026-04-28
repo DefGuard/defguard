@@ -1549,6 +1549,7 @@ dependencies = [
  "clap",
  "defguard_common",
  "defguard_core",
+ "dotenvy",
  "rand 0.8.6",
  "sqlx",
  "tokio",

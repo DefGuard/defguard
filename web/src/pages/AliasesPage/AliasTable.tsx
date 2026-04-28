@@ -130,6 +130,7 @@ export const AliasTable = ({ data: rowData, rules, tab, disableBlockedModal }: P
         id: 'edit',
         enableSorting: false,
         size: tableEditColumnSize,
+        enableResizing: false,
         cell: (info) => {
           const row = info.row.original;
           const menuItems: MenuItemsGroup[] = [

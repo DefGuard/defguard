@@ -327,6 +327,7 @@ const DevicesTable = ({ rowData }: { rowData: RowData[] }) => {
     <>
       {rowData.length === 0 && (
         <EmptyStateFlexible
+          icon="devices"
           title={m.profile_devices_empty_title()}
           subtitle={m.profile_devices_empty_subtitle()}
           primaryAction={addDeviceProps}
