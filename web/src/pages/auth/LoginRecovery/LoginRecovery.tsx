@@ -70,6 +70,7 @@ export const LoginRecovery = () => {
           <form.AppField name="code">
             {(field) => (
               <field.FormInput
+                notNull
                 size="lg"
                 label={m.login_mfa_recovery_label()}
                 helper={m.login_mfa_recovery_helper()}

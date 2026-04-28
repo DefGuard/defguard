@@ -10,7 +10,7 @@ use rsa::{
     traits::PublicKeyParts,
 };
 use secrecy::ExposeSecret;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::{PgExecutor, PgPool, Type, query, query_as};
 use struct_patch::Patch;
 use thiserror::Error;
@@ -146,6 +146,27 @@ impl LdapSyncStatus {
     }
 }
 
+/// Custom deserializer for `Option<T>` fields in patch structs.
+///
+/// By default serde cannot distinguish between a missing JSON key and an explicit `null` value
+/// when deserializing into `Option<Option<T>>` (the shape struct-patch generates for nullable
+/// fields) — both map to the outer `None`, causing a PATCH with `"field": null` to be silently
+/// ignored instead of clearing the field.
+///
+/// This deserializer always wraps the result in `Some(...)`, so:
+/// - JSON key absent  → `None`          (handled by `#[serde(default)]` before this is called)
+/// - `"field": null`  → `Some(None)`    → field gets cleared
+/// - `"field": "val"` → `Some(Some(v))` → field gets updated
+///
+/// See <https://github.com/serde-rs/serde/issues/1042> and the struct-patch test suite.
+fn deserialize_optional_field<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?))
+}
+
 #[derive(Clone, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
@@ -164,7 +185,9 @@ pub struct Settings {
     pub smtp_server: Option<String>,
     pub smtp_port: Option<i32>,
     pub smtp_encryption: SmtpEncryption,
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
     pub smtp_user: Option<String>,
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
     pub smtp_password: Option<SecretStringWrapper>,
     pub smtp_sender: Option<String>,
     // Enrollment
@@ -202,6 +225,7 @@ pub struct Settings {
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
     // The attribute which is used to map LDAP usernames to Defguard usernames
+    #[patch(attribute(serde(deserialize_with = "deserialize_optional_field", default)))]
     pub ldap_user_rdn_attr: Option<String>,
     pub ldap_sync_groups: Vec<String>,
     pub ldap_remote_enrollment_enabled: bool,

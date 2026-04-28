@@ -1,10 +1,13 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import type z from 'zod';
 import { m } from '../../../paraglide/messages';
 import api from '../../../shared/api/api';
+import type { ApiError } from '../../../shared/api/types';
 import { LoginPage } from '../../../shared/components/LoginPage/LoginPage';
 import { SizedBox } from '../../../shared/defguard-ui/components/SizedBox/SizedBox';
 import { ThemeSpacing } from '../../../shared/defguard-ui/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import { useAppForm } from '../../../shared/form';
 import { formChangeLogic } from '../../../shared/formLogic';
 import { useAuth } from '../../../shared/hooks/useAuth';
@@ -34,6 +37,18 @@ export const LoginEmail = () => {
     },
     onSuccess: (response) => {
       useAuth.getState().authSubject.next(response.data);
+    },
+    onError: (e: AxiosError<ApiError>) => {
+      const respCode = e.response?.status;
+      if (isPresent(respCode) && respCode < 500) {
+        form.setErrorMap({
+          onSubmit: {
+            fields: {
+              code: respCode === 429 ? m.login_main_attempts_info() : m.form_error_code(),
+            },
+          },
+        });
+      }
     },
   });
 
@@ -65,6 +80,7 @@ export const LoginEmail = () => {
           <form.AppField name="code">
             {(field) => (
               <field.FormInput
+                notNull
                 size="lg"
                 label={m.form_label_auth_code()}
                 helper={m.form_helper_auth_code()}

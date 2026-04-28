@@ -1,4 +1,4 @@
-{{ title }}
+{{ title }}{% if username %} {{ username }}{% endif %}
 {% if subtitle %}{{ subtitle }}{% endif %}
 
 {{ mfa_method_label }} {{ mfa_method }}

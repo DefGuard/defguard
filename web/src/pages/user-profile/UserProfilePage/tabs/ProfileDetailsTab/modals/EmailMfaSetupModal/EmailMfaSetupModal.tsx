@@ -94,10 +94,15 @@ const ModalContent = () => {
     },
   });
 
+  const { mutate: resendEmail, isPending: isResending } = useMutation({
+    mutationFn: api.auth.mfa.email.init,
+  });
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
+      onMount: formSchema,
       onSubmit: formSchema,
       onChange: formSchema,
     },
@@ -118,6 +123,7 @@ const ModalContent = () => {
   });
 
   const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
+  const canSubmit = useStore(form.store, (s) => s.canSubmit);
 
   useEffectOnce(() => {
     void api.auth.mfa.email.init();
@@ -163,6 +169,7 @@ const ModalContent = () => {
           testId: 'submit',
           text: m.controls_submit(),
           loading: isSubmitting,
+          disabled: !canSubmit || isSubmitting,
           onClick: () => {
             form.handleSubmit();
           },
@@ -172,7 +179,8 @@ const ModalContent = () => {
           <Button
             variant="outlined"
             text={m.modal_mfa_enable_email_resend()}
-            onClick={() => {}}
+            loading={isResending}
+            onClick={() => resendEmail()}
           />
         </div>
       </ModalControls>

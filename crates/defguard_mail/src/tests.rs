@@ -258,6 +258,7 @@ fn send_mfa_configured_mail(_: PgPoolOptions, options: PgConnectOptions) {
         &mut conn,
         None,
         &MFAMethod::Email,
+        "Test",
     )
     .await
     .unwrap();

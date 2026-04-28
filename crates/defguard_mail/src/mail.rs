@@ -260,11 +260,11 @@ impl Mail {
         .timeout(Some(SMTP_TIMEOUT));
 
         // Skip credentials if any of them is empty
-        let builder = if settings.user.is_empty() || settings.password.is_empty() {
+        let builder = if let (Some(user), Some(password)) = (settings.user, settings.password) {
+            builder.credentials(Credentials::new(user, password))
+        } else {
             debug!("SMTP credentials were not provided, skipping username/password authentication");
             builder
-        } else {
-            builder.credentials(Credentials::new(settings.user, settings.password))
         };
 
         Ok(builder.build())
