@@ -165,6 +165,12 @@ const Content = ({ settings }: { settings: Settings }) => {
     meta: {
       invalidate: [['settings'], ['info']],
     },
+    onSuccess: () => {
+      Snackbar.default(m.settings_msg_saved());
+    },
+    onError: () => {
+      Snackbar.error(m.settings_msg_save_failed());
+    },
   });
 
   const form = useAppForm({
@@ -176,6 +182,7 @@ const Content = ({ settings }: { settings: Settings }) => {
     },
     onSubmit: async ({ value }) => {
       await editSettings(value);
+      form.reset(value);
     },
   });
 
