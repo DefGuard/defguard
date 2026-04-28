@@ -48,6 +48,92 @@ async fn test_settings(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(new_settings.wireguard_enabled);
 }
 
+#[sqlx::test]
+async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _client_state) = make_test_client(pool.clone()).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // --- smtp_user & smtp_password ---
+
+    // set smtp_user and smtp_password (include the required trio so validation passes)
+    let patch: SettingsPatch = serde_json::from_str(
+        r#"{
+            "smtp_server": "smtp.example.com",
+            "smtp_port": 587,
+            "smtp_sender": "noreply@example.com",
+            "smtp_user": "testuser",
+            "smtp_password": "testpass"
+        }"#,
+    )
+    .unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify fields are set
+    let response = client.get("/api/v1/settings").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let settings: Settings = response.json().await;
+    assert_eq!(
+        settings.smtp_user,
+        Some("testuser".to_string()),
+        "smtp_user should be set after initial PATCH"
+    );
+    // smtp_password is redacted in the API response; verify via DB
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        from_db.smtp_password.is_some(),
+        "smtp_password should be set in DB after initial PATCH"
+    );
+
+    // clear smtp_user and smtp_password by sending null
+    let patch: SettingsPatch =
+        serde_json::from_str(r#"{ "smtp_user": null, "smtp_password": null }"#).unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // assert both fields are cleared in the DB
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        from_db.smtp_user.is_none(),
+        "smtp_user should be cleared to None after PATCH with null"
+    );
+    assert!(
+        from_db.smtp_password.is_none(),
+        "smtp_password should be cleared to None after PATCH with null"
+    );
+
+    // --- ldap_user_rdn_attr ---
+
+    // set ldap_user_rdn_attr
+    let patch: SettingsPatch = serde_json::from_str(r#"{ "ldap_user_rdn_attr": "uid" }"#).unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify field is set
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert_eq!(
+        from_db.ldap_user_rdn_attr,
+        Some("uid".to_string()),
+        "ldap_user_rdn_attr should be set after PATCH"
+    );
+
+    // clear ldap_user_rdn_attr by sending null
+    let patch: SettingsPatch = serde_json::from_str(r#"{ "ldap_user_rdn_attr": null }"#).unwrap();
+    let response = client.patch("/api/v1/settings").json(&patch).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // assert field is cleared in the DB
+    let from_db = Settings::get(&pool).await.unwrap().unwrap();
+    assert!(
+        from_db.ldap_user_rdn_attr.is_none(),
+        "ldap_user_rdn_attr should be cleared to None after PATCH with null"
+    );
+}
+
 // JSON fragment containing all required LDAP fields except ldap_url (add that at the call site).
 const VALID_LDAP_FIELDS_NO_URL: &str = r#"
     "ldap_bind_username": "cn=admin,dc=example,dc=com",
