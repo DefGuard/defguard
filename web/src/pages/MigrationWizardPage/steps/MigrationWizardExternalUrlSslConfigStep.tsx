@@ -71,8 +71,8 @@ export const MigrationWizardExternalUrlSslConfigStep = () => {
   }, []);
 
   const { data: sslInfoData } = useQuery({
-    queryKey: ['external_ssl_info'],
-    queryFn: () => api.initial_setup.getExternalSslInfo(),
+    queryKey: ['migration', 'external_ssl_info'],
+    queryFn: () => api.migration.getExternalSslInfo(),
     enabled: sslType === 'defguard_ca',
     select: (response) => response.data,
   });

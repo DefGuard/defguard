@@ -40,6 +40,23 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   syncSchema,
 ]);
 
+const validationSchema = syncSchema
+  .omit({ directory_sync_interval: true })
+  .extend({ directory_sync_interval: z.number() })
+  .superRefine((val, ctx) => {
+    if (
+      val.directory_sync_enabled &&
+      (typeof val.directory_sync_interval !== 'number' ||
+        val.directory_sync_interval < 60)
+    ) {
+      ctx.addIssue({
+        path: ['directory_sync_interval'],
+        code: 'custom',
+        message: m.form_error_min({ value: 60 }),
+      });
+    }
+  });
+
 type FormFields = z.infer<typeof discriminatedSchema>;
 
 export const EditMicrosoftProviderForm = ({
@@ -77,8 +94,8 @@ export const EditMicrosoftProviderForm = ({
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
-      onSubmit: syncSchema,
-      onChange: syncSchema,
+      onSubmit: validationSchema,
+      onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
       const base_url = formatMicrosoftBaseUrl(value.microsoftTenantId);

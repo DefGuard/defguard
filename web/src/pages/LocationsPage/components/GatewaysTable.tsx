@@ -198,6 +198,20 @@ export const GatewaysTable = () => {
         enableResizing: false,
         cell: (info) => {
           const rowData = info.row.original;
+
+          const getDeleteModalContent = () => {
+            if (!rowData.enabled) {
+              return m.modal_delete_gateway_disabled_body({ name: rowData.name });
+            }
+            if (!rowData.connected) {
+              return m.modal_delete_gateway_disconnected_body({ name: rowData.name });
+            }
+            return m.modal_delete_gateway_body({
+              name: rowData.name,
+              locationName: rowData.location_name,
+            });
+          };
+
           const menuItems: MenuItemsGroup[] = [
             {
               items: [
@@ -235,10 +249,7 @@ export const GatewaysTable = () => {
                   onClick: () => {
                     openModal(ModalName.ConfirmAction, {
                       title: m.modal_delete_gateway_title(),
-                      contentMd: m.modal_delete_gateway_body({
-                        name: rowData.name,
-                        locationName: rowData.location_name,
-                      }),
+                      contentMd: getDeleteModalContent(),
                       actionPromise: () => api.gateway.deleteGateway(rowData.id),
                       invalidateKeys: [['gateway'], ['network']],
                       submitProps: { text: m.controls_delete(), variant: 'critical' },

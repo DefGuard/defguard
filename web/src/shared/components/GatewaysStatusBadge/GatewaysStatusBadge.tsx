@@ -10,7 +10,6 @@ import {
   useFloating,
   useInteractions,
 } from '@floating-ui/react';
-import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import clsx from 'clsx';
 import { type HTMLProps, useMemo, useState } from 'react';
@@ -26,7 +25,10 @@ import { Icon } from '../../defguard-ui/components/Icon';
 import type { IconKindValue } from '../../defguard-ui/components/Icon/icon-types';
 import { InteractionBox } from '../../defguard-ui/components/InteractionBox/InteractionBox';
 import { SizedBox } from '../../defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../defguard-ui/types';
+import { openModal } from '../../hooks/modalControls/modalsSubjects';
+import { ModalName } from '../../hooks/modalControls/modalTypes';
 import './style.scss';
 
 type Status = 'all' | 'none' | 'some';
@@ -151,13 +153,6 @@ const FloatingMenu = ({
   const disconnected = useMemo(() => status.filter((gw) => !gw.connected), [status]);
   const navigate = useNavigate();
 
-  const { mutate: removeGw } = useMutation({
-    mutationFn: api.gateway.deleteGateway,
-    meta: {
-      invalidate: [['gateway'], ['network']],
-    },
-  });
-
   return (
     <div className={clsx('gateways-status-floating', className)} {...rest}>
       {connected.length > 0 && (
@@ -198,7 +193,29 @@ const FloatingMenu = ({
                   icon="close"
                   iconSize={20}
                   onClick={() => {
-                    removeGw(gw.id);
+                    const getDeleteModalContent = () => {
+                      if (!gw.enabled) {
+                        return m.modal_delete_gateway_disabled_body({ name: gw.name });
+                      }
+                      if (!gw.connected) {
+                        return m.modal_delete_gateway_disconnected_body({
+                          name: gw.name,
+                        });
+                      }
+                      return m.modal_delete_gateway_body({
+                        name: gw.name,
+                        locationName: gw.location_name,
+                      });
+                    };
+                    openModal(ModalName.ConfirmAction, {
+                      title: m.modal_delete_gateway_title(),
+                      contentMd: getDeleteModalContent(),
+                      actionPromise: () => api.gateway.deleteGateway(gw.id),
+                      invalidateKeys: [['gateway'], ['network']],
+                      submitProps: { text: m.controls_delete(), variant: 'critical' },
+                      onSuccess: () => Snackbar.default(m.gateway_delete_success()),
+                      onError: () => Snackbar.error(m.gateway_delete_failed()),
+                    });
                   }}
                 />
               </li>

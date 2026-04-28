@@ -32,6 +32,31 @@ const discriminatedSchema = z.discriminatedUnion('directory_sync_enabled', [
   syncSchema,
 ]);
 
+const validationSchema = syncSchema
+  .omit({ okta_dirsync_client_id: true, okta_private_jwk: true })
+  .extend({
+    okta_dirsync_client_id: z.string(),
+    okta_private_jwk: z.string(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.directory_sync_enabled) {
+      if (val.okta_dirsync_client_id.trim().length === 0) {
+        ctx.addIssue({
+          path: ['okta_dirsync_client_id'],
+          code: 'custom',
+          message: m.form_error_required(),
+        });
+      }
+      if (val.okta_private_jwk.trim().length === 0) {
+        ctx.addIssue({
+          path: ['okta_private_jwk'],
+          code: 'custom',
+          message: m.form_error_required(),
+        });
+      }
+    }
+  });
+
 type FormFields = z.infer<typeof discriminatedSchema>;
 
 export const EditOktaProviderForm = ({
@@ -61,8 +86,8 @@ export const EditOktaProviderForm = ({
     defaultValues,
     validationLogic: formChangeLogic,
     validators: {
-      onSubmit: syncSchema,
-      onChange: syncSchema,
+      onSubmit: validationSchema,
+      onChange: validationSchema,
     },
     onSubmit: async ({ value }) => {
       await onSubmit(value);

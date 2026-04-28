@@ -28,8 +28,8 @@ export const MigrationWizardInternalUrlSslConfigStep = () => {
   }, []);
 
   const { data: sslInfoData } = useQuery({
-    queryKey: ['internal_ssl_info'],
-    queryFn: () => api.initial_setup.getInternalSslInfo(),
+    queryKey: ['migration', 'internal_ssl_info'],
+    queryFn: () => api.migration.getInternalSslInfo(),
     enabled: sslType === 'defguard_ca',
     select: (response) => response.data,
   });

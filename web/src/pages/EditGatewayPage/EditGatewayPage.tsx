@@ -52,6 +52,29 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
     getLocationQueryOptions(gateway.location_id),
   );
 
+  const isConnected = useMemo(() => {
+    if (gateway.connected_at == null) {
+      return false;
+    }
+    if (gateway.disconnected_at == null) {
+      return true;
+    }
+    return gateway.connected_at >= gateway.disconnected_at;
+  }, [gateway.connected_at, gateway.disconnected_at]);
+
+  const getDeleteModalContent = () => {
+    if (!gateway.enabled) {
+      return m.modal_delete_gateway_disabled_body({ name: gateway.name });
+    }
+    if (!isConnected) {
+      return m.modal_delete_gateway_disconnected_body({ name: gateway.name });
+    }
+    return m.modal_delete_gateway_body({
+      name: gateway.name,
+      locationName: location.name,
+    });
+  };
+
   const { mutateAsync: editGateway } = useMutation({
     mutationFn: api.gateway.editGateway,
     meta: {
@@ -167,10 +190,7 @@ const EditGatewayForm = ({ gateway }: { gateway: Gateway }) => {
                 onClick: () => {
                   openModal(ModalName.ConfirmAction, {
                     title: m.modal_delete_gateway_title(),
-                    contentMd: m.modal_delete_gateway_body({
-                      name: gateway.name,
-                      locationName: location.name,
-                    }),
+                    contentMd: getDeleteModalContent(),
                     actionPromise: () => api.gateway.deleteGateway(gateway.id),
                     invalidateKeys: [['gateway'], ['network']],
                     submitProps: { text: m.gateway_edit_delete(), variant: 'critical' },
