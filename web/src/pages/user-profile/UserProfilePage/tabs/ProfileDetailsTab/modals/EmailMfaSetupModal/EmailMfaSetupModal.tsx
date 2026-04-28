@@ -94,6 +94,10 @@ const ModalContent = () => {
     },
   });
 
+  const { mutate: resendEmail, isPending: isResending } = useMutation({
+    mutationFn: api.auth.mfa.email.init,
+  });
+
   const form = useAppForm({
     defaultValues,
     validationLogic: formChangeLogic,
@@ -172,7 +176,8 @@ const ModalContent = () => {
           <Button
             variant="outlined"
             text={m.modal_mfa_enable_email_resend()}
-            onClick={() => {}}
+            loading={isResending}
+            onClick={() => resendEmail()}
           />
         </div>
       </ModalControls>
