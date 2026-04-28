@@ -18,7 +18,7 @@ use x509_parser::{
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
 const DEFAULT_CERT_VALIDITY_DAYS: i64 = 1825;
-const WEB_HTTPS_CERT_VALIDITY_DAYS: i64 = 200;
+const WEB_HTTPS_CERT_VALIDITY_DAYS: i64 = 100;
 
 #[derive(Debug, Error)]
 pub enum CertificateError {
