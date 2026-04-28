@@ -278,7 +278,7 @@ async fn main() -> Result<(), anyhow::Error> {
             webhook_tx,
             webhook_rx,
             gateway_tx.clone(),
-            web_reload_tx,
+            web_reload_tx.clone(),
             pool.clone(),
             failed_logins,
             api_event_tx,
@@ -293,7 +293,7 @@ async fn main() -> Result<(), anyhow::Error> {
             bail!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool, proxy_control_tx.clone()) =>
             bail!("Periodic license check task returned early: {res:?}"),
-        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx) =>
+        res = run_utility_thread(&pool, gateway_tx.clone(), proxy_control_tx, web_reload_tx.clone()) =>
             bail!("Utility thread returned early: {res:?}"),
         res = run_event_router(
             RouterReceiverSet::new(

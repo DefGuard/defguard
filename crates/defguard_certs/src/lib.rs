@@ -456,7 +456,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     fn test_sign_web_server_cert() {
         use x509_parser::parse_x509_certificate;
 
-        let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 10).unwrap();
+        let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 365).unwrap();
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
@@ -477,8 +477,8 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let not_after = validity.not_after.to_datetime();
         let days = (not_after - not_before).whole_days();
         assert!(
-            (199..=201).contains(&days),
-            "expected 199-201 days, got {days}"
+            (98..=100).contains(&days),
+            "expected 98-100 days, got {days}"
         );
     }
 

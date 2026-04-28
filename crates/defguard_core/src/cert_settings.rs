@@ -1,4 +1,5 @@
 use axum_server::tls_rustls::RustlsConfig;
+use chrono::NaiveDateTime;
 use defguard_certs::{
     CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
     parse_pem_certificate,
@@ -357,4 +358,216 @@ pub async fn apply_external_url_settings(
 
     transaction.commit().await?;
     Ok(cert_info)
+}
+
+/// Regenerate the Core self-signed HTTPS certificate using the current `defguard_url`.
+/// Returns `(cert_pem, key_pem, expiry)` on success.
+pub(crate) async fn refresh_core_self_signed_cert(
+    pool: &PgPool,
+) -> Result<(String, String, NaiveDateTime), WebError> {
+    let settings = Settings::get_current_settings();
+    let hostname = reqwest::Url::parse(&settings.defguard_url)
+        .ok()
+        .and_then(|u| u.host_str().map(ToString::to_string))
+        .unwrap_or_else(|| settings.defguard_url.clone());
+
+    let mut certs = Certificates::get_or_default(pool)
+        .await
+        .map_err(WebError::from)?;
+
+    let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
+        WebError::BadRequest("CA certificate is not present; generate a CA first".to_string())
+    })?;
+    let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
+        WebError::BadRequest("CA private key not available for signing".to_string())
+    })?;
+
+    let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+    let key_pair = generate_key_pair()?;
+    let san = vec![hostname.clone()];
+    let dn = vec![(DnType::CommonName, hostname.as_str())];
+    let csr = Csr::new(&key_pair, &san, dn)?;
+    let server_cert = ca.sign_web_server_cert(&csr)?;
+
+    let cert_der = server_cert.der().to_vec();
+    let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
+    let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)?;
+    let info = CertificateInfo::from_der(&cert_der)?;
+    let expiry = info.not_after;
+
+    certs.core_http_cert_source = CoreCertSource::SelfSigned;
+    certs.core_http_cert_pem = Some(cert_pem.clone());
+    certs.core_http_cert_key_pem = Some(key_pem.clone());
+    certs.core_http_cert_expiry = Some(expiry);
+    certs.save(pool).await.map_err(WebError::from)?;
+
+    Ok((cert_pem, key_pem, expiry))
+}
+
+/// Regenerate the Proxy self-signed HTTPS certificate using the current `public_proxy_url`.
+/// Returns `(cert_pem, key_pem, expiry)` on success.
+pub(crate) async fn refresh_proxy_self_signed_cert(
+    pool: &PgPool,
+) -> Result<(String, String, NaiveDateTime), WebError> {
+    let settings = Settings::get_current_settings();
+    let hostname = reqwest::Url::parse(&settings.public_proxy_url)
+        .ok()
+        .and_then(|u| u.host_str().map(ToString::to_string))
+        .unwrap_or_else(|| settings.public_proxy_url.clone());
+
+    let mut certs = Certificates::get_or_default(pool)
+        .await
+        .map_err(WebError::from)?;
+
+    let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
+        WebError::BadRequest("CA certificate is not present; generate a CA first".to_string())
+    })?;
+    let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
+        WebError::BadRequest("CA private key not available for signing".to_string())
+    })?;
+
+    let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+    let key_pair = generate_key_pair()?;
+    let san = vec![hostname.clone()];
+    let dn = vec![(DnType::CommonName, hostname.as_str())];
+    let csr = Csr::new(&key_pair, &san, dn)?;
+    let server_cert = ca.sign_web_server_cert(&csr)?;
+
+    let cert_der = server_cert.der().to_vec();
+    let cert_pem = der_to_pem(&cert_der, PemLabel::Certificate)?;
+    let key_pem = der_to_pem(key_pair.serialize_der().as_slice(), PemLabel::PrivateKey)?;
+    let info = CertificateInfo::from_der(&cert_der)?;
+    let expiry = info.not_after;
+
+    certs.proxy_http_cert_source = ProxyCertSource::SelfSigned;
+    certs.acme_domain = None;
+    certs.proxy_http_cert_pem = Some(cert_pem.clone());
+    certs.proxy_http_cert_key_pem = Some(key_pem.clone());
+    certs.proxy_http_cert_expiry = Some(expiry);
+    certs.save(pool).await.map_err(WebError::from)?;
+
+    Ok((cert_pem, key_pem, expiry))
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+    use defguard_certs::CertificateAuthority;
+    use defguard_common::db::{
+        models::{
+            Certificates, CoreCertSource, ProxyCertSource, Settings,
+            settings::{initialize_current_settings, set_settings},
+        },
+        setup_pool,
+    };
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use super::{refresh_core_self_signed_cert, refresh_proxy_self_signed_cert};
+
+    fn make_ca() -> CertificateAuthority<'static> {
+        CertificateAuthority::new("Test CA", "test@example.com", 365).expect("failed to create CA")
+    }
+
+    async fn seed_ca(pool: &sqlx::PgPool, ca: &CertificateAuthority<'_>) {
+        Certificates {
+            ca_cert_der: Some(ca.cert_der().to_vec()),
+            ca_key_der: Some(ca.key_pair_der().to_vec()),
+            ca_expiry: Some(ca.expiry().expect("missing CA expiry")),
+            ..Default::default()
+        }
+        .save(pool)
+        .await
+        .expect("failed to save CA certs");
+    }
+
+    async fn seed_settings(defguard_url: &str, public_proxy_url: &str) {
+        let mut settings = Settings::get_current_settings();
+        settings.defguard_url = defguard_url.into();
+        settings.public_proxy_url = public_proxy_url.into();
+        set_settings(Some(settings));
+    }
+
+    #[sqlx::test]
+    async fn refresh_core_self_signed_cert_generates_new_cert(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to initialize settings");
+        seed_settings("https://core.example.com", "https://proxy.example.com").await;
+        let ca = make_ca();
+        seed_ca(&pool, &ca).await;
+
+        let (cert_pem, key_pem, expiry) = refresh_core_self_signed_cert(&pool)
+            .await
+            .expect("refresh should succeed");
+
+        assert!(
+            cert_pem.contains("BEGIN CERTIFICATE"),
+            "cert_pem should be a valid certificate"
+        );
+        assert!(
+            key_pem.contains("BEGIN PRIVATE KEY"),
+            "key_pem should be a valid private key"
+        );
+
+        let days_valid = (expiry.and_utc() - Utc::now()).num_days();
+        assert!(
+            (98..=100).contains(&days_valid),
+            "expected ~100 days validity, got {days_valid}"
+        );
+
+        let saved = Certificates::get(&pool)
+            .await
+            .expect("failed to load certs")
+            .expect("certs should exist");
+        assert_eq!(saved.core_http_cert_source, CoreCertSource::SelfSigned);
+        assert_eq!(saved.core_http_cert_pem, Some(cert_pem));
+        assert_eq!(saved.core_http_cert_key_pem, Some(key_pem));
+        assert_eq!(saved.core_http_cert_expiry, Some(expiry));
+    }
+
+    #[sqlx::test]
+    async fn refresh_proxy_self_signed_cert_generates_new_cert(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = defguard_common::db::setup_pool(options).await;
+        initialize_current_settings(&pool)
+            .await
+            .expect("failed to initialize settings");
+        seed_settings("https://core.example.com", "https://proxy.example.com").await;
+        let ca = make_ca();
+        seed_ca(&pool, &ca).await;
+
+        let (cert_pem, key_pem, expiry) = refresh_proxy_self_signed_cert(&pool)
+            .await
+            .expect("refresh should succeed");
+
+        assert!(
+            cert_pem.contains("BEGIN CERTIFICATE"),
+            "cert_pem should be a valid certificate"
+        );
+        assert!(
+            key_pem.contains("BEGIN PRIVATE KEY"),
+            "key_pem should be a valid private key"
+        );
+
+        let days_valid = (expiry.and_utc() - Utc::now()).num_days();
+        assert!(
+            (98..=100).contains(&days_valid),
+            "expected ~100 days validity, got {days_valid}"
+        );
+
+        let saved = Certificates::get(&pool)
+            .await
+            .expect("failed to load certs")
+            .expect("certs should exist");
+        assert_eq!(saved.proxy_http_cert_source, ProxyCertSource::SelfSigned);
+        assert_eq!(saved.proxy_http_cert_pem, Some(cert_pem));
+        assert_eq!(saved.proxy_http_cert_key_pem, Some(key_pem));
+        assert_eq!(saved.proxy_http_cert_expiry, Some(expiry));
+    }
 }
