@@ -122,8 +122,8 @@ const Content = ({ settings }: { settings: Settings }) => {
                 ),
           ),
         smtp_port: z.number(m.form_error_required()).max(65535, m.form_error_port_max()),
-        smtp_password: z.string().trim(),
-        smtp_user: z.string().trim(),
+        smtp_password: z.string().trim().nullable(),
+        smtp_user: z.string().trim().nullable(),
         smtp_sender: z
           .string()
           .trim()
@@ -139,11 +139,11 @@ const Content = ({ settings }: { settings: Settings }) => {
   const emptyValues = useMemo(
     (): FormFields => ({
       smtp_encryption: SmtpEncryption.StartTls,
-      smtp_password: '',
+      smtp_password: null,
       smtp_port: 587,
       smtp_sender: '',
       smtp_server: '',
-      smtp_user: '',
+      smtp_user: null,
     }),
     [],
   );
@@ -151,11 +151,11 @@ const Content = ({ settings }: { settings: Settings }) => {
   const defaultValues = useMemo(
     (): FormFields => ({
       smtp_encryption: settings.smtp_encryption,
-      smtp_password: settings.smtp_password ?? '',
+      smtp_password: settings.smtp_password ?? null,
       smtp_port: settings.smtp_port ?? 587,
       smtp_sender: settings.smtp_sender ?? '',
       smtp_server: settings.smtp_server ?? '',
-      smtp_user: settings.smtp_user ?? '',
+      smtp_user: settings.smtp_user ?? null,
     }),
     [settings],
   );
