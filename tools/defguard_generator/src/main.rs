@@ -64,6 +64,9 @@ async fn main() -> Result<()> {
         )
         .init();
 
+    // load .env file if present
+    let _ = dotenvy::dotenv();
+
     // parse CLI options
     let cli = Cli::parse();
 

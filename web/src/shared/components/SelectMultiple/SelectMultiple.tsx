@@ -50,6 +50,7 @@ export const SelectMultiple = <T extends number | string, M = unknown>({
     <div className="select-multiple">
       {isPresent(toggleText) && (
         <Toggle
+          disabled={options.length === 0}
           label={toggleText}
           active={toggleValue}
           onClick={() => {

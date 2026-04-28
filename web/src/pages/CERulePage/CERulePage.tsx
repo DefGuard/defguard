@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { intersection } from 'lodash-es';
 import { cloneDeep, flat, omit } from 'radashi';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import z from 'zod';
 import { m } from '../../paraglide/messages';
 import type { AclListTabValue } from '../../shared/aclTabs';
@@ -31,7 +31,6 @@ import type {
 import { AppText } from '../../shared/defguard-ui/components/AppText/AppText';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import { ButtonsGroup } from '../../shared/defguard-ui/components/ButtonsGroup/ButtonsGroup';
-import { Checkbox } from '../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { CheckboxIndicator } from '../../shared/defguard-ui/components/CheckboxIndicator/CheckboxIndicator';
 import { Chip } from '../../shared/defguard-ui/components/Chip/Chip';
 import { Divider } from '../../shared/defguard-ui/components/Divider/Divider';
@@ -308,23 +307,6 @@ const Content = ({ rule: initialRule, tab }: Props) => {
     return [];
   }, [networkDevices]);
 
-  const [restrictUsers, setRestrictUsers] = useState(() =>
-    isPresent(initialRule)
-      ? initialRule.deny_all_users || initialRule.denied_users.length > 0
-      : false,
-  );
-  const [restrictGroups, setRestrictGroups] = useState(() =>
-    isPresent(initialRule)
-      ? initialRule.deny_all_groups || initialRule.denied_groups.length > 0
-      : false,
-  );
-  const [restrictDevices, setRestrictDevices] = useState(() =>
-    isPresent(initialRule)
-      ? initialRule.deny_all_network_devices ||
-        initialRule.denied_network_devices.length > 0
-      : false,
-  );
-
   const formSchema = useMemo(
     () =>
       z
@@ -355,10 +337,12 @@ const Content = ({ rule: initialRule, tab }: Props) => {
           destinations: z.set(z.number()),
           aliases: z.set(z.number()),
           use_manual_destination_settings: z.boolean(),
+          restrict_users: z.boolean(),
+          restrict_groups: z.boolean(),
+          restrict_devices: z.boolean(),
         })
         .superRefine((vals, ctx) => {
           // check for collisions
-          // FIXME: add handling for all_groups toggles
           const message = m.acl_rule_error_allow_deny_conflict();
           if (!vals.allow_all_users && !vals.deny_all_users) {
             if (intersection(vals.allowed_users, vals.denied_users).length) {
@@ -404,7 +388,11 @@ const Content = ({ rule: initialRule, tab }: Props) => {
             }
           }
 
-          if (restrictUsers && !vals.deny_all_users && vals.denied_users.length === 0) {
+          if (
+            vals.restrict_users &&
+            !vals.deny_all_users &&
+            vals.denied_users.length === 0
+          ) {
             ctx.addIssue({
               path: ['denied_users'],
               code: 'custom',
@@ -413,7 +401,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
           }
 
           if (
-            restrictGroups &&
+            vals.restrict_groups &&
             !vals.deny_all_groups &&
             vals.denied_groups.length === 0
           ) {
@@ -425,7 +413,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
           }
 
           if (
-            restrictDevices &&
+            vals.restrict_devices &&
             !vals.deny_all_network_devices &&
             vals.denied_network_devices.length === 0
           ) {
@@ -518,7 +506,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
             });
           }
         }),
-    [hasPredefinedDestinations, restrictDevices, restrictGroups, restrictUsers, aliases],
+    [hasPredefinedDestinations, aliases],
   );
 
   type FormFields = z.infer<typeof formSchema>;
@@ -531,6 +519,12 @@ const Content = ({ rule: initialRule, tab }: Props) => {
         destinations: new Set(initialRule.destinations),
         protocols: new Set(initialRule.protocols),
         expires: null,
+        restrict_users: initialRule.deny_all_users || initialRule.denied_users.length > 0,
+        restrict_groups:
+          initialRule.deny_all_groups || initialRule.denied_groups.length > 0,
+        restrict_devices:
+          initialRule.deny_all_network_devices ||
+          initialRule.denied_network_devices.length > 0,
       };
     }
 
@@ -561,6 +555,9 @@ const Content = ({ rule: initialRule, tab }: Props) => {
       any_port: true,
       any_protocol: true,
       use_manual_destination_settings: false,
+      restrict_users: false,
+      restrict_groups: false,
+      restrict_devices: false,
     };
   }, [initialRule]);
 
@@ -572,16 +569,20 @@ const Content = ({ rule: initialRule, tab }: Props) => {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const toSend = cloneDeep(value);
-      if (!restrictUsers) {
+      const toSend = omit(cloneDeep(value), [
+        'restrict_users',
+        'restrict_groups',
+        'restrict_devices',
+      ]);
+      if (!value.restrict_users) {
         toSend.deny_all_users = false;
         toSend.denied_users = [];
       }
-      if (!restrictGroups) {
+      if (!value.restrict_groups) {
         toSend.deny_all_groups = false;
         toSend.denied_groups = [];
       }
-      if (!restrictDevices) {
+      if (!value.restrict_devices) {
         toSend.deny_all_network_devices = false;
         toSend.denied_network_devices = [];
       }
@@ -1002,167 +1003,172 @@ const Content = ({ rule: initialRule, tab }: Props) => {
           </DescriptionBlock>
           <SizedBox height={ThemeSpacing.Xl} />
           {isPresent(usersOptions) && (
-            <>
-              <Checkbox
-                active={restrictUsers}
-                onClick={() => {
-                  setRestrictUsers((current) => !current);
-                }}
-                text={m.acl_rule_limit_access_users()}
-              />
-              <Fold open={restrictUsers}>
-                <SizedBox height={ThemeSpacing.Xl2} />
-                <form.AppField name="deny_all_users">
-                  {(field) => (
-                    <field.FormRadio text={m.acl_rule_exclude_all_users()} value={true} />
-                  )}
-                </form.AppField>
-                <SizedBox height={ThemeSpacing.Md} />
-                <form.AppField name="deny_all_users">
-                  {(field) => (
-                    <field.FormRadio
-                      text={m.acl_rule_exclude_specific_users()}
-                      value={false}
-                    />
-                  )}
-                </form.AppField>
-                <form.Subscribe
-                  selector={(s) => s.values.deny_all_users === false && restrictUsers}
-                >
-                  {(open) => (
-                    <Fold open={open}>
-                      <SizedBox height={ThemeSpacing.Lg} />
-                      {isPresent(usersOptions) && (
-                        <form.AppField name="denied_users">
-                          {(field) => (
-                            <field.FormSelectMultiple
-                              toggleValue={!open}
-                              onToggleChange={() => {}}
-                              counterText={getSelectedUsersCounterText}
-                              editText={m.acl_rule_edit_users()}
-                              modalTitle={m.acl_rule_select_restricted_users()}
-                              options={usersOptions}
-                            />
-                          )}
-                        </form.AppField>
+            <form.AppField name="restrict_users">
+              {(field) => (
+                <>
+                  <field.FormCheckbox text={m.acl_rule_limit_access_users()} />
+                  <Fold open={field.state.value}>
+                    <SizedBox height={ThemeSpacing.Xl2} />
+                    <form.AppField name="deny_all_users">
+                      {(field) => (
+                        <field.FormRadio
+                          text={m.acl_rule_exclude_all_users()}
+                          value={true}
+                        />
                       )}
-                    </Fold>
-                  )}
-                </form.Subscribe>
-              </Fold>
-            </>
+                    </form.AppField>
+                    <SizedBox height={ThemeSpacing.Md} />
+                    <form.AppField name="deny_all_users">
+                      {(field) => (
+                        <field.FormRadio
+                          text={m.acl_rule_exclude_specific_users()}
+                          value={false}
+                        />
+                      )}
+                    </form.AppField>
+                    <form.Subscribe
+                      selector={(s) =>
+                        s.values.deny_all_users === false && s.values.restrict_users
+                      }
+                    >
+                      {(open) => (
+                        <Fold open={open}>
+                          <SizedBox height={ThemeSpacing.Lg} />
+                          {isPresent(usersOptions) && (
+                            <form.AppField name="denied_users">
+                              {(field) => (
+                                <field.FormSelectMultiple
+                                  toggleValue={!open}
+                                  onToggleChange={() => {}}
+                                  counterText={getSelectedUsersCounterText}
+                                  editText={m.acl_rule_edit_users()}
+                                  modalTitle={m.acl_rule_select_restricted_users()}
+                                  options={usersOptions}
+                                />
+                              )}
+                            </form.AppField>
+                          )}
+                        </Fold>
+                      )}
+                    </form.Subscribe>
+                  </Fold>
+                </>
+              )}
+            </form.AppField>
           )}
           <Divider spacing={ThemeSpacing.Lg} />
           {isPresent(groupsOptions) && (
-            <>
-              <Checkbox
-                active={restrictGroups}
-                onClick={() => {
-                  setRestrictGroups((current) => !current);
-                }}
-                text={m.acl_rule_limit_access_groups()}
-              />
-              <Fold open={restrictGroups}>
-                <SizedBox height={ThemeSpacing.Xl2} />
-                <form.AppField name="deny_all_groups">
-                  {(field) => (
-                    <field.FormRadio
-                      text={m.acl_rule_exclude_all_groups()}
-                      value={true}
-                    />
-                  )}
-                </form.AppField>
-                <SizedBox height={ThemeSpacing.Md} />
-                <form.AppField name="deny_all_groups">
-                  {(field) => (
-                    <field.FormRadio
-                      text={m.acl_rule_exclude_specific_groups()}
-                      value={false}
-                    />
-                  )}
-                </form.AppField>
-                <form.Subscribe
-                  selector={(s) => s.values.deny_all_groups === false && restrictGroups}
-                >
-                  {(open) => (
-                    <Fold open={open}>
-                      <SizedBox height={ThemeSpacing.Lg} />
-                      {isPresent(groupsOptions) && (
-                        <form.AppField name="denied_groups">
-                          {(field) => (
-                            <field.FormSelectMultiple
-                              toggleValue={!open}
-                              onToggleChange={() => {}}
-                              counterText={getSelectedGroupsCounterText}
-                              editText={m.location_access_edit_groups()}
-                              modalTitle={m.acl_rule_select_restricted_groups()}
-                              options={groupsOptions}
-                            />
-                          )}
-                        </form.AppField>
+            <form.AppField name="restrict_groups">
+              {(field) => (
+                <>
+                  <field.FormCheckbox text={m.acl_rule_limit_access_groups()} />
+                  <Fold open={field.state.value}>
+                    <SizedBox height={ThemeSpacing.Xl2} />
+                    <form.AppField name="deny_all_groups">
+                      {(field) => (
+                        <field.FormRadio
+                          text={m.acl_rule_exclude_all_groups()}
+                          value={true}
+                        />
                       )}
-                    </Fold>
-                  )}
-                </form.Subscribe>
-              </Fold>
-            </>
+                    </form.AppField>
+                    <SizedBox height={ThemeSpacing.Md} />
+                    <form.AppField name="deny_all_groups">
+                      {(field) => (
+                        <field.FormRadio
+                          text={m.acl_rule_exclude_specific_groups()}
+                          value={false}
+                        />
+                      )}
+                    </form.AppField>
+                    <form.Subscribe
+                      selector={(s) =>
+                        s.values.deny_all_groups === false && s.values.restrict_groups
+                      }
+                    >
+                      {(open) => (
+                        <Fold open={open}>
+                          <SizedBox height={ThemeSpacing.Lg} />
+                          {isPresent(groupsOptions) && (
+                            <form.AppField name="denied_groups">
+                              {(field) => (
+                                <field.FormSelectMultiple
+                                  toggleValue={!open}
+                                  onToggleChange={() => {}}
+                                  counterText={getSelectedGroupsCounterText}
+                                  editText={m.location_access_edit_groups()}
+                                  modalTitle={m.acl_rule_select_restricted_groups()}
+                                  options={groupsOptions}
+                                />
+                              )}
+                            </form.AppField>
+                          )}
+                        </Fold>
+                      )}
+                    </form.Subscribe>
+                  </Fold>
+                </>
+              )}
+            </form.AppField>
           )}
           <Divider spacing={ThemeSpacing.Lg} />
           {isPresent(networkDevicesOptions) && (
-            <>
-              <Checkbox
-                active={restrictDevices}
-                onClick={() => {
-                  setRestrictDevices((current) => !current);
-                }}
-                text={m.acl_rule_limit_access_network_devices()}
-              />
-              <Fold open={restrictDevices}>
-                <SizedBox height={ThemeSpacing.Xl2} />
-                <form.AppField name="deny_all_network_devices">
-                  {(field) => (
-                    <field.FormRadio
-                      text={m.acl_rule_exclude_all_network_devices()}
-                      value={true}
-                    />
-                  )}
-                </form.AppField>
-                <SizedBox height={ThemeSpacing.Md} />
-                <form.AppField name="deny_all_network_devices">
-                  {(field) => (
-                    <field.FormRadio
-                      text={m.acl_rule_exclude_specific_network_devices()}
-                      value={false}
-                    />
-                  )}
-                </form.AppField>
-                <form.Subscribe
-                  selector={(s) =>
-                    s.values.deny_all_network_devices === false && restrictDevices
-                  }
-                >
-                  {(open) => (
-                    <Fold open={open}>
-                      <SizedBox height={ThemeSpacing.Lg} />
-                      {isPresent(networkDevicesOptions) && (
-                        <form.AppField name="denied_network_devices">
-                          {(field) => (
-                            <field.FormSelectMultiple
-                              toggleValue={!open}
-                              onToggleChange={() => {}}
-                              counterText={getSelectedNetworkDevicesCounterText}
-                              editText={m.acl_rule_edit_network_devices()}
-                              modalTitle={m.acl_rule_select_restricted_network_devices()}
-                              options={networkDevicesOptions}
-                            />
-                          )}
-                        </form.AppField>
+            <form.AppField name="restrict_devices">
+              {(field) => (
+                <>
+                  <field.FormCheckbox
+                    text={m.acl_rule_limit_access_network_devices()}
+                    disabled={networkDevicesOptions.length === 0}
+                  />
+                  <Fold open={field.state.value}>
+                    <SizedBox height={ThemeSpacing.Xl2} />
+                    <form.AppField name="deny_all_network_devices">
+                      {(field) => (
+                        <field.FormRadio
+                          text={m.acl_rule_exclude_all_network_devices()}
+                          value={true}
+                        />
                       )}
-                    </Fold>
-                  )}
-                </form.Subscribe>
-              </Fold>
-            </>
+                    </form.AppField>
+                    <SizedBox height={ThemeSpacing.Md} />
+                    <form.AppField name="deny_all_network_devices">
+                      {(field) => (
+                        <field.FormRadio
+                          text={m.acl_rule_exclude_specific_network_devices()}
+                          value={false}
+                        />
+                      )}
+                    </form.AppField>
+                    <form.Subscribe
+                      selector={(s) =>
+                        s.values.deny_all_network_devices === false &&
+                        s.values.restrict_devices
+                      }
+                    >
+                      {(open) => (
+                        <Fold open={open}>
+                          <SizedBox height={ThemeSpacing.Lg} />
+                          {isPresent(networkDevicesOptions) && (
+                            <form.AppField name="denied_network_devices">
+                              {(field) => (
+                                <field.FormSelectMultiple
+                                  toggleValue={!open}
+                                  onToggleChange={() => {}}
+                                  counterText={getSelectedNetworkDevicesCounterText}
+                                  editText={m.acl_rule_edit_network_devices()}
+                                  modalTitle={m.acl_rule_select_restricted_network_devices()}
+                                  options={networkDevicesOptions}
+                                />
+                              )}
+                            </form.AppField>
+                          )}
+                        </Fold>
+                      )}
+                    </form.Subscribe>
+                  </Fold>
+                </>
+              )}
+            </form.AppField>
           )}
         </MarkedSection>
         <Divider spacing={ThemeSpacing.Xl2} />

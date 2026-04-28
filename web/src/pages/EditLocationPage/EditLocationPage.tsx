@@ -281,7 +281,7 @@ const getDisconnectRelevantChangedFields = (
   original: DisconnectRelevantLocationData,
   submitted: DisconnectRelevantLocationData,
 ): DisconnectRelevantField[] => {
-  const changedFields: DisconnectRelevantField[] = [];
+  const changedFields: Set<DisconnectRelevantField> = new Set();
 
   if (
     !areEqualStringArrays(
@@ -289,31 +289,31 @@ const getDisconnectRelevantChangedFields = (
       normalizeCommaSeparatedValues(submitted.address),
     )
   ) {
-    changedFields.push('address');
+    changedFields.add('address');
   }
 
   if (original.port !== submitted.port) {
-    changedFields.push('port');
+    changedFields.add('port');
   }
 
   if (original.mtu !== submitted.mtu) {
-    changedFields.push('mtu');
+    changedFields.add('mtu');
   }
 
   if (original.fwmark !== submitted.fwmark) {
-    changedFields.push('fwmark');
+    changedFields.add('fwmark');
   }
 
   if (original.location_mfa_mode !== submitted.location_mfa_mode) {
-    changedFields.push('location_mfa_mode');
+    changedFields.add('location_mfa_mode');
   }
 
   if (original.service_location_mode !== submitted.service_location_mode) {
-    changedFields.push('service_location_mode');
+    changedFields.add('service_location_mode');
   }
 
   if (original.allow_all_groups !== submitted.allow_all_groups) {
-    changedFields.push('allow_all_groups');
+    changedFields.add('allow_all_groups');
   }
 
   if (
@@ -323,10 +323,10 @@ const getDisconnectRelevantChangedFields = (
       normalizeSelectedGroups(submitted.allowed_groups),
     )
   ) {
-    changedFields.push('allowed_groups');
+    changedFields.add('allowed_groups');
   }
 
-  return changedFields;
+  return Array.from(changedFields);
 };
 
 const EditLocationForm = ({ location }: { location: NetworkLocation }) => {
