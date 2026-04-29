@@ -184,8 +184,8 @@ const PackageTab = () => {
         subtitle={m.gateway_setup_step_deploy_tabs_package_subtitle()}
       />
       <CodeSnippet
-        value={`sudo apt update 
-sudo apt install -y ca-certificates curl 
+        value={`sudo apt update
+sudo apt install -y ca-certificates curl
 #Add official Defguard public GPG key
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://apt.defguard.net/defguard.asc -o /etc/apt/keyrings/defguard.asc
@@ -193,7 +193,7 @@ sudo chmod a+r /etc/apt/keyrings/defguard.asc
 
 #Add APT repository
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/defguard.asc] https://apt.defguard.net/ trixie release " | \
-   sudo tee /etc/apt/sources.list.d/defguard.list > /dev/null 
+   sudo tee /etc/apt/sources.list.d/defguard.list > /dev/null
 
 sudo apt update
 sudo apt install defguard-gateway`}
