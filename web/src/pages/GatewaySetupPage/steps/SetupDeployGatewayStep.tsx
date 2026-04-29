@@ -192,7 +192,7 @@ sudo curl -fsSL https://apt.defguard.net/defguard.asc -o /etc/apt/keyrings/defgu
 sudo chmod a+r /etc/apt/keyrings/defguard.asc
 
 #Add APT repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/defguard.asc] https://apt.defguard.net/ trixie release " | \
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/defguard.asc] https://apt.defguard.net/ trixie release-2.0 " | \
    sudo tee /etc/apt/sources.list.d/defguard.list > /dev/null
 
 sudo apt update
