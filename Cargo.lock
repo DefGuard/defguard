@@ -1370,6 +1370,7 @@ dependencies = [
  "chrono",
  "claims",
  "clap",
+ "defguard_certs",
  "ed25519-dalek",
  "humantime",
  "ipnetwork",

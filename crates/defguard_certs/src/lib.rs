@@ -18,6 +18,7 @@ use x509_parser::{
 const CA_NAME: &str = "Defguard CA";
 const NOT_BEFORE_OFFSET_SECS: Duration = Duration::minutes(5);
 const DEFAULT_CERT_VALIDITY_DAYS: i64 = 1825;
+const WEB_HTTPS_CERT_VALIDITY_DAYS: i64 = 100;
 
 #[derive(Debug, Error)]
 pub enum CertificateError {
@@ -29,6 +30,10 @@ pub enum CertificateError {
     IoError(#[from] std::io::Error),
     #[error("CSR hostname mismatch: {0}")]
     HostnameMismatch(String),
+    #[error("CA certificate is not present; generate a CA first")]
+    CaCertMissing,
+    #[error("CA private key not available for signing")]
+    CaKeyMissing,
 }
 
 pub struct CertificateAuthority<'a> {
@@ -108,6 +113,14 @@ impl CertificateAuthority<'_> {
             csr,
             DEFAULT_CERT_VALIDITY_DAYS,
             &[ExtendedKeyUsagePurpose::ClientAuth],
+        )
+    }
+
+    pub fn sign_web_server_cert(&self, csr: &Csr) -> Result<Certificate, CertificateError> {
+        self.sign_csr_with_validity(
+            csr,
+            WEB_HTTPS_CERT_VALIDITY_DAYS,
+            &[ExtendedKeyUsagePurpose::ServerAuth],
         )
     }
 
@@ -441,6 +454,36 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         .unwrap();
         let signed_cert = ca.sign_server_cert(&csr).unwrap();
         assert!(signed_cert.pem().contains("BEGIN CERTIFICATE"));
+    }
+
+    #[test]
+    fn test_sign_web_server_cert() {
+        use x509_parser::parse_x509_certificate;
+
+        let ca = CertificateAuthority::new("Defguard CA", "email@email.com", 365).unwrap();
+        let cert_key_pair = generate_key_pair().unwrap();
+        let csr = Csr::new(
+            &cert_key_pair,
+            &["example.com".to_string(), "www.example.com".to_string()],
+            vec![
+                (rcgen::DnType::CommonName, "example.com"),
+                (rcgen::DnType::OrganizationName, "Example Org"),
+            ],
+        )
+        .unwrap();
+        let signed_cert = ca.sign_web_server_cert(&csr).unwrap();
+        assert!(signed_cert.pem().contains("BEGIN CERTIFICATE"));
+
+        let der = signed_cert.der();
+        let (_rem, parsed) = parse_x509_certificate(der).unwrap();
+        let validity = parsed.tbs_certificate.validity;
+        let not_before = validity.not_before.to_datetime();
+        let not_after = validity.not_after.to_datetime();
+        let days = (not_after - not_before).whole_days();
+        assert!(
+            (98..=100).contains(&days),
+            "expected 98-100 days, got {days}"
+        );
     }
 
     #[test]

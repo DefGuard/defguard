@@ -2,9 +2,15 @@ import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type z from 'zod';
 import { m } from '../../../../../paraglide/messages';
+import { AppText } from '../../../../../shared/defguard-ui/components/AppText/AppText';
+import { Divider } from '../../../../../shared/defguard-ui/components/Divider/Divider';
 import { EvenSplit } from '../../../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
-import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
+import {
+  TextStyle,
+  ThemeSpacing,
+  ThemeVariable,
+} from '../../../../../shared/defguard-ui/types';
 import { useAppForm } from '../../../../../shared/form';
 import { formChangeLogic } from '../../../../../shared/formLogic';
 import { joinCsv } from '../../../../../shared/utils/csv';
@@ -111,14 +117,21 @@ export const MicrosoftProviderForm = ({ onSubmit }: ProviderFormProps) => {
             </form.AppField>
           </EvenSplit>
           <SizedBox height={ThemeSpacing.Xl} />
+          <Divider />
+          <SizedBox height={ThemeSpacing.Xl} />
+          <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgMuted}>
+            {m.settings_openid_provider_helper_microsoft_group_match()}
+          </AppText>
+          <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="directory_sync_group_match">
             {(field) => (
               <field.FormInput
                 label={m.settings_openid_provider_label_sync_only_matching_groups()}
-                helper={m.settings_openid_provider_helper_microsoft_group_match()}
               />
             )}
           </form.AppField>
+          <SizedBox height={ThemeSpacing.Xl} />
+          <Divider />
           <SizedBox height={ThemeSpacing.Xl} />
           <form.AppField name="prefetch_users">
             {(field) => (
