@@ -45,6 +45,16 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, We
     Ok(info)
 }
 
+/// Extract a non-empty hostname from `url`, returning a [`WebError`] on failure.
+fn extract_hostname(url: &str, label: &str) -> Result<String, WebError> {
+    reqwest::Url::parse(url)
+        .map_err(|e| WebError::BadRequest(format!("Invalid {label}: {e}")))?
+        .host_str()
+        .filter(|h| !h.is_empty())
+        .map(ToString::to_string)
+        .ok_or_else(|| WebError::BadRequest(format!("{label} has no hostname")))
+}
+
 /// SSL configuration type for Defguard's internal (core) web server.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -141,10 +151,7 @@ pub async fn apply_internal_url_settings(
             None
         }
         InternalSslType::DefguardCa => {
-            let hostname = reqwest::Url::parse(defguard_url)
-                .ok()
-                .and_then(|u| u.host_str().map(ToString::to_string))
-                .unwrap_or_else(|| defguard_url.to_string());
+            let hostname = extract_hostname(defguard_url, "defguard URL")?;
 
             let ca = certs.certificate_authority()?;
             let key_pair = generate_key_pair()?;
@@ -245,11 +252,7 @@ pub async fn apply_external_url_settings(
                 ));
             }
 
-            reqwest::Url::parse(url)
-                .ok()
-                .and_then(|u| u.host_str().map(ToString::to_string))
-                .filter(|host| !host.is_empty())
-                .unwrap_or_else(|| url.to_string())
+            extract_hostname(url, "public proxy URL")?
         }
     };
 
@@ -347,10 +350,7 @@ pub(crate) async fn refresh_core_self_signed_cert(
     pool: &PgPool,
 ) -> Result<(String, String, NaiveDateTime), WebError> {
     let settings = Settings::get_current_settings();
-    let hostname = reqwest::Url::parse(&settings.defguard_url)
-        .ok()
-        .and_then(|u| u.host_str().map(ToString::to_string))
-        .unwrap_or_else(|| settings.defguard_url.clone());
+    let hostname = extract_hostname(&settings.defguard_url, "defguard URL")?;
 
     let mut certs = Certificates::get_or_default(pool)
         .await
@@ -384,10 +384,7 @@ pub(crate) async fn refresh_proxy_self_signed_cert(
     pool: &PgPool,
 ) -> Result<(String, String, NaiveDateTime), WebError> {
     let settings = Settings::get_current_settings();
-    let hostname = reqwest::Url::parse(&settings.public_proxy_url)
-        .ok()
-        .and_then(|u| u.host_str().map(ToString::to_string))
-        .unwrap_or_else(|| settings.public_proxy_url.clone());
+    let hostname = extract_hostname(&settings.public_proxy_url, "public proxy URL")?;
 
     let mut certs = Certificates::get_or_default(pool)
         .await
@@ -429,7 +426,9 @@ mod tests {
     };
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use super::{refresh_core_self_signed_cert, refresh_proxy_self_signed_cert};
+    use crate::error::WebError;
+
+    use super::{extract_hostname, refresh_core_self_signed_cert, refresh_proxy_self_signed_cert};
 
     fn make_ca() -> CertificateAuthority<'static> {
         CertificateAuthority::new("Test CA", "test@example.com", 365).expect("failed to create CA")
@@ -452,6 +451,55 @@ mod tests {
         settings.defguard_url = defguard_url.into();
         settings.public_proxy_url = public_proxy_url.into();
         set_settings(Some(settings));
+    }
+
+    #[test]
+    fn extract_hostname_ok() {
+        assert_eq!(
+            extract_hostname("https://core.example.com", "defguard URL").unwrap(),
+            "core.example.com"
+        );
+    }
+
+    #[test]
+    fn extract_hostname_ip_ok() {
+        assert_eq!(
+            extract_hostname("https://10.0.0.1:8443", "public proxy URL").unwrap(),
+            "10.0.0.1"
+        );
+    }
+
+    #[test]
+    fn extract_hostname_invalid_url() {
+        let err = extract_hostname("not-a-url", "defguard URL").unwrap_err();
+        assert!(matches!(err, WebError::BadRequest(_)));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Invalid defguard URL"),
+            "unexpected error: {msg}"
+        );
+    }
+
+    #[test]
+    fn extract_hostname_missing_host() {
+        let err = extract_hostname("mailto:test@example.com", "public proxy URL").unwrap_err();
+        assert!(matches!(err, WebError::BadRequest(_)));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("public proxy URL has no hostname"),
+            "unexpected error: {msg}"
+        );
+    }
+
+    #[test]
+    fn extract_hostname_empty_string() {
+        let err = extract_hostname("", "defguard URL").unwrap_err();
+        assert!(matches!(err, WebError::BadRequest(_)));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Invalid defguard URL"),
+            "unexpected error: {msg}"
+        );
     }
 
     #[sqlx::test]
