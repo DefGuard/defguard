@@ -30,6 +30,10 @@ pub enum CertificateError {
     IoError(#[from] std::io::Error),
     #[error("CSR hostname mismatch: {0}")]
     HostnameMismatch(String),
+    #[error("CA certificate is not present; generate a CA first")]
+    CaCertMissing,
+    #[error("CA private key not available for signing")]
+    CaKeyMissing,
 }
 
 pub struct CertificateAuthority<'a> {

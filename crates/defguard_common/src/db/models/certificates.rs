@@ -150,6 +150,24 @@ impl Certificates {
         Ok(Self::get(executor).await?.unwrap_or_default())
     }
 
+    /// Build a [`CertificateAuthority`] from the stored CA certificate and key pair.
+    ///
+    /// Returns an error if the CA has not been generated yet.
+    pub fn certificate_authority(
+        &self,
+    ) -> Result<defguard_certs::CertificateAuthority<'static>, defguard_certs::CertificateError>
+    {
+        let ca_cert_der = self
+            .ca_cert_der
+            .as_deref()
+            .ok_or(defguard_certs::CertificateError::CaCertMissing)?;
+        let ca_key_der = self
+            .ca_key_der
+            .as_deref()
+            .ok_or(defguard_certs::CertificateError::CaKeyMissing)?;
+        defguard_certs::CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)
+    }
+
     /// Returns (cert_pem, key_pem) if a cert is configured, None if the proxy runs plain HTTP.
     #[must_use]
     pub fn proxy_http_cert_pair(&self) -> Option<(&str, &str)> {

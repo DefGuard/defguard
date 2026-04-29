@@ -1,8 +1,7 @@
 use axum_server::tls_rustls::RustlsConfig;
 use chrono::NaiveDateTime;
 use defguard_certs::{
-    CertificateAuthority, CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair,
-    parse_pem_certificate,
+    CertificateInfo, Csr, DnType, PemLabel, der_to_pem, generate_key_pair, parse_pem_certificate,
 };
 use defguard_common::db::models::{
     Certificates, CoreCertSource, ProxyCertSource, Settings, settings::update_current_settings,
@@ -147,16 +146,7 @@ pub async fn apply_internal_url_settings(
                 .and_then(|u| u.host_str().map(ToString::to_string))
                 .unwrap_or_else(|| defguard_url.to_string());
 
-            let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
-                WebError::BadRequest(
-                    "CA certificate is not present; generate a CA first".to_string(),
-                )
-            })?;
-            let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
-                WebError::BadRequest("CA private key not available for signing".to_string())
-            })?;
-
-            let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+            let ca = certs.certificate_authority()?;
             let key_pair = generate_key_pair()?;
             let san = vec![hostname.clone()];
             let dn = vec![(DnType::CommonName, hostname.as_str())];
@@ -285,16 +275,7 @@ pub async fn apply_external_url_settings(
             None
         }
         ExternalSslType::DefguardCa => {
-            let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
-                WebError::BadRequest(
-                    "CA certificate is not present; generate a CA first".to_string(),
-                )
-            })?;
-            let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
-                WebError::BadRequest("CA private key not available for signing".to_string())
-            })?;
-
-            let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+            let ca = certs.certificate_authority()?;
             let key_pair = generate_key_pair()?;
             let san = vec![hostname.clone()];
             let dn = vec![(DnType::CommonName, hostname.as_str())];
@@ -375,14 +356,7 @@ pub(crate) async fn refresh_core_self_signed_cert(
         .await
         .map_err(WebError::from)?;
 
-    let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
-        WebError::BadRequest("CA certificate is not present; generate a CA first".to_string())
-    })?;
-    let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
-        WebError::BadRequest("CA private key not available for signing".to_string())
-    })?;
-
-    let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+    let ca = certs.certificate_authority()?;
     let key_pair = generate_key_pair()?;
     let san = vec![hostname.clone()];
     let dn = vec![(DnType::CommonName, hostname.as_str())];
@@ -419,14 +393,7 @@ pub(crate) async fn refresh_proxy_self_signed_cert(
         .await
         .map_err(WebError::from)?;
 
-    let ca_cert_der = certs.ca_cert_der.as_ref().ok_or_else(|| {
-        WebError::BadRequest("CA certificate is not present; generate a CA first".to_string())
-    })?;
-    let ca_key_der = certs.ca_key_der.as_ref().ok_or_else(|| {
-        WebError::BadRequest("CA private key not available for signing".to_string())
-    })?;
-
-    let ca = CertificateAuthority::from_cert_der_key_pair(ca_cert_der, ca_key_der)?;
+    let ca = certs.certificate_authority()?;
     let key_pair = generate_key_pair()?;
     let san = vec![hostname.clone()];
     let dn = vec![(DnType::CommonName, hostname.as_str())];
