@@ -344,7 +344,7 @@ const Content = ({ rule: initialRule, tab }: Props) => {
         .superRefine((vals, ctx) => {
           // check for collisions
           const message = m.acl_rule_error_allow_deny_conflict();
-          if (!vals.allow_all_users && !vals.deny_all_users) {
+          if (!vals.allow_all_users && !vals.deny_all_users && vals.restrict_users) {
             if (intersection(vals.allowed_users, vals.denied_users).length) {
               ctx.addIssue({
                 path: ['allowed_users'],
@@ -357,6 +357,8 @@ const Content = ({ rule: initialRule, tab }: Props) => {
                 message,
               });
             }
+          }
+          if (!vals.deny_all_groups && !vals.allow_all_groups && vals.restrict_groups) {
             if (intersection(vals.allowed_groups, vals.denied_groups).length) {
               ctx.addIssue({
                 path: ['allowed_groups'],
@@ -370,7 +372,11 @@ const Content = ({ rule: initialRule, tab }: Props) => {
               });
             }
           }
-          if (!vals.allow_all_network_devices && !vals.deny_all_network_devices) {
+          if (
+            vals.restrict_devices &&
+            !vals.allow_all_network_devices &&
+            !vals.deny_all_network_devices
+          ) {
             if (
               intersection(vals.allowed_network_devices, vals.denied_network_devices)
                 .length
