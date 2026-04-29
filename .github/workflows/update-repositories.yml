@@ -39,9 +39,9 @@ jobs:
       - name: Upload DEB to APT repository
         run: |
           if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
-            component="pre-release"
+            component="pre-release-2.0"
           else
-            component="release"
+            component="release-2.0"
           fi
 
           for deb_file in debs/*.deb; do
