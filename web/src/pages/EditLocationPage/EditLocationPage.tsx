@@ -270,7 +270,7 @@ const getDisconnectRelevantFieldLabel = (field: DisconnectRelevantField): string
     case 'service_location_mode':
       return m.location_edit_section_location_type();
     case 'allow_all_groups':
-      return m.location_access_section_label();
+      return m.location_access_all_groups_have_access();
     case 'allowed_groups':
       return m.location_access_section_label();
   }
