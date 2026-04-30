@@ -36,6 +36,9 @@ jobs:
 
       - name: Create SBOM with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_SHOW_SUPPRESSED: 1
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
           scan-type: 'fs'
           format: 'spdx-json'
@@ -47,6 +50,9 @@ jobs:
 
       - name: Create Docker image SBOM with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_SHOW_SUPPRESSED: 1
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'
@@ -57,6 +63,9 @@ jobs:
 
       - name: Create security advisory file with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_SHOW_SUPPRESSED: 1
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
           scan-type: 'fs'
           format: 'json'
@@ -68,6 +77,9 @@ jobs:
 
       - name: Create docker image security advisory file with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_SHOW_SUPPRESSED: 1
+          TRIVY_IGNOREFILE: "./.trivyignore.yaml"
         with:
           image-ref: "ghcr.io/defguard/defguard:${{ steps.vars.outputs.VERSION }}"
           scan-type: 'image'
