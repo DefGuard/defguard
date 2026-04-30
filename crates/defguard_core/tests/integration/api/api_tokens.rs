@@ -363,33 +363,11 @@ async fn dg25_3_test_token_invalidation(_: PgPoolOptions, options: PgConnectOpti
     let user_details = fetch_user_details(&client, "hpotter").await;
     assert!(!user_details.user.is_active);
 
-    // cannot create a new token for an inactive user
-    let response = client
-        .post("/api/v1/user/hpotter/api_token")
-        .json(&AddApiTokenData {
-            name: "inactive user token".into(),
-        })
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-
-    // re-enable the user
-    let mut user_details = fetch_user_details(&client, "hpotter").await;
-    user_details.user.is_active = true;
-    let response = client
-        .put("/api/v1/user/hpotter")
-        .json(&user_details.user)
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let user_details = fetch_user_details(&client, "hpotter").await;
-    assert!(user_details.user.is_active);
-
     // log out
     let response = client.post("/api/v1/auth/logout").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    // cannot use token for authentication anymore after reactivation
+    // cannot use token for authentication anymore
     let response = client
         .get("/api/v1/me")
         .header(

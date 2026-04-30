@@ -49,16 +49,6 @@ pub async fn add_api_token(
         ));
     }
 
-    if !user.is_active {
-        error!(
-            "User {} attempted to create API token for inactive user {username}",
-            session.user.username
-        );
-        return Err(WebError::Forbidden(
-            "Cannot create API token for inactive user",
-        ));
-    }
-
     // TODO: check if the name is already used
 
     // generate token string
