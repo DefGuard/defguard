@@ -16,7 +16,12 @@ use defguard_common::{
     types::user_info::UserInfo,
 };
 use defguard_core::{
+    enterprise::{
+        license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
+        limits::update_counts,
+    },
     events::ApiEventType,
+    grpc::proto::enterprise::license::LicenseLimits,
     handlers::{
         AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username,
         openid_clients::NewOpenIDClient,
@@ -610,6 +615,49 @@ async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
             user: new_test_user,
         },
     ]);
+}
+
+#[sqlx::test]
+async fn test_add_user_blocked_when_user_count_exceeds_license_limit(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let (mut client, pool) = make_client_with_db(pool).await;
+
+    client.login_user("admin", "pass123").await;
+    update_counts(&pool).await.unwrap();
+
+    let license = get_cached_license().clone();
+    set_cached_license(Some(License::new(
+        "test_customer".to_string(),
+        false,
+        None,
+        Some(LicenseLimits {
+            users: 1,
+            devices: 100,
+            locations: 100,
+            network_devices: Some(100),
+        }),
+        None,
+        LicenseTier::Business,
+        SupportType::Basic,
+    )));
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    set_cached_license(license);
+    client.assert_event_queue_is_empty();
 }
 
 #[sqlx::test]

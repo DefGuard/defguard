@@ -204,7 +204,7 @@ pub(crate) async fn create_network(
     if get_cached_license()
         .as_ref()
         .and_then(|l| l.limits.as_ref())
-        .is_some_and(|l| l.locations == location_count)
+        .is_some_and(|l| location_count >= l.locations)
     {
         error!("Adding location {network_name} blocked! License limit reached.");
         return Ok(WebError::Forbidden("License limit reached").into());
