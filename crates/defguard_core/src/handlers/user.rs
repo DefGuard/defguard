@@ -332,7 +332,7 @@ pub(crate) async fn add_user(
     if get_cached_license()
         .as_ref()
         .and_then(|l| l.limits.as_ref())
-        .is_some_and(|l| user_count >= l.users)
+        .is_some_and(|l| l.users == user_count)
     {
         error!("Adding user {username} blocked! License limit reached.");
         return Ok(WebError::Forbidden("License limit reached").into());

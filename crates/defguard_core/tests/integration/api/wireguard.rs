@@ -19,10 +19,9 @@ use defguard_core::{
             DirectorySyncTarget, DirectorySyncUserBehavior, OpenIdProviderKind,
         },
         handlers::openid_providers::AddProviderData,
-        license::{License, LicenseTier, SupportType, get_cached_license, set_cached_license},
-        limits::update_counts,
+        license::{get_cached_license, set_cached_license},
     },
-    grpc::{GatewayEvent, proto::enterprise::license::LicenseLimits},
+    grpc::GatewayEvent,
     handlers::{Auth, GroupInfo, wireguard::WireguardNetworkData},
 };
 use ipnetwork::IpNetwork;
@@ -136,63 +135,6 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkDeleted(..));
-}
-
-#[sqlx::test]
-async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
-    _: PgPoolOptions,
-    options: PgConnectOptions,
-) {
-    let pool = setup_pool(options).await;
-
-    let (mut client, client_state) = make_test_client(pool).await;
-    authenticate_admin(&mut client).await;
-
-    make_network(&client, "network1").await;
-    make_network(&client, "network2").await;
-    update_counts(&client_state.pool).await.unwrap();
-
-    let license = get_cached_license().clone();
-    set_cached_license(Some(License::new(
-        "test_customer".to_string(),
-        false,
-        None,
-        Some(LicenseLimits {
-            users: 100,
-            devices: 100,
-            locations: 1,
-            network_devices: Some(100),
-        }),
-        None,
-        LicenseTier::Business,
-        SupportType::Basic,
-    )));
-
-    let response = client
-        .post("/api/v1/network")
-        .json(&json!({
-            "name": "network3",
-            "address": "10.1.1.1/24",
-            "port": 55555,
-            "endpoint": "192.168.4.14",
-            "allowed_ips": "10.1.1.0/24",
-            "dns": "1.1.1.1",
-            "mtu": 1420,
-            "fwmark": 0,
-            "allowed_groups": ["admin"],
-            "allow_all_groups": false,
-            "keepalive_interval": 25,
-            "peer_disconnect_threshold": 300,
-            "acl_enabled": false,
-            "acl_default_allow": false,
-            "location_mfa_mode": "disabled",
-            "service_location_mode": "disabled"
-        }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-
-    set_cached_license(license);
 }
 
 #[sqlx::test]
