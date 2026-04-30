@@ -166,6 +166,10 @@ async fn process_batch(
                             })
                             .ok(),
                         ),
+                        DefguardEvent::RecoveryCodeLoginFailed { message } => (
+                            EventType::UserMfaLoginFailed,
+                            serde_json::to_value(LoginFailedMetadata { message }).ok(),
+                        ),
                         DefguardEvent::UserLogout => (EventType::UserLogout, None),
                         DefguardEvent::UserDeviceAdded { owner, device } => (
                             EventType::DeviceAdded,

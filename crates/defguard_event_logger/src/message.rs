@@ -123,6 +123,9 @@ pub enum DefguardEvent {
         mfa_method: MFAMethod,
         message: String,
     },
+    RecoveryCodeLoginFailed {
+        message: String,
+    },
     RecoveryCodeUsed,
     PasswordChangedByAdmin {
         user: User<Id>,
