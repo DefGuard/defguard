@@ -17,9 +17,6 @@ pub fn strip_scheme(s: &str) -> &str {
 /// Validates that `s` is a bare hostname or IP address with no embedded port,
 /// path, query string, or fragment. Intended for the `ip_or_domain` fields of
 /// gateway and proxy setup requests, where the port is supplied separately.
-///
-/// Returns `Ok(())` when `s` is acceptable, or an `Err` with a human-readable
-/// message describing the violation.
 pub fn validate_host_only(s: &str) -> Result<(), String> {
     let test_url = format!("http://{s}/");
     let url = Url::parse(&test_url)
