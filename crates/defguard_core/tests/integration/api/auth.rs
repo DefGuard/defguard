@@ -241,7 +241,7 @@ fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
 async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let client = make_client(pool).await;
+    let mut client = make_client(pool).await;
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -274,6 +274,8 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.get("/api/v1/me").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
+    client.drain_all_events();
+
     // provide wrong TOTP code
     let code = AuthCode::new("0");
     let response = client
@@ -282,6 +284,10 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    client.verify_api_events(&[ApiEventType::UserMfaLoginFailed {
+        mfa_method: MFAMethod::OneTimePassword,
+        message: "TOTP code verification failed".into(),
+    }]);
 
     // provide recovery code
     let code = recovery_codes.codes.unwrap().first().unwrap().clone();
@@ -291,6 +297,7 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    client.verify_api_events(&[ApiEventType::RecoveryCodeUsed]);
 
     assert_eq!(
         response.json::<AuthResponse>().await.user.username,
@@ -309,6 +316,8 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
+    client.drain_all_events();
+
     // reuse the same recovery code - shouldn't work
     let response = client
         .post("/api/v1/auth/recovery")
@@ -316,6 +325,9 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    client.verify_api_events(&[ApiEventType::RecoveryCodeLoginFailed {
+        message: "Recovery code verification failed".into(),
+    }]);
 
     // logout
     let response = client.post("/api/v1/auth/logout").send().await;
