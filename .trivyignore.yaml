@@ -5,3 +5,9 @@ vulnerabilities:
 - id: GHSA-w5hq-g745-h8pq
   expired_at: 2026-05-23
   statement: "Waiting for upstream patch in paraglide"
+- id: CVE-2026-29111
+  expired_at: 2026-05-31
+  statement: "No fixed version available in debian:13-slim - waiting for Debian to backport systemd patch"
+- id: CVE-2025-69720
+  expired_at: 2026-05-31
+  statement: "No fixed version available in debian:13-slim - waiting for Debian to release ncurses patch"
