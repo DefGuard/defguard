@@ -152,7 +152,6 @@ pub fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
 
 #[cfg(test)]
 mod test {
-    use super::{split_ip, validate_host_only};
     use std::str::FromStr;
 
     use super::*;
