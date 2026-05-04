@@ -325,9 +325,7 @@ async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-    client.verify_api_events(&[ApiEventType::RecoveryCodeLoginFailed {
-        message: "Recovery code verification failed".into(),
-    }]);
+    client.verify_api_events(&[ApiEventType::RecoveryCodeLoginFailed]);
 
     // logout
     let response = client.post("/api/v1/auth/logout").send().await;

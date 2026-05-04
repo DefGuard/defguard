@@ -1059,10 +1059,9 @@ pub async fn recovery_code(
             ));
         }
 
-        let message = "Recovery code verification failed".to_string();
         appstate.emit_event(ApiEvent {
             context: ApiRequestContext::new(user.id, username, insecure_ip, user_agent.to_string()),
-            event: Box::new(ApiEventType::RecoveryCodeLoginFailed { message }),
+            event: Box::new(ApiEventType::RecoveryCodeLoginFailed),
         })?;
     }
     Err(WebError::Http(StatusCode::UNAUTHORIZED))
