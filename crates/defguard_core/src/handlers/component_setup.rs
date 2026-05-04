@@ -270,6 +270,12 @@ pub async fn setup_proxy_tls_stream(
             return;
         }
 
+        // `u16` covers the expected port range, so we just have to check for 0
+        if request.grpc_port == 0 {
+            yield Ok(flow.error("grpc_port must not be 0"));
+            return;
+        }
+
         // Step 1: Check configuration
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
         match Proxy::find_by_address_port(&pool, ip_or_domain, i32::from(request.grpc_port)).await {
@@ -709,6 +715,11 @@ async fn perform_gateway_adoption(
     let ip_or_domain = strip_scheme(&ip_or_domain_raw);
 
     validate_host_only(ip_or_domain)?;
+
+    // `u16` covers the expected port range, so we just have to check for 0
+    if grpc_port == 0 {
+        return Err("grpc_port must not be 0".to_string());
+    }
 
     // License check: non-enterprise installs are limited to one gateway per network.
     if !is_enterprise_license_active() {
