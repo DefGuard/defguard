@@ -116,6 +116,7 @@
   "modal_add_api_title": "Add API token",
   "modal_add_api_token_copy_copy_label": "API Token",
   "modal_add_api_token_copy_warning": "Please copy and save the API token below now. You won't be able to see it again.",
+  "modal_add_api_token_disabled_user_error": "Can't create API token for disabled user",
   "modal_rename_api_title": "Rename API token",
   "modal_add_user_title": "Add new user",
   "modal_add_new_device_title": "Add new device",

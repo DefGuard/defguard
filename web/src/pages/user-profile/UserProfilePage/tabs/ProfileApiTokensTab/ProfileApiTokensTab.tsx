@@ -3,6 +3,7 @@ import { LayoutGrid } from '../../../../../shared/components/LayoutGrid/LayoutGr
 import { Button } from '../../../../../shared/defguard-ui/components/Button/Button';
 import { EmptyStateFlexible } from '../../../../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
 import { SizedBox } from '../../../../../shared/defguard-ui/components/SizedBox/SizedBox';
+import { Snackbar } from '../../../../../shared/defguard-ui/providers/snackbar/snackbar';
 import { ThemeSpacing } from '../../../../../shared/defguard-ui/types';
 import { openModal } from '../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../shared/hooks/modalControls/modalTypes';
@@ -44,7 +45,19 @@ export const ProfileApiTokensTab = ({ availability, isLoading }: Props) => {
 
 const AvailableProfileApiTokensTab = () => {
   const username = useUserProfile((s) => s.user.username);
+  const isUserActive = useUserProfile((s) => s.user.is_active);
   const apiTokens = useUserProfile((s) => s.apiTokens);
+
+  const handleAddApiToken = () => {
+    if (!isUserActive) {
+      Snackbar.error(m.modal_add_api_token_disabled_user_error());
+      return;
+    }
+
+    openModal(ModalName.AddApiToken, {
+      username,
+    });
+  };
 
   return (
     <>
@@ -57,11 +70,7 @@ const AvailableProfileApiTokensTab = () => {
             iconLeft: 'add-token',
             testId: 'add-token',
             text: m.profile_api_tokens_add(),
-            onClick: () => {
-              openModal(ModalName.AddApiToken, {
-                username,
-              });
-            },
+            onClick: handleAddApiToken,
           }}
         />
       )}
@@ -72,11 +81,7 @@ const AvailableProfileApiTokensTab = () => {
             <Button
               text={m.profile_api_tokens_add()}
               iconLeft="add-token"
-              onClick={() => {
-                openModal(ModalName.AddApiToken, {
-                  username,
-                });
-              }}
+              onClick={handleAddApiToken}
             />
           </ProfileTabHeader>
           <ProfileApiTokensTable />
