@@ -260,11 +260,11 @@ impl AuthenticationRequest {
         &self,
         oauth2client: &OAuth2Client<Id>,
     ) -> Result<(), CoreAuthErrorResponseType> {
-        // check scope: it is valid if any requested scope exists in the `oauth2client`
+        // check scope: it is valid only if all requested scopes exist in the `oauth2client`
         if self
             .scope
             .split(' ')
-            .all(|scope| !oauth2client.scope.iter().any(|s| s == scope))
+            .any(|scope| !oauth2client.scope.iter().any(|s| s == scope))
         {
             error!(
                 "Invalid scope for client {}: {}",
