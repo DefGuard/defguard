@@ -443,8 +443,8 @@ async fn test_adopt_gateway_rest_bad_address(_: PgPoolOptions, options: PgConnec
     assert!(
         body.get("msg")
             .and_then(Value::as_str)
-            .is_some_and(|msg| msg.contains("Invalid URL")),
-        "expected invalid URL error, got: {body}"
+            .is_some_and(|msg| msg.contains("not a valid hostname or IP address")),
+        "expected invalid host error, got: {body}"
     );
 }
 
@@ -577,5 +577,214 @@ async fn test_adopt_gateway_sse(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(
         gateways[0].certificate_serial.is_some(),
         "expected gateway in DB to have a certificate serial"
+    );
+}
+
+#[sqlx::test]
+async fn dg26_11_test_gateway_setup_sse_rejects_host_with_path(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, network_id) = setup_test_no_ca(&pool).await;
+
+    // Exact PoC from DG26-11: embedded port, path, query string, and a fragment
+    // that would swallow grpc_port when naively concatenated into a URL.
+    // %3A = ':', %2F = '/', %3F = '?', %3D = '=', %23 = '#' (percent-encoded so
+    // the query parser passes them through into ip_or_domain rather than treating
+    // them as separate query parameters).
+    let response = client
+        .get(format!(
+            "/api/v1/network/{network_id}/gateways/setup\
+             ?ip_or_domain=46.101.217.165%3A4444%2Ftestpath%3Fa%3Db%23\
+             &grpc_port=50061&common_name=test"
+        ))
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK); // SSE always 200
+
+    let body = response.text().await;
+    let events = parse_sse_data_events(&body);
+
+    let error_event = events
+        .iter()
+        .find(|e| e.get("error") == Some(&Value::Bool(true)))
+        .expect("expected an error SSE event");
+
+    let msg = error_event
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    assert!(
+        msg.contains("must not"),
+        "expected host validation error, got: {msg:?}"
+    );
+}
+
+#[sqlx::test]
+async fn dg26_11_test_gateway_setup_sse_rejects_port_zero(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, network_id) = setup_test_no_ca(&pool).await;
+
+    let response = client
+        .get(format!(
+            "/api/v1/network/{network_id}/gateways/setup\
+             ?ip_or_domain=127.0.0.1&grpc_port=0&common_name=test"
+        ))
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.text().await;
+    let events = parse_sse_data_events(&body);
+
+    let error_event = events
+        .iter()
+        .find(|e| e.get("error") == Some(&Value::Bool(true)))
+        .expect("expected an error SSE event");
+
+    let msg = error_event
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    assert!(
+        msg.contains("must not be 0"),
+        "expected port-zero validation error, got: {msg:?}"
+    );
+}
+
+#[sqlx::test]
+async fn dg26_11_test_adopt_gateway_rest_rejects_host_with_path(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, network_id) = setup_test_no_ca(&pool).await;
+
+    let response = client
+        .post(format!("/api/v1/network/{network_id}/gateways/adopt"))
+        .json(&serde_json::json!({
+            "name": "TestGateway",
+            "ip_or_domain": "46.101.217.165:4444/testpath?a=b#",
+            "grpc_port": 50061
+        }))
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: Value = response.json().await;
+    assert!(
+        body.get("msg")
+            .and_then(Value::as_str)
+            .is_some_and(|msg| msg.contains("must not")),
+        "expected host validation error, got: {body}"
+    );
+}
+
+#[sqlx::test]
+async fn dg26_11_test_adopt_gateway_rest_rejects_port_zero(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, network_id) = setup_test_no_ca(&pool).await;
+
+    let response = client
+        .post(format!("/api/v1/network/{network_id}/gateways/adopt"))
+        .json(&serde_json::json!({
+            "name": "TestGateway",
+            "ip_or_domain": "127.0.0.1",
+            "grpc_port": 0
+        }))
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body: Value = response.json().await;
+    assert!(
+        body.get("msg")
+            .and_then(Value::as_str)
+            .is_some_and(|msg| msg.contains("must not be 0")),
+        "expected port-zero validation error, got: {body}"
+    );
+}
+
+#[sqlx::test]
+async fn dg26_11_test_proxy_setup_sse_rejects_host_with_path(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .get(
+            "/api/v1/proxy/setup/stream\
+             ?ip_or_domain=46.101.217.165%3A4444%2Ftestpath%3Fa%3Db%23\
+             &grpc_port=50061&common_name=test",
+        )
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.text().await;
+    let events = parse_sse_data_events(&body);
+
+    let error_event = events
+        .iter()
+        .find(|e| e.get("error") == Some(&Value::Bool(true)))
+        .expect("expected an error SSE event");
+
+    let msg = error_event
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    assert!(
+        msg.contains("must not"),
+        "expected host validation error, got: {msg:?}"
+    );
+}
+
+#[sqlx::test]
+async fn dg26_11_test_proxy_setup_sse_rejects_port_zero(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (mut client, _) = make_test_client(pool).await;
+    client.login_user("admin", "pass123").await;
+
+    let response = client
+        .get(
+            "/api/v1/proxy/setup/stream\
+             ?ip_or_domain=127.0.0.1&grpc_port=0&common_name=test",
+        )
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.text().await;
+    let events = parse_sse_data_events(&body);
+
+    let error_event = events
+        .iter()
+        .find(|e| e.get("error") == Some(&Value::Bool(true)))
+        .expect("expected an error SSE event");
+
+    let msg = error_event
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    assert!(
+        msg.contains("must not be 0"),
+        "expected port-zero validation error, got: {msg:?}"
     );
 }
