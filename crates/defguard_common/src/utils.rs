@@ -1,5 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use url::Url;
+
 use ipnetwork::IpNetwork;
 use serde::Serialize;
 
@@ -10,6 +12,36 @@ pub fn strip_scheme(s: &str) -> &str {
     s.strip_prefix("https://")
         .or_else(|| s.strip_prefix("http://"))
         .unwrap_or(s)
+}
+
+/// Validates that `s` is a bare hostname or IP address with no embedded port,
+/// path, query string, or fragment. Intended for the `ip_or_domain` fields of
+/// gateway and proxy setup requests, where the port is supplied separately.
+///
+/// Returns `Ok(())` when `s` is acceptable, or an `Err` with a human-readable
+/// message describing the violation.
+pub fn validate_host_only(s: &str) -> Result<(), String> {
+    let test_url = format!("http://{s}/");
+    let url = Url::parse(&test_url)
+        .map_err(|_| format!("'{s}' is not a valid hostname or IP address"))?;
+    if url.host_str().is_none() {
+        return Err(format!("'{s}' is not a valid hostname or IP address"));
+    }
+    if url.port().is_some() {
+        return Err(format!(
+            "'{s}' must not include a port; provide the port in the grpc_port field"
+        ));
+    }
+    if url.path() != "/" {
+        return Err(format!("'{s}' must not include a path component"));
+    }
+    if url.query().is_some() {
+        return Err(format!("'{s}' must not include a query string"));
+    }
+    if url.fragment().is_some() {
+        return Err(format!("'{s}' must not include a fragment"));
+    }
+    Ok(())
 }
 
 /// Parse a string with comma-separated IP addresses.
@@ -123,6 +155,7 @@ pub fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
 
 #[cfg(test)]
 mod test {
+    use super::{split_ip, validate_host_only};
     use std::str::FromStr;
 
     use super::*;
@@ -164,5 +197,61 @@ mod test {
         assert_eq!(net.network_part, "2001:0db8:0000:0000:0010:8a2e:0370:");
         assert_eq!(net.modifiable_part, "aaaa");
         assert_eq!(net.network_prefix, "125");
+    }
+
+    #[test]
+    fn test_validate_host_only_accepts_bare_ipv4() {
+        assert!(validate_host_only("192.168.1.1").is_ok());
+        assert!(validate_host_only("10.0.0.1").is_ok());
+    }
+
+    #[test]
+    fn test_validate_host_only_accepts_bare_ipv6() {
+        assert!(validate_host_only("[::1]").is_ok());
+        assert!(validate_host_only("[2001:db8::1]").is_ok());
+    }
+
+    #[test]
+    fn test_validate_host_only_accepts_bare_hostname() {
+        assert!(validate_host_only("gateway.example.com").is_ok());
+        assert!(validate_host_only("my-gateway").is_ok());
+        assert!(validate_host_only("edge01.vpn.internal").is_ok());
+    }
+
+    #[test]
+    fn test_validate_host_only_rejects_embedded_port() {
+        let err = validate_host_only("192.168.1.1:4444").unwrap_err();
+        assert!(err.contains("must not include a port"), "got: {err}");
+
+        let err = validate_host_only("gateway.example.com:8443").unwrap_err();
+        assert!(err.contains("must not include a port"), "got: {err}");
+    }
+
+    #[test]
+    fn test_validate_host_only_rejects_path() {
+        let err = validate_host_only("192.168.1.1/testpath").unwrap_err();
+        assert!(err.contains("must not include a path"), "got: {err}");
+    }
+
+    #[test]
+    fn test_validate_host_only_rejects_query_string() {
+        // A bare query string without a path separator is not reachable via URL
+        // parsing in practice, but a port+path+query is.
+        let err = validate_host_only("192.168.1.1:4444/path?a=b").unwrap_err();
+        assert!(err.contains("must not"), "got: {err}");
+    }
+
+    #[test]
+    fn dg26_11_test_validate_host_only_rejects_fragment() {
+        // Fragment is the key part of the DG26-11 PoC: it absorbs the grpc_port.
+        let err = validate_host_only("192.168.1.1/path?a=b#").unwrap_err();
+        assert!(err.contains("must not"), "got: {err}");
+    }
+
+    #[test]
+    fn dg26_11_test_validate_host_only_rejects_poc_input() {
+        // Exact input from the DG26-11 audit report (after URL-decode of %23 -> #).
+        let err = validate_host_only("46.101.217.165:4444/testpath?a=b#").unwrap_err();
+        assert!(err.contains("must not"), "got: {err}");
     }
 }
