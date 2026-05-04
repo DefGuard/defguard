@@ -428,3 +428,130 @@ async fn test_token_client_credentials(_: PgPoolOptions, options: PgConnectOptio
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
+
+/// Regression test for DG26-6: scope parameter must be validated per individual element, not as a
+/// whole. Sending scope=openid%20email when the client only allows ["openid"] must be rejected
+/// with invalid_scope.
+#[sqlx::test]
+async fn dg26_6_test_authorize_scope_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    // authenticate
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create client with only "openid" scope
+    let oauth2client = NewOpenIDClient {
+        name: "Scope test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth2client: OAuth2Client<Id> = response.json().await;
+
+    // authorize client for the test user so session-based redirect returns a code, not consent
+    OAuth2AuthorizedApp::new(1, oauth2client.id)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // valid request: scope=openid (the only allowed scope) - must succeed
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=valid",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(location.domain().unwrap(), "test.server.tnt");
+    assert!(location.query().unwrap().contains("code="));
+
+    // forbidden single scope: scope=email - must be rejected
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=email&\
+            state=forbidden_single",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    let mut pairs = location.query_pairs();
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("error"), Cow::Borrowed("invalid_scope")))
+    );
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("state"), Cow::Borrowed("forbidden_single")))
+    );
+
+    // mixed scope=openid%20email - second token must not be accepted
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid%20email&\
+            state=mixed",
+            oauth2client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    let mut pairs = location.query_pairs();
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("error"), Cow::Borrowed("invalid_scope")))
+    );
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("state"), Cow::Borrowed("mixed")))
+    );
+}
