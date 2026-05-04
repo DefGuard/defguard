@@ -26,6 +26,9 @@ jobs:
         run: |
           npm i -g npm pnpm
           pnpm i --frozen-lockfile
+      - name: Generate paraglide messages
+        working-directory: ./web
+        run: pnpm exec paraglide-js compile --project ./project.inlang --outdir ./src/paraglide
       - name: Run tests
         working-directory: ./web
         run: pnpm run test
