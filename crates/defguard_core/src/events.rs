@@ -102,6 +102,7 @@ pub enum ApiEventType {
         mfa_method: MFAMethod,
         message: String,
     },
+    RecoveryCodeLoginFailed,
     RecoveryCodeUsed,
     PasswordChangedByAdmin {
         user: User<Id>,
