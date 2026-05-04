@@ -26,10 +26,9 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
         } => Some(format!(
             "User login using {mfa_method} failed with: {message}"
         )),
-        DefguardEvent::RecoveryCodeLoginFailed => Some(
-            "User login using recovery code failed with: Recovery code verification failed"
-                .to_string(),
-        ),
+        DefguardEvent::RecoveryCodeLoginFailed => {
+            Some("User login with a recovery code failed".to_string())
+        }
         DefguardEvent::UserLogout => None,
         DefguardEvent::RecoveryCodeUsed => None,
         DefguardEvent::PasswordChanged => None,
