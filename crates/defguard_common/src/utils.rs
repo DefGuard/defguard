@@ -232,22 +232,22 @@ mod test {
     #[test]
     fn test_validate_host_only_rejects_query_string() {
         // A bare query string without a path separator is not reachable via URL
-        // parsing in practice, but a port+path+query is.
+        // parsing in practice, but a port+path+query is. The port check fires first.
         let err = validate_host_only("192.168.1.1:4444/path?a=b").unwrap_err();
-        assert!(err.contains("must not"), "got: {err}");
+        assert!(err.contains("must not include a port"), "got: {err}");
     }
 
     #[test]
     fn dg26_11_test_validate_host_only_rejects_fragment() {
-        // Fragment is the key part of the DG26-11 PoC: it absorbs the grpc_port.
-        let err = validate_host_only("192.168.1.1/path?a=b#").unwrap_err();
-        assert!(err.contains("must not"), "got: {err}");
+        let err = validate_host_only("192.168.1.1#frag").unwrap_err();
+        assert!(err.contains("must not include a fragment"), "got: {err}");
     }
 
     #[test]
     fn dg26_11_test_validate_host_only_rejects_poc_input() {
         // Exact input from the DG26-11 audit report (after URL-decode of %23 -> #).
+        // The embedded port (:4444) is the first violation the validator encounters.
         let err = validate_host_only("46.101.217.165:4444/testpath?a=b#").unwrap_err();
-        assert!(err.contains("must not"), "got: {err}");
+        assert!(err.contains("must not include a port"), "got: {err}");
     }
 }

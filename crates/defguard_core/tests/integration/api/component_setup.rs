@@ -617,7 +617,7 @@ async fn dg26_11_test_gateway_setup_sse_rejects_host_with_path(
         .and_then(Value::as_str)
         .unwrap_or("");
     assert!(
-        msg.contains("must not"),
+        msg.contains("must not include a port"),
         "expected host validation error, got: {msg:?}"
     );
 }
@@ -653,7 +653,7 @@ async fn dg26_11_test_gateway_setup_sse_rejects_port_zero(
         .and_then(Value::as_str)
         .unwrap_or("");
     assert!(
-        msg.contains("must not be 0"),
+        msg.contains("grpc_port must not be 0"),
         "expected port-zero validation error, got: {msg:?}"
     );
 }
@@ -681,7 +681,7 @@ async fn dg26_11_test_adopt_gateway_rest_rejects_host_with_path(
     assert!(
         body.get("msg")
             .and_then(Value::as_str)
-            .is_some_and(|msg| msg.contains("must not")),
+            .is_some_and(|msg| msg.contains("must not include a port")),
         "expected host validation error, got: {body}"
     );
 }
@@ -709,7 +709,7 @@ async fn dg26_11_test_adopt_gateway_rest_rejects_port_zero(
     assert!(
         body.get("msg")
             .and_then(Value::as_str)
-            .is_some_and(|msg| msg.contains("must not be 0")),
+            .is_some_and(|msg| msg.contains("grpc_port must not be 0")),
         "expected port-zero validation error, got: {body}"
     );
 }
@@ -747,7 +747,7 @@ async fn dg26_11_test_proxy_setup_sse_rejects_host_with_path(
         .and_then(Value::as_str)
         .unwrap_or("");
     assert!(
-        msg.contains("must not"),
+        msg.contains("must not include a port"),
         "expected host validation error, got: {msg:?}"
     );
 }
@@ -784,7 +784,7 @@ async fn dg26_11_test_proxy_setup_sse_rejects_port_zero(
         .and_then(Value::as_str)
         .unwrap_or("");
     assert!(
-        msg.contains("must not be 0"),
+        msg.contains("grpc_port must not be 0"),
         "expected port-zero validation error, got: {msg:?}"
     );
 }
