@@ -28,7 +28,7 @@ use defguard_common::{
         },
     },
     types::proxy::ProxyControlMessage,
-    utils::strip_scheme,
+    utils::{strip_scheme, validate_host_only},
 };
 use defguard_proto::{
     common::{CertBundle, CertificateInfo},
@@ -264,6 +264,11 @@ pub async fn setup_proxy_tls_stream(
         debug!("License check passed");
 
         let ip_or_domain = strip_scheme(&request.ip_or_domain);
+
+        if let Err(msg) = validate_host_only(ip_or_domain) {
+            yield Ok(flow.error(&msg));
+            return;
+        }
 
         // Step 1: Check configuration
         yield Ok(flow.step(SetupStep::CheckingConfiguration));
@@ -702,6 +707,8 @@ async fn perform_gateway_adoption(
     };
 
     let ip_or_domain = strip_scheme(&ip_or_domain_raw);
+
+    validate_host_only(ip_or_domain)?;
 
     // License check: non-enterprise installs are limited to one gateway per network.
     if !is_enterprise_license_active() {
