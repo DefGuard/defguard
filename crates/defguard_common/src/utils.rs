@@ -14,29 +14,33 @@ pub fn strip_scheme(s: &str) -> &str {
         .unwrap_or(s)
 }
 
-/// Validates that `s` is a bare hostname or IP address with no embedded port,
-/// path, query string, or fragment. Intended for the `ip_or_domain` fields of
-/// gateway and proxy setup requests, where the port is supplied separately.
-pub fn validate_host_only(s: &str) -> Result<(), String> {
-    let test_url = format!("http://{s}/");
+/// Validates that `ip_or_domain` is a bare hostname or IP address with no embedded port,
+/// path, query string, or fragment.
+/// Intended for the `ip_or_domain` fields of Gateway and Edge setup requests.
+pub fn validate_host_only(ip_or_domain: &str) -> Result<(), String> {
+    let test_url = format!("http://{ip_or_domain}/");
     let url = Url::parse(&test_url)
-        .map_err(|_| format!("'{s}' is not a valid hostname or IP address"))?;
+        .map_err(|_| format!("'{ip_or_domain}' is not a valid hostname or IP address"))?;
     if url.host_str().is_none() {
-        return Err(format!("'{s}' is not a valid hostname or IP address"));
+        return Err(format!(
+            "'{ip_or_domain}' is not a valid hostname or IP address"
+        ));
     }
     if url.port().is_some() {
         return Err(format!(
-            "'{s}' must not include a port; provide the port in the grpc_port field"
+            "'{ip_or_domain}' must not include a port; provide the port in the grpc_port field"
         ));
     }
     if url.path() != "/" {
-        return Err(format!("'{s}' must not include a path component"));
+        return Err(format!(
+            "'{ip_or_domain}' must not include a path component"
+        ));
     }
     if url.query().is_some() {
-        return Err(format!("'{s}' must not include a query string"));
+        return Err(format!("'{ip_or_domain}' must not include a query string"));
     }
     if url.fragment().is_some() {
-        return Err(format!("'{s}' must not include a fragment"));
+        return Err(format!("'{ip_or_domain}' must not include a fragment"));
     }
     Ok(())
 }
