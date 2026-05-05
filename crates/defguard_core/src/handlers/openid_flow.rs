@@ -165,6 +165,62 @@ where
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct OAuthState(String);
+
+impl OAuthState {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for OAuthState {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Serialize for OAuthState {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+struct OAuthStateVisitor;
+
+impl Visitor<'_> for OAuthStateVisitor {
+    type Value = OAuthState;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            formatter,
+            "a string containing only VSCHAR characters (%x20-7E)"
+        )
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        if s.bytes().all(|b| (0x20..=0x7E).contains(&b)) {
+            Ok(OAuthState(s.to_owned()))
+        } else {
+            Err(DeError::invalid_value(Unexpected::Str(s), &self))
+        }
+    }
+}
+
+/// Custom `Deserialize` implementation to enforce `state` parameter
+/// validation per RFC 6749 Appendix A.5.
+/// Only characters in the VSCHAR set (%x20-7E) are accepted.
+impl<'de> Deserialize<'de> for OAuthState {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_str(OAuthStateVisitor)
+    }
+}
+
 /// List of values for "response_type" field.
 struct FieldResponseTypes(Vec<CoreResponseType>);
 
