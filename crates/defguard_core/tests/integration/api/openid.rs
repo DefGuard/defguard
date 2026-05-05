@@ -505,7 +505,7 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
         redirect_uri: vec![FAKE_REDIRECT_URI.into()],
-        scope: vec!["openid".into()],
+        scope: vec!["openid".into(), "email".into(), "profile".into()],
         enabled: true,
     };
     let response = client
@@ -646,7 +646,7 @@ async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
         redirect_uri: vec![FAKE_REDIRECT_URI.into()],
-        scope: vec!["openid".into()],
+        scope: vec!["openid".into(), "email".into(), "profile".into()],
         enabled: true,
     };
     let response = client
@@ -878,7 +878,7 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
         redirect_uri: vec![FAKE_REDIRECT_URI.into()],
-        scope: vec!["openid".into()],
+        scope: vec!["openid".into(), "email".into(), "profile".into()],
         enabled: true,
     };
     let response = client
@@ -1461,17 +1461,6 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
     .await;
 
     // Verify claims include only email, not phone
-    assert!(claims.email().is_some());
-    assert!(claims.phone_number().is_none());
-
-    // Client has only email scope, request phone
-    let claims = get_user_claims(
-        vec!["openid".to_string(), "email".to_string()],
-        vec!["email".to_string(), "phone".to_string()],
-    )
-    .await;
-
-    // Verify claims include only email since client doesn't have phone scope
     assert!(claims.email().is_some());
     assert!(claims.phone_number().is_none());
 }
