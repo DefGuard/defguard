@@ -61,6 +61,12 @@ pub async fn add_api_token(
 
     // TODO: check if the name is already used
 
+    if data.name.contains('<') || data.name.contains('>') {
+        return Err(WebError::BadRequest(
+            "Token name contains forbidden characters".into(),
+        ));
+    }
+
     // generate token string
     // all API tokens start with a `dg-` prefix
     let token_string = format!("dg-{}", gen_alphanumeric(API_TOKEN_LENGTH));
@@ -156,6 +162,13 @@ pub async fn rename_api_token(
     Json(data): Json<RenameRequest>,
 ) -> ApiResult {
     debug!("Renaming API token {token_id} for user {username}");
+
+    if data.name.contains('<') || data.name.contains('>') {
+        return Err(WebError::BadRequest(
+            "Token name contains forbidden characters".into(),
+        ));
+    }
+
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut token) = ApiToken::find_by_id(&appstate.pool, token_id).await? {
         if !session.is_admin && user.id != token.user_id {
