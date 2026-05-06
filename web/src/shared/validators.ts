@@ -250,3 +250,7 @@ export const aclDestinationValidator = z
     (value: string) => parseAclDestinations(value) !== null,
     m.form_error_invalid(),
   );
+
+export const noHtmlValidator = z
+  .string()
+  .refine((value: string) => !value.includes('<') && !value.includes('>'), m.form_error_forbidden_char());

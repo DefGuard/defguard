@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
+import { noHtmlValidator } from '../../../../../../../shared/validators';
 import { CopyField } from '../../../../../../../shared/defguard-ui/components/CopyField/CopyField';
 import { IconKind } from '../../../../../../../shared/defguard-ui/components/Icon';
 import { InfoBanner } from '../../../../../../../shared/defguard-ui/components/InfoBanner/InfoBanner';
@@ -56,7 +57,7 @@ export const AddApiTokenModal = () => {
 };
 
 const formSchema = z.object({
-  name: z.string().trim().min(1, m.form_error_required()),
+  name: noHtmlValidator.and(z.string().trim().min(1, m.form_error_required())),
 });
 
 type FormFields = z.infer<typeof formSchema>;

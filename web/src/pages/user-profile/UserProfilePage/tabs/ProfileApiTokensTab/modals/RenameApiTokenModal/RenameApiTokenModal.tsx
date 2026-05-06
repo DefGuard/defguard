@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
+import { noHtmlValidator } from '../../../../../../../shared/validators';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
@@ -47,7 +48,7 @@ export const RenameApiTokenModal = () => {
 };
 
 const formSchema = z.object({
-  name: z.string().trim().min(1, m.form_error_required()),
+  name: noHtmlValidator.and(z.string().trim().min(1, m.form_error_required())),
 });
 
 const ModalContent = ({ id, name, username }: OpenRenameApiTokenModal) => {
