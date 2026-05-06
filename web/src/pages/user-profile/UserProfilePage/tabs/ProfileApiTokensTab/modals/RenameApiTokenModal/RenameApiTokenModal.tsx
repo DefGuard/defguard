@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import z from 'zod';
 import { m } from '../../../../../../../paraglide/messages';
 import api from '../../../../../../../shared/api/api';
-import { noHtmlValidator } from '../../../../../../../shared/validators';
 import { Modal } from '../../../../../../../shared/defguard-ui/components/Modal/Modal';
 import { ModalControls } from '../../../../../../../shared/defguard-ui/components/ModalControls/ModalControls';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
@@ -17,6 +16,7 @@ import {
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenRenameApiTokenModal } from '../../../../../../../shared/hooks/modalControls/types';
+import { noHtmlValidator } from '../../../../../../../shared/validators';
 
 const modalNameKey = ModalName.RenameApiToken;
 

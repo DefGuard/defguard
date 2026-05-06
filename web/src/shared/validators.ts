@@ -253,4 +253,7 @@ export const aclDestinationValidator = z
 
 export const noHtmlValidator = z
   .string()
-  .refine((value: string) => !value.includes('<') && !value.includes('>'), m.form_error_forbidden_char());
+  .refine(
+    (value: string) => !value.includes('<') && !value.includes('>'),
+    m.form_error_forbidden_char(),
+  );
