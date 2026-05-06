@@ -296,7 +296,7 @@ pub struct AuthenticationRequest {
     client_id: String,
     // client_secret: Option<String>,
     redirect_uri: String,
-    state: Option<String>,
+    state: Option<OAuthState>,
     // response_mode: Option<String>,
     nonce: Option<String>,
     // display: Option<String>,
