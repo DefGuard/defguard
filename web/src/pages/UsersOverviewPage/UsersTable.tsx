@@ -79,7 +79,7 @@ export const UsersTable = () => {
       onClick: () => {
         if (
           license?.limits &&
-          license.limits.users.current === license.limits.users.limit
+          license.limits.users.current >= license.limits.users.limit
         ) {
           openModal(ModalName.LimitReached);
         } else {

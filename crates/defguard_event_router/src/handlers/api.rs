@@ -30,6 +30,10 @@ impl EventRouter {
                 })),
                 None,
             ),
+            ApiEventType::RecoveryCodeLoginFailed => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::RecoveryCodeLoginFailed)),
+                None,
+            ),
             ApiEventType::RecoveryCodeUsed => (
                 LoggerEvent::Defguard(Box::new(DefguardEvent::RecoveryCodeUsed)),
                 None,

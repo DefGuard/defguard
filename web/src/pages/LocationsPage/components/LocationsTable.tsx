@@ -68,7 +68,7 @@ export const LocationsTable = () => {
       onClick: () => {
         if (
           license?.limits &&
-          license.limits.locations.current === license.limits.locations.limit
+          license.limits.locations.current >= license.limits.locations.limit
         ) {
           openModal(ModalName.LimitReached);
         } else {

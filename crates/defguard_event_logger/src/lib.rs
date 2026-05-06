@@ -166,6 +166,13 @@ async fn process_batch(
                             })
                             .ok(),
                         ),
+                        DefguardEvent::RecoveryCodeLoginFailed => (
+                            EventType::UserMfaLoginFailed,
+                            serde_json::to_value(LoginFailedMetadata {
+                                message: "Recovery code verification failed".to_string(),
+                            })
+                            .ok(),
+                        ),
                         DefguardEvent::UserLogout => (EventType::UserLogout, None),
                         DefguardEvent::UserDeviceAdded { owner, device } => (
                             EventType::DeviceAdded,
