@@ -428,3 +428,82 @@ async fn test_token_client_credentials(_: PgPoolOptions, options: PgConnectOptio
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
+
+#[sqlx::test]
+async fn dg26_7_test_state_parameter_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    // Authenticate as admin.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create an OAuth2 client.
+    let oauth2client = NewOpenIDClient {
+        name: "State test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth_client: OAuth2Client<Id> = response.json().await;
+
+    // Pre-authorise the app for the admin user (id=1).
+    OAuth2AuthorizedApp::new(1, oauth_client.id)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // A numeric-only state value (e.g. "123456") must be accepted: all digits are
+    // within VSCHAR (%x30-39) so the backend should echo the state back in the redirect.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=123456",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    // Redirect must carry the auth code and echo the state back unchanged.
+    assert!(
+        redirect_url
+            .query_pairs()
+            .any(|(k, v)| k == "state" && v == "123456")
+    );
+
+    // A state containing bytes outside VSCHAR (%x20-7E) must be rejected with 400.
+    // The raw bytes \xEE\xFF\x02\x03 are percent-encoded below.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=%EE%FF%02%03",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
