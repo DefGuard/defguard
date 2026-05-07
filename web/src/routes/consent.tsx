@@ -5,9 +5,9 @@ import { OpenIdConsentPage } from '../pages/OpenIdConsentPage/OpenIdConsentPage'
 import api from '../shared/api/api';
 import { useAuth } from '../shared/hooks/useAuth';
 
-const searchSchema = z.object({
+export const searchSchema = z.object({
   client_id: z.string().min(1),
-  state: z.string().min(1),
+  state: z.coerce.string().min(1).optional(),
   redirect_uri: z.string().min(1),
   response_type: z.string(),
   scope: z.string().min(1),
