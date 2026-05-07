@@ -491,6 +491,22 @@ async fn dg26_7_test_state_parameter_validation(_: PgPoolOptions, options: PgCon
             .any(|(k, v)| k == "state" && v == "123456")
     );
 
+    // An empty state (state= present but empty) must be rejected with 400.
+    // RFC 6749 Appendix A.5 requires 1*VSCHAR - at least one character.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
     // A state containing bytes outside VSCHAR (%x20-7E) must be rejected with 400.
     // The raw bytes \xEE\xFF\x02\x03 are percent-encoded below.
     let response = client

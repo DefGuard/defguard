@@ -204,7 +204,7 @@ impl Visitor<'_> for OAuthStateVisitor {
     where
         E: DeError,
     {
-        if s.bytes().all(|b| (0x20..=0x7E).contains(&b)) {
+        if !s.is_empty() && s.bytes().all(|b| (0x20..=0x7E).contains(&b)) {
             Ok(OAuthState(s.to_owned()))
         } else {
             Err(DeError::invalid_value(Unexpected::Str(s), &self))
