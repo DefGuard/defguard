@@ -549,6 +549,16 @@ pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
     }
 }
 
+/// Validate name provided by user
+pub fn validate_name(name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    let allowed_symbols = [' ', '-', '_', '.', '(', ')', ':', '/'];
+    name.chars()
+        .all(|c| c.is_alphanumeric() || allowed_symbols.contains(&c))
+}
+
 impl<S> FromRequestParts<S> for ApiRequestContext
 where
     S: Send + Sync,

@@ -16,6 +16,7 @@ import {
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenRenameApiTokenModal } from '../../../../../../../shared/hooks/modalControls/types';
+import { nameValidator } from '../../../../../../../shared/validators';
 
 const modalNameKey = ModalName.RenameApiToken;
 
@@ -47,7 +48,7 @@ export const RenameApiTokenModal = () => {
 };
 
 const formSchema = z.object({
-  name: z.string().trim().min(1, m.form_error_required()),
+  name: z.string().trim().min(1, m.form_error_required()).and(nameValidator),
 });
 
 const ModalContent = ({ id, name, username }: OpenRenameApiTokenModal) => {

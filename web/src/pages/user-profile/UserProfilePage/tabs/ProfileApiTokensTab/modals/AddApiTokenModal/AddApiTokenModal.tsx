@@ -21,6 +21,7 @@ import {
 } from '../../../../../../../shared/hooks/modalControls/modalsSubjects';
 import { ModalName } from '../../../../../../../shared/hooks/modalControls/modalTypes';
 import type { OpenAddApiTokenModal } from '../../../../../../../shared/hooks/modalControls/types';
+import { nameValidator } from '../../../../../../../shared/validators';
 
 const modalNameKey = ModalName.AddApiToken;
 
@@ -56,7 +57,7 @@ export const AddApiTokenModal = () => {
 };
 
 const formSchema = z.object({
-  name: z.string().trim().min(1, m.form_error_required()),
+  name: z.string().trim().min(1, m.form_error_required()).and(nameValidator),
 });
 
 type FormFields = z.infer<typeof formSchema>;

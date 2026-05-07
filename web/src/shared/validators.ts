@@ -250,3 +250,8 @@ export const aclDestinationValidator = z
     (value: string) => parseAclDestinations(value) !== null,
     m.form_error_invalid(),
   );
+
+// Allows Unicode letters, Unicode digits, space, hyphen, underscore, dot, parentheses, colon, slash
+const namePattern = /^[\p{L}\p{N} \-_.():\/]+$/u;
+
+export const nameValidator = z.string().regex(namePattern, m.form_error_forbidden_char());
