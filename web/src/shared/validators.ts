@@ -251,9 +251,7 @@ export const aclDestinationValidator = z
     m.form_error_invalid(),
   );
 
-export const noHtmlValidator = z
-  .string()
-  .refine(
-    (value: string) => !value.includes('<') && !value.includes('>'),
-    m.form_error_forbidden_char(),
-  );
+// Allows Unicode letters, Unicode digits, space, hyphen, underscore, dot
+const namePattern = /^[\p{L}\p{N} \-_.]+$/u;
+
+export const nameValidator = z.string().regex(namePattern, m.form_error_forbidden_char());

@@ -14,7 +14,7 @@ use crate::{
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiResponse, ApiResult, user_for_admin_or_self},
+    handlers::{ApiResponse, ApiResult, user_for_admin_or_self, validate_name},
 };
 
 const API_TOKEN_LENGTH: usize = 32;
@@ -61,9 +61,9 @@ pub async fn add_api_token(
 
     // TODO: check if the name is already used
 
-    if data.name.contains('<') || data.name.contains('>') {
+    if !validate_name(&data.name) {
         return Err(WebError::BadRequest(
-            "Token name contains forbidden characters".into(),
+            "Name contains forbidden characters".into(),
         ));
     }
 
@@ -163,9 +163,9 @@ pub async fn rename_api_token(
 ) -> ApiResult {
     debug!("Renaming API token {token_id} for user {username}");
 
-    if data.name.contains('<') || data.name.contains('>') {
+    if !validate_name(&data.name) {
         return Err(WebError::BadRequest(
-            "Token name contains forbidden characters".into(),
+            "Name contains forbidden characters".into(),
         ));
     }
 
