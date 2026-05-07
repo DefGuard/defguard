@@ -332,87 +332,137 @@ async fn test_openid_app_management_access(_: PgPoolOptions, options: PgConnectO
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-// FIXME: revive these tests
-// #[sqlx::test]
-// async fn test_authorize_consent() {
-//     let client = make_client().await;
+#[sqlx::test]
+async fn test_authorize_consent(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_client_with_db(pool).await;
 
-//     let auth = Auth::new("admin".into(), "pass123".into());
-//     let response = client.post("/api/v1/auth").json(&auth).send().await;
-//     assert_eq!(response.status(), StatusCode::OK);
+    // Establish a session.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-//     let response = client
-//         .post("/api/v1/user/admin/oauth2client")
-//         .json(&json!({
-//             "client_id": "MyClient",
-//             "client_secret": "secret",
-//             "redirect_uri": "http://localhost:3000/",
-//             "scope": ["default-scope"],
-//             "name": "Test",
-//             "enabled": true,
-//         }))
-//         .send()
-//         .await;
-//     assert_eq!(response.status(), StatusCode::OK);
+    // Create an OAuth2 client.
+    let oauth2client = NewOpenIDClient {
+        name: "Consent test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth_client: OAuth2Client<Id> = response.json().await;
 
-//     let response = client
-//         .post(
-//             "/api/v1/oauth/authorize?\
-//             allow=true&\
-//             response_type=code&\
-//             client_id=MyClient&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=default-scope&\
-//             state=ABCDEF",
-//         )
-//         .send()
-//         .await;
-//     assert_eq!(response.status(), StatusCode::FOUND);
+    // User consents via the POST /authorize handler (secure_authorization).
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            allow=true&\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=ABCDEF",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
 
-//     let localtion = response.headers().get("Location").unwrap().to_str().unwrap();
-//     assert!(localtion.starts_with("http://localhost:3000/?code="));
+    // Extract the authorization code and verify state is echoed back.
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(redirect_url.domain().unwrap(), "test.server.tnt");
+    let code = redirect_url
+        .query_pairs()
+        .find(|(k, _)| k == "code")
+        .unwrap()
+        .1
+        .into_owned();
+    assert!(
+        redirect_url
+            .query_pairs()
+            .any(|(k, v)| k == "state" && v == "ABCDEF")
+    );
 
-//     // extract code
-//     let index = localtion.find("&state").unwrap();
-//     let code = localtion.get(28..index).unwrap();
+    // Exchange the authorization code for a token.
+    // Credentials are passed as form fields; the token endpoint accepts either
+    // Basic auth or client_id/client_secret in the body.
+    let response = client
+        .post("/api/v1/oauth/token")
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!(
+            "grant_type=authorization_code&\
+            code={code}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            client_id={}&\
+            client_secret={}",
+            oauth_client.client_id, oauth_client.client_secret
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
 
-//     let response = client
-//         .post("/api/v1/oauth/token")
-//         .header(ContentType::Form)
-//         .header(Header::new(
-//             "Authorization",
-//             // echo -n 'LocalClient:secret' | base64
-//             "Basic TG9jYWxDbGllbnQ6c2VjcmV0",
-//         ))
-//         .body(format!(
-//             "grant_type=authorization_code&\
-//             code={}&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F",
-//             code
-//         ))
-//         .send()
-//         .await;
-//     assert_eq!(response.status(), StatusCode::OK);
-// }
+#[sqlx::test]
+async fn test_authorize_consent_wrong_client(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+    let (client, _) = make_client_with_db(pool).await;
 
-// #[sqlx::test]
-// async fn test_authorize_consent_wrong_client() {
-//     let client = make_client().await;
+    // Establish a session - secure_authorization requires SessionInfo.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
 
-//     let response = client
-//         .post(
-//             "/api/v1/oauth/authorize?\
-//             allow=true&\
-//             response_type=code&\
-//             client_id=NonExistentClient&\
-//             redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&\
-//             scope=default-scope&\
-//             state=ABCDEF",
-//         )
-//         .send()
-//         .await;
-//     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-// }
+    // POST with a non-existent client_id. The handler cannot validate the
+    // redirect_uri (is_redirect_allowed stays false), so it redirects to the
+    // defguard base URL with error=unauthorized_client instead of the provided
+    // redirect_uri. This prevents open redirects (DG25-17).
+    let response = client
+        .post(
+            "/api/v1/oauth/authorize?\
+            allow=true&\
+            response_type=code&\
+            client_id=NonExistentClient&\
+            redirect_uri=http%3A%2F%2Fattacker.example.com%2F&\
+            scope=openid&\
+            state=ABCDEF",
+        )
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let redirect_url = Url::parse(
+        response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    // Must NOT redirect to the caller-supplied redirect_uri.
+    assert_ne!(redirect_url.domain().unwrap(), "attacker.example.com");
+    let mut pairs = redirect_url.query_pairs();
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("error"), Cow::Borrowed("unauthorized_client")))
+    );
+    assert_eq!(
+        pairs.next(),
+        Some((Cow::Borrowed("state"), Cow::Borrowed("ABCDEF")))
+    );
+}
 
 #[sqlx::test]
 async fn test_token_client_credentials(_: PgPoolOptions, options: PgConnectOptions) {
