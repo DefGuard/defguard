@@ -736,3 +736,69 @@ async fn dg26_6_test_authorize_scope_validation(_: PgPoolOptions, options: PgCon
         Some((Cow::Borrowed("state"), Cow::Borrowed("mixed")))
     );
 }
+
+#[sqlx::test]
+async fn dg26_7_test_state_parameter_secure_authorization(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+    let (client, pool) = make_client_with_db(pool).await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create an OAuth2 client
+    let oauth2client = NewOpenIDClient {
+        name: "State POST test client".into(),
+        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        scope: vec!["openid".into()],
+        enabled: true,
+    };
+    let response = client
+        .post("/api/v1/oauth")
+        .json(&oauth2client)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let oauth_client: OAuth2Client<Id> = response.json().await;
+
+    // Pre-authorise app
+    OAuth2AuthorizedApp::new(1, oauth_client.id)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // Non-VSCHAR state on POST must be rejected with 400
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            allow=true&\
+            state=%EE%FF%02%03",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Empty state on POST must also be rejected with 400
+    let response = client
+        .post(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            allow=true&\
+            state=",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
