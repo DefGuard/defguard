@@ -554,7 +554,7 @@ pub fn validate_name(name: &str) -> bool {
     if name.is_empty() {
         return false;
     }
-    let allowed_symbols = [' ', '-', '_', '.'];
+    let allowed_symbols = [' ', '-', '_', '.', '(', ')', ':', '/'];
     name.chars()
         .all(|c| c.is_alphanumeric() || allowed_symbols.contains(&c))
 }
