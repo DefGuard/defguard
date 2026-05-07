@@ -1,0 +1,43 @@
+.playground-policy-info-list-test {
+  > .grid-track {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-sm);
+
+    .item {
+      display: grid;
+      grid-template-columns: 32px 152px 1fr;
+      grid-template-rows: auto;
+      align-items: center;
+
+      &:first-child {
+        > .content {
+          font: var(--t-body-sm-500);
+          color: var(--fg-default);
+        }
+      }
+
+      .icon {
+        grid-column: 1 / 2;
+      }
+
+      > p {
+        grid-column: 2 / 3;
+        max-width: 120px;
+        font: var(--t-body-sm-400);
+        color: var(--fg-neutral);
+      }
+
+      > .content {
+        grid-column: 3 / 4;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        column-gap: var(--spacing-sm);
+        font: var(--t-body-sm-400);
+        color: var(--fg-faded);
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+/* stylelint-disable declaration-block-no-redundant-longhand-properties */
+#playground-icons {
+  width: 100%;
+  max-width: 1200px;
+  overflow: hidden;
+
+  > .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr));
+    gap: 40px;
+    max-width: 100%;
+    align-items: stretch;
+    justify-content: center;
+    align-content: start;
+    justify-items: center;
+  }
+}
