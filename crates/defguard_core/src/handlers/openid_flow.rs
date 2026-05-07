@@ -166,13 +166,7 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct OAuthState(String);
-
-impl OAuthState {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
+pub(crate) struct OAuthState(String);
 
 impl Deref for OAuthState {
     type Target = str;
