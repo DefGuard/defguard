@@ -25,9 +25,15 @@ COPY migrations migrations
 RUN cargo chef prepare --bin defguard --recipe-path recipe.json
 
 FROM chef AS builder
+ARG DEFGUARD_BUILD_VERSION
+
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
-RUN cargo chef cook --bin defguard --release --recipe-path recipe.json
+RUN if [ -n "$DEFGUARD_BUILD_VERSION" ]; then \
+      DEFGUARD_BUILD_VERSION="$DEFGUARD_BUILD_VERSION" cargo chef cook --bin defguard --release --recipe-path recipe.json; \
+    else \
+      cargo chef cook --bin defguard --release --recipe-path recipe.json; \
+    fi
 
 # build project
 COPY --from=web /app/dist ./web/dist
@@ -40,7 +46,11 @@ COPY crates crates
 COPY tools tools
 COPY proto proto
 COPY migrations migrations
-RUN cargo install --locked --bin defguard --path ./crates/defguard --root /build
+RUN if [ -n "$DEFGUARD_BUILD_VERSION" ]; then \
+      DEFGUARD_BUILD_VERSION="$DEFGUARD_BUILD_VERSION" cargo install --locked --bin defguard --path ./crates/defguard --root /build; \
+    else \
+      cargo install --locked --bin defguard --path ./crates/defguard --root /build; \
+    fi
 
 # run
 FROM public.ecr.aws/docker/library/debian:13-slim
