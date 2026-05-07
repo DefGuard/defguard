@@ -491,6 +491,92 @@ async fn dg26_7_test_state_parameter_validation(_: PgPoolOptions, options: PgCon
             .any(|(k, v)| k == "state" && v == "123456")
     );
 
+    // VSCHAR boundary: space (0x20) is the lowest valid character - must be accepted.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=%20",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert!(
+        Url::parse(
+            response
+                .headers()
+                .get("Location")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap()
+        .query_pairs()
+        .any(|(k, v)| k == "state" && v == " ")
+    );
+
+    // VSCHAR boundary: tilde (0x7E) is the highest valid character - must be accepted.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=~",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FOUND);
+    assert!(
+        Url::parse(
+            response
+                .headers()
+                .get("Location")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap()
+        .query_pairs()
+        .any(|(k, v)| k == "state" && v == "~")
+    );
+
+    // VSCHAR boundary: DEL (0x7F) is one above the valid range - must be rejected with 400.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=%7F",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // VSCHAR boundary: US (0x1F) is one below the valid range - must be rejected with 400.
+    let response = client
+        .get(format!(
+            "/api/v1/oauth/authorize?\
+            response_type=code&\
+            client_id={}&\
+            redirect_uri=http%3A%2F%2Ftest.server.tnt%3A12345%2F&\
+            scope=openid&\
+            state=%1F",
+            oauth_client.client_id
+        ))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
     // An empty state (state= present but empty) must be rejected with 400.
     // RFC 6749 Appendix A.5 requires 1*VSCHAR - at least one character.
     let response = client
