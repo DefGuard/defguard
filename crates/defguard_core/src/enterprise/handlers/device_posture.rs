@@ -121,7 +121,7 @@ pub async fn create_device_posture(
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::DevicePostureCreated {
-            posture: posture.clone(),
+            device_posture: posture.clone(),
         }),
     })?;
 
@@ -285,5 +285,115 @@ pub async fn update_device_posture(
     Ok(ApiResponse::json(
         ApiDevicePosture::from(after),
         StatusCode::OK,
+    ))
+}
+
+/// Delete a device posture check policy
+#[utoipa::path(
+    delete,
+    path = "/api/v1/device-posture/{id}",
+    tag = "DevicePosture",
+    params(
+        ("id" = Id, Path, description = "Device posture check policy ID")
+    ),
+    responses(
+        (status = 200, description = "Device posture check policy deleted successfully"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 404, description = "Not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn delete_device_posture(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Path(id): Path<Id>,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} deleting device posture check {id}",
+        session.user.username
+    );
+
+    let device_posture = DevicePosture::find_by_id(&appstate.pool, id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
+
+    device_posture.clone().delete(&appstate.pool).await?;
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::DevicePostureDeleted { device_posture }),
+    })?;
+
+    Ok(ApiResponse::default())
+}
+
+/// Duplicate a device posture check policy
+///
+/// Creates a copy of the specified policy with the name `"{original} (copy)"`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/device-posture/{id}/duplicate",
+    tag = "DevicePosture",
+    params(
+        ("id" = Id, Path, description = "Device posture check policy ID to duplicate")
+    ),
+    responses(
+        (status = 201, description = "Duplicate created successfully", body = ApiDevicePosture),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 404, description = "Not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn duplicate_device_posture(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Path(id): Path<Id>,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} duplicating device posture check {id}",
+        session.user.username
+    );
+
+    let original = DevicePosture::find_by_id(&appstate.pool, id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
+
+    let duplicate = DevicePosture {
+        id: NoId,
+        name: format!("{} (copy)", original.name),
+        description: original.description.clone(),
+        min_client_version: original.min_client_version.clone(),
+        allow_prerelease_client: original.allow_prerelease_client,
+    }
+    .save(&appstate.pool)
+    .await?;
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::DevicePostureDuplicated {
+            original,
+            duplicate: duplicate.clone(),
+        }),
+    })?;
+
+    Ok(ApiResponse::json(
+        ApiDevicePosture::from(duplicate),
+        StatusCode::CREATED,
     ))
 }

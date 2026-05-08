@@ -318,21 +318,21 @@ pub enum ApiEventType {
         gateway: Gateway<Id>,
     },
     DevicePostureCreated {
-        posture: DevicePosture<Id>,
+        device_posture: DevicePosture<Id>,
     },
     DevicePostureUpdated {
         before: DevicePosture<Id>,
         after: DevicePosture<Id>,
     },
     DevicePostureDeleted {
-        posture: DevicePosture<Id>,
+        device_posture: DevicePosture<Id>,
     },
     DevicePostureDuplicated {
         original: DevicePosture<Id>,
         duplicate: DevicePosture<Id>,
     },
     DevicePostureLocationsAssigned {
-        posture: DevicePosture<Id>,
+        device_posture: DevicePosture<Id>,
         location_ids: Vec<Id>,
     },
     LocationPosturesAssigned {
