@@ -14,7 +14,8 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     enterprise::{
         db::models::device_posture::{
-            DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+            DevicePosture, DevicePostureLocation, DevicePostureOsRule, DevicePostureSnapshot,
+            OsType,
         },
         handlers::EnterpriseLicenseInfo,
     },
@@ -229,8 +230,8 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
             description: p.description,
             min_client_version: p.min_client_version,
             allow_prerelease_client: p.allow_prerelease_client,
-            os_rules: vec![],
-            locations: vec![],
+            os_rules: Vec::new(),
+            locations: Vec::new(),
         }
     }
 }
@@ -373,7 +374,11 @@ pub async fn create_device_posture(
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::DevicePostureCreated {
-            device_posture: posture.clone(),
+            snapshot: DevicePostureSnapshot {
+                device_posture: posture.clone(),
+                os_rules: DevicePostureOsRule::find_by_posture(&appstate.pool, posture.id).await?,
+                location_ids: Vec::new(),
+            },
         }),
     })?;
 
@@ -522,9 +527,10 @@ pub async fn update_device_posture(
 
     validate_device_posture_base(&data)?;
 
-    let before = DevicePosture::find_by_id(&appstate.pool, id)
+    let before_posture = DevicePosture::find_by_id(&appstate.pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
+    let before_os_rules = DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?;
 
     let EditDevicePosture {
         name,
@@ -552,11 +558,21 @@ pub async fn update_device_posture(
 
     tx.commit().await?;
 
+    let location_ids = DevicePostureLocation::find_by_posture(&appstate.pool, id).await?;
+
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::DevicePostureUpdated {
-            before,
-            after: after.clone(),
+            before: DevicePostureSnapshot {
+                device_posture: before_posture,
+                os_rules: before_os_rules,
+                location_ids: location_ids.clone(),
+            },
+            after: DevicePostureSnapshot {
+                device_posture: after.clone(),
+                os_rules: DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?,
+                location_ids,
+            },
         }),
     })?;
 
@@ -601,12 +617,20 @@ pub async fn delete_device_posture(
     let device_posture = DevicePosture::find_by_id(&appstate.pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
+    let os_rules = DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?;
+    let location_ids = DevicePostureLocation::find_by_posture(&appstate.pool, id).await?;
 
     device_posture.clone().delete(&appstate.pool).await?;
 
     appstate.emit_event(ApiEvent {
         context,
-        event: Box::new(ApiEventType::DevicePostureDeleted { device_posture }),
+        event: Box::new(ApiEventType::DevicePostureDeleted {
+            snapshot: DevicePostureSnapshot {
+                device_posture,
+                os_rules,
+                location_ids,
+            },
+        }),
     })?;
 
     Ok(ApiResponse::default())
@@ -672,13 +696,26 @@ pub async fn duplicate_device_posture(
             .await?;
     }
 
+    let original_location_ids = DevicePostureLocation::find_by_posture(&appstate.pool, id).await?;
+
     tx.commit().await?;
+
+    let duplicate_rules =
+        DevicePostureOsRule::find_by_posture(&appstate.pool, duplicate.id).await?;
 
     appstate.emit_event(ApiEvent {
         context,
         event: Box::new(ApiEventType::DevicePostureDuplicated {
-            original,
-            duplicate: duplicate.clone(),
+            original: DevicePostureSnapshot {
+                device_posture: original,
+                os_rules: original_rules.clone(),
+                location_ids: original_location_ids,
+            },
+            duplicate: DevicePostureSnapshot {
+                device_posture: duplicate.clone(),
+                os_rules: duplicate_rules,
+                location_ids: Vec::new(),
+            },
         }),
     })?;
 

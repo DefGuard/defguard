@@ -85,6 +85,15 @@ impl DevicePostureOsRule<Id> {
     }
 }
 
+/// A point-in-time snapshot of a posture check policy and its related data,
+/// used as the payload for audit events.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct DevicePostureSnapshot {
+    pub device_posture: DevicePosture<Id>,
+    pub os_rules: Vec<DevicePostureOsRule<Id>>,
+    pub location_ids: Vec<Id>,
+}
+
 /// Join table row linking a posture check policy to a VPN location.
 pub struct DevicePostureLocation {
     pub posture_id: Id,

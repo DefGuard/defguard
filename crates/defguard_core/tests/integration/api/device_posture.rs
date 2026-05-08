@@ -1,7 +1,7 @@
 use defguard_common::db::setup_pool;
 use defguard_core::{
     enterprise::{
-        db::models::device_posture::{DevicePosture, OsType},
+        db::models::device_posture::{DevicePosture, DevicePostureSnapshot, OsType},
         handlers::device_posture::{
             ApiDevicePosture, ApiOsRule, AssignLocationsData, AssignPosturesData, CLIENT_VERSIONS,
             EditDevicePosture, valid_os_versions,
@@ -24,7 +24,7 @@ fn make_edit(name: &str) -> EditDevicePosture {
         description: Some(format!("{name} description")),
         min_client_version: None,
         allow_prerelease_client: false,
-        os_rules: vec![],
+        os_rules: Vec::new(),
     }
 }
 
@@ -102,7 +102,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         description: Some("desc".to_string()),
         min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
         allow_prerelease_client: true,
-        os_rules: vec![],
+        os_rules: Vec::new(),
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -122,12 +122,16 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let id = created.id;
 
     client.verify_api_events(&[ApiEventType::DevicePostureCreated {
-        device_posture: DevicePosture {
-            id,
-            name: "My Policy".to_string(),
-            description: Some("desc".to_string()),
-            min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
-            allow_prerelease_client: true,
+        snapshot: DevicePostureSnapshot {
+            device_posture: DevicePosture {
+                id,
+                name: "My Policy".to_string(),
+                description: Some("desc".to_string()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                allow_prerelease_client: true,
+            },
+            os_rules: Vec::new(),
+            location_ids: Vec::new(),
         },
     }]);
 
@@ -154,7 +158,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
-        os_rules: vec![],
+        os_rules: Vec::new(),
     };
     let response = client
         .put(format!("/api/v1/device-posture/{id}"))
@@ -169,19 +173,27 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(!updated.allow_prerelease_client);
 
     client.verify_api_events(&[ApiEventType::DevicePostureUpdated {
-        before: DevicePosture {
-            id,
-            name: "My Policy".to_string(),
-            description: Some("desc".to_string()),
-            min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
-            allow_prerelease_client: true,
+        before: DevicePostureSnapshot {
+            device_posture: DevicePosture {
+                id,
+                name: "My Policy".to_string(),
+                description: Some("desc".to_string()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                allow_prerelease_client: true,
+            },
+            os_rules: Vec::new(),
+            location_ids: Vec::new(),
         },
-        after: DevicePosture {
-            id,
-            name: "Updated Policy".to_string(),
-            description: None,
-            min_client_version: None,
-            allow_prerelease_client: false,
+        after: DevicePostureSnapshot {
+            device_posture: DevicePosture {
+                id,
+                name: "Updated Policy".to_string(),
+                description: None,
+                min_client_version: None,
+                allow_prerelease_client: false,
+            },
+            os_rules: Vec::new(),
+            location_ids: Vec::new(),
         },
     }]);
 
@@ -193,12 +205,16 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
 
     client.verify_api_events(&[ApiEventType::DevicePostureDeleted {
-        device_posture: DevicePosture {
-            id,
-            name: "Updated Policy".to_string(),
-            description: None,
-            min_client_version: None,
-            allow_prerelease_client: false,
+        snapshot: DevicePostureSnapshot {
+            device_posture: DevicePosture {
+                id,
+                name: "Updated Policy".to_string(),
+                description: None,
+                min_client_version: None,
+                allow_prerelease_client: false,
+            },
+            os_rules: Vec::new(),
+            location_ids: Vec::new(),
         },
     }]);
 
@@ -220,7 +236,7 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         description: Some("original desc".to_string()),
         min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
         allow_prerelease_client: false,
-        os_rules: vec![],
+        os_rules: Vec::new(),
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -250,19 +266,27 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
     assert!(copy.locations.is_empty());
 
     client.verify_api_events(&[ApiEventType::DevicePostureDuplicated {
-        original: DevicePosture {
-            id: original.id,
-            name: "Original".to_string(),
-            description: Some("original desc".to_string()),
-            min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
-            allow_prerelease_client: false,
+        original: DevicePostureSnapshot {
+            device_posture: DevicePosture {
+                id: original.id,
+                name: "Original".to_string(),
+                description: Some("original desc".to_string()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                allow_prerelease_client: false,
+            },
+            os_rules: Vec::new(),
+            location_ids: Vec::new(),
         },
-        duplicate: DevicePosture {
-            id: copy.id,
-            name: "Original (copy)".to_string(),
-            description: Some("original desc".to_string()),
-            min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
-            allow_prerelease_client: false,
+        duplicate: DevicePostureSnapshot {
+            device_posture: DevicePosture {
+                id: copy.id,
+                name: "Original (copy)".to_string(),
+                description: Some("original desc".to_string()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                allow_prerelease_client: false,
+            },
+            os_rules: Vec::new(),
+            location_ids: Vec::new(),
         },
     }]);
 
@@ -294,7 +318,7 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
         description: None,
         min_client_version: Some("99.99".to_string()),
         allow_prerelease_client: false,
-        os_rules: vec![],
+        os_rules: Vec::new(),
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -821,7 +845,9 @@ async fn test_device_posture_set_postures_for_location(
     // reassign with empty list — all postures removed
     let response = client
         .put(format!("/api/v1/network/{location_id}/postures"))
-        .json(&AssignPosturesData { postures: vec![] })
+        .json(&AssignPosturesData {
+            postures: Vec::new(),
+        })
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -846,7 +872,9 @@ async fn test_device_posture_assignment_not_found(_: PgPoolOptions, options: PgC
 
     let response = client
         .put("/api/v1/device-posture/999/locations")
-        .json(&AssignLocationsData { locations: vec![] })
+        .json(&AssignLocationsData {
+            locations: Vec::new(),
+        })
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
@@ -854,7 +882,9 @@ async fn test_device_posture_assignment_not_found(_: PgPoolOptions, options: PgC
 
     let response = client
         .put("/api/v1/network/999/postures")
-        .json(&AssignPosturesData { postures: vec![] })
+        .json(&AssignPosturesData {
+            postures: Vec::new(),
+        })
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);

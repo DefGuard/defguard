@@ -268,6 +268,36 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             Some(format!("Modified gateway {after}"))
         }
         DefguardEvent::GatewayDeleted { gateway } => Some(format!("Deleted gateway {gateway}")),
+        DefguardEvent::DevicePostureCreated { snapshot } => Some(format!(
+            "Created device posture check {}",
+            snapshot.device_posture.name
+        )),
+        DefguardEvent::DevicePostureUpdated { after, .. } => Some(format!(
+            "Updated device posture check {}",
+            after.device_posture.name
+        )),
+        DefguardEvent::DevicePostureDeleted { snapshot } => Some(format!(
+            "Deleted device posture check {}",
+            snapshot.device_posture.name
+        )),
+        DefguardEvent::DevicePostureDuplicated { duplicate, .. } => Some(format!(
+            "Duplicated device posture check as {}",
+            duplicate.device_posture.name
+        )),
+        DefguardEvent::DevicePostureLocationsAssigned {
+            posture_id,
+            location_ids,
+        } => Some(format!(
+            "Assigned {} location(s) to device posture check {posture_id}",
+            location_ids.len()
+        )),
+        DefguardEvent::LocationPosturesAssigned {
+            location_id,
+            posture_ids,
+        } => Some(format!(
+            "Assigned {} posture check(s) to location {location_id}",
+            posture_ids.len()
+        )),
     }
 }
 

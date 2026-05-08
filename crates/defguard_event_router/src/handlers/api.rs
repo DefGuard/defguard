@@ -409,8 +409,51 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::GatewayDeleted { gateway })),
                 None,
             ),
-            // TODO: handle posture events
-            _ => todo!(),
+            ApiEventType::DevicePostureCreated { snapshot } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::DevicePostureCreated { snapshot })),
+                None,
+            ),
+            ApiEventType::DevicePostureUpdated { before, after } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::DevicePostureUpdated {
+                    before,
+                    after,
+                })),
+                None,
+            ),
+            ApiEventType::DevicePostureDeleted { snapshot } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::DevicePostureDeleted { snapshot })),
+                None,
+            ),
+            ApiEventType::DevicePostureDuplicated {
+                original,
+                duplicate,
+            } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::DevicePostureDuplicated {
+                    original,
+                    duplicate,
+                })),
+                None,
+            ),
+            ApiEventType::DevicePostureLocationsAssigned {
+                device_posture,
+                location_ids,
+            } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::DevicePostureLocationsAssigned {
+                    posture_id: device_posture.id,
+                    location_ids,
+                })),
+                None,
+            ),
+            ApiEventType::LocationPosturesAssigned {
+                location,
+                posture_ids,
+            } => (
+                LoggerEvent::Defguard(Box::new(DefguardEvent::LocationPosturesAssigned {
+                    location_id: location.id,
+                    posture_ids,
+                })),
+                None,
+            ),
         };
         self.log_event(
             EventContext::from_api_context(event.context, location),
