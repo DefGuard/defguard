@@ -27,7 +27,10 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{
-        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        db::models::{
+            device_posture::DevicePostureLocation, enterprise_settings::EnterpriseSettings,
+            openid_provider::OpenIdProvider,
+        },
         firewall::try_get_location_firewall_config,
         handlers::CanManageDevices,
         is_business_license_active, is_enterprise_license_active,
@@ -51,6 +54,7 @@ pub(crate) struct WireguardNetworkInfo {
     gateways: Vec<GatewayInfo>,
     allowed_groups: Vec<String>,
     has_devices: bool,
+    posture_checks: Vec<Id>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -490,11 +494,14 @@ pub async fn list_networks(_role: AdminRole, State(appstate): State<AppState>) -
         let gateways = GatewayInfo::find_by_location_id(&appstate.pool, network.id).await?;
         let has_devices =
             WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network.id).await?;
+        let posture_checks =
+            DevicePostureLocation::find_by_location(&appstate.pool, network.id).await?;
         network_info.push(WireguardNetworkInfo {
             network,
             gateways,
             allowed_groups,
             has_devices,
+            posture_checks,
         });
     }
     network_info.sort_by(|a, b| a.network.name.cmp(&b.network.name));
@@ -574,11 +581,14 @@ pub(crate) async fn network_details(
             let gateways = GatewayInfo::find_by_location_id(&appstate.pool, network_id).await?;
             let has_devices =
                 WireguardNetworkDevice::has_devices_in_network(&appstate.pool, network_id).await?;
+            let posture_checks =
+                DevicePostureLocation::find_by_location(&appstate.pool, network_id).await?;
             let network_info = WireguardNetworkInfo {
                 network,
                 gateways,
                 allowed_groups,
                 has_devices,
+                posture_checks,
             };
             ApiResponse::json(network_info, StatusCode::OK)
         }
