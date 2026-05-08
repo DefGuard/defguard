@@ -520,14 +520,31 @@ pub async fn update_device_posture(
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
 
+    let EditDevicePosture {
+        name,
+        description,
+        min_client_version,
+        allow_prerelease_client,
+        os_rules,
+    } = data;
+
     let after = DevicePosture {
         id,
-        name: data.name,
-        description: data.description,
-        min_client_version: data.min_client_version,
-        allow_prerelease_client: data.allow_prerelease_client,
+        name,
+        description,
+        min_client_version,
+        allow_prerelease_client,
     };
-    after.save(&appstate.pool).await?;
+
+    let mut tx = appstate.pool.begin().await?;
+
+    after.save(&mut *tx).await?;
+    DevicePostureOsRule::delete_by_posture(&mut *tx, id).await?;
+    for rule in &os_rules {
+        rule.clone().into_db_rule(id).save(&mut *tx).await?;
+    }
+
+    tx.commit().await?;
 
     appstate.emit_event(ApiEvent {
         context,
@@ -537,10 +554,9 @@ pub async fn update_device_posture(
         }),
     })?;
 
-    Ok(ApiResponse::json(
-        ApiDevicePosture::from(after),
-        StatusCode::OK,
-    ))
+    let mut response = ApiDevicePosture::from(after);
+    response.os_rules = os_rules;
+    Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
 /// Delete a device posture check policy
@@ -629,6 +645,10 @@ pub async fn duplicate_device_posture(
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
 
+    let original_rules = DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?;
+
+    let mut tx = appstate.pool.begin().await?;
+
     let duplicate = DevicePosture {
         id: NoId,
         name: format!("{} (copy)", original.name),
@@ -636,8 +656,17 @@ pub async fn duplicate_device_posture(
         min_client_version: original.min_client_version.clone(),
         allow_prerelease_client: original.allow_prerelease_client,
     }
-    .save(&appstate.pool)
+    .save(&mut *tx)
     .await?;
+
+    for rule in &original_rules {
+        ApiOsRule::from(rule.clone())
+            .into_db_rule(duplicate.id)
+            .save(&mut *tx)
+            .await?;
+    }
+
+    tx.commit().await?;
 
     appstate.emit_event(ApiEvent {
         context,
@@ -647,10 +676,9 @@ pub async fn duplicate_device_posture(
         }),
     })?;
 
-    Ok(ApiResponse::json(
-        ApiDevicePosture::from(duplicate),
-        StatusCode::CREATED,
-    ))
+    let mut response = ApiDevicePosture::from(duplicate);
+    response.os_rules = original_rules.into_iter().map(ApiOsRule::from).collect();
+    Ok(ApiResponse::json(response, StatusCode::CREATED))
 }
 
 /// List valid OS versions grouped by OS type
