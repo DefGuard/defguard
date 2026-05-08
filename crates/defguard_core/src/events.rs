@@ -14,7 +14,7 @@ use crate::{
     db::WebHook,
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider, snat::UserSnatBinding,
+        device_posture::DevicePosture, openid_provider::OpenIdProvider, snat::UserSnatBinding,
     },
 };
 
@@ -316,6 +316,28 @@ pub enum ApiEventType {
     },
     GatewayDeleted {
         gateway: Gateway<Id>,
+    },
+    DevicePostureCreated {
+        posture: DevicePosture<Id>,
+    },
+    DevicePostureUpdated {
+        before: DevicePosture<Id>,
+        after: DevicePosture<Id>,
+    },
+    DevicePostureDeleted {
+        posture: DevicePosture<Id>,
+    },
+    DevicePostureDuplicated {
+        original: DevicePosture<Id>,
+        duplicate: DevicePosture<Id>,
+    },
+    DevicePostureLocationsAssigned {
+        posture: DevicePosture<Id>,
+        location_ids: Vec<Id>,
+    },
+    LocationPosturesAssigned {
+        location: WireguardNetwork<Id>,
+        posture_ids: Vec<Id>,
     },
 }
 

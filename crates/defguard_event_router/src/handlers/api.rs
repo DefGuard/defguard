@@ -409,6 +409,8 @@ impl EventRouter {
                 LoggerEvent::Defguard(Box::new(DefguardEvent::GatewayDeleted { gateway })),
                 None,
             ),
+            // TODO: handle posture events
+            _ => todo!(),
         };
         self.log_event(
             EventContext::from_api_context(event.context, location),
