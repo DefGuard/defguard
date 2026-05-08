@@ -10,7 +10,7 @@ CREATE TABLE device_posture (
     id                      BIGSERIAL PRIMARY KEY,
     name                    TEXT NOT NULL,
     description             TEXT,
-    min_client_version      TEXT NOT NULL,
+    min_client_version      TEXT,
     allow_prerelease_client BOOLEAN NOT NULL DEFAULT false
 );
 
