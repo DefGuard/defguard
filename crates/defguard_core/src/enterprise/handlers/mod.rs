@@ -63,6 +63,7 @@ where
 }
 
 /// Extractor that rejects with 403 if no active enterprise-tier license is found.
+/// TODO: refactor relevant endpoints to also use this
 pub struct EnterpriseLicenseInfo;
 
 impl<S> FromRequestParts<S> for EnterpriseLicenseInfo
