@@ -394,7 +394,7 @@ async fn test_device_posture_os_versions(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(response.status(), StatusCode::OK);
     let body: serde_json::Value = response.json().await;
 
-    for os in ["windows", "macos", "linux", "ios", "android"] {
+    for os in ["windows", "macos", "ios", "android"] {
         let versions = body[os]
             .as_array()
             .unwrap_or_else(|| panic!("{os} key missing"));
@@ -490,8 +490,6 @@ async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: 
 async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = setup(options).await;
 
-    let linux_version = valid_os_versions(&OsType::Linux)[0];
-
     // create with windows + macos rules
     let create = EditDevicePosture {
         name: "Replace Test".to_string(),
@@ -530,7 +528,6 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Linux {
-            min_os_version: Some(linux_version.to_string()),
             min_kernel_version: None,
             disk_encryption_required: Some(true),
         }],
@@ -685,7 +682,6 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Linux {
-            min_os_version: None,
             min_kernel_version: Some("4.x".to_string()),
             disk_encryption_required: None,
         }],

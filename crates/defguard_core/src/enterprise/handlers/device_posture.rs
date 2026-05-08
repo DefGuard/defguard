@@ -32,6 +32,9 @@ use crate::{
 /// TODO: also consider if this is the best way to store possible options
 pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
 
+/// Valid Linux kernel version families for posture rules.
+pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x"];
+
 /// Returns the list of valid `min_os_version` values for a given OS type.
 /// TODO: consider a better format for storing versions
 pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
@@ -43,7 +46,7 @@ pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
             "macOS 14 Sonoma",
             "macOS 15 Sequoia",
         ],
-        OsType::Linux => &["5.x", "6.x"],
+        OsType::Linux => &[],
         OsType::Ios => &["17", "18"],
         OsType::Android => &["13", "14", "15", "16"],
     }
@@ -69,7 +72,6 @@ pub enum ApiOsRule {
         device_integrity_required: Option<bool>,
     },
     Linux {
-        min_os_version: Option<String>,
         min_kernel_version: Option<String>,
         disk_encryption_required: Option<bool>,
     },
@@ -132,14 +134,13 @@ impl ApiOsRule {
                 device_integrity_required,
             },
             Self::Linux {
-                min_os_version,
                 min_kernel_version,
                 disk_encryption_required,
             } => DevicePostureOsRule {
                 id: NoId,
                 posture_id,
                 os_type: OsType::Linux,
-                min_os_version,
+                min_os_version: None,
                 disk_encryption_required,
                 antivirus_required: None,
                 ad_domain_joined_required: None,
@@ -194,7 +195,6 @@ impl From<DevicePostureOsRule<Id>> for ApiOsRule {
                 device_integrity_required: rule.device_integrity_required,
             },
             OsType::Linux => Self::Linux {
-                min_os_version: rule.min_os_version,
                 min_kernel_version: rule.min_kernel_version,
                 disk_encryption_required: rule.disk_encryption_required,
             },
@@ -282,9 +282,9 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
         let min_os_version = match rule {
             ApiOsRule::Windows { min_os_version, .. }
             | ApiOsRule::Macos { min_os_version, .. }
-            | ApiOsRule::Linux { min_os_version, .. }
             | ApiOsRule::Ios { min_os_version }
             | ApiOsRule::Android { min_os_version, .. } => min_os_version,
+            ApiOsRule::Linux { .. } => &None,
         };
         if let Some(v) = min_os_version {
             if !valid_versions.contains(&v.as_str()) {
@@ -299,11 +299,10 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
             ..
         } = rule
         {
-            let valid_kernels = valid_os_versions(&OsType::Linux);
-            if !valid_kernels.contains(&kv.as_str()) {
+            if !KERNEL_VERSIONS.contains(&kv.as_str()) {
                 return Err(WebError::BadRequest(format!(
                     "Unknown min_kernel_version '{kv}'. Valid values: {}",
-                    valid_kernels.join(", ")
+                    KERNEL_VERSIONS.join(", ")
                 )));
             }
         }
@@ -873,7 +872,6 @@ pub async fn get_device_posture_os_versions(
     let versions = serde_json::json!({
         "windows": valid_os_versions(&OsType::Windows),
         "macos":   valid_os_versions(&OsType::Macos),
-        "linux":   valid_os_versions(&OsType::Linux),
         "ios":     valid_os_versions(&OsType::Ios),
         "android": valid_os_versions(&OsType::Android),
     });
