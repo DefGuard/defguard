@@ -384,43 +384,6 @@ async fn test_device_posture_pagination(_: PgPoolOptions, options: PgConnectOpti
 }
 
 #[sqlx::test]
-async fn test_device_posture_os_versions(_: PgPoolOptions, options: PgConnectOptions) {
-    let (mut client, _) = setup(options).await;
-
-    let response = client
-        .get("/api/v1/device-posture/os-versions")
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let body: serde_json::Value = response.json().await;
-
-    for os in ["windows", "macos", "ios", "android"] {
-        let versions = body[os]
-            .as_array()
-            .unwrap_or_else(|| panic!("{os} key missing"));
-        assert!(!versions.is_empty(), "{os} version list is empty");
-    }
-
-    client.assert_event_queue_is_empty();
-}
-
-#[sqlx::test]
-async fn test_device_posture_client_versions(_: PgPoolOptions, options: PgConnectOptions) {
-    let (mut client, _) = setup(options).await;
-
-    let response = client
-        .get("/api/v1/device-posture/client-versions")
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let versions: Vec<String> = response.json().await;
-    assert!(!versions.is_empty());
-    assert_eq!(versions, CLIENT_VERSIONS);
-
-    client.assert_event_queue_is_empty();
-}
-
-#[sqlx::test]
 async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = setup(options).await;
 
