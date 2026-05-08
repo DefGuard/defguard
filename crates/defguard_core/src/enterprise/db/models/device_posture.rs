@@ -1,7 +1,7 @@
 use defguard_common::db::{Id, NoId};
 use model_derive::Model;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgExecutor, query, query_as};
+use sqlx::{PgExecutor, query, query_as, query_scalar};
 use utoipa::ToSchema;
 
 /// Device posture check policy. Defines the security requirements a client
@@ -82,5 +82,105 @@ impl DevicePostureOsRule<Id> {
         .execute(executor)
         .await?;
         Ok(())
+    }
+}
+
+/// Join table row linking a posture check policy to a VPN location.
+pub struct DevicePostureLocation {
+    pub posture_id: Id,
+    pub location_id: Id,
+}
+
+impl DevicePostureLocation {
+    /// Replaces all posture assignments for a location with the given list.
+    /// Returns the resulting set of posture IDs.
+    pub async fn set_for_location(
+        conn: &mut sqlx::PgConnection,
+        location_id: Id,
+        posture_ids: &[Id],
+    ) -> sqlx::Result<Vec<Id>> {
+        query!(
+            "DELETE FROM device_posture_location WHERE location_id = $1",
+            location_id
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        query!(
+            "INSERT INTO device_posture_location (posture_id, location_id) \
+             SELECT unnest($1::bigint[]), $2",
+            posture_ids,
+            location_id
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        Ok(posture_ids.to_vec())
+    }
+
+    /// Replaces all location assignments for a posture with the given list.
+    /// Returns the resulting set of location IDs.
+    pub async fn set_for_posture(
+        conn: &mut sqlx::PgConnection,
+        posture_id: Id,
+        location_ids: &[Id],
+    ) -> sqlx::Result<Vec<Id>> {
+        query!(
+            "DELETE FROM device_posture_location WHERE posture_id = $1",
+            posture_id
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        query!(
+            "INSERT INTO device_posture_location (posture_id, location_id) \
+             SELECT $1, unnest($2::bigint[])",
+            posture_id,
+            location_ids
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        Ok(location_ids.to_vec())
+    }
+
+    /// Returns the IDs of all locations assigned to the given posture.
+    pub async fn find_by_posture<'e, E>(executor: E, posture_id: Id) -> sqlx::Result<Vec<Id>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT location_id FROM device_posture_location WHERE posture_id = $1",
+            posture_id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Returns the IDs of all postures assigned to the given location.
+    pub async fn find_by_location<'e, E>(executor: E, location_id: Id) -> sqlx::Result<Vec<Id>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!(
+            "SELECT posture_id FROM device_posture_location WHERE location_id = $1",
+            location_id
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Returns true if the given location has at least one posture check assigned.
+    pub async fn location_has_postures<'e, E>(executor: E, location_id: Id) -> sqlx::Result<bool>
+    where
+        E: PgExecutor<'e>,
+    {
+        let exists = query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM device_posture_location WHERE location_id = $1)",
+            location_id
+        )
+        .fetch_one(executor)
+        .await?;
+        Ok(exists.unwrap_or(false))
     }
 }
