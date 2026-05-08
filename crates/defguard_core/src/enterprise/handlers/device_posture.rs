@@ -13,7 +13,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::{
-        db::models::device_posture::{DevicePosture, DevicePostureOsRule, OsType},
+        db::models::device_posture::{
+            DevicePosture, DevicePostureLocation, DevicePostureOsRule, OsType,
+        },
         handlers::EnterpriseLicenseInfo,
     },
     error::WebError,
@@ -424,8 +426,10 @@ pub async fn list_device_postures(
     let mut api_postures = Vec::with_capacity(device_postures.len());
     for posture in device_postures {
         let db_rules = DevicePostureOsRule::find_by_posture(&mut *conn, posture.id).await?;
+        let locations = DevicePostureLocation::find_by_posture(&mut *conn, posture.id).await?;
         let mut api = ApiDevicePosture::from(posture);
         api.os_rules = db_rules.into_iter().map(ApiOsRule::from).collect();
+        api.locations = locations;
         api_postures.push(api);
     }
 
@@ -472,8 +476,10 @@ pub async fn get_device_posture(
         .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
 
     let db_rules = DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?;
+    let locations = DevicePostureLocation::find_by_posture(&appstate.pool, id).await?;
     let mut response = ApiDevicePosture::from(device_posture);
     response.os_rules = db_rules.into_iter().map(ApiOsRule::from).collect();
+    response.locations = locations;
 
     Ok(ApiResponse::json(response, StatusCode::OK))
 }
