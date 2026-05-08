@@ -222,3 +222,68 @@ pub async fn get_device_posture(
         StatusCode::OK,
     ))
 }
+
+/// Update an existing device posture check policy
+#[utoipa::path(
+    put,
+    path = "/api/v1/device-posture/{id}",
+    tag = "DevicePosture",
+    params(
+        ("id" = Id, Path, description = "Device posture check policy ID")
+    ),
+    request_body = EditDevicePosture,
+    responses(
+        (status = 200, description = "Device posture check policy updated successfully", body = ApiDevicePosture),
+        (status = 400, description = "Bad request - invalid field value"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 404, description = "Not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn update_device_posture(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Path(id): Path<Id>,
+    State(appstate): State<AppState>,
+    Json(data): Json<EditDevicePosture>,
+) -> ApiResult {
+    debug!(
+        "User {} updating device posture check {id}",
+        session.user.username
+    );
+
+    validate_device_posture_base(&data)?;
+
+    let before = DevicePosture::find_by_id(&appstate.pool, id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
+
+    let after = DevicePosture {
+        id,
+        name: data.name,
+        description: data.description,
+        min_client_version: data.min_client_version,
+        allow_prerelease_client: data.allow_prerelease_client,
+    };
+    after.save(&appstate.pool).await?;
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::DevicePostureUpdated {
+            before,
+            after: after.clone(),
+        }),
+    })?;
+
+    Ok(ApiResponse::json(
+        ApiDevicePosture::from(after),
+        StatusCode::OK,
+    ))
+}
