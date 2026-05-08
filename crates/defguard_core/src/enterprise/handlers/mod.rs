@@ -19,7 +19,7 @@ use serde::Serialize;
 
 use super::{
     db::models::enterprise_settings::EnterpriseSettings, is_business_license_active,
-    license::get_cached_license,
+    is_enterprise_license_active, license::get_cached_license,
 };
 use crate::{appstate::AppState, error::WebError};
 
@@ -55,6 +55,25 @@ where
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         if is_business_license_active() {
             Ok(LicenseInfo { valid: true })
+        } else {
+            Err(WebError::Forbidden("Enterprise features are disabled"))
+        }
+    }
+}
+
+/// Extractor that rejects with 403 if no active enterprise-tier license is found.
+pub struct EnterpriseLicenseInfo;
+
+impl<S> FromRequestParts<S> for EnterpriseLicenseInfo
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
+
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if is_enterprise_license_active() {
+            Ok(EnterpriseLicenseInfo)
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
         }
