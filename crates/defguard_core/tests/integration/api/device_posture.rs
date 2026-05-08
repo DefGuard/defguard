@@ -1,8 +1,10 @@
 use defguard_common::db::setup_pool;
 use defguard_core::{
     enterprise::{
-        db::models::device_posture::DevicePosture,
-        handlers::device_posture::{ApiDevicePosture, CLIENT_VERSIONS, EditDevicePosture},
+        db::models::device_posture::{DevicePosture, OsType},
+        handlers::device_posture::{
+            ApiDevicePosture, ApiOsRule, CLIENT_VERSIONS, EditDevicePosture, valid_os_versions,
+        },
         license::{get_cached_license, set_cached_license},
     },
     events::ApiEventType,
@@ -21,6 +23,7 @@ fn make_edit(name: &str) -> EditDevicePosture {
         description: Some(format!("{name} description")),
         min_client_version: None,
         allow_prerelease_client: false,
+        os_rules: vec![],
     }
 }
 
@@ -98,6 +101,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         description: Some("desc".to_string()),
         min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
         allow_prerelease_client: true,
+        os_rules: vec![],
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -149,6 +153,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
+        os_rules: vec![],
     };
     let response = client
         .put(format!("/api/v1/device-posture/{id}"))
@@ -214,6 +219,7 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         description: Some("original desc".to_string()),
         min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
         allow_prerelease_client: false,
+        os_rules: vec![],
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -287,6 +293,7 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
         description: None,
         min_client_version: Some("99.99".to_string()),
         allow_prerelease_client: false,
+        os_rules: vec![],
     };
     let response = client
         .post("/api/v1/device-posture")
@@ -349,4 +356,320 @@ async fn test_device_posture_pagination(_: PgPoolOptions, options: PgConnectOpti
     assert_eq!(response.status(), StatusCode::OK);
     let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
     assert_eq!(page.data.len(), 1);
+}
+
+#[sqlx::test]
+async fn test_device_posture_os_versions(_: PgPoolOptions, options: PgConnectOptions) {
+    let (mut client, _) = setup(options).await;
+
+    let response = client
+        .get("/api/v1/device-posture/os-versions")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = response.json().await;
+
+    for os in ["windows", "macos", "linux", "ios", "android"] {
+        let versions = body[os]
+            .as_array()
+            .unwrap_or_else(|| panic!("{os} key missing"));
+        assert!(!versions.is_empty(), "{os} version list is empty");
+    }
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_device_posture_client_versions(_: PgPoolOptions, options: PgConnectOptions) {
+    let (mut client, _) = setup(options).await;
+
+    let response = client
+        .get("/api/v1/device-posture/client-versions")
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let versions: Vec<String> = response.json().await;
+    assert!(!versions.is_empty());
+    assert_eq!(versions, CLIENT_VERSIONS);
+
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: PgConnectOptions) {
+    let (mut client, _) = setup(options).await;
+
+    let windows_version = valid_os_versions(&OsType::Windows)[0];
+    let macos_version = valid_os_versions(&OsType::Macos)[0];
+
+    let edit = EditDevicePosture {
+        name: "With Rules".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![
+            ApiOsRule::Windows {
+                min_os_version: Some(windows_version.to_string()),
+                disk_encryption_required: Some(true),
+                antivirus_required: Some(false),
+                ad_domain_joined_required: None,
+                windows_security_update_current: Some(true),
+            },
+            ApiOsRule::Macos {
+                min_os_version: Some(macos_version.to_string()),
+                disk_encryption_required: Some(true),
+                device_integrity_required: Some(true),
+            },
+        ],
+    };
+
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&edit)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created: ApiDevicePosture = response.json().await;
+    assert_eq!(created.os_rules.len(), 2);
+    client.drain_all_events();
+
+    // GET returns the same rules
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", created.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let fetched: ApiDevicePosture = response.json().await;
+    assert_eq!(fetched.os_rules.len(), 2);
+    assert!(
+        fetched
+            .os_rules
+            .iter()
+            .any(|r| matches!(r, ApiOsRule::Windows { .. }))
+    );
+    assert!(
+        fetched
+            .os_rules
+            .iter()
+            .any(|r| matches!(r, ApiOsRule::Macos { .. }))
+    );
+
+    // list also includes os_rules
+    let response = client.get("/api/v1/device-posture").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
+    assert_eq!(page.data[0].os_rules.len(), 2);
+}
+
+#[sqlx::test]
+async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options: PgConnectOptions) {
+    let (mut client, _) = setup(options).await;
+
+    let linux_version = valid_os_versions(&OsType::Linux)[0];
+
+    // create with windows + macos rules
+    let create = EditDevicePosture {
+        name: "Replace Test".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![
+            ApiOsRule::Windows {
+                min_os_version: None,
+                disk_encryption_required: Some(true),
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+            },
+            ApiOsRule::Macos {
+                min_os_version: None,
+                disk_encryption_required: None,
+                device_integrity_required: None,
+            },
+        ],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&create)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created: ApiDevicePosture = response.json().await;
+    assert_eq!(created.os_rules.len(), 2);
+    client.drain_all_events();
+
+    // update with only linux rule
+    let update = EditDevicePosture {
+        name: "Replace Test".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![ApiOsRule::Linux {
+            min_os_version: Some(linux_version.to_string()),
+            min_kernel_version: None,
+            disk_encryption_required: Some(true),
+        }],
+    };
+    let response = client
+        .put(format!("/api/v1/device-posture/{}", created.id))
+        .json(&update)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated: ApiDevicePosture = response.json().await;
+    assert_eq!(updated.os_rules.len(), 1);
+    assert!(matches!(updated.os_rules[0], ApiOsRule::Linux { .. }));
+    client.drain_all_events();
+
+    // GET confirms windows + macos rules are gone
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", created.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert_eq!(fetched.os_rules.len(), 1);
+    assert!(matches!(fetched.os_rules[0], ApiOsRule::Linux { .. }));
+}
+
+#[sqlx::test]
+async fn test_device_posture_os_rules_duplicate_copies(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, _) = setup(options).await;
+
+    let create = EditDevicePosture {
+        name: "Original".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![
+            ApiOsRule::Windows {
+                min_os_version: None,
+                disk_encryption_required: Some(true),
+                antivirus_required: Some(true),
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+            },
+            ApiOsRule::Android {
+                min_os_version: None,
+                device_integrity_required: Some(true),
+            },
+        ],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&create)
+        .send()
+        .await;
+    let original: ApiDevicePosture = response.json().await;
+    client.drain_all_events();
+
+    // duplicate
+    let response = client
+        .post(format!("/api/v1/device-posture/{}/duplicate", original.id))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let copy: ApiDevicePosture = response.json().await;
+
+    assert_ne!(copy.id, original.id);
+    assert_eq!(copy.os_rules.len(), 2);
+    assert!(
+        copy.os_rules
+            .iter()
+            .any(|r| matches!(r, ApiOsRule::Windows { .. }))
+    );
+    assert!(
+        copy.os_rules
+            .iter()
+            .any(|r| matches!(r, ApiOsRule::Android { .. }))
+    );
+    client.drain_all_events();
+
+    // GET on copy confirms rules are persisted
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", copy.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert_eq!(fetched.os_rules.len(), 2);
+}
+
+#[sqlx::test]
+async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgConnectOptions) {
+    let (mut client, _) = setup(options).await;
+
+    // unknown min_os_version for windows → 400
+    let bad_version = EditDevicePosture {
+        name: "Bad".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![ApiOsRule::Windows {
+            min_os_version: Some("Windows 7".to_string()),
+            disk_encryption_required: None,
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_current: None,
+        }],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&bad_version)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    // duplicate os_type → 400
+    let duplicate_os = EditDevicePosture {
+        name: "Dup".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![
+            ApiOsRule::Windows {
+                min_os_version: None,
+                disk_encryption_required: None,
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+            },
+            ApiOsRule::Windows {
+                min_os_version: None,
+                disk_encryption_required: Some(true),
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+            },
+        ],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&duplicate_os)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    // unknown min_kernel_version for linux → 400
+    let bad_kernel = EditDevicePosture {
+        name: "Bad Kernel".to_string(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![ApiOsRule::Linux {
+            min_os_version: None,
+            min_kernel_version: Some("4.x".to_string()),
+            disk_encryption_required: None,
+        }],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&bad_kernel)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
 }
