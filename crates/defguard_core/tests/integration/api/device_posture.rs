@@ -3,7 +3,8 @@ use defguard_core::{
     enterprise::{
         db::models::device_posture::{DevicePosture, OsType},
         handlers::device_posture::{
-            ApiDevicePosture, ApiOsRule, CLIENT_VERSIONS, EditDevicePosture, valid_os_versions,
+            ApiDevicePosture, ApiOsRule, AssignLocationsData, AssignPosturesData, CLIENT_VERSIONS,
+            EditDevicePosture, valid_os_versions,
         },
         license::{get_cached_license, set_cached_license},
     },
@@ -27,7 +28,7 @@ fn make_edit(name: &str) -> EditDevicePosture {
     }
 }
 
-use crate::api::common::client::TestClient;
+use crate::api::common::{client::TestClient, make_network};
 
 /// Set up a test client with enterprise license and admin session ready.
 /// All device posture tests that don't test license gating should use this.
@@ -671,5 +672,191 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+}
+
+#[sqlx::test]
+async fn test_device_posture_set_locations_for_posture(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, _) = setup(options).await;
+
+    // create two locations and one posture
+    let net1: serde_json::Value = make_network(&client, "net1").await.json().await;
+    let net2: serde_json::Value = make_network(&client, "net2").await.json().await;
+    let loc1 = net1["id"].as_i64().unwrap();
+    let loc2 = net2["id"].as_i64().unwrap();
+
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&make_edit("Posture"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let posture: ApiDevicePosture = response.json().await;
+    client.drain_all_events();
+
+    // assign two locations
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![loc1, loc2],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result.len(), 2);
+    assert!(result.contains(&loc1));
+    assert!(result.contains(&loc2));
+
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::DevicePostureLocationsAssigned { .. }
+    ));
+
+    // GET shows both locations
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", posture.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert_eq!(fetched.locations.len(), 2);
+    assert!(fetched.locations.contains(&loc1));
+    assert!(fetched.locations.contains(&loc2));
+
+    // reassign with only one location — replace semantics
+    let response = client
+        .put(format!("/api/v1/device-posture/{}/locations", posture.id))
+        .json(&AssignLocationsData {
+            locations: vec![loc1],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result, vec![loc1]);
+    client.drain_all_events();
+
+    let response = client
+        .get(format!("/api/v1/device-posture/{}", posture.id))
+        .send()
+        .await;
+    let fetched: ApiDevicePosture = response.json().await;
+    assert_eq!(fetched.locations, vec![loc1]);
+}
+
+#[sqlx::test]
+async fn test_device_posture_set_postures_for_location(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, _) = setup(options).await;
+
+    // create one location and two postures
+    let net: serde_json::Value = make_network(&client, "net").await.json().await;
+    let location_id = net["id"].as_i64().unwrap();
+
+    let p1: ApiDevicePosture = client
+        .post("/api/v1/device-posture")
+        .json(&make_edit("Posture 1"))
+        .send()
+        .await
+        .json()
+        .await;
+    let p2: ApiDevicePosture = client
+        .post("/api/v1/device-posture")
+        .json(&make_edit("Posture 2"))
+        .send()
+        .await
+        .json()
+        .await;
+    client.drain_all_events();
+
+    // assign both postures to the location
+    let response = client
+        .put(format!("/api/v1/network/{location_id}/postures"))
+        .json(&AssignPosturesData {
+            postures: vec![p1.id, p2.id],
+        })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert_eq!(result.len(), 2);
+    assert!(result.contains(&p1.id));
+    assert!(result.contains(&p2.id));
+
+    let events = client.drain_all_events();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        events[0].0,
+        ApiEventType::LocationPosturesAssigned { .. }
+    ));
+
+    // GET on each posture shows the location
+    for posture in [&p1, &p2] {
+        let response = client
+            .get(format!("/api/v1/device-posture/{}", posture.id))
+            .send()
+            .await;
+        let fetched: ApiDevicePosture = response.json().await;
+        assert!(fetched.locations.contains(&location_id));
+    }
+
+    // GET network shows both posture IDs
+    let response = client
+        .get(format!("/api/v1/network/{location_id}"))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let network: serde_json::Value = response.json().await;
+    let posture_checks: Vec<i64> =
+        serde_json::from_value(network["posture_checks"].clone()).unwrap();
+    assert_eq!(posture_checks.len(), 2);
+
+    // reassign with empty list — all postures removed
+    let response = client
+        .put(format!("/api/v1/network/{location_id}/postures"))
+        .json(&AssignPosturesData { postures: vec![] })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let result: Vec<i64> = response.json().await;
+    assert!(result.is_empty());
+    client.drain_all_events();
+
+    // GET on postures now shows no locations
+    for posture in [&p1, &p2] {
+        let response = client
+            .get(format!("/api/v1/device-posture/{}", posture.id))
+            .send()
+            .await;
+        let fetched: ApiDevicePosture = response.json().await;
+        assert!(fetched.locations.is_empty());
+    }
+}
+
+#[sqlx::test]
+async fn test_device_posture_assignment_not_found(_: PgPoolOptions, options: PgConnectOptions) {
+    let (mut client, _) = setup(options).await;
+
+    let response = client
+        .put("/api/v1/device-posture/999/locations")
+        .json(&AssignLocationsData { locations: vec![] })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    client.assert_event_queue_is_empty();
+
+    let response = client
+        .put("/api/v1/network/999/postures")
+        .json(&AssignPosturesData { postures: vec![] })
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
     client.assert_event_queue_is_empty();
 }
