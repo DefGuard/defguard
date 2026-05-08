@@ -5,6 +5,7 @@ mod auth;
 mod common;
 mod component_setup;
 mod core_certs;
+mod device_posture;
 mod enrollment;
 mod enterprise_settings;
 mod forward_auth;
