@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -10,7 +12,10 @@ use utoipa::ToSchema;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::{db::models::device_posture::DevicePosture, handlers::EnterpriseLicenseInfo},
+    enterprise::{
+        db::models::device_posture::{DevicePosture, DevicePostureOsRule, OsType},
+        handlers::EnterpriseLicenseInfo,
+    },
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
@@ -24,6 +29,183 @@ use crate::{
 /// TODO: also consider if this is the best way to store possible options
 pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
 
+/// Returns the list of valid `min_os_version` values for a given OS type.
+/// TODO: consider a better format for storing versions
+pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
+    match os_type {
+        OsType::Windows => &["Windows 10", "Windows 11"],
+        OsType::Macos => &[
+            "macOS 12 Monterey",
+            "macOS 13 Ventura",
+            "macOS 14 Sonoma",
+            "macOS 15 Sequoia",
+        ],
+        OsType::Linux => &["5.x", "6.x"],
+        OsType::Ios => &["17", "18"],
+        OsType::Android => &["13", "14", "15", "16"],
+    }
+}
+
+/// Per-OS rule included in a posture check policy API.
+///
+/// Adding this layer on top of the shared DB type allows us
+/// to require different fields for specific platforms.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, PartialEq)]
+#[serde(tag = "os_type", rename_all = "lowercase")]
+pub enum ApiOsRule {
+    Windows {
+        min_os_version: Option<String>,
+        disk_encryption_required: Option<bool>,
+        antivirus_required: Option<bool>,
+        ad_domain_joined_required: Option<bool>,
+        windows_security_update_current: Option<bool>,
+    },
+    Macos {
+        min_os_version: Option<String>,
+        disk_encryption_required: Option<bool>,
+        device_integrity_required: Option<bool>,
+    },
+    Linux {
+        min_os_version: Option<String>,
+        min_kernel_version: Option<String>,
+        disk_encryption_required: Option<bool>,
+    },
+    Ios {
+        min_os_version: Option<String>,
+    },
+    Android {
+        min_os_version: Option<String>,
+        device_integrity_required: Option<bool>,
+    },
+}
+
+impl ApiOsRule {
+    /// Returns the [`OsType`] discriminant for this rule set.
+    fn os_type(&self) -> OsType {
+        match self {
+            Self::Windows { .. } => OsType::Windows,
+            Self::Macos { .. } => OsType::Macos,
+            Self::Linux { .. } => OsType::Linux,
+            Self::Ios { .. } => OsType::Ios,
+            Self::Android { .. } => OsType::Android,
+        }
+    }
+
+    /// Converts this rule set into an unsaved DB row for the given posture ID.
+    pub fn into_db_rule(self, posture_id: Id) -> DevicePostureOsRule<NoId> {
+        match self {
+            Self::Windows {
+                min_os_version,
+                disk_encryption_required,
+                antivirus_required,
+                ad_domain_joined_required,
+                windows_security_update_current,
+            } => DevicePostureOsRule {
+                id: NoId,
+                posture_id,
+                os_type: OsType::Windows,
+                min_os_version,
+                disk_encryption_required,
+                antivirus_required,
+                ad_domain_joined_required,
+                windows_security_update_current,
+                min_kernel_version: None,
+                device_integrity_required: None,
+            },
+            Self::Macos {
+                min_os_version,
+                disk_encryption_required,
+                device_integrity_required,
+            } => DevicePostureOsRule {
+                id: NoId,
+                posture_id,
+                os_type: OsType::Macos,
+                min_os_version,
+                disk_encryption_required,
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+                min_kernel_version: None,
+                device_integrity_required,
+            },
+            Self::Linux {
+                min_os_version,
+                min_kernel_version,
+                disk_encryption_required,
+            } => DevicePostureOsRule {
+                id: NoId,
+                posture_id,
+                os_type: OsType::Linux,
+                min_os_version,
+                disk_encryption_required,
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+                min_kernel_version,
+                device_integrity_required: None,
+            },
+            Self::Ios { min_os_version } => DevicePostureOsRule {
+                id: NoId,
+                posture_id,
+                os_type: OsType::Ios,
+                min_os_version,
+                disk_encryption_required: None,
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+                min_kernel_version: None,
+                device_integrity_required: None,
+            },
+            Self::Android {
+                min_os_version,
+                device_integrity_required,
+            } => DevicePostureOsRule {
+                id: NoId,
+                posture_id,
+                os_type: OsType::Android,
+                min_os_version,
+                disk_encryption_required: None,
+                antivirus_required: None,
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+                min_kernel_version: None,
+                device_integrity_required,
+            },
+        }
+    }
+}
+
+impl From<DevicePostureOsRule<Id>> for ApiOsRule {
+    fn from(rule: DevicePostureOsRule<Id>) -> Self {
+        match rule.os_type {
+            OsType::Windows => Self::Windows {
+                min_os_version: rule.min_os_version,
+                disk_encryption_required: rule.disk_encryption_required,
+                antivirus_required: rule.antivirus_required,
+                ad_domain_joined_required: rule.ad_domain_joined_required,
+                windows_security_update_current: rule.windows_security_update_current,
+            },
+            OsType::Macos => Self::Macos {
+                min_os_version: rule.min_os_version,
+                disk_encryption_required: rule.disk_encryption_required,
+                device_integrity_required: rule.device_integrity_required,
+            },
+            OsType::Linux => Self::Linux {
+                min_os_version: rule.min_os_version,
+                min_kernel_version: rule.min_kernel_version,
+                disk_encryption_required: rule.disk_encryption_required,
+            },
+            OsType::Ios => Self::Ios {
+                min_os_version: rule.min_os_version,
+            },
+            OsType::Android => Self::Android {
+                min_os_version: rule.min_os_version,
+                device_integrity_required: rule.device_integrity_required,
+            },
+        }
+    }
+}
+
 /// API response type for a device posture check policy.
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ApiDevicePosture {
@@ -32,6 +214,7 @@ pub struct ApiDevicePosture {
     pub description: Option<String>,
     pub min_client_version: Option<String>,
     pub allow_prerelease_client: bool,
+    pub os_rules: Vec<ApiOsRule>,
     /// IDs of VPN locations this policy is assigned to.
     pub locations: Vec<Id>,
 }
@@ -44,6 +227,7 @@ impl From<DevicePosture<Id>> for ApiDevicePosture {
             description: p.description,
             min_client_version: p.min_client_version,
             allow_prerelease_client: p.allow_prerelease_client,
+            os_rules: vec![],
             locations: vec![],
         }
     }
@@ -56,6 +240,8 @@ pub struct EditDevicePosture {
     pub description: Option<String>,
     pub min_client_version: Option<String>,
     pub allow_prerelease_client: bool,
+    #[serde(default)]
+    pub os_rules: Vec<ApiOsRule>,
 }
 
 /// Validates the base fields of an [`EditDevicePosture`] request.
@@ -69,6 +255,54 @@ fn validate_device_posture_base(data: &EditDevicePosture) -> Result<(), WebError
                 "Unknown client version '{version}'. Valid values: {}",
                 CLIENT_VERSIONS.join(", ")
             )));
+        }
+    }
+    validate_device_posture_os_rules(&data.os_rules)
+}
+
+/// Validates the `os_rules` list in an [`EditDevicePosture`] request.
+///
+/// Returns `Err(WebError::BadRequest(...))` if:
+/// - the same `os_type` appears more than once, or
+/// - `min_os_version` is not in the known list for its OS type, or
+/// - `min_kernel_version` is not in the known Linux kernel version list.
+fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebError> {
+    let mut seen = HashSet::new();
+    for rule in os_rules {
+        let os_type = rule.os_type();
+        if !seen.insert(std::mem::discriminant(rule)) {
+            return Err(WebError::BadRequest(format!(
+                "Duplicate os_type '{os_type:?}' in os_rules"
+            )));
+        }
+        let valid_versions = valid_os_versions(&os_type);
+        let min_os_version = match rule {
+            ApiOsRule::Windows { min_os_version, .. }
+            | ApiOsRule::Macos { min_os_version, .. }
+            | ApiOsRule::Linux { min_os_version, .. }
+            | ApiOsRule::Ios { min_os_version }
+            | ApiOsRule::Android { min_os_version, .. } => min_os_version,
+        };
+        if let Some(v) = min_os_version {
+            if !valid_versions.contains(&v.as_str()) {
+                return Err(WebError::BadRequest(format!(
+                    "Unknown min_os_version '{v}' for {os_type:?}. Valid values: {}",
+                    valid_versions.join(", ")
+                )));
+            }
+        }
+        if let ApiOsRule::Linux {
+            min_kernel_version: Some(kv),
+            ..
+        } = rule
+        {
+            let valid_kernels = valid_os_versions(&OsType::Linux);
+            if !valid_kernels.contains(&kv.as_str()) {
+                return Err(WebError::BadRequest(format!(
+                    "Unknown min_kernel_version '{kv}'. Valid values: {}",
+                    valid_kernels.join(", ")
+                )));
+            }
         }
     }
     Ok(())
