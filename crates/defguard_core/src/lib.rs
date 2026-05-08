@@ -109,6 +109,10 @@ use crate::{
             },
             api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
             check_enterprise_info,
+            device_posture::{
+                create_device_posture, delete_device_posture, duplicate_device_posture,
+                get_device_posture, list_device_postures, update_device_posture,
+            },
             enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
             openid_login::{auth_callback, get_auth_info},
             openid_providers::{
@@ -526,6 +530,25 @@ pub fn build_webapp(
                     .delete(delete_acl_destination),
             )
             .route("/destination/apply", put(apply_acl_destinations)),
+    );
+
+    let api_router = api_router.nest(
+        "/api/v1",
+        Router::new()
+            .route(
+                "/device-posture",
+                get(list_device_postures).post(create_device_posture),
+            )
+            .route(
+                "/device-posture/{id}",
+                get(get_device_posture)
+                    .put(update_device_posture)
+                    .delete(delete_device_posture),
+            )
+            .route(
+                "/device-posture/{id}/duplicate",
+                post(duplicate_device_posture),
+            ),
     );
 
     let api_router = api_router.nest(
