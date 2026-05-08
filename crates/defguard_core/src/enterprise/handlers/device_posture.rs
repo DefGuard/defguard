@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
-use defguard_common::db::{Id, NoId};
+use defguard_common::db::{Id, NoId, models::WireguardNetwork};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -687,7 +687,129 @@ pub async fn duplicate_device_posture(
     Ok(ApiResponse::json(response, StatusCode::CREATED))
 }
 
-/// List valid OS versions grouped by OS type
+/// Request body for assigning posture checks to a VPN location.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct AssignPosturesData {
+    pub postures: Vec<Id>,
+}
+
+/// Request body for assigning VPN locations to a posture check.
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct AssignLocationsData {
+    pub locations: Vec<Id>,
+}
+
+/// Assign posture checks to a VPN location (replaces existing assignment)
+#[utoipa::path(
+    put,
+    path = "/api/v1/network/{id}/postures",
+    tag = "DevicePosture",
+    params(
+        ("id" = Id, Path, description = "VPN location ID")
+    ),
+    request_body = AssignPosturesData,
+    responses(
+        (status = 200, description = "Postures assigned successfully", body = [Id]),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 404, description = "Location not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn set_postures_for_location(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Path(location_id): Path<Id>,
+    State(appstate): State<AppState>,
+    Json(data): Json<AssignPosturesData>,
+) -> ApiResult {
+    debug!(
+        "User {} assigning device posture checks {:?} to location {location_id}",
+        session.user.username, data.postures
+    );
+
+    let location = WireguardNetwork::find_by_id(&appstate.pool, location_id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Location {location_id} not found")))?;
+
+    let mut tx = appstate.pool.begin().await?;
+    let result =
+        DevicePostureLocation::set_for_location(&mut tx, location_id, &data.postures).await?;
+    tx.commit().await?;
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::LocationPosturesAssigned {
+            location,
+            posture_ids: result.clone(),
+        }),
+    })?;
+
+    Ok(ApiResponse::json(result, StatusCode::OK))
+}
+
+/// Assign VPN locations to a posture check (replaces existing assignment)
+#[utoipa::path(
+    put,
+    path = "/api/v1/device-posture/{id}/locations",
+    tag = "DevicePosture",
+    params(
+        ("id" = Id, Path, description = "Device posture check policy ID")
+    ),
+    request_body = AssignLocationsData,
+    responses(
+        (status = 200, description = "Locations assigned successfully", body = [Id]),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 404, description = "Posture check not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn set_locations_for_posture(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    context: ApiRequestContext,
+    Path(posture_id): Path<Id>,
+    State(appstate): State<AppState>,
+    Json(data): Json<AssignLocationsData>,
+) -> ApiResult {
+    debug!(
+        "User {} assigning locations {:?} to device posture check {posture_id}",
+        session.user.username, data.locations
+    );
+
+    let posture = DevicePosture::find_by_id(&appstate.pool, posture_id)
+        .await?
+        .ok_or_else(|| {
+            WebError::ObjectNotFound(format!("Device posture check {posture_id} not found"))
+        })?;
+
+    let mut tx = appstate.pool.begin().await?;
+    let result =
+        DevicePostureLocation::set_for_posture(&mut tx, posture_id, &data.locations).await?;
+    tx.commit().await?;
+
+    appstate.emit_event(ApiEvent {
+        context,
+        event: Box::new(ApiEventType::DevicePostureLocationsAssigned {
+            device_posture: posture,
+            location_ids: result.clone(),
+        }),
+    })?;
+
+    Ok(ApiResponse::json(result, StatusCode::OK))
+}
 ///
 /// Returns the available `min_os_version` values for each OS, grouped by OS type.
 /// The UI should present these as selectable options in the version dropdown.
