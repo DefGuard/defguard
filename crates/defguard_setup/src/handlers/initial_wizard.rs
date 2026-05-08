@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use axum::{Extension, Json};
-use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     TypedHeader,
     extract::{
@@ -29,7 +28,7 @@ use defguard_core::{
         failed_login::{FailedLoginMap, check_failed_logins, log_failed_login_attempt},
     },
     error::WebError,
-    handlers::{ApiResponse, ApiResult, SESSION_COOKIE_NAME},
+    handlers::{ApiResponse, ApiResult, ClientIpAddr, SESSION_COOKIE_NAME},
     headers::get_device_info,
 };
 use reqwest::StatusCode;
@@ -113,7 +112,7 @@ pub struct SetupLogin {
 pub async fn create_admin(
     cookies: CookieJar,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
     Json(admin): Json<CreateAdmin>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -173,7 +172,7 @@ pub async fn create_admin(
     let session = Session::new(
         user.id,
         SessionState::PasswordVerified,
-        insecure_ip.to_string(),
+        ip_addr.to_string(),
         Some(device_info),
     );
     session.save(&pool).await?;
@@ -199,7 +198,7 @@ pub async fn create_admin(
 pub async fn setup_login(
     cookies: CookieJar,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     Extension(pool): Extension<PgPool>,
     Extension(failed_logins): Extension<Arc<Mutex<FailedLoginMap>>>,
     Json(login): Json<SetupLogin>,
@@ -240,7 +239,7 @@ pub async fn setup_login(
     let session = Session::new(
         user.id,
         SessionState::PasswordVerified,
-        insecure_ip.to_string(),
+        ip_addr.to_string(),
         Some(device_info),
     );
     session.save(&pool).await?;

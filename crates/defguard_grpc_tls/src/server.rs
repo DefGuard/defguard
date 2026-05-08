@@ -35,7 +35,7 @@ pub fn certificate_serial_interceptor(
         let certs = req
             .extensions()
             .get::<TlsConnectInfo<TcpConnectInfo>>()
-            .and_then(|info| info.peer_certs())
+            .and_then(tonic::transport::server::TlsConnectInfo::peer_certs)
             .ok_or_else(|| Status::unauthenticated("Missing client certificate"))?;
 
         let der = certs

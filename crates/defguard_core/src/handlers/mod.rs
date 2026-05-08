@@ -1,10 +1,10 @@
 use axum::{
     Json,
-    extract::{FromRef, FromRequestParts},
+    extract::{ConnectInfo, FromRef, FromRequestParts},
     http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
-use axum_client_ip::InsecureClientIp;
+use axum_client_ip::{RightmostForwarded, RightmostXForwardedFor};
 use axum_extra::{TypedHeader, headers::UserAgent};
 use defguard_common::{
     config::server_config,
@@ -18,6 +18,7 @@ use defguard_static_ip::error::StaticIpError;
 use ipnetwork::IpNetworkError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use std::net::{IpAddr, SocketAddr};
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
@@ -68,6 +69,40 @@ pub enum WebErrorCode {
 pub static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
+
+/// Extracts client IP address. It tries "forwarded", then "x-forwarded-for" headers,
+/// with a fallback to `ConnectInfo` when these headers are absent.
+pub struct ClientIpAddr(pub IpAddr);
+
+impl<S> FromRequestParts<S> for ClientIpAddr
+where
+    S: Send + Sync,
+{
+    type Rejection = WebError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let ip_addr = if parts.headers.contains_key("forwarded") {
+            let RightmostForwarded(ip_addr) = RightmostForwarded::from_request_parts(parts, state)
+                .await
+                .map_err(|_| WebError::ClientIpError)?;
+            ip_addr
+        } else if parts.headers.contains_key("x-forwarded-for") {
+            let RightmostXForwardedFor(ip_addr) =
+                RightmostXForwardedFor::from_request_parts(parts, state)
+                    .await
+                    .map_err(|_| WebError::ClientIpError)?;
+            ip_addr
+        } else {
+            let ConnectInfo(socket_addr) =
+                ConnectInfo::<SocketAddr>::from_request_parts(parts, state)
+                    .await
+                    .map_err(|_| WebError::ClientIpError)?;
+            socket_addr.ip()
+        };
+
+        Ok(Self(ip_addr))
+    }
+}
 
 pub(crate) fn cookie_domain() -> Option<String> {
     server_config().cookie_domain.clone().or_else(|| {
@@ -560,7 +595,7 @@ where
         let TypedHeader(user_agent) = TypedHeader::<UserAgent>::from_request_parts(parts, state)
             .await
             .map_err(|_| WebError::BadRequest("Missing UserAgent header".to_string()))?;
-        let InsecureClientIp(insecure_ip) = InsecureClientIp::from_request_parts(parts, state)
+        let ClientIpAddr(ip_addr) = ClientIpAddr::from_request_parts(parts, state)
             .await
             .map_err(|_| WebError::BadRequest("Missing client IP".to_string()))?;
         let session = if let Some(cached) = parts.extensions.get::<SessionInfo>() {
@@ -574,7 +609,7 @@ where
         Ok(ApiRequestContext::new(
             session.user.id,
             session.user.username,
-            insecure_ip,
+            ip_addr,
             user_agent.to_string(),
         ))
     }

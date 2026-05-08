@@ -5,7 +5,6 @@ use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
 };
-use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     TypedHeader,
     extract::cookie::CookieJar,
@@ -26,7 +25,7 @@ use sqlx::PgPool;
 use crate::{
     enterprise::{db::models::api_tokens::ApiToken, is_business_license_active},
     error::WebError,
-    handlers::SESSION_COOKIE_NAME,
+    handlers::{ClientIpAddr, SESSION_COOKIE_NAME},
 };
 
 pub struct SessionExtractor(pub Session);
@@ -57,12 +56,12 @@ where
                     Ok(Some(api_token)) => {
                         // create a dummy session and don't store it in the DB
                         // since each request needs to be authorized anyway
-                        let ip_address = InsecureClientIp::from_request_parts(parts, state)
+                        let ip_address = ClientIpAddr::from_request_parts(parts, state)
                             .await
                             .map_err(|err| {
-                            error!("Failed to get client IP: {err:?}");
-                            WebError::ClientIpError
-                        })?;
+                                error!("Failed to get client IP: {err:?}");
+                                WebError::ClientIpError
+                            })?;
                         Ok(Self(Session::new(
                             api_token.user_id,
                             SessionState::ApiTokenVerified,

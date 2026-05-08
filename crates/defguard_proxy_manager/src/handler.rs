@@ -286,7 +286,7 @@ impl ProxyHandler {
                     self.mark_disconnected().await?;
                     let mut shutdown = self.shutdown_signal.lock().await;
                     select! {
-                        _ = sleep(self.retry_delay()) => {}
+                        () = sleep(self.retry_delay()) => {}
                         _ = &mut *shutdown => {
                             debug!("Shutdown signal received during reconnect backoff (connect_channel failure), stopping");
                             break;
@@ -335,7 +335,7 @@ impl ProxyHandler {
                     self.mark_disconnected().await?;
                     let mut shutdown = self.shutdown_signal.lock().await;
                     select! {
-                        _ = sleep(self.retry_delay()) => {}
+                        () = sleep(self.retry_delay()) => {}
                         _ = &mut *shutdown => {
                             debug!("Shutdown signal received during reconnect backoff (bidi failure), stopping");
                             break;
@@ -367,7 +367,7 @@ impl ProxyHandler {
                 // Sleep before trying to reconnect
                 let mut shutdown = self.shutdown_signal.lock().await;
                 select! {
-                    _ = sleep(self.retry_delay()) => {}
+                    () = sleep(self.retry_delay()) => {}
                     _ = &mut *shutdown => {
                         debug!("Shutdown signal received during reconnect backoff (version incompatible), stopping");
                         break;

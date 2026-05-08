@@ -528,7 +528,7 @@ impl GatewayManager {
                             #[cfg(test)]
                             self.note_gateway_notification_for_tests(gateway_id);
                         }
-                    };
+                    }
                 }
                 Err(err) => error!("Failed to de-serialize database notification object: {err}"),
             }

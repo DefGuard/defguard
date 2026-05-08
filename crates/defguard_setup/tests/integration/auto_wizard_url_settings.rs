@@ -18,14 +18,14 @@ use ipnetwork::IpNetwork;
 use rcgen::DnType;
 use reqwest::{
     Client, StatusCode,
-    header::{HeaderMap, HeaderValue, USER_AGENT},
+    header::{HeaderMap, USER_AGENT},
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::{sync::oneshot, time::timeout};
 
 use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
-use crate::common::{SESSION_COOKIE_NAME, TestClient};
+use crate::common::{SESSION_COOKIE_NAME, TEST_USER_AGENT, TestClient};
 
 async fn bootstrap_wizard_to_url_settings(
     pool: &sqlx::PgPool,
@@ -417,7 +417,7 @@ async fn test_url_settings_endpoints_require_auth(_: PgPoolOptions, options: PgC
     let unauth = Client::builder()
         .default_headers({
             let mut h = HeaderMap::new();
-            h.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+            h.insert(USER_AGENT, TEST_USER_AGENT);
             h
         })
         .build()
