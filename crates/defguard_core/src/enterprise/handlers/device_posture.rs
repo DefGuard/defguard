@@ -340,17 +340,33 @@ pub async fn create_device_posture(
 
     validate_device_posture_base(&data)?;
 
+    let EditDevicePosture {
+        name,
+        description,
+        min_client_version,
+        allow_prerelease_client,
+        os_rules,
+    } = data;
+
+    let mut tx = appstate.pool.begin().await?;
+
     let posture = DevicePosture {
         id: NoId,
-        name: data.name,
-        description: data.description,
-        min_client_version: data.min_client_version,
-        allow_prerelease_client: data.allow_prerelease_client,
+        name,
+        description,
+        min_client_version,
+        allow_prerelease_client,
     }
-    .save(&appstate.pool)
+    .save(&mut *tx)
     .await?;
 
-    debug!("Created posture check {}", posture.id);
+    for rule in &os_rules {
+        rule.clone().into_db_rule(posture.id).save(&mut *tx).await?;
+    }
+
+    tx.commit().await?;
+
+    debug!("Created device posture check {}", posture.id);
 
     appstate.emit_event(ApiEvent {
         context,
@@ -359,10 +375,9 @@ pub async fn create_device_posture(
         }),
     })?;
 
-    Ok(ApiResponse::json(
-        ApiDevicePosture::from(posture),
-        StatusCode::CREATED,
-    ))
+    let mut response = ApiDevicePosture::from(posture);
+    response.os_rules = os_rules;
+    Ok(ApiResponse::json(response, StatusCode::CREATED))
 }
 
 #[utoipa::path(
@@ -406,11 +421,16 @@ pub async fn list_device_postures(
     .await?;
     let count = DevicePosture::count(&mut *conn).await?;
 
+    let mut api_postures = Vec::with_capacity(device_postures.len());
+    for posture in device_postures {
+        let db_rules = DevicePostureOsRule::find_by_posture(&mut *conn, posture.id).await?;
+        let mut api = ApiDevicePosture::from(posture);
+        api.os_rules = db_rules.into_iter().map(ApiOsRule::from).collect();
+        api_postures.push(api);
+    }
+
     Ok(PaginatedApiResponse::new(
-        device_postures
-            .into_iter()
-            .map(ApiDevicePosture::from)
-            .collect(),
+        api_postures,
         pagination,
         count as u32,
     ))
@@ -451,10 +471,11 @@ pub async fn get_device_posture(
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
 
-    Ok(ApiResponse::json(
-        ApiDevicePosture::from(device_posture),
-        StatusCode::OK,
-    ))
+    let db_rules = DevicePostureOsRule::find_by_posture(&appstate.pool, id).await?;
+    let mut response = ApiDevicePosture::from(device_posture);
+    response.os_rules = db_rules.into_iter().map(ApiOsRule::from).collect();
+
+    Ok(ApiResponse::json(response, StatusCode::OK))
 }
 
 /// Update an existing device posture check policy
