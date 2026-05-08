@@ -1,7 +1,7 @@
 use axum::{
     Json,
     extract::{ConnectInfo, FromRef, FromRequestParts},
-    http::{StatusCode, request::Parts},
+    http::{HeaderName, StatusCode, header::FORWARDED, request::Parts},
     response::{IntoResponse, Response},
 };
 use axum_client_ip::{RightmostForwarded, RightmostXForwardedFor};
@@ -70,6 +70,8 @@ pub static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 pub(crate) const SIGN_IN_COOKIE_MAX_AGE: time::Duration = time::Duration::minutes(10);
 
+const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
+
 /// Extracts client IP address. It tries "forwarded", then "x-forwarded-for" headers,
 /// with a fallback to `ConnectInfo` when these headers are absent.
 pub struct ClientIpAddr(pub IpAddr);
@@ -81,12 +83,12 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let ip_addr = if parts.headers.contains_key("forwarded") {
+        let ip_addr = if parts.headers.contains_key(FORWARDED) {
             let RightmostForwarded(ip_addr) = RightmostForwarded::from_request_parts(parts, state)
                 .await
                 .map_err(|_| WebError::ClientIpError)?;
             ip_addr
-        } else if parts.headers.contains_key("x-forwarded-for") {
+        } else if parts.headers.contains_key(X_FORWARDED_FOR) {
             let RightmostXForwardedFor(ip_addr) =
                 RightmostXForwardedFor::from_request_parts(parts, state)
                     .await
