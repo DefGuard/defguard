@@ -15,7 +15,7 @@ const MIN_PER_PAGE: u32 = 1;
 const MAX_PER_PAGE: u32 = 100;
 
 /// Query params for paginated endpoints
-pub(crate) struct PaginationParams {
+pub struct PaginationParams {
     page: u32,
     per_page: u32,
 }
@@ -183,10 +183,10 @@ impl PaginationMeta {
     }
 }
 
-pub(crate) type PaginatedApiResult<T> = Result<PaginatedApiResponse<T>, WebError>;
+pub type PaginatedApiResult<T> = Result<PaginatedApiResponse<T>, WebError>;
 
 #[derive(Serialize)]
-pub(crate) struct PaginatedApiResponse<T> {
+pub struct PaginatedApiResponse<T> {
     data: Vec<T>,
     pagination: PaginationMeta,
 }

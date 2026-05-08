@@ -1,4 +1,8 @@
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
+};
 use defguard_common::db::{Id, NoId};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -9,7 +13,10 @@ use crate::{
     enterprise::{db::models::device_posture::DevicePosture, handlers::EnterpriseLicenseInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiResponse, ApiResult},
+    handlers::{
+        ApiResponse, ApiResult,
+        pagination::{PaginatedApiResponse, PaginatedApiResult, PaginationParams},
+    },
 };
 
 /// Minimum defguard desktop client versions available for posture rules.
@@ -121,5 +128,97 @@ pub async fn create_device_posture(
     Ok(ApiResponse::json(
         ApiDevicePosture::from(posture),
         StatusCode::CREATED,
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/device-posture",
+    tag = "DevicePosture",
+    params(
+        ("page" = Option<u32>, Query, description = "Page number (default: 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default: 10)"),
+    ),
+    responses(
+        (status = 200, description = "Paginated list of device posture check policies", body = [ApiDevicePosture]),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn list_device_postures(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    pagination: Query<PaginationParams>,
+    State(appstate): State<AppState>,
+) -> PaginatedApiResult<ApiDevicePosture> {
+    let pagination = pagination.0;
+    debug!(
+        "User {} listing device posture checks",
+        session.user.username
+    );
+
+    let mut conn = appstate.pool.acquire().await?;
+    let device_postures = DevicePosture::all_paginated(
+        &mut *conn,
+        i64::from(pagination.per_page()),
+        i64::from(pagination.offset()),
+    )
+    .await?;
+    let count = DevicePosture::count(&mut *conn).await?;
+
+    Ok(PaginatedApiResponse::new(
+        device_postures
+            .into_iter()
+            .map(ApiDevicePosture::from)
+            .collect(),
+        pagination,
+        count as u32,
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/device-posture/{id}",
+    tag = "DevicePosture",
+    params(
+        ("id" = Id, Path, description = "Device posture check policy ID")
+    ),
+    responses(
+        (status = 200, description = "Device posture check policy", body = ApiDevicePosture),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden - enterprise license required"),
+        (status = 404, description = "Not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = [])
+    )
+)]
+pub async fn get_device_posture(
+    _license: EnterpriseLicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    Path(id): Path<Id>,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} fetching device posture check {id}",
+        session.user.username
+    );
+
+    let device_posture = DevicePosture::find_by_id(&appstate.pool, id)
+        .await?
+        .ok_or_else(|| WebError::ObjectNotFound(format!("Device posture check {id} not found")))?;
+
+    Ok(ApiResponse::json(
+        ApiDevicePosture::from(device_posture),
+        StatusCode::OK,
     ))
 }
