@@ -1,5 +1,4 @@
 use axum::{Json, extract::State, http::StatusCode};
-use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     TypedHeader,
     extract::{
@@ -45,7 +44,7 @@ use crate::{
     },
     error::WebError,
     handlers::{
-        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+        ApiResponse, AuthResponse, ClientIpAddr, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
         auth::create_session,
         cookie_domain,
         mail::send_user_import_blocked_email,
@@ -572,7 +571,7 @@ pub async fn auth_callback(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     State(appstate): State<AppState>,
     Json(payload): Json<AuthenticationResponse>,
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
@@ -610,7 +609,7 @@ pub async fn auth_callback(
     .await?;
 
     let (session, user_info, mfa_info) =
-        create_session(&appstate.pool, insecure_ip, user_agent.as_str(), &mut user).await?;
+        create_session(&appstate.pool, ip_addr, user_agent.as_str(), &mut user).await?;
 
     let timeout = Settings::get_current_settings().authentication_timeout();
     let max_age = Duration::try_from(timeout).map_err(|err| {

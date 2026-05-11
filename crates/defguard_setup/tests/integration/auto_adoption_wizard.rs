@@ -21,7 +21,7 @@ use defguard_setup::auto_adoption::attempt_auto_adoption;
 use ipnetwork::IpNetwork;
 use reqwest::{
     Client, StatusCode,
-    header::{HeaderMap, HeaderValue, USER_AGENT},
+    header::{HeaderMap, USER_AGENT},
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -29,7 +29,7 @@ use tokio::time::timeout;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
-use crate::common::SESSION_COOKIE_NAME;
+use crate::common::{SESSION_COOKIE_NAME, TEST_USER_AGENT};
 
 fn init_tracing_once() {
     static ONCE: Once = Once::new();
@@ -234,7 +234,7 @@ async fn test_auto_adoption_auth_enforcement(_: PgPoolOptions, options: PgConnec
     // Use a fresh client (no cookie jar state) to simulate unauthenticated access
     let unauthenticated_client = {
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+        headers.insert(USER_AGENT, TEST_USER_AGENT);
         Client::builder()
             .default_headers(headers)
             .build()

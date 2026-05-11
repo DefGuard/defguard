@@ -27,10 +27,10 @@ use semver::Version;
 use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
 
-pub const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(1);
-pub const SESSION_COOKIE_NAME: &str = "defguard_session";
-
-pub const TEST_SECRET_KEY: &str =
+pub(crate) const SESSION_COOKIE_NAME: &str = "defguard_session";
+pub(crate) const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(1);
+pub(crate) const TEST_USER_AGENT: HeaderValue = HeaderValue::from_static("test/0.0");
+pub(crate) const TEST_SECRET_KEY: &str =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 pub struct TestClient {
@@ -54,7 +54,7 @@ impl TestClient {
 
         let jar = Arc::new(Jar::default());
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+        headers.insert(USER_AGENT, TEST_USER_AGENT);
         let client = Client::builder()
             .default_headers(headers)
             .cookie_provider(jar.clone())
