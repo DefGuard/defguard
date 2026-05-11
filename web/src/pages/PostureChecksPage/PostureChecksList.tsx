@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
+  type OnChangeFn,
   createColumnHelper,
   getCoreRowModel,
   getFilteredRowModel,
@@ -11,6 +12,7 @@ import { m } from '../../paraglide/messages';
 import { Button } from '../../shared/defguard-ui/components/Button/Button';
 import type { ButtonProps } from '../../shared/defguard-ui/components/Button/types';
 import { EmptyStateFlexible } from '../../shared/defguard-ui/components/EmptyStateFlexible/EmptyStateFlexible';
+import { IconKind } from '../../shared/defguard-ui/components/Icon';
 import type { MenuItemsGroup } from '../../shared/defguard-ui/components/Menu/types';
 import { tableEditColumnSize } from '../../shared/defguard-ui/components/table/consts';
 import { TableBody } from '../../shared/defguard-ui/components/table/TableBody/TableBody';
@@ -28,7 +30,7 @@ type Props = {
   filterMessages: TableFilterMessages;
   hasNextPage: boolean;
   loadingNextPage: boolean;
-  onColumnFiltersChange: (filters: ColumnFiltersState) => void;
+  onColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   onNextPage: () => void;
   postureChecks: PostureCheckRow[];
 };
@@ -167,7 +169,7 @@ export const PostureChecksList = ({
                 },
                 {
                   text: 'Duplicate',
-                  icon: 'duplicate',
+                  icon: IconKind.Duplicate,
                   onClick: () => {
                     Snackbar.default(`Duplicate is not available yet for "${row.name}".`);
                   },
