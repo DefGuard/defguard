@@ -63,6 +63,44 @@ describe('posture checks page helpers', () => {
     });
   });
 
+  it('uses empty placeholders when an OS rule is missing or has no requirements', () => {
+    const postureCheck: ApiDevicePosture = {
+      id: 2,
+      name: 'Second posture check',
+      description: 'Example posture check',
+      min_client_version: null,
+      allow_prerelease_client: false,
+      locations: [],
+      os_rules: [
+        {
+          os_type: 'windows',
+          min_os_version: null,
+          disk_encryption_required: false,
+          antivirus_required: false,
+          ad_domain_joined_required: false,
+          windows_security_update_current: false,
+        },
+      ],
+    };
+
+    expect(mapApiDevicePostureToRow(postureCheck)).toEqual({
+      id: 2,
+      name: 'Second posture check',
+      windows: '-',
+      windowsFilters: [],
+      macos: '-',
+      macosFilters: [],
+      linux: '-',
+      linuxFilters: [],
+      ios: '-',
+      iosFilters: [],
+      android: '-',
+      androidFilters: [],
+      defguard: '-',
+      defguardFilters: [],
+    });
+  });
+
   it('should format posture-check labels consistently with the wizard review step', () => {
     expect(getPostureCheckOsLabel(PostureCheckOs.Windows)).toBe('Windows');
     expect(getPostureCheckOsLabel(PostureCheckOs.Macos)).toBe('macOS');

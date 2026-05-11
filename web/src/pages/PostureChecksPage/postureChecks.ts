@@ -159,81 +159,89 @@ const joinRequirementParts = (parts: Array<string | null | undefined | false>) =
 const joinFilters = (parts: Array<PostureCheckFilterValue | null | undefined | false>) =>
   parts.filter((part): part is PostureCheckFilterValue => Boolean(part));
 
-const getOsRuleSummary = (rule: ApiDevicePostureOsRule | undefined) => {
+type PostureCheckRuleParts = {
+  summaryParts: Array<string | null | undefined | false>;
+  filterParts: Array<PostureCheckFilterValue | null | undefined | false>;
+};
+
+const emptyPostureCheckRuleParts: PostureCheckRuleParts = {
+  summaryParts: [],
+  filterParts: [],
+};
+
+const getOsRuleParts = (rule: ApiDevicePostureOsRule | undefined): PostureCheckRuleParts => {
   if (!isPresent(rule)) {
-    return emptyRequirement;
+    return emptyPostureCheckRuleParts;
   }
 
   switch (rule.os_type) {
     case PostureCheckOs.Windows:
-      return joinRequirementParts([
-        rule.min_os_version,
-        rule.disk_encryption_required && 'Disk encryption',
-        rule.antivirus_required && 'Antivirus',
-        rule.ad_domain_joined_required && 'AD joined',
-        rule.windows_security_update_current && 'Security updates',
-      ]);
+      return {
+        summaryParts: [
+          rule.min_os_version,
+          rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
+          rule.antivirus_required && PostureCheckRequirement.Antivirus,
+          rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
+          rule.windows_security_update_current && PostureCheckRequirement.SecurityUpdates,
+        ],
+        filterParts: [
+          mapVersionFilterValue(rule.min_os_version),
+          rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
+          rule.antivirus_required && PostureCheckRequirement.Antivirus,
+          rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
+          rule.windows_security_update_current && PostureCheckRequirement.SecurityUpdates,
+        ],
+      };
     case PostureCheckOs.Macos:
-      return joinRequirementParts([
-        rule.min_os_version,
-        rule.disk_encryption_required && 'Disk encryption',
-        rule.device_integrity_required && 'Device integrity',
-      ]);
+      return {
+        summaryParts: [
+          rule.min_os_version,
+          rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
+          rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
+        ],
+        filterParts: [
+          mapVersionFilterValue(rule.min_os_version),
+          rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
+          rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
+        ],
+      };
     case PostureCheckOs.Linux:
-      return joinRequirementParts([
-        rule.min_kernel_version ? `Kernel ${rule.min_kernel_version}` : null,
-        rule.disk_encryption_required && 'Disk encryption',
-      ]);
+      return {
+        summaryParts: [
+          rule.min_kernel_version ? `Kernel ${rule.min_kernel_version}` : null,
+          rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
+        ],
+        filterParts: [
+          mapVersionFilterValue(rule.min_kernel_version),
+          rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
+        ],
+      };
     case PostureCheckOs.Ios:
-      return joinRequirementParts([
-        rule.min_os_version ? `iOS ${rule.min_os_version}+` : null,
-      ]);
+      return {
+        summaryParts: [rule.min_os_version ? `iOS ${rule.min_os_version}+` : null],
+        filterParts: [mapVersionFilterValue(rule.min_os_version)],
+      };
     case PostureCheckOs.Android:
-      return joinRequirementParts([
-        rule.min_os_version ? `Android ${rule.min_os_version}+` : null,
-        rule.device_integrity_required && 'Device integrity',
-      ]);
+      return {
+        summaryParts: [
+          rule.min_os_version ? `Android ${rule.min_os_version}+` : null,
+          rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
+        ],
+        filterParts: [
+          mapVersionFilterValue(rule.min_os_version),
+          rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
+        ],
+      };
     default:
-      return emptyRequirement;
+      return emptyPostureCheckRuleParts;
   }
 };
 
-const getOsRuleFilters = (rule: ApiDevicePostureOsRule | undefined) => {
-  if (!isPresent(rule)) {
-    return [];
-  }
+const getOsRuleSummary = (rule: ApiDevicePostureOsRule | undefined) =>
+  joinRequirementParts(getOsRuleParts(rule).summaryParts);
 
-  switch (rule.os_type) {
-    case PostureCheckOs.Windows:
-      return joinFilters([
-        mapVersionFilterValue(rule.min_os_version),
-        rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
-        rule.antivirus_required && PostureCheckRequirement.Antivirus,
-        rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
-        rule.windows_security_update_current && PostureCheckRequirement.SecurityUpdates,
-      ]);
-    case PostureCheckOs.Macos:
-      return joinFilters([
-        mapVersionFilterValue(rule.min_os_version),
-        rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
-        rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
-      ]);
-    case PostureCheckOs.Linux:
-      return joinFilters([
-        mapVersionFilterValue(rule.min_kernel_version),
-        rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
-      ]);
-    case PostureCheckOs.Ios:
-      return joinFilters([mapVersionFilterValue(rule.min_os_version)]);
-    case PostureCheckOs.Android:
-      return joinFilters([
-        mapVersionFilterValue(rule.min_os_version),
-        rule.device_integrity_required && PostureCheckRequirement.DeviceIntegrity,
-      ]);
-    default:
-      return [];
-  }
-};
+const getOsRuleFilters = (rule: ApiDevicePostureOsRule | undefined) =>
+  joinFilters(getOsRuleParts(rule).filterParts);
 
 const getDevicePostureRule = (
   posture: ApiDevicePosture,
