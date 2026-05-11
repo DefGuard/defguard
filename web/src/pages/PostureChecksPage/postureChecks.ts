@@ -169,7 +169,9 @@ const emptyPostureCheckRuleParts: PostureCheckRuleParts = {
   filterParts: [],
 };
 
-const getOsRuleParts = (rule: ApiDevicePostureOsRule | undefined): PostureCheckRuleParts => {
+const getOsRuleParts = (
+  rule: ApiDevicePostureOsRule | undefined,
+): PostureCheckRuleParts => {
   if (!isPresent(rule)) {
     return emptyPostureCheckRuleParts;
   }
