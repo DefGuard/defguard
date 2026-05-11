@@ -96,7 +96,7 @@ pub struct Mail {
 impl Mail {
     /// Create new [`Mail`].
     #[must_use]
-    pub fn new<T>(to: T, subject: String, html: String, text: String) -> Mail
+    pub fn new<T>(to: T, subject: String, html: String, text: String) -> Self
     where
         T: Into<String>,
     {
@@ -317,30 +317,30 @@ impl MailMessage {
             }
         }
         match self {
-            Self::Test => "Defguard: Test message".to_string(),
-            Self::Welcome => WELCOME_EMAIL_SUBJECT.to_string(),
-            Self::SupportData => "Defguard: Support data".to_string(),
-            Self::DesktopStart => "Defguard: Desktop client configuration".to_string(),
-            Self::NewAccount => "Defguard: User enrollment".to_string(),
-            Self::NewDevice => "Defguard: new device added to your account".to_string(),
-            Self::NewDeviceLogin => "Defguard: New device logged in to your account".to_string(),
-            Self::NewDeviceOIDCLogin => "New login to OIDC application".to_string(),
-            Self::GatewayDisconnect => "Defguard: Gateway disconnected".to_string(),
-            Self::GatewayReconnect => "Defguard: Gateway reconnected".to_string(),
-            Self::MFAActivation => "Multi-Factor Authentication activation".to_string(),
+            Self::Test => "Defguard: Test message".to_owned(),
+            Self::Welcome => WELCOME_EMAIL_SUBJECT.to_owned(),
+            Self::SupportData => "Defguard: Support data".to_owned(),
+            Self::DesktopStart => "Defguard: Desktop client configuration".to_owned(),
+            Self::NewAccount => "Defguard: User enrollment".to_owned(),
+            Self::NewDevice => "Defguard: new device added to your account".to_owned(),
+            Self::NewDeviceLogin => "Defguard: New device logged in to your account".to_owned(),
+            Self::NewDeviceOIDCLogin => "New login to OIDC application".to_owned(),
+            Self::GatewayDisconnect => "Defguard: Gateway disconnected".to_owned(),
+            Self::GatewayReconnect => "Defguard: Gateway reconnected".to_owned(),
+            Self::MFAActivation => "Multi-Factor Authentication activation".to_owned(),
             Self::MFAConfigured { method } => {
                 format!("Multi-Factor Authentication {method} has been activated")
             }
-            Self::MFACode => "Defguard: Multi-Factor Authentication code for login".to_string(),
-            Self::PasswordReset => "Defguard: Password reset".to_string(),
-            Self::PasswordResetDone => "Defguard: Password reset success".to_string(),
-            Self::UserImportBlocked => "User import blocked".to_string(),
-            Self::EnrollmentNotification => "Defguard: User enrollment completed".to_string(),
+            Self::MFACode => "Defguard: Multi-Factor Authentication code for login".to_owned(),
+            Self::PasswordReset => "Defguard: Password reset".to_owned(),
+            Self::PasswordResetDone => "Defguard: Password reset success".to_owned(),
+            Self::UserImportBlocked => "User import blocked".to_owned(),
+            Self::EnrollmentNotification => "Defguard: User enrollment completed".to_owned(),
             Self::LetsencryptCertRefreshFailed => {
-                "Defguard: automatic Let's Encrypt certificate refresh failed".to_string()
+                "Defguard: automatic Let's Encrypt certificate refresh failed".to_owned()
             }
-            Self::CertificateExpiration => "Defguard: Certificate expiration".to_string(),
-            Self::CertificateExpired => "Defguard: Certificate has expired".to_string(),
+            Self::CertificateExpiration => "Defguard: Certificate expiration".to_owned(),
+            Self::CertificateExpired => "Defguard: Certificate has expired".to_owned(),
         }
     }
 

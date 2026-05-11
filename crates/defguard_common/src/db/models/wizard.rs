@@ -164,7 +164,7 @@ impl Wizard {
                 Ok(url) => {
                     if let (Some(domain), Some(port)) = (url.domain(), url.port()) {
                         return Some(ProxyUrl {
-                            domain: domain.to_string(),
+                            domain: domain.to_owned(),
                             port,
                         });
                     }
@@ -219,7 +219,7 @@ impl Wizard {
         version: &str,
     ) -> Result<(), sqlx::Error> {
         let mut wizard = Self::get(pool).await?;
-        wizard.last_version_migrated_to = Some(version.to_string());
+        wizard.last_version_migrated_to = Some(version.to_owned());
         wizard.save(pool).await
     }
 }

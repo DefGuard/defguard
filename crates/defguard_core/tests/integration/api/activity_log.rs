@@ -81,7 +81,7 @@ async fn save_activity_log_event(
         ip: None,
         event: EventType::UserLogout,
         module: ActivityLogModule::Defguard,
-        device: "integration-test".to_string(),
+        device: "integration-test".to_owned(),
         description: Some(format!("{marker}-{description_suffix}")),
         metadata: None,
     }

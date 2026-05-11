@@ -270,7 +270,7 @@ impl worker_service_server::WorkerService for WorkerServer {
                                 let name = format!("YubiKey {}", count + 1);
                                 name
                             }
-                            None => "YubiKey".to_string(),
+                            None => "YubiKey".to_owned(),
                         };
                         let new_yubi = YubiKey::new(name, message.yubikey_serial, user.id)
                             .save(&self.pool)

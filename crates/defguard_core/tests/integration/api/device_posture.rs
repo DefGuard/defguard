@@ -20,7 +20,7 @@ use super::{
 
 fn make_edit(name: &str) -> EditDevicePosture {
     EditDevicePosture {
-        name: name.to_string(),
+        name: name.to_owned(),
         description: Some(format!("{name} description")),
         min_client_version: None,
         allow_prerelease_client: false,
@@ -98,9 +98,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create
     let edit = EditDevicePosture {
-        name: "My Policy".to_string(),
-        description: Some("desc".to_string()),
-        min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+        name: "My Policy".to_owned(),
+        description: Some("desc".to_owned()),
+        min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
         allow_prerelease_client: true,
         os_rules: Vec::new(),
     };
@@ -125,9 +125,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         snapshot: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id,
-                name: "My Policy".to_string(),
-                description: Some("desc".to_string()),
-                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                name: "My Policy".to_owned(),
+                description: Some("desc".to_owned()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
                 allow_prerelease_client: true,
             },
             os_rules: Vec::new(),
@@ -154,7 +154,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
 
     // update
     let update = EditDevicePosture {
-        name: "Updated Policy".to_string(),
+        name: "Updated Policy".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
@@ -176,9 +176,9 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         before: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id,
-                name: "My Policy".to_string(),
-                description: Some("desc".to_string()),
-                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                name: "My Policy".to_owned(),
+                description: Some("desc".to_owned()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
                 allow_prerelease_client: true,
             },
             os_rules: Vec::new(),
@@ -187,7 +187,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         after: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id,
-                name: "Updated Policy".to_string(),
+                name: "Updated Policy".to_owned(),
                 description: None,
                 min_client_version: None,
                 allow_prerelease_client: false,
@@ -208,7 +208,7 @@ async fn test_device_posture_crud(_: PgPoolOptions, options: PgConnectOptions) {
         snapshot: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id,
-                name: "Updated Policy".to_string(),
+                name: "Updated Policy".to_owned(),
                 description: None,
                 min_client_version: None,
                 allow_prerelease_client: false,
@@ -232,9 +232,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
 
     // create original
     let edit = EditDevicePosture {
-        name: "Original".to_string(),
-        description: Some("original desc".to_string()),
-        min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+        name: "Original".to_owned(),
+        description: Some("original desc".to_owned()),
+        min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
         allow_prerelease_client: false,
         os_rules: Vec::new(),
     };
@@ -269,9 +269,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         original: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id: original.id,
-                name: "Original".to_string(),
-                description: Some("original desc".to_string()),
-                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                name: "Original".to_owned(),
+                description: Some("original desc".to_owned()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
                 allow_prerelease_client: false,
             },
             os_rules: Vec::new(),
@@ -280,9 +280,9 @@ async fn test_device_posture_duplicate(_: PgPoolOptions, options: PgConnectOptio
         duplicate: DevicePostureSnapshot {
             device_posture: DevicePosture {
                 id: copy.id,
-                name: "Original (copy)".to_string(),
-                description: Some("original desc".to_string()),
-                min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+                name: "Original (copy)".to_owned(),
+                description: Some("original desc".to_owned()),
+                min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
                 allow_prerelease_client: false,
             },
             os_rules: Vec::new(),
@@ -314,9 +314,9 @@ async fn test_device_posture_validation(_: PgPoolOptions, options: PgConnectOpti
 
     // unknown min_client_version → 400
     let bad = EditDevicePosture {
-        name: "Bad".to_string(),
+        name: "Bad".to_owned(),
         description: None,
-        min_client_version: Some("99.99".to_string()),
+        min_client_version: Some("99.99".to_owned()),
         allow_prerelease_client: false,
         os_rules: Vec::new(),
     };
@@ -391,20 +391,20 @@ async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: 
     let macos_version = valid_os_versions(&OsType::Macos)[0];
 
     let edit = EditDevicePosture {
-        name: "With Rules".to_string(),
+        name: "With Rules".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![
             ApiOsRule::Windows {
-                min_os_version: Some(windows_version.to_string()),
+                min_os_version: Some(windows_version.to_owned()),
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(false),
                 ad_domain_joined_required: None,
                 windows_security_update_current: Some(true),
             },
             ApiOsRule::Macos {
-                min_os_version: Some(macos_version.to_string()),
+                min_os_version: Some(macos_version.to_owned()),
                 disk_encryption_required: Some(true),
                 device_integrity_required: Some(true),
             },
@@ -455,7 +455,7 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
 
     // create with windows + macos rules
     let create = EditDevicePosture {
-        name: "Replace Test".to_string(),
+        name: "Replace Test".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
@@ -486,7 +486,7 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
 
     // update with only linux rule
     let update = EditDevicePosture {
-        name: "Replace Test".to_string(),
+        name: "Replace Test".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
@@ -524,7 +524,7 @@ async fn test_device_posture_os_rules_duplicate_copies(
     let (mut client, _) = setup(options).await;
 
     let create = EditDevicePosture {
-        name: "Original".to_string(),
+        name: "Original".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
@@ -587,12 +587,12 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
 
     // unknown min_os_version for windows → 400
     let bad_version = EditDevicePosture {
-        name: "Bad".to_string(),
+        name: "Bad".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Windows {
-            min_os_version: Some("Windows 7".to_string()),
+            min_os_version: Some("Windows 7".to_owned()),
             disk_encryption_required: None,
             antivirus_required: None,
             ad_domain_joined_required: None,
@@ -609,7 +609,7 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
 
     // duplicate os_type → 400
     let duplicate_os = EditDevicePosture {
-        name: "Dup".to_string(),
+        name: "Dup".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
@@ -640,12 +640,12 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
 
     // unknown min_kernel_version for linux → 400
     let bad_kernel = EditDevicePosture {
-        name: "Bad Kernel".to_string(),
+        name: "Bad Kernel".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Linux {
-            min_kernel_version: Some("4.x".to_string()),
+            min_kernel_version: Some("4.x".to_owned()),
             disk_encryption_required: None,
         }],
     };

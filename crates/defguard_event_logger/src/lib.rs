@@ -169,7 +169,7 @@ async fn process_batch(
                         DefguardEvent::RecoveryCodeLoginFailed => (
                             EventType::UserMfaLoginFailed,
                             serde_json::to_value(LoginFailedMetadata {
-                                message: "Recovery code verification failed".to_string(),
+                                message: "Recovery code verification failed".to_owned(),
                             })
                             .ok(),
                         ),
@@ -683,8 +683,8 @@ mod tests {
 
     fn sample_device() -> Device<i64> {
         Device::new(
-            "vpn-device".to_string(),
-            "pubkey".to_string(),
+            "vpn-device".to_owned(),
+            "pubkey".to_owned(),
             1,
             DeviceType::User,
             None,
@@ -695,9 +695,9 @@ mod tests {
 
     fn sample_location() -> WireguardNetwork<i64> {
         WireguardNetwork::new(
-            "vpn-location".to_string(),
+            "vpn-location".to_owned(),
             51820,
-            "vpn.example.com".to_string(),
+            "vpn.example.com".to_owned(),
             None,
             [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,
@@ -733,12 +733,12 @@ mod tests {
             id: NoId,
             timestamp: Utc::now().naive_utc(),
             user_id: 1,
-            username: "admin".to_string(),
+            username: "admin".to_owned(),
             location: None,
             ip: None,
             event: EventType::UserLogin,
             module: ActivityLogModule::Defguard,
-            device: "test-device".to_string(),
+            device: "test-device".to_owned(),
             description: None,
             metadata: None,
         };

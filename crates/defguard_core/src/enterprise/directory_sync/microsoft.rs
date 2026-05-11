@@ -202,7 +202,7 @@ impl MicrosoftDirectorySync {
                     self.url
                 )))?;
         debug!("Tenant ID extracted successfully: {tenant_id}",);
-        Ok((*tenant_id).to_string())
+        Ok((*tenant_id).to_owned())
     }
 
     async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
@@ -254,8 +254,8 @@ impl MicrosoftDirectorySync {
             .form(&[
                 ("client_id", &self.client_id),
                 ("client_secret", &self.client_secret),
-                ("scope", &MICROSOFT_DEFAULT_SCOPE.to_string()),
-                ("grant_type", &GRANT_TYPE.to_string()),
+                ("scope", &MICROSOFT_DEFAULT_SCOPE.to_owned()),
+                ("grant_type", &GRANT_TYPE.to_owned()),
             ])
             .timeout(REQUEST_TIMEOUT)
             .send()
@@ -275,7 +275,7 @@ impl MicrosoftDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = GroupsResponse::default();
-        let mut url = GROUPS_URL.to_string();
+        let mut url = GROUPS_URL.to_owned();
 
         if self.group_filter.is_empty() {
             debug!("No group filter defined, all groups will be synced.");
@@ -305,7 +305,7 @@ impl MicrosoftDirectorySync {
                 "Applying defined group filter to user group query, only the following groups will be synced: {:?}",
                 self.group_filter
             );
-            let params = vec![("$top", MAX_RESULTS.to_string())];
+            let params = vec![("$top", MAX_RESULTS.to_owned())];
             let groups = self
                 .group_filter
                 .iter()
@@ -362,7 +362,7 @@ impl MicrosoftDirectorySync {
 
         let user_id = if response.value.len() > 1 {
             return Err(DirectorySyncError::MultipleUsersFound(
-                user_email.to_string(),
+                user_email.to_owned(),
             ));
         } else if let Some(user) = response.value.into_iter().next() {
             user.id
@@ -378,12 +378,12 @@ impl MicrosoftDirectorySync {
                 parse_response(response, "Failed to query user from Microsoft API.").await?;
             if response.value.len() > 1 {
                 return Err(DirectorySyncError::MultipleUsersFound(
-                    user_email.to_string(),
+                    user_email.to_owned(),
                 ));
             } else if let Some(user) = response.value.into_iter().next() {
                 user.id
             } else {
-                return Err(DirectorySyncError::UserNotFound(user_email.to_string()));
+                return Err(DirectorySyncError::UserNotFound(user_email.to_owned()));
             }
         };
 
@@ -488,7 +488,7 @@ impl MicrosoftDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = UsersResponse::default();
-        let mut url = ALL_USERS_URL.to_string();
+        let mut url = ALL_USERS_URL.to_owned();
         let mut query = Some([("$top", MAX_RESULTS), ("$select", USER_QUERY_FIELDS)].as_slice());
 
         for _ in 0..MAX_REQUESTS {
@@ -578,9 +578,9 @@ mod tests {
     #[test]
     fn test_extract_tenant() {
         let provider = MicrosoftDirectorySync::new(
-            "client_id".to_string(),
-            "client_secret".to_string(),
-            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+            "client_id".to_owned(),
+            "client_secret".to_owned(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_owned(),
             Vec::new(),
         );
         let tenant = provider.extract_tenant().unwrap();
@@ -590,9 +590,9 @@ mod tests {
     #[tokio::test]
     async fn test_token() {
         let mut dirsync = MicrosoftDirectorySync::new(
-            "id".to_string(),
-            "secret".to_string(),
-            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+            "id".to_owned(),
+            "secret".to_owned(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_owned(),
             Vec::new(),
         );
 
@@ -616,12 +616,12 @@ mod tests {
             next_page: None,
             value: vec![
                 GroupDetails {
-                    display_name: Some("Group 1".to_string()),
-                    id: "1".to_string(),
+                    display_name: Some("Group 1".to_owned()),
+                    id: "1".to_owned(),
                 },
                 GroupDetails {
-                    display_name: Some("Group 2".to_string()),
-                    id: "2".to_string(),
+                    display_name: Some("Group 2".to_owned()),
+                    id: "2".to_owned(),
                 },
             ],
         };
@@ -641,8 +641,8 @@ mod tests {
             next_page: None,
             value: vec![
                 User {
-                    display_name: "User 1".to_string(),
-                    mail: Some("email@email.com".to_string()),
+                    display_name: "User 1".to_owned(),
+                    mail: Some("email@email.com".to_owned()),
                     account_enabled: true,
                     other_mails: Vec::new(),
                     id: "user1-id".into(),
@@ -652,10 +652,10 @@ mod tests {
                     business_phones: Vec::new(),
                 },
                 User {
-                    display_name: "User 2".to_string(),
+                    display_name: "User 2".to_owned(),
                     mail: None,
                     account_enabled: true,
-                    other_mails: vec!["email2@email.com".to_string()],
+                    other_mails: vec!["email2@email.com".to_owned()],
                     id: "user2-id".into(),
                     given_name: Some("User".into()),
                     surname: Some("Two".into()),
@@ -663,7 +663,7 @@ mod tests {
                     business_phones: Vec::new(),
                 },
                 User {
-                    display_name: "User 3".to_string(),
+                    display_name: "User 3".to_owned(),
                     mail: None,
                     account_enabled: true,
                     other_mails: Vec::new(),
@@ -678,8 +678,8 @@ mod tests {
 
         let members: Vec<String> = members_response.into();
         assert_eq!(members.len(), 2);
-        assert_eq!(members[0], "email@email.com".to_string());
-        assert_eq!(members[1], "email2@email.com".to_string());
+        assert_eq!(members[0], "email@email.com".to_owned());
+        assert_eq!(members[1], "email2@email.com".to_owned());
     }
 
     #[tokio::test]
@@ -688,8 +688,8 @@ mod tests {
             next_page: None,
             value: vec![
                 User {
-                    display_name: "User 1".to_string(),
-                    mail: Some("email@email.com".to_string()),
+                    display_name: "User 1".to_owned(),
+                    mail: Some("email@email.com".to_owned()),
                     account_enabled: true,
                     other_mails: Vec::new(),
                     id: "user1-id".into(),
@@ -699,10 +699,10 @@ mod tests {
                     business_phones: Vec::new(),
                 },
                 User {
-                    display_name: "User 2".to_string(),
+                    display_name: "User 2".to_owned(),
                     mail: None,
                     account_enabled: true,
-                    other_mails: vec!["email2@email.com".to_string()],
+                    other_mails: vec!["email2@email.com".to_owned()],
                     id: "user2-id".into(),
                     given_name: None,
                     surname: None,
@@ -710,7 +710,7 @@ mod tests {
                     business_phones: Vec::new(),
                 },
                 User {
-                    display_name: "User 3".to_string(),
+                    display_name: "User 3".to_owned(),
                     mail: None,
                     account_enabled: true,
                     other_mails: Vec::new(),
@@ -725,7 +725,7 @@ mod tests {
 
         let users: Vec<DirectoryUser> = users_response.into();
         assert_eq!(users.len(), 2);
-        assert_eq!(users[0].email, "email@email.com".to_string());
-        assert_eq!(users[1].email, "email2@email.com".to_string());
+        assert_eq!(users[0].email, "email@email.com".to_owned());
+        assert_eq!(users[1].email, "email2@email.com".to_owned());
     }
 }

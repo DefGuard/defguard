@@ -59,7 +59,7 @@ impl TestClient {
             .build()
             .unwrap();
 
-        TestClient {
+        Self {
             client,
             jar,
             port,

@@ -97,7 +97,7 @@ impl NetworkDeviceInfo {
                     })
             })
             .collect::<Result<_, _>>()?;
-        Ok(NetworkDeviceInfo {
+        Ok(Self {
             id: device.id,
             name: device.name,
             assigned_ips: wireguard_device.wireguard_ips,
@@ -372,7 +372,7 @@ pub(crate) async fn find_available_ips(
                 "Failed to find available IP for network with ID {}",
                 network_id
             );
-            WebError::BadRequest("Failed to find available IP, network not found".to_string())
+            WebError::BadRequest("Failed to find available IP, network not found".to_owned())
         })?;
 
     let mut transaction = appstate.pool.begin().await?;
@@ -428,7 +428,7 @@ pub struct StartNetworkDeviceSetup {
 
 impl From<NetworkAddressError> for WebError {
     fn from(error: NetworkAddressError) -> Self {
-        WebError::BadRequest(error.to_string())
+        Self::BadRequest(error.to_string())
     }
 }
 
@@ -453,7 +453,7 @@ pub(crate) async fn start_network_device_setup(
                 "Failed to add device {device_name}, network with ID {} not found",
                 setup_start.location_id
             );
-            WebError::BadRequest("Failed to add device, network not found".to_string())
+            WebError::BadRequest("Failed to add device, network not found".to_owned())
         })?;
 
     debug!(
@@ -464,7 +464,7 @@ pub(crate) async fn start_network_device_setup(
     let mut transaction = appstate.pool.begin().await?;
     let device = Device::new(
         setup_start.name,
-        "NOT_CONFIGURED".to_string(),
+        "NOT_CONFIGURED".to_owned(),
         user.id,
         DeviceType::Network,
         setup_start.description,
@@ -624,7 +624,7 @@ pub(crate) async fn add_network_device(
                 "Failed to add device {device_name}, network with ID {} not found",
                 add_network_device.location_id
             );
-            WebError::BadRequest("Failed to add device, network not found".to_string())
+            WebError::BadRequest("Failed to add device, network not found".to_owned())
         })?;
 
     Device::validate_pubkey(&add_network_device.wireguard_pubkey)

@@ -24,7 +24,7 @@ pub struct FailedLogin {
 
 impl Default for FailedLogin {
     fn default() -> Self {
-        FailedLogin {
+        Self {
             attempt_count: 1,
             first_attempt: Local::now(),
             last_attempt: Local::now(),

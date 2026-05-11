@@ -72,19 +72,19 @@ fn test_process_source_addrs_v4() {
         source_addrs,
         [
             IpAddress {
-                address: Some(Address::Ip("10.0.1.1".to_string()))
+                address: Some(Address::Ip("10.0.1.1".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.1.2/31".to_string()))
+                address: Some(Address::IpSubnet("10.0.1.2/31".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.1.4/31".to_string()))
+                address: Some(Address::IpSubnet("10.0.1.4/31".to_owned()))
             },
             IpAddress {
-                address: Some(Address::Ip("172.16.1.1".to_string())),
+                address: Some(Address::Ip("172.16.1.1".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("192.168.1.100".to_string())),
+                address: Some(Address::Ip("192.168.1.100".to_owned())),
             },
         ]
     );
@@ -127,19 +127,19 @@ fn test_process_source_addrs_v6() {
         source_addrs,
         [
             IpAddress {
-                address: Some(Address::Ip("2001:db8::1".to_string()))
+                address: Some(Address::Ip("2001:db8::1".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8::2/127".to_string()))
+                address: Some(Address::IpSubnet("2001:db8::2/127".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8::4/127".to_string()))
+                address: Some(Address::IpSubnet("2001:db8::4/127".to_owned()))
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:0:1::1".to_string())),
+                address: Some(Address::Ip("2001:db8:0:1::1".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:0:2::1".to_string())),
+                address: Some(Address::Ip("2001:db8:0:2::1".to_owned())),
             },
         ]
     );

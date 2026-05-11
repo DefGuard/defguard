@@ -32,8 +32,8 @@ fn test_network_readdress(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Only one device will fit.
     let device = Device::new(
-        "device".to_string(),
-        "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".to_string(),
+        "device".to_owned(),
+        "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".to_owned(),
         user.id,
         DeviceType::User,
         None,

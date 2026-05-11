@@ -165,7 +165,7 @@ mod test {
         };
 
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             None,
             Some(limits),
@@ -232,7 +232,7 @@ mod test {
     #[test]
     fn test_is_over_limit_unlimited_license() {
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() + TimeDelta::days(1)),
             None,

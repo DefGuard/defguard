@@ -70,8 +70,8 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
         .unwrap();
 
     let user_device = Device::new(
-        "user-device".to_string(),
-        "user-device-pubkey".to_string(),
+        "user-device".to_owned(),
+        "user-device-pubkey".to_owned(),
         client_state.test_user.id,
         DeviceType::User,
         None,
@@ -82,8 +82,8 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
     .unwrap();
 
     let network_device = Device::new(
-        "network-device".to_string(),
-        "network-device-pubkey".to_string(),
+        "network-device".to_owned(),
+        "network-device-pubkey".to_owned(),
         client_state.test_user.id,
         DeviceType::Network,
         None,
@@ -132,7 +132,7 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
         gateway.id,
         now,
         now,
-        "1.1.1.1:51820".to_string(),
+        "1.1.1.1:51820".to_owned(),
         1000,
         2000,
         1000,
@@ -147,7 +147,7 @@ async fn test_location_connected_devices_stats(_: PgPoolOptions, options: PgConn
         gateway.id,
         now,
         now,
-        "2.2.2.2:51820".to_string(),
+        "2.2.2.2:51820".to_owned(),
         3000,
         4000,
         3000,

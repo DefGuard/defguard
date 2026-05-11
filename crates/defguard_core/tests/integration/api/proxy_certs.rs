@@ -119,7 +119,7 @@ async fn make_test_client_with_proxy_rx(
     let failed_logins = Arc::new(Mutex::new(FailedLoginMap::new()));
 
     let license = License::new(
-        "test_customer".to_string(),
+        "test_customer".to_owned(),
         false,
         None,
         None,
@@ -231,7 +231,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.acme_domain.is_none());
     assert_eq!(capture.drain_clear_https_certs().await, 1);
 
-    settings.public_proxy_url = "http://edge.example.com".to_string();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
@@ -254,7 +254,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
 
     seed_ca(&pool).await;
 
-    settings.public_proxy_url = "http://edge.example.com".to_string();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();
     let response = client
         .post("/api/v1/proxy/cert/external_url_settings")
@@ -287,7 +287,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(broadcasts[0].0.contains("BEGIN CERTIFICATE"));
     assert!(broadcasts[0].1.contains("BEGIN PRIVATE KEY"));
 
-    settings.public_proxy_url = "http://edge.example.com".to_string();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();
     let (cert_pem, key_pem) = generate_test_cert_pem("uploaded-edge.example.com");
     let expected_cert_pem = cert_pem.clone();
@@ -317,7 +317,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
     assert!(saved.proxy_http_cert_expiry.is_some());
     assert!(saved.acme_domain.is_none());
 
-    settings.public_proxy_url = "http://edge.example.com".to_string();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();
     let (_, mismatched_key_pem) = generate_test_cert_pem("different-edge.example.com");
     let response = client
@@ -349,7 +349,7 @@ async fn test_external_url_settings_endpoint(_: PgPoolOptions, opts: PgConnectOp
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    settings.public_proxy_url = "http://edge.example.com".to_string();
+    settings.public_proxy_url = "http://edge.example.com".to_owned();
     update_current_settings(&pool, settings).await.unwrap();
     let (expired_cert_pem, expired_key_pem) =
         generate_expired_test_cert_pem("expired-edge.example.com");

@@ -114,7 +114,7 @@ fn parse_host_port(input: &str) -> Result<(String, u16), anyhow::Error> {
             .context("Invalid endpoint format. Missing port separator ':'")?
             .parse::<u16>()
             .context("Invalid port in endpoint")?;
-        return Ok((host.to_string(), port));
+        return Ok((host.to_owned(), port));
     }
 
     let (host, port) = input
@@ -125,7 +125,7 @@ fn parse_host_port(input: &str) -> Result<(String, u16), anyhow::Error> {
     }
 
     Ok((
-        host.to_string(),
+        host.to_owned(),
         port.parse::<u16>().context("Invalid port in endpoint")?,
     ))
 }
@@ -227,12 +227,12 @@ async fn run_edge_adoption_attempt(
         }
     };
     let Some(ca_cert_der) = certs.ca_cert_der else {
-        let msg = "CA certificate not found in settings".to_string();
+        let msg = "CA certificate not found in settings".to_owned();
         error!("{msg}");
         return (false, vec![msg], None);
     };
     let Some(ca_key_der) = certs.ca_key_der else {
-        let msg = "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.".to_string();
+        let msg = "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.".to_owned();
         error!("{msg}");
         return (false, vec![msg], None);
     };
@@ -320,7 +320,7 @@ async fn run_edge_adoption_attempt_scoped(
     let token = match Claims::new(
         ClaimsType::Gateway,
         url.to_string(),
-        TOKEN_CLIENT_ID.to_string(),
+        TOKEN_CLIENT_ID.to_owned(),
         u32::MAX.into(),
     )
     .to_jwt()
@@ -431,7 +431,7 @@ async fn run_edge_adoption_attempt_scoped(
     debug!("Requesting CSR from proxy hostname={hostname}");
     let csr_response = match client
         .get_csr(ProtoCertificateInfo {
-            cert_hostname: hostname.to_string(),
+            cert_hostname: hostname.to_owned(),
         })
         .await
     {
@@ -522,7 +522,7 @@ async fn run_edge_adoption_attempt_scoped(
 
     let mut logs = collect_stream_logs(&mut log_rx);
     if logs.is_empty() {
-        logs = vec!["No runtime logs received from edge component".to_string()];
+        logs = vec!["No runtime logs received from edge component".to_owned()];
     }
 
     (
@@ -550,12 +550,12 @@ async fn run_gateway_adoption_attempt(
         }
     };
     let Some(ca_cert_der) = certs.ca_cert_der else {
-        let msg = "CA certificate not found in settings".to_string();
+        let msg = "CA certificate not found in settings".to_owned();
         error!("{msg}");
         return (false, vec![msg], None);
     };
     let Some(ca_key_der) = certs.ca_key_der else {
-        let msg = "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.".to_string();
+        let msg = "CA private key not found in settings. Uploading CA cert without key cannot auto-adopt.".to_owned();
         error!("{msg}");
         return (false, vec![msg], None);
     };
@@ -644,7 +644,7 @@ async fn run_gateway_adoption_attempt_scoped(
     let token = match Claims::new(
         ClaimsType::Gateway,
         url.to_string(),
-        TOKEN_CLIENT_ID.to_string(),
+        TOKEN_CLIENT_ID.to_owned(),
         u32::MAX.into(),
     )
     .to_jwt()
@@ -757,7 +757,7 @@ async fn run_gateway_adoption_attempt_scoped(
     debug!("Requesting CSR from gateway hostname={hostname}");
     let csr_response = match client
         .get_csr(ProtoCertificateInfo {
-            cert_hostname: hostname.to_string(),
+            cert_hostname: hostname.to_owned(),
         })
         .await
     {
@@ -848,7 +848,7 @@ async fn run_gateway_adoption_attempt_scoped(
 
     let mut logs = collect_stream_logs(&mut log_rx);
     if logs.is_empty() {
-        logs = vec!["No runtime logs received from gateway component".to_string()];
+        logs = vec!["No runtime logs received from gateway component".to_owned()];
     }
 
     (
@@ -977,9 +977,9 @@ id={} for new gateway",
 
         let mut transaction = pool.begin().await.context("Failed to begin transaction")?;
         let network = WireguardNetwork::new(
-            common_name.to_string(),
+            common_name.to_owned(),
             DEFAULT_AUTO_ADOPTION_WIREGUARD_PORT,
-            host.to_string(),
+            host.to_owned(),
             None,
             Vec::new(),
             true,

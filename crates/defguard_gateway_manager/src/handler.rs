@@ -146,7 +146,7 @@ impl GatewayHandler {
             })?;
         let Some(ca_cert_der) = certs.ca_cert_der else {
             return Err(GatewayError::EndpointError(
-                "Core CA is not setup, can't create a Gateway endpoint".to_string(),
+                "Core CA is not setup, can't create a Gateway endpoint".to_owned(),
             ));
         };
         let Some(core_client_cert_der) = self.gateway.core_client_cert_der.as_deref() else {
@@ -906,7 +906,7 @@ impl GatewayUpdatesHandler {
             payload: Some(core_response::Payload::Update(Update {
                 update_type: UpdateType::Delete as i32,
                 update: Some(update::Update::Network(Configuration {
-                    name: network_name.to_string(),
+                    name: network_name.to_owned(),
                     private_key: String::new(),
                     addresses: Vec::new(),
                     port: 0,
@@ -1101,8 +1101,8 @@ mod tests {
 
     fn build_peer_stats(endpoint: &str) -> PeerStats {
         PeerStats {
-            public_key: "peer-public-key".to_string(),
-            endpoint: endpoint.to_string(),
+            public_key: "peer-public-key".to_owned(),
+            endpoint: endpoint.to_owned(),
             upload: 123,
             download: 456,
             keepalive_interval: 25,
@@ -1110,16 +1110,16 @@ mod tests {
                 seconds: 1_700_000_000,
                 nanos: 0,
             }),
-            allowed_ips: "10.10.0.2/32".to_string(),
+            allowed_ips: "10.10.0.2/32".to_owned(),
         }
     }
 
     fn build_network() -> WireguardNetwork<Id> {
         let mut network = WireguardNetwork::new(
-            "test-network".to_string(),
+            "test-network".to_owned(),
             51820,
-            "198.51.100.10".to_string(),
-            Some("1.1.1.1".to_string()),
+            "198.51.100.10".to_owned(),
+            Some("1.1.1.1".to_owned()),
             ["0.0.0.0/0".parse().expect("valid allowed IP network")],
             false,
             false,
@@ -1133,8 +1133,8 @@ mod tests {
         ])
         .expect("valid network addresses")
         .with_id(1);
-        network.pubkey = "network-public-key".to_string();
-        network.prvkey = "network-private-key".to_string();
+        network.pubkey = "network-public-key".to_owned();
+        network.prvkey = "network-private-key".to_owned();
         network.mtu = 1420;
         network.fwmark = 4321;
         network.keepalive_interval = 25;
@@ -1204,9 +1204,9 @@ mod tests {
         let config = Configuration::new(
             &build_network(),
             vec![Peer {
-                pubkey: "peer-public-key".to_string(),
-                allowed_ips: vec!["10.10.0.2/32".to_string()],
-                preshared_key: Some("peer-preshared-key".to_string()),
+                pubkey: "peer-public-key".to_owned(),
+                allowed_ips: vec!["10.10.0.2/32".to_owned()],
+                preshared_key: Some("peer-preshared-key".to_owned()),
                 keepalive_interval: Some(25),
             }],
             Some(FirewallConfig {
@@ -1355,7 +1355,7 @@ mod tests {
         let mut network = WireguardNetwork::default()
             .try_set_address("10.7.1.1/24")
             .unwrap();
-        network.name = "mfa-full-config-location".to_string();
+        network.name = "mfa-full-config-location".to_owned();
         network.location_mfa_mode = LocationMfaMode::Internal;
         network.service_location_mode = ServiceLocationMode::Disabled;
         let network = network.save(&pool).await.unwrap();

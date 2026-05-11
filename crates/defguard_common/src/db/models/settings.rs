@@ -142,7 +142,7 @@ pub enum LdapSyncStatus {
 impl LdapSyncStatus {
     #[must_use]
     pub fn is_out_of_sync(&self) -> bool {
-        matches!(self, LdapSyncStatus::OutOfSync)
+        matches!(self, Self::OutOfSync)
     }
 }
 
@@ -450,9 +450,9 @@ impl Settings {
         let url = self.parse_defguard_url()?;
         let domain = url
             .domain()
-            .map(str::to_string)
+            .map(str::to_owned)
             .or_else(|| match url.host_str() {
-                Some("localhost") => Some("localhost".to_string()),
+                Some("localhost") => Some("localhost".to_owned()),
                 _ => None,
             });
 
@@ -463,7 +463,7 @@ impl Settings {
     pub fn cookie_domain(&self) -> Result<String, SettingsUrlError> {
         let url = self.parse_defguard_url()?;
         url.host_str()
-            .map(ToString::to_string)
+            .map(str::to_owned)
             .ok_or_else(|| SettingsUrlError::MissingDefguardHost(self.defguard_url.clone()))
     }
 
@@ -743,24 +743,23 @@ impl Settings {
             query(&query_string).bind(value).execute(pool).await?;
         }
 
-        let mut settings = Settings::get(pool).await?.unwrap_or_default();
+        let mut settings = Self::get(pool).await?.unwrap_or_default();
 
         match settings.secret_key.as_deref() {
             Some(secret_key) => {
-                Settings::validate_secret_key(secret_key)?;
+                Self::validate_secret_key(secret_key)?;
             }
             None => {
-                settings.secret_key = Some(Settings::generate_secret_key());
+                settings.secret_key = Some(Self::generate_secret_key());
             }
         }
 
         match settings.openid_signing_key_der.as_deref() {
             Some(key_der) => {
-                Settings::validate_openid_signing_key_der(key_der)?;
+                Self::validate_openid_signing_key_der(key_der)?;
             }
             None => {
-                settings.openid_signing_key_der =
-                    Some(Settings::generate_openid_signing_key_der()?);
+                settings.openid_signing_key_der = Some(Self::generate_openid_signing_key_der()?);
             }
         }
 
@@ -812,7 +811,7 @@ impl Settings {
 
     /// Get the DefGuard URL from the current settings
     pub fn url() -> Result<Url, url::ParseError> {
-        let settings = Settings::get_current_settings();
+        let settings = Self::get_current_settings();
         Url::parse(&settings.defguard_url)
     }
 
@@ -867,7 +866,7 @@ impl Settings {
             .as_deref()
             .ok_or(SettingsInitializationError::Missing("secret_key"))?;
 
-        Settings::validate_secret_key(secret_key)?;
+        Self::validate_secret_key(secret_key)?;
 
         Ok(secret_key)
     }
@@ -883,7 +882,7 @@ impl Settings {
                     "openid_signing_key_der",
                 ))?;
 
-        Settings::validate_openid_signing_key_der(key_der)?;
+        Self::validate_openid_signing_key_der(key_der)?;
 
         self.openid_key()
             .ok_or(SettingsInitializationError::Invalid(
@@ -906,7 +905,7 @@ impl Settings {
         let hostname = url
             .host_str()
             .ok_or_else(|| SettingsUrlError::EdgeUrlMissingHostname(self.public_proxy_url.clone()))?
-            .to_string();
+            .to_owned();
 
         Ok(hostname)
     }
@@ -922,17 +921,17 @@ impl Settings {
         }
         if let Some(secret_key) = &config.secret_key {
             let secret_key = secret_key.expose_secret();
-            if let Err(err) = Settings::validate_secret_key(secret_key) {
+            if let Err(err) = Self::validate_secret_key(secret_key) {
                 warn!(
                     "Invalid secret_key provided in deprecated config, generating new one: {err}"
                 );
-                self.secret_key = Some(Settings::generate_secret_key());
+                self.secret_key = Some(Self::generate_secret_key());
             } else {
-                self.secret_key = Some(secret_key.to_string());
+                self.secret_key = Some(secret_key.to_owned());
             }
         }
         if let Some(openid_signing_key) = &config.openid_signing_key {
-            match Settings::openid_signing_key_der_from_config(openid_signing_key) {
+            match Self::openid_signing_key_der_from_config(openid_signing_key) {
                 Ok(key_der) => {
                     self.openid_signing_key_der = Some(key_der);
                 }
@@ -940,7 +939,7 @@ impl Settings {
                     warn!(
                         "Invalid openid_signing_key provided in deprecated config, generating new one: {err}"
                     );
-                    self.openid_signing_key_der = Settings::generate_openid_signing_key_der().ok();
+                    self.openid_signing_key_der = Self::generate_openid_signing_key_der().ok();
                 }
             }
         }
@@ -1125,7 +1124,7 @@ mod test {
     fn dg25_32_test_dont_expose_license_key() {
         let key = "0000000000000000";
         let settings = Settings {
-            license: Some(key.to_string()),
+            license: Some(key.to_owned()),
             ..Default::default()
         };
 
@@ -1401,7 +1400,7 @@ mod test {
     fn test_apply_from_config_invalid_secret_key_generates_new() {
         let mut settings = Settings::default();
         let mut config = DefGuardConfig::new_test_config();
-        config.secret_key = Some(SecretString::from(" short ".to_string()));
+        config.secret_key = Some(SecretString::from(" short ".to_owned()));
 
         settings.apply_from_config(&config);
 

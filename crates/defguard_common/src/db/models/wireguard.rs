@@ -81,9 +81,9 @@ pub enum LocationMfaMode {
 impl fmt::Display for LocationMfaMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            LocationMfaMode::Disabled => "MFA disabled",
-            LocationMfaMode::Internal => "Internal MFA",
-            LocationMfaMode::External => "External MFA",
+            Self::Disabled => "MFA disabled",
+            Self::Internal => "Internal MFA",
+            Self::External => "External MFA",
         })
     }
 }

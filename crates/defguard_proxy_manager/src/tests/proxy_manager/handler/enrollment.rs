@@ -48,8 +48,8 @@ async fn test_new_device_creates_device_and_returns_configs(
         id: 1,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::NewDevice(NewDevice {
-            name: "My Laptop".to_string(),
-            pubkey: pubkey.to_string(),
+            name: "My Laptop".to_owned(),
+            pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
         })),
     });
@@ -97,8 +97,8 @@ async fn test_new_device_creates_polling_token(_: PgPoolOptions, options: PgConn
         id: 50,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::NewDevice(NewDevice {
-            name: "Polling Test Laptop".to_string(),
-            pubkey: pubkey.to_string(),
+            name: "Polling Test Laptop".to_owned(),
+            pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
         })),
     });
@@ -269,8 +269,8 @@ async fn test_new_device_sends_gateway_device_created_event(
         id: 3,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::NewDevice(NewDevice {
-            name: "My Tablet".to_string(),
-            pubkey: pubkey.to_string(),
+            name: "My Tablet".to_owned(),
+            pubkey: pubkey.to_owned(),
             token: Some(token.id.clone()),
         })),
     });
@@ -302,9 +302,9 @@ async fn test_new_device_invalid_token_returns_error(_: PgPoolOptions, options: 
         id: 4,
         device_info: None,
         payload: Some(core_request::Payload::NewDevice(NewDevice {
-            name: "Ghost Device".to_string(),
-            pubkey: "FSIvPElWY3B9ipeksb7L2OXy/wwZJjNATVpndIGOm6g=".to_string(),
-            token: Some("nonexistent-token-0000000000000000".to_string()),
+            name: "Ghost Device".to_owned(),
+            pubkey: "FSIvPElWY3B9ipeksb7L2OXy/wwZJjNATVpndIGOm6g=".to_owned(),
+            token: Some("nonexistent-token-0000000000000000".to_owned()),
         })),
     });
 
@@ -606,7 +606,7 @@ async fn test_register_mobile_auth_happy_path(_: PgPoolOptions, options: PgConne
         payload: Some(core_request::Payload::RegisterMobileAuth(
             RegisterMobileAuthRequest {
                 token: token.id.clone(),
-                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_string(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_owned(),
                 device_pub_key: device.wireguard_pubkey.clone(),
             },
         )),
@@ -652,9 +652,9 @@ async fn test_register_mobile_auth_invalid_device_pubkey(
         payload: Some(core_request::Payload::RegisterMobileAuth(
             RegisterMobileAuthRequest {
                 token: token.id.clone(),
-                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_string(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_owned(),
                 // Not a valid WireGuard public key.
-                device_pub_key: "not-a-valid-wireguard-pubkey".to_string(),
+                device_pub_key: "not-a-valid-wireguard-pubkey".to_owned(),
             },
         )),
     });
@@ -699,8 +699,8 @@ async fn test_register_mobile_auth_device_not_found(_: PgPoolOptions, options: P
         payload: Some(core_request::Payload::RegisterMobileAuth(
             RegisterMobileAuthRequest {
                 token: token.id.clone(),
-                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_string(),
-                device_pub_key: unknown_pubkey.to_string(),
+                auth_pub_key: VALID_ED25519_PUBKEY_B64.to_owned(),
+                device_pub_key: unknown_pubkey.to_owned(),
             },
         )),
     });

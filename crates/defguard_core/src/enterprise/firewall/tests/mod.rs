@@ -599,7 +599,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         web_allow_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
         }]
     );
     assert_eq!(
@@ -619,18 +619,18 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.1".to_string(),
-                    end: "10.0.1.2".to_string(),
+                    start: "10.0.1.1".to_owned(),
+                    end: "10.0.1.2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.2.1".to_string(),
-                    end: "10.0.2.2".to_string(),
+                    start: "10.0.2.1".to_owned(),
+                    end: "10.0.2.2".to_owned(),
                 })),
             },
             IpAddress {
-                address: Some(Address::Ip("10.0.100.1".to_string())),
+                address: Some(Address::Ip("10.0.100.1".to_owned())),
             },
         ]
     );
@@ -644,7 +644,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         web_deny_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
         }]
     );
 
@@ -667,20 +667,20 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.1".to_string(),
-                    end: "10.0.1.2".to_string(),
+                    start: "10.0.1.1".to_owned(),
+                    end: "10.0.1.2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.2.1".to_string(),
-                    end: "10.0.2.2".to_string(),
+                    start: "10.0.2.1".to_owned(),
+                    end: "10.0.2.2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.100.1".to_string(),
-                    end: "10.0.100.2".to_string(),
+                    start: "10.0.100.1".to_owned(),
+                    end: "10.0.100.2".to_owned(),
                 })),
             },
         ]
@@ -688,40 +688,40 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
 
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::Ip("10.0.1.13".to_string())),
+            address: Some(Address::Ip("10.0.1.13".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.14/31".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.14/31".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.16/28".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.16/28".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.32/29".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.32/29".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.40/30".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.40/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.52/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.56/29".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.64/26".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.128/25".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+            address: Some(Address::IpSubnet("10.0.2.0/27".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+            address: Some(Address::IpSubnet("10.0.2.32/29".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
+            address: Some(Address::IpSubnet("10.0.2.40/30".to_owned())),
         },
     ];
 
@@ -1020,7 +1020,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         web_allow_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+            address: Some(Address::IpSubnet("fc00::/112".to_owned())),
         }]
     );
     assert_eq!(
@@ -1040,18 +1040,18 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::1:1".to_string(),
-                    end: "ff00::1:2".to_string(),
+                    start: "ff00::1:1".to_owned(),
+                    end: "ff00::1:2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::2:1".to_string(),
-                    end: "ff00::2:2".to_string(),
+                    start: "ff00::2:1".to_owned(),
+                    end: "ff00::2:2".to_owned(),
                 })),
             },
             IpAddress {
-                address: Some(Address::Ip("ff00::100:1".to_string())),
+                address: Some(Address::Ip("ff00::100:1".to_owned())),
             },
         ]
     );
@@ -1065,7 +1065,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert_eq!(
         web_deny_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+            address: Some(Address::IpSubnet("fc00::/112".to_owned())),
         }]
     );
 
@@ -1085,64 +1085,64 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 
     let expected_destination_addrs = vec![
         IpAddress {
-            address: Some(Address::Ip("fc00::1:13".to_string())),
+            address: Some(Address::Ip("fc00::1:13".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:14/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:14/126".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:18/125".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:18/125".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:20/123".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:20/123".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:40/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:40/126".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:52/127".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:54/126".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:58/125".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:60/123".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:80/121".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:100/120".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:200/119".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:400/118".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:800/117".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:1000/116".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:2000/115".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:4000/114".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:8000/113".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+            address: Some(Address::IpSubnet("fc00::2:0/122".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::2:40/126".to_owned())),
         },
     ];
 
@@ -1152,20 +1152,20 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::1:1".to_string(),
-                    end: "ff00::1:2".to_string(),
+                    start: "ff00::1:1".to_owned(),
+                    end: "ff00::1:2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::2:1".to_string(),
-                    end: "ff00::2:2".to_string(),
+                    start: "ff00::2:1".to_owned(),
+                    end: "ff00::2:2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::100:1".to_string(),
-                    end: "ff00::100:2".to_string(),
+                    start: "ff00::100:1".to_owned(),
+                    end: "ff00::100:2".to_owned(),
                 })),
             },
         ]
@@ -1492,7 +1492,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_allow_rule_ipv4.destination_addrs,
         vec![IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
         }]
     );
     assert_eq!(
@@ -1512,18 +1512,18 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.1".to_string(),
-                    end: "10.0.1.2".to_string(),
+                    start: "10.0.1.1".to_owned(),
+                    end: "10.0.1.2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.2.1".to_string(),
-                    end: "10.0.2.2".to_string(),
+                    start: "10.0.2.1".to_owned(),
+                    end: "10.0.2.2".to_owned(),
                 })),
             },
             IpAddress {
-                address: Some(Address::Ip("10.0.100.1".to_string())),
+                address: Some(Address::Ip("10.0.100.1".to_owned())),
             },
         ]
     );
@@ -1537,7 +1537,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_allow_rule_ipv6.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+            address: Some(Address::IpSubnet("fc00::/112".to_owned())),
         }]
     );
     assert_eq!(
@@ -1557,18 +1557,18 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::1:1".to_string(),
-                    end: "ff00::1:2".to_string(),
+                    start: "ff00::1:1".to_owned(),
+                    end: "ff00::1:2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::2:1".to_string(),
-                    end: "ff00::2:2".to_string(),
+                    start: "ff00::2:1".to_owned(),
+                    end: "ff00::2:2".to_owned(),
                 })),
             },
             IpAddress {
-                address: Some(Address::Ip("ff00::100:1".to_string())),
+                address: Some(Address::Ip("ff00::100:1".to_owned())),
             },
         ]
     );
@@ -1582,7 +1582,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_deny_rule_ipv4.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
         }]
     );
 
@@ -1594,7 +1594,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_deny_rule_ipv6.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+            address: Some(Address::IpSubnet("fc00::/112".to_owned())),
         }]
     );
 
@@ -1620,20 +1620,20 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.1.1".to_string(),
-                    end: "10.0.1.2".to_string(),
+                    start: "10.0.1.1".to_owned(),
+                    end: "10.0.1.2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.2.1".to_string(),
-                    end: "10.0.2.2".to_string(),
+                    start: "10.0.2.1".to_owned(),
+                    end: "10.0.2.2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.100.1".to_string(),
-                    end: "10.0.100.2".to_string(),
+                    start: "10.0.100.1".to_owned(),
+                    end: "10.0.100.2".to_owned(),
                 })),
             },
         ]
@@ -1641,40 +1641,40 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     let expected_destination_addrs_v4 = vec![
         IpAddress {
-            address: Some(Address::Ip("10.0.1.13".to_string())),
+            address: Some(Address::Ip("10.0.1.13".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.14/31".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.14/31".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.16/28".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.16/28".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.32/29".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.32/29".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.40/30".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.40/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.52/30".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.52/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.56/29".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.56/29".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.64/26".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.64/26".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.1.128/25".to_string())),
+            address: Some(Address::IpSubnet("10.0.1.128/25".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.2.0/27".to_string())),
+            address: Some(Address::IpSubnet("10.0.2.0/27".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.2.32/29".to_string())),
+            address: Some(Address::IpSubnet("10.0.2.32/29".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("10.0.2.40/30".to_string())),
+            address: Some(Address::IpSubnet("10.0.2.40/30".to_owned())),
         },
     ];
 
@@ -1704,20 +1704,20 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         [
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::1:1".to_string(),
-                    end: "ff00::1:2".to_string(),
+                    start: "ff00::1:1".to_owned(),
+                    end: "ff00::1:2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::2:1".to_string(),
-                    end: "ff00::2:2".to_string(),
+                    start: "ff00::2:1".to_owned(),
+                    end: "ff00::2:2".to_owned(),
                 })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "ff00::100:1".to_string(),
-                    end: "ff00::100:2".to_string(),
+                    start: "ff00::100:1".to_owned(),
+                    end: "ff00::100:2".to_owned(),
                 })),
             },
         ]
@@ -1725,64 +1725,64 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
 
     let expected_destination_addrs_v6 = vec![
         IpAddress {
-            address: Some(Address::Ip("fc00::1:13".to_string())),
+            address: Some(Address::Ip("fc00::1:13".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:14/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:14/126".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:18/125".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:18/125".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:20/123".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:20/123".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:40/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:40/126".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:52/127".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:52/127".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:54/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:54/126".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:58/125".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:58/125".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:60/123".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:60/123".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:80/121".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:80/121".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:100/120".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:100/120".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:200/119".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:200/119".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:400/118".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:400/118".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:800/117".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:800/117".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:1000/116".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:1000/116".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:2000/115".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:2000/115".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:4000/114".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:4000/114".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::1:8000/113".to_string())),
+            address: Some(Address::IpSubnet("fc00::1:8000/113".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::2:0/122".to_string())),
+            address: Some(Address::IpSubnet("fc00::2:0/122".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("fc00::2:40/126".to_string())),
+            address: Some(Address::IpSubnet("fc00::2:40/126".to_owned())),
         },
     ];
 
@@ -1832,7 +1832,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create ACL rule
     let acl_rule = AclRule {
-        name: "test rule".to_string(),
+        name: "test rule".to_owned(),
         expires: None,
         enabled: true,
         state: RuleState::Applied,
@@ -1848,7 +1848,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create different kinds of aliases and add them to the rule
     let destination_alias = AclAlias {
-        name: "destination alias".to_string(),
+        name: "destination alias".to_owned(),
         kind: AliasKind::Destination,
         ports: vec![PortRange::new(100, 200).into()],
         any_address: true,
@@ -1891,23 +1891,23 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::Ip("10.0.2.3".to_string())),
+            address: Some(Address::Ip("10.0.2.3".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
         },
     ];
 
@@ -1919,7 +1919,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(allow_rule.protocols.is_empty());
     assert_eq!(
         allow_rule.comment,
-        Some("RULE 1 - test rule ALLOW".to_string())
+        Some("RULE 1 - test rule ALLOW".to_owned())
     );
 
     let alias_allow_rule = &generated_firewall_rules[1];
@@ -1938,7 +1938,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(alias_allow_rule.protocols.is_empty());
     assert_eq!(
         alias_allow_rule.comment,
-        Some("RULE 1 - test rule, DESTINATION 1 - destination alias ALLOW".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - destination alias ALLOW".to_owned())
     );
 
     let deny_rule = &generated_firewall_rules[2];
@@ -1949,7 +1949,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(deny_rule.protocols.is_empty());
     assert_eq!(
         deny_rule.comment,
-        Some("RULE 1 - test rule DENY".to_string())
+        Some("RULE 1 - test rule DENY".to_owned())
     );
 
     let alias_deny_rule = &generated_firewall_rules[3];
@@ -1960,7 +1960,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(alias_deny_rule.protocols.is_empty());
     assert_eq!(
         alias_deny_rule.comment,
-        Some("RULE 1 - test rule, DESTINATION 1 - destination alias DENY".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - destination alias DENY".to_owned())
     );
 }
 
@@ -1983,7 +1983,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     // create ACL rule without manually configured destination
     let acl_rule = AclRule {
-        name: "test rule".to_string(),
+        name: "test rule".to_owned(),
         expires: None,
         enabled: true,
         state: RuleState::Applied,
@@ -1998,7 +1998,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
 
     // create different kinds of aliases and add them to the rule
     let destination_alias_1 = AclAlias {
-        name: "postgres".to_string(),
+        name: "postgres".to_owned(),
         kind: AliasKind::Destination,
         addresses: vec!["10.0.2.3".parse().unwrap()],
         ports: vec![PortRange::new(5432, 5432).into()],
@@ -2008,7 +2008,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     .await
     .unwrap();
     let destination_alias_2 = AclAlias {
-        name: "redis".to_string(),
+        name: "redis".to_owned(),
         kind: AliasKind::Destination,
         addresses: vec!["10.0.2.4".parse().unwrap()],
         ports: vec![PortRange::new(6379, 6379).into()],
@@ -2042,14 +2042,14 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     let expected_source_addrs = vec![
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
@@ -2060,7 +2060,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(
         alias_allow_rule_1.destination_addrs,
         vec![IpAddress {
-            address: Some(Address::Ip("10.0.2.3".to_string())),
+            address: Some(Address::Ip("10.0.2.3".to_owned())),
         },]
     );
     assert_eq!(
@@ -2072,7 +2072,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert!(alias_allow_rule_1.protocols.is_empty());
     assert_eq!(
         alias_allow_rule_1.comment,
-        Some("RULE 1 - test rule, DESTINATION 1 - postgres ALLOW".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - postgres ALLOW".to_owned())
     );
 
     let alias_allow_rule_2 = &generated_firewall_rules[1];
@@ -2081,7 +2081,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(
         alias_allow_rule_2.destination_addrs,
         vec![IpAddress {
-            address: Some(Address::Ip("10.0.2.4".to_string())),
+            address: Some(Address::Ip("10.0.2.4".to_owned())),
         },]
     );
     assert_eq!(
@@ -2093,7 +2093,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert!(alias_allow_rule_2.protocols.is_empty());
     assert_eq!(
         alias_allow_rule_2.comment,
-        Some("RULE 1 - test rule, DESTINATION 2 - redis ALLOW".to_string())
+        Some("RULE 1 - test rule, DESTINATION 2 - redis ALLOW".to_owned())
     );
 
     let alias_deny_rule_1 = &generated_firewall_rules[2];
@@ -2102,14 +2102,14 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(
         alias_deny_rule_1.destination_addrs,
         vec![IpAddress {
-            address: Some(Address::Ip("10.0.2.3".to_string())),
+            address: Some(Address::Ip("10.0.2.3".to_owned())),
         },]
     );
     assert!(alias_deny_rule_1.destination_ports.is_empty());
     assert!(alias_deny_rule_1.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_1.comment,
-        Some("RULE 1 - test rule, DESTINATION 1 - postgres DENY".to_string())
+        Some("RULE 1 - test rule, DESTINATION 1 - postgres DENY".to_owned())
     );
 
     let alias_deny_rule_2 = &generated_firewall_rules[3];
@@ -2118,14 +2118,14 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
     assert_eq!(
         alias_deny_rule_2.destination_addrs,
         vec![IpAddress {
-            address: Some(Address::Ip("10.0.2.4".to_string())),
+            address: Some(Address::Ip("10.0.2.4".to_owned())),
         },]
     );
     assert!(alias_deny_rule_2.destination_ports.is_empty());
     assert!(alias_deny_rule_2.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_2.comment,
-        Some("RULE 1 - test rule, DESTINATION 2 - redis DENY".to_string())
+        Some("RULE 1 - test rule, DESTINATION 2 - redis DENY".to_owned())
     );
 }
 
@@ -2287,7 +2287,7 @@ async fn test_allow_all_groups_expands_all_group_members_into_firewall_sources(
     assert_eq!(
         allow_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.10.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.10.0/24".to_owned())),
         }]
     );
     assert_eq!(
@@ -2441,7 +2441,7 @@ async fn test_allow_all_groups_deduplicates_shared_group_members_before_source_r
     assert_eq!(
         allow_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.30.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.30.0/24".to_owned())),
         }]
     );
     assert_eq!(
@@ -2561,7 +2561,7 @@ async fn test_deny_all_groups_excludes_members_of_every_group_from_firewall_sour
     assert_eq!(
         allow_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.20.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.20.0/24".to_owned())),
         }]
     );
     assert_eq!(
@@ -2724,7 +2724,7 @@ async fn test_deny_all_groups_deduplicates_shared_group_members_before_source_fi
     assert_eq!(
         allow_rule.destination_addrs,
         [IpAddress {
-            address: Some(Address::IpSubnet("192.168.40.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.40.0/24".to_owned())),
         }]
     );
     assert_eq!(
@@ -2849,7 +2849,7 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
 
     // create ACL rule without manually configured destination and no aliases
     let acl_rule = AclRule {
-        name: "test rule".to_string(),
+        name: "test rule".to_owned(),
         expires: None,
         enabled: true,
         state: RuleState::Applied,
@@ -2882,14 +2882,14 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     let expected_source_addrs_ipv4 = vec![
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
@@ -2916,14 +2916,14 @@ async fn test_empty_manual_destination_only_acl(_: PgPoolOptions, options: PgCon
     let expected_source_addrs_ipv6 = vec![
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "ff00::1:1".to_string(),
-                end: "ff00::1:2".to_string(),
+                start: "ff00::1:1".to_owned(),
+                end: "ff00::1:2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "ff00::2:1".to_string(),
-                end: "ff00::2:2".to_string(),
+                start: "ff00::2:1".to_owned(),
+                end: "ff00::2:2".to_owned(),
             })),
         },
     ];

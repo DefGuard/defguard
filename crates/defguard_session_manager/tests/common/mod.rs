@@ -121,9 +121,9 @@ pub(crate) async fn create_location_with_mfa_mode(
     location_mfa_mode: LocationMfaMode,
 ) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
-        "TestNet".to_string(),
+        "TestNet".to_owned(),
         51820,
-        "10.0.0.1".to_string(),
+        "10.0.0.1".to_owned(),
         None,
         vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
         true,
@@ -163,8 +163,8 @@ pub(crate) async fn create_device_with_pubkey(
     wireguard_pubkey: &str,
 ) -> Device<Id> {
     Device::new(
-        "session-test-device".to_string(),
-        wireguard_pubkey.to_string(),
+        "session-test-device".to_owned(),
+        wireguard_pubkey.to_owned(),
         user_id,
         DeviceType::User,
         None,
@@ -203,8 +203,8 @@ pub(crate) async fn create_gateway_named(
 ) -> Gateway<Id> {
     Gateway::new(
         location_id,
-        name.to_string(),
-        "127.0.0.1".to_string(),
+        name.to_owned(),
+        "127.0.0.1".to_owned(),
         51820,
         modified_by,
     )
@@ -227,7 +227,7 @@ pub(crate) async fn authorize_device_in_location(
         Some(truncate_timestamp(chrono::Utc::now().naive_utc())),
         Some(VpnClientMfaMethod::Totp),
     );
-    session.preshared_key = Some(preshared_key.to_string());
+    session.preshared_key = Some(preshared_key.to_owned());
     session.state = VpnClientSessionState::Connected;
     session
         .save(pool)

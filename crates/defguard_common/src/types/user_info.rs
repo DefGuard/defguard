@@ -237,7 +237,7 @@ mod test {
             "Potter",
             "Harry",
             "h.potter@hogwart.edu.uk",
-            Some("+48100200300".to_string()),
+            Some("+48100200300".to_owned()),
         )
         .save(&pool)
         .await
@@ -319,7 +319,7 @@ mod test {
             "Potter",
             "Harry",
             "h.potter@hogwart.edu.uk",
-            Some("+48100200300".to_string()),
+            Some("+48100200300".to_owned()),
         )
         .save(&pool)
         .await

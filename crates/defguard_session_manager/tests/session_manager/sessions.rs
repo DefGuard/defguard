@@ -439,7 +439,7 @@ async fn test_device_public_key_change_reuses_existing_session(
         .expect("failed to query active session")
         .expect("expected active session");
 
-    device.wireguard_pubkey = "device-pubkey-after-rotation".to_string();
+    device.wireguard_pubkey = "device-pubkey-after-rotation".to_owned();
     device
         .save(&pool)
         .await

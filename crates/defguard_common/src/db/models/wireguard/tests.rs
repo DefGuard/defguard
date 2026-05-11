@@ -232,7 +232,7 @@ async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
     let network = WireguardNetwork::new(
-        "network".to_string(),
+        "network".to_owned(),
         50051,
         String::new(),
         None,
@@ -293,7 +293,7 @@ async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
     .unwrap();
 
     let device = Device::new(
-        "device".to_string(),
+        "device".to_owned(),
         String::new(),
         user.id,
         DeviceType::User,
@@ -361,7 +361,7 @@ async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgCon
     let pool = setup_pool(options).await;
 
     let network = WireguardNetwork::new(
-        "network".to_string(),
+        "network".to_owned(),
         50051,
         String::new(),
         None,
@@ -430,7 +430,7 @@ async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgCon
     .unwrap();
 
     let device = Device::new(
-        "device".to_string(),
+        "device".to_owned(),
         String::new(),
         user.id,
         DeviceType::User,
