@@ -13,8 +13,11 @@ use defguard_proto::client_types::MfaMethod;
 use crate::{
     db::WebHook,
     enterprise::db::models::{
-        activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider, snat::UserSnatBinding,
+        activity_log_stream::ActivityLogStream,
+        api_tokens::ApiToken,
+        device_posture::{DevicePosture, DevicePostureSnapshot},
+        openid_provider::OpenIdProvider,
+        snat::UserSnatBinding,
     },
 };
 
@@ -316,6 +319,28 @@ pub enum ApiEventType {
     },
     GatewayDeleted {
         gateway: Gateway<Id>,
+    },
+    DevicePostureCreated {
+        snapshot: DevicePostureSnapshot,
+    },
+    DevicePostureUpdated {
+        before: DevicePostureSnapshot,
+        after: DevicePostureSnapshot,
+    },
+    DevicePostureDeleted {
+        snapshot: DevicePostureSnapshot,
+    },
+    DevicePostureDuplicated {
+        original: DevicePostureSnapshot,
+        duplicate: DevicePostureSnapshot,
+    },
+    DevicePostureLocationsAssigned {
+        device_posture: DevicePosture<Id>,
+        location_ids: Vec<Id>,
+    },
+    LocationPosturesAssigned {
+        location: WireguardNetwork<Id>,
+        posture_ids: Vec<Id>,
     },
 }
 

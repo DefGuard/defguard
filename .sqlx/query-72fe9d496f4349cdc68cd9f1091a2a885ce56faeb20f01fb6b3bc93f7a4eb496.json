@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, posture_id,\n               os_type AS \"os_type: OsType\",\n               min_os_version, disk_encryption_required,\n               antivirus_required, ad_domain_joined_required,\n               windows_security_update_current, min_kernel_version,\n               device_integrity_required\n               FROM device_posture_os_rule WHERE posture_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "posture_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "os_type: OsType",
+        "type_info": {
+          "Custom": {
+            "name": "os_type",
+            "kind": {
+              "Enum": [
+                "windows",
+                "macos",
+                "linux",
+                "ios",
+                "android"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "min_os_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "disk_encryption_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "antivirus_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "ad_domain_joined_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "windows_security_update_current",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_kernel_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "device_integrity_required",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "72fe9d496f4349cdc68cd9f1091a2a885ce56faeb20f01fb6b3bc93f7a4eb496"
+}

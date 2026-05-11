@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"device_posture\" SET \"name\" = $2,\"description\" = $3,\"min_client_version\" = $4,\"allow_prerelease_client\" = $5 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8c99e0dc4a4010a1c2d9bfad1e6194e9879b905e2c9a6a3b561661e7bb31d7e4"
+}

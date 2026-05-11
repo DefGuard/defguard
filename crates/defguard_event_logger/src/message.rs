@@ -12,7 +12,8 @@ use defguard_core::{
     db::WebHook,
     enterprise::db::models::{
         activity_log_stream::ActivityLogStream, api_tokens::ApiToken,
-        openid_provider::OpenIdProvider, snat::UserSnatBinding,
+        device_posture::DevicePostureSnapshot, openid_provider::OpenIdProvider,
+        snat::UserSnatBinding,
     },
     events::{ApiRequestContext, BidiRequestContext, ClientMFAMethod, GrpcRequestContext},
 };
@@ -331,6 +332,28 @@ pub enum DefguardEvent {
     },
     GatewayDeleted {
         gateway: Gateway<Id>,
+    },
+    DevicePostureCreated {
+        snapshot: DevicePostureSnapshot,
+    },
+    DevicePostureUpdated {
+        before: DevicePostureSnapshot,
+        after: DevicePostureSnapshot,
+    },
+    DevicePostureDeleted {
+        snapshot: DevicePostureSnapshot,
+    },
+    DevicePostureDuplicated {
+        original: DevicePostureSnapshot,
+        duplicate: DevicePostureSnapshot,
+    },
+    DevicePostureLocationsAssigned {
+        posture_id: Id,
+        location_ids: Vec<Id>,
+    },
+    LocationPosturesAssigned {
+        location_id: Id,
+        posture_ids: Vec<Id>,
     },
 }
 

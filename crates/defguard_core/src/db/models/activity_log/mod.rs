@@ -122,6 +122,13 @@ pub enum EventType {
     // Gateway management
     GatewayModified,
     GatewayDeleted,
+    // Device posture management
+    DevicePostureCreated,
+    DevicePostureUpdated,
+    DevicePostureDeleted,
+    DevicePostureDuplicated,
+    DevicePostureLocationsAssigned,
+    LocationPosturesAssigned,
 }
 
 #[derive(Model, FromRow, Serialize)]

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"name\",\"description\",\"min_client_version\",\"allow_prerelease_client\" FROM \"device_posture\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "min_client_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "allow_prerelease_client",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "08cf0ced465d6c75e8b760f2ed4f2d7f03d5c781760a7a9d914890e66c2fb626"
+}

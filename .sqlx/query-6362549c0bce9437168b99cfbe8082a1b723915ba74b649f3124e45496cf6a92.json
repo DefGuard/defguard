@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"posture_id\",\"os_type\" \"os_type: _\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_current\",\"min_kernel_version\",\"device_integrity_required\" FROM \"device_posture_os_rule\" LIMIT $1 OFFSET $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "posture_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "os_type: _",
+        "type_info": {
+          "Custom": {
+            "name": "os_type",
+            "kind": {
+              "Enum": [
+                "windows",
+                "macos",
+                "linux",
+                "ios",
+                "android"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "min_os_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "disk_encryption_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "antivirus_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "ad_domain_joined_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "windows_security_update_current",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_kernel_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "device_integrity_required",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "6362549c0bce9437168b99cfbe8082a1b723915ba74b649f3124e45496cf6a92"
+}

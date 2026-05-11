@@ -548,6 +548,36 @@ async fn process_batch(
                             EventType::GatewayDeleted,
                             serde_json::to_value(GatewayDeletedMetadata { gateway }).ok(),
                         ),
+                        DefguardEvent::DevicePostureCreated { snapshot } => (
+                            EventType::DevicePostureCreated,
+                            serde_json::to_value(snapshot).ok(),
+                        ),
+                        DefguardEvent::DevicePostureUpdated { before, after } => (
+                            EventType::DevicePostureUpdated,
+                            serde_json::to_value(serde_json::json!({"before": before, "after": after})).ok(),
+                        ),
+                        DefguardEvent::DevicePostureDeleted { snapshot } => (
+                            EventType::DevicePostureDeleted,
+                            serde_json::to_value(snapshot).ok(),
+                        ),
+                        DefguardEvent::DevicePostureDuplicated { original, duplicate } => (
+                            EventType::DevicePostureDuplicated,
+                            serde_json::to_value(serde_json::json!({"original": original, "duplicate": duplicate})).ok(),
+                        ),
+                        DefguardEvent::DevicePostureLocationsAssigned {
+                            posture_id,
+                            location_ids,
+                        } => (
+                            EventType::DevicePostureLocationsAssigned,
+                            serde_json::to_value(serde_json::json!({"posture_id": posture_id, "location_ids": location_ids})).ok(),
+                        ),
+                        DefguardEvent::LocationPosturesAssigned {
+                            location_id,
+                            posture_ids,
+                        } => (
+                            EventType::LocationPosturesAssigned,
+                            serde_json::to_value(serde_json::json!({"location_id": location_id, "posture_ids": posture_ids})).ok(),
+                        ),
                     };
                     (module, event_type, description, metadata)
                 }
