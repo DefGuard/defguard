@@ -44,7 +44,7 @@ async fn test_auth_callback_creates_new_user_on_first_login(
         device_info: None,
         payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
             code: code.clone(),
-            nonce: raw_nonce.to_string(),
+            nonce: raw_nonce.to_owned(),
         })),
     });
 
@@ -310,7 +310,7 @@ async fn test_mfa_oidc_full_flow(_: PgPoolOptions, options: PgConnectOptions) {
             ClientMfaOidcAuthenticateRequest {
                 code: code.clone(),
                 state: state.clone(),
-                nonce: raw_nonce.to_string(),
+                nonce: raw_nonce.to_owned(),
             },
         )),
     });
@@ -369,7 +369,7 @@ async fn test_auth_callback_exchanges_code_for_enrollment_token(
         device_info: None,
         payload: Some(core_request::Payload::AuthCallback(AuthCallbackRequest {
             code: code.clone(),
-            nonce: raw_nonce.to_string(),
+            nonce: raw_nonce.to_owned(),
         })),
     });
 

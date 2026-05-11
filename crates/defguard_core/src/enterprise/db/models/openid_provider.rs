@@ -21,9 +21,9 @@ pub enum DirectorySyncUserBehavior {
 impl fmt::Display for DirectorySyncUserBehavior {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            DirectorySyncUserBehavior::Keep => "keep",
-            DirectorySyncUserBehavior::Disable => "disable",
-            DirectorySyncUserBehavior::Delete => "delete",
+            Self::Keep => "keep",
+            Self::Disable => "disable",
+            Self::Delete => "delete",
         })
     }
 }
@@ -31,12 +31,12 @@ impl fmt::Display for DirectorySyncUserBehavior {
 impl From<String> for DirectorySyncUserBehavior {
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            "keep" => DirectorySyncUserBehavior::Keep,
-            "disable" => DirectorySyncUserBehavior::Disable,
-            "delete" => DirectorySyncUserBehavior::Delete,
+            "keep" => Self::Keep,
+            "disable" => Self::Disable,
+            "delete" => Self::Delete,
             _ => {
                 warn!("Unknown directory sync user behavior passed: {s}");
-                DirectorySyncUserBehavior::Keep
+                Self::Keep
             }
         }
     }
@@ -58,9 +58,9 @@ pub enum DirectorySyncTarget {
 impl fmt::Display for DirectorySyncTarget {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            DirectorySyncTarget::All => "all",
-            DirectorySyncTarget::Users => "users",
-            DirectorySyncTarget::Groups => "groups",
+            Self::All => "all",
+            Self::Users => "users",
+            Self::Groups => "groups",
         })
     }
 }
@@ -68,12 +68,12 @@ impl fmt::Display for DirectorySyncTarget {
 impl From<String> for DirectorySyncTarget {
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            "all" => DirectorySyncTarget::All,
-            "users" => DirectorySyncTarget::Users,
-            "groups" => DirectorySyncTarget::Groups,
+            "all" => Self::All,
+            "users" => Self::Users,
+            "groups" => Self::Groups,
             _ => {
                 warn!("Unknown directory sync target passed: {s}");
-                DirectorySyncTarget::All
+                Self::All
             }
         }
     }

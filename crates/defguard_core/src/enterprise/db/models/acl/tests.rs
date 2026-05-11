@@ -64,7 +64,7 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
 
     // create the rule
     let rule = AclRule {
-        name: "rule".to_string(),
+        name: "rule".to_owned(),
         enabled: true,
         allow_all_users: false,
         deny_all_users: false,
@@ -110,7 +110,7 @@ async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOpti
 
     // device
     let device = Device::new(
-        "device1".to_string(),
+        "device1".to_owned(),
         String::new(),
         1,
         DeviceType::Network,
@@ -136,7 +136,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create the rule
     let mut rule = AclRule {
-        name: "rule".to_string(),
+        name: "rule".to_owned(),
         enabled: true,
         allow_all_users: false,
         deny_all_users: false,
@@ -159,9 +159,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create 2 networks
     let network1 = WireguardNetwork::new(
-        "network1".to_string(),
+        "network1".to_owned(),
         1000,
-        "endpoint1".to_string(),
+        "endpoint1".to_owned(),
         None,
         Vec::new(),
         true,
@@ -174,9 +174,9 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let _network2 = WireguardNetwork::new(
-        "network2".to_string(),
+        "network2".to_owned(),
         2000,
-        "endpoint2".to_string(),
+        "endpoint2".to_owned(),
         None,
         Vec::new(),
         true,
@@ -235,7 +235,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
 
     // create 2 devices
     let mut device1 = Device::new(
-        "device1".to_string(),
+        "device1".to_owned(),
         String::new(),
         1,
         DeviceType::Network,
@@ -246,7 +246,7 @@ async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     let mut device2 = Device::new(
-        "device2".to_string(),
+        "device2".to_owned(),
         String::new(),
         1,
         DeviceType::Network,
@@ -477,7 +477,7 @@ async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create ACL rule
     let rule = AclRule {
-        name: "test_rule".to_string(),
+        name: "test_rule".to_owned(),
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,
@@ -589,7 +589,7 @@ async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Create ACL rule
     let rule = AclRule {
-        name: "test_rule".to_string(),
+        name: "test_rule".to_owned(),
         allow_all_users: false,
         deny_all_users: false,
         allow_all_network_devices: false,

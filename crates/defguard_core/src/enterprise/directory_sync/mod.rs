@@ -292,8 +292,7 @@ impl DirectorySyncClient {
                 } else {
                     Err(DirectorySyncError::InvalidProviderConfiguration(
                         "Okta provider is not configured correctly for Directory Sync. Okta \
-                            private key or client id is missing."
-                            .to_string(),
+                            private key or client id is missing.".to_owned(),
                     ))
                 }
             }

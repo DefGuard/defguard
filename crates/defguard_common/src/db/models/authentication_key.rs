@@ -17,8 +17,8 @@ pub enum AuthenticationKeyType {
 impl fmt::Display for AuthenticationKeyType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            AuthenticationKeyType::Ssh => "SSH",
-            AuthenticationKeyType::Gpg => "GPG",
+            Self::Ssh => "SSH",
+            Self::Gpg => "GPG",
         })
     }
 }

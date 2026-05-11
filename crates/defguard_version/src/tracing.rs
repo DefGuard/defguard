@@ -317,8 +317,8 @@ impl tracing::field::Visit for SpanFieldVisitor {
     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
         match field.name() {
             // "component" => self.component = DefguardComponent::from_str(value).ok(),
-            "version" => self.version = Some(value.to_string()),
-            "info" => self.info = Some(value.to_string()),
+            "version" => self.version = Some(value.to_owned()),
+            "info" => self.info = Some(value.to_owned()),
             _ => {}
         }
     }

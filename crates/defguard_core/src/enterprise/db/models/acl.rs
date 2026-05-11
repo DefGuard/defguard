@@ -127,8 +127,8 @@ impl From<PgRange<i32>> for PortRange {
 }
 
 impl From<PortRange> for PgRange<i32> {
-    fn from(range: PortRange) -> PgRange<i32> {
-        PgRange {
+    fn from(range: PortRange) -> Self {
+        Self {
             start: Bound::Included(i32::from(*range.0.start())),
             end: Bound::Included(i32::from(*range.0.end())),
         }
@@ -283,7 +283,7 @@ impl Default for AclRule {
             id: NoId,
             parent_id: Option::default(),
             state: RuleState::New,
-            name: "ACL rule".to_string(),
+            name: "ACL rule".to_owned(),
             allow_all_users: false,
             deny_all_users: false,
             allow_all_groups: false,
@@ -321,7 +321,7 @@ impl AclRule {
         actor: &str,
     ) -> Result<ApiAclRule, AclError> {
         // save the rule
-        let mut rule: AclRule = api_rule.clone().try_into()?;
+        let mut rule: Self = api_rule.clone().try_into()?;
         rule.stamp_modified(actor);
         let rule = rule.save(&mut *conn).await?;
 
@@ -364,7 +364,7 @@ impl AclRule {
         })?;
 
         // convert API rule to model
-        let mut rule: AclRule<NoId> = api_rule.clone().try_into()?;
+        let mut rule: Self = api_rule.clone().try_into()?;
         rule.stamp_modified(actor);
 
         // perform appropriate updates depending on existing rule's state
@@ -574,7 +574,7 @@ pub(crate) struct ParsedDestination {
 
 fn invalid_destination_range(range: &str) -> AclError {
     error!("Failed to parse destination range token: \"{range}\"");
-    AclError::InvalidIpRangeError(range.to_string())
+    AclError::InvalidIpRangeError(range.to_owned())
 }
 
 fn parse_destination_range(range: &str) -> Result<(IpAddr, IpAddr), AclError> {
@@ -634,7 +634,7 @@ pub(crate) fn parse_destination_addresses(
 /// `22, 23, 8000-9000, 80-90`
 fn invalid_ports_format(ports: &str) -> AclError {
     error!("Failed to parse ports string: \"{ports}\"");
-    AclError::InvalidPortsFormat(ports.to_string())
+    AclError::InvalidPortsFormat(ports.to_owned())
 }
 
 fn parse_port_token(port_token: &str, ports: &str) -> Result<PortRange, AclError> {

@@ -993,9 +993,9 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     } else {
         info!("Creating test network");
         let mut network = WireguardNetwork::new(
-            "TestNet".to_string(),
+            "TestNet".to_owned(),
             50051,
-            "0.0.0.0".to_string(),
+            "0.0.0.0".to_owned(),
             None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
             true,
@@ -1006,8 +1006,8 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         )
         .set_address([IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()])
         .unwrap();
-        network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
-        network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
+        network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_owned();
+        network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_owned();
         network
             .save(&mut *transaction)
             .await
@@ -1029,8 +1029,8 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
     } else {
         info!("Creating test device");
         let device = Device::new(
-            "TestDevice".to_string(),
-            "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
+            "TestDevice".to_owned(),
+            "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_owned(),
             1,
             DeviceType::User,
             None,

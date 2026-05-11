@@ -18,7 +18,7 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, We
 
     RustlsConfig::from_pem(cert_pem.as_bytes().to_vec(), key_pem.as_bytes().to_vec())
         .await
-        .map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_string()))?;
+        .map_err(|_| WebError::BadRequest("Invalid certificate or private key PEM".to_owned()))?;
 
     let cert_der = parse_pem_certificate(cert_pem)?;
     let info = CertificateInfo::from_der(cert_der.as_ref())?;
@@ -28,17 +28,17 @@ async fn parse_cert(cert_pem: &str, key_pem: &str) -> Result<CertificateInfo, We
 
     if info.not_after <= info.not_before {
         return Err(WebError::BadRequest(
-            "Certificate validity period is invalid".to_string(),
+            "Certificate validity period is invalid".to_owned(),
         ));
     }
 
     if info.not_after <= now {
-        return Err(WebError::BadRequest("Certificate has expired".to_string()));
+        return Err(WebError::BadRequest("Certificate has expired".to_owned()));
     }
 
     if info.not_before > now {
         return Err(WebError::BadRequest(
-            "Certificate is not valid yet".to_string(),
+            "Certificate is not valid yet".to_owned(),
         ));
     }
 
@@ -51,7 +51,7 @@ fn extract_hostname(url: &str, label: &str) -> Result<String, WebError> {
         .map_err(|e| WebError::BadRequest(format!("Invalid {label}: {e}")))?
         .host_str()
         .filter(|h| !h.is_empty())
-        .map(ToString::to_string)
+        .map(str::to_owned)
         .ok_or_else(|| WebError::BadRequest(format!("{label} has no hostname")))
 }
 
@@ -129,7 +129,7 @@ pub async fn apply_internal_url_settings(
 
     // Modify url schema if necessary
     settings.defguard_url = match config.ssl_type {
-        InternalSslType::None => defguard_url.to_string(),
+        InternalSslType::None => defguard_url.to_owned(),
         InternalSslType::DefguardCa | InternalSslType::OwnCert => ensure_https(defguard_url),
     };
     update_current_settings(&mut *transaction, settings).await?;
@@ -185,10 +185,10 @@ pub async fn apply_internal_url_settings(
         }
         InternalSslType::OwnCert => {
             let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                WebError::BadRequest("cert_pem is required for own_cert".to_string())
+                WebError::BadRequest("cert_pem is required for own_cert".to_owned())
             })?;
             let key_pem_str = config.key_pem.ok_or_else(|| {
-                WebError::BadRequest("key_pem is required for own_cert".to_string())
+                WebError::BadRequest("key_pem is required for own_cert".to_owned())
             })?;
 
             let info = parse_cert(&cert_pem_str, &key_pem_str).await?;
@@ -237,7 +237,7 @@ pub async fn apply_external_url_settings(
     // Modify url schema if necessary
     let mut settings = Settings::get_current_settings();
     settings.public_proxy_url = match config.ssl_type {
-        ExternalSslType::None | ExternalSslType::LetsEncrypt => public_proxy_url.to_string(),
+        ExternalSslType::None | ExternalSslType::LetsEncrypt => public_proxy_url.to_owned(),
         ExternalSslType::DefguardCa | ExternalSslType::OwnCert => ensure_https(public_proxy_url),
     };
     update_current_settings(&mut *transaction, settings).await?;
@@ -248,7 +248,7 @@ pub async fn apply_external_url_settings(
             let url = public_proxy_url.trim();
             if url.is_empty() {
                 return Err(WebError::BadRequest(
-                    "Public proxy URL is not configured".to_string(),
+                    "Public proxy URL is not configured".to_owned(),
                 ));
             }
 
@@ -311,10 +311,10 @@ pub async fn apply_external_url_settings(
         }
         ExternalSslType::OwnCert => {
             let cert_pem_str = config.cert_pem.ok_or_else(|| {
-                WebError::BadRequest("cert_pem is required for own_cert".to_string())
+                WebError::BadRequest("cert_pem is required for own_cert".to_owned())
             })?;
             let key_pem_str = config.key_pem.ok_or_else(|| {
-                WebError::BadRequest("key_pem is required for own_cert".to_string())
+                WebError::BadRequest("key_pem is required for own_cert".to_owned())
             })?;
 
             let info = parse_cert(&cert_pem_str, &key_pem_str).await?;

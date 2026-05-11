@@ -36,7 +36,7 @@ impl EditAclAlias {
             && self.protocols.is_empty()
         {
             return Err(WebError::BadRequest(
-                "Must provide alias addresses, ports, or protocols".to_string(),
+                "Must provide alias addresses, ports, or protocols".to_owned(),
             ));
         }
         Ok(())

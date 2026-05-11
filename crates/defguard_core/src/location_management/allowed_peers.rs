@@ -162,7 +162,7 @@ mod test {
         let mut network_normal = WireguardNetwork::default()
             .try_set_address("10.1.1.1/24")
             .unwrap();
-        network_normal.name = "normal-location".to_string();
+        network_normal.name = "normal-location".to_owned();
         network_normal.service_location_mode = ServiceLocationMode::Disabled;
         network_normal.location_mfa_mode = LocationMfaMode::Disabled;
         let network_normal = network_normal.save(&pool).await.unwrap();
@@ -186,7 +186,7 @@ mod test {
         let mut network_prelogon = WireguardNetwork::default()
             .try_set_address("10.2.1.1/24")
             .unwrap();
-        network_prelogon.name = "prelogon-service-location".to_string();
+        network_prelogon.name = "prelogon-service-location".to_owned();
         network_prelogon.service_location_mode = ServiceLocationMode::PreLogon;
         network_prelogon.location_mfa_mode = LocationMfaMode::Disabled;
         let network_prelogon = network_prelogon.save(&pool).await.unwrap();
@@ -215,7 +215,7 @@ mod test {
         let mut network_alwayson = WireguardNetwork::default()
             .try_set_address("10.3.1.1/24")
             .unwrap();
-        network_alwayson.name = "alwayson-service-location".to_string();
+        network_alwayson.name = "alwayson-service-location".to_owned();
         network_alwayson.service_location_mode = ServiceLocationMode::AlwaysOn;
         network_alwayson.location_mfa_mode = LocationMfaMode::Disabled;
         let network_alwayson = network_alwayson.save(&pool).await.unwrap();
@@ -287,7 +287,7 @@ mod test {
         let mut network = WireguardNetwork::default()
             .try_set_address("10.4.1.1/24")
             .unwrap();
-        network.name = "mfa-location".to_string();
+        network.name = "mfa-location".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
         network.location_mfa_mode = LocationMfaMode::Internal;
         let network = network.save(&pool).await.unwrap();
@@ -343,7 +343,7 @@ mod test {
         let mut network = WireguardNetwork::default()
             .try_set_address("10.5.1.1/24")
             .unwrap();
-        network.name = "non-mfa-location".to_string();
+        network.name = "non-mfa-location".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
         network.location_mfa_mode = LocationMfaMode::Disabled;
         let network = network.save(&pool).await.unwrap();
@@ -408,7 +408,7 @@ mod test {
         let mut network = WireguardNetwork::default()
             .try_set_address("10.6.1.1/24")
             .unwrap();
-        network.name = "mfa-location-with-session-psk".to_string();
+        network.name = "mfa-location-with-session-psk".to_owned();
         network.service_location_mode = ServiceLocationMode::Disabled;
         network.location_mfa_mode = LocationMfaMode::Internal;
         let network = network.save(&pool).await.unwrap();

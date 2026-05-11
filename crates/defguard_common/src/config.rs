@@ -266,13 +266,13 @@ impl DefGuardConfig {
             reason = "Test config still initializes compatibility-only deprecated fields"
         )]
         let config = Self {
-            log_level: "info".to_string(),
+            log_level: "info".to_owned(),
             log_file: None,
             secret_key: None,
-            database_host: "localhost".to_string(),
+            database_host: "localhost".to_owned(),
             database_port: 5432,
-            database_name: "defguard".to_string(),
-            database_user: "defguard".to_string(),
+            database_name: "defguard".to_owned(),
+            database_user: "defguard".to_owned(),
             database_password: SecretString::from(String::new()),
             http_port: 8000,
             grpc_port: 50055,
@@ -316,12 +316,10 @@ impl DefGuardConfig {
         match (&self.adopt_edge, &self.adopt_gateway) {
             (Some(_), None) => Err("--adopt-edge (DEFGUARD_ADOPT_EDGE) was provided but \
                 --adopt-gateway (DEFGUARD_ADOPT_GATEWAY) is missing. \
-                Both flags must be provided together to launch the auto-adoption wizard."
-                .to_string()),
+                Both flags must be provided together to launch the auto-adoption wizard.".to_owned()),
             (None, Some(_)) => Err("--adopt-gateway (DEFGUARD_ADOPT_GATEWAY) was provided but \
                 --adopt-edge (DEFGUARD_ADOPT_EDGE) is missing. \
-                Both flags must be provided together to launch the auto-adoption wizard."
-                .to_string()),
+                Both flags must be provided together to launch the auto-adoption wizard.".to_owned()),
             _ => Ok(()),
         }
     }
@@ -367,8 +365,8 @@ mod tests {
 
     fn make_config(adopt_edge: Option<&str>, adopt_gateway: Option<&str>) -> DefGuardConfig {
         let mut config = DefGuardConfig::new_test_config();
-        config.adopt_edge = adopt_edge.map(str::to_string);
-        config.adopt_gateway = adopt_gateway.map(str::to_string);
+        config.adopt_edge = adopt_edge.map(str::to_owned);
+        config.adopt_gateway = adopt_gateway.map(str::to_owned);
         config
     }
 

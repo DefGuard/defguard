@@ -101,7 +101,7 @@ impl Interceptor for GatewayVersionInterceptor {
             data.insert(&self.incompatible_components);
             let msg = match version {
                 Some(version) => format!("Version {version} not supported"),
-                None => "Missing version headers".to_string(),
+                None => "Missing version headers".to_owned(),
             };
             return Err(Status::failed_precondition(msg));
         }

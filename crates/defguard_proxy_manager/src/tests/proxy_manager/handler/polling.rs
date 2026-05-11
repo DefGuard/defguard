@@ -90,7 +90,7 @@ async fn test_polling_invalid_token_returns_error(_: PgPoolOptions, options: PgC
         id: 12,
         device_info: None,
         payload: Some(core_request::Payload::InstanceInfo(InstanceInfoRequest {
-            token: "this-token-does-not-exist-00000000".to_string(),
+            token: "this-token-does-not-exist-00000000".to_owned(),
         })),
     });
 

@@ -92,7 +92,7 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
     let mut rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
     let previous_modified_at = rule.modified_at;
     let acting_user = rule.modified_by.clone();
-    rule.name = "modified".to_string();
+    rule.name = "modified".to_owned();
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_rule: ApiAclRule = response.json().await;
@@ -157,8 +157,8 @@ async fn test_rule_requires_destination(_: PgPoolOptions, options: PgConnectOpti
     // manual destination configured
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
-    rule.addresses = "10.0.0.1".to_string();
-    rule.ports = "80".to_string();
+    rule.addresses = "10.0.0.1".to_owned();
+    rule.ports = "80".to_owned();
     rule.protocols = vec![6];
     rule.any_address = false;
     rule.any_port = false;
@@ -252,7 +252,7 @@ async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOp
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
     rule.addresses = String::new();
-    rule.ports = "22, 443".to_string();
+    rule.ports = "22, 443".to_owned();
     rule.protocols = vec![6];
     rule.any_address = false;
     rule.any_port = false;
@@ -263,7 +263,7 @@ async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOp
     // address and protocol set, port missing, any_port false → 400
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
-    rule.addresses = "10.0.0.1".to_string();
+    rule.addresses = "10.0.0.1".to_owned();
     rule.ports = String::new();
     rule.protocols = vec![6];
     rule.any_address = false;
@@ -275,8 +275,8 @@ async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOp
     // address and port set, protocol missing, any_protocol false → 400
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
-    rule.addresses = "10.0.0.1".to_string();
-    rule.ports = "80".to_string();
+    rule.addresses = "10.0.0.1".to_owned();
+    rule.ports = "80".to_owned();
     rule.protocols = Vec::new();
     rule.any_address = false;
     rule.any_port = false;
@@ -287,8 +287,8 @@ async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOp
     // all three direct fields set → 201; capture for update tests
     let mut rule = make_rule();
     rule.use_manual_destination_settings = true;
-    rule.addresses = "10.0.0.1".to_string();
-    rule.ports = "80".to_string();
+    rule.addresses = "10.0.0.1".to_owned();
+    rule.ports = "80".to_owned();
     rule.protocols = vec![6];
     rule.any_address = false;
     rule.any_port = false;
@@ -315,7 +315,7 @@ async fn test_rule_requires_any_or_values(_: PgPoolOptions, options: PgConnectOp
     // update: address missing, port+protocol set, any_address false → 400
     let mut invalid_update = created_rule.clone();
     invalid_update.addresses = String::new();
-    invalid_update.ports = "5432".to_string();
+    invalid_update.ports = "5432".to_owned();
     invalid_update.protocols = vec![6];
     invalid_update.any_address = false;
     invalid_update.any_port = false;
@@ -473,7 +473,7 @@ async fn test_rule_requires_destination_alias_aware(_: PgPoolOptions, options: P
     // Such ranges are stored in aclaliasdestinationrange, not in the addresses array.
     // The rule should still be accepted because the range satisfies the address requirement.
     let mut range_only_alias = make_alias();
-    range_only_alias.addresses = "10.0.0.1-10.0.0.10".to_string();
+    range_only_alias.addresses = "10.0.0.1-10.0.0.10".to_owned();
     range_only_alias.ports = String::new();
     range_only_alias.protocols = Vec::new();
     let range_only_id = create_alias(&mut client, range_only_alias).await;
@@ -661,9 +661,9 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     // networks
     for net in ["net 1", "net 2"] {
         WireguardNetwork::new(
-            net.to_string(),
+            net.to_owned(),
             1000,
-            "endpoint1".to_string(),
+            "endpoint1".to_owned(),
             None,
             Vec::new(),
             true,
@@ -693,7 +693,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
 
     // devices
     Device::new(
-        "device1".to_string(),
+        "device1".to_owned(),
         String::new(),
         1,
         DeviceType::Network,
@@ -704,7 +704,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     .await
     .unwrap();
     Device::new(
-        "device2".to_string(),
+        "device2".to_owned(),
         String::new(),
         1,
         DeviceType::Network,
@@ -1104,7 +1104,7 @@ async fn test_rule_modify_pending_child_updates_in_place(
     assert_eq!(applied_parent_before_update.state, RuleState::Applied);
 
     let mut first_update = applied_parent_before_update.clone();
-    first_update.name = "rule pending child".to_string();
+    first_update.name = "rule pending child".to_owned();
     let response = client
         .put("/api/v1/acl/rule/1")
         .json(&first_update)
@@ -1121,7 +1121,7 @@ async fn test_rule_modify_pending_child_updates_in_place(
     let previous_modified_at = pending_child_before_update.modified_at;
     let acting_user = pending_child_before_update.modified_by.clone();
     let mut pending_child_update = pending_child_before_update.clone();
-    pending_child_update.name = "rule pending child updated".to_string();
+    pending_child_update.name = "rule pending child updated".to_owned();
     let response = client
         .put("/api/v1/acl/rule/2")
         .json(&pending_child_update)
@@ -1157,7 +1157,7 @@ async fn test_rule_modify_pending_child_updates_in_place(
     assert_eq!(applied_parent_after_update.parent_id, None);
 
     let mut expected_pending_child = pending_child_before_update.clone();
-    expected_pending_child.name = "rule pending child updated".to_string();
+    expected_pending_child.name = "rule pending child updated".to_owned();
     expected_pending_child.modified_at = updated_pending_child.modified_at;
     expected_pending_child.modified_by = updated_pending_child.modified_by.clone();
     assert_eq!(updated_pending_child.modified_by, acting_user);
@@ -1209,9 +1209,9 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
 
     // create a location
     WireguardNetwork::new(
-        "test location".to_string(),
+        "test location".to_owned(),
         1000,
-        "endpoint1".to_string(),
+        "endpoint1".to_owned(),
         None,
         Vec::new(),
         true,
@@ -1410,7 +1410,7 @@ async fn test_rule_audit_fields_track_acting_user_across_mutations(
     let created_modified_at = created_rule_row.modified_at;
 
     let mut updated_rule = created_rule.clone();
-    updated_rule.name = "rule updated by hpotter".to_string();
+    updated_rule.name = "rule updated by hpotter".to_owned();
     let response = client
         .put(format!("/api/v1/acl/rule/{}", created_rule.id))
         .json(&updated_rule)
@@ -1456,13 +1456,13 @@ async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
     authenticate_admin(&mut client).await;
 
     let mut alias = make_alias();
-    alias.name = "applied alias".to_string();
+    alias.name = "applied alias".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let applied_alias: ApiAclAlias = response.json().await;
 
     let mut destination = make_destination();
-    destination.name = "applied destination".to_string();
+    destination.name = "applied destination".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -1472,7 +1472,7 @@ async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
     let applied_destination: ApiAclDestination = response.json().await;
 
     let mut rule = make_rule();
-    rule.name = "rule parent".to_string();
+    rule.name = "rule parent".to_owned();
     rule.use_manual_destination_settings = false;
     rule.addresses = String::new();
     rule.ports = String::new();
@@ -1536,7 +1536,7 @@ async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
     );
 
     let mut alias_update = deployed_alias_before_rule_reapply.clone();
-    alias_update.name = "pending alias child".to_string();
+    alias_update.name = "pending alias child".to_owned();
     let response = client
         .put(format!("/api/v1/acl/alias/{}", applied_alias.id))
         .json(&alias_update)
@@ -1548,7 +1548,7 @@ async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
     assert_eq!(pending_alias_child.parent_id, Some(applied_alias.id));
 
     let mut destination_update = deployed_destination_before_rule_reapply.clone();
-    destination_update.name = "pending destination child".to_string();
+    destination_update.name = "pending destination child".to_owned();
     let response = client
         .put(format!(
             "/api/v1/acl/destination/{}",
@@ -1566,7 +1566,7 @@ async fn test_rule_apply_rewrites_related_alias_and_destination_rule_ids(
     );
 
     let mut modified_rule = applied_parent_rule.clone();
-    modified_rule.name = "rule child".to_string();
+    modified_rule.name = "rule child".to_owned();
     let response = client
         .put(format!("/api/v1/acl/rule/{}", applied_parent_rule.id))
         .json(&modified_rule)
@@ -1746,7 +1746,7 @@ async fn test_acl_count_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let mut alias_to_update: ApiAclAlias =
         client.get("/api/v1/acl/alias/2").send().await.json().await;
-    alias_to_update.name = "updated alias".to_string();
+    alias_to_update.name = "updated alias".to_owned();
     let response = client
         .put("/api/v1/acl/alias/2")
         .json(&alias_to_update)
@@ -1773,7 +1773,7 @@ async fn test_acl_count_endpoints(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut destination_to_update = destination.clone();
-    destination_to_update.name = "updated destination".to_string();
+    destination_to_update.name = "updated destination".to_owned();
     let response = client
         .put(format!("/api/v1/acl/destination/{destination_1_id}"))
         .json(&destination_to_update)

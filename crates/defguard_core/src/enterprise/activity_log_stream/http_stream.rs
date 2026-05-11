@@ -52,7 +52,7 @@ pub(super) async fn run_http_stream_task(
                                         let text = &response.text().await;
                                         match text {
                                             Ok(body) => body.clone(),
-                                            Err(_) => "Body decoding failed".to_string(),
+                                            Err(_) => "Body decoding failed".to_owned(),
                                         }
                                     };
                                     error!("Activity log stream ({stream_name}) response code \

@@ -204,8 +204,8 @@ mod tests {
     fn test_proxy_http_cert_pair() {
         let mut c = Certificates {
             proxy_http_cert_source: ProxyCertSource::None,
-            proxy_http_cert_pem: Some("cert".to_string()),
-            proxy_http_cert_key_pem: Some("key".to_string()),
+            proxy_http_cert_pem: Some("cert".to_owned()),
+            proxy_http_cert_key_pem: Some("key".to_owned()),
             ..Default::default()
         };
 
@@ -227,7 +227,7 @@ mod tests {
         c.proxy_http_cert_pem = None;
         assert!(c.proxy_http_cert_pair().is_none());
 
-        c.proxy_http_cert_pem = Some("cert".to_string());
+        c.proxy_http_cert_pem = Some("cert".to_owned());
         c.proxy_http_cert_key_pem = None;
         assert!(c.proxy_http_cert_pair().is_none());
     }
@@ -236,8 +236,8 @@ mod tests {
     fn test_core_http_cert_pair() {
         let mut c = Certificates {
             core_http_cert_source: CoreCertSource::None,
-            core_http_cert_pem: Some("cert".to_string()),
-            core_http_cert_key_pem: Some("key".to_string()),
+            core_http_cert_pem: Some("cert".to_owned()),
+            core_http_cert_key_pem: Some("key".to_owned()),
             ..Default::default()
         };
 
@@ -255,7 +255,7 @@ mod tests {
         c.core_http_cert_pem = None;
         assert!(c.core_http_cert_pair().is_none());
 
-        c.core_http_cert_pem = Some("cert".to_string());
+        c.core_http_cert_pem = Some("cert".to_owned());
         c.core_http_cert_key_pem = None;
         assert!(c.core_http_cert_pair().is_none());
     }

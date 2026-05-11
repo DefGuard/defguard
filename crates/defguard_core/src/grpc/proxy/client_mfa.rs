@@ -526,7 +526,7 @@ impl ClientMfaServer {
                                     location: location.clone(),
                                     device: device.clone(),
                                     method,
-                                    message: "Signed challenge rejected".to_string(),
+                                    message: "Signed challenge rejected".to_owned(),
                                 },
                             )),
                         })?;
@@ -561,7 +561,7 @@ impl ClientMfaServer {
                                     location: location.clone(),
                                     device: device.clone(),
                                     method,
-                                    message: "Signed challenge rejected".to_string(),
+                                    message: "Signed challenge rejected".to_owned(),
                                 },
                             )),
                         })?;
@@ -581,7 +581,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method,
-                                message: "TOTP code not provided in request".to_string(),
+                                message: "TOTP code not provided in request".to_owned(),
                             },
                         )),
                     })?;
@@ -596,7 +596,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method,
-                                message: "invalid TOTP code".to_string(),
+                                message: "invalid TOTP code".to_owned(),
                             },
                         )),
                     })?;
@@ -615,7 +615,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method,
-                                message: "email MFA code not provided in request".to_string(),
+                                message: "email MFA code not provided in request".to_owned(),
                             },
                         )),
                     })?;
@@ -630,7 +630,7 @@ impl ClientMfaServer {
                                 location: location.clone(),
                                 device: device.clone(),
                                 method,
-                                message: "invalid email MFA code".to_string(),
+                                message: "invalid email MFA code".to_owned(),
                             },
                         )),
                     })?;
@@ -651,8 +651,7 @@ impl ClientMfaServer {
                                 device: device.clone(),
                                 method,
                                 message: "tried to finish OIDC MFA login but they haven't \
-                                    completed OIDC authentication yet"
-                                    .to_string(),
+                                    completed OIDC authentication yet".to_owned(),
                             },
                         )),
                     })?;
@@ -930,7 +929,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace connected MFA session");
@@ -1005,7 +1004,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace new MFA session");
@@ -1064,7 +1063,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
+                REPLACEMENT_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("should replace connected non-MFA session");
@@ -1144,8 +1143,8 @@ mod tests {
 
     async fn create_device(pool: &PgPool, user_id: Id) -> Device<Id> {
         Device::new(
-            "client-mfa-device".to_string(),
-            "client-mfa-pubkey".to_string(),
+            "client-mfa-device".to_owned(),
+            "client-mfa-pubkey".to_owned(),
             user_id,
             DeviceType::User,
             None,
@@ -1174,7 +1173,7 @@ mod tests {
             Some(Utc::now().naive_utc()),
             Some(VpnClientMfaMethod::Totp),
         );
-        previous_session.preshared_key = Some("old-psk".to_string());
+        previous_session.preshared_key = Some("old-psk".to_owned());
         previous_session.state = VpnClientSessionState::Connected;
         let previous_session = previous_session
             .save(&pool)
@@ -1204,7 +1203,7 @@ mod tests {
                 &user,
                 &device,
                 VpnClientMfaMethod::Totp,
-                NEW_MFA_PRESHARED_KEY.to_string(),
+                NEW_MFA_PRESHARED_KEY.to_owned(),
             )
             .await
             .expect("failed to create replacement MFA session");
@@ -1242,9 +1241,9 @@ mod tests {
 
     async fn create_mfa_location(pool: &PgPool) -> WireguardNetwork<Id> {
         WireguardNetwork::new(
-            "client-mfa-location".to_string(),
+            "client-mfa-location".to_owned(),
             51820,
-            "vpn.example.com".to_string(),
+            "vpn.example.com".to_owned(),
             None,
             [IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             true,

@@ -5,7 +5,7 @@ use axum::{
 use rust_embed::Embed;
 
 pub async fn web_asset(uri: Uri) -> impl IntoResponse {
-    let mut path = uri.path().trim_start_matches('/').to_string();
+    let mut path = uri.path().trim_start_matches('/').to_owned();
     // Rewrite the path to match the structure of the embedded files
     path.insert_str(0, "dist/");
     StaticFile(path)
@@ -16,7 +16,7 @@ pub async fn index() -> impl IntoResponse {
 }
 
 pub async fn svg(uri: Uri) -> impl IntoResponse {
-    let mut path = uri.path().trim_start_matches('/').to_string();
+    let mut path = uri.path().trim_start_matches('/').to_owned();
     // Rewrite the path to match the structure of the embedded files
     path.insert_str(0, "src/shared/images/");
     StaticFile(path)

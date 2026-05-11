@@ -102,7 +102,7 @@ async fn test_noop_gateway_update_does_not_restart_handler(
     let initial_spawn_attempts = context.handler_spawn_attempt_count(gateway.id);
     let initial_notification_count = context.gateway_notification_count(gateway.id);
 
-    gateway.modified_by = "manager-noop-update".to_string();
+    gateway.modified_by = "manager-noop-update".to_owned();
     gateway
         .save(&context.pool)
         .await
@@ -137,8 +137,8 @@ async fn test_gateway_address_change_restarts_handler(_: PgPoolOptions, options:
     gateway = reload_gateway(&context.pool, gateway.id).await;
 
     let replacement_mock_url = {
-        gateway.address = "127.0.0.2".to_string();
-        gateway.modified_by = "manager-address-update".to_string();
+        gateway.address = "127.0.0.2".to_owned();
+        gateway.modified_by = "manager-address-update".to_owned();
         gateway.url()
     };
     let mut replacement_mock_gateway = MockGatewayHarness::start().await;
@@ -189,7 +189,7 @@ async fn test_enabled_gateway_update_to_disabled_stops_handler(
     let initial_connection_count = mock_gateway.connection_count();
 
     gateway.enabled = false;
-    gateway.modified_by = "manager-disable-update".to_string();
+    gateway.modified_by = "manager-disable-update".to_owned();
     gateway
         .save(&context.pool)
         .await

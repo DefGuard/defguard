@@ -198,7 +198,7 @@ pub async fn add_authentication_key(
 
     let key = AuthenticationKey::new(
         user.id,
-        trimmed_key.to_string(),
+        trimmed_key.to_owned(),
         Some(data.name.clone()),
         data.key_type.clone(),
         None,

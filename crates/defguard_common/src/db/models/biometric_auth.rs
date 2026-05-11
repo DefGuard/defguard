@@ -124,7 +124,7 @@ impl BiometricChallenge {
     pub fn new_with_owner(pub_key: &str) -> Result<Self, BiometricAuthError> {
         let _ = decode_pub_key(pub_key)?;
         let mut res = Self::new();
-        res.auth_pub_key = Some(pub_key.to_string());
+        res.auth_pub_key = Some(pub_key.to_owned());
         Ok(res)
     }
 

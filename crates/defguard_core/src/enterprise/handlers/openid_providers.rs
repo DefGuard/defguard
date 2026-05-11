@@ -149,7 +149,7 @@ pub(crate) async fn add_openid_provider(
         } else {
             group_match
                 .split(',')
-                .map(|s| s.trim().to_string())
+                .map(|s| s.trim().to_owned())
                 .collect()
         }
     } else {
@@ -377,7 +377,7 @@ pub(crate) async fn modify_openid_provider(
             } else {
                 group_match
                     .split(',')
-                    .map(|s| s.trim().to_string())
+                    .map(|s| s.trim().to_owned())
                     .collect()
             }
         } else {

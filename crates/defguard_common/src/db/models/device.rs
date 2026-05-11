@@ -2606,8 +2606,8 @@ mod test {
             ("device5", "hNuapt7lOxF93KUqZGUY00oKJxH8LYwwsUVB1uUa0y4="),
         ] {
             let device = Device::new(
-                name.to_string(),
-                pubkey.to_string(),
+                name.to_owned(),
+                pubkey.to_owned(),
                 user.id,
                 DeviceType::User,
                 None,
@@ -2621,8 +2621,8 @@ mod test {
 
         // This device won't fit in the address space.
         let _device = Device::new(
-            "device6".to_string(),
-            "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".to_string(),
+            "device6".to_owned(),
+            "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".to_owned(),
             user.id,
             DeviceType::User,
             None,

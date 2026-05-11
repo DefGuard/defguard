@@ -133,9 +133,9 @@ impl OktaDirectorySync {
         // Remove the trailing slash just to make sure
         let trimmed = base_url.trim_end_matches('/');
         Self {
-            client_id: client_id.to_string(),
-            jwk_private_key: private_key.to_string(),
-            base_url: trimmed.to_string(),
+            client_id: client_id.to_owned(),
+            jwk_private_key: private_key.to_owned(),
+            base_url: trimmed.to_owned(),
             access_token: None,
             token_expiry: None,
         }
@@ -330,7 +330,7 @@ impl OktaDirectorySync {
         let kid = jwk
             .key_id
             .ok_or(DirectorySyncError::InvalidProviderConfiguration(
-                "Missing key id in the provided JSON key".to_string(),
+                "Missing key id in the provided JSON key".to_owned(),
             ))?;
         let encoding_key_pem = jwk
             .key
@@ -491,35 +491,34 @@ mod tests {
     #[tokio::test]
     async fn test_header() {
         let link_header =
-            "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\""
-                .to_string();
+            "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\"".to_owned();
         let next_link = extract_next_link(Some(&link_header)).unwrap();
         assert_eq!(
             next_link,
-            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_string())
+            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_owned())
         );
 
         let next_link = extract_next_link(None).unwrap();
         assert_eq!(next_link, None);
 
-        let link_header = "invalid".to_string();
+        let link_header = "invalid".to_owned();
         let next_link = extract_next_link(Some(&link_header));
         assert!(next_link.is_err());
 
-        let link_header = "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\", <https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"prev\"".to_string();
+        let link_header = "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\", <https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"prev\"".to_owned();
         let next_link = extract_next_link(Some(&link_header)).unwrap();
         assert_eq!(
             next_link,
-            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_string())
+            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_owned())
         );
     }
 
     #[tokio::test]
     async fn test_group_parse() {
         let group = Group {
-            id: "test_id".to_string(),
+            id: "test_id".to_owned(),
             profile: GroupProfile {
-                name: "test_name".to_string(),
+                name: "test_name".to_owned(),
             },
         };
         let dir_group: DirectoryGroup = group.into();
@@ -530,9 +529,9 @@ mod tests {
     #[tokio::test]
     async fn test_user_parse() {
         let user = User {
-            status: "ACTIVE".to_string(),
+            status: "ACTIVE".to_owned(),
             profile: UserProfile {
-                email: "test_email".to_string(),
+                email: "test_email".to_owned(),
             },
         };
 
@@ -541,9 +540,9 @@ mod tests {
         assert!(dir_user.active);
 
         let user = User {
-            status: "INACTIVE".to_string(),
+            status: "INACTIVE".to_owned(),
             profile: UserProfile {
-                email: "test_email".to_string(),
+                email: "test_email".to_owned(),
             },
         };
 

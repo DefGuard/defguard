@@ -51,19 +51,19 @@ fn test_process_destination_addrs_v4() {
         destination_addrs.0,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.1.0/24".to_string())),
+                address: Some(Address::IpSubnet("10.0.1.0/24".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.2.0/24".to_string())),
+                address: Some(Address::IpSubnet("10.0.2.0/24".to_owned())),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.3.255".to_string(),
-                    end: "10.0.4.0".to_string(),
+                    start: "10.0.3.255".to_owned(),
+                    end: "10.0.4.0".to_owned(),
                 })),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_owned())),
             },
         ]
     );
@@ -112,19 +112,19 @@ fn test_process_destination_addrs_v6() {
         destination_addrs.1,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:1::/64".to_string())),
+                address: Some(Address::IpSubnet("2001:db8:1::/64".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:2::/64".to_string())),
+                address: Some(Address::IpSubnet("2001:db8:2::/64".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:3::/64".to_string())),
+                address: Some(Address::IpSubnet("2001:db8:3::/64".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:4::1".to_string()))
+                address: Some(Address::Ip("2001:db8:4::1".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:4::2/127".to_string()))
+                address: Some(Address::IpSubnet("2001:db8:4::2/127".to_owned()))
             }
         ]
     );
@@ -160,7 +160,7 @@ async fn test_any_address_overwrites_manual_destination(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let acl_rule = AclRule {
-        name: "any destination rule".to_string(),
+        name: "any destination rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         any_address: true,
@@ -197,14 +197,14 @@ async fn test_any_address_overwrites_manual_destination(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
@@ -241,7 +241,7 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let destination_alias = AclAlias {
-        name: "any destination alias".to_string(),
+        name: "any destination alias".to_owned(),
         kind: AliasKind::Destination,
         any_address: true,
         any_port: true,
@@ -264,7 +264,7 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     .unwrap();
 
     let acl_rule = AclRule {
-        name: "any destination alias rule".to_string(),
+        name: "any destination alias rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         use_manual_destination_settings: false,
@@ -296,14 +296,14 @@ async fn test_any_address_overwrites_destination_alias_addrs(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
@@ -340,7 +340,7 @@ async fn test_manual_destination_includes_component_alias_address_range(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let component_alias = AclAlias {
-        name: "component alias with destination range".to_string(),
+        name: "component alias with destination range".to_owned(),
         kind: AliasKind::Component,
         ..Default::default()
     }
@@ -359,7 +359,7 @@ async fn test_manual_destination_includes_component_alias_address_range(
     .unwrap();
 
     let acl_rule = AclRule {
-        name: "manual destination component alias range rule".to_string(),
+        name: "manual destination component alias range rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         use_manual_destination_settings: true,
@@ -392,21 +392,21 @@ async fn test_manual_destination_includes_component_alias_address_range(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [IpAddress {
         address: Some(Address::IpRange(IpRange {
-            start: "10.2.0.255".to_string(),
-            end: "10.2.1.0".to_string(),
+            start: "10.2.0.255".to_owned(),
+            end: "10.2.1.0".to_owned(),
         })),
     }];
 
@@ -442,7 +442,7 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let component_alias = AclAlias {
-        name: "component alias with destination range".to_string(),
+        name: "component alias with destination range".to_owned(),
         kind: AliasKind::Component,
         ..Default::default()
     }
@@ -461,7 +461,7 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     .unwrap();
 
     let acl_rule = AclRule {
-        name: "manual destination mixed destination ranges rule".to_string(),
+        name: "manual destination mixed destination ranges rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         use_manual_destination_settings: true,
@@ -497,28 +497,28 @@ async fn test_manual_destination_merges_rule_and_component_alias_address_ranges(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.2.0.255".to_string(),
-                end: "10.2.1.0".to_string(),
+                start: "10.2.0.255".to_owned(),
+                end: "10.2.1.0".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.3.0.255".to_string(),
-                end: "10.3.1.0".to_string(),
+                start: "10.3.0.255".to_owned(),
+                end: "10.3.1.0".to_owned(),
             })),
         },
     ];
@@ -555,7 +555,7 @@ async fn test_any_port_preserves_destination_addresses_and_protocols(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let acl_rule = AclRule {
-        name: "any port manual destination rule".to_string(),
+        name: "any port manual destination rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         addresses: vec!["192.168.50.0/24".parse().unwrap()],
@@ -599,32 +599,32 @@ async fn test_any_port_preserves_destination_addresses_and_protocols(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.50.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.50.0/24".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.60.10/31".to_string())),
+            address: Some(Address::IpSubnet("192.168.60.10/31".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.60.12/30".to_string())),
+            address: Some(Address::IpSubnet("192.168.60.12/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.60.16/30".to_string())),
+            address: Some(Address::IpSubnet("192.168.60.16/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::Ip("192.168.60.20".to_string())),
+            address: Some(Address::Ip("192.168.60.20".to_owned())),
         },
     ];
 
@@ -667,7 +667,7 @@ async fn test_any_protocol_preserves_destination_addresses_and_ports(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let acl_rule = AclRule {
-        name: "any protocol manual destination rule".to_string(),
+        name: "any protocol manual destination rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         addresses: vec![
@@ -711,23 +711,23 @@ async fn test_any_protocol_preserves_destination_addresses_and_ports(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.70.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.70.0/24".to_owned())),
         },
         IpAddress {
-            address: Some(Address::Ip("192.168.80.1".to_string())),
+            address: Some(Address::Ip("192.168.80.1".to_owned())),
         },
     ];
     let expected_ports = [
@@ -780,7 +780,7 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let destination_alias = AclAlias {
-        name: "any port destination alias".to_string(),
+        name: "any port destination alias".to_owned(),
         kind: AliasKind::Destination,
         addresses: vec!["192.168.90.0/24".parse().unwrap()],
         ports: vec![
@@ -808,7 +808,7 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
     .unwrap();
 
     let acl_rule = AclRule {
-        name: "any port destination alias rule".to_string(),
+        name: "any port destination alias rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         use_manual_destination_settings: false,
@@ -840,32 +840,32 @@ async fn test_destination_alias_any_port_preserves_addresses_and_protocols(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.90.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.90.0/24".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.91.10/31".to_string())),
+            address: Some(Address::IpSubnet("192.168.91.10/31".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.91.12/30".to_string())),
+            address: Some(Address::IpSubnet("192.168.91.12/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.91.16/30".to_string())),
+            address: Some(Address::IpSubnet("192.168.91.16/30".to_owned())),
         },
         IpAddress {
-            address: Some(Address::Ip("192.168.91.20".to_string())),
+            address: Some(Address::Ip("192.168.91.20".to_owned())),
         },
     ];
 
@@ -908,7 +908,7 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
     create_test_users_and_devices(&mut rng, &pool, vec![&location]).await;
 
     let destination_alias = AclAlias {
-        name: "any protocol destination alias".to_string(),
+        name: "any protocol destination alias".to_owned(),
         kind: AliasKind::Destination,
         addresses: vec![
             "192.168.110.0/24".parse().unwrap(),
@@ -929,7 +929,7 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
     .unwrap();
 
     let acl_rule = AclRule {
-        name: "any protocol destination alias rule".to_string(),
+        name: "any protocol destination alias rule".to_owned(),
         state: RuleState::Applied,
         allow_all_users: true,
         use_manual_destination_settings: false,
@@ -961,23 +961,23 @@ async fn test_destination_alias_any_protocol_preserves_addresses_and_ports(
     let expected_source_addrs = [
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.1.1".to_string(),
-                end: "10.0.1.2".to_string(),
+                start: "10.0.1.1".to_owned(),
+                end: "10.0.1.2".to_owned(),
             })),
         },
         IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "10.0.2.1".to_string(),
-                end: "10.0.2.2".to_string(),
+                start: "10.0.2.1".to_owned(),
+                end: "10.0.2.2".to_owned(),
             })),
         },
     ];
     let expected_destination_addrs = [
         IpAddress {
-            address: Some(Address::IpSubnet("192.168.110.0/24".to_string())),
+            address: Some(Address::IpSubnet("192.168.110.0/24".to_owned())),
         },
         IpAddress {
-            address: Some(Address::Ip("192.168.120.1".to_string())),
+            address: Some(Address::Ip("192.168.120.1".to_owned())),
         },
     ];
     let expected_ports = [

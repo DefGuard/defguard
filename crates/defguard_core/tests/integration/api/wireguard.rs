@@ -154,7 +154,7 @@ async fn test_create_network_blocked_when_location_count_exceeds_license_limit(
 
     let license = get_cached_license().clone();
     set_cached_license(Some(License::new(
-        "test_customer".to_string(),
+        "test_customer".to_owned(),
         false,
         None,
         Some(LicenseLimits {
@@ -246,12 +246,12 @@ async fn test_location_mfa_mode_validation_create(_: PgPoolOptions, options: PgC
 
     // add external OpenID provider
     let provider_data = AddProviderData {
-        name: "test".to_string(),
-        base_url: "https://accounts.google.com".to_string(),
+        name: "test".to_owned(),
+        base_url: "https://accounts.google.com".to_owned(),
         kind: OpenIdProviderKind::Custom,
-        client_id: "client_id".to_string(),
-        client_secret: "client_secret".to_string(),
-        display_name: Some("display_name".to_string()),
+        client_id: "client_id".to_owned(),
+        client_secret: "client_secret".to_owned(),
+        display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
         google_service_account_key: None,
@@ -346,12 +346,12 @@ async fn test_location_mfa_mode_validation_modify(_: PgPoolOptions, options: PgC
 
     // add external OpenID provider
     let provider_data = AddProviderData {
-        name: "test".to_string(),
-        base_url: "https://accounts.google.com".to_string(),
+        name: "test".to_owned(),
+        base_url: "https://accounts.google.com".to_owned(),
         kind: OpenIdProviderKind::Google,
-        client_id: "client_id".to_string(),
-        client_secret: "client_secret".to_string(),
-        display_name: Some("display_name".to_string()),
+        client_id: "client_id".to_owned(),
+        client_secret: "client_secret".to_owned(),
+        display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
         google_service_account_key: None,

@@ -156,21 +156,21 @@ impl From<TokenError> for WebError {
     fn from(err: TokenError) -> Self {
         error!("{err}");
         match err {
-            TokenError::DbError(msg) => WebError::DbError(msg.to_string()),
+            TokenError::DbError(msg) => Self::DbError(msg.to_string()),
             TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {
-                WebError::ObjectNotFound(err.to_string())
+                Self::ObjectNotFound(err.to_string())
             }
             TokenError::TokenExpired
             | TokenError::SessionExpired
             | TokenError::TokenUsed
-            | TokenError::UserDisabled => WebError::Authorization(err.to_string()),
-            TokenError::AlreadyActive => WebError::BadRequest(err.to_string()),
+            | TokenError::UserDisabled => Self::Authorization(err.to_string()),
+            TokenError::AlreadyActive => Self::BadRequest(err.to_string()),
             TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
             | TokenError::TemplateErrorInternal(_) => {
-                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+                Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }
@@ -208,9 +208,9 @@ impl From<UserError> for WebError {
         error!("{err}");
         match err {
             UserError::InvalidMfaState { username: _ } | UserError::DbError(_) => {
-                WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+                Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
-            UserError::EmailMfaError(msg) => WebError::Email(msg),
+            UserError::EmailMfaError(msg) => Self::Email(msg),
         }
     }
 }

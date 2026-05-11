@@ -104,7 +104,7 @@ async fn test_modify_group_members(_: PgPoolOptions, options: PgConnectOptions) 
     let response = client.get(format!("/api/v1/group/{id}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
-    assert_eq!(group_info.members, vec!["hpotter".to_string()]);
+    assert_eq!(group_info.members, vec!["hpotter".to_owned()]);
 
     // Change group members.
     let data = EditGroupInfo::new("hogwards", Vec::new(), false);
@@ -194,7 +194,7 @@ async fn test_remove_last_admin_group(_: PgPoolOptions, options: PgConnectOption
     let response = client.get(format!("/api/v1/group/{id}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
-    assert_eq!(group_info.members, vec!["admin".to_string()]);
+    assert_eq!(group_info.members, vec!["admin".to_owned()]);
 
     let response = client.delete(format!("/api/v1/group/{id}")).send().await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -221,7 +221,7 @@ async fn test_modify_last_admin_group(_: PgPoolOptions, options: PgConnectOption
     let response = client.get(format!("/api/v1/group/{id}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
-    assert_eq!(group_info.members, vec!["admin".to_string()]);
+    assert_eq!(group_info.members, vec!["admin".to_owned()]);
 
     // try to remove admin status from the last group
     let data = json!({

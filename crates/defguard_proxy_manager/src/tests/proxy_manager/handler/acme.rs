@@ -34,9 +34,9 @@ fn make_acme_certificate_request(
         id: 9000,
         device_info: None,
         payload: Some(core_request::Payload::AcmeCertificate(AcmeCertPayload {
-            cert_pem: cert_pem.to_string(),
-            key_pem: key_pem.to_string(),
-            account_credentials_json: account_credentials_json.to_string(),
+            cert_pem: cert_pem.to_owned(),
+            key_pem: key_pem.to_owned(),
+            account_credentials_json: account_credentials_json.to_owned(),
         })),
     }
 }
@@ -104,9 +104,9 @@ async fn test_acme_certificate_overwrites_existing(_: PgPoolOptions, options: Pg
 
     // Seed the DB with an earlier certificate.
     let initial_certs = Certificates {
-        proxy_http_cert_pem: Some(ALT_CERT_PEM.to_string()),
-        proxy_http_cert_key_pem: Some(ALT_KEY_PEM.to_string()),
-        acme_account_credentials: Some(ALT_ACCOUNT_JSON.to_string()),
+        proxy_http_cert_pem: Some(ALT_CERT_PEM.to_owned()),
+        proxy_http_cert_key_pem: Some(ALT_KEY_PEM.to_owned()),
+        acme_account_credentials: Some(ALT_ACCOUNT_JSON.to_owned()),
         proxy_http_cert_source: ProxyCertSource::LetsEncrypt,
         ..Default::default()
     };

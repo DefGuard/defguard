@@ -230,12 +230,12 @@ impl ProxyHandler {
             .map_err(ProxyError::SqlxError)?
             .ok_or_else(|| {
                 ProxyError::MissingConfiguration(
-                    "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
+                    "Core CA is not setup, can't create a Proxy endpoint.".to_owned(),
                 )
             })?;
         let ca_cert_der = certs.ca_cert_der.ok_or_else(|| {
             ProxyError::MissingConfiguration(
-                "Core CA is not setup, can't create a Proxy endpoint.".to_string(),
+                "Core CA is not setup, can't create a Proxy endpoint.".to_owned(),
             )
         })?;
 
@@ -402,8 +402,8 @@ impl ProxyHandler {
                         let _ = tx.send(CoreResponse {
                             id: 0,
                             payload: Some(core_response::Payload::HttpsCerts(HttpsCerts {
-                                cert_pem: cert_pem.to_string(),
-                                key_pem: key_pem.to_string(),
+                                cert_pem: cert_pem.to_owned(),
+                                key_pem: key_pem.to_owned(),
                             })),
                         });
                     }
@@ -787,8 +787,8 @@ impl ProxyHandler {
                                                         || build_state(request.state),
                                                         Nonce::new_random,
                                                     )
-                                                    .add_scope(Scope::new("email".to_string()))
-                                                    .add_scope(Scope::new("profile".to_string()));
+                                                    .add_scope(Scope::new("email".to_owned()))
+                                                    .add_scope(Scope::new("profile".to_owned()));
 
                                                 if SELECT_ACCOUNT_SUPPORTED_PROVIDERS
                                                     .iter()
@@ -887,7 +887,7 @@ impl ProxyHandler {
                                                 Some(user.id),
                                                 Some(user.email),
                                                 settings.enrollment_token_timeout().as_secs(),
-                                                Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+                                                Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
                                             );
                                             debug!("Saving a new desktop configuration token...");
                                             desktop_configuration.save(&pool).await?;

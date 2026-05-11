@@ -70,7 +70,7 @@ pub async fn finish_setup(
         info!("Migration completed and shutdown signal sent");
     } else {
         return Err(WebError::BadRequest(
-            "Migration shutdown sender no longer available".to_string(),
+            "Migration shutdown sender no longer available".to_owned(),
         ));
     }
 

@@ -91,9 +91,9 @@ impl TryFrom<LicenseTierProto> for LicenseTier {
 
     fn try_from(value: LicenseTierProto) -> Result<Self, Self::Error> {
         match value {
-            LicenseTierProto::Enterprise => Ok(LicenseTier::Enterprise),
+            LicenseTierProto::Enterprise => Ok(Self::Enterprise),
             // fall back to Business tier for legacy licenses
-            LicenseTierProto::Business | LicenseTierProto::Unspecified => Ok(LicenseTier::Business),
+            LicenseTierProto::Business | LicenseTierProto::Unspecified => Ok(Self::Business),
         }
     }
 }
@@ -197,7 +197,7 @@ impl License {
                     .public_subkeys
                     .first()
                     .ok_or(LicenseError::LicenseServerError(
-                        "Failed to find a signing key in the provided public key".to_string(),
+                        "Failed to find a signing key in the provided public key".to_owned(),
                     ))?;
             debug!(
                 "Using the public key's subkey {:?} to verify the signature...",
@@ -210,7 +210,7 @@ impl License {
 
     /// Deserialize the license object from a base64 encoded string.
     /// Also verifies the signature of the license
-    pub(crate) fn from_base64(key: &str) -> Result<License, LicenseError> {
+    pub(crate) fn from_base64(key: &str) -> Result<Self, LicenseError> {
         debug!("Decoding the license key from a provided base64 string...");
         let bytes = key.as_bytes();
         let decoded = Self::decode(bytes)?;
@@ -257,7 +257,7 @@ impl License {
                     })
                     .and_then(SupportType::try_from)?;
 
-                let license = License::new(
+                let license = Self::new(
                     metadata.customer_id,
                     metadata.subscription,
                     valid_until,
@@ -304,7 +304,7 @@ impl License {
 
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
-    pub(crate) fn load() -> Result<Option<License>, LicenseError> {
+    pub(crate) fn load() -> Result<Option<Self>, LicenseError> {
         if let Some(key) = Self::get_key() {
             Ok(Some(Self::from_base64(&key)?))
         } else {
@@ -316,7 +316,7 @@ impl License {
     /// Try to load the license from the database, if the license requires a renewal, try to renew
     /// it. If the renewal fails, it will return the old license for the renewal service to renew it
     /// later.
-    pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
+    pub async fn load_or_renew(pool: &PgPool) -> Result<Option<Self>, LicenseError> {
         match Self::load()? {
             Some(license) => {
                 if license.requires_renewal() {
@@ -326,7 +326,7 @@ impl License {
                         info!("License requires renewal, trying to renew it...");
                         match renew_license().await {
                             Ok(new_key) => {
-                                let new_license = License::from_base64(&new_key)?;
+                                let new_license = Self::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
                                 info!(
                                     "Successfully renewed and loaded the license, new license key \
@@ -507,7 +507,7 @@ pub(crate) fn validate_license(
 async fn save_license_key(pool: &PgPool, key: &str) -> Result<(), LicenseError> {
     debug!("Saving the license key to the database...");
     let mut settings = Settings::get_current_settings();
-    settings.license = Some(key.to_string());
+    settings.license = Some(key.to_owned());
     update_current_settings(pool, settings).await?;
 
     info!("Successfully saved license key to the database.");
@@ -756,7 +756,7 @@ mod test {
 
         // One day past the expiry date, non-subscription license
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             Some(Utc::now() - TimeDelta::days(1)),
             None,
@@ -768,7 +768,7 @@ mod test {
 
         // One day before the expiry date, non-subscription license
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             Some(Utc::now() + TimeDelta::days(1)),
             None,
@@ -780,7 +780,7 @@ mod test {
 
         // No expiry date, non-subscription license
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             None,
             None,
@@ -792,7 +792,7 @@ mod test {
 
         // One day past the maximum overdue date
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
             None,
@@ -804,7 +804,7 @@ mod test {
 
         // One day before the maximum overdue date
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
@@ -818,7 +818,7 @@ mod test {
 
         // Over object count limits
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             Some(LicenseLimits {
@@ -835,7 +835,7 @@ mod test {
 
         // Below object count limits
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             Some(LicenseLimits {

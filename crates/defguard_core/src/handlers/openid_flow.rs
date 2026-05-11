@@ -55,8 +55,8 @@ use crate::{
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 impl From<&UserClaims> for StandardClaims<CoreGenderClaim> {
-    fn from(user_claims: &UserClaims) -> StandardClaims<CoreGenderClaim> {
-        let mut claims = StandardClaims::new(SubjectIdentifier::new(user_claims.sub.clone()));
+    fn from(user_claims: &UserClaims) -> Self {
+        let mut claims = Self::new(SubjectIdentifier::new(user_claims.sub.clone()));
 
         if let Some(name) = &user_claims.name {
             let mut localized_claim = LocalizedClaim::new();
@@ -346,7 +346,7 @@ impl AuthenticationRequest {
 
         // check PKCE; currently, only SHA-256 method is supported
         // TODO: support `plain` which is the default if not specified
-        if self.code_challenge.is_some() && self.code_challenge_method != Some("S256".to_string()) {
+        if self.code_challenge.is_some() && self.code_challenge_method != Some("S256".to_owned()) {
             error!(
                 "Invalid PKCE method: {:?}, only S256 supported",
                 self.code_challenge_method

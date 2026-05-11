@@ -187,7 +187,7 @@ pub(crate) async fn get_ca(
         ))
     } else {
         Err(WebError::ObjectNotFound(
-            "CA certificate not found".to_string(),
+            "CA certificate not found".to_owned(),
         ))
     }
 }

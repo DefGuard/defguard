@@ -27,17 +27,17 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             "User login using {mfa_method} failed with: {message}"
         )),
         DefguardEvent::RecoveryCodeLoginFailed => {
-            Some("User login with recovery code failed".to_string())
+            Some("User login with recovery code failed".to_owned())
         }
         DefguardEvent::UserLogout => None,
         DefguardEvent::RecoveryCodeUsed => None,
         DefguardEvent::PasswordChanged => None,
-        DefguardEvent::MfaDisabled => Some("Disabled own MFA".to_string()),
+        DefguardEvent::MfaDisabled => Some("Disabled own MFA".to_owned()),
         DefguardEvent::UserMfaDisabled { user } => Some(format!("Disabled MFA for user {user}")),
-        DefguardEvent::MfaTotpEnabled => Some("User configured TOTP for MFA".to_string()),
-        DefguardEvent::MfaTotpDisabled => Some("User disabled TOTP for MFA".to_string()),
-        DefguardEvent::MfaEmailEnabled => Some("User configured email for MFA".to_string()),
-        DefguardEvent::MfaEmailDisabled => Some("User disabled email for MFA".to_string()),
+        DefguardEvent::MfaTotpEnabled => Some("User configured TOTP for MFA".to_owned()),
+        DefguardEvent::MfaTotpDisabled => Some("User disabled TOTP for MFA".to_owned()),
+        DefguardEvent::MfaEmailEnabled => Some("User configured email for MFA".to_owned()),
+        DefguardEvent::MfaEmailDisabled => Some("User disabled email for MFA".to_owned()),
         DefguardEvent::PasswordChangedByAdmin { user } => {
             Some(format!("Password for user {user} was changed by an admin"))
         }
@@ -172,7 +172,7 @@ pub fn get_defguard_event_description(event: &DefguardEvent) -> Option<String> {
             after: _,
         } => None,
         DefguardEvent::SettingsDefaultBrandingRestored => {
-            Some("Restored default branding settings".to_string())
+            Some("Restored default branding settings".to_owned())
         }
         DefguardEvent::GroupsBulkAssigned { users, groups } => Some(format!(
             "Assigned {} users to {} groups",
@@ -337,12 +337,12 @@ pub fn get_vpn_event_description(event: &VpnEvent) -> Option<String> {
 #[must_use]
 pub fn get_enrollment_event_description(event: &EnrollmentEvent) -> Option<String> {
     match event {
-        EnrollmentEvent::EnrollmentStarted => Some("User started enrollment process".to_string()),
+        EnrollmentEvent::EnrollmentStarted => Some("User started enrollment process".to_owned()),
         EnrollmentEvent::EnrollmentDeviceAdded { device } => {
             Some(format!("Added device {} during enrollment", device.name))
         }
         EnrollmentEvent::EnrollmentCompleted => {
-            Some("User completed enrollment process".to_string())
+            Some("User completed enrollment process".to_owned())
         }
         EnrollmentEvent::PasswordResetRequested
         | EnrollmentEvent::PasswordResetStarted

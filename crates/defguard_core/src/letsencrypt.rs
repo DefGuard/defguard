@@ -251,14 +251,14 @@ pub(crate) async fn call_proxy_trigger_acme(
         .map_err(|e| (format!("Failed to load certificates: {e}"), Vec::new()))?;
     let ca_cert_der = certs.ca_cert_der.ok_or_else(|| {
         (
-            "CA certificate not found in settings".to_string(),
+            "CA certificate not found in settings".to_owned(),
             Vec::new(),
         )
     })?;
 
     let cert_serial = proxy.certificate_serial.as_deref().ok_or_else(|| {
         (
-            "Edge certificate serial not provisioned".to_string(),
+            "Edge certificate serial not provisioned".to_owned(),
             Vec::new(),
         )
     })?;
@@ -266,7 +266,7 @@ pub(crate) async fn call_proxy_trigger_acme(
     // Seed a one-shot serial map so the rustls verifier validates the server cert serial.
     let (_, certs_rx) = watch::channel(Arc::new(HashMap::from([(
         proxy.id,
-        cert_serial.to_string(),
+        cert_serial.to_owned(),
     )])));
 
     let channel = proxy_mtls_channel(proxy, &ca_cert_der, certs_rx)
@@ -307,14 +307,14 @@ pub(crate) async fn call_proxy_trigger_acme(
                 }
                 None => {
                     return Err((
-                        "TriggerAcme stream sent an event with no payload".to_string(),
+                        "TriggerAcme stream sent an event with no payload".to_owned(),
                         collected_logs,
                     ));
                 }
             },
             Ok(None) => {
                 return Err((
-                    "TriggerAcme stream ended without delivering a certificate".to_string(),
+                    "TriggerAcme stream ended without delivering a certificate".to_owned(),
                     collected_logs,
                 ));
             }
@@ -508,7 +508,7 @@ mod tests {
         common_name: &str,
     ) -> (Identity, String) {
         let key_pair = generate_key_pair().expect("failed to generate key pair");
-        let san = vec![common_name.to_string()];
+        let san = vec![common_name.to_owned()];
         let dn = vec![(DnType::CommonName, common_name)];
         let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
         let cert = ca
@@ -578,7 +578,7 @@ mod tests {
         valid_for_days: i64,
     ) {
         let key_pair = generate_key_pair().expect("failed to generate key pair");
-        let san = vec![common_name.to_string()];
+        let san = vec![common_name.to_owned()];
         let dn = vec![(DnType::CommonName, common_name)];
         let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
         let cert = ca
@@ -598,7 +598,7 @@ mod tests {
         certs.proxy_http_cert_pem = Some(cert_pem);
         certs.proxy_http_cert_key_pem = Some(key_pem);
         certs.proxy_http_cert_expiry = Some(expiry);
-        certs.acme_account_credentials = Some(TEST_ACCOUNT_JSON.to_string());
+        certs.acme_account_credentials = Some(TEST_ACCOUNT_JSON.to_owned());
         certs.save(pool).await.expect("failed to save LE certs");
     }
 
@@ -611,7 +611,7 @@ mod tests {
     ) {
         let mut proxy = Proxy::new("test-proxy", address, i32::from(port), "tester");
         proxy.enabled = true;
-        proxy.certificate_serial = Some(certificate_serial.to_string());
+        proxy.certificate_serial = Some(certificate_serial.to_owned());
         proxy.core_client_cert_der = Some(core_client_cert.cert_der.clone());
         proxy.core_client_cert_key_der = Some(core_client_cert.key_der.clone());
         proxy.core_client_cert_expiry = Some(core_client_cert.expiry);
@@ -695,7 +695,7 @@ mod tests {
 
         let (new_cert_pem, new_key_pem) = {
             let key_pair = generate_key_pair().expect("failed to generate key pair");
-            let san = vec!["localhost".to_string()];
+            let san = vec!["localhost".to_owned()];
             let dn = vec![(DnType::CommonName, "localhost")];
             let csr = Csr::new(&key_pair, &san, dn).expect("failed to create CSR");
             let cert = ca.sign_server_cert(&csr).expect("failed to sign cert");
@@ -715,9 +715,8 @@ mod tests {
             MockAcmeBehavior::Success {
                 cert_pem: new_cert_pem.clone(),
                 key_pem: new_key_pem.clone(),
-                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#
-                    .to_string(),
-                logs: vec!["proxy log line".to_string()],
+                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#.to_owned(),
+                logs: vec!["proxy log line".to_owned()],
             },
         )
         .await;

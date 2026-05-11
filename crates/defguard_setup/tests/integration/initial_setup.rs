@@ -263,7 +263,7 @@ async fn test_set_general_config(_: PgPoolOptions, options: PgConnectOptions) {
         .member_of_names(&pool)
         .await
         .expect("Failed to fetch group membership");
-    assert!(groups.contains(&"admins".to_string()));
+    assert!(groups.contains(&"admins".to_owned()));
 
     assert_setup_step(&pool, InitialSetupStep::Ca).await;
 }
@@ -538,8 +538,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .cookies()
         .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
         .expect("Session cookie not set")
-        .value()
-        .to_string();
+        .value().to_owned();
     assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
 
     let response = client
@@ -618,7 +617,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .member_of_names(&pool)
         .await
         .expect("Failed to fetch group membership");
-    assert!(groups.contains(&"admins".to_string()));
+    assert!(groups.contains(&"admins".to_owned()));
 
     let session = Session::find_by_id(&pool, &session_cookie_value)
         .await

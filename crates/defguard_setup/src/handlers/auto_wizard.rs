@@ -244,7 +244,7 @@ pub async fn set_vpn_settings(
             .fetch_optional(&pool)
             .await?
             .ok_or_else(|| {
-                WebError::ObjectNotFound("No network location found to configure".to_string())
+                WebError::ObjectNotFound("No network location found to configure".to_owned())
             })?;
 
     let mut network = WireguardNetwork::find_by_id(&pool, first_network_id)
@@ -258,7 +258,7 @@ pub async fn set_vpn_settings(
     let addresses = parse_address_list(vpn_settings.gateway_address.as_str());
     if addresses.is_empty() {
         return Err(WebError::BadRequest(
-            "Invalid gateway address value".to_string(),
+            "Invalid gateway address value".to_owned(),
         ));
     }
 
@@ -269,7 +269,7 @@ pub async fn set_vpn_settings(
         let parsed = parse_network_address_list(allowed_ips_input);
         if parsed.is_empty() {
             return Err(WebError::BadRequest(
-                "Invalid allowed IPs value".to_string(),
+                "Invalid allowed IPs value".to_owned(),
             ));
         }
         parsed
@@ -284,7 +284,7 @@ pub async fn set_vpn_settings(
         if dns.is_empty() {
             None
         } else {
-            Some(dns.to_string())
+            Some(dns.to_owned())
         }
     };
     network.save(&pool).await?;
@@ -318,7 +318,7 @@ pub async fn set_mfa_settings(
             .fetch_optional(&pool)
             .await?
             .ok_or_else(|| {
-                WebError::ObjectNotFound("No network location found to configure".to_string())
+                WebError::ObjectNotFound("No network location found to configure".to_owned())
             })?;
 
     let mut network = WireguardNetwork::find_by_id(&pool, first_network_id)

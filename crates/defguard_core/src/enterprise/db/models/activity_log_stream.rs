@@ -93,7 +93,7 @@ impl ActivityLogStream<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let configs: Vec<ActivityLogStream<Id>> = query_as!(
+        let configs: Vec<Self> = query_as!(
             ActivityLogStream,
             "SELECT id, name, stream_type \"stream_type: ActivityLogStreamType\", config \
             FROM activity_log_stream \

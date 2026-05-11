@@ -38,13 +38,13 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
     exceed_enterprise_limits(&client).await;
 
     let provider_data = AddProviderData {
-        name: "test".to_string(),
+        name: "test".to_owned(),
         // FIXME: this won't work offline.
-        base_url: "https://accounts.google.com".to_string(),
+        base_url: "https://accounts.google.com".to_owned(),
         kind: OpenIdProviderKind::Google,
-        client_id: "client_id".to_string(),
-        client_secret: "client_secret".to_string(),
-        display_name: Some("display_name".to_string()),
+        client_id: "client_id".to_owned(),
+        client_secret: "client_secret".to_owned(),
+        display_name: Some("display_name".to_owned()),
         admin_email: None,
         google_service_account_email: None,
         google_service_account_key: None,
@@ -94,7 +94,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Test that the endpoint is forbidden when the license is expired
     let new_license = License::new(
-        "test".to_string(),
+        "test".to_owned(),
         false,
         Some(Utc::now() - Duration::days(1)),
         None,
@@ -151,7 +151,7 @@ async fn test_openid_login(_: PgPoolOptions, options: PgConnectOptions) {
         kind: OpenIdProviderKind::Custom,
         client_id: openid_client.client_id.clone(),
         client_secret: openid_client.client_secret.clone(),
-        display_name: Some("Defguard".to_string()),
+        display_name: Some("Defguard".to_owned()),
         admin_email: None,
         google_service_account_email: None,
         google_service_account_key: None,

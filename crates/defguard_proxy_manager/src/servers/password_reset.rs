@@ -134,7 +134,7 @@ impl PasswordResetServer {
             None,
             Some(email.clone()),
             settings.password_reset_token_timeout().as_secs(),
-            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_owned()),
         );
         enrollment.save(&mut *transaction).await?;
 
@@ -187,7 +187,7 @@ impl PasswordResetServer {
 
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
-        if enrollment.token_type != Some("PASSWORD_RESET".to_string()) {
+        if enrollment.token_type != Some("PASSWORD_RESET".to_owned()) {
             error!(
                 "Invalid token type ({:?}) for password reset session",
                 enrollment.token_type
