@@ -11,11 +11,13 @@ use defguard_common::{
 };
 use reqwest::{
     Client, StatusCode,
-    header::{HeaderMap, HeaderValue, USER_AGENT},
+    header::{HeaderMap, USER_AGENT},
 };
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
+
+use crate::common::TEST_USER_AGENT;
 
 use super::common::{
     SHUTDOWN_TIMEOUT, init_settings_with_secret_key, make_migration_test_client, seed_admin_user,
@@ -193,7 +195,7 @@ async fn test_migration_auth_enforcement(_: PgPoolOptions, options: PgConnectOpt
 
     let unauth = {
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+        headers.insert(USER_AGENT, TEST_USER_AGENT);
         Client::builder()
             .default_headers(headers)
             .build()

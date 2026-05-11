@@ -23,7 +23,7 @@ use defguard_setup::setup_server::build_setup_webapp;
 use reqwest::{
     Client, StatusCode,
     cookie::Jar,
-    header::{HeaderMap, HeaderValue, USER_AGENT},
+    header::{HeaderMap, USER_AGENT},
 };
 use semver::Version;
 use serde_json::json;
@@ -35,7 +35,7 @@ use tokio::{
 };
 
 use super::common::{SHUTDOWN_TIMEOUT, make_setup_test_client};
-use crate::common::SESSION_COOKIE_NAME;
+use crate::common::{SESSION_COOKIE_NAME, TEST_USER_AGENT};
 
 async fn assert_setup_step(pool: &sqlx::PgPool, expected: InitialSetupStep) {
     let step = InitialSetupState::get(pool)
@@ -511,7 +511,7 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
 
     let jar = Arc::new(Jar::default());
     let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+    headers.insert(USER_AGENT, TEST_USER_AGENT);
     let client = Client::builder()
         .default_headers(headers)
         .cookie_provider(jar)

@@ -4,7 +4,6 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     TypedHeader,
     extract::{
@@ -40,7 +39,7 @@ use crate::{
     enterprise::ldap::{error::LdapError, utils::login_through_ldap},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{SIGN_IN_COOKIE_NAME, cookie_domain, user_for_admin_or_self},
+    handlers::{ClientIpAddr, SIGN_IN_COOKIE_NAME, cookie_domain, user_for_admin_or_self},
     headers::{USER_AGENT_PARSER, check_new_device_login, get_user_agent_device},
     server_config,
 };
@@ -136,7 +135,7 @@ pub async fn authenticate(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
@@ -176,7 +175,7 @@ pub async fn authenticate(
                             context: ApiRequestContext::new(
                                 user.id,
                                 user.username,
-                                insecure_ip,
+                                ip_addr,
                                 user_agent.to_string(),
                             ),
                             event: Box::new(ApiEventType::UserLoginFailed {
@@ -195,7 +194,7 @@ pub async fn authenticate(
                         context: ApiRequestContext::new(
                             user.id,
                             user.username,
-                            insecure_ip,
+                            ip_addr,
                             user_agent.to_string(),
                         ),
                         event: Box::new(ApiEventType::UserLoginFailed {
@@ -231,7 +230,7 @@ pub async fn authenticate(
     }
 
     let (session, user_info, mfa_info) =
-        create_session(&appstate.pool, insecure_ip, user_agent.as_str(), &mut user).await?;
+        create_session(&appstate.pool, ip_addr, user_agent.as_str(), &mut user).await?;
 
     let settings = Settings::get_current_settings();
     let timeout = settings.authentication_timeout();
@@ -278,7 +277,7 @@ pub async fn authenticate(
             context: ApiRequestContext::new(
                 user_info.id,
                 user_info.username.clone(),
-                insecure_ip,
+                ip_addr,
                 user_agent.to_string(),
             ),
             event: Box::new(ApiEventType::UserLogin),
@@ -313,8 +312,8 @@ pub async fn logout(
     private_cookies: PrivateCookieJar,
     SessionExtractor(session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
+    ClientIpAddr(ip_addr): ClientIpAddr,
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     let mut session_cookie = Cookie::build((SESSION_COOKIE_NAME, "")).path("/");
     let mut sign_in_cookie = Cookie::build((SIGN_IN_COOKIE_NAME, "")).path("/");
@@ -334,12 +333,7 @@ pub async fn logout(
         // User may not be fully authenticated so we can't use
         // context extractor in this handler since it requires
         // the `SessionInfo` object.
-        context: ApiRequestContext::new(
-            user.id,
-            user.username,
-            insecure_ip,
-            user_agent.to_string(),
-        ),
+        context: ApiRequestContext::new(user.id, user.username, ip_addr, user_agent.to_string()),
         event: Box::new(ApiEventType::UserLogout),
     })?;
 
@@ -536,7 +530,7 @@ pub async fn webauthn_end(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     State(appstate): State<AppState>,
     Json(pubkey): Json<PublicKeyCredential>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -567,7 +561,7 @@ pub async fn webauthn_end(
                         context: ApiRequestContext::new(
                             user.id,
                             user.username,
-                            insecure_ip,
+                            ip_addr,
                             user_agent.to_string(),
                         ),
                         event: Box::new(ApiEventType::UserMfaLogin {
@@ -615,7 +609,7 @@ pub async fn webauthn_end(
                         context: ApiRequestContext::new(
                             user.id,
                             user.username,
-                            insecure_ip,
+                            ip_addr,
                             user_agent.to_string(),
                         ),
                         event: Box::new(ApiEventType::UserMfaLoginFailed {
@@ -702,7 +696,7 @@ pub async fn totp_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -725,7 +719,7 @@ pub async fn totp_code(
                 context: ApiRequestContext::new(
                     user_info.id,
                     user_info.username.clone(),
-                    insecure_ip,
+                    ip_addr,
                     user_agent.to_string(),
                 ),
                 event: Box::new(ApiEventType::UserMfaLogin {
@@ -774,7 +768,7 @@ pub async fn totp_code(
                 context: ApiRequestContext::new(
                     user.id,
                     user.username,
-                    insecure_ip,
+                    ip_addr,
                     user_agent.to_string(),
                 ),
                 event: Box::new(ApiEventType::UserMfaLoginFailed {
@@ -910,7 +904,7 @@ pub async fn email_mfa_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -934,7 +928,7 @@ pub async fn email_mfa_code(
                 context: ApiRequestContext::new(
                     user_info.id,
                     user_info.username.clone(),
-                    insecure_ip,
+                    ip_addr,
                     user_agent.to_string(),
                 ),
                 event: Box::new(ApiEventType::UserMfaLogin {
@@ -983,7 +977,7 @@ pub async fn email_mfa_code(
                 context: ApiRequestContext::new(
                     user.id,
                     user.username,
-                    insecure_ip,
+                    ip_addr,
                     user_agent.to_string(),
                 ),
                 event: Box::new(ApiEventType::UserMfaLoginFailed {
@@ -1003,7 +997,7 @@ pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
     SessionExtractor(mut session): SessionExtractor,
     user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    ClientIpAddr(ip_addr): ClientIpAddr,
     State(appstate): State<AppState>,
     Json(recovery_code): Json<RecoveryCode>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -1026,7 +1020,7 @@ pub async fn recovery_code(
                 context: ApiRequestContext::new(
                     user.id,
                     user.username,
-                    insecure_ip,
+                    ip_addr,
                     user_agent.to_string(),
                 ),
                 event: Box::new(ApiEventType::RecoveryCodeUsed),
@@ -1060,7 +1054,7 @@ pub async fn recovery_code(
         }
 
         appstate.emit_event(ApiEvent {
-            context: ApiRequestContext::new(user.id, username, insecure_ip, user_agent.to_string()),
+            context: ApiRequestContext::new(user.id, username, ip_addr, user_agent.to_string()),
             event: Box::new(ApiEventType::RecoveryCodeLoginFailed),
         })?;
     }

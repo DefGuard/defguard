@@ -28,6 +28,8 @@ pub struct TestClient {
     api_task_handle: JoinHandle<()>,
 }
 
+const TEST_USER_AGENT: HeaderValue = HeaderValue::from_static("test/0.0");
+
 impl TestClient {
     #[must_use]
     pub fn new(
@@ -48,7 +50,7 @@ impl TestClient {
         let jar = Arc::new(Jar::default());
 
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+        headers.insert(USER_AGENT, TEST_USER_AGENT);
 
         let client = Client::builder()
             .default_headers(headers)

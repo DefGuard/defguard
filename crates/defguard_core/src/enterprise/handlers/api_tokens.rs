@@ -14,7 +14,7 @@ use crate::{
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     events::{ApiEvent, ApiEventType, ApiRequestContext},
-    handlers::{ApiResponse, ApiResult, user_for_admin_or_self},
+    handlers::{ApiResponse, ApiResult, user_for_admin_or_self, validate_name},
 };
 
 const API_TOKEN_LENGTH: usize = 32;
@@ -60,6 +60,12 @@ pub async fn add_api_token(
     }
 
     // TODO: check if the name is already used
+
+    if !validate_name(&data.name) {
+        return Err(WebError::BadRequest(
+            "Name contains forbidden characters".into(),
+        ));
+    }
 
     // generate token string
     // all API tokens start with a `dg-` prefix
@@ -156,6 +162,13 @@ pub async fn rename_api_token(
     Json(data): Json<RenameRequest>,
 ) -> ApiResult {
     debug!("Renaming API token {token_id} for user {username}");
+
+    if !validate_name(&data.name) {
+        return Err(WebError::BadRequest(
+            "Name contains forbidden characters".into(),
+        ));
+    }
+
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut token) = ApiToken::find_by_id(&appstate.pool, token_id).await? {
         if !session.is_admin && user.id != token.user_id {

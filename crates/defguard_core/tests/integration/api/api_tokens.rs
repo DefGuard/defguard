@@ -400,3 +400,64 @@ async fn dg25_3_test_token_invalidation(_: PgPoolOptions, options: PgConnectOpti
         .await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
+
+#[sqlx::test]
+async fn dg26_8_test_add_api_token(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
+
+    // log in as admin
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // HTML injection payloads must be rejected
+    let forbidden_names = [
+        "<script>alert(1)</script>",
+        "<h1><a href='x'>click</a></h1>",
+        "token&name",
+        "token\"name",
+        "token`name",
+        "read:users<admin>",
+        "ci/cd&deploy",
+    ];
+
+    for name in forbidden_names {
+        let response = client
+            .post("/api/v1/user/admin/api_token")
+            .json(&AddApiTokenData { name: name.into() })
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::BAD_REQUEST,
+            "expected 400 for name: {name:?}"
+        );
+    }
+
+    // safe names must be accepted
+    let allowed_names = [
+        "my-token",
+        "token_1",
+        "Token 2026",
+        "ci.deploy",
+        "read-only (prod)",
+        "read:users",
+        "ci/cd",
+        "env:prod/deploy",
+    ];
+
+    for name in allowed_names {
+        let response = client
+            .post("/api/v1/user/admin/api_token")
+            .json(&AddApiTokenData { name: name.into() })
+            .send()
+            .await;
+        assert_eq!(
+            response.status(),
+            StatusCode::CREATED,
+            "expected 201 for name: {name:?}"
+        );
+    }
+}

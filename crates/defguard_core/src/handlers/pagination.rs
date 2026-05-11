@@ -1,7 +1,7 @@
 use std::fmt;
 
 use axum::{
-    body::Body,
+    Json,
     response::{IntoResponse, Response},
 };
 use reqwest::StatusCode;
@@ -206,9 +206,8 @@ where
     T: Serialize,
 {
     fn into_response(self) -> Response {
-        // Convert the data to JSON
-        match serde_json::to_string(&self) {
-            Ok(json) => Response::new(Body::from(json)),
+        match serde_json::to_value(&self) {
+            Ok(json) => Json(json).into_response(),
             Err(err) => {
                 error!("Failed to convert paginated response into JSON: {err}");
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
