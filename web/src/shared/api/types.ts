@@ -897,6 +897,46 @@ export interface SettingsEnterprise {
   only_client_activation: boolean;
 }
 
+export type ApiDevicePostureOsRule =
+  | {
+      os_type: 'windows';
+      min_os_version: string | null;
+      disk_encryption_required: boolean | null;
+      antivirus_required: boolean | null;
+      ad_domain_joined_required: boolean | null;
+      windows_security_update_current: boolean | null;
+    }
+  | {
+      os_type: 'macos';
+      min_os_version: string | null;
+      disk_encryption_required: boolean | null;
+      device_integrity_required: boolean | null;
+    }
+  | {
+      os_type: 'linux';
+      min_kernel_version: string | null;
+      disk_encryption_required: boolean | null;
+    }
+  | {
+      os_type: 'ios';
+      min_os_version: string | null;
+    }
+  | {
+      os_type: 'android';
+      min_os_version: string | null;
+      device_integrity_required: boolean | null;
+    };
+
+export interface ApiDevicePosture {
+  id: number;
+  name: string;
+  description: string | null;
+  min_client_version: string | null;
+  allow_prerelease_client: boolean;
+  os_rules: ApiDevicePostureOsRule[];
+  locations: number[];
+}
+
 export type InitialSetupStepValue =
   | 'welcome'
   | 'admin_user'
@@ -1399,6 +1439,15 @@ export interface GatewayInfo extends Gateway {
 
 export interface PaginationParams {
   page?: number;
+}
+
+export interface DevicePostureListFilters extends PaginationParams {
+  windows?: string[];
+  macos?: string[];
+  linux?: string[];
+  ios?: string[];
+  android?: string[];
+  defguard?: string[];
 }
 
 export interface PaginationMeta {

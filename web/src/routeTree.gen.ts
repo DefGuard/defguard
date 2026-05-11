@@ -61,6 +61,7 @@ import { Route as AuthorizedDefaultSettingsClientRouteImport } from './routes/_a
 import { Route as AuthorizedDefaultSettingsCertsRouteImport } from './routes/_authorized/_default/settings/certs'
 import { Route as AuthorizedDefaultSettingsCaRouteImport } from './routes/_authorized/_default/settings/ca'
 import { Route as AuthorizedDefaultAclRulesRouteImport } from './routes/_authorized/_default/acl/rules'
+import { Route as AuthorizedDefaultAclPostureChecksRouteImport } from './routes/_authorized/_default/acl/posture-checks'
 import { Route as AuthorizedDefaultAclEditRuleRouteImport } from './routes/_authorized/_default/acl/edit-rule'
 import { Route as AuthorizedDefaultAclEditDestinationRouteImport } from './routes/_authorized/_default/acl/edit-destination'
 import { Route as AuthorizedDefaultAclEditAliasRouteImport } from './routes/_authorized/_default/acl/edit-alias'
@@ -357,6 +358,12 @@ const AuthorizedDefaultAclRulesRoute =
     path: '/acl/rules',
     getParentRoute: () => AuthorizedDefaultRoute,
   } as any)
+const AuthorizedDefaultAclPostureChecksRoute =
+  AuthorizedDefaultAclPostureChecksRouteImport.update({
+    id: '/acl/posture-checks',
+    path: '/acl/posture-checks',
+    getParentRoute: () => AuthorizedDefaultRoute,
+  } as any)
 const AuthorizedDefaultAclEditRuleRoute =
   AuthorizedDefaultAclEditRuleRouteImport.update({
     id: '/acl/edit-rule',
@@ -468,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
+  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -530,6 +538,7 @@ export interface FileRoutesByTo {
   '/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
+  '/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
   '/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -596,6 +605,7 @@ export interface FileRoutesById {
   '/_authorized/_default/acl/edit-alias': typeof AuthorizedDefaultAclEditAliasRoute
   '/_authorized/_default/acl/edit-destination': typeof AuthorizedDefaultAclEditDestinationRoute
   '/_authorized/_default/acl/edit-rule': typeof AuthorizedDefaultAclEditRuleRoute
+  '/_authorized/_default/acl/posture-checks': typeof AuthorizedDefaultAclPostureChecksRoute
   '/_authorized/_default/acl/rules': typeof AuthorizedDefaultAclRulesRoute
   '/_authorized/_default/settings/ca': typeof AuthorizedDefaultSettingsCaRoute
   '/_authorized/_default/settings/certs': typeof AuthorizedDefaultSettingsCertsRoute
@@ -661,6 +671,7 @@ export interface FileRouteTypes {
     | '/acl/edit-alias'
     | '/acl/edit-destination'
     | '/acl/edit-rule'
+    | '/acl/posture-checks'
     | '/acl/rules'
     | '/settings/ca'
     | '/settings/certs'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
     | '/acl/edit-alias'
     | '/acl/edit-destination'
     | '/acl/edit-rule'
+    | '/acl/posture-checks'
     | '/acl/rules'
     | '/settings/ca'
     | '/settings/certs'
@@ -788,6 +800,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/acl/edit-alias'
     | '/_authorized/_default/acl/edit-destination'
     | '/_authorized/_default/acl/edit-rule'
+    | '/_authorized/_default/acl/posture-checks'
     | '/_authorized/_default/acl/rules'
     | '/_authorized/_default/settings/ca'
     | '/_authorized/_default/settings/certs'
@@ -1189,6 +1202,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthorizedDefaultAclRulesRouteImport
       parentRoute: typeof AuthorizedDefaultRoute
     }
+    '/_authorized/_default/acl/posture-checks': {
+      id: '/_authorized/_default/acl/posture-checks'
+      path: '/acl/posture-checks'
+      fullPath: '/acl/posture-checks'
+      preLoaderRoute: typeof AuthorizedDefaultAclPostureChecksRouteImport
+      parentRoute: typeof AuthorizedDefaultRoute
+    }
     '/_authorized/_default/acl/edit-rule': {
       id: '/_authorized/_default/acl/edit-rule'
       path: '/acl/edit-rule'
@@ -1287,6 +1307,7 @@ interface AuthorizedDefaultRouteChildren {
   AuthorizedDefaultAclEditAliasRoute: typeof AuthorizedDefaultAclEditAliasRoute
   AuthorizedDefaultAclEditDestinationRoute: typeof AuthorizedDefaultAclEditDestinationRoute
   AuthorizedDefaultAclEditRuleRoute: typeof AuthorizedDefaultAclEditRuleRoute
+  AuthorizedDefaultAclPostureChecksRoute: typeof AuthorizedDefaultAclPostureChecksRoute
   AuthorizedDefaultAclRulesRoute: typeof AuthorizedDefaultAclRulesRoute
   AuthorizedDefaultSettingsCaRoute: typeof AuthorizedDefaultSettingsCaRoute
   AuthorizedDefaultSettingsCertsRoute: typeof AuthorizedDefaultSettingsCertsRoute
@@ -1327,6 +1348,8 @@ const AuthorizedDefaultRouteChildren: AuthorizedDefaultRouteChildren = {
   AuthorizedDefaultAclEditDestinationRoute:
     AuthorizedDefaultAclEditDestinationRoute,
   AuthorizedDefaultAclEditRuleRoute: AuthorizedDefaultAclEditRuleRoute,
+  AuthorizedDefaultAclPostureChecksRoute:
+    AuthorizedDefaultAclPostureChecksRoute,
   AuthorizedDefaultAclRulesRoute: AuthorizedDefaultAclRulesRoute,
   AuthorizedDefaultSettingsCaRoute: AuthorizedDefaultSettingsCaRoute,
   AuthorizedDefaultSettingsCertsRoute: AuthorizedDefaultSettingsCertsRoute,
