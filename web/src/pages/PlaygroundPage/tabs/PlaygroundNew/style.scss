@@ -1,0 +1,12 @@
+#system-selector-test {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#os-policy-card-test {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-2xl);
+}

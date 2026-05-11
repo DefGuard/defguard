@@ -7,10 +7,19 @@
   justify-content: flex-start;
   row-gap: var(--spacing-2xl);
   box-sizing: border-box;
-  padding: var(--spacing-4xl);
+  padding-top: var(--spacing-sm);
+
+  > .tab {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
 
   .card {
     max-width: 670px;
+    width: 100%;
   }
 }
 

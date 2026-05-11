@@ -1,0 +1,43 @@
+.playground-icon-card {
+  width: 120px;
+  background-color: var(--bg-default);
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 0 0 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 50px 1fr;
+
+  &:hover {
+    box-shadow: var(--menu-shadow);
+  }
+
+  .top {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+
+    svg path {
+      fill: var(--fg-action);
+    }
+  }
+
+  .bottom {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 12px;
+    border-top: 1px solid var(--border-muted);
+    padding-top: 12px;
+
+    p {
+      font: var(--t-body-sm-400);
+      text-align: center;
+    }
+  }
+}
