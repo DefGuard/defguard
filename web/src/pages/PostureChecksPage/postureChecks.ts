@@ -4,11 +4,11 @@ import type { SelectionOption } from '../../shared/components/SelectionSection/t
 import type { TableFilterMessages } from '../../shared/defguard-ui/components/table/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import {
-  PostureCheckRequirement,
-  PostureCheckOs,
-  postureCheckVersionValues,
   type PostureCheckFilterValue,
+  PostureCheckOs,
   type PostureCheckOsValue,
+  PostureCheckRequirement,
+  postureCheckVersionValues,
 } from './types';
 
 export type PostureCheckRow = {
@@ -156,9 +156,8 @@ const joinRequirementParts = (parts: Array<string | null | undefined | false>) =
   return filteredParts.length ? filteredParts.join(', ') : emptyRequirement;
 };
 
-const joinFilters = (
-  parts: Array<PostureCheckFilterValue | null | undefined | false>,
-) => parts.filter((part): part is PostureCheckFilterValue => Boolean(part));
+const joinFilters = (parts: Array<PostureCheckFilterValue | null | undefined | false>) =>
+  parts.filter((part): part is PostureCheckFilterValue => Boolean(part));
 
 const getOsRuleSummary = (rule: ApiDevicePostureOsRule | undefined) => {
   if (!isPresent(rule)) {
@@ -206,7 +205,7 @@ const getOsRuleFilters = (rule: ApiDevicePostureOsRule | undefined) => {
 
   switch (rule.os_type) {
     case PostureCheckOs.Windows:
-        return joinFilters([
+      return joinFilters([
         mapVersionFilterValue(rule.min_os_version),
         rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
         rule.antivirus_required && PostureCheckRequirement.Antivirus,

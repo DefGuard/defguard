@@ -355,7 +355,9 @@ fn apply_os_rule_filters(
         }
     }
 
-    query_builder.push(" AND EXISTS (SELECT 1 FROM device_posture_os_rule ").push(alias);
+    query_builder
+        .push(" AND EXISTS (SELECT 1 FROM device_posture_os_rule ")
+        .push(alias);
     query_builder
         .push(" WHERE ")
         .push(alias)

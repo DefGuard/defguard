@@ -1,3 +1,5 @@
+use std::net::{IpAddr, SocketAddr};
+
 use axum::{
     Json,
     extract::{ConnectInfo, FromRef, FromRequestParts},
@@ -18,7 +20,6 @@ use defguard_static_ip::error::StaticIpError;
 use ipnetwork::IpNetworkError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use std::net::{IpAddr, SocketAddr};
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
