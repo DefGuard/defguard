@@ -36,15 +36,15 @@ pub struct DevicePostureOsRule<I = NoId> {
     pub os_type: OsType,
     // shared
     pub min_os_version: Option<String>,
-    // windows, macos, linux
+    // Windows, macOS, Linux
     pub disk_encryption_required: Option<bool>,
-    // windows only
+    // Windows only
     pub antivirus_required: Option<bool>,
     pub ad_domain_joined_required: Option<bool>,
     pub windows_security_update_current: Option<bool>,
-    // linux only
+    // Linux only
     pub min_kernel_version: Option<String>,
-    // macos, android only
+    // macOS, iOS, Android only
     pub device_integrity_required: Option<bool>,
 }
 
@@ -56,13 +56,10 @@ impl DevicePostureOsRule<Id> {
     ) -> sqlx::Result<Vec<Self>> {
         query_as!(
             Self,
-            r#"SELECT id, posture_id,
-               os_type AS "os_type: OsType",
-               min_os_version, disk_encryption_required,
-               antivirus_required, ad_domain_joined_required,
-               windows_security_update_current, min_kernel_version,
-               device_integrity_required
-               FROM device_posture_os_rule WHERE posture_id = $1"#,
+            "SELECT id, posture_id, os_type \"os_type: OsType\", min_os_version, \
+            disk_encryption_required, antivirus_required, ad_domain_joined_required, \
+            windows_security_update_current, min_kernel_version, device_integrity_required \
+            FROM device_posture_os_rule WHERE posture_id = $1",
             posture_id
         )
         .fetch_all(executor)

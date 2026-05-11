@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, posture_id,\n               os_type AS \"os_type: OsType\",\n               min_os_version, disk_encryption_required,\n               antivirus_required, ad_domain_joined_required,\n               windows_security_update_current, min_kernel_version,\n               device_integrity_required\n               FROM device_posture_os_rule WHERE posture_id = $1",
+  "query": "SELECT id, posture_id, os_type \"os_type: OsType\", min_os_version, disk_encryption_required, antivirus_required, ad_domain_joined_required, windows_security_update_current, min_kernel_version, device_integrity_required FROM device_posture_os_rule WHERE posture_id = $1",
   "describe": {
     "columns": [
       {
@@ -85,5 +85,5 @@
       true
     ]
   },
-  "hash": "72fe9d496f4349cdc68cd9f1091a2a885ce56faeb20f01fb6b3bc93f7a4eb496"
+  "hash": "394c7d22ad81bb8e379e36ff7aed125dadafdf69a5dfb5319bfc33c10eff7063"
 }
