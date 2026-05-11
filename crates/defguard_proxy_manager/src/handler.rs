@@ -972,6 +972,9 @@ impl ProxyHandler {
                                 }
                             }
                             None
+                        },
+                        Some(defguard_proto::proxy::core_request::Payload::DevicePostureCheck(_)) => {
+                            todo!();
                         }
                     };
 
