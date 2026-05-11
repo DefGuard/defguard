@@ -40,9 +40,7 @@ impl SmtpSettings {
                 port,
                 encryption: settings.smtp_encryption,
                 user: settings.smtp_user,
-                password: settings
-                    .smtp_password
-                    .map(|p| p.expose_secret().to_owned()),
+                password: settings.smtp_password.map(|p| p.expose_secret().to_owned()),
                 sender,
             })
         } else {

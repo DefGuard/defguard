@@ -17,11 +17,10 @@ use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::time::timeout;
 
-use crate::common::TEST_USER_AGENT;
-
 use super::common::{
     SHUTDOWN_TIMEOUT, init_settings_with_secret_key, make_migration_test_client, seed_admin_user,
 };
+use crate::common::TEST_USER_AGENT;
 
 async fn assert_migration_step(pool: &sqlx::PgPool, expected_variant: &str) {
     let state = MigrationWizardState::get(pool)

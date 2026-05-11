@@ -268,9 +268,7 @@ pub async fn set_vpn_settings(
     } else {
         let parsed = parse_network_address_list(allowed_ips_input);
         if parsed.is_empty() {
-            return Err(WebError::BadRequest(
-                "Invalid allowed IPs value".to_owned(),
-            ));
+            return Err(WebError::BadRequest("Invalid allowed IPs value".to_owned()));
         }
         parsed
     };

@@ -67,7 +67,8 @@ pub fn prune_username(username: &str, handling: OpenIdUsernameHandling) -> Strin
 
     // Go through the string and remove any non-alphanumeric characters at the beginning
     result = result
-        .trim_start_matches(|c: char| !c.is_ascii_alphanumeric()).to_owned();
+        .trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_owned();
 
     let is_char_valid = |c: char| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_';
 
@@ -283,7 +284,8 @@ pub async fn user_from_claims(
     let email = token_claims.email().ok_or(WebError::BadRequest(
         "Email not found in the information returned from provider. Make sure your provider is \
         configured correctly and that you have granted the necessary permissions to retrieve \
-        such information.".to_owned(),
+        such information."
+            .to_owned(),
     ))?;
 
     // Get the *sub* claim from the token.
@@ -579,11 +581,13 @@ pub async fn auth_callback(
     let cookie_nonce = private_cookies
         .get(NONCE_COOKIE_NAME)
         .ok_or(WebError::Authorization("Nonce cookie not found".into()))?
-        .value_trimmed().to_owned();
+        .value_trimmed()
+        .to_owned();
     let cookie_csrf = private_cookies
         .get(CSRF_COOKIE_NAME)
         .ok_or(WebError::BadRequest("CSRF cookie not found".into()))?
-        .value_trimmed().to_owned();
+        .value_trimmed()
+        .to_owned();
 
     // Verify the CSRF token
     if payload.state.secret() != &cookie_csrf {

@@ -901,7 +901,8 @@ async fn perform_gateway_adoption(
 
     let hostname = url
         .host_str()
-        .ok_or("URL does not have a valid host")?.to_owned();
+        .ok_or("URL does not have a valid host")?
+        .to_owned();
 
     let csr_response = client
         .get_csr(CertificateInfo {

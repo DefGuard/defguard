@@ -759,8 +759,7 @@ impl Settings {
                 Self::validate_openid_signing_key_der(key_der)?;
             }
             None => {
-                settings.openid_signing_key_der =
-                    Some(Self::generate_openid_signing_key_der()?);
+                settings.openid_signing_key_der = Some(Self::generate_openid_signing_key_der()?);
             }
         }
 
@@ -905,7 +904,8 @@ impl Settings {
             .map_err(|_err| SettingsUrlError::UnparsableEdgeUrl(self.public_proxy_url.clone()))?;
         let hostname = url
             .host_str()
-            .ok_or_else(|| SettingsUrlError::EdgeUrlMissingHostname(self.public_proxy_url.clone()))?.to_owned();
+            .ok_or_else(|| SettingsUrlError::EdgeUrlMissingHostname(self.public_proxy_url.clone()))?
+            .to_owned();
 
         Ok(hostname)
     }

@@ -656,10 +656,7 @@ impl User<Id> {
     }
 
     /// Return all members of group
-    pub async fn find_by_group_name(
-        pool: &PgPool,
-        group_name: &str,
-    ) -> sqlx::Result<Vec<Self>> {
+    pub async fn find_by_group_name(pool: &PgPool, group_name: &str) -> sqlx::Result<Vec<Self>> {
         let users = query_as!(
             Self,
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \

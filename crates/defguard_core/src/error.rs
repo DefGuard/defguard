@@ -169,9 +169,7 @@ impl From<TokenError> for WebError {
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::UrlParseError(_)
-            | TokenError::TemplateErrorInternal(_) => {
-                Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
-            }
+            | TokenError::TemplateErrorInternal(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }

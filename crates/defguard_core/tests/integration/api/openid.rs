@@ -283,7 +283,8 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
     let fallback_url = Settings::url()
         .unwrap()
         .to_string()
-        .trim_end_matches('/').to_owned();
+        .trim_end_matches('/')
+        .to_owned();
 
     // check code cannot be reused
     let response = client
@@ -1158,7 +1159,8 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
     let fallback_url = Settings::url()
         .unwrap()
         .to_string()
-        .trim_end_matches('/').to_owned();
+        .trim_end_matches('/')
+        .to_owned();
 
     // Try to authorize with allowed redirect url - invalid client id
     let response = client
@@ -1434,11 +1436,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
     // Client has phone and email scopes, request phone and email
     let claims = get_user_claims(
-        vec![
-            "openid".to_owned(),
-            "phone".to_owned(),
-            "email".to_owned(),
-        ],
+        vec!["openid".to_owned(), "phone".to_owned(), "email".to_owned()],
         vec!["email".to_owned(), "phone".to_owned()],
     )
     .await;
@@ -1449,11 +1447,7 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
     // Client has phone and email scopes, but only request email
     let claims = get_user_claims(
-        vec![
-            "openid".to_owned(),
-            "phone".to_owned(),
-            "email".to_owned(),
-        ],
+        vec!["openid".to_owned(), "phone".to_owned(), "email".to_owned()],
         vec!["email".to_owned()],
     )
     .await;

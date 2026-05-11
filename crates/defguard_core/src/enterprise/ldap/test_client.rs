@@ -112,9 +112,7 @@ impl PartialEq for LdapEvent {
                     && new_dn == other_new_dn
                     && vecs_equal_unordered(mods, other_mods)
             }
-            (Self::ObjectDeleted { dn }, Self::ObjectDeleted { dn: other_dn }) => {
-                dn == other_dn
-            }
+            (Self::ObjectDeleted { dn }, Self::ObjectDeleted { dn: other_dn }) => dn == other_dn,
             (
                 Self::UserBound { dn, password },
                 Self::UserBound {

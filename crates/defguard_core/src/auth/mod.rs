@@ -361,22 +361,14 @@ mod tests {
     #[test]
     fn test_get_available_scopes() {
         // All requested scopes are available
-        let all_scopes = vec![
-            "email".to_owned(),
-            "profile".to_owned(),
-            "phone".to_owned(),
-        ];
+        let all_scopes = vec!["email".to_owned(), "profile".to_owned(), "phone".to_owned()];
         let requested_scopes = vec!["email".to_owned(), "profile".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
         assert_eq!(result, vec!["email", "profile"]);
 
         // Some requested scopes are not available
         let all_scopes = vec!["email".to_owned(), "profile".to_owned()];
-        let requested_scopes = vec![
-            "email".to_owned(),
-            "phone".to_owned(),
-            "profile".to_owned(),
-        ];
+        let requested_scopes = vec!["email".to_owned(), "phone".to_owned(), "profile".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
         assert_eq!(result, vec!["email", "profile"]);
 
@@ -400,11 +392,7 @@ mod tests {
 
         // Duplicate requested scopes
         let all_scopes = vec!["email".to_owned(), "profile".to_owned()];
-        let requested_scopes = vec![
-            "email".to_owned(),
-            "email".to_owned(),
-            "profile".to_owned(),
-        ];
+        let requested_scopes = vec!["email".to_owned(), "email".to_owned(), "profile".to_owned()];
         let result = get_available_scopes(&all_scopes, &requested_scopes);
         assert_eq!(result, vec!["email", "email", "profile"]);
 

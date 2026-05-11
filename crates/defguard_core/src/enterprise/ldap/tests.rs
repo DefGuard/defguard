@@ -1213,10 +1213,7 @@ fn test_multiple_groups_ldap_authority(_: PgPoolOptions, options: PgConnectOptio
         "group1".to_owned(),
         HashSet::from_iter(vec![user1.clone(), user2.clone()]),
     );
-    defguard_memberships.insert(
-        "group2".to_owned(),
-        HashSet::from_iter(vec![user3.clone()]),
-    );
+    defguard_memberships.insert("group2".to_owned(), HashSet::from_iter(vec![user3.clone()]));
 
     let mut ldap_memberships = HashMap::new();
     ldap_memberships.insert(
@@ -1960,8 +1957,7 @@ async fn test_sync_users_with_empty_paths_and_nested_ous(
             None,
         );
         user6.ldap_rdn = Some("user6".to_owned());
-        user6.ldap_user_path =
-            Some("ou=support,ou=helpdesk,ou=users,dc=example,dc=com".to_owned());
+        user6.ldap_user_path = Some("ou=support,ou=helpdesk,ou=users,dc=example,dc=com".to_owned());
         user6.from_ldap = true;
         let user6 = user6.save(&pool).await.unwrap();
         let original_id = user6.id;
@@ -2899,10 +2895,7 @@ fn test_from_searchentry() {
         );
         attrs.insert(
             "mail".to_owned(),
-            vec![
-                "user1@example.com".to_owned(),
-                "user1@other.com".to_owned(),
-            ],
+            vec!["user1@example.com".to_owned(), "user1@other.com".to_owned()],
         );
         attrs.insert(
             "mobile".to_owned(),
@@ -3069,10 +3062,7 @@ fn test_as_ldap_mod_inetorgperson() {
     };
 
     let mods = user_as_ldap_mod(&user, &config);
-    assert!(mods.contains(&Mod::Replace(
-        "sn".to_owned(),
-        hashset!["Smith".to_owned()],
-    )));
+    assert!(mods.contains(&Mod::Replace("sn".to_owned(), hashset!["Smith".to_owned()],)));
     assert!(mods.contains(&Mod::Replace(
         "givenName".to_owned(),
         hashset!["John".to_owned()],
@@ -3106,10 +3096,7 @@ fn test_as_ldap_mod_with_empty_phone() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace(
-        "sn".to_owned(),
-        hashset!["Smith".to_owned()],
-    )));
+    assert!(mods.contains(&Mod::Replace("sn".to_owned(), hashset!["Smith".to_owned()],)));
     assert!(mods.contains(&Mod::Replace(
         "givenName".to_owned(),
         hashset!["John".to_owned()],
@@ -3142,10 +3129,7 @@ fn test_as_ldap_mod_with_active_directory() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace(
-        "sn".to_owned(),
-        hashset!["Smith".to_owned()],
-    )));
+    assert!(mods.contains(&Mod::Replace("sn".to_owned(), hashset!["Smith".to_owned()],)));
     assert!(mods.contains(&Mod::Replace(
         "givenName".to_owned(),
         hashset!["John".to_owned()],
@@ -3180,10 +3164,7 @@ fn test_as_ldap_mod_with_custom_rdn() {
 
     let mods = user_as_ldap_mod(&user, &config);
 
-    assert!(mods.contains(&Mod::Replace(
-        "sn".to_owned(),
-        hashset!["Smith".to_owned()],
-    )));
+    assert!(mods.contains(&Mod::Replace("sn".to_owned(), hashset!["Smith".to_owned()],)));
     assert!(mods.contains(&Mod::Replace(
         "givenName".to_owned(),
         hashset!["John".to_owned()],

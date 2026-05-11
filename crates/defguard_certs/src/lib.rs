@@ -732,10 +732,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let key = generate_key_pair().unwrap();
         let csr = Csr::new(
             &key,
-            &[
-                "proxy.example.com".to_owned(),
-                "evil.extra.com".to_owned(),
-            ],
+            &["proxy.example.com".to_owned(), "evil.extra.com".to_owned()],
             vec![],
         )
         .unwrap();

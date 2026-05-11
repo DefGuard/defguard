@@ -1,3 +1,5 @@
+use std::net::{IpAddr, SocketAddr};
+
 use axum::{
     Json,
     extract::{ConnectInfo, FromRef, FromRequestParts},
@@ -18,7 +20,6 @@ use defguard_static_ip::error::StaticIpError;
 use ipnetwork::IpNetworkError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use std::net::{IpAddr, SocketAddr};
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
@@ -152,9 +153,7 @@ impl ApiResponse {
 impl From<WebError> for ApiResponse {
     fn from(web_error: WebError) -> Self {
         match web_error {
-            WebError::ObjectNotFound(msg) => {
-                Self::new(json!({"msg": msg}), StatusCode::NOT_FOUND)
-            }
+            WebError::ObjectNotFound(msg) => Self::new(json!({"msg": msg}), StatusCode::NOT_FOUND),
             WebError::ObjectAlreadyExists(msg) => {
                 Self::new(json!({"msg": msg}), StatusCode::CONFLICT)
             }

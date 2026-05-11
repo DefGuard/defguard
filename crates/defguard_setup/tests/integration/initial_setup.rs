@@ -538,7 +538,8 @@ async fn test_setup_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .cookies()
         .find(|cookie| cookie.name() == SESSION_COOKIE_NAME)
         .expect("Session cookie not set")
-        .value().to_owned();
+        .value()
+        .to_owned();
     assert_setup_step(&pool, InitialSetupStep::GeneralConfiguration).await;
 
     let response = client

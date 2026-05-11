@@ -715,7 +715,8 @@ mod tests {
             MockAcmeBehavior::Success {
                 cert_pem: new_cert_pem.clone(),
                 key_pem: new_key_pem.clone(),
-                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#.to_owned(),
+                account_credentials_json: r#"{"account_url":"https://acme.example/account/2"}"#
+                    .to_owned(),
                 logs: vec!["proxy log line".to_owned()],
             },
         )

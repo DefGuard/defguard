@@ -491,7 +491,8 @@ mod tests {
     #[tokio::test]
     async fn test_header() {
         let link_header =
-            "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\"".to_owned();
+            "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\""
+                .to_owned();
         let next_link = extract_next_link(Some(&link_header)).unwrap();
         assert_eq!(
             next_link,

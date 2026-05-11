@@ -651,7 +651,8 @@ impl ClientMfaServer {
                                 device: device.clone(),
                                 method,
                                 message: "tried to finish OIDC MFA login but they haven't \
-                                    completed OIDC authentication yet".to_owned(),
+                                    completed OIDC authentication yet"
+                                    .to_owned(),
                             },
                         )),
                     })?;

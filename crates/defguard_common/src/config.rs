@@ -316,10 +316,12 @@ impl DefGuardConfig {
         match (&self.adopt_edge, &self.adopt_gateway) {
             (Some(_), None) => Err("--adopt-edge (DEFGUARD_ADOPT_EDGE) was provided but \
                 --adopt-gateway (DEFGUARD_ADOPT_GATEWAY) is missing. \
-                Both flags must be provided together to launch the auto-adoption wizard.".to_owned()),
+                Both flags must be provided together to launch the auto-adoption wizard."
+                .to_owned()),
             (None, Some(_)) => Err("--adopt-gateway (DEFGUARD_ADOPT_GATEWAY) was provided but \
                 --adopt-edge (DEFGUARD_ADOPT_EDGE) is missing. \
-                Both flags must be provided together to launch the auto-adoption wizard.".to_owned()),
+                Both flags must be provided together to launch the auto-adoption wizard."
+                .to_owned()),
             _ => Ok(()),
         }
     }
