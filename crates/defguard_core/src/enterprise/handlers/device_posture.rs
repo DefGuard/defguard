@@ -37,6 +37,7 @@ pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x"];
 
 /// Returns the list of valid `min_os_version` values for a given OS type.
 /// TODO: consider a better format for storing versions
+#[must_use]
 pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
     match os_type {
         OsType::Windows => &["Windows 10", "Windows 11"],
@@ -97,6 +98,7 @@ impl ApiOsRule {
     }
 
     /// Converts this rule set into an unsaved DB row for the given posture ID.
+    #[must_use]
     pub fn into_db_rule(self, posture_id: Id) -> DevicePostureOsRule<NoId> {
         match self {
             Self::Windows {

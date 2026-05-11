@@ -587,6 +587,7 @@ pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
 }
 
 /// Validate name provided by user
+#[must_use]
 pub fn validate_name(name: &str) -> bool {
     if name.is_empty() {
         return false;
