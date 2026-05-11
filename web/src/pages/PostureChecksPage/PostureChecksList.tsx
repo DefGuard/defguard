@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router';
 import {
   type ColumnFiltersState,
-  type OnChangeFn,
   createColumnHelper,
   getCoreRowModel,
   getFilteredRowModel,
+  type OnChangeFn,
   useReactTable,
 } from '@tanstack/react-table';
 import { useMemo } from 'react';
