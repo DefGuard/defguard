@@ -480,6 +480,7 @@ pub(crate) async fn send_mfa_start(
                 location_id,
                 pubkey: pubkey.to_string(),
                 method: method as i32,
+                posture_data: None,
             },
         )),
     });
