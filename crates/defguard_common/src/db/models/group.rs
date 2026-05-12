@@ -108,6 +108,26 @@ impl Group<Id> {
         .await
     }
 
+    pub async fn locations_with_one_allowed_group<'e, E>(&self, executor: E) -> sqlx::Result<Vec<String>>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar(
+            "SELECT wn.name FROM wireguard_network wn \
+            JOIN wireguard_network_allowed_group target_group \
+                ON target_group.network_id = wn.id AND target_group.group_id = $1 \
+            JOIN wireguard_network_allowed_group allowed_group \
+                ON allowed_group.network_id = wn.id \
+            WHERE NOT wn.allow_all_groups \
+            GROUP BY wn.id, wn.name \
+            HAVING COUNT(allowed_group.group_id) = 1 \
+            ORDER BY wn.name",
+        )
+        .bind(self.id)
+        .fetch_all(executor)
+        .await
+    }
+
     pub async fn find_by_permission<'e, E>(
         executor: E,
         permission: Permission,
