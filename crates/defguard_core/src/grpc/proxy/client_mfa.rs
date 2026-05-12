@@ -783,7 +783,7 @@ impl ClientMfaServer {
         );
 
         // Evaluate posture (license check + data presence check for now).
-        let posture_result = validate_posture(&self.pool, &request).map_err(|err| {
+        let posture_result = validate_posture(&self.pool, &request).await.map_err(|err| {
             match err {
                 PostureCheckError::NoActiveEnterpriseLicense => {
                     Status::failed_precondition("enterprise license required for posture checks")
