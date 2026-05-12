@@ -284,7 +284,7 @@ async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .to_string()
         .trim_end_matches('/')
-        .to_string();
+        .to_owned();
 
     // check code cannot be reused
     let response = client
@@ -532,8 +532,8 @@ async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOpti
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("email".to_string()))
-        .add_scope(Scope::new("profile".to_string()))
+        .add_scope(Scope::new("email".to_owned()))
+        .add_scope(Scope::new("profile".to_owned()))
         .url();
     assert_eq!(authorize_url.scheme(), "http");
     assert_eq!(authorize_url.host_str(), Some("localhost"));
@@ -672,8 +672,8 @@ async fn dg25_20_test_openid_disabled_client_doesnt_generate_code(
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("email".to_string()))
-        .add_scope(Scope::new("profile".to_string()))
+        .add_scope(Scope::new("email".to_owned()))
+        .add_scope(Scope::new("profile".to_owned()))
         .url();
     assert_eq!(authorize_url.scheme(), "http");
     assert_eq!(authorize_url.host_str(), Some("localhost"));
@@ -775,8 +775,8 @@ async fn dg25_25_openid_disabled_client_userinfo_fails(
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("email".to_string()))
-        .add_scope(Scope::new("profile".to_string()))
+        .add_scope(Scope::new("email".to_owned()))
+        .add_scope(Scope::new("profile".to_owned()))
         .set_pkce_challenge(pkce_challenge)
         .url();
 
@@ -904,8 +904,8 @@ async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgC
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("email".to_string()))
-        .add_scope(Scope::new("profile".to_string()))
+        .add_scope(Scope::new("email".to_owned()))
+        .add_scope(Scope::new("profile".to_owned()))
         .set_pkce_challenge(pkce_challenge)
         .url();
     assert_eq!(authorize_url.scheme(), "http");
@@ -1160,7 +1160,7 @@ async fn dg25_17_test_openid_open_redirects(_: PgPoolOptions, options: PgConnect
         .unwrap()
         .to_string()
         .trim_end_matches('/')
-        .to_string();
+        .to_owned();
 
     // Try to authorize with allowed redirect url - invalid client id
     let response = client
@@ -1436,12 +1436,8 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
     // Client has phone and email scopes, request phone and email
     let claims = get_user_claims(
-        vec![
-            "openid".to_string(),
-            "phone".to_string(),
-            "email".to_string(),
-        ],
-        vec!["email".to_string(), "phone".to_string()],
+        vec!["openid".to_owned(), "phone".to_owned(), "email".to_owned()],
+        vec!["email".to_owned(), "phone".to_owned()],
     )
     .await;
 
@@ -1451,12 +1447,8 @@ async fn dg25_22_test_respect_openid_scope_in_userinfo(
 
     // Client has phone and email scopes, but only request email
     let claims = get_user_claims(
-        vec![
-            "openid".to_string(),
-            "phone".to_string(),
-            "email".to_string(),
-        ],
-        vec!["email".to_string()],
+        vec!["openid".to_owned(), "phone".to_owned(), "email".to_owned()],
+        vec!["email".to_owned()],
     )
     .await;
 
@@ -1502,7 +1494,7 @@ async fn dg25_21_test_openid_html_injection(_: PgPoolOptions, options: PgConnect
 
     // create valid openid client
     let openid_client = NewOpenIDClient {
-        name: "Test".to_string(),
+        name: "Test".to_owned(),
         redirect_uri: vec![TEST_SERVER_URL.into()],
         scope: vec!["openid".into()],
         enabled: true,

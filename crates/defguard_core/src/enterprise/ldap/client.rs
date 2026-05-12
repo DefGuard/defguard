@@ -20,11 +20,11 @@ impl LDAPConnection {
         let settings = Settings::get_current_settings();
         let config = LDAPConfig::try_from(settings.clone())?;
         let url = settings.ldap_url.ok_or(LdapError::MissingSettings(
-            "LDAP URL is required for LDAP configuration to work".to_string(),
+            "LDAP URL is required for LDAP configuration to work".to_owned(),
         ))?;
         let password = settings
             .ldap_bind_password
-            .ok_or(LdapError::MissingSettings("LDAP bind password".to_string()))?;
+            .ok_or(LdapError::MissingSettings("LDAP bind password".to_owned()))?;
         let conn_settings = LdapConnSettings::new()
             .set_starttls(settings.ldap_use_starttls)
             .set_no_tls_verify(!settings.ldap_tls_verify_cert)

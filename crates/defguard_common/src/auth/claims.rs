@@ -63,7 +63,7 @@ impl Claims {
             .expect("valid timestamp")
             .as_secs();
         Self {
-            iss: JWT_ISSUER.to_string(),
+            iss: JWT_ISSUER.to_owned(),
             sub,
             client_id,
             exp,

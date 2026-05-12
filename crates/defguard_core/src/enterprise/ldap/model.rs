@@ -61,7 +61,7 @@ pub(crate) fn user_from_searchentry(
             "LDAP User \"{username}\" has username that cannot be used in Defguard; change the \
             LDAP username attribute or change the username in LDAP to a valid one"
         );
-        return Err(LdapError::InvalidUsername(username.to_string()));
+        return Err(LdapError::InvalidUsername(username.to_owned()));
     }
     Ok(user)
 }
@@ -95,15 +95,15 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
             .any(|e| e == UserObjectClass::User.name())
     {
         changes.extend_from_slice(&[
-            Mod::Replace("sn".to_string(), hashset![user.last_name.clone()]),
-            Mod::Replace("givenName".to_string(), hashset![user.first_name.clone()]),
-            Mod::Replace("mail".to_string(), hashset![user.email.clone()]),
+            Mod::Replace("sn".to_owned(), hashset![user.last_name.clone()]),
+            Mod::Replace("givenName".to_owned(), hashset![user.first_name.clone()]),
+            Mod::Replace("mail".to_owned(), hashset![user.email.clone()]),
         ]);
 
         // Allow renaming the user if the CN is not a part of the RDN
         if !config.get_rdn_attr().eq_ignore_ascii_case("cn") {
             changes.push(Mod::Replace(
-                "cn".to_string(),
+                "cn".to_owned(),
                 hashset![user.username.clone()],
             ));
         }
@@ -115,14 +115,14 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
                 .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case("uid"))
         {
             changes.push(Mod::Replace(
-                "uid".to_string(),
+                "uid".to_owned(),
                 hashset![user.username.clone()],
             ));
         }
 
         if let Some(phone) = &user.phone {
             changes.push(Mod::Replace(
-                "mobile".to_string(),
+                "mobile".to_owned(),
                 if phone.is_empty() {
                     HashSet::<String>::new()
                 } else {
@@ -139,7 +139,7 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
 
     if config.ldap_uses_ad && !config.get_rdn_attr().eq_ignore_ascii_case("sAMAccountName") {
         changes.push(Mod::Replace(
-            "sAMAccountName".to_string(),
+            "sAMAccountName".to_owned(),
             hashset![user.username.clone()],
         ));
     }
@@ -155,7 +155,7 @@ pub(crate) fn user_as_ldap_mod<I>(user: &User<I>, config: &LDAPConfig) -> Vec<Mo
             .is_some_and(|rdn_attr| rdn_attr.eq_ignore_ascii_case(username_attr))
     {
         changes.push(Mod::Replace(
-            username_attr.to_string(),
+            username_attr.to_owned(),
             hashset![user.username.clone()],
         ));
     }
@@ -287,7 +287,7 @@ where
 fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {
     match entry.attrs.get(key) {
         Some(values) if !values.is_empty() => Ok(values[0].clone()),
-        _ => Err(LdapError::MissingAttribute(key.to_string())),
+        _ => Err(LdapError::MissingAttribute(key.to_owned())),
     }
 }
 
@@ -302,7 +302,7 @@ fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
 #[must_use]
 pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
     if let (Some(eq_index), Some(comma_index)) = (dn.find('='), dn.find(',')) {
-        dn.get((eq_index + 1)..comma_index).map(ToString::to_string)
+        dn.get((eq_index + 1)..comma_index).map(str::to_owned)
     } else {
         None
     }
@@ -313,7 +313,7 @@ pub(crate) fn extract_rdn_value(dn: &str) -> Option<String> {
 #[must_use]
 pub(crate) fn extract_dn_path(dn: &str) -> Option<String> {
     if let Some(parts) = dn.split_once(',') {
-        let path = parts.1.to_string();
+        let path = parts.1.to_owned();
         debug!("Extracted DN path '{path}' from DN '{dn}'");
         Some(path)
     } else {

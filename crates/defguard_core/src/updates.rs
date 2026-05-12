@@ -1,7 +1,8 @@
 use std::{env, time::Duration};
 
 use chrono::NaiveDate;
-use defguard_common::{CARGO_VERSION, global_value};
+use defguard_common::{REPORTED_VERSION, global_value};
+use defguard_version::is_version_lower;
 use semver::Version;
 
 const PRODUCT_NAME: &str = "Defguard";
@@ -24,7 +25,7 @@ global_value!(NEW_UPDATE, Option<Update>, None, set_update, get_update);
 async fn fetch_update() -> Result<Update, anyhow::Error> {
     let body = serde_json::json!({
         "product": PRODUCT_NAME,
-        "client_version": CARGO_VERSION,
+        "client_version": REPORTED_VERSION,
         "operating_system": env::consts::OS,
     });
     let response = reqwest::Client::new()
@@ -36,12 +37,16 @@ async fn fetch_update() -> Result<Update, anyhow::Error> {
     Ok(response.json::<Update>().await?)
 }
 
+fn is_newer_update_available(current_version: &Version, new_version: &Version) -> bool {
+    is_version_lower(current_version, new_version)
+}
+
 pub(crate) async fn do_new_version_check() -> Result<(), anyhow::Error> {
     debug!("Checking for new version of Defguard.");
     let update = fetch_update().await?;
-    let current_version = Version::parse(CARGO_VERSION)?;
+    let current_version = Version::parse(REPORTED_VERSION)?;
     let new_version = Version::parse(&update.version)?;
-    if new_version > current_version {
+    if is_newer_update_available(&current_version, &new_version) {
         if update.critical {
             warn!(
                 "There is a new critical Defguard update available: {} (Released on {}). It's \
@@ -59,4 +64,33 @@ pub(crate) async fn do_new_version_check() -> Result<(), anyhow::Error> {
         debug!("New version check done. You are using the latest version of Defguard.");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use semver::Version;
+
+    use super::is_newer_update_available;
+
+    #[test]
+    fn ignores_prerelease_suffixes_when_comparing_update_versions() {
+        let cases = [
+            ("2.0.0-beta1", "2.0.0", false),
+            ("2.0.0", "2.0.0-beta1", false),
+            ("2.0.0-beta1", "2.0.0-rc1", false),
+            ("2.0.0-beta1", "2.0.1", true),
+            ("2.0.0-beta1", "2.1.0-alpha1", true),
+            ("2.0.1", "2.0.0-rc1", false),
+        ];
+
+        for (current, new, expected) in cases {
+            let current = Version::parse(current).expect("valid current version");
+            let new = Version::parse(new).expect("valid new version");
+            assert_eq!(
+                is_newer_update_available(&current, &new),
+                expected,
+                "current={current}, new={new}"
+            );
+        }
+    }
 }

@@ -36,17 +36,17 @@ impl EditAclDestination {
     fn validate(&self) -> Result<(), WebError> {
         if !self.any_address && self.addresses.trim().is_empty() {
             return Err(WebError::BadRequest(
-                "Must provide destination addresses or enable any address".to_string(),
+                "Must provide destination addresses or enable any address".to_owned(),
             ));
         }
         if !self.any_port && self.ports.trim().is_empty() {
             return Err(WebError::BadRequest(
-                "Must provide destination ports or enable any port".to_string(),
+                "Must provide destination ports or enable any port".to_owned(),
             ));
         }
         if !self.any_protocol && self.protocols.is_empty() {
             return Err(WebError::BadRequest(
-                "Must provide destination protocols or enable any protocol".to_string(),
+                "Must provide destination protocols or enable any protocol".to_owned(),
             ));
         }
 

@@ -591,8 +591,8 @@ mod unit_tests {
         Gateway {
             id: 1,
             location_id: 1,
-            name: "test".to_string(),
-            address: "127.0.0.1".to_string(),
+            name: "test".to_owned(),
+            address: "127.0.0.1".to_owned(),
             port: 50051,
             connected_at: None,
             disconnected_at: None,
@@ -601,7 +601,7 @@ mod unit_tests {
             version: None,
             enabled: true,
             modified_at: Utc::now().naive_utc(),
-            modified_by: "test".to_string(),
+            modified_by: "test".to_owned(),
             core_client_cert_der: None,
             core_client_cert_key_der: None,
             core_client_cert_expiry: None,
@@ -617,17 +617,17 @@ mod unit_tests {
 
         // Non-connection-relevant fields - no restart.
         let mut no_restart = base.clone();
-        no_restart.version = Some("2.0.0".to_string());
-        no_restart.modified_by = "someone-else".to_string();
+        no_restart.version = Some("2.0.0".to_owned());
+        no_restart.modified_by = "someone-else".to_owned();
         no_restart.connected_at = Some(Utc::now().naive_utc());
         no_restart.disconnected_at = Some(Utc::now().naive_utc());
-        no_restart.certificate_serial = Some("abc".to_string());
+        no_restart.certificate_serial = Some("abc".to_owned());
         no_restart.core_client_cert_expiry = Some(Utc::now().naive_utc());
         assert!(!needs_restart(&base, &no_restart));
 
         // address change - restart required.
         let mut changed = base.clone();
-        changed.address = "10.0.0.1".to_string();
+        changed.address = "10.0.0.1".to_owned();
         assert!(needs_restart(&base, &changed));
 
         // port change - restart required.

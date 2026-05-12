@@ -419,7 +419,7 @@ pub async fn get_ca(_: AdminOrSetupRole, Extension(pool): Extension<PgPool>) -> 
         ))
     } else {
         Err(WebError::ObjectNotFound(
-            "CA certificate not found".to_string(),
+            "CA certificate not found".to_owned(),
         ))
     }
 }
@@ -478,7 +478,7 @@ pub async fn finish_setup(
         info!("Initial setup completed and shutdown signal sent");
     } else {
         return Err(WebError::BadRequest(
-            "Setup shutdown sender no longer available".to_string(),
+            "Setup shutdown sender no longer available".to_owned(),
         ));
     }
 

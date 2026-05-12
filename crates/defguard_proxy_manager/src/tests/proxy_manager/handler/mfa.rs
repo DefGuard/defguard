@@ -179,7 +179,7 @@ async fn test_mfa_finish_fails_with_wrong_totp_code(_: PgPoolOptions, options: P
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
                 token: token.clone(),
-                code: Some("000000".to_string()),
+                code: Some("000000".to_owned()),
                 auth_pub_key: None,
             },
         )),
@@ -208,7 +208,7 @@ async fn test_mfa_start_fails_for_unknown_device(_: PgPoolOptions, options: PgCo
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id: network.id,
-                pubkey: "no-such-pubkey".to_string(),
+                pubkey: "no-such-pubkey".to_owned(),
                 method: MfaMethod::Email as i32,
             },
         )),

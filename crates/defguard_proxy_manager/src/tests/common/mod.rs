@@ -688,9 +688,9 @@ pub(crate) fn build_proxy_with_enabled(enabled: bool) -> Proxy<NoId> {
     let port = 50051 + i32::from(port_number);
     let mut proxy = Proxy::new(
         format!("proxy-{port_number}"),
-        "127.0.0.1".to_string(),
+        "127.0.0.1".to_owned(),
         port,
-        "test-admin".to_string(),
+        "test-admin".to_owned(),
     );
     proxy.enabled = enabled;
     proxy
@@ -761,8 +761,8 @@ impl MockOidcProvider {
             .expect("failed to bind mock OIDC server");
         let addr = tcp_listener.local_addr().expect("no local addr");
         let base_url = format!("http://{addr}");
-        let client_id = "test-client".to_string();
-        let client_secret = "test-secret".to_string();
+        let client_id = "test-client".to_owned();
+        let client_secret = "test-secret".to_owned();
 
         let state = OidcProviderState {
             encoding_key: Arc::new(encoding_key),
@@ -840,9 +840,9 @@ async fn oidc_token(
     let code = params.get("code").cloned().unwrap_or_default();
     // code format: "{sub}:{email}:{nonce}"
     let mut parts = code.splitn(3, ':');
-    let sub = parts.next().unwrap_or("unknown-sub").to_string();
-    let email = parts.next().unwrap_or("unknown@example.com").to_string();
-    let nonce = parts.next().unwrap_or("").to_string();
+    let sub = parts.next().unwrap_or("unknown-sub").to_owned();
+    let email = parts.next().unwrap_or("unknown@example.com").to_owned();
+    let nonce = parts.next().unwrap_or("").to_owned();
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)

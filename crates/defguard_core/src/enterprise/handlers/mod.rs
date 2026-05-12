@@ -55,7 +55,7 @@ where
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         if is_business_license_active() {
-            Ok(LicenseInfo { valid: true })
+            Ok(Self { valid: true })
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
         }
@@ -74,7 +74,7 @@ where
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         if is_enterprise_license_active() {
-            Ok(EnterpriseLicenseInfo)
+            Ok(Self)
         } else {
             Err(WebError::Forbidden("Enterprise features are disabled"))
         }

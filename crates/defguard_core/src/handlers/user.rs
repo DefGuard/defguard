@@ -1121,7 +1121,7 @@ pub(crate) async fn reset_password(
             Some(session.user.id),
             Some(user.email.clone()),
             settings.password_reset_token_timeout().as_secs(),
-            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_owned()),
         );
         enrollment.save(&mut *transaction).await?;
         let public_proxy_url = settings.proxy_public_url()?;

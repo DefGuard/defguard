@@ -54,14 +54,14 @@ mod tests {
     #[test]
     fn collect_certs_filters_out_gateways_without_certificates() {
         let certs = collect_certs([
-            (1, Some("cert-1".to_string())),
+            (1, Some("cert-1".to_owned())),
             (2, None),
-            (3, Some("cert-3".to_string())),
+            (3, Some("cert-3".to_owned())),
         ]);
 
         assert_eq!(
             certs,
-            HashMap::from([(1, "cert-1".to_string()), (3, "cert-3".to_string())])
+            HashMap::from([(1, "cert-1".to_owned()), (3, "cert-3".to_owned())])
         );
     }
 
@@ -86,7 +86,7 @@ mod tests {
         let mut gateway_with_new_cert =
             create_gateway(&pool, network.id, "gateway-with-new-cert", Some("cert-3")).await;
 
-        let (tx, rx) = watch::channel(Arc::new(HashMap::from([(999, "stale-cert".to_string())])));
+        let (tx, rx) = watch::channel(Arc::new(HashMap::from([(999, "stale-cert".to_owned())])));
         let mut lagging_rx = rx.clone();
         let mut rx = rx;
 
@@ -99,21 +99,21 @@ mod tests {
 
         let published = Arc::clone(&rx.borrow_and_update());
         let expected = HashMap::from([
-            (gateway_with_cert.id, "cert-1".to_string()),
-            (gateway_with_new_cert.id, "cert-3".to_string()),
+            (gateway_with_cert.id, "cert-1".to_owned()),
+            (gateway_with_new_cert.id, "cert-3".to_owned()),
         ]);
 
         assert_eq!(published.as_ref(), &expected);
         assert!(!published.contains_key(&gateway_without_cert.id));
         assert!(!published.contains_key(&999));
 
-        gateway_with_cert.certificate_serial = Some("cert-2".to_string());
+        gateway_with_cert.certificate_serial = Some("cert-2".to_owned());
         gateway_with_cert
             .save(&pool)
             .await
             .expect("failed to update gateway certificate for cert refresh tests");
 
-        gateway_without_cert.certificate_serial = Some("cert-4".to_string());
+        gateway_without_cert.certificate_serial = Some("cert-4".to_owned());
         gateway_without_cert
             .save(&pool)
             .await
@@ -134,8 +134,8 @@ mod tests {
 
         let published = Arc::clone(&rx.borrow_and_update());
         let expected = HashMap::from([
-            (gateway_with_cert.id, "cert-2".to_string()),
-            (gateway_without_cert.id, "cert-4".to_string()),
+            (gateway_with_cert.id, "cert-2".to_owned()),
+            (gateway_without_cert.id, "cert-4".to_owned()),
         ]);
 
         assert_eq!(published.as_ref(), &expected);
@@ -153,8 +153,8 @@ mod tests {
         assert_ne!(
             latest_only.as_ref(),
             &HashMap::from([
-                (gateway_with_cert.id, "cert-1".to_string()),
-                (gateway_with_new_cert.id, "cert-3".to_string()),
+                (gateway_with_cert.id, "cert-1".to_owned()),
+                (gateway_with_new_cert.id, "cert-3".to_owned()),
             ])
         );
     }
@@ -167,10 +167,10 @@ mod tests {
     ) -> Gateway<Id> {
         let mut gateway = Gateway::new(
             location_id,
-            name.to_string(),
-            "127.0.0.1".to_string(),
+            name.to_owned(),
+            "127.0.0.1".to_owned(),
             51820,
-            "test-admin".to_string(),
+            "test-admin".to_owned(),
         );
         gateway.certificate_serial = certificate.map(str::to_owned);
 

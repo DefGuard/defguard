@@ -47,7 +47,7 @@ async fn test_destination_crud(_: PgPoolOptions, options: PgConnectOptions) {
         .await
         .json()
         .await;
-    destination.name = "modified".to_string();
+    destination.name = "modified".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)
@@ -224,7 +224,7 @@ async fn test_destination_modify_pending_child_updates_in_place(
         .await;
 
     let mut first_update = applied_parent_before_update.clone();
-    first_update.name = "destination pending child".to_string();
+    first_update.name = "destination pending child".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&first_update)
@@ -243,7 +243,7 @@ async fn test_destination_modify_pending_child_updates_in_place(
     assert_eq!(pending_child_before_update.parent_id, Some(1));
 
     let mut pending_child_update = pending_child_before_update.clone();
-    pending_child_update.name = "destination pending child updated".to_string();
+    pending_child_update.name = "destination pending child updated".to_owned();
     let response = client
         .put("/api/v1/acl/destination/2")
         .json(&pending_child_update)
@@ -285,7 +285,7 @@ async fn test_destination_modify_pending_child_updates_in_place(
     assert_eq!(applied_parent_after_update.parent_id, None);
 
     let mut expected_pending_child = pending_child_before_update.clone();
-    expected_pending_child.name = "destination pending child updated".to_string();
+    expected_pending_child.name = "destination pending child updated".to_owned();
     assert_eq!(updated_pending_child, expected_pending_child);
 
     let pending_child_after_update: ApiAclDestination = client
@@ -363,7 +363,7 @@ async fn test_destination_delete(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(count_destinations(&pool).await, 1);
 
     // modify destination
-    destination.name = "modified".to_string();
+    destination.name = "modified".to_owned();
     let response = client
         .put("/api/v1/acl/destination/2")
         .json(&destination)
@@ -378,7 +378,7 @@ async fn test_destination_delete(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(count_destinations(&pool).await, 1);
 
     // modify destination again
-    destination.name = "modified again".to_string();
+    destination.name = "modified again".to_owned();
     let response = client
         .put("/api/v1/acl/destination/2")
         .json(&destination)
@@ -480,7 +480,7 @@ async fn test_destination_application(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(destination.rules, vec![1]);
 
     // modify destination
-    destination.name = "modified".to_string();
+    destination.name = "modified".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)
@@ -552,7 +552,7 @@ async fn test_destination_audit_fields_track_acting_user_across_mutations(
     let created_modified_at = created_destination_row.modified_at;
 
     let mut destination_update = created_destination.clone();
-    destination_update.name = "destination updated by hpotter".to_string();
+    destination_update.name = "destination updated by hpotter".to_owned();
     let response = client
         .put(format!(
             "/api/v1/acl/destination/{}",
@@ -630,7 +630,7 @@ async fn test_destination_apply_after_delete_recreate_preserves_rule_association
     assert_eq!(applied_parent_before_update.rules, vec![1]);
 
     let mut first_update = applied_parent_before_update.clone();
-    first_update.name = "destination pending child".to_string();
+    first_update.name = "destination pending child".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&first_update)
@@ -657,7 +657,7 @@ async fn test_destination_apply_after_delete_recreate_preserves_rule_association
         .await
         .json()
         .await;
-    recreated_child_update.name = "destination pending child recreated".to_string();
+    recreated_child_update.name = "destination pending child recreated".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&recreated_child_update)
@@ -732,7 +732,7 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
         .await
         .json()
         .await;
-    destination_1.name = "modified 1".to_string();
+    destination_1.name = "modified 1".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination_1)
@@ -745,7 +745,7 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
         .await
         .json()
         .await;
-    destination_2.name = "modified 2".to_string();
+    destination_2.name = "modified 2".to_owned();
     let response = client
         .put("/api/v1/acl/destination/2")
         .json(&destination_2)
@@ -758,7 +758,7 @@ async fn test_multiple_destinations_application(_: PgPoolOptions, options: PgCon
         .await
         .json()
         .await;
-    destination_3.name = "modified 3".to_string();
+    destination_3.name = "modified 3".to_owned();
     let response = client
         .put("/api/v1/acl/destination/3")
         .json(&destination_3)
@@ -919,8 +919,8 @@ async fn test_destination_port_bounds(_: PgPoolOptions, options: PgConnectOption
     authenticate_admin(&mut client).await;
 
     let mut destination = make_destination();
-    destination.name = "destination-max-port".to_string();
-    destination.ports = "65535".to_string();
+    destination.name = "destination-max-port".to_owned();
+    destination.ports = "65535".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -929,8 +929,8 @@ async fn test_destination_port_bounds(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut destination = make_destination();
-    destination.name = "destination-too-large-port".to_string();
-    destination.ports = "65536".to_string();
+    destination.name = "destination-too-large-port".to_owned();
+    destination.ports = "65536".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -939,8 +939,8 @@ async fn test_destination_port_bounds(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     let mut destination = make_destination();
-    destination.name = "destination-max-range".to_string();
-    destination.ports = "65534-65535".to_string();
+    destination.name = "destination-max-range".to_owned();
+    destination.ports = "65534-65535".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -949,8 +949,8 @@ async fn test_destination_port_bounds(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut destination = make_destination();
-    destination.name = "destination-too-large-range".to_string();
-    destination.ports = "65535-65536".to_string();
+    destination.name = "destination-too-large-range".to_owned();
+    destination.ports = "65535-65536".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -975,8 +975,8 @@ async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options:
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut destination = make_destination();
-    destination.name = "destination-reversed-range".to_string();
-    destination.ports = "200-100".to_string();
+    destination.name = "destination-reversed-range".to_owned();
+    destination.ports = "200-100".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -985,8 +985,8 @@ async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options:
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     let mut destination = make_destination();
-    destination.name = "destination-malformed-range".to_string();
-    destination.ports = "1-2-3".to_string();
+    destination.name = "destination-malformed-range".to_owned();
+    destination.ports = "1-2-3".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&destination)
@@ -1000,7 +1000,7 @@ async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options:
         .await
         .json()
         .await;
-    destination.ports = "200-100".to_string();
+    destination.ports = "200-100".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)
@@ -1008,7 +1008,7 @@ async fn test_destination_rejects_invalid_port_ranges(_: PgPoolOptions, options:
         .await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
-    destination.ports = "1-2-3".to_string();
+    destination.ports = "1-2-3".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)
@@ -1051,8 +1051,8 @@ async fn test_destination_rejects_invalid_address_ranges(
         ("destination-trailing-text-ipv6-prefix", "2001:db8::1/64foo"),
     ] {
         let mut invalid_destination = make_destination();
-        invalid_destination.name = name.to_string();
-        invalid_destination.addresses = addresses.to_string();
+        invalid_destination.name = name.to_owned();
+        invalid_destination.addresses = addresses.to_owned();
         let response = client
             .post("/api/v1/acl/destination")
             .json(&invalid_destination)
@@ -1066,8 +1066,8 @@ async fn test_destination_rejects_invalid_address_ranges(
     }
 
     let mut valid_destination = make_destination();
-    valid_destination.name = "destination-valid-address-range".to_string();
-    valid_destination.addresses = "10.0.0.1-10.0.0.2".to_string();
+    valid_destination.name = "destination-valid-address-range".to_owned();
+    valid_destination.addresses = "10.0.0.1-10.0.0.2".to_owned();
     let response = client
         .post("/api/v1/acl/destination")
         .json(&valid_destination)
@@ -1093,7 +1093,7 @@ async fn test_destination_rejects_invalid_address_ranges(
         "10.0.0.1/0x18",
         "2001:db8::1/64foo",
     ] {
-        destination.addresses = addresses.to_string();
+        destination.addresses = addresses.to_owned();
         let response = client
             .put("/api/v1/acl/destination/1")
             .json(&destination)
@@ -1106,7 +1106,7 @@ async fn test_destination_rejects_invalid_address_ranges(
         );
     }
 
-    destination.addresses = "2001:db8::1-2001:db8::2".to_string();
+    destination.addresses = "2001:db8::1-2001:db8::2".to_owned();
     let response = client
         .put("/api/v1/acl/destination/1")
         .json(&destination)

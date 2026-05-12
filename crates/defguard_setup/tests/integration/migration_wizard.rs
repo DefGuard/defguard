@@ -31,7 +31,7 @@ async fn assert_migration_step(pool: &sqlx::PgPool, expected_variant: &str) {
         serde_json::to_value(&state.current_step).expect("Failed to serialize migration step");
     assert_eq!(
         serialized,
-        serde_json::Value::String(expected_variant.to_string()),
+        serde_json::Value::String(expected_variant.to_owned()),
         "Expected migration step '{expected_variant}', got {serialized}"
     );
 }

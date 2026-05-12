@@ -145,8 +145,8 @@ pub(crate) async fn create_device_for_network(
     let user = User::new(
         username,
         Some("pass123"),
-        "Peer".to_string(),
-        "Test".to_string(),
+        "Peer".to_owned(),
+        "Test".to_owned(),
         email,
         None,
     )
@@ -154,8 +154,8 @@ pub(crate) async fn create_device_for_network(
     .await
     .expect("failed to create test user");
     let device = Device::new(
-        device_name.to_string(),
-        device_pubkey.to_string(),
+        device_name.to_owned(),
+        device_pubkey.to_owned(),
         user.id,
         DeviceType::User,
         None,
@@ -289,7 +289,7 @@ pub(crate) fn assert_peer_update(
                 peer.allowed_ips,
                 expected_allowed_ips
                     .iter()
-                    .map(|allowed_ip| allowed_ip.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect::<Vec<_>>()
             );
             assert_eq!(peer.preshared_key.as_deref(), expected_preshared_key);
@@ -327,7 +327,7 @@ pub(crate) fn assert_network_create_update(
         })) => {
             assert_eq!(update_type, UpdateType::Create as i32);
             assert_eq!(network.name, expected_network_name);
-            assert_eq!(network.addresses, vec![expected_address.to_string()]);
+            assert_eq!(network.addresses, vec![expected_address.to_owned()]);
             assert_eq!(network.port, expected_port);
             assert_eq!(network.peers, Vec::new());
             assert_eq!(network.firewall_config, None);
@@ -353,7 +353,7 @@ pub(crate) fn assert_network_modify_update(
         })) => {
             assert_eq!(update_type, UpdateType::Modify as i32);
             assert_eq!(network.name, expected_network_name);
-            assert_eq!(network.addresses, vec![expected_address.to_string()]);
+            assert_eq!(network.addresses, vec![expected_address.to_owned()]);
             assert_eq!(network.port, expected_port);
             assert_eq!(network.peers, Vec::new());
             assert_eq!(network.firewall_config, None);
@@ -370,26 +370,26 @@ pub(crate) fn build_test_firewall_config() -> FirewallConfig {
         rules: vec![FirewallRule {
             id: 101,
             source_addrs: vec![IpAddress {
-                address: Some(Address::IpSubnet("10.10.0.0/24".to_string())),
+                address: Some(Address::IpSubnet("10.10.0.0/24".to_owned())),
             }],
             destination_addrs: vec![IpAddress {
-                address: Some(Address::Ip("198.51.100.20".to_string())),
+                address: Some(Address::Ip("198.51.100.20".to_owned())),
             }],
             destination_ports: vec![Port {
                 port: Some(PortInner::SinglePort(443)),
             }],
             protocols: vec![i32::from(Protocol::Tcp)],
             verdict: i32::from(FirewallPolicy::Deny),
-            comment: Some("block test https destination".to_string()),
+            comment: Some("block test https destination".to_owned()),
             ip_version: i32::from(IpVersion::Ipv4),
         }],
         snat_bindings: vec![SnatBinding {
             id: 202,
             source_addrs: vec![IpAddress {
-                address: Some(Address::IpSubnet("10.10.0.0/24".to_string())),
+                address: Some(Address::IpSubnet("10.10.0.0/24".to_owned())),
             }],
-            public_ip: "203.0.113.44".to_string(),
-            comment: Some("test snat binding".to_string()),
+            public_ip: "203.0.113.44".to_owned(),
+            comment: Some("test snat binding".to_owned()),
         }],
     }
 }

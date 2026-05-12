@@ -39,7 +39,7 @@ async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
 
     // update
     let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
-    alias.name = "modified".to_string();
+    alias.name = "modified".to_owned();
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_alias: ApiAclAlias = response.json().await;
@@ -157,7 +157,7 @@ async fn test_alias_modify_pending_child_updates_in_place(
         client.get("/api/v1/acl/alias/1").send().await.json().await;
 
     let mut first_update = applied_parent_before_update.clone();
-    first_update.name = "alias pending child".to_string();
+    first_update.name = "alias pending child".to_owned();
     let response = client
         .put("/api/v1/acl/alias/1")
         .json(&first_update)
@@ -172,7 +172,7 @@ async fn test_alias_modify_pending_child_updates_in_place(
     assert_eq!(pending_child_before_update.parent_id, Some(1));
 
     let mut pending_child_update = pending_child_before_update.clone();
-    pending_child_update.name = "alias pending child updated".to_string();
+    pending_child_update.name = "alias pending child updated".to_owned();
     let response = client
         .put("/api/v1/acl/alias/2")
         .json(&pending_child_update)
@@ -208,7 +208,7 @@ async fn test_alias_modify_pending_child_updates_in_place(
     assert_eq!(applied_parent_after_update.parent_id, None);
 
     let mut expected_pending_child = pending_child_before_update.clone();
-    expected_pending_child.name = "alias pending child updated".to_string();
+    expected_pending_child.name = "alias pending child updated".to_owned();
     assert_eq!(updated_pending_child, expected_pending_child);
 
     let pending_child_after_update: ApiAclAlias =
@@ -265,7 +265,7 @@ async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
 
     // modify alias
-    alias.name = "modified".to_string();
+    alias.name = "modified".to_owned();
     let response = client.put("/api/v1/acl/alias/2").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
@@ -276,7 +276,7 @@ async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
 
     // modify alias again
-    alias.name = "modified again".to_string();
+    alias.name = "modified again".to_owned();
     let response = client.put("/api/v1/acl/alias/2").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
@@ -342,7 +342,7 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(alias.rules, vec![1]);
 
     // modify alias
-    alias.name = "modified".to_string();
+    alias.name = "modified".to_owned();
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
@@ -400,7 +400,7 @@ async fn test_alias_audit_fields_track_acting_user_across_mutations(
     let created_modified_at = created_alias_row.modified_at;
 
     let mut alias_update = created_alias.clone();
-    alias_update.name = "alias updated by hpotter".to_string();
+    alias_update.name = "alias updated by hpotter".to_owned();
     let response = client
         .put(format!("/api/v1/acl/alias/{}", created_alias.id))
         .json(&alias_update)
@@ -461,7 +461,7 @@ async fn test_alias_apply_after_reedit_preserves_rule_association(
     assert_eq!(applied_parent_before_update.rules, vec![1]);
 
     let mut first_update = applied_parent_before_update.clone();
-    first_update.name = "alias pending child".to_string();
+    first_update.name = "alias pending child".to_owned();
     let response = client
         .put("/api/v1/acl/alias/1")
         .json(&first_update)
@@ -475,7 +475,7 @@ async fn test_alias_apply_after_reedit_preserves_rule_association(
     assert_eq!(pending_child_before_reedit.parent_id, Some(1));
 
     let mut second_update = pending_child_before_reedit.clone();
-    second_update.name = "alias pending child updated".to_string();
+    second_update.name = "alias pending child updated".to_owned();
     let response = client
         .put("/api/v1/acl/alias/2")
         .json(&second_update)
@@ -538,7 +538,7 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
 
     // modify aliases
     let mut alias_1: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
-    alias_1.name = "modified 1".to_string();
+    alias_1.name = "modified 1".to_owned();
     let response = client
         .put("/api/v1/acl/alias/1")
         .json(&alias_1)
@@ -546,7 +546,7 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let mut alias_2: ApiAclAlias = client.get("/api/v1/acl/alias/2").send().await.json().await;
-    alias_2.name = "modified 2".to_string();
+    alias_2.name = "modified 2".to_owned();
     let response = client
         .put("/api/v1/acl/alias/2")
         .json(&alias_2)
@@ -554,7 +554,7 @@ async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectO
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let mut alias_3: ApiAclAlias = client.get("/api/v1/acl/alias/3").send().await.json().await;
-    alias_3.name = "modified 3".to_string();
+    alias_3.name = "modified 3".to_owned();
     let response = client
         .put("/api/v1/acl/alias/3")
         .json(&alias_3)
@@ -595,7 +595,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
     authenticate_admin(&mut client).await;
 
     let mut first_alias = make_alias();
-    first_alias.name = "alias 1".to_string();
+    first_alias.name = "alias 1".to_owned();
     let response = client
         .post("/api/v1/acl/alias")
         .json(&first_alias)
@@ -604,7 +604,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut second_alias = make_alias();
-    second_alias.name = "alias 2".to_string();
+    second_alias.name = "alias 2".to_owned();
     let response = client
         .post("/api/v1/acl/alias")
         .json(&second_alias)
@@ -613,7 +613,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut first_rule = make_rule();
-    first_rule.name = "rule 1".to_string();
+    first_rule.name = "rule 1".to_owned();
     first_rule.aliases = vec![1];
     let response = client
         .post("/api/v1/acl/rule")
@@ -623,7 +623,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut second_rule = make_rule();
-    second_rule.name = "rule 2".to_string();
+    second_rule.name = "rule 2".to_owned();
     second_rule.aliases = vec![2];
     let response = client
         .post("/api/v1/acl/rule")
@@ -634,7 +634,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
 
     let mut first_alias_update: ApiAclAlias =
         client.get("/api/v1/acl/alias/1").send().await.json().await;
-    first_alias_update.name = "alias 1 updated".to_string();
+    first_alias_update.name = "alias 1 updated".to_owned();
     let response = client
         .put("/api/v1/acl/alias/1")
         .json(&first_alias_update)
@@ -644,7 +644,7 @@ async fn test_alias_bulk_apply_preserves_selected_and_unselected_associations(
 
     let mut second_alias_update: ApiAclAlias =
         client.get("/api/v1/acl/alias/2").send().await.json().await;
-    second_alias_update.name = "alias 2 updated".to_string();
+    second_alias_update.name = "alias 2 updated".to_owned();
     let response = client
         .put("/api/v1/acl/alias/2")
         .json(&second_alias_update)
@@ -747,26 +747,26 @@ async fn test_alias_port_bounds(_: PgPoolOptions, options: PgConnectOptions) {
     authenticate_admin(&mut client).await;
 
     let mut alias = make_alias();
-    alias.name = "alias-max-port".to_string();
-    alias.ports = "65535".to_string();
+    alias.name = "alias-max-port".to_owned();
+    alias.ports = "65535".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut alias = make_alias();
-    alias.name = "alias-too-large-port".to_string();
-    alias.ports = "65536".to_string();
+    alias.name = "alias-too-large-port".to_owned();
+    alias.ports = "65536".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     let mut alias = make_alias();
-    alias.name = "alias-max-range".to_string();
-    alias.ports = "65534-65535".to_string();
+    alias.name = "alias-max-range".to_owned();
+    alias.ports = "65534-65535".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut alias = make_alias();
-    alias.name = "alias-too-large-range".to_string();
-    alias.ports = "65535-65536".to_string();
+    alias.name = "alias-too-large-range".to_owned();
+    alias.ports = "65535-65536".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
@@ -783,23 +783,23 @@ async fn test_alias_rejects_invalid_port_ranges(_: PgPoolOptions, options: PgCon
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let mut alias = make_alias();
-    alias.name = "alias-reversed-range".to_string();
-    alias.ports = "200-100".to_string();
+    alias.name = "alias-reversed-range".to_owned();
+    alias.ports = "200-100".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     let mut alias = make_alias();
-    alias.name = "alias-malformed-range".to_string();
-    alias.ports = "1-2-3".to_string();
+    alias.name = "alias-malformed-range".to_owned();
+    alias.ports = "1-2-3".to_owned();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
-    alias.ports = "200-100".to_string();
+    alias.ports = "200-100".to_owned();
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
-    alias.ports = "1-2-3".to_string();
+    alias.ports = "1-2-3".to_owned();
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
@@ -831,8 +831,8 @@ async fn test_alias_rejects_invalid_address_ranges(_: PgPoolOptions, options: Pg
         ("alias-trailing-text-ipv6-prefix", "2001:db8::1/64foo"),
     ] {
         let mut invalid_alias = make_alias();
-        invalid_alias.name = name.to_string();
-        invalid_alias.addresses = addresses.to_string();
+        invalid_alias.name = name.to_owned();
+        invalid_alias.addresses = addresses.to_owned();
         let response = client
             .post("/api/v1/acl/alias")
             .json(&invalid_alias)
@@ -846,8 +846,8 @@ async fn test_alias_rejects_invalid_address_ranges(_: PgPoolOptions, options: Pg
     }
 
     let mut valid_alias = make_alias();
-    valid_alias.name = "alias-valid-address-range".to_string();
-    valid_alias.addresses = "10.0.0.1-10.0.0.2".to_string();
+    valid_alias.name = "alias-valid-address-range".to_owned();
+    valid_alias.addresses = "10.0.0.1-10.0.0.2".to_owned();
     let response = client
         .post("/api/v1/acl/alias")
         .json(&valid_alias)
@@ -868,7 +868,7 @@ async fn test_alias_rejects_invalid_address_ranges(_: PgPoolOptions, options: Pg
         "10.0.0.1/0x18",
         "2001:db8::1/64foo",
     ] {
-        alias.addresses = addresses.to_string();
+        alias.addresses = addresses.to_owned();
         let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
         assert_eq!(
             response.status(),
@@ -877,7 +877,7 @@ async fn test_alias_rejects_invalid_address_ranges(_: PgPoolOptions, options: Pg
         );
     }
 
-    alias.addresses = "2001:db8::1-2001:db8::2".to_string();
+    alias.addresses = "2001:db8::1-2001:db8::2".to_owned();
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 }

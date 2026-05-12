@@ -107,7 +107,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 
     // set test secret for generating JWT tokens
     let mut settings = Settings::get_current_settings();
-    settings.secret_key = Some(TEST_SECRET_KEY.to_string());
+    settings.secret_key = Some(TEST_SECRET_KEY.to_owned());
     update_current_settings(pool, settings)
         .await
         .expect("Failed to update settings");
@@ -135,7 +135,7 @@ pub(crate) async fn make_grpc_test_server(pool: &PgPool) -> TestGrpcServer {
 pub(crate) fn create_yubibridge_jwt(username: &str) -> String {
     Claims::new(
         ClaimsType::YubiBridge,
-        username.to_string(),
+        username.to_owned(),
         String::new(),
         u32::MAX.into(),
     )
@@ -146,8 +146,8 @@ pub(crate) fn create_yubibridge_jwt(username: &str) -> String {
 pub(crate) fn create_gateway_jwt(username: &str, client_id: &str) -> String {
     Claims::new(
         ClaimsType::Gateway,
-        username.to_string(),
-        client_id.to_string(),
+        username.to_owned(),
+        client_id.to_owned(),
         u32::MAX.into(),
     )
     .to_jwt()

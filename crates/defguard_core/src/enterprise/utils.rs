@@ -12,16 +12,16 @@ pub(crate) trait Next {
 
 impl Next for IpAddr {
     /// Returns the next IP address in sequence, handling overflow by wrapping.
-    fn next(&self) -> IpAddr {
+    fn next(&self) -> Self {
         match self {
-            IpAddr::V4(ipv4) => IpAddr::V4(Ipv4Addr::from_bits(ipv4.to_bits().wrapping_add(1))),
-            IpAddr::V6(ipv6) => IpAddr::V6(Ipv6Addr::from_bits(ipv6.to_bits().wrapping_add(1))),
+            Self::V4(ipv4) => Self::V4(Ipv4Addr::from_bits(ipv4.to_bits().wrapping_add(1))),
+            Self::V6(ipv6) => Self::V6(Ipv6Addr::from_bits(ipv6.to_bits().wrapping_add(1))),
         }
     }
 }
 
 impl Next for u16 {
-    fn next(&self) -> u16 {
+    fn next(&self) -> Self {
         self.wrapping_add(1)
     }
 }

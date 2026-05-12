@@ -513,8 +513,8 @@ async fn test_broadcast_https_certs_reaches_proxy(_: PgPoolOptions, options: PgC
     wait_for_proxy_connection_state(&context.pool, proxy_a.id, true).await;
     wait_for_proxy_connection_state(&context.pool, proxy_b.id, true).await;
 
-    let cert_pem = "-----BEGIN CERTIFICATE-----\nTESTCERT\n-----END CERTIFICATE-----\n".to_string();
-    let key_pem = "-----BEGIN PRIVATE KEY-----\nTESTKEY\n-----END PRIVATE KEY-----\n".to_string();
+    let cert_pem = "-----BEGIN CERTIFICATE-----\nTESTCERT\n-----END CERTIFICATE-----\n".to_owned();
+    let key_pem = "-----BEGIN PRIVATE KEY-----\nTESTKEY\n-----END PRIVATE KEY-----\n".to_owned();
 
     context
         .proxy_control_tx

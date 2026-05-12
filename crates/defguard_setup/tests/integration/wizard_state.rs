@@ -139,9 +139,9 @@ async fn test_wizard_state_auto_adoption(_: PgPoolOptions, options: PgConnectOpt
         .expect("Failed to initialize settings");
 
     let mut location = WireguardNetwork::new(
-        "auto-net".to_string(),
+        "auto-net".to_owned(),
         51820,
-        "1.2.3.4".to_string(),
+        "1.2.3.4".to_owned(),
         None,
         ["0.0.0.0/0".parse().unwrap()],
         false,

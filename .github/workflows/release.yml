@@ -28,6 +28,7 @@ jobs:
     name: Build Release Docker image
     uses: ./.github/workflows/build-docker.yml
     with:
+      build-version: ${{ github.ref_name }}
       tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
@@ -42,6 +43,7 @@ jobs:
     name: Build Pre-release Docker image
     uses: ./.github/workflows/build-docker.yml
     with:
+      build-version: ${{ github.ref_name }}
       tags: |
         type=raw,value=pre-release
         type=semver,pattern={{version}}
@@ -86,6 +88,7 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           echo Version: $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "DEFGUARD_BUILD_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -138,7 +141,7 @@ jobs:
       - name: Build FreeBSD binary
         run: |
           rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
-          ssh root@freebsd 'cd work/defguard && cargo build --locked --release'
+          ssh root@freebsd "cd work/defguard && env DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release"
           scp root@freebsd:work/defguard/target/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
           tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd

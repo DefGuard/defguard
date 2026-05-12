@@ -134,7 +134,7 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     );
     assert_eq!(network.prvkey, "");
     assert_eq!(network.endpoint, "192.168.1.1");
-    assert_eq!(network.dns, Some("10.0.0.2".to_string()));
+    assert_eq!(network.dns, Some("10.0.0.2".to_owned()));
     assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
     assert_eq!(network.connected_at, None);
     let event = wg_rx.try_recv().unwrap();

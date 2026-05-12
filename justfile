@@ -36,4 +36,10 @@ query-data:
     cargo sqlx prepare --workspace -- --all-targets --tests
 
 fix-clippy:
-    cargo clippy --all-targets --all-features --fix --allow-dirty
+    cargo clippy --all-targets --all-features --fix --allow-dirty -- \
+        -W clippy::uninlined_format_args \
+        -W clippy::use_self \
+        -W clippy::redundant_closure_for_method_calls \
+        -W clippy::cloned_instead_of_copied \
+        -W clippy::str_to_string \
+        -W clippy::explicit_iter_loop

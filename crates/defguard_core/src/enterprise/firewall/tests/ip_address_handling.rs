@@ -31,28 +31,28 @@ fn test_merge_v4_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::Ip("10.0.8.127".to_string())),
+                address: Some(Address::Ip("10.0.8.127".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.8.128/25".to_string())),
+                address: Some(Address::IpSubnet("10.0.8.128/25".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.9.0/24".to_string())),
+                address: Some(Address::IpSubnet("10.0.9.0/24".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.10.0/27".to_string())),
+                address: Some(Address::IpSubnet("10.0.10.0/27".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("10.0.20.20".to_string())),
+                address: Some(Address::Ip("10.0.20.20".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.60.20/30".to_string())),
+                address: Some(Address::IpSubnet("10.0.60.20/30".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.60.24/31".to_string())),
+                address: Some(Address::IpSubnet("10.0.60.24/31".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("192.168.0.20".to_string())),
+                address: Some(Address::Ip("192.168.0.20".to_owned())),
             },
         ]
     );
@@ -71,10 +71,10 @@ fn test_merge_v4_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.10.0/30".to_string())),
+                address: Some(Address::IpSubnet("10.0.10.0/30".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("10.0.10.20".to_string())),
+                address: Some(Address::Ip("10.0.10.20".to_owned())),
             },
         ]
     );
@@ -98,25 +98,25 @@ fn test_merge_v6_addrs() {
         merged_addrs,
         [
             IpAddress {
-                address: Some(Address::Ip("2001:db8:1::1".to_string()))
+                address: Some(Address::Ip("2001:db8:1::1".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:1::2/127".to_string()))
+                address: Some(Address::IpSubnet("2001:db8:1::2/127".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:1::4/126".to_string()))
+                address: Some(Address::IpSubnet("2001:db8:1::4/126".to_owned()))
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:1::8".to_string()))
+                address: Some(Address::Ip("2001:db8:1::8".to_owned()))
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:2::1".to_string()))
+                address: Some(Address::Ip("2001:db8:2::1".to_owned()))
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8:3::1".to_string()))
+                address: Some(Address::Ip("2001:db8:3::1".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:3::2/127".to_string()))
+                address: Some(Address::IpSubnet("2001:db8:3::2/127".to_owned()))
             }
         ]
     );
@@ -134,10 +134,10 @@ fn test_merge_addrs_extracts_ipv4_subnets() {
         result,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_string()))
+                address: Some(Address::IpSubnet("192.168.1.0/24".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.2.0/24".to_string()))
+                address: Some(Address::IpSubnet("192.168.2.0/24".to_owned()))
             },
         ]
     );
@@ -155,10 +155,10 @@ fn test_merge_addrs_extracts_ipv6_subnets() {
         result,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8::/32".to_string()))
+                address: Some(Address::IpSubnet("2001:db8::/32".to_owned()))
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db9::/112".to_string()))
+                address: Some(Address::IpSubnet("2001:db9::/112".to_owned()))
             },
         ]
     );
@@ -176,8 +176,8 @@ fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
         result,
         [IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "192.168.1.255".to_string(),
-                end: "192.168.2.0".to_string(),
+                start: "192.168.1.255".to_owned(),
+                end: "192.168.2.0".to_owned(),
             })),
         },]
     );
@@ -194,8 +194,8 @@ fn test_merge_addrs_falls_back_to_range_when_no_subnet_fits() {
         result,
         [IpAddress {
             address: Some(Address::IpRange(IpRange {
-                start: "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff".to_string(),
-                end: "2001:db9::".to_string(),
+                start: "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff".to_owned(),
+                end: "2001:db9::".to_owned(),
             })),
         },]
     );
@@ -212,7 +212,7 @@ fn test_merge_addrs_handles_single_ip() {
     assert_eq!(
         result,
         [IpAddress {
-            address: Some(Address::Ip("192.168.1.1".to_string())),
+            address: Some(Address::Ip("192.168.1.1".to_owned())),
         },]
     );
 
@@ -225,7 +225,7 @@ fn test_merge_addrs_handles_single_ip() {
     assert_eq!(
         result,
         [IpAddress {
-            address: Some(Address::Ip("2001:db8::".to_string())),
+            address: Some(Address::Ip("2001:db8::".to_owned())),
         },]
     );
 }
@@ -300,10 +300,10 @@ fn test_merge_addrs_subnet_at_start_of_range() {
         result,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/26".to_string())),
+                address: Some(Address::IpSubnet("192.168.1.0/26".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("192.168.1.64".to_string())),
+                address: Some(Address::Ip("192.168.1.64".to_owned())),
             },
         ]
     );
@@ -319,10 +319,10 @@ fn test_merge_addrs_subnet_at_start_of_range() {
         result,
         [
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8::/122".to_string())),
+                address: Some(Address::IpSubnet("2001:db8::/122".to_owned())),
             },
             IpAddress {
-                address: Some(Address::Ip("2001:db8::40".to_string())),
+                address: Some(Address::Ip("2001:db8::40".to_owned())),
             },
         ]
     );
@@ -340,10 +340,10 @@ fn test_merge_addrs_subnet_at_end_of_range() {
         result,
         [
             IpAddress {
-                address: Some(Address::Ip("192.168.1.15".to_string())),
+                address: Some(Address::Ip("192.168.1.15".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.16/28".to_string())),
+                address: Some(Address::IpSubnet("192.168.1.16/28".to_owned())),
             },
         ]
     );
@@ -359,10 +359,10 @@ fn test_merge_addrs_subnet_at_end_of_range() {
         result,
         [
             IpAddress {
-                address: Some(Address::Ip("2001:db8::f".to_string())),
+                address: Some(Address::Ip("2001:db8::f".to_owned())),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8::10/124".to_string())),
+                address: Some(Address::IpSubnet("2001:db8::10/124".to_owned())),
             },
         ]
     );

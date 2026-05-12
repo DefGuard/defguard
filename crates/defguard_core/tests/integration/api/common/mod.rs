@@ -98,7 +98,7 @@ pub(crate) async fn make_base_client(
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
     let license = License::new(
-        "test_customer".to_string(),
+        "test_customer".to_owned(),
         false,
         // Permanent license
         None,
@@ -261,7 +261,7 @@ pub(crate) async fn get_db_device(pool: &PgPool, device_id: Id) -> Device<Id> {
 pub(crate) fn generate_test_cert_pem(common_name: &str) -> (String, String) {
     let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
     let key_pair = generate_key_pair().unwrap();
-    let san = vec![common_name.to_string()];
+    let san = vec![common_name.to_owned()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
     let cert = ca.sign_server_cert(&csr).unwrap();
@@ -273,7 +273,7 @@ pub(crate) fn generate_test_cert_pem(common_name: &str) -> (String, String) {
 pub(crate) fn generate_expired_test_cert_pem(common_name: &str) -> (String, String) {
     let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
     let key_pair = generate_key_pair().unwrap();
-    let san = vec![common_name.to_string()];
+    let san = vec![common_name.to_owned()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
     let cert = ca
@@ -299,7 +299,7 @@ pub(crate) async fn setup_ca(pool: &PgPool) {
 /// Override the global license cache with an Enterprise-tier license.
 pub(crate) fn set_enterprise_license() {
     set_cached_license(Some(License::new(
-        "test_customer".to_string(),
+        "test_customer".to_owned(),
         false,
         None,
         None,

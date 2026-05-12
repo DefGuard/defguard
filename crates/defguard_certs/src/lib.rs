@@ -78,7 +78,7 @@ impl CertificateAuthority<'_> {
         email: &str,
         valid_for_days: u32,
     ) -> Result<Self, CertificateError> {
-        let mut ca_params = CertificateParams::new(vec![CA_NAME.to_string()])?;
+        let mut ca_params = CertificateParams::new(vec![CA_NAME.to_owned()])?;
 
         // path length 0 to avoid issuing further CAs
         ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
@@ -162,7 +162,7 @@ impl CertificateAuthority<'_> {
         let key_pair = generate_key_pair()?;
         let csr = Csr::new(
             &key_pair,
-            &[common_name.to_string()],
+            &[common_name.to_owned()],
             vec![(rcgen::DnType::CommonName, common_name)],
         )?;
         let cert = self.sign_client_cert(&csr)?;
@@ -240,7 +240,7 @@ impl CertificateInfo {
         let cn = subject
             .iter_common_name()
             .next()
-            .ok_or_else(|| CertificateError::ParsingError("Common Name not found".to_string()))?
+            .ok_or_else(|| CertificateError::ParsingError("Common Name not found".to_owned()))?
             .as_str()
             .map_err(|e| {
                 CertificateError::ParsingError(format!("Failed to parse CN as string: {e}"))
@@ -251,7 +251,7 @@ impl CertificateInfo {
         let not_after = validity.not_after.to_datetime();
 
         Ok(Self {
-            subject_common_name: cn.to_string(),
+            subject_common_name: cn.to_owned(),
             subject_email,
             not_before: chrono::DateTime::from_timestamp(not_before.unix_timestamp(), 0)
                 .ok_or_else(|| {
@@ -419,7 +419,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let key_pair = KeyPair::generate().unwrap();
         let csr = Csr::new(
             &key_pair,
-            &["example.com".to_string()],
+            &["example.com".to_owned()],
             vec![(rcgen::DnType::CommonName, "example.com")],
         )
         .unwrap();
@@ -445,7 +445,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
-            &["example.com".to_string(), "www.example.com".to_string()],
+            &["example.com".to_owned(), "www.example.com".to_owned()],
             vec![
                 (rcgen::DnType::CommonName, "example.com"),
                 (rcgen::DnType::OrganizationName, "Example Org"),
@@ -464,7 +464,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
-            &["example.com".to_string(), "www.example.com".to_string()],
+            &["example.com".to_owned(), "www.example.com".to_owned()],
             vec![
                 (rcgen::DnType::CommonName, "example.com"),
                 (rcgen::DnType::OrganizationName, "Example Org"),
@@ -494,7 +494,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let cert_key_pair = generate_key_pair().unwrap();
         let csr = Csr::new(
             &cert_key_pair,
-            &["example.com".to_string()],
+            &["example.com".to_owned()],
             vec![(rcgen::DnType::CommonName, "example.com")],
         )
         .unwrap();
@@ -609,7 +609,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     #[test]
     fn test_csr_verify_hostname_dns_ok() {
         let key = generate_key_pair().unwrap();
-        let csr = Csr::new(&key, &["proxy.example.com".to_string()], vec![]).unwrap();
+        let csr = Csr::new(&key, &["proxy.example.com".to_owned()], vec![]).unwrap();
         assert!(
             csr.verify_hostname("proxy.example.com").is_ok(),
             "matching DNS SAN should pass"
@@ -619,7 +619,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     #[test]
     fn test_csr_verify_hostname_ip_ok() {
         let key = generate_key_pair().unwrap();
-        let csr = Csr::new(&key, &["10.0.0.1".to_string()], vec![]).unwrap();
+        let csr = Csr::new(&key, &["10.0.0.1".to_owned()], vec![]).unwrap();
         assert!(
             csr.verify_hostname("10.0.0.1").is_ok(),
             "matching IP SAN should pass"
@@ -629,7 +629,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
     #[test]
     fn test_csr_verify_hostname_mismatch() {
         let key = generate_key_pair().unwrap();
-        let csr = Csr::new(&key, &["evil.attacker.com".to_string()], vec![]).unwrap();
+        let csr = Csr::new(&key, &["evil.attacker.com".to_owned()], vec![]).unwrap();
         assert!(
             csr.verify_hostname("proxy.example.com").is_err(),
             "mismatched DNS SAN should fail"
@@ -643,7 +643,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let device_key = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
         let csr_built = Csr::new(
             &device_key,
-            &["device.example.com".to_string()],
+            &["device.example.com".to_owned()],
             vec![(rcgen::DnType::CommonName, "device.example.com")],
         )
         .unwrap();
@@ -732,10 +732,7 @@ mHNLSdvm1lY8N5VL6VyZMtaGi1jjF0en7drb
         let key = generate_key_pair().unwrap();
         let csr = Csr::new(
             &key,
-            &[
-                "proxy.example.com".to_string(),
-                "evil.extra.com".to_string(),
-            ],
+            &["proxy.example.com".to_owned(), "evil.extra.com".to_owned()],
             vec![],
         )
         .unwrap();

@@ -28,7 +28,7 @@ pub(crate) struct SmtpSettings {
 
 impl SmtpSettings {
     /// Constructs `SmtpSettings` from `Settings`. Returns error if `SmtpSettings` are incomplete.
-    pub(crate) fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
+    pub(crate) fn from_settings(settings: Settings) -> Result<Self, MailError> {
         if let (Some(server), Some(port), Some(sender)) = (
             settings.smtp_server,
             settings.smtp_port,
@@ -40,9 +40,7 @@ impl SmtpSettings {
                 port,
                 encryption: settings.smtp_encryption,
                 user: settings.smtp_user,
-                password: settings
-                    .smtp_password
-                    .map(|p| p.expose_secret().to_string()),
+                password: settings.smtp_password.map(|p| p.expose_secret().to_owned()),
                 sender,
             })
         } else {

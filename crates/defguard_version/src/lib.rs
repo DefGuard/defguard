@@ -106,7 +106,7 @@ impl FromStr for DefguardComponent {
             "core" => Ok(Self::Core),
             "proxy" => Ok(Self::Proxy),
             "gateway" => Ok(Self::Gateway),
-            _ => Err(Self::Err::InvalidDefguardComponent(s.to_string())),
+            _ => Err(Self::Err::InvalidDefguardComponent(s.to_owned())),
         }
     }
 }
@@ -181,14 +181,14 @@ impl SystemInfo {
         let parts: Vec<&str> = header_value.split(';').collect();
         if parts.len() != 3 {
             return Err(DefguardVersionError::SystemInfoParseError(
-                header_value.to_string(),
+                header_value.to_owned(),
             ));
         }
 
         Ok(Self {
-            os_type: parts[0].to_string(),
-            os_version: parts[1].to_string(),
-            architecture: parts[2].to_string(),
+            os_type: parts[0].to_owned(),
+            os_version: parts[1].to_owned(),
+            architecture: parts[2].to_owned(),
         })
     }
 }
@@ -198,7 +198,7 @@ impl From<os_info::Info> for SystemInfo {
         Self {
             os_type: info.os_type().to_string(),
             os_version: info.version().to_string(),
-            architecture: info.architecture().unwrap_or("?").to_string(),
+            architecture: info.architecture().unwrap_or("?").to_owned(),
         }
     }
 }

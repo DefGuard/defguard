@@ -64,10 +64,10 @@ pub enum MFAMethod {
 impl fmt::Display for MFAMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            MFAMethod::None => "None",
-            MFAMethod::OneTimePassword => "TOTP",
-            MFAMethod::Webauthn => "WebAuthn",
-            MFAMethod::Email => "Email",
+            Self::None => "None",
+            Self::OneTimePassword => "TOTP",
+            Self::Webauthn => "WebAuthn",
+            Self::Email => "Email",
         })
     }
 }
@@ -656,10 +656,7 @@ impl User<Id> {
     }
 
     /// Return all members of group
-    pub async fn find_by_group_name(
-        pool: &PgPool,
-        group_name: &str,
-    ) -> sqlx::Result<Vec<User<Id>>> {
+    pub async fn find_by_group_name(pool: &PgPool, group_name: &str) -> sqlx::Result<Vec<Self>> {
         let users = query_as!(
             Self,
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
@@ -1036,7 +1033,7 @@ impl User<Id> {
         default_admin_pass: &str,
     ) -> Result<(), anyhow::Error> {
         debug!("Checking if some admin user already exists and creating one if not...");
-        let admins = User::find_admins(pool).await?;
+        let admins = Self::find_admins(pool).await?;
         if admins.is_empty() {
             let admin_groups = Group::find_by_permission(pool, Permission::IsAdmin).await?;
             if admin_groups.is_empty() {
@@ -1636,14 +1633,14 @@ mod test {
 
         user.enrollment_pending = false;
         user.password_hash = Some(hash_password("31071980").unwrap());
-        user.openid_sub = Some("sub".to_string());
+        user.openid_sub = Some("sub".to_owned());
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
         assert!(user.is_enrolled());
 
         user.enrollment_pending = false;
         user.password_hash = None;
-        user.openid_sub = Some("sub".to_string());
+        user.openid_sub = Some("sub".to_owned());
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
         assert!(user.is_enrolled());
@@ -1671,7 +1668,7 @@ mod test {
 
         user.enrollment_pending = true;
         user.password_hash = Some(hash_password("31071980").unwrap());
-        user.openid_sub = Some("sub".to_string());
+        user.openid_sub = Some("sub".to_owned());
         user.from_ldap = true;
         user.save(&pool).await.unwrap();
         assert!(!user.is_enrolled());
