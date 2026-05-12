@@ -7,6 +7,11 @@ on:
         description: "List of tags as key-value pair attributes"
         required: false
         type: string
+      build-version:
+        description: "Optional version embedded into compiled Defguard binaries"
+        required: false
+        type: string
+        default: ""
       flavor:
         description: "List of flavors as key-value pair attributes"
         required: false
@@ -63,10 +68,17 @@ jobs:
       - name: Sanitize branch name
         run: echo "SAFE_REF=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
 
+      - name: Resolve build version
+        id: build-version
+        env:
+          INPUT_BUILD_VERSION: ${{ inputs.build-version }}
+        run: echo "value=${INPUT_BUILD_VERSION#v}" >> "$GITHUB_OUTPUT"
+
       - name: Build container
         uses: docker/build-push-action@v7
         with:
           context: .
+          build-args: DEFGUARD_BUILD_VERSION=${{ steps.build-version.outputs.value }}
           platforms: linux/${{ matrix.cpu }}
           provenance: false
           push: true

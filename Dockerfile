@@ -25,6 +25,9 @@ COPY migrations migrations
 RUN cargo chef prepare --bin defguard --recipe-path recipe.json
 
 FROM chef AS builder
+ARG DEFGUARD_BUILD_VERSION
+ENV DEFGUARD_BUILD_VERSION=$DEFGUARD_BUILD_VERSION
+
 # build deps from recipe & cache as docker layer
 COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --bin defguard --release --recipe-path recipe.json
