@@ -29,11 +29,10 @@ use defguard_core::{
         },
         is_business_license_active,
         ldap::utils::ldap_update_user_state,
-        posture::validate_posture,
     },
     grpc::{
         GatewayEvent,
-        proxy::client_mfa::{ClientLoginSession, ClientMfaServer},
+        proxy::{client_mfa::{ClientLoginSession, ClientMfaServer, PostureCheckOutcome}},
     },
     version::{IncompatibleComponents, IncompatibleProxyData, is_proxy_version_supported},
 };
@@ -978,18 +977,23 @@ impl ProxyHandler {
                         Some(defguard_proto::proxy::core_request::Payload::DevicePostureCheck(
                             request,
                         )) => {
-                            match validate_posture(&pool, &request) {
-                                Ok(result) => {
-                                    let preshared_key = todo!();
+                            match self.services.client_mfa.handle_posture_check(request).await {
+                                Ok(PostureCheckOutcome::Approved { preshared_key }) => {
                                     Some(core_response::Payload::DevicePostureCheck(
                                         DevicePostureCheckResponse { preshared_key },
                                     ))
                                 }
-                                Err(err) => Some(core_response::Payload::DevicePostureRejected(
-                                    DevicePostureRejection {
-                                        failed_posture_checks: vec![format!("{:?}", err)],
-                                    },
-                                )),
+                                Ok(PostureCheckOutcome::Rejected { failed_checks }) => {
+                                    Some(core_response::Payload::DevicePostureRejected(
+                                        DevicePostureRejection {
+                                            failed_posture_checks: failed_checks,
+                                        },
+                                    ))
+                                }
+                                Err(err) => {
+                                    error!("Posture check error: {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
                             }
                         }
                     };

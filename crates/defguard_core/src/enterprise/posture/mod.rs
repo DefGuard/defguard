@@ -1,4 +1,5 @@
 use sqlx::PgExecutor;
+use std::fmt;
 use thiserror::Error;
 
 use defguard_proto::enterprise::posture::DevicePostureCheckRequest;
@@ -13,9 +14,19 @@ pub enum PostureCheckError {
     DbError(#[from] sqlx::Error),
 }
 
+#[derive(Debug)]
 pub enum FailureReason {
     OsNotAllowed,
     MissingPostureData,
+}
+
+impl fmt::Display for FailureReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OsNotAllowed => write!(f, "operating system is not allowed"),
+            Self::MissingPostureData => write!(f, "posture data is missing"),
+        }
+    }
 }
 
 pub enum PostureResult {

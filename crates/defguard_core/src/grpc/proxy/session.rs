@@ -18,7 +18,7 @@ use crate::{
 
 /// Helper used to close all existing active sessions while creating a new MFA session
 /// and send relevant gateway updates
-pub(crate) async fn create_new_session(
+pub async fn create_new_session(
     conn: &mut PgConnection,
     location: &WireguardNetwork<Id>,
     user: &User<Id>,

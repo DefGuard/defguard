@@ -22,6 +22,7 @@ use defguard_proto::{
         ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest,
         ClientMfaStartResponse, MfaMethod,
     },
+    enterprise::posture::DevicePostureCheckRequest,
     proxy::{
         self, AwaitRemoteMfaFinishRequest, AwaitRemoteMfaFinishResponse,
         ClientMfaTokenValidationRequest, ClientMfaTokenValidationResponse, CoreResponse,
@@ -41,7 +42,11 @@ use tokio::{
 use tonic::{Code, Status};
 
 use crate::{
-    enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider,
+        is_business_license_active,
+        posture::{PostureCheckError, PostureResult, validate_posture},
+    },
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
     grpc::{GatewayEvent, proxy::session::create_new_session, utils::parse_client_ip_agent},
 };
@@ -761,6 +766,94 @@ impl ClientMfaServer {
 
         Ok(response)
     }
+
+    /// Handles a `PostureCheck` request from the proxy bidi stream.
+    ///
+    /// Validates the posture data, and on success creates a new `VpnClientSession`
+    /// with a generated preshared key. Returns a typed outcome so the caller can
+    /// map it to the appropriate `CoreResponse` payload without needing to know about
+    /// session internals.
+    pub async fn handle_posture_check(
+        &mut self,
+        request: DevicePostureCheckRequest,
+    ) -> Result<PostureCheckOutcome, Status> {
+        debug!(
+            "Handling posture check for device pubkey={} location_id={}",
+            request.pubkey, request.location_id
+        );
+
+        // Evaluate posture (license check + data presence check for now).
+        let posture_result = validate_posture(&self.pool, &request).map_err(|err| {
+            match err {
+                PostureCheckError::NoActiveEnterpriseLicense => {
+                    Status::failed_precondition("enterprise license required for posture checks")
+                }
+                PostureCheckError::DbError(e) => {
+                    error!("DB error during posture validation: {e}");
+                    Status::internal("unexpected error")
+                }
+            }
+        })?;
+
+        if let PostureResult::Fail(reasons) = posture_result {
+            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+            return Ok(PostureCheckOutcome::Rejected { failed_checks });
+        }
+
+        // Posture passed — look up location, device, and user to create the session.
+        let Ok(Some(location)) =
+            WireguardNetwork::find_by_id(&self.pool, request.location_id).await
+        else {
+            error!("Posture check: location {} not found", request.location_id);
+            return Err(Status::invalid_argument("location not found"));
+        };
+
+        let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
+            error!("Posture check: device with pubkey {} not found", request.pubkey);
+            return Err(Status::invalid_argument("device not found"));
+        };
+
+        let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
+            error!("Posture check: user {} not found", device.user_id);
+            return Err(Status::internal("unexpected error"));
+        };
+
+        let key = WireguardNetwork::genkey();
+
+        let mut conn = self.pool.acquire().await.map_err(|err| {
+            error!("Failed to acquire DB connection for posture session: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        create_new_session(
+            &mut conn,
+            &location,
+            &user,
+            &device,
+            None, // posture-only session has no MFA method
+            key.private.clone(),
+            self.wireguard_tx.clone(),
+            self.bidi_event_tx.clone(),
+        )
+        .await?;
+
+        info!(
+            "Posture check passed for device {} (user {}) in location {}. Session created.",
+            device, user.username, location
+        );
+
+        Ok(PostureCheckOutcome::Approved {
+            preshared_key: key.private,
+        })
+    }
+}
+
+/// Result of a [`ClientMfaServer::handle_posture_check`] call.
+pub enum PostureCheckOutcome {
+    /// Posture evaluation passed; the contained key must be returned to the client.
+    Approved { preshared_key: String },
+    /// Posture evaluation failed; the contained list describes which checks failed.
+    Rejected { failed_checks: Vec<String> },
 }
 
 #[cfg(test)]
