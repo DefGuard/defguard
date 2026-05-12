@@ -12,7 +12,7 @@ import { ThemeSpacing } from '../../shared/defguard-ui/types';
 import { TablePageLayout } from '../../shared/layout/TablePageLayout/TablePageLayout';
 import { getLicenseInfoQueryOptions } from '../../shared/query';
 import { canUseEnterpriseFeature, licenseActionCheck } from '../../shared/utils/license';
-import { PostureChecksList } from './PostureChecksList';
+import { PostureChecksTable } from './PostureChecksTable';
 import {
   getPostureCheckTableFilterMessages,
   isPostureCheckFilterValue,
@@ -97,7 +97,7 @@ const PostureChecksContent = () => {
   return (
     <TablePageLayout>
       {postureChecks.length > 0 || columnFilters.length > 0 ? (
-        <PostureChecksList
+        <PostureChecksTable
           addButtonProps={addButtonProps}
           columnFilters={columnFilters}
           filterMessages={filterMessages}

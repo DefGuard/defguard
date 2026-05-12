@@ -38,10 +38,6 @@ type PostureCheckFilterDefinition = {
 const postureCheckFilterDefinitions = {
   'Windows 10': { label: 'Windows 10', requestValue: 'Windows 10' },
   'Windows 11': { label: 'Windows 11', requestValue: 'Windows 11' },
-  'macOS 12 Monterey': {
-    label: 'macOS 12 Monterey',
-    requestValue: 'macOS 12 Monterey',
-  },
   'macOS 13 Ventura': {
     label: 'macOS 13 Ventura',
     requestValue: 'macOS 13 Ventura',
@@ -54,8 +50,13 @@ const postureCheckFilterDefinitions = {
     label: 'macOS 15 Sequoia',
     requestValue: 'macOS 15 Sequoia',
   },
+  'macOS 26 Tahoe': {
+    label: 'macOS 26 Tahoe',
+    requestValue: 'macOS 26 Tahoe',
+  },
   '5.x': { label: 'Kernel 5.x', requestValue: '5.x' },
   '6.x': { label: 'Kernel 6.x', requestValue: '6.x' },
+  '7.x': { label: 'Kernel 7.x', requestValue: '7.x' },
   '17': { label: 'iOS 17+', requestValue: '17' },
   '18': { label: 'iOS 18+', requestValue: '18' },
   '13': { label: 'Android 13+', requestValue: '13' },
@@ -266,7 +267,7 @@ export const mapApiDevicePostureToRow = (posture: ApiDevicePosture): PostureChec
   androidFilters: getOsRuleFilters(getDevicePostureRule(posture, PostureCheckOs.Android)),
   defguard: joinRequirementParts([
     posture.min_client_version ? `Defguard ${posture.min_client_version}+` : null,
-    posture.allow_prerelease_client && 'Prerelease allowed',
+    posture.allow_prerelease_client && 'Pre-release allowed',
   ]),
   defguardFilters: joinFilters([
     mapVersionFilterValue(posture.min_client_version),

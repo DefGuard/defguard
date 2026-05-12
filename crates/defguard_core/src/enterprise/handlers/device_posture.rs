@@ -35,7 +35,7 @@ use crate::{
 pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
 
 /// Valid Linux kernel version families for posture rules.
-pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x"];
+pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x", "7.x"];
 
 /// Returns the list of valid `min_os_version` values for a given OS type.
 /// TODO: consider a better format for storing versions
@@ -44,12 +44,12 @@ pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
     match os_type {
         OsType::Windows => &["Windows 10", "Windows 11"],
         OsType::Macos => &[
-            "macOS 12 Monterey",
             "macOS 13 Ventura",
             "macOS 14 Sonoma",
             "macOS 15 Sequoia",
+            "macOS 26 Tahoe",
         ],
-        OsType::Linux => &[],
+        OsType::Linux => KERNEL_VERSIONS,
         OsType::Ios => &["17", "18"],
         OsType::Android => &["13", "14", "15", "16"],
     }
@@ -297,7 +297,7 @@ enum DefguardRequirementFilter {
 impl DefguardRequirementFilter {
     fn parse(value: &str) -> Option<Self> {
         match value {
-            "Prerelease allowed" => Some(Self::PrereleaseAllowed),
+            "Pre-release allowed" => Some(Self::PrereleaseAllowed),
             _ => None,
         }
     }

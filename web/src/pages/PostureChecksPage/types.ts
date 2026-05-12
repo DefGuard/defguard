@@ -10,8 +10,8 @@ export type PostureCheckOsValue = (typeof PostureCheckOs)[keyof typeof PostureCh
 
 export const postureCheckVersionValues = {
   windows: ['Windows 10', 'Windows 11'],
-  macos: ['macOS 12 Monterey', 'macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia'],
-  linux: ['5.x', '6.x'],
+  macos: ['macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia', 'macOS 26 Tahoe'],
+  linux: ['5.x', '6.x', '7.x'],
   ios: ['17', '18'],
   android: ['13', '14', '15', '16'],
   defguard: ['1.6', '2.0'],
@@ -23,7 +23,7 @@ export const PostureCheckRequirement = {
   AdJoined: 'AD joined',
   SecurityUpdates: 'Security updates',
   DeviceIntegrity: 'Device integrity',
-  PrereleaseAllowed: 'Prerelease allowed',
+  PrereleaseAllowed: 'Pre-release allowed',
 } as const;
 
 type ArrayValues<T extends readonly string[]> = T[number];

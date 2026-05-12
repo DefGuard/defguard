@@ -37,7 +37,7 @@ type Props = {
 
 const columnHelper = createColumnHelper<PostureCheckRow>();
 
-export const PostureChecksList = ({
+export const PostureChecksTable = ({
   addButtonProps,
   columnFilters,
   filterMessages,
