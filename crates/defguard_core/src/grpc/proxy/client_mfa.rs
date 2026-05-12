@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::Utc;
 use defguard_common::{
     auth::claims::{Claims, ClaimsType},
     db::{
@@ -12,7 +11,6 @@ use defguard_common::{
         models::{
             BiometricAuth, BiometricChallenge, Device, User, WireguardNetwork,
             device::{DeviceNetworkInfo, WireguardNetworkDevice},
-            vpn_client_session::{VpnClientMfaMethod, VpnClientSession, VpnClientSessionState},
             wireguard::LocationMfaMode,
         },
     },
@@ -30,7 +28,7 @@ use defguard_proto::{
         core_response::Payload,
     },
 };
-use sqlx::{PgConnection, PgPool};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -45,7 +43,7 @@ use tonic::{Code, Status};
 use crate::{
     enterprise::{db::models::openid_provider::OpenIdProvider, is_business_license_active},
     events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-    grpc::{GatewayEvent, proxy::session::create_new_mfa_session, utils::parse_client_ip_agent},
+    grpc::{GatewayEvent, proxy::session::create_new_session, utils::parse_client_ip_agent},
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
@@ -685,12 +683,12 @@ impl ClientMfaServer {
         let key = WireguardNetwork::genkey();
 
         // create new VPN client session
-        let vpn_client_session = create_new_mfa_session(
+        let vpn_client_session = create_new_session(
             &mut transaction,
             &location,
             &user,
             &device,
-            method.into(),
+            Some(method.into()),
             key.public.clone(),
             self.wireguard_tx.clone(),
             self.bidi_event_tx.clone(),
@@ -794,7 +792,7 @@ mod tests {
     use super::{ClientLoginSession, ClientMfaServer};
     use crate::{
         events::{BidiStreamEvent, BidiStreamEventType, DesktopClientMfaEvent},
-        grpc::{GatewayEvent, proxy::session::create_new_mfa_session},
+        grpc::{GatewayEvent, proxy::session::create_new_session},
     };
 
     const REPLACEMENT_MFA_PRESHARED_KEY: &str = "replacement-mfa-psk";
@@ -824,12 +822,12 @@ mod tests {
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        create_new_mfa_session(
+        create_new_session(
             &mut conn,
             &location,
             &user,
             &device,
-            VpnClientMfaMethod::Totp,
+            Some(VpnClientMfaMethod::Totp),
             REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             server.wireguard_tx.clone(),
             server.bidi_event_tx.clone(),
@@ -900,12 +898,12 @@ mod tests {
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        create_new_mfa_session(
+        create_new_session(
             &mut conn,
             &location,
             &user,
             &device,
-            VpnClientMfaMethod::Totp,
+            Some(VpnClientMfaMethod::Totp),
             REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             server.wireguard_tx.clone(),
             server.bidi_event_tx.clone(),
@@ -960,12 +958,12 @@ mod tests {
         let (server, mut event_rx, mut gateway_rx) = make_server(pool.clone());
         let mut conn = pool.acquire().await.expect("failed to acquire connection");
 
-        create_new_mfa_session(
+        create_new_session(
             &mut conn,
             &location,
             &user,
             &device,
-            VpnClientMfaMethod::Totp,
+            Some(VpnClientMfaMethod::Totp),
             REPLACEMENT_MFA_PRESHARED_KEY.to_string(),
             server.wireguard_tx.clone(),
             server.bidi_event_tx.clone(),
@@ -1101,12 +1099,12 @@ mod tests {
             .await
             .expect("failed to acquire database connection");
 
-        let new_session = create_new_mfa_session(
+        let new_session = create_new_session(
             &mut conn,
             &location,
             &user,
             &device,
-            VpnClientMfaMethod::Totp,
+            Some(VpnClientMfaMethod::Totp),
             NEW_MFA_PRESHARED_KEY.to_string(),
             server.wireguard_tx.clone(),
             server.bidi_event_tx.clone(),

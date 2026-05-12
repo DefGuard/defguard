@@ -18,12 +18,12 @@ use crate::{
 
 /// Helper used to close all existing active sessions while creating a new MFA session
 /// and send relevant gateway updates
-pub(crate) async fn create_new_mfa_session(
+pub(crate) async fn create_new_session(
     conn: &mut PgConnection,
     location: &WireguardNetwork<Id>,
     user: &User<Id>,
     device: &Device<Id>,
-    mfa_method: VpnClientMfaMethod,
+    mfa_method: Option<VpnClientMfaMethod>,
     preshared_key: String,
     wireguard_tx: Sender<GatewayEvent>,
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
@@ -69,7 +69,7 @@ pub(crate) async fn create_new_mfa_session(
 
     // create new MFA session
     let mut session =
-        VpnClientSession::new(location.id, user.id, device.id, None, Some(mfa_method));
+        VpnClientSession::new(location.id, user.id, device.id, None, mfa_method);
     session.preshared_key = Some(preshared_key);
     session.save(conn).await.map_err(|err| {
         error!("Failed to create new VPN client session for device {device} in location {location}: {err}");
