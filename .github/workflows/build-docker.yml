@@ -72,10 +72,7 @@ jobs:
         id: build-version
         env:
           INPUT_BUILD_VERSION: ${{ inputs.build-version }}
-        run: |
-          if [ -n "$INPUT_BUILD_VERSION" ]; then
-            echo "value=${INPUT_BUILD_VERSION#v}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "value=${INPUT_BUILD_VERSION#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build container
         uses: docker/build-push-action@v7
