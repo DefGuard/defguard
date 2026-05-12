@@ -12,7 +12,7 @@ export const postureCheckVersionValues = {
   windows: ['Windows 10', 'Windows 11'],
   macos: ['macOS 13 Ventura', 'macOS 14 Sonoma', 'macOS 15 Sequoia', 'macOS 26 Tahoe'],
   linux: ['5.x', '6.x', '7.x'],
-  ios: ['17', '18'],
+  ios: ['17', '18', '26'],
   android: ['13', '14', '15', '16'],
   defguard: ['1.6', '2.0'],
 } as const;

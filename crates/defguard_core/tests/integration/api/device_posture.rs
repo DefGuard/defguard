@@ -394,20 +394,20 @@ async fn test_device_posture_list_filters_os_and_defguard(
     let android_version = valid_os_versions(&OsType::Android)[2];
 
     let filtered = EditDevicePosture {
-        name: "Filtered posture".to_string(),
+        name: "Filtered posture".to_owned(),
         description: None,
-        min_client_version: Some(CLIENT_VERSIONS[0].to_string()),
+        min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
         allow_prerelease_client: true,
         os_rules: vec![
             ApiOsRule::Windows {
-                min_os_version: Some(windows_version.to_string()),
+                min_os_version: Some(windows_version.to_owned()),
                 disk_encryption_required: Some(true),
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
             },
             ApiOsRule::Android {
-                min_os_version: Some(android_version.to_string()),
+                min_os_version: Some(android_version.to_owned()),
                 device_integrity_required: Some(true),
             },
         ],
@@ -420,12 +420,12 @@ async fn test_device_posture_list_filters_os_and_defguard(
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let other = EditDevicePosture {
-        name: "Other posture".to_string(),
+        name: "Other posture".to_owned(),
         description: None,
         min_client_version: None,
         allow_prerelease_client: false,
         os_rules: vec![ApiOsRule::Windows {
-            min_os_version: Some(valid_os_versions(&OsType::Windows)[1].to_string()),
+            min_os_version: Some(valid_os_versions(&OsType::Windows)[1].to_owned()),
             disk_encryption_required: Some(false),
             antivirus_required: Some(false),
             ad_domain_joined_required: None,

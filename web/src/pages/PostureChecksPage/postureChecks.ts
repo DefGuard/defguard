@@ -59,6 +59,7 @@ const postureCheckFilterDefinitions = {
   '7.x': { label: 'Kernel 7.x', requestValue: '7.x' },
   '17': { label: 'iOS 17+', requestValue: '17' },
   '18': { label: 'iOS 18+', requestValue: '18' },
+  '26': { label: 'iOS 26+', requestValue: '26' },
   '13': { label: 'Android 13+', requestValue: '13' },
   '14': { label: 'Android 14+', requestValue: '14' },
   '15': { label: 'Android 15+', requestValue: '15' },

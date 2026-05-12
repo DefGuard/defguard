@@ -50,7 +50,7 @@ pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
             "macOS 26 Tahoe",
         ],
         OsType::Linux => KERNEL_VERSIONS,
-        OsType::Ios => &["17", "18"],
+        OsType::Ios => &["17", "18", "26"],
         OsType::Android => &["13", "14", "15", "16"],
     }
 }
