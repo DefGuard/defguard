@@ -29,6 +29,7 @@ use defguard_core::{
         },
         is_business_license_active,
         ldap::utils::ldap_update_user_state,
+        posture::validate_posture,
     },
     grpc::{
         GatewayEvent,
@@ -39,6 +40,7 @@ use defguard_core::{
 use defguard_grpc_tls::certs::proxy_mtls_channel;
 use defguard_proto::{
     client_types::AuthFlowType as ProtoAuthFlowType,
+    enterprise::posture::{DevicePostureCheckResponse, DevicePostureRejection},
     proxy::{
         AuthCallbackResponse, AuthInfoResponse, CoreError, CoreRequest, CoreResponse, HttpsCerts,
         InitialInfo, core_request, core_response, proxy_client::ProxyClient,
@@ -972,9 +974,23 @@ impl ProxyHandler {
                                 }
                             }
                             None
-                        },
-                        Some(defguard_proto::proxy::core_request::Payload::DevicePostureCheck(_)) => {
-                            todo!();
+                        }
+                        Some(defguard_proto::proxy::core_request::Payload::DevicePostureCheck(
+                            request,
+                        )) => {
+                            match validate_posture(&pool, &request) {
+                                Ok(result) => {
+                                    let preshared_key = todo!();
+                                    Some(core_response::Payload::DevicePostureCheck(
+                                        DevicePostureCheckResponse { preshared_key },
+                                    ))
+                                }
+                                Err(err) => Some(core_response::Payload::DevicePostureRejected(
+                                    DevicePostureRejection {
+                                        failed_posture_checks: vec![format!("{:?}", err)],
+                                    },
+                                )),
+                            }
                         }
                     };
 

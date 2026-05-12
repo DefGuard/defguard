@@ -61,6 +61,9 @@ pub mod enterprise {
     pub mod firewall {
         pub use crate::generated::defguard::enterprise::firewall::v2::*;
     }
+    pub mod posture {
+        pub use crate::generated::defguard::enterprise::posture::v2::*;
+    }
 }
 
 pub mod client_types {
