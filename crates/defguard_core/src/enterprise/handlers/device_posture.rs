@@ -5,8 +5,10 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
+use axum_extra::extract::Query as AxumExtraQuery;
 use defguard_common::db::{Id, NoId, models::WireguardNetwork};
 use serde::{Deserialize, Serialize};
+use sqlx::{Postgres, QueryBuilder};
 use utoipa::ToSchema;
 
 use crate::{
@@ -33,7 +35,7 @@ use crate::{
 pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
 
 /// Valid Linux kernel version families for posture rules.
-pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x"];
+pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x", "7.x"];
 
 /// Returns the list of valid `min_os_version` values for a given OS type.
 /// TODO: consider a better format for storing versions
@@ -42,13 +44,13 @@ pub fn valid_os_versions(os_type: &OsType) -> &'static [&'static str] {
     match os_type {
         OsType::Windows => &["Windows 10", "Windows 11"],
         OsType::Macos => &[
-            "macOS 12 Monterey",
             "macOS 13 Ventura",
             "macOS 14 Sonoma",
             "macOS 15 Sequoia",
+            "macOS 26 Tahoe",
         ],
-        OsType::Linux => &[],
-        OsType::Ios => &["17", "18"],
+        OsType::Linux => KERNEL_VERSIONS,
+        OsType::Ios => &["17", "18", "26"],
         OsType::Android => &["13", "14", "15", "16"],
     }
 }
@@ -249,6 +251,203 @@ pub struct EditDevicePosture {
     pub os_rules: Vec<ApiOsRule>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct ListDevicePostureFilters {
+    #[serde(default)]
+    pub windows: Vec<String>,
+    #[serde(default)]
+    pub macos: Vec<String>,
+    #[serde(default)]
+    pub linux: Vec<String>,
+    #[serde(default)]
+    pub ios: Vec<String>,
+    #[serde(default)]
+    pub android: Vec<String>,
+    #[serde(default)]
+    pub defguard: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum OsRequirementFilter {
+    DiskEncryption,
+    Antivirus,
+    AdJoined,
+    SecurityUpdates,
+    DeviceIntegrity,
+}
+
+impl OsRequirementFilter {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "Disk encryption" => Some(Self::DiskEncryption),
+            "Antivirus" => Some(Self::Antivirus),
+            "AD joined" => Some(Self::AdJoined),
+            "Security updates" => Some(Self::SecurityUpdates),
+            "Device integrity" => Some(Self::DeviceIntegrity),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum DefguardRequirementFilter {
+    PrereleaseAllowed,
+}
+
+impl DefguardRequirementFilter {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "Pre-release allowed" => Some(Self::PrereleaseAllowed),
+            _ => None,
+        }
+    }
+}
+
+fn append_string_array_filter(
+    query_builder: &mut QueryBuilder<Postgres>,
+    filters: &[String],
+    clause_prefix: &str,
+) {
+    if filters.is_empty() {
+        return;
+    }
+
+    query_builder
+        .push(clause_prefix)
+        .push(" = ANY(")
+        .push_bind(filters.to_vec())
+        .push(")");
+}
+
+fn append_bool_filter(query_builder: &mut QueryBuilder<Postgres>, enabled: bool, clause: &str) {
+    if enabled {
+        query_builder.push(clause);
+    }
+}
+
+fn apply_os_rule_filters(
+    query_builder: &mut QueryBuilder<Postgres>,
+    alias: &str,
+    os_type: OsType,
+    filters: &[String],
+) {
+    if filters.is_empty() {
+        return;
+    }
+
+    let os_type_label = match os_type {
+        OsType::Windows => "windows",
+        OsType::Macos => "macos",
+        OsType::Linux => "linux",
+        OsType::Ios => "ios",
+        OsType::Android => "android",
+    };
+
+    let mut versions = Vec::new();
+    let mut requirements = HashSet::new();
+
+    for filter in filters {
+        match OsRequirementFilter::parse(filter) {
+            Some(requirement) => {
+                requirements.insert(requirement);
+            }
+            None => versions.push(filter.to_string()),
+        }
+    }
+
+    query_builder
+        .push(" AND EXISTS (SELECT 1 FROM device_posture_os_rule ")
+        .push(alias);
+    query_builder
+        .push(" WHERE ")
+        .push(alias)
+        .push(".posture_id = dp.id AND ")
+        .push(alias)
+        .push(".os_type = '")
+        .push(os_type_label)
+        .push("'");
+
+    match os_type {
+        OsType::Windows | OsType::Macos | OsType::Ios | OsType::Android => {
+            append_string_array_filter(
+                query_builder,
+                &versions,
+                &format!(" AND {alias}.min_os_version"),
+            );
+        }
+        OsType::Linux => {
+            append_string_array_filter(
+                query_builder,
+                &versions,
+                &format!(" AND {alias}.min_kernel_version"),
+            );
+        }
+    }
+
+    append_bool_filter(
+        query_builder,
+        requirements.contains(&OsRequirementFilter::DiskEncryption),
+        &format!(" AND COALESCE({alias}.disk_encryption_required, false) = true"),
+    );
+    append_bool_filter(
+        query_builder,
+        requirements.contains(&OsRequirementFilter::Antivirus),
+        &format!(" AND COALESCE({alias}.antivirus_required, false) = true"),
+    );
+    append_bool_filter(
+        query_builder,
+        requirements.contains(&OsRequirementFilter::AdJoined),
+        &format!(" AND COALESCE({alias}.ad_domain_joined_required, false) = true"),
+    );
+    append_bool_filter(
+        query_builder,
+        requirements.contains(&OsRequirementFilter::SecurityUpdates),
+        &format!(" AND COALESCE({alias}.windows_security_update_current, false) = true"),
+    );
+    append_bool_filter(
+        query_builder,
+        requirements.contains(&OsRequirementFilter::DeviceIntegrity),
+        &format!(" AND COALESCE({alias}.device_integrity_required, false) = true"),
+    );
+
+    query_builder.push(")");
+}
+
+fn apply_device_posture_filters(
+    query_builder: &mut QueryBuilder<Postgres>,
+    filters: &ListDevicePostureFilters,
+) {
+    apply_os_rule_filters(query_builder, "w", OsType::Windows, &filters.windows);
+    apply_os_rule_filters(query_builder, "m", OsType::Macos, &filters.macos);
+    apply_os_rule_filters(query_builder, "l", OsType::Linux, &filters.linux);
+    apply_os_rule_filters(query_builder, "i", OsType::Ios, &filters.ios);
+    apply_os_rule_filters(query_builder, "a", OsType::Android, &filters.android);
+
+    if !filters.defguard.is_empty() {
+        let mut versions = Vec::new();
+        let mut requirements = HashSet::new();
+
+        for filter in &filters.defguard {
+            match DefguardRequirementFilter::parse(filter) {
+                Some(requirement) => {
+                    requirements.insert(requirement);
+                }
+                None => versions.push(filter.to_string()),
+            }
+        }
+
+        if !versions.is_empty() {
+            append_string_array_filter(query_builder, &versions, " AND dp.min_client_version");
+        }
+
+        append_bool_filter(
+            query_builder,
+            requirements.contains(&DefguardRequirementFilter::PrereleaseAllowed),
+            " AND dp.allow_prerelease_client = true",
+        );
+    }
+}
+
 /// Validates the base fields of an [`EditDevicePosture`] request.
 ///
 /// Returns `Err(WebError::BadRequest(...))` if `min_client_version` is set to
@@ -412,22 +611,40 @@ pub async fn list_device_postures(
     _admin: AdminRole,
     session: SessionInfo,
     pagination: Query<PaginationParams>,
+    filters: AxumExtraQuery<ListDevicePostureFilters>,
     State(appstate): State<AppState>,
 ) -> PaginatedApiResult<ApiDevicePosture> {
     let pagination = pagination.0;
+    let filters = filters.0;
     debug!(
         "User {} listing device posture checks",
         session.user.username
     );
 
     let mut conn = appstate.pool.acquire().await?;
-    let device_postures = DevicePosture::all_paginated(
-        &mut *conn,
-        i64::from(pagination.per_page()),
-        i64::from(pagination.offset()),
-    )
-    .await?;
-    let count = DevicePosture::count(&mut *conn).await?;
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        "SELECT id, name, description, min_client_version, allow_prerelease_client \
+         FROM device_posture dp WHERE 1=1 ",
+    );
+    apply_device_posture_filters(&mut query_builder, &filters);
+    query_builder
+        .push(" ORDER BY id DESC LIMIT ")
+        .push_bind(i64::from(pagination.per_page()))
+        .push(" OFFSET ")
+        .push_bind(i64::from(pagination.offset()));
+
+    let device_postures = query_builder
+        .build_query_as::<DevicePosture<Id>>()
+        .fetch_all(&mut *conn)
+        .await?;
+
+    let mut count_query_builder: QueryBuilder<Postgres> =
+        QueryBuilder::new("SELECT COUNT(*) FROM device_posture dp WHERE 1=1 ");
+    apply_device_posture_filters(&mut count_query_builder, &filters);
+    let count: i64 = count_query_builder
+        .build_query_scalar()
+        .fetch_one(&mut *conn)
+        .await?;
 
     let mut api_postures = Vec::with_capacity(device_postures.len());
     for posture in device_postures {

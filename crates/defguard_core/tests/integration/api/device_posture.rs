@@ -384,6 +384,75 @@ async fn test_device_posture_pagination(_: PgPoolOptions, options: PgConnectOpti
 }
 
 #[sqlx::test]
+async fn test_device_posture_list_filters_os_and_defguard(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let (mut client, _) = setup(options).await;
+
+    let windows_version = valid_os_versions(&OsType::Windows)[0];
+    let android_version = valid_os_versions(&OsType::Android)[2];
+
+    let filtered = EditDevicePosture {
+        name: "Filtered posture".to_owned(),
+        description: None,
+        min_client_version: Some(CLIENT_VERSIONS[0].to_owned()),
+        allow_prerelease_client: true,
+        os_rules: vec![
+            ApiOsRule::Windows {
+                min_os_version: Some(windows_version.to_owned()),
+                disk_encryption_required: Some(true),
+                antivirus_required: Some(true),
+                ad_domain_joined_required: None,
+                windows_security_update_current: None,
+            },
+            ApiOsRule::Android {
+                min_os_version: Some(android_version.to_owned()),
+                device_integrity_required: Some(true),
+            },
+        ],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&filtered)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let other = EditDevicePosture {
+        name: "Other posture".to_owned(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![ApiOsRule::Windows {
+            min_os_version: Some(valid_os_versions(&OsType::Windows)[1].to_owned()),
+            disk_encryption_required: Some(false),
+            antivirus_required: Some(false),
+            ad_domain_joined_required: None,
+            windows_security_update_current: None,
+        }],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&other)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    client.drain_all_events();
+
+    let response = client
+        .get(
+            "/api/v1/device-posture?windows=Windows%2010&windows=Disk%20encryption&windows=Antivirus&android=15&android=Device%20integrity&defguard=1.6&defguard=Prerelease%20allowed",
+        )
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: PaginatedApiResponse<ApiDevicePosture> = response.json().await;
+    assert_eq!(page.data.len(), 1);
+    assert_eq!(page.data[0].name, "Filtered posture");
+}
+
+#[sqlx::test]
 async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: PgConnectOptions) {
     let (mut client, _) = setup(options).await;
 

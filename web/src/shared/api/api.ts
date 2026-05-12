@@ -29,6 +29,7 @@ import type {
   AddUsersToGroupsRequest,
   AddWebhookRequest,
   AdminChangeUserPasswordRequest,
+  ApiDevicePosture,
   ApiToken,
   ApplicationInfo,
   AssignStaticIpsRequest,
@@ -45,6 +46,7 @@ import type {
   DeleteAuthKeyRequest,
   Device,
   DeviceLocationIpsResponse,
+  DevicePostureListFilters,
   Edge,
   EdgeInfo,
   EditAclAliasRequest,
@@ -432,6 +434,10 @@ const api = {
       client.post(`/device/user/${username}/ip`, data),
     validateUserDeviceIp: (username: string, data: ValidateIpAssignmentRequest) =>
       client.post(`/device/user/${username}/ip/validate`, data),
+  },
+  devicePosture: {
+    getDevicePosturesPage: (params?: DevicePostureListFilters) =>
+      fetchPage<ApiDevicePosture>('/device-posture', params),
   },
   settings: {
     getSettings: () => client.get<Settings>('/settings'),
