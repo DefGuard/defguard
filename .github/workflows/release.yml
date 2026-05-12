@@ -141,7 +141,7 @@ jobs:
       - name: Build FreeBSD binary
         run: |
           rsync -rlptxzH -e 'ssh -l root' --del ./ freebsd:work/defguard/
-          ssh root@freebsd "cd work/defguard && DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release"
+          ssh root@freebsd "cd work/defguard && env DEFGUARD_BUILD_VERSION='${DEFGUARD_BUILD_VERSION}' cargo build --locked --release"
           scp root@freebsd:work/defguard/target/release/defguard defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
           tar -zcf defguard-${{ env.VERSION }}-x86_64-unknown-freebsd.tar.gz \
             defguard-${{ env.VERSION }}-x86_64-unknown-freebsd
