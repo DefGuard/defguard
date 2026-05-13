@@ -782,25 +782,7 @@ impl ClientMfaServer {
             request.pubkey, request.location_id
         );
 
-        // Evaluate posture (license check + data presence check for now).
-        let posture_result = validate_posture(&self.pool, &request).await.map_err(|err| {
-            match err {
-                PostureCheckError::NoActiveEnterpriseLicense => {
-                    Status::failed_precondition("enterprise license required for posture checks")
-                }
-                PostureCheckError::DbError(e) => {
-                    error!("DB error during posture validation: {e}");
-                    Status::internal("unexpected error")
-                }
-            }
-        })?;
-
-        if let PostureResult::Fail(reasons) = posture_result {
-            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
-            return Ok(PostureCheckOutcome::Rejected { failed_checks });
-        }
-
-        // Posture passed — look up location, device, and user to create the session.
+        // Look up location, device, and user.
         let Ok(Some(location)) =
             WireguardNetwork::find_by_id(&self.pool, request.location_id).await
         else {
@@ -815,9 +797,35 @@ impl ClientMfaServer {
 
         let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
             error!("Posture check: user {} not found", device.user_id);
-            return Err(Status::internal("unexpected error"));
+            return Err(Status::internal("user not found"));
         };
 
+        // Ensure user is active
+        if !user.is_active {
+            error!("Posture check: user {} is inactive", device.user_id);
+            return Err(Status::invalid_argument("user is inactive"));
+        }
+
+        // Evaluate posture.
+        let posture_result = validate_posture(&self.pool, &request).await.map_err(|err| {
+            match err {
+                PostureCheckError::NoActiveEnterpriseLicense => {
+                    Status::failed_precondition("enterprise license required for posture checks")
+                }
+                PostureCheckError::DbError(e) => {
+                    error!("DB error during posture validation: {e}");
+                    Status::internal("unexpected error")
+                }
+            }
+        })?;
+
+        // Posture check failed - return payload with reasons
+        if let PostureResult::Fail(reasons) = posture_result {
+            let failed_checks = reasons.iter().map(|r| r.to_string()).collect();
+            return Ok(PostureCheckOutcome::Rejected { failed_checks });
+        }
+
+        // Posture check succeeded - create a vpn session
         let key = WireguardNetwork::genkey();
 
         let mut conn = self.pool.acquire().await.map_err(|err| {
