@@ -18,6 +18,7 @@ import {
   type PostureCheckOsVersionValue,
   type PostureCheckVersionValues,
 } from '../../PostureChecksPage/types';
+import { getOperatingSystemVersionOptionLabel } from '../operatingSystemVersionLabels';
 import { addPostureCheckOperatingSystems } from '../types';
 import {
   type OperatingSystemConditionKey,
@@ -32,24 +33,6 @@ type ConditionDefinition = {
   helperText?: string;
   id: OperatingSystemConditionKey;
   label: string;
-};
-
-const getVersionOptionLabel = (
-  operatingSystem: PostureCheckOsValue,
-  value: PostureCheckOsVersionValue,
-) => {
-  switch (operatingSystem) {
-    case PostureCheckOs.Windows:
-      return `${value} or higher`;
-    case PostureCheckOs.Linux:
-      return `Kernel ${value} or higher`;
-    case PostureCheckOs.Ios:
-      return `iOS ${value} or higher`;
-    case PostureCheckOs.Android:
-      return `Android ${value} or higher`;
-    case PostureCheckOs.Macos:
-      return `${value} or higher`;
-  }
 };
 
 export const AddPostureCheckOperatingSystemsStep = ({ versionValues }: Props) => {
@@ -115,7 +98,7 @@ export const AddPostureCheckOperatingSystemsStep = ({ versionValues }: Props) =>
   ): SelectOption<PostureCheckOsVersionValue>[] =>
     versionValues[operatingSystem].map((value) => ({
       key: value,
-      label: getVersionOptionLabel(operatingSystem, value),
+      label: getOperatingSystemVersionOptionLabel(operatingSystem, value),
       value,
     }));
 
