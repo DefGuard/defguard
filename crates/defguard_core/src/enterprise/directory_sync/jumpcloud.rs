@@ -35,7 +35,7 @@ struct User {
 
 impl From<User> for DirectoryUser {
     fn from(user: User) -> Self {
-        DirectoryUser {
+        Self {
             email: user.email,
             active: user.activated && !user.account_locked && user.state == UserState::Activated,
             id: Some(user.id),
@@ -99,7 +99,7 @@ impl From<UserGroup> for DirectoryGroup {
             },
             |g| g.name.clone(),
         );
-        DirectoryGroup { id: group.id, name }
+        Self { id: group.id, name }
     }
 }
 
@@ -524,7 +524,7 @@ impl JumpCloudDirectorySync {
                 response
                     .text()
                     .await
-                    .unwrap_or_else(|_| "No details".to_string())
+                    .unwrap_or_else(|_| "No details".to_owned())
             )))
         }
     }
@@ -552,7 +552,7 @@ impl DirectorySync for JumpCloudDirectorySync {
         }
 
         debug!("No user found with email {user_email}, returning an error.");
-        Err(DirectorySyncError::UserNotFound(user_email.to_string()))
+        Err(DirectorySyncError::UserNotFound(user_email.to_owned()))
     }
 
     async fn get_group_members(
@@ -630,95 +630,95 @@ mod tests {
     fn test_user_to_directory_user_conversions() {
         // Test active user (activated=true, account_locked=false, state=ACTIVATED)
         let active_user = User {
-            email: "active@example.com".to_string(),
+            email: "active@example.com".to_owned(),
             activated: true,
             account_locked: false,
-            id: "user123".to_string(),
+            id: "user123".to_owned(),
             state: UserState::Activated,
         };
         let active_directory_user: DirectoryUser = active_user.into();
         assert_eq!(active_directory_user.email, "active@example.com");
         assert!(active_directory_user.active);
-        assert_eq!(active_directory_user.id, Some("user123".to_string()));
+        assert_eq!(active_directory_user.id, Some("user123".to_owned()));
 
         // Test inactive user (activated=false)
         let inactive_user = User {
-            email: "inactive@example.com".to_string(),
+            email: "inactive@example.com".to_owned(),
             activated: false,
             account_locked: false,
-            id: "user456".to_string(),
+            id: "user456".to_owned(),
             state: UserState::Activated,
         };
         let inactive_directory_user: DirectoryUser = inactive_user.into();
         assert_eq!(inactive_directory_user.email, "inactive@example.com");
         assert!(!inactive_directory_user.active);
-        assert_eq!(inactive_directory_user.id, Some("user456".to_string()));
+        assert_eq!(inactive_directory_user.id, Some("user456".to_owned()));
 
         // Test locked user (account_locked=true)
         let locked_user = User {
-            email: "locked@example.com".to_string(),
+            email: "locked@example.com".to_owned(),
             activated: true,
             account_locked: true,
-            id: "user789".to_string(),
+            id: "user789".to_owned(),
             state: UserState::Activated,
         };
         let locked_directory_user: DirectoryUser = locked_user.into();
         assert_eq!(locked_directory_user.email, "locked@example.com");
         assert!(!locked_directory_user.active);
-        assert_eq!(locked_directory_user.id, Some("user789".to_string()));
+        assert_eq!(locked_directory_user.id, Some("user789".to_owned()));
 
         // Test suspended user (state=SUSPENDED)
         let suspended_user = User {
-            email: "suspended@example.com".to_string(),
+            email: "suspended@example.com".to_owned(),
             activated: true,
             account_locked: false,
-            id: "user999".to_string(),
+            id: "user999".to_owned(),
             state: UserState::Suspended,
         };
         let suspended_directory_user: DirectoryUser = suspended_user.into();
         assert_eq!(suspended_directory_user.email, "suspended@example.com");
         assert!(!suspended_directory_user.active);
-        assert_eq!(suspended_directory_user.id, Some("user999".to_string()));
+        assert_eq!(suspended_directory_user.id, Some("user999".to_owned()));
 
         // Test staged user (state=STAGED)
         let staged_user = User {
-            email: "staged@example.com".to_string(),
+            email: "staged@example.com".to_owned(),
             activated: true,
             account_locked: false,
-            id: "user888".to_string(),
+            id: "user888".to_owned(),
             state: UserState::Staged,
         };
         let staged_directory_user: DirectoryUser = staged_user.into();
         assert_eq!(staged_directory_user.email, "staged@example.com");
         assert!(!staged_directory_user.active);
-        assert_eq!(staged_directory_user.id, Some("user888".to_string()));
+        assert_eq!(staged_directory_user.id, Some("user888".to_owned()));
 
         // Test both inactive and locked user
         let both_user = User {
-            email: "both@example.com".to_string(),
+            email: "both@example.com".to_owned(),
             activated: false,
             account_locked: true,
-            id: "user000".to_string(),
+            id: "user000".to_owned(),
             state: UserState::Activated,
         };
         let both_directory_user: DirectoryUser = both_user.into();
         assert_eq!(both_directory_user.email, "both@example.com");
         assert!(!both_directory_user.active);
-        assert_eq!(both_directory_user.id, Some("user000".to_string()));
+        assert_eq!(both_directory_user.id, Some("user000".to_owned()));
     }
 
     #[test]
     fn test_user_group_to_directory_group_conversions() {
         // Test group with LDAP groups (uses first LDAP group name)
         let group_with_ldap = UserGroup {
-            id: "group123".to_string(),
+            id: "group123".to_owned(),
             compiled_attributes: CompiledAttributes {
                 ldap_groups: vec![
                     LdapGroup {
-                        name: "LDAP Group Name".to_string(),
+                        name: "LDAP Group Name".to_owned(),
                     },
                     LdapGroup {
-                        name: "Second LDAP Group".to_string(),
+                        name: "Second LDAP Group".to_owned(),
                     },
                 ],
             },
@@ -729,7 +729,7 @@ mod tests {
 
         // Test group with empty LDAP groups (falls back to group ID)
         let group_empty_ldap = UserGroup {
-            id: "group789".to_string(),
+            id: "group789".to_owned(),
             compiled_attributes: CompiledAttributes {
                 ldap_groups: Vec::new(),
             },
@@ -752,10 +752,10 @@ mod tests {
         // Test single user UsersResponse conversion
         let single_users_response = UsersResponse {
             results: vec![User {
-                email: "single@example.com".to_string(),
+                email: "single@example.com".to_owned(),
                 activated: true,
                 account_locked: false,
-                id: "single123".to_string(),
+                id: "single123".to_owned(),
                 state: UserState::Activated,
             }],
             total_count: 1,
@@ -764,30 +764,30 @@ mod tests {
         assert_eq!(single_directory_users.len(), 1);
         assert_eq!(single_directory_users[0].email, "single@example.com");
         assert!(single_directory_users[0].active);
-        assert_eq!(single_directory_users[0].id, Some("single123".to_string()));
+        assert_eq!(single_directory_users[0].id, Some("single123".to_owned()));
 
         // Test multiple users with mixed states
         let multiple_users_response = UsersResponse {
             results: vec![
                 User {
-                    email: "user1@example.com".to_string(),
+                    email: "user1@example.com".to_owned(),
                     activated: true,
                     account_locked: false,
-                    id: "user1".to_string(),
+                    id: "user1".to_owned(),
                     state: UserState::Activated,
                 },
                 User {
-                    email: "user2@example.com".to_string(),
+                    email: "user2@example.com".to_owned(),
                     activated: false,
                     account_locked: false,
-                    id: "user2".to_string(),
+                    id: "user2".to_owned(),
                     state: UserState::Activated,
                 },
                 User {
-                    email: "user3@example.com".to_string(),
+                    email: "user3@example.com".to_owned(),
                     activated: true,
                     account_locked: true,
-                    id: "user3".to_string(),
+                    id: "user3".to_owned(),
                     state: UserState::Activated,
                 },
             ],
@@ -806,12 +806,12 @@ mod tests {
         let groups_response = GroupsResponse {
             results: vec![
                 DirectoryGroup {
-                    id: "group1".to_string(),
-                    name: "Group 1".to_string(),
+                    id: "group1".to_owned(),
+                    name: "Group 1".to_owned(),
                 },
                 DirectoryGroup {
-                    id: "group2".to_string(),
-                    name: "Group 2".to_string(),
+                    id: "group2".to_owned(),
+                    name: "Group 2".to_owned(),
                 },
             ],
         };

@@ -127,7 +127,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
 
     // checking whether ip is valid/available
     let ip_check = json!({
-        "ips": ["10.1.1.2".to_string()],
+        "ips": ["10.1.1.2".to_owned()],
     });
     let response = client
         .post("/api/v1/device/network/ip/1")
@@ -141,7 +141,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(res.valid);
 
     let ip_check = json!({
-        "ips": ["10.1.1.0".to_string()],
+        "ips": ["10.1.1.0".to_owned()],
     });
     let response = client
         .post("/api/v1/device/network/ip/1")
@@ -155,7 +155,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(res.valid);
 
     let ip_check = json!({
-        "ips": ["10.1.1.1".to_string()],
+        "ips": ["10.1.1.1".to_owned()],
     });
     let response = client
         .post("/api/v1/device/network/ip/1")
@@ -169,7 +169,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(res.valid);
 
     let ip_check = json!({
-        "ips": ["10.1.1.abc".to_string()],
+        "ips": ["10.1.1.abc".to_owned()],
     });
     let response = client
         .post("/api/v1/device/network/ip/1")
@@ -237,7 +237,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .unwrap();
     assert_eq!(device.name, "device-1");
-    assert_eq!(device.description, Some("new description".to_string()));
+    assert_eq!(device.description, Some("new description".to_owned()));
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::DeviceModified(..));
 
@@ -357,7 +357,7 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
 
     // IP availability validation
     let ip_check = json!({
-        "ips": ["10.1.1.2".to_string(), "10.2.2.2".to_string(), "10.3.3.2".to_string()],
+        "ips": ["10.1.1.2".to_owned(), "10.2.2.2".to_owned(), "10.3.3.2".to_owned()],
     });
     let response = client
         .post(format!("/api/v1/device/network/ip/{location_id}"))
@@ -386,7 +386,7 @@ async fn test_device_ip_validation(_: PgPoolOptions, options: PgConnectOptions) 
     );
 
     let ip_check = json!({
-        "ips": ["10.11.1.2".to_string(), "10.2.2.2".to_string(), "10.3.3.1".to_string()],
+        "ips": ["10.11.1.2".to_owned(), "10.2.2.2".to_owned(), "10.3.3.1".to_owned()],
     });
     let response = client
         .post(format!("/api/v1/device/network/ip/{location_id}"))

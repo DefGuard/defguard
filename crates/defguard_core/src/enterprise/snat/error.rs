@@ -27,11 +27,11 @@ impl From<sqlx::Error> for UserSnatBindingError {
 impl From<UserSnatBindingError> for WebError {
     fn from(value: UserSnatBindingError) -> Self {
         match value {
-            UserSnatBindingError::BindingNotFound => WebError::ObjectNotFound(value.to_string()),
+            UserSnatBindingError::BindingNotFound => Self::ObjectNotFound(value.to_string()),
             UserSnatBindingError::BindingAlreadyExists => {
-                WebError::ObjectAlreadyExists(value.to_string())
+                Self::ObjectAlreadyExists(value.to_string())
             }
-            UserSnatBindingError::DbError { source } => WebError::DbError(source.to_string()),
+            UserSnatBindingError::DbError { source } => Self::DbError(source.to_string()),
         }
     }
 }

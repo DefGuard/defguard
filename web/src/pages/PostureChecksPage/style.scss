@@ -1,0 +1,9 @@
+.posture-check-link {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: var(--t-body-sm-400);
+  color: var(--fg-action);
+}

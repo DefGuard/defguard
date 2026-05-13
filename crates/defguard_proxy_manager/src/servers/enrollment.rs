@@ -257,7 +257,7 @@ impl EnrollmentServer {
             )
             .fetch_one(&self.pool)
             .await
-            .map_err(|_| Status::internal("Failed to read data".to_string()))?;
+            .map_err(|_| Status::internal("Failed to read data".to_owned()))?;
             let enrollment_settings = defguard_proto::client_types::EnrollmentSettings {
                 vpn_setup_optional,
                 smtp_configured,
@@ -958,7 +958,7 @@ impl EnrollmentServer {
         debug!("Begin enrollment code MFA setup start");
         let method = request.method();
         if method != MfaMethod::Email && method != MfaMethod::Totp {
-            return Err(Status::invalid_argument("Method not supported".to_string()));
+            return Err(Status::invalid_argument("Method not supported".to_owned()));
         }
         let enrollment = Token::find_by_id(&self.pool, &request.token).await?;
         let mut user = enrollment.fetch_user(&self.pool).await?;
@@ -971,50 +971,50 @@ impl EnrollmentServer {
                 let settings = Settings::get_current_settings();
                 if !settings.smtp_configured() {
                     error!("Unable to start email MFA setup; SMTP is not configured");
-                    return Err(Status::internal("SMTP not configured".to_string()));
+                    return Err(Status::internal("SMTP not configured".to_owned()));
                 }
                 if user.email_mfa_enabled {
                     return Err(Status::invalid_argument(
-                        "Method already enabled".to_string(),
+                        "Method already enabled".to_owned(),
                     ));
                 }
                 user.new_email_secret(&self.pool).await.map_err(|_| {
                     error!("Failed to create email secret");
-                    Status::internal("Failed to setup email mfa".to_string())
+                    Status::internal("Failed to setup email mfa".to_owned())
                 })?;
                 info!("Created email secret for {}", &user.username);
                 let mut transaction = self.pool.begin().await.map_err(|err| {
                     error!("Failed to begin database transaction\nReason:{err}");
-                    Status::internal("Failed begin database transaction".to_string())
+                    Status::internal("Failed begin database transaction".to_owned())
                 })?;
                 let code = user.generate_email_mfa_code().map_err(|err| {
                     error!("Failed to generate MFA code for {user}\nReason:{err}");
-                    Status::internal("Failed to generate MFA code".to_string())
+                    Status::internal("Failed to generate MFA code".to_owned())
                 })?;
                 mfa_activation_mail(&user.email, &mut transaction, &user.first_name, &code, None)
                     .await
                     .map_err(|err| {
                         error!("Failed to send MFA activation email\nReason:{err}");
-                        Status::internal("Failed to send activation email".to_string())
+                        Status::internal("Failed to send activation email".to_owned())
                     })?;
                 Ok(CodeMfaSetupStartResponse { totp_secret: None })
             }
             MfaMethod::Totp => {
                 if user.totp_enabled {
                     return Err(Status::invalid_argument(
-                        "Method already enabled".to_string(),
+                        "Method already enabled".to_owned(),
                     ));
                 }
                 let secret = user.new_totp_secret(&self.pool).await.map_err(|_| {
                     error!("Failed to make new TOTP secret");
-                    Status::internal("Failed to make new TOTP secret".to_string())
+                    Status::internal("Failed to make new TOTP secret".to_owned())
                 })?;
                 info!("New TOTP secret created for {}", &user.username);
                 Ok(CodeMfaSetupStartResponse {
                     totp_secret: Some(secret),
                 })
             }
-            _ => Err(Status::invalid_argument("Method not supported".to_string())),
+            _ => Err(Status::invalid_argument("Method not supported".to_owned())),
         }
     }
 
@@ -1033,7 +1033,7 @@ impl EnrollmentServer {
         let mut user = enrollment.fetch_user(&self.pool).await?;
         if user.mfa_enabled {
             return Err(Status::invalid_argument(
-                "Mfa already enabled on the account".to_string(),
+                "Mfa already enabled on the account".to_owned(),
             ));
         }
         // available only for unenrolled users
@@ -1045,20 +1045,20 @@ impl EnrollmentServer {
         match method {
             MfaMethod::Email => {
                 if !user.verify_email_mfa_code(&request.code) {
-                    return Err(Status::invalid_argument("Email code invalid".to_string()));
+                    return Err(Status::invalid_argument("Email code invalid".to_owned()));
                 }
                 user.enable_email_mfa(&self.pool)
                     .await
-                    .map_err(|_| Status::internal("Enabling method failed.".to_string()))?;
+                    .map_err(|_| Status::internal("Enabling method failed.".to_owned()))?;
                 mfa_method = MFAMethod::Email;
             }
             MfaMethod::Totp => {
                 if !user.verify_totp_code(&request.code) {
-                    return Err(Status::invalid_argument("Code invalid".to_string()));
+                    return Err(Status::invalid_argument("Code invalid".to_owned()));
                 }
                 user.enable_totp(&self.pool)
                     .await
-                    .map_err(|_| Status::internal("Enabling method failed.".to_string()))?;
+                    .map_err(|_| Status::internal("Enabling method failed.".to_owned()))?;
                 mfa_method = MFAMethod::OneTimePassword;
             }
             _ => {
@@ -1067,12 +1067,12 @@ impl EnrollmentServer {
         }
         user.enable_mfa(&self.pool)
             .await
-            .map_err(|_| Status::internal("Enabling MFA on the account failed.".to_string()))?;
+            .map_err(|_| Status::internal("Enabling MFA on the account failed.".to_owned()))?;
         let recovery_codes = user
             .get_recovery_codes(&self.pool)
             .await
-            .map_err(|_| Status::internal("Failed to get recovery codes.".to_string()))?
-            .ok_or_else(|| Status::internal("Recovery codes not found".to_string()))?;
+            .map_err(|_| Status::internal("Failed to get recovery codes.".to_owned()))?
+            .ok_or_else(|| Status::internal("Recovery codes not found".to_owned()))?;
         if let Ok(mut conn) = self.pool.begin().await {
             if let Err(err) =
                 mfa_configured_mail(&user.email, &mut conn, None, &mfa_method, &user.first_name)
@@ -1191,7 +1191,7 @@ mod test {
             None,
             Some(user.email.clone()),
             10,
-            Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+            Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
         );
 
         Settings::initialize_runtime_defaults(&pool).await.unwrap();

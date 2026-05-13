@@ -47,7 +47,7 @@ impl EnterpriseSettings {
             .await?;
             Ok(settings.expect("EnterpriseSettings not found"))
         } else {
-            Ok(EnterpriseSettings::default())
+            Ok(Self::default())
         }
     }
 

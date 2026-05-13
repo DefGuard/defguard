@@ -128,11 +128,11 @@ impl Serialize for MfaMethod {
 impl From<MfaMethod> for VpnClientMfaMethod {
     fn from(val: MfaMethod) -> Self {
         match val {
-            MfaMethod::Totp => VpnClientMfaMethod::Totp,
-            MfaMethod::Email => VpnClientMfaMethod::Email,
-            MfaMethod::Oidc => VpnClientMfaMethod::Oidc,
-            MfaMethod::Biometric => VpnClientMfaMethod::Biometric,
-            MfaMethod::MobileApprove => VpnClientMfaMethod::MobileApprove,
+            MfaMethod::Totp => Self::Totp,
+            MfaMethod::Email => Self::Email,
+            MfaMethod::Oidc => Self::Oidc,
+            MfaMethod::Biometric => Self::Biometric,
+            MfaMethod::MobileApprove => Self::MobileApprove,
         }
     }
 }
@@ -204,9 +204,9 @@ impl From<User<Id>> for client_types::AdminInfo {
 impl From<LocationMfaMode> for client_types::LocationMfaMode {
     fn from(value: LocationMfaMode) -> Self {
         match value {
-            LocationMfaMode::Disabled => client_types::LocationMfaMode::Disabled,
-            LocationMfaMode::Internal => client_types::LocationMfaMode::Internal,
-            LocationMfaMode::External => client_types::LocationMfaMode::External,
+            LocationMfaMode::Disabled => Self::Disabled,
+            LocationMfaMode::Internal => Self::Internal,
+            LocationMfaMode::External => Self::External,
         }
     }
 }
@@ -214,9 +214,9 @@ impl From<LocationMfaMode> for client_types::LocationMfaMode {
 impl From<ServiceLocationMode> for client_types::ServiceLocationMode {
     fn from(value: ServiceLocationMode) -> Self {
         match value {
-            ServiceLocationMode::Disabled => client_types::ServiceLocationMode::Disabled,
-            ServiceLocationMode::PreLogon => client_types::ServiceLocationMode::Prelogon,
-            ServiceLocationMode::AlwaysOn => client_types::ServiceLocationMode::Alwayson,
+            ServiceLocationMode::Disabled => Self::Disabled,
+            ServiceLocationMode::PreLogon => Self::Prelogon,
+            ServiceLocationMode::AlwaysOn => Self::Alwayson,
         }
     }
 }

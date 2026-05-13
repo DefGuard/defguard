@@ -127,7 +127,7 @@ pub struct OAuth2ClientSafe {
 
 impl From<OAuth2Client<Id>> for OAuth2ClientSafe {
     fn from(client: OAuth2Client<Id>) -> Self {
-        OAuth2ClientSafe {
+        Self {
             client_id: client.client_id,
             name: client.name,
             scope: client.scope,

@@ -22,7 +22,7 @@ import {
   getLicenseInfoQueryOptions,
   getRulesCountQueryOptions,
 } from '../../query';
-import { canUseBusinessFeature } from '../../utils/license';
+import { canUseBusinessFeature, canUseEnterpriseFeature } from '../../utils/license';
 import { NavTutorialsButton } from '../../video-tutorials/components/widget/NavTutorialsButton/NavTutorialsButton';
 import { useVideoTutorialsSections } from '../../video-tutorials/resolved';
 
@@ -112,6 +112,13 @@ const navigationConfig: NavGroupProps[] = [
         label: m.cmp_nav_item_aliases(),
         link: '/acl/aliases',
         licenseTier: LicenseTier.Business,
+      },
+      {
+        id: 'posture_checks',
+        icon: 'protection',
+        label: m.cmp_nav_item_posture_checks(),
+        link: '/acl/posture-checks',
+        licenseTier: LicenseTier.Enterprise,
       },
     ],
   },
@@ -291,7 +298,7 @@ const NavItem = ({
     }
 
     if (licenseTier !== undefined && licenseTier === LicenseTier.Enterprise) {
-      return !canUseBusinessFeature(license as LicenseInfo | null).result;
+      return !canUseEnterpriseFeature(license as LicenseInfo | null).result;
     }
 
     return false;

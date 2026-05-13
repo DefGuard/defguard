@@ -1,3 +1,5 @@
+use std::net::{IpAddr, SocketAddr};
+
 use axum::{
     Json,
     extract::{ConnectInfo, FromRef, FromRequestParts},
@@ -18,7 +20,6 @@ use defguard_static_ip::error::StaticIpError;
 use ipnetwork::IpNetworkError;
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use std::net::{IpAddr, SocketAddr};
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
@@ -150,22 +151,20 @@ impl ApiResponse {
 }
 
 impl From<WebError> for ApiResponse {
-    fn from(web_error: WebError) -> ApiResponse {
+    fn from(web_error: WebError) -> Self {
         match web_error {
-            WebError::ObjectNotFound(msg) => {
-                ApiResponse::new(json!({"msg": msg}), StatusCode::NOT_FOUND)
-            }
+            WebError::ObjectNotFound(msg) => Self::new(json!({"msg": msg}), StatusCode::NOT_FOUND),
             WebError::ObjectAlreadyExists(msg) => {
-                ApiResponse::new(json!({"msg": msg}), StatusCode::CONFLICT)
+                Self::new(json!({"msg": msg}), StatusCode::CONFLICT)
             }
             WebError::Authorization(msg) => {
                 error!(msg);
-                ApiResponse::new(json!({"msg": msg}), StatusCode::UNAUTHORIZED)
+                Self::new(json!({"msg": msg}), StatusCode::UNAUTHORIZED)
             }
-            WebError::Authentication => ApiResponse::with_status(StatusCode::UNAUTHORIZED),
+            WebError::Authentication => Self::with_status(StatusCode::UNAUTHORIZED),
             WebError::Forbidden(msg) => {
                 error!(msg);
-                ApiResponse::new(json!({"msg": msg}), StatusCode::FORBIDDEN)
+                Self::new(json!({"msg": msg}), StatusCode::FORBIDDEN)
             }
             WebError::DbError(_)
             | WebError::Grpc(_)
@@ -180,22 +179,22 @@ impl From<WebError> for ApiResponse {
             | WebError::UrlParseError(_)
             | WebError::CertificateError(_) => {
                 error!("{web_error}");
-                ApiResponse::new(
+                Self::new(
                     json!({"msg": "Internal server error"}),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
             WebError::StaticIpError(err) => match err {
                 StaticIpError::InvalidIpAssignment(err) => {
-                    ApiResponse::new(json!({"msg": err.to_string()}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": err.to_string()}), StatusCode::BAD_REQUEST)
                 }
                 StaticIpError::NetworkNotFound(_) | StaticIpError::DeviceNotInNetwork(_, _) => {
                     error!("{err}");
-                    ApiResponse::new(json!({"msg": err.to_string()}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": err.to_string()}), StatusCode::BAD_REQUEST)
                 }
                 StaticIpError::SqlxError(_) => {
                     error!("{err}");
-                    ApiResponse::new(
+                    Self::new(
                         json!({"msg": "Internal server error"}),
                         StatusCode::INTERNAL_SERVER_ERROR,
                     )
@@ -206,43 +205,43 @@ impl From<WebError> for ApiResponse {
                 | AclError::IpNetworkError(_)
                 | AclError::AddrParseError(_)
                 | AclError::InvalidRelationError(_)
-                | AclError::InvalidPortsFormat(_) => ApiResponse::new(
+                | AclError::InvalidPortsFormat(_) => Self::new(
                     json!({"msg": "Unprocessable entity"}),
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
-                AclError::InvalidIpRangeError(err) => ApiResponse::new(
+                AclError::InvalidIpRangeError(err) => Self::new(
                     json!({"msg": format!("Invalid IP range: {err}")}),
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
-                AclError::RuleNotFoundError(id) => ApiResponse::new(
+                AclError::RuleNotFoundError(id) => Self::new(
                     json!({"msg": format!("Rule {id} not found")}),
                     StatusCode::NOT_FOUND,
                 ),
-                AclError::RuleAlreadyAppliedError(id) => ApiResponse::new(
+                AclError::RuleAlreadyAppliedError(id) => Self::new(
                     json!({"msg": format!("Rule {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::AliasNotFoundError(id) => ApiResponse::new(
+                AclError::AliasNotFoundError(id) => Self::new(
                     json!({"msg": format!("Alias {id} not found")}),
                     StatusCode::NOT_FOUND,
                 ),
-                AclError::DestinationNotFoundError(id) => ApiResponse::new(
+                AclError::DestinationNotFoundError(id) => Self::new(
                     json!({"msg": format!("Destination {id} not found")}),
                     StatusCode::NOT_FOUND,
                 ),
-                AclError::AliasAlreadyAppliedError(id) => ApiResponse::new(
+                AclError::AliasAlreadyAppliedError(id) => Self::new(
                     json!({"msg": format!("Alias {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::DestinationAlreadyAppliedError(id) => ApiResponse::new(
+                AclError::DestinationAlreadyAppliedError(id) => Self::new(
                     json!({"msg": format!("Destination {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::AliasUsedByRulesError(id) => ApiResponse::new(
+                AclError::AliasUsedByRulesError(id) => Self::new(
                     json!({"msg": format!("Alias {id} is used by some existing ACL rules")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::DestinationUsedByRulesError(id) => ApiResponse::new(
+                AclError::DestinationUsedByRulesError(id) => Self::new(
                     json!({
                         "msg": format!("Destination {id} is used by some existing ACL rules")
                     }),
@@ -250,28 +249,28 @@ impl From<WebError> for ApiResponse {
                 ),
                 AclError::DbError(_) | AclError::FirewallError(_) => {
                     error!("{err}");
-                    ApiResponse::new(
+                    Self::new(
                         json!({"msg": "Internal server error"}),
                         StatusCode::INTERNAL_SERVER_ERROR,
                     )
                 }
-                AclError::CannotModifyDeletedRuleError(id) => ApiResponse::new(
+                AclError::CannotModifyDeletedRuleError(id) => Self::new(
                     json!({"msg": format!("Cannot modify deleted ACL rule {id}")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::CannotUseModifiedAliasInRuleError(alias_ids) => ApiResponse::new(
+                AclError::CannotUseModifiedAliasInRuleError(alias_ids) => Self::new(
                     json!({"msg": format!("Cannot use modified alias in ACL rule {alias_ids:?}")}),
                     StatusCode::BAD_REQUEST,
                 ),
             },
             WebError::Http(status) => {
                 error!("{status}");
-                ApiResponse::new(
+                Self::new(
                     json!({"msg": status.canonical_reason().unwrap_or_default()}),
                     status,
                 )
             }
-            WebError::TooManyLoginAttempts(_) => ApiResponse::new(
+            WebError::TooManyLoginAttempts(_) => Self::new(
                 json!({"msg": "Too many login attempts"}),
                 StatusCode::TOO_MANY_REQUESTS,
             ),
@@ -279,18 +278,18 @@ impl From<WebError> for ApiResponse {
             | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
                 error!(msg);
-                ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+                Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
             }
             WebError::NetworkFull(msg) => {
                 warn!(msg);
-                ApiResponse::new(
+                Self::new(
                     json!({"msg": msg, "code": WebErrorCode::NetworkFull}),
                     StatusCode::BAD_REQUEST,
                 )
             }
             WebError::TemplateError(err) => {
                 error!("Template error: {err}");
-                ApiResponse::new(
+                Self::new(
                     json!({"msg": "Internal server error"}),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
@@ -298,26 +297,26 @@ impl From<WebError> for ApiResponse {
             WebError::LicenseError(err) => match err {
                 LicenseError::DecodeError(msg) => {
                     warn!(msg);
-                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 LicenseError::SignatureMismatch => {
                     let msg = "License signature doesn't match its content";
                     warn!(msg);
-                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 LicenseError::InvalidSignature => {
                     let msg = "License signature is malformed and couldn't be read";
                     warn!(msg);
-                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 LicenseError::LicenseNotFound => {
                     let msg = "License not found";
                     warn!(msg);
-                    ApiResponse::new(json!({"msg": msg}), StatusCode::NOT_FOUND)
+                    Self::new(json!({"msg": msg}), StatusCode::NOT_FOUND)
                 }
                 _ => {
                     error!("License error: {err}");
-                    ApiResponse::new(
+                    Self::new(
                         json!({"msg": "Internal server error"}),
                         StatusCode::FORBIDDEN,
                     )
@@ -326,11 +325,11 @@ impl From<WebError> for ApiResponse {
             WebError::IpNetwork(err) => match err {
                 IpNetworkError::InvalidAddr(msg) | IpNetworkError::InvalidCidrFormat(msg) => {
                     warn!(msg);
-                    ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
                 }
                 IpNetworkError::InvalidPrefix => {
                     warn!("Invalid prefix");
-                    ApiResponse::new(json!({"msg": "invalid prefix"}), StatusCode::BAD_REQUEST)
+                    Self::new(json!({"msg": "invalid prefix"}), StatusCode::BAD_REQUEST)
                 }
             },
         }
@@ -587,6 +586,7 @@ pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
 }
 
 /// Validate name provided by user
+#[must_use]
 pub fn validate_name(name: &str) -> bool {
     if name.is_empty() {
         return false;
@@ -606,10 +606,10 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let TypedHeader(user_agent) = TypedHeader::<UserAgent>::from_request_parts(parts, state)
             .await
-            .map_err(|_| WebError::BadRequest("Missing UserAgent header".to_string()))?;
+            .map_err(|_| WebError::BadRequest("Missing UserAgent header".to_owned()))?;
         let ClientIpAddr(ip_addr) = ClientIpAddr::from_request_parts(parts, state)
             .await
-            .map_err(|_| WebError::BadRequest("Missing client IP".to_string()))?;
+            .map_err(|_| WebError::BadRequest("Missing client IP".to_owned()))?;
         let session = if let Some(cached) = parts.extensions.get::<SessionInfo>() {
             cached.clone()
         } else {
@@ -618,7 +618,7 @@ where
 
         // Store session info into request extensions so future extractors can use it
         parts.extensions.insert(session.clone());
-        Ok(ApiRequestContext::new(
+        Ok(Self::new(
             session.user.id,
             session.user.username,
             ip_addr,

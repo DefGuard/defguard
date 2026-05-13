@@ -54,7 +54,7 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
 
     // Modify name
     let data = ProxyUpdateData {
-        name: "modified".to_string(),
+        name: "modified".to_owned(),
         enabled: true,
     };
     let response = client
@@ -67,13 +67,13 @@ async fn test_proxy_update(_: PgPoolOptions, options: PgConnectOptions) {
     // Verify proxy is modified correctly
     let mut proxy_updated: Proxy<Id> = response.json().await;
     assert_eq!(proxy_updated.name, "modified");
-    proxy.name = "modified".to_string();
+    proxy.name = "modified".to_owned();
     proxy_updated.modified_at = proxy.modified_at;
     assert_eq!(proxy, proxy_updated);
 
     // Try to modify other fields
     let proxy_before_mods = proxy.clone();
-    proxy.address = "otherhost".to_string();
+    proxy.address = "otherhost".to_owned();
     proxy.port = 50052;
     let response = client
         .put(format!("/api/v1/proxy/{}", proxy.id))

@@ -84,7 +84,7 @@ mod test {
             network_devices: Some(network_devices_limit),
         };
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() + TimeDelta::days(1)),
             Some(limits),
@@ -110,7 +110,7 @@ mod test {
             network_devices: Some(network_devices_limit),
         };
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             true,
             Some(Utc::now() + TimeDelta::days(1)),
             Some(limits),

@@ -52,7 +52,7 @@ pub(crate) async fn test_mail(
 
 async fn read_logs() -> String {
     let Some(path) = &server_config().log_file else {
-        return "Log file not configured".to_string();
+        return "Log file not configured".to_owned();
     };
 
     match read_to_string(path).await {

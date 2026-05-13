@@ -37,7 +37,7 @@ impl Claims {
         Self {
             iss: iss.into(),
             scope: SCOPES.into(),
-            aud: AUD.to_string(),
+            aud: AUD.to_owned(),
             sub: sub.into(),
             exp,
             iat: now_timestamp,
@@ -190,8 +190,8 @@ impl GoogleDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = GroupsResponse::default();
         let mut query = HashMap::from([
-            ("userKey".to_string(), user_id.to_string()),
-            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+            ("userKey".to_owned(), user_id.to_owned()),
+            ("maxResults".to_owned(), MAX_RESULTS.to_owned()),
         ]);
 
         for _ in 0..MAX_REQUESTS {
@@ -219,7 +219,7 @@ impl GoogleDirectorySync {
                 debug!(
                     "Found next page of results, using the following token to query it: {next_page_token}"
                 );
-                query.insert("pageToken".to_string(), next_page_token);
+                query.insert("pageToken".to_owned(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
                 break;
@@ -242,8 +242,8 @@ impl GoogleDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = GroupsResponse::default();
         let mut query = HashMap::from([
-            ("customer".to_string(), "my_customer".to_string()),
-            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+            ("customer".to_owned(), "my_customer".to_owned()),
+            ("maxResults".to_owned(), MAX_RESULTS.to_owned()),
         ]);
 
         for _ in 0..MAX_REQUESTS {
@@ -271,7 +271,7 @@ impl GoogleDirectorySync {
                 debug!(
                     "Found next page of results, using the following token to query it: {next_page_token}"
                 );
-                query.insert("pageToken".to_string(), next_page_token);
+                query.insert("pageToken".to_owned(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
                 break;
@@ -301,8 +301,8 @@ impl GoogleDirectorySync {
         );
         let mut combined_response = GroupMembersResponse::default();
         let mut query = HashMap::from([
-            ("includeDerivedMembership".to_string(), "true".to_string()),
-            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+            ("includeDerivedMembership".to_owned(), "true".to_owned()),
+            ("maxResults".to_owned(), MAX_RESULTS.to_owned()),
         ]);
 
         for _ in 0..MAX_REQUESTS {
@@ -333,7 +333,7 @@ impl GoogleDirectorySync {
                 debug!(
                     "Found next page of results, using the following token to query it: {next_page_token}"
                 );
-                query.insert("pageToken".to_string(), next_page_token);
+                query.insert("pageToken".to_owned(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
                 break;
@@ -375,9 +375,9 @@ impl GoogleDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = UsersResponse::default();
         let mut query = HashMap::from([
-            ("customer".to_string(), "my_customer".to_string()),
-            ("maxResults".to_string(), MAX_RESULTS.to_string()),
-            ("showDeleted".to_string(), "false".to_string()),
+            ("customer".to_owned(), "my_customer".to_owned()),
+            ("maxResults".to_owned(), MAX_RESULTS.to_owned()),
+            ("showDeleted".to_owned(), "false".to_owned()),
         ]);
 
         for _ in 0..MAX_REQUESTS {
@@ -405,7 +405,7 @@ impl GoogleDirectorySync {
                 debug!(
                     "Found next page of results, using the following token to query it: {next_page_token}"
                 );
-                query.insert("pageToken".to_string(), next_page_token);
+                query.insert("pageToken".to_owned(), next_page_token);
             } else {
                 debug!("No more pages of results found, finishing query.");
                 break;

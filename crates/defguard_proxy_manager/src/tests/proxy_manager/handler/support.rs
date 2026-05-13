@@ -122,8 +122,8 @@ pub(crate) fn clear_test_license() {
 /// `ExistingDevice` must pass this instead of `None`.
 pub(crate) fn make_device_info() -> DeviceInfo {
     DeviceInfo {
-        ip_address: "127.0.0.1".to_string(),
-        user_agent: Some("test-client/1.0".to_string()),
+        ip_address: "127.0.0.1".to_owned(),
+        user_agent: Some("test-client/1.0".to_owned()),
         version: None,
         platform: None,
     }
@@ -137,8 +137,8 @@ pub(crate) async fn create_user(pool: &PgPool) -> User<Id> {
     User::new(
         username.clone(),
         None,
-        "Test".to_string(),
-        "User".to_string(),
+        "Test".to_owned(),
+        "User".to_owned(),
         format!("{username}@test.example"),
         None,
     )
@@ -154,7 +154,7 @@ pub(crate) async fn create_network(pool: &PgPool) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
         format!("test-network-{network_number}"),
         51820 + i32::from(network_number % 10_000),
-        "10.0.0.1".to_string(),
+        "10.0.0.1".to_owned(),
         None,
         Vec::<IpNetwork>::new(),
         true,  // allow_all_groups
@@ -248,7 +248,7 @@ pub(crate) async fn create_device_for_user(pool: &PgPool, user_id: Id) -> Device
     static DEV_CTR: AtomicU16 = AtomicU16::new(0);
     let device_number = DEV_CTR.fetch_add(1, Ordering::Relaxed);
     // Use a pre-generated valid 32-byte base64 WireGuard public key.
-    let pubkey = DEVICE_PUBKEYS[device_number as usize % DEVICE_PUBKEYS.len()].to_string();
+    let pubkey = DEVICE_PUBKEYS[device_number as usize % DEVICE_PUBKEYS.len()].to_owned();
     let mut conn = pool
         .acquire()
         .await
@@ -299,7 +299,7 @@ pub(crate) async fn create_enrollment_token(
         admin_id,
         None,
         3600, // 1 hour
-        Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+        Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
     );
     token
         .save(pool)
@@ -336,7 +336,7 @@ pub(crate) async fn start_enrollment_session(context: &mut HandlerTestContext, t
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::EnrollmentStart(
             EnrollmentStartRequest {
-                token: token_id.to_string(),
+                token: token_id.to_owned(),
             },
         )),
     });
@@ -367,7 +367,7 @@ pub(crate) async fn create_mfa_network(pool: &PgPool) -> WireguardNetwork<Id> {
     WireguardNetwork::new(
         format!("test-mfa-network-{network_number}"),
         41820 + i32::from(network_number % 10_000),
-        "10.1.0.1".to_string(),
+        "10.1.0.1".to_owned(),
         None,
         Vec::<IpNetwork>::new(),
         true,  // allow_all_groups
@@ -390,7 +390,7 @@ pub(crate) async fn create_external_mfa_network(pool: &PgPool) -> WireguardNetwo
     WireguardNetwork::new(
         format!("test-ext-mfa-network-{network_number}"),
         31820 + i32::from(network_number % 10_000),
-        "10.2.0.1".to_string(),
+        "10.2.0.1".to_owned(),
         None,
         Vec::<IpNetwork>::new(),
         true,  // allow_all_groups
@@ -478,7 +478,7 @@ pub(crate) async fn send_mfa_start(
         payload: Some(core_request::Payload::ClientMfaStart(
             ClientMfaStartRequest {
                 location_id,
-                pubkey: pubkey.to_string(),
+                pubkey: pubkey.to_owned(),
                 method: method as i32,
                 posture_data: None,
             },
@@ -515,8 +515,8 @@ pub(crate) async fn send_mfa_finish(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
-                token: token.to_string(),
-                code: code.map(str::to_string),
+                token: token.to_owned(),
+                code: code.map(str::to_owned),
                 auth_pub_key: None,
             },
         )),
@@ -554,8 +554,8 @@ pub(crate) async fn send_mfa_finish_no_recv(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
-                token: token.to_string(),
-                code: code.map(str::to_string),
+                token: token.to_owned(),
+                code: code.map(str::to_owned),
                 auth_pub_key: None,
             },
         )),
@@ -579,8 +579,8 @@ pub(crate) async fn send_mfa_finish_raw(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ClientMfaFinish(
             ClientMfaFinishRequest {
-                token: token.to_string(),
-                code: code.map(str::to_string),
+                token: token.to_owned(),
+                code: code.map(str::to_owned),
                 auth_pub_key: None,
             },
         )),
@@ -597,7 +597,7 @@ pub(crate) async fn send_token_validation(context: &mut HandlerTestContext, toke
         device_info: None,
         payload: Some(core_request::Payload::ClientMfaTokenValidation(
             ClientMfaTokenValidationRequest {
-                token: token.to_string(),
+                token: token.to_owned(),
             },
         )),
     });
@@ -655,12 +655,12 @@ pub(crate) async fn create_oidc_provider(
 ) -> OpenIdProvider<Id> {
     OpenIdProvider::<NoId> {
         id: NoId,
-        name: "test-oidc".to_string(),
+        name: "test-oidc".to_owned(),
         base_url: mock.base_url.clone(),
         kind: OpenIdProviderKind::Custom,
         client_id: mock.client_id.clone(),
         client_secret: mock.client_secret.clone(),
-        display_name: Some("Test OIDC".to_string()),
+        display_name: Some("Test OIDC".to_owned()),
         google_service_account_key: None,
         google_service_account_email: None,
         admin_email: None,
@@ -684,7 +684,7 @@ pub(crate) async fn create_oidc_provider(
 /// that `edge_callback_url` returns a valid URL during tests.
 pub(crate) async fn set_public_proxy_url(pool: &PgPool, url: &str) {
     let mut settings = Settings::get_current_settings();
-    settings.public_proxy_url = url.to_string();
+    settings.public_proxy_url = url.to_owned();
     update_current_settings(pool, settings)
         .await
         .expect("failed to update public_proxy_url in settings");
@@ -710,9 +710,9 @@ pub(crate) async fn send_activate_user(
         id,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::ActivateUser(ActivateUserRequest {
-            token: Some(token.to_string()),
-            password: password.to_string(),
-            phone_number: phone.map(str::to_string),
+            token: Some(token.to_owned()),
+            password: password.to_owned(),
+            phone_number: phone.map(str::to_owned),
         })),
     });
     context.mock_proxy_mut().recv_outbound().await
@@ -733,7 +733,7 @@ pub(crate) async fn send_code_mfa_setup_start(
         payload: Some(core_request::Payload::CodeMfaSetupStart(
             CodeMfaSetupStartRequest {
                 method: method as i32,
-                token: token.to_string(),
+                token: token.to_owned(),
             },
         )),
     });
@@ -747,7 +747,7 @@ pub(crate) async fn create_password_reset_token(pool: &PgPool, user: &User<Id>) 
         None,
         Some(user.email.clone()),
         3600, // 1 hour
-        Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+        Some(PASSWORD_RESET_TOKEN_TYPE.to_owned()),
     );
     token
         .save(pool)
@@ -768,7 +768,7 @@ pub(crate) async fn send_password_reset_init(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::PasswordResetInit(
             PasswordResetInitializeRequest {
-                email: email.to_string(),
+                email: email.to_owned(),
             },
         )),
     });
@@ -787,7 +787,7 @@ pub(crate) async fn send_password_reset_start(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::PasswordResetStart(
             PasswordResetStartRequest {
-                token: token.to_string(),
+                token: token.to_owned(),
             },
         )),
     });
@@ -806,8 +806,8 @@ pub(crate) async fn send_password_reset(
         id,
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::PasswordReset(PasswordResetRequest {
-            password: password.to_string(),
-            token: Some(token.to_string()),
+            password: password.to_owned(),
+            token: Some(token.to_owned()),
         })),
     });
     context.mock_proxy_mut().recv_outbound().await
@@ -828,8 +828,8 @@ pub(crate) async fn send_code_mfa_setup_finish(
         device_info: Some(make_device_info()),
         payload: Some(core_request::Payload::CodeMfaSetupFinish(
             CodeMfaSetupFinishRequest {
-                code: code.to_string(),
-                token: token.to_string(),
+                code: code.to_owned(),
+                token: token.to_owned(),
                 method: method as i32,
             },
         )),

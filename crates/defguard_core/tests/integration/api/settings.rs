@@ -22,7 +22,7 @@ async fn test_settings(_: PgPoolOptions, options: PgConnectOptions) {
     let mut settings: Settings = response.json().await;
     // modify settings
     settings.wireguard_enabled = false;
-    settings.challenge_template = "Modified".to_string();
+    settings.challenge_template = "Modified".to_owned();
     let response = client.put("/api/v1/settings").json(&settings).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     // verify modified settings
@@ -79,7 +79,7 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     let settings: Settings = response.json().await;
     assert_eq!(
         settings.smtp_user,
-        Some("testuser".to_string()),
+        Some("testuser".to_owned()),
         "smtp_user should be set after initial PATCH"
     );
     // smtp_password is redacted in the API response; verify via DB
@@ -117,7 +117,7 @@ async fn test_patch_settings_clears_optional_fields(_: PgPoolOptions, options: P
     let from_db = Settings::get(&pool).await.unwrap().unwrap();
     assert_eq!(
         from_db.ldap_user_rdn_attr,
-        Some("uid".to_string()),
+        Some("uid".to_owned()),
         "ldap_user_rdn_attr should be set after PATCH"
     );
 

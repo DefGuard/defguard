@@ -56,9 +56,9 @@ async fn assert_auto_adoption_step(pool: &sqlx::PgPool, expected: AutoAdoptionWi
 /// Seed a minimal WireguardNetwork row required by the auto-adoption VPN/MFA steps.
 async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
     let mut location = WireguardNetwork::new(
-        "auto-net".to_string(),
+        "auto-net".to_owned(),
         51820,
-        "1.2.3.4".to_string(),
+        "1.2.3.4".to_owned(),
         None,
         ["0.0.0.0/0".parse().unwrap()],
         false,
@@ -172,7 +172,7 @@ async fn test_auto_adoption_full_flow(_: PgPoolOptions, options: PgConnectOption
         .expect("Network not found after VPN settings update");
     assert_eq!(updated_network.endpoint, "5.5.5.5");
     assert_eq!(updated_network.port, 51820);
-    assert_eq!(updated_network.dns, Some("8.8.8.8".to_string()));
+    assert_eq!(updated_network.dns, Some("8.8.8.8".to_owned()));
 
     let resp = client
         .post("/api/v1/initial_setup/auto_wizard/mfa_settings")
@@ -425,8 +425,8 @@ async fn test_auto_adoption_vpn_settings_missing_network(
 
 fn config_with_flags(adopt_edge: Option<&str>, adopt_gateway: Option<&str>) -> DefGuardConfig {
     let mut config = DefGuardConfig::new_test_config();
-    config.adopt_edge = adopt_edge.map(str::to_string);
-    config.adopt_gateway = adopt_gateway.map(str::to_string);
+    config.adopt_edge = adopt_edge.map(str::to_owned);
+    config.adopt_gateway = adopt_gateway.map(str::to_owned);
     config
 }
 

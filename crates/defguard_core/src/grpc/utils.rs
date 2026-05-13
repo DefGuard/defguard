@@ -233,7 +233,7 @@ pub async fn build_device_config_response(
 pub fn parse_client_ip_agent(info: &Option<DeviceInfo>) -> Result<(IpAddr, String), String> {
     let Some(info) = info else {
         error!("Missing DeviceInfo in proxy request");
-        return Err("missing device info".to_string());
+        return Err("missing device info".to_owned());
     };
 
     let ip = IpAddr::from_str(&info.ip_address).map_err(|_| {

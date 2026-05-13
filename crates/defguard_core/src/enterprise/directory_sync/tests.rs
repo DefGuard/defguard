@@ -53,9 +53,9 @@ mod test {
         }
 
         WireguardNetwork::new(
-            "test".to_string(),
+            "test".to_owned(),
             1234,
-            "123.123.123.123".to_string(),
+            "123.123.123.123".to_owned(),
             None,
             Vec::new(),
             true,
@@ -71,15 +71,15 @@ mod test {
         .unwrap();
 
         OpenIdProvider::new(
-            "Test".to_string(),
-            "base_url".to_string(),
+            "Test".to_owned(),
+            "base_url".to_owned(),
             OpenIdProviderKind::Google,
-            "client_id".to_string(),
-            "client_secret".to_string(),
-            Some("display_name".to_string()),
-            Some("google_service_account_key".to_string()),
-            Some("google_service_account_email".to_string()),
-            Some("admin_email".to_string()),
+            "client_id".to_owned(),
+            "client_secret".to_owned(),
+            Some("display_name".to_owned()),
+            Some("google_service_account_key".to_owned()),
+            Some("google_service_account_email".to_owned()),
+            Some("admin_email".to_owned()),
             true,
             60,
             user_behavior,
@@ -876,7 +876,7 @@ mod test {
 
         let user_limit = 1;
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             None,
             Some(LicenseLimits {

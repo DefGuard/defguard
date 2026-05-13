@@ -39,7 +39,7 @@ use crate::api::common::{get_db_device, get_db_location, get_db_user, make_clien
 
 async fn seed_user_with_mfa_artifacts(pool: &sqlx::PgPool, username: &str) -> Vec<String> {
     let test_user = get_db_user(pool, username).await;
-    let recovery_codes = vec!["recovery-code-1".to_string(), "recovery-code-2".to_string()];
+    let recovery_codes = vec!["recovery-code-1".to_owned(), "recovery-code-2".to_owned()];
 
     sqlx::query(
         "UPDATE \"user\" SET mfa_enabled = TRUE, totp_enabled = TRUE, email_mfa_enabled = TRUE, \
@@ -631,7 +631,7 @@ async fn test_add_user_blocked_when_user_count_exceeds_license_limit(
 
     let license = get_cached_license().clone();
     set_cached_license(Some(License::new(
-        "test_customer".to_string(),
+        "test_customer".to_owned(),
         false,
         None,
         Some(LicenseLimits {

@@ -19,7 +19,7 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
     // register a fake worker
     {
         let mut state = state.worker_state.lock().unwrap();
-        state.register_worker("YubiBridge".to_string());
+        state.register_worker("YubiBridge".to_owned());
     };
 
     // normal user can only provision keys for themselves
@@ -28,8 +28,8 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(response.status(), StatusCode::OK);
 
     let job_data = JobData {
-        username: "hpotter".to_string(),
-        worker: "YubiBridge".to_string(),
+        username: "hpotter".to_owned(),
+        worker: "YubiBridge".to_owned(),
     };
     let response = client
         .post("/api/v1/worker/job")
@@ -40,8 +40,8 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
     let user_job_id_1 = response.json::<Jobid>().await.id;
 
     let job_data = JobData {
-        username: "admin".to_string(),
-        worker: "YubiBridge".to_string(),
+        username: "admin".to_owned(),
+        worker: "YubiBridge".to_owned(),
     };
     let response = client
         .post("/api/v1/worker/job")
@@ -56,8 +56,8 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
     assert_eq!(response.status(), StatusCode::OK);
 
     let job_data = JobData {
-        username: "hpotter".to_string(),
-        worker: "YubiBridge".to_string(),
+        username: "hpotter".to_owned(),
+        worker: "YubiBridge".to_owned(),
     };
     let response = client
         .post("/api/v1/worker/job")
@@ -68,8 +68,8 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
     let admin_job_id_1 = response.json::<Jobid>().await.id;
 
     let job_data = JobData {
-        username: "admin".to_string(),
-        worker: "YubiBridge".to_string(),
+        username: "admin".to_owned(),
+        worker: "YubiBridge".to_owned(),
     };
     let response = client
         .post("/api/v1/worker/job")
@@ -84,7 +84,7 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
         let mut state = state.worker_state.lock().unwrap();
         state.set_job_status(
             JobStatus {
-                id: "YubiBridge".to_string(),
+                id: "YubiBridge".to_owned(),
                 job_id: user_job_id_1,
                 success: true,
                 public_key: String::new(),
@@ -96,7 +96,7 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
         );
         state.set_job_status(
             JobStatus {
-                id: "YubiBridge".to_string(),
+                id: "YubiBridge".to_owned(),
                 job_id: admin_job_id_1,
                 success: true,
                 public_key: String::new(),
@@ -108,7 +108,7 @@ async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions
         );
         state.set_job_status(
             JobStatus {
-                id: "YubiBridge".to_string(),
+                id: "YubiBridge".to_owned(),
                 job_id: admin_job_id_2,
                 success: true,
                 public_key: String::new(),

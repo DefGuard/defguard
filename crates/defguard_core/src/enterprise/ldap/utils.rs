@@ -57,7 +57,7 @@ pub(crate) async fn login_through_ldap_with_connection(
     if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
         info!("User {username} is not in LDAP sync groups, not allowing to login through LDAP.");
         return Err(LdapError::UserNotInLDAPSyncGroups(
-            username.to_string(),
+            username.to_owned(),
             "LDAP",
         ));
     }

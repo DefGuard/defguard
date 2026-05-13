@@ -106,7 +106,7 @@ impl ClientMfaServer {
                             location: location.clone(),
                             device: device.clone(),
                             method,
-                            message: "provided invalid callback URL".to_string(),
+                            message: "provided invalid callback URL".to_owned(),
                         },
                     )),
                 })?;

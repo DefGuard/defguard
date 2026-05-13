@@ -202,16 +202,16 @@ mod tests {
     fn sample_context() -> BidiRequestContext {
         BidiRequestContext::new(
             1,
-            "alice".to_string(),
+            "alice".to_owned(),
             IpAddr::V4(Ipv4Addr::LOCALHOST),
-            "desktop-app".to_string(),
+            "desktop-app".to_owned(),
         )
     }
 
     fn sample_device() -> Device<Id> {
         Device::new(
-            "vpn-device".to_string(),
-            "pubkey".to_string(),
+            "vpn-device".to_owned(),
+            "pubkey".to_owned(),
             1,
             DeviceType::User,
             None,
@@ -222,9 +222,9 @@ mod tests {
 
     fn sample_location() -> WireguardNetwork<Id> {
         WireguardNetwork::new(
-            "vpn-location".to_string(),
+            "vpn-location".to_owned(),
             51820,
-            "vpn.example.com".to_string(),
+            "vpn.example.com".to_owned(),
             None,
             ["0.0.0.0/0".parse().expect("allowed IP should parse")],
             true,

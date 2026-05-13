@@ -221,10 +221,10 @@ impl GatewaySetup for MockGatewaySetupService {
         tokio::spawn(async move {
             for i in 0..3u32 {
                 let entry = LogEntry {
-                    level: "INFO".to_string(),
-                    target: "mock_gateway".to_string(),
+                    level: "INFO".to_owned(),
+                    target: "mock_gateway".to_owned(),
                     message: format!("setup log {i}"),
-                    timestamp: MOCK_LOG_TIMESTAMP.to_string(),
+                    timestamp: MOCK_LOG_TIMESTAMP.to_owned(),
                     fields: Default::default(),
                 };
                 if tx.send(Ok(entry)).is_err() {

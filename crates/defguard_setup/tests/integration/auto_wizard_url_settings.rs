@@ -54,7 +54,7 @@ async fn bootstrap_wizard_to_url_settings(
 fn generate_test_cert_pem(common_name: &str) -> (String, String) {
     let ca = CertificateAuthority::new("Test CA", "test@example.com", 365).unwrap();
     let key_pair = generate_key_pair().unwrap();
-    let san = vec![common_name.to_string()];
+    let san = vec![common_name.to_owned()];
     let dn = vec![(DnType::CommonName, common_name)];
     let csr = Csr::new(&key_pair, &san, dn).unwrap();
     let cert = ca.sign_server_cert(&csr).unwrap();
@@ -65,9 +65,9 @@ fn generate_test_cert_pem(common_name: &str) -> (String, String) {
 
 async fn seed_wireguard_network(pool: &sqlx::PgPool) -> WireguardNetwork<Id> {
     let mut location = WireguardNetwork::new(
-        "url-settings-net".to_string(),
+        "url-settings-net".to_owned(),
         51820,
-        "1.2.3.4".to_string(),
+        "1.2.3.4".to_owned(),
         None,
         ["0.0.0.0/0".parse().unwrap()],
         false,

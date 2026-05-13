@@ -68,7 +68,7 @@ pub async fn create_session(
     session.save(pool).await?;
     debug!("New session created for user {}", user.username);
 
-    let login_event_type = "AUTHENTICATION".to_string();
+    let login_event_type = "AUTHENTICATION".to_owned();
 
     // Check that MFA state is correct before proceeding further
     user.verify_mfa_state(pool).await?;
@@ -265,7 +265,7 @@ pub async fn authenticate(
     if let Some(user_info) = user_info {
         let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
-            let url = openid_cookie.value().to_string();
+            let url = openid_cookie.value().to_owned();
             private_cookies = private_cookies.remove(openid_cookie);
             Some(url)
         } else {
@@ -571,7 +571,7 @@ pub async fn webauthn_end(
 
                     if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                         debug!("Found OpenID session cookie.");
-                        let redirect_url = openid_cookie.value().to_string();
+                        let redirect_url = openid_cookie.value().to_owned();
                         let private_cookies = private_cookies.remove(openid_cookie);
                         Ok((
                             private_cookies,
@@ -728,7 +728,7 @@ pub async fn totp_code(
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found openid session cookie.");
-                let redirect_url = openid_cookie.value().to_string();
+                let redirect_url = openid_cookie.value().to_owned();
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
                     private_cookies,
@@ -754,7 +754,7 @@ pub async fn totp_code(
             }
         } else {
             let message = if user.totp_enabled {
-                "TOTP code verification failed".to_string()
+                "TOTP code verification failed".to_owned()
             } else {
                 format!("TOTP authentication is disabled for {username}")
             };
@@ -937,7 +937,7 @@ pub async fn email_mfa_code(
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
-                let redirect_url = openid_cookie.value().to_string();
+                let redirect_url = openid_cookie.value().to_owned();
                 let private_cookies = private_cookies.remove(openid_cookie);
                 Ok((
                     private_cookies,
@@ -963,7 +963,7 @@ pub async fn email_mfa_code(
             }
         } else {
             let message = if user.email_mfa_enabled {
-                "Email code verification failed".to_string()
+                "Email code verification failed".to_owned()
             } else {
                 format!("Email code authentication is disabled for {username}")
             };
@@ -1027,7 +1027,7 @@ pub async fn recovery_code(
             })?;
             if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
                 debug!("Found OpenID session cookie.");
-                let redirect_url = openid_cookie.value().to_string();
+                let redirect_url = openid_cookie.value().to_owned();
                 let private_cookies = private_cookies.remove(openid_cookie);
                 return Ok((
                     private_cookies,

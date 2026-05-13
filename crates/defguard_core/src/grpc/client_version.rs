@@ -128,11 +128,11 @@ mod tests {
     fn test_parse_client_version_platform() {
         // Test with valid version and platform
         let info = create_device_info(
-            Some("1.5.0".to_string()),
+            Some("1.5.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -149,11 +149,11 @@ mod tests {
 
         // Test with invalid version string
         let info = create_device_info(
-            Some("invalid.version".to_string()),
+            Some("invalid.version".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "linux".to_string(),
-                os_type: "Ubuntu".to_string(),
-                version: "22.04".to_string(),
+                os_family: "linux".to_owned(),
+                os_type: "Ubuntu".to_owned(),
+                version: "22.04".to_owned(),
                 ..Default::default()
             }),
         );
@@ -165,9 +165,9 @@ mod tests {
         let info = create_device_info(
             None,
             Some(ClientPlatformInfo {
-                os_family: "linux".to_string(),
-                os_type: "Ubuntu".to_string(),
-                version: "22.04".to_string(),
+                os_family: "linux".to_owned(),
+                os_type: "Ubuntu".to_owned(),
+                version: "22.04".to_owned(),
                 ..Default::default()
             }),
         );
@@ -176,7 +176,7 @@ mod tests {
         assert!(platform.is_some());
 
         // Test with missing platform field
-        let info = create_device_info(Some("1.5.0".to_string()), None);
+        let info = create_device_info(Some("1.5.0".to_owned()), None);
         let (version, platform) = parse_client_version_platform(Some(&info));
         assert!(version.is_some());
         assert!(platform.is_none());
@@ -189,11 +189,11 @@ mod tests {
 
         // Test with pre-release version
         let info = create_device_info(
-            Some("1.5.0-alpha1".to_string()),
+            Some("1.5.0-alpha1".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "macos".to_string(),
-                os_type: "macOS".to_string(),
-                version: "14.0".to_string(),
+                os_family: "macos".to_owned(),
+                os_type: "macOS".to_owned(),
+                version: "14.0".to_owned(),
                 ..Default::default()
             }),
         );
@@ -207,11 +207,11 @@ mod tests {
     fn test_client_feature_is_supported_by_device() {
         // Test ServiceLocations feature with supported version and OS
         let info = create_device_info(
-            Some("1.6.0".to_string()),
+            Some("1.6.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -222,11 +222,11 @@ mod tests {
 
         // Test with exact minimum version
         let info = create_device_info(
-            Some("1.6.0".to_string()),
+            Some("1.6.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "Windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "Windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -237,11 +237,11 @@ mod tests {
 
         // Test with higher version
         let info = create_device_info(
-            Some("2.0.0".to_string()),
+            Some("2.0.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "WINDOWS".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "WINDOWS".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -252,11 +252,11 @@ mod tests {
 
         // Test with version below minimum
         let info = create_device_info(
-            Some("1.5.9".to_string()),
+            Some("1.5.9".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -267,11 +267,11 @@ mod tests {
 
         // Test with wrong OS family (linux)
         let info = create_device_info(
-            Some("1.6.0".to_string()),
+            Some("1.6.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "linux".to_string(),
-                os_type: "Ubuntu".to_string(),
-                version: "22.04".to_string(),
+                os_family: "linux".to_owned(),
+                os_type: "Ubuntu".to_owned(),
+                version: "22.04".to_owned(),
                 ..Default::default()
             }),
         );
@@ -282,11 +282,11 @@ mod tests {
 
         // Test with wrong OS family (macos)
         let info = create_device_info(
-            Some("1.6.0".to_string()),
+            Some("1.6.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "macos".to_string(),
-                os_type: "macOS".to_string(),
-                version: "14.0".to_string(),
+                os_family: "macos".to_owned(),
+                os_type: "macOS".to_owned(),
+                version: "14.0".to_owned(),
                 ..Default::default()
             }),
         );
@@ -305,9 +305,9 @@ mod tests {
         let info = create_device_info(
             None,
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -317,7 +317,7 @@ mod tests {
         );
 
         // Test with missing platform
-        let info = create_device_info(Some("1.6.0".to_string()), None);
+        let info = create_device_info(Some("1.6.0".to_owned()), None);
         assert!(
             !ClientFeature::ServiceLocations.is_supported_by_device(Some(&info)),
             "ServiceLocations should not be supported without platform info"
@@ -325,11 +325,11 @@ mod tests {
 
         // Test with invalid version string
         let info = create_device_info(
-            Some("invalid".to_string()),
+            Some("invalid".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -340,11 +340,11 @@ mod tests {
 
         // Test case insensitivity of OS family matching
         let info = create_device_info(
-            Some("1.6.0".to_string()),
+            Some("1.6.0".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "WiNdOwS".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "WiNdOwS".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -355,11 +355,11 @@ mod tests {
 
         // Test with pre-release version above minimum
         let info = create_device_info(
-            Some("1.7.0-alpha1".to_string()),
+            Some("1.7.0-alpha1".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );
@@ -370,11 +370,11 @@ mod tests {
 
         // Test with pre-release version below minimum
         let info = create_device_info(
-            Some("1.5.0-alpha1".to_string()),
+            Some("1.5.0-alpha1".to_owned()),
             Some(ClientPlatformInfo {
-                os_family: "windows".to_string(),
-                os_type: "Windows".to_string(),
-                version: "11".to_string(),
+                os_family: "windows".to_owned(),
+                os_type: "Windows".to_owned(),
+                version: "11".to_owned(),
                 ..Default::default()
             }),
         );

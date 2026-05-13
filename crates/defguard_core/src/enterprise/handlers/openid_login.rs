@@ -63,12 +63,12 @@ use crate::{
 /// - no whitespaces
 #[must_use]
 pub fn prune_username(username: &str, handling: OpenIdUsernameHandling) -> String {
-    let mut result = username.to_string();
+    let mut result = username.to_owned();
 
     // Go through the string and remove any non-alphanumeric characters at the beginning
     result = result
         .trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_string();
+        .to_owned();
 
     let is_char_valid = |c: char| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_';
 
@@ -119,7 +119,7 @@ fn get_async_http_client() -> Result<reqwest::Client, WebError> {
 }
 
 async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebError> {
-    let issuer_url = IssuerUrl::new(url.to_string()).map_err(|err| {
+    let issuer_url = IssuerUrl::new(url.to_owned()).map_err(|err| {
         WebError::BadRequest(format!(
             "Failed to create issuer URL from the provided URL: {url}. Error details: {err}",
         ))
@@ -159,7 +159,7 @@ pub(crate) fn extract_state_data(state: &str) -> Option<String> {
         if part1.is_empty() {
             None
         } else {
-            Some(part2.to_string())
+            Some(part2.to_owned())
         }
     } else {
         None
@@ -207,7 +207,7 @@ pub async fn user_from_claims(
 ) -> Result<User<Id>, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_string(),
+            "OpenID provider not set".to_owned(),
         ));
     };
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
@@ -231,7 +231,7 @@ pub async fn user_from_claims(
     };
     let Some(id_token) = token_response.extra_fields().id_token() else {
         return Err(WebError::Authorization(
-            "Server did not return an ID token".to_string(),
+            "Server did not return an ID token".to_owned(),
         ));
     };
 
@@ -285,7 +285,7 @@ pub async fn user_from_claims(
         "Email not found in the information returned from provider. Make sure your provider is \
         configured correctly and that you have granted the necessary permissions to retrieve \
         such information."
-            .to_string(),
+            .to_owned(),
     ))?;
 
     // Get the *sub* claim from the token.
@@ -355,7 +355,7 @@ pub async fn user_from_claims(
                     );
                     // Extract the username from the email address
                     let username = email.split('@').next().ok_or(WebError::BadRequest(
-                        "Failed to extract username from email address".to_string(),
+                        "Failed to extract username from email address".to_owned(),
                     ))?;
                     debug!("Username extracted from email ({email:?}): {username})");
                     username
@@ -495,7 +495,7 @@ pub async fn get_auth_info(
     let provider = OpenIdProvider::get_current(&appstate.pool).await?;
     let Some(provider) = provider else {
         return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_string(),
+            "OpenID provider not set".to_owned(),
         ));
     };
 
@@ -582,12 +582,12 @@ pub async fn auth_callback(
         .get(NONCE_COOKIE_NAME)
         .ok_or(WebError::Authorization("Nonce cookie not found".into()))?
         .value_trimmed()
-        .to_string();
+        .to_owned();
     let cookie_csrf = private_cookies
         .get(CSRF_COOKIE_NAME)
         .ok_or(WebError::BadRequest("CSRF cookie not found".into()))?
         .value_trimmed()
-        .to_string();
+        .to_owned();
 
     // Verify the CSRF token
     if payload.state.secret() != &cookie_csrf {
@@ -658,7 +658,7 @@ pub async fn auth_callback(
     if let Some(user_info) = user_info {
         let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
-            let url = openid_cookie.value().to_string();
+            let url = openid_cookie.value().to_owned();
             private_cookies = private_cookies.remove(openid_cookie);
             Some(url)
         } else {
@@ -770,7 +770,7 @@ mod test {
         assert!(!token.secret().is_empty());
 
         // with data
-        let data = "somedata".to_string();
+        let data = "somedata".to_owned();
         let token = build_state(Some(data.clone()));
         let decoded = BASE64_STANDARD.decode(token.secret());
         assert!(decoded.is_ok());
@@ -780,7 +780,7 @@ mod test {
         assert_eq!(state_data, data);
 
         // valid
-        let data = "my_state_data".to_string();
+        let data = "my_state_data".to_owned();
         let token = build_state(Some(data.clone()));
         let extracted = extract_state_data(token.secret());
         assert_eq!(extracted, Some(data));
@@ -807,14 +807,14 @@ mod test {
         // multiple dots
         let encoded = BASE64_STANDARD.encode("csrf.data.with.dots");
         let extracted = extract_state_data(&encoded);
-        assert_eq!(extracted, Some("data.with.dots".to_string()));
+        assert_eq!(extracted, Some("data.with.dots".to_owned()));
     }
 
     #[test]
     fn test_reached_user_license_limit_reached() {
         set_counts(Counts::new(2, 0, 0, 0));
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             None,
             Some(LicenseLimits {
@@ -836,7 +836,7 @@ mod test {
     fn test_reached_user_license_limit_not_reached() {
         set_counts(Counts::new(1, 0, 0, 0));
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             None,
             Some(LicenseLimits {
@@ -858,7 +858,7 @@ mod test {
     fn test_reached_user_license_limit_unlimited() {
         set_counts(Counts::new(100, 0, 0, 0));
         let license = License::new(
-            "test".to_string(),
+            "test".to_owned(),
             false,
             None,
             None,

@@ -39,7 +39,7 @@ fn extract_simple_attribute_value(condition: &str, attr: &str) -> Option<String>
     if condition.starts_with(attr) && condition.contains('=') {
         let parts: Vec<&str> = condition.splitn(2, '=').collect();
         if parts.len() == 2 && parts[0] == attr {
-            return Some(parts[1].to_string());
+            return Some(parts[1].to_owned());
         }
     }
     None
@@ -90,19 +90,19 @@ impl PartialEq for LdapEvent {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                LdapEvent::ObjectAdded { dn, attrs },
-                LdapEvent::ObjectAdded {
+                Self::ObjectAdded { dn, attrs },
+                Self::ObjectAdded {
                     dn: other_dn,
                     attrs: other_attrs,
                 },
             ) => dn == other_dn && vecs_equal_unordered(attrs, other_attrs),
             (
-                LdapEvent::ObjectModified {
+                Self::ObjectModified {
                     old_dn,
                     new_dn,
                     mods,
                 },
-                LdapEvent::ObjectModified {
+                Self::ObjectModified {
                     old_dn: other_old_dn,
                     new_dn: other_new_dn,
                     mods: other_mods,
@@ -112,12 +112,10 @@ impl PartialEq for LdapEvent {
                     && new_dn == other_new_dn
                     && vecs_equal_unordered(mods, other_mods)
             }
-            (LdapEvent::ObjectDeleted { dn }, LdapEvent::ObjectDeleted { dn: other_dn }) => {
-                dn == other_dn
-            }
+            (Self::ObjectDeleted { dn }, Self::ObjectDeleted { dn: other_dn }) => dn == other_dn,
             (
-                LdapEvent::UserBound { dn, password },
-                LdapEvent::UserBound {
+                Self::UserBound { dn, password },
+                Self::UserBound {
                     dn: other_dn,
                     password: other_password,
                 },
@@ -135,16 +133,16 @@ pub(super) enum Object {
 impl Object {
     fn to_search_entry(&self, dn: &str, config: &LDAPConfig) -> SearchEntry {
         match self {
-            Object::User(user) => SearchEntry {
-                dn: dn.to_string(),
+            Self::User(user) => SearchEntry {
+                dn: dn.to_owned(),
                 attrs: user_to_test_attrs(user, None, config)
                     .into_iter()
                     .map(|(k, v)| (k, v.into_iter().collect()))
                     .collect(),
                 bin_attrs: HashMap::new(),
             },
-            Object::Group(group) => SearchEntry {
-                dn: dn.to_string(),
+            Self::Group(group) => SearchEntry {
+                dn: dn.to_owned(),
                 attrs: group_to_test_attrs(group, config, None)
                     .into_iter()
                     .map(|(k, v)| (k, v.into_iter().collect()))
@@ -239,7 +237,7 @@ impl TestClient {
 }
 
 impl LDAPConnection {
-    pub async fn create() -> Result<LDAPConnection, LdapError> {
+    pub async fn create() -> Result<Self, LdapError> {
         Ok(Self {
             config: LDAPConfig::default(),
             url: String::new(),
@@ -336,8 +334,8 @@ impl LDAPConnection {
         password: &str,
     ) -> Result<(), LdapError> {
         self.test_client.add_event(LdapEvent::UserBound {
-            dn: dn.to_string(),
-            password: password.to_string(),
+            dn: dn.to_owned(),
+            password: password.to_owned(),
         });
         Ok(())
     }
@@ -375,12 +373,12 @@ impl LDAPConnection {
         attrs: Vec<(&str, HashSet<&str>)>,
     ) -> Result<(), LdapError> {
         self.test_client.add_event(LdapEvent::ObjectAdded {
-            dn: dn.to_string(),
+            dn: dn.to_owned(),
             attrs: attrs
                 .into_iter()
                 .map(|(k, v)| {
                     (
-                        k.to_string(),
+                        k.to_owned(),
                         v.iter().map(std::string::ToString::to_string).collect(),
                     )
                 })
@@ -398,7 +396,7 @@ impl LDAPConnection {
     where
         S: AsRef<[u8]> + Eq + Hash,
     {
-        let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_string();
+        let to_string = |s: S| str::from_utf8(s.as_ref()).unwrap().to_owned();
         let mods = mods
             .into_iter()
             .map(|modification| match modification {
@@ -416,8 +414,8 @@ impl LDAPConnection {
             .collect();
 
         self.test_client.add_event(LdapEvent::ObjectModified {
-            old_dn: old_dn.to_string(),
-            new_dn: new_dn.to_string(),
+            old_dn: old_dn.to_owned(),
+            new_dn: new_dn.to_owned(),
             mods,
         });
         Ok(())
@@ -425,7 +423,7 @@ impl LDAPConnection {
 
     pub(super) async fn delete(&mut self, dn: &str) -> Result<(), LdapError> {
         self.test_client
-            .add_event(LdapEvent::ObjectDeleted { dn: dn.to_string() });
+            .add_event(LdapEvent::ObjectDeleted { dn: dn.to_owned() });
         Ok(())
     }
 
@@ -571,7 +569,7 @@ pub(super) fn user_to_test_attrs<I>(
     .into_iter()
     .map(|(k, v)| {
         (
-            k.to_string(),
+            k.to_owned(),
             v.iter().map(std::string::ToString::to_string).collect(),
         )
     })
@@ -592,7 +590,7 @@ pub(super) fn group_to_test_attrs<I>(
             hashset![group.name.clone()],
         ),
         (
-            "objectClass".to_string(),
+            "objectClass".to_owned(),
             hashset![config.ldap_group_obj_class.clone()],
         ),
     ];

@@ -66,7 +66,7 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         );
         settings.ldap_sync_enabled = false;
         update_current_settings(pool, settings).await?;
-        return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
+        return Err(LdapError::EnterpriseDisabled("LDAP sync".to_owned()));
     }
 
     if is_ldap_desynced() {
@@ -109,7 +109,7 @@ where
     if !is_business_license_active() {
         info!("Enterprise features are disabled, not performing LDAP operation");
         set_ldap_sync_status(LdapSyncStatus::OutOfSync, pool).await?;
-        return Err(LdapError::EnterpriseDisabled("LDAP".to_string()));
+        return Err(LdapError::EnterpriseDisabled("LDAP".to_owned()));
     }
 
     if !settings.ldap_enabled {
@@ -173,15 +173,15 @@ impl Default for LDAPConfig {
     /// Provides default LDAP configuration values for testing purposes.
     fn default() -> Self {
         Self {
-            ldap_bind_username: "admin".to_string(),
-            ldap_group_search_base: "ou=groups,dc=example,dc=com".to_string(),
-            ldap_user_search_base: "ou=users,dc=example,dc=com".to_string(),
-            ldap_user_obj_class: "inetOrgPerson".to_string(),
-            ldap_group_obj_class: "groupOfUniqueNames".to_string(),
-            ldap_username_attr: "cn".to_string(),
-            ldap_groupname_attr: "cn".to_string(),
-            ldap_group_member_attr: "uniqueMember".to_string(),
-            ldap_member_attr: "memberOf".to_string(),
+            ldap_bind_username: "admin".to_owned(),
+            ldap_group_search_base: "ou=groups,dc=example,dc=com".to_owned(),
+            ldap_user_search_base: "ou=users,dc=example,dc=com".to_owned(),
+            ldap_user_obj_class: "inetOrgPerson".to_owned(),
+            ldap_group_obj_class: "groupOfUniqueNames".to_owned(),
+            ldap_username_attr: "cn".to_owned(),
+            ldap_groupname_attr: "cn".to_owned(),
+            ldap_group_member_attr: "uniqueMember".to_owned(),
+            ldap_member_attr: "memberOf".to_owned(),
             ldap_user_auxiliary_obj_classes: Vec::new(),
             ldap_uses_ad: false,
             ldap_user_rdn_attr: None,
@@ -278,7 +278,7 @@ impl TryFrom<Settings> for LDAPConfig {
     /// This is to scope the full Settings struct to only the LDAP-related settings.
     ///
     /// TODO: Since settings are now a global singleton, it may be better to do this differently.
-    fn try_from(settings: Settings) -> Result<LDAPConfig, LdapError> {
+    fn try_from(settings: Settings) -> Result<Self, LdapError> {
         /// Helper function to validate non-empty string settings.
         /// Returns an error if the setting is None or is an empty string.
         /// This is to prevent constructing an invalid LDAPConfig.
@@ -601,7 +601,7 @@ impl LDAPConnection {
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {user}");
-            password.to_string()
+            password.to_owned()
         } else {
             // LDAP may not accept no password, this is a workaround when we don't have access to
             // the user's password
@@ -619,7 +619,7 @@ impl LDAPConnection {
         let nt_password = hash::nthash(&password);
         let user_obj_classes = self.config.get_all_user_obj_classes();
         let username_attr = self.config.ldap_username_attr.clone();
-        let rdn_attr = self.config.get_rdn_attr().to_string();
+        let rdn_attr = self.config.get_rdn_attr().to_owned();
         if !self.is_username_available(&user.username).await?
             || self.user_exists_by_dn(&user_dn).await?
         {

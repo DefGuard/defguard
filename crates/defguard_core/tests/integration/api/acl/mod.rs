@@ -54,7 +54,7 @@ async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
 
 fn make_rule() -> EditAclRule {
     EditAclRule {
-        name: "rule".to_string(),
+        name: "rule".to_owned(),
         all_locations: false,
         locations: Vec::new(),
         expires: None,
@@ -70,12 +70,12 @@ fn make_rule() -> EditAclRule {
         denied_groups: Vec::new(),
         allowed_network_devices: Vec::new(),
         denied_network_devices: Vec::new(),
-        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
+        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_owned(),
         aliases: Vec::new(),
         destinations: Vec::new(),
         enabled: true,
         protocols: vec![6, 17],
-        ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        ports: "1, 2, 3, 10-20, 30-40".to_owned(),
         any_address: false,
         any_port: false,
         any_protocol: false,
@@ -107,18 +107,18 @@ async fn authenticate_promoted_admin(client: &mut TestClient, pool: &PgPool, use
 
 fn make_alias() -> EditAclAlias {
     EditAclAlias {
-        name: "alias".to_string(),
-        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
+        name: "alias".to_owned(),
+        addresses: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_owned(),
         protocols: vec![6, 17],
-        ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        ports: "1, 2, 3, 10-20, 30-40".to_owned(),
     }
 }
 
 fn make_destination() -> EditAclDestination {
     EditAclDestination {
-        name: "destination".to_string(),
-        addresses: "10.20.30.40, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
-        ports: "1, 2, 3, 10-20, 30-40".to_string(),
+        name: "destination".to_owned(),
+        addresses: "10.20.30.40, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_owned(),
+        ports: "1, 2, 3, 10-20, 30-40".to_owned(),
         protocols: vec![6, 17],
         any_address: false,
         any_port: false,

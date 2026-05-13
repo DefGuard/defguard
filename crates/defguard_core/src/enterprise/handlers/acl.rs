@@ -172,22 +172,22 @@ impl EditAclRule {
 
             if !self.any_address && self.addresses.trim().is_empty() && !alias_has_address {
                 return Err(WebError::BadRequest(
-                    "Must provide destination address, or enable any address".to_string(),
+                    "Must provide destination address, or enable any address".to_owned(),
                 ));
             }
             if !self.any_port && self.ports.trim().is_empty() && !alias_has_port {
                 return Err(WebError::BadRequest(
-                    "Must provide destination port, or enable any port".to_string(),
+                    "Must provide destination port, or enable any port".to_owned(),
                 ));
             }
             if !self.any_protocol && self.protocols.is_empty() && !alias_has_protocol {
                 return Err(WebError::BadRequest(
-                    "Must provide destination protocol, or enable any protocol".to_string(),
+                    "Must provide destination protocol, or enable any protocol".to_owned(),
                 ));
             }
         } else if self.destinations.is_empty() {
             return Err(WebError::BadRequest(
-                "Must provide destination alias".to_string(),
+                "Must provide destination alias".to_owned(),
             ));
         }
 
@@ -200,7 +200,7 @@ impl EditAclRule {
             && self.allowed_network_devices.is_empty()
         {
             return Err(WebError::BadRequest(
-                "Must provide some allowed users, groups or devices".to_string(),
+                "Must provide some allowed users, groups or devices".to_owned(),
             ));
         }
 

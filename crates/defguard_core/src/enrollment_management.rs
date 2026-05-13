@@ -42,7 +42,7 @@ pub async fn start_user_enrollment(
         Some(admin.id),
         email.clone(),
         token_timeout_seconds,
-        Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+        Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
     );
     debug!("Saving a new enrollment token for user {user}");
     enrollment.save(&mut *conn).await?;
@@ -128,7 +128,7 @@ pub async fn start_desktop_configuration(
         Some(admin.id),
         email.clone(),
         token_timeout_seconds,
-        Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+        Some(ENROLLMENT_TOKEN_TYPE.to_owned()),
     );
     if let Some(device_id) = device_id {
         desktop_configuration.device_id = Some(device_id);
