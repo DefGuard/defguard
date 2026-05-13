@@ -905,7 +905,6 @@ export type ApiDevicePostureOsRule =
       antivirus_required: boolean | null;
       ad_domain_joined_required: boolean | null;
       windows_security_update_current: boolean | null;
-      windows_security_update_cadence: string | null;
     }
   | {
       os_type: 'macos';

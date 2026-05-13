@@ -40,17 +40,6 @@ const getConditionLabel = (condition: OperatingSystemConditionKey) => {
   }
 };
 
-const getCadenceLabel = (cadence: OperatingSystemFormState['updateCadence']) => {
-  switch (cadence) {
-    case '1d':
-      return m.posture_checks_wizard_operating_systems_updates_1_day();
-    case '1w':
-      return m.posture_checks_wizard_operating_systems_updates_1_week();
-    default:
-      return m.posture_checks_wizard_operating_systems_updates_1_month();
-  }
-};
-
 const getOperatingSystemVersionLabel = (
   operatingSystem: PostureCheckOsValue,
   version: string,
@@ -79,12 +68,6 @@ export const buildOperatingSystemSummarySection = (
       emphasized: true,
     },
   ];
-
-  if (operatingSystem === PostureCheckOs.Windows && details.securityUpdates) {
-    lines.push({
-      text: getCadenceLabel(details.updateCadence),
-    });
-  }
 
   details.conditions.forEach((condition) => {
     lines.push({ text: getConditionLabel(condition) });
@@ -115,7 +98,7 @@ export const buildClientSummarySection = (
   }
 
   return {
-    icon: 'desktop',
+    icon: 'defguard',
     label: m.posture_checks_wizard_summary_defguard_label(),
     lines,
   };

@@ -7,8 +7,8 @@ import { AppText } from '../../../shared/defguard-ui/components/AppText/AppText'
 import { Button } from '../../../shared/defguard-ui/components/Button/Button';
 import { Checkbox } from '../../../shared/defguard-ui/components/Checkbox/Checkbox';
 import { Divider } from '../../../shared/defguard-ui/components/Divider/Divider';
-import { EvenSplit } from '../../../shared/defguard-ui/components/EvenSplit/EvenSplit';
 import { FieldLabel } from '../../../shared/defguard-ui/components/FieldLabel/FieldLabel';
+import { InteractiveBlock } from '../../../shared/defguard-ui/components/InteractiveBlock/InteractiveBlock';
 import { Select } from '../../../shared/defguard-ui/components/Select/Select';
 import type { SelectOption } from '../../../shared/defguard-ui/components/Select/types';
 import { TextStyle, ThemeVariable } from '../../../shared/defguard-ui/types';
@@ -28,8 +28,6 @@ type ConditionDefinition = {
   id: OperatingSystemConditionKey;
   label: string;
 };
-
-const updateCadenceValues = ['1d', '1w', '1m'] as const;
 
 const getVersionOptionLabel = (operatingSystem: PostureCheckOsValue, value: string) => {
   switch (operatingSystem) {
@@ -63,24 +61,6 @@ export const AddPostureCheckOperatingSystemsStep = () => {
   const updateOperatingSystemDetails = useAddPostureCheckWizardStore(
     (s) => s.updateOperatingSystemDetails,
   );
-
-  const updateCadenceOptions: SelectOption<string>[] = [
-    {
-      key: updateCadenceValues[0],
-      label: m.posture_checks_wizard_operating_systems_updates_1_day(),
-      value: updateCadenceValues[0],
-    },
-    {
-      key: updateCadenceValues[1],
-      label: m.posture_checks_wizard_operating_systems_updates_1_week(),
-      value: updateCadenceValues[1],
-    },
-    {
-      key: updateCadenceValues[2],
-      label: m.posture_checks_wizard_operating_systems_updates_1_month(),
-      value: updateCadenceValues[2],
-    },
-  ];
 
   const conditionDefinitions: Record<PostureCheckOsValue, ConditionDefinition[]> = {
     [PostureCheckOs.Windows]: [
@@ -143,7 +123,9 @@ export const AddPostureCheckOperatingSystemsStep = () => {
         )
       : [...operatingSystemState[operatingSystem].conditions, condition];
 
-    updateOperatingSystemDetails(operatingSystem, { conditions: nextConditions });
+    updateOperatingSystemDetails(operatingSystem, {
+      conditions: nextConditions,
+    });
   };
 
   const renderOperatingSystemCard = (operatingSystem: PostureCheckOsValue) => {
@@ -152,9 +134,6 @@ export const AddPostureCheckOperatingSystemsStep = () => {
     const selectedVersion =
       versionOptions.find((option) => option.value === details.version) ??
       versionOptions[0];
-    const selectedUpdateCadence =
-      updateCadenceOptions.find((option) => option.value === details.updateCadence) ??
-      updateCadenceOptions[2];
     const conditions = conditionDefinitions[operatingSystem];
     const showWindowsSecurityUpdate = operatingSystem === PostureCheckOs.Windows;
 
@@ -166,49 +145,32 @@ export const AddPostureCheckOperatingSystemsStep = () => {
         }}
       >
         <div className="system-details">
-          <EvenSplit parts={showWindowsSecurityUpdate ? 2 : 1}>
-            <Select
-              options={versionOptions}
-              value={selectedVersion}
-              onChange={(option) => {
-                updateOperatingSystemDetails(operatingSystem, { version: option.value });
-              }}
-            />
-            {showWindowsSecurityUpdate && (
-              <Select
-                options={updateCadenceOptions}
-                value={selectedUpdateCadence}
-                onChange={(option) => {
-                  updateOperatingSystemDetails(operatingSystem, {
-                    updateCadence: option.value,
-                  });
-                }}
-              />
-            )}
-          </EvenSplit>
+          <Select
+            options={versionOptions}
+            value={selectedVersion}
+            onChange={(option) => {
+              updateOperatingSystemDetails(operatingSystem, {
+                version: option.value,
+              });
+            }}
+          />
           {showWindowsSecurityUpdate && (
-            <Checkbox
-              active={details.securityUpdates}
+            <InteractiveBlock
+              variant="checkbox"
+              value={details.securityUpdates}
+              title={m.posture_checks_wizard_operating_systems_windows_security_updates()}
+              content={m.posture_checks_wizard_operating_systems_windows_security_updates_description()}
               onClick={() => {
                 updateOperatingSystemDetails(operatingSystem, {
                   securityUpdates: !details.securityUpdates,
                 });
               }}
-            >
-              <div className="checkbox-copy">
-                <AppText font={TextStyle.TBodySm500}>
-                  {m.posture_checks_wizard_operating_systems_windows_security_updates()}
-                </AppText>
-                <AppText font={TextStyle.TBodySm400} color={ThemeVariable.FgNeutral}>
-                  {m.posture_checks_wizard_operating_systems_windows_security_updates_description()}
-                </AppText>
-              </div>
-            </Checkbox>
+            />
           )}
           {showWindowsSecurityUpdate && conditions.length > 0 && <Divider />}
           {conditions.length > 0 && (
             <div className="system-conditions">
-              <div className="section-copy">
+              <div className="section-text">
                 <AppText font={TextStyle.TBodySm500}>
                   {m.posture_checks_wizard_operating_systems_security_conditions()}
                 </AppText>

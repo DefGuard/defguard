@@ -21,7 +21,6 @@ export type OperatingSystemConditionKey =
 export type OperatingSystemFormState = {
   conditions: OperatingSystemConditionKey[];
   securityUpdates: boolean;
-  updateCadence: string;
   version: string;
 };
 
@@ -32,31 +31,26 @@ const createDefaultOperatingSystemState = (): Record<
   [PostureCheckOs.Windows]: {
     conditions: [],
     securityUpdates: false,
-    updateCadence: '1m',
     version: 'Windows 11',
   },
   [PostureCheckOs.Macos]: {
     conditions: [],
     securityUpdates: false,
-    updateCadence: '1m',
     version: postureCheckVersionValues.macos[postureCheckVersionValues.macos.length - 1],
   },
   [PostureCheckOs.Linux]: {
     conditions: [],
     securityUpdates: false,
-    updateCadence: '1m',
     version: postureCheckVersionValues.linux[postureCheckVersionValues.linux.length - 1],
   },
   [PostureCheckOs.Ios]: {
     conditions: [],
     securityUpdates: false,
-    updateCadence: '1m',
     version: postureCheckVersionValues.ios[postureCheckVersionValues.ios.length - 1],
   },
   [PostureCheckOs.Android]: {
     conditions: [],
     securityUpdates: false,
-    updateCadence: '1m',
     version:
       postureCheckVersionValues.android[postureCheckVersionValues.android.length - 1],
   },
@@ -107,7 +101,9 @@ export const useAddPostureCheckWizardStore = create<Store>()((set, get) => ({
       return;
     }
 
-    set({ configuredOperatingSystems: [...get().configuredOperatingSystems, value] });
+    set({
+      configuredOperatingSystems: [...get().configuredOperatingSystems, value],
+    });
   },
   removeConfiguredOperatingSystem: (value) => {
     set({

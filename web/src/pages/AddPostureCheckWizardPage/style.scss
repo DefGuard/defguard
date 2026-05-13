@@ -28,8 +28,7 @@
     gap: var(--spacing-xl);
   }
 
-  .checkbox-copy,
-  .section-copy {
+  .section-text {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
@@ -71,12 +70,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-2xl);
-  }
-
-  .client-version-checkbox-copy {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
   }
 }
 

@@ -11,7 +11,6 @@ describe('add posture check summary helpers', () => {
       buildOperatingSystemSummarySection(PostureCheckOs.Windows, {
         conditions: ['active-directory', 'antivirus'],
         securityUpdates: true,
-        updateCadence: '1w',
         version: 'Windows 10',
       }),
     ).toEqual({
@@ -19,7 +18,6 @@ describe('add posture check summary helpers', () => {
       label: 'Windows',
       lines: [
         { emphasized: true, text: 'Windows 10 and higher' },
-        { text: 'Updated within 1 week' },
         { text: 'Connected to Active Directory' },
         { text: 'Antivirus installed' },
       ],
@@ -28,7 +26,7 @@ describe('add posture check summary helpers', () => {
 
   it('builds the defguard summary section from the client-version settings', () => {
     expect(buildClientSummarySection('2.0', true)).toEqual({
-      icon: 'desktop',
+      icon: 'defguard',
       label: 'Defguard',
       lines: [
         { emphasized: true, text: 'Defguard 2.0 and higher' },

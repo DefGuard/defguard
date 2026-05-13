@@ -54,7 +54,6 @@ describe('add posture check wizard store', () => {
     store.updateOperatingSystemDetails(PostureCheckOs.Windows, {
       conditions: ['disk-encryption', 'antivirus'],
       securityUpdates: true,
-      updateCadence: '1w',
       version: 'Windows 10',
     });
 
@@ -65,7 +64,6 @@ describe('add posture check wizard store', () => {
       {
         conditions: ['disk-encryption', 'antivirus'],
         securityUpdates: true,
-        updateCadence: '1w',
         version: 'Windows 10',
       },
     );

@@ -125,7 +125,9 @@ describe('removeEmptyStrings', () => {
   });
 
   it('should remove keys with whitespace-only string values', () => {
-    expect(removeEmptyStrings({ a: '   ', b: 'hello' })).toEqual({ b: 'hello' });
+    expect(removeEmptyStrings({ a: '   ', b: 'hello' })).toEqual({
+      b: 'hello',
+    });
   });
 
   it('should keep non-string falsy values', () => {
@@ -155,11 +157,17 @@ describe('removeEmptyStrings', () => {
 
 describe('removeNulls', () => {
   it('should remove null values from flat object', () => {
-    expect(removeNulls({ a: 1, b: null, c: 'hello' })).toEqual({ a: 1, c: 'hello' });
+    expect(removeNulls({ a: 1, b: null, c: 'hello' })).toEqual({
+      a: 1,
+      c: 'hello',
+    });
   });
 
   it('should remove undefined values from flat object', () => {
-    expect(removeNulls({ a: 1, b: undefined, c: 'hello' })).toEqual({ a: 1, c: 'hello' });
+    expect(removeNulls({ a: 1, b: undefined, c: 'hello' })).toEqual({
+      a: 1,
+      c: 'hello',
+    });
   });
 
   it('should recursively remove nulls from nested objects', () => {
@@ -175,7 +183,11 @@ describe('removeNulls', () => {
   });
 
   it('should keep falsy non-null/undefined values', () => {
-    expect(removeNulls({ a: 0, b: false, c: '' })).toEqual({ a: 0, b: false, c: '' });
+    expect(removeNulls({ a: 0, b: false, c: '' })).toEqual({
+      a: 0,
+      b: false,
+      c: '',
+    });
   });
 });
 
@@ -186,7 +198,10 @@ describe('resourceById', () => {
       { id: 2, name: 'Bob' },
     ];
     const result = resourceById(items);
-    expect(result).toEqual({ 1: { id: 1, name: 'Alice' }, 2: { id: 2, name: 'Bob' } });
+    expect(result).toEqual({
+      1: { id: 1, name: 'Alice' },
+      2: { id: 2, name: 'Bob' },
+    });
   });
 
   it('should return null for undefined input', () => {

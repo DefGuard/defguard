@@ -43,9 +43,6 @@ const buildOperatingSystemRule = (
           ? true
           : null,
         windows_security_update_current: details.securityUpdates ? true : null,
-        windows_security_update_cadence: details.securityUpdates
-          ? details.updateCadence
-          : null,
       };
     case PostureCheckOs.Macos:
       return {

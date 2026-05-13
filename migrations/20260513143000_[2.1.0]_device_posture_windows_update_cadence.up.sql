@@ -1,2 +1,0 @@
-ALTER TABLE device_posture_os_rule
-ADD COLUMN windows_security_update_cadence text;

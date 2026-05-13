@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"posture_id\",\"os_type\" \"os_type: _\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_current\",\"windows_security_update_cadence\",\"min_kernel_version\",\"device_integrity_required\" FROM \"device_posture_os_rule\"",
+  "query": "SELECT id, \"posture_id\",\"os_type\" \"os_type: _\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_current\",\"min_kernel_version\",\"device_integrity_required\" FROM \"device_posture_os_rule\"",
   "describe": {
     "columns": [
       {
@@ -58,16 +58,11 @@
       },
       {
         "ordinal": 8,
-        "name": "windows_security_update_cadence",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
         "name": "min_kernel_version",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "device_integrity_required",
         "type_info": "Bool"
       }
@@ -85,9 +80,8 @@
       true,
       true,
       true,
-      true,
       true
     ]
   },
-  "hash": "2bfd67d814f47e42eb35080ac51ca097fc77e32963dd43d2a15a343eb129abfb"
+  "hash": "f694147f2e2d667ef7b438fb9140883ba7e43903204660b12c459c36a5ba7ee4"
 }
