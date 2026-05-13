@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import type { Device, DeviceNetworkInfo } from '../src/shared/api/types';
 import { joinCsv, splitCsv } from '../src/shared/utils/csv';
-import { smallestNetworkCapacity } from '../src/shared/utils/network';
+import { isValidDefguardUrl } from '../src/shared/utils/defguardUrl';
 import { formatFileName } from '../src/shared/utils/formatFileName';
 import { formatIpForDisplay } from '../src/shared/utils/formatIpForDisplay';
+import { smallestNetworkCapacity } from '../src/shared/utils/network';
 import { removeEmptyStrings } from '../src/shared/utils/removeEmptyStrings';
 import { removeNulls } from '../src/shared/utils/removeNulls';
 import { resourceById, resourceDisplayMap } from '../src/shared/utils/resourceById';
 import { isDeviceOnline, isUserOnline } from '../src/shared/utils/userOnlineStatus';
-import { isValidDefguardUrl } from '../src/shared/utils/defguardUrl';
-import type { Device, DeviceNetworkInfo } from '../src/shared/api/types';
-
 
 describe('joinCsv', () => {
   it('should join array into comma-separated string', () => {
@@ -32,7 +31,6 @@ describe('joinCsv', () => {
   it('should return empty string for undefined', () => {
     expect(joinCsv(undefined)).toBe('');
   });
-
 });
 
 describe('splitCsv', () => {
@@ -57,7 +55,6 @@ describe('splitCsv', () => {
   it('should return empty array for whitespace-only string', () => {
     expect(splitCsv('   ')).toEqual([]);
   });
-
 });
 
 describe('joinCsv / splitCsv round-trip', () => {
@@ -66,7 +63,6 @@ describe('joinCsv / splitCsv round-trip', () => {
     expect(splitCsv(joinCsv(original))).toEqual(original);
   });
 });
-
 
 describe('formatFileName', () => {
   it('should convert to lowercase', () => {
@@ -91,7 +87,6 @@ describe('formatFileName', () => {
     expect(formatFileName('   ')).toBe('');
   });
 });
-
 
 describe('formatIpForDisplay', () => {
   it('should strip /32 from IPv4 host address', () => {
@@ -124,7 +119,6 @@ describe('formatIpForDisplay', () => {
   });
 });
 
-
 describe('removeEmptyStrings', () => {
   it('should remove keys with empty string values', () => {
     expect(removeEmptyStrings({ a: '', b: 'hello' })).toEqual({ b: 'hello' });
@@ -135,11 +129,18 @@ describe('removeEmptyStrings', () => {
   });
 
   it('should keep non-string falsy values', () => {
-    expect(removeEmptyStrings({ a: 0, b: false, c: null })).toEqual({ a: 0, b: false, c: null });
+    expect(removeEmptyStrings({ a: 0, b: false, c: null })).toEqual({
+      a: 0,
+      b: false,
+      c: null,
+    });
   });
 
   it('should keep non-empty strings', () => {
-    expect(removeEmptyStrings({ a: 'value', b: ' space ' })).toEqual({ a: 'value', b: ' space ' });
+    expect(removeEmptyStrings({ a: 'value', b: ' space ' })).toEqual({
+      a: 'value',
+      b: ' space ',
+    });
   });
 
   it('should handle object with all empty strings', () => {
@@ -151,7 +152,6 @@ describe('removeEmptyStrings', () => {
     expect(removeEmptyStrings(input)).toEqual(input);
   });
 });
-
 
 describe('removeNulls', () => {
   it('should remove null values from flat object', () => {
@@ -196,7 +196,6 @@ describe('resourceById', () => {
   it('should return empty object for empty array', () => {
     expect(resourceById([])).toEqual({});
   });
-
 });
 
 describe('resourceDisplayMap', () => {
@@ -207,9 +206,7 @@ describe('resourceDisplayMap', () => {
     ];
     expect(resourceDisplayMap(items)).toEqual({ 1: 'Alpha', 2: 'Beta' });
   });
-
 });
-
 
 const makeNetwork = (is_active: boolean): DeviceNetworkInfo => ({
   device_wireguard_ips: [],
@@ -243,30 +240,28 @@ describe('isDeviceOnline', () => {
     const device = makeDevice([]);
     expect(isDeviceOnline(device)).toBe(false);
   });
-
 });
 
 describe('isUserOnline', () => {
   it('should return true if any device has an active network', () => {
     const user = {
       devices: [makeDevice([makeNetwork(false)]), makeDevice([makeNetwork(true)])],
-    } as any;
+    };
     expect(isUserOnline(user)).toBe(true);
   });
 
   it('should return false if no device is online', () => {
     const user = {
       devices: [makeDevice([makeNetwork(false)]), makeDevice([makeNetwork(false)])],
-    } as any;
+    };
     expect(isUserOnline(user)).toBe(false);
   });
 
   it('should return false if user has no devices', () => {
-    const user = { devices: [] } as any;
+    const user = { devices: [] };
     expect(isUserOnline(user)).toBe(false);
   });
 });
-
 
 describe('isValidDefguardUrl', () => {
   it('should accept valid https domain URLs', () => {
@@ -299,7 +294,6 @@ describe('isValidDefguardUrl', () => {
     expect(isValidDefguardUrl('ftp://')).toBe(false);
   });
 });
-
 
 describe('smallestNetworkCapacity', () => {
   // IPv4 cases

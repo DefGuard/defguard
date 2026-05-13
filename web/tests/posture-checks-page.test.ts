@@ -4,10 +4,13 @@ import {
   getPostureCheckOsLabel,
   mapApiDevicePostureToRow,
   mapPostureCheckFilterValueToRequestValue,
-  postureCheckColumnFilterOptions,
   type PostureCheckRow,
+  postureCheckColumnFilterOptions,
 } from '../src/pages/PostureChecksPage/postureChecks';
-import { PostureCheckOs, PostureCheckRequirement } from '../src/pages/PostureChecksPage/types';
+import {
+  PostureCheckOs,
+  PostureCheckRequirement,
+} from '../src/pages/PostureChecksPage/types';
 import type { ApiDevicePosture } from '../src/shared/api/types';
 
 describe('posture checks page helpers', () => {
@@ -58,7 +61,7 @@ describe('posture checks page helpers', () => {
       iosFilters: ['17'],
       android: 'Android 15+, Device integrity',
       androidFilters: ['15', PostureCheckRequirement.DeviceIntegrity],
-      defguard: 'Defguard 1.6+, Prerelease allowed',
+      defguard: 'Defguard 1.6+, Pre-release allowed',
       defguardFilters: ['1.6', PostureCheckRequirement.PrereleaseAllowed],
     });
   });
@@ -113,7 +116,11 @@ describe('posture checks page helpers', () => {
         id: 99,
         name: 'First posture check',
         windows: 'Windows 11, Disk encryption, Antivirus',
-        windowsFilters: ['Windows 11', PostureCheckRequirement.DiskEncryption, 'Antivirus'],
+        windowsFilters: [
+          'Windows 11',
+          PostureCheckRequirement.DiskEncryption,
+          'Antivirus',
+        ],
         macos: '-',
         macosFilters: [],
         linux: 'Kernel 6.x, Disk encryption',
@@ -170,8 +177,8 @@ describe('posture checks page helpers', () => {
     expect(mapPostureCheckFilterValueToRequestValue('Windows 11')).toBe('Windows 11');
     expect(mapPostureCheckFilterValueToRequestValue('6.x')).toBe('6.x');
     expect(mapPostureCheckFilterValueToRequestValue('1.6')).toBe('1.6');
-    expect(mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed)).toBe(
-      'Prerelease allowed',
-    );
+    expect(
+      mapPostureCheckFilterValueToRequestValue(PostureCheckRequirement.PrereleaseAllowed),
+    ).toBe('Pre-release allowed');
   });
 });

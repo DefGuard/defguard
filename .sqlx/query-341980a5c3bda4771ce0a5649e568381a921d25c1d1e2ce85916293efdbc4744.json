@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"device_posture_os_rule\" (\"posture_id\",\"os_type\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_current\",\"min_kernel_version\",\"device_integrity_required\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
+  "query": "INSERT INTO \"device_posture_os_rule\" (\"posture_id\",\"os_type\",\"min_os_version\",\"disk_encryption_required\",\"antivirus_required\",\"ad_domain_joined_required\",\"windows_security_update_current\",\"windows_security_update_cadence\",\"min_kernel_version\",\"device_integrity_required\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,7 @@
         "Bool",
         "Bool",
         "Text",
+        "Text",
         "Bool"
       ]
     },
@@ -39,5 +40,5 @@
       false
     ]
   },
-  "hash": "0d6fec510bbe64e1f9475b210efd9b910f589d8b8f15d11babd409a3fcbdd968"
+  "hash": "341980a5c3bda4771ce0a5649e568381a921d25c1d1e2ce85916293efdbc4744"
 }

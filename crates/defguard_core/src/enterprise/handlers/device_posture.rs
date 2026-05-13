@@ -37,6 +37,9 @@ pub static CLIENT_VERSIONS: &[&str] = &["1.6", "2.0"];
 /// Valid Linux kernel version families for posture rules.
 pub static KERNEL_VERSIONS: &[&str] = &["5.x", "6.x", "7.x"];
 
+/// Valid Windows security update cadences for posture rules.
+pub static WINDOWS_SECURITY_UPDATE_CADENCES: &[&str] = &["1d", "1w", "1m"];
+
 /// Returns the list of valid `min_os_version` values for a given OS type.
 /// TODO: consider a better format for storing versions
 #[must_use]
@@ -68,6 +71,7 @@ pub enum ApiOsRule {
         antivirus_required: Option<bool>,
         ad_domain_joined_required: Option<bool>,
         windows_security_update_current: Option<bool>,
+        windows_security_update_cadence: Option<String>,
     },
     Macos {
         min_os_version: Option<String>,
@@ -109,6 +113,7 @@ impl ApiOsRule {
                 antivirus_required,
                 ad_domain_joined_required,
                 windows_security_update_current,
+                windows_security_update_cadence,
             } => DevicePostureOsRule {
                 id: NoId,
                 posture_id,
@@ -118,6 +123,7 @@ impl ApiOsRule {
                 antivirus_required,
                 ad_domain_joined_required,
                 windows_security_update_current,
+                windows_security_update_cadence,
                 min_kernel_version: None,
                 device_integrity_required: None,
             },
@@ -134,6 +140,7 @@ impl ApiOsRule {
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
                 min_kernel_version: None,
                 device_integrity_required,
             },
@@ -149,6 +156,7 @@ impl ApiOsRule {
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
                 min_kernel_version,
                 device_integrity_required: None,
             },
@@ -161,6 +169,7 @@ impl ApiOsRule {
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
                 min_kernel_version: None,
                 device_integrity_required: None,
             },
@@ -176,6 +185,7 @@ impl ApiOsRule {
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
                 min_kernel_version: None,
                 device_integrity_required,
             },
@@ -192,6 +202,7 @@ impl From<DevicePostureOsRule<Id>> for ApiOsRule {
                 antivirus_required: rule.antivirus_required,
                 ad_domain_joined_required: rule.ad_domain_joined_required,
                 windows_security_update_current: rule.windows_security_update_current,
+                windows_security_update_cadence: rule.windows_security_update_cadence,
             },
             OsType::Macos => Self::Macos {
                 min_os_version: rule.min_os_version,
@@ -505,6 +516,27 @@ fn validate_device_posture_os_rules(os_rules: &[ApiOsRule]) -> Result<(), WebErr
                     "Unknown min_kernel_version '{kv}'. Valid values: {}",
                     KERNEL_VERSIONS.join(", ")
                 )));
+            }
+        }
+        if let ApiOsRule::Windows {
+            windows_security_update_current,
+            windows_security_update_cadence,
+            ..
+        } = rule
+        {
+            if let Some(cadence) = windows_security_update_cadence {
+                if !WINDOWS_SECURITY_UPDATE_CADENCES.contains(&cadence.as_str()) {
+                    return Err(WebError::BadRequest(format!(
+                        "Unknown windows_security_update_cadence '{cadence}'. Valid values: {}",
+                        WINDOWS_SECURITY_UPDATE_CADENCES.join(", ")
+                    )));
+                }
+                if *windows_security_update_current != Some(true) {
+                    return Err(WebError::BadRequest(
+                        "windows_security_update_cadence requires windows_security_update_current = true"
+                            .to_owned(),
+                    ));
+                }
             }
         }
     }

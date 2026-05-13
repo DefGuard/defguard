@@ -905,6 +905,7 @@ export type ApiDevicePostureOsRule =
       antivirus_required: boolean | null;
       ad_domain_joined_required: boolean | null;
       windows_security_update_current: boolean | null;
+      windows_security_update_cadence: string | null;
     }
   | {
       os_type: 'macos';
@@ -927,6 +928,8 @@ export type ApiDevicePostureOsRule =
       device_integrity_required: boolean | null;
     };
 
+export type EditDevicePostureOsRule = ApiDevicePostureOsRule;
+
 export interface ApiDevicePosture {
   id: number;
   name: string;
@@ -935,6 +938,14 @@ export interface ApiDevicePosture {
   allow_prerelease_client: boolean;
   os_rules: ApiDevicePostureOsRule[];
   locations: number[];
+}
+
+export interface EditDevicePostureRequest {
+  name: string;
+  description: string | null;
+  min_client_version: string | null;
+  allow_prerelease_client: boolean;
+  os_rules: EditDevicePostureOsRule[];
 }
 
 export type InitialSetupStepValue =

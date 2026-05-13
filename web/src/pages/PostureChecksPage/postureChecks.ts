@@ -152,6 +152,19 @@ export const isPostureCheckFilterValue = (
 const mapVersionFilterValue = (value: string | undefined | null) =>
   value && isPostureCheckFilterValue(value) ? value : undefined;
 
+const getWindowsSecurityUpdateLabel = (value: string | null) => {
+  switch (value) {
+    case '1d':
+      return m.posture_checks_wizard_operating_systems_updates_1_day();
+    case '1w':
+      return m.posture_checks_wizard_operating_systems_updates_1_week();
+    case '1m':
+      return m.posture_checks_wizard_operating_systems_updates_1_month();
+    default:
+      return PostureCheckRequirement.SecurityUpdates;
+  }
+};
+
 const joinRequirementParts = (parts: Array<string | null | undefined | false>) => {
   const filteredParts = parts.filter((part): part is string => Boolean(part));
 
@@ -186,7 +199,8 @@ const getOsRuleParts = (
           rule.disk_encryption_required && PostureCheckRequirement.DiskEncryption,
           rule.antivirus_required && PostureCheckRequirement.Antivirus,
           rule.ad_domain_joined_required && PostureCheckRequirement.AdJoined,
-          rule.windows_security_update_current && PostureCheckRequirement.SecurityUpdates,
+          rule.windows_security_update_current &&
+            getWindowsSecurityUpdateLabel(rule.windows_security_update_cadence),
         ],
         filterParts: [
           mapVersionFilterValue(rule.min_os_version),

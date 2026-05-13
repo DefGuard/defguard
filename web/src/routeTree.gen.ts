@@ -35,6 +35,7 @@ import { Route as WizardMigrationLocationsRouteImport } from './routes/_wizard/m
 import { Route as AuthorizedWizardSetupEdgeRouteImport } from './routes/_authorized/_wizard/setup-edge'
 import { Route as AuthorizedWizardSettingsEdgeCertificateRouteImport } from './routes/_authorized/_wizard/settings-edge-certificate'
 import { Route as AuthorizedWizardSettingsCoreCertificateRouteImport } from './routes/_authorized/_wizard/settings-core-certificate'
+import { Route as AuthorizedWizardAddPostureCheckRouteImport } from './routes/_authorized/_wizard/add-posture-check'
 import { Route as AuthorizedWizardAddLocationRouteImport } from './routes/_authorized/_wizard/add-location'
 import { Route as AuthorizedWizardAddExternalOpenidRouteImport } from './routes/_authorized/_wizard/add-external-openid'
 import { Route as AuthorizedDefaultWebhooksRouteImport } from './routes/_authorized/_default/webhooks'
@@ -204,6 +205,12 @@ const AuthorizedWizardSettingsCoreCertificateRoute =
   AuthorizedWizardSettingsCoreCertificateRouteImport.update({
     id: '/_wizard/settings-core-certificate',
     path: '/settings-core-certificate',
+    getParentRoute: () => AuthorizedRoute,
+  } as any)
+const AuthorizedWizardAddPostureCheckRoute =
+  AuthorizedWizardAddPostureCheckRouteImport.update({
+    id: '/_wizard/add-posture-check',
+    path: '/add-posture-check',
     getParentRoute: () => AuthorizedRoute,
   } as any)
 const AuthorizedWizardAddLocationRoute =
@@ -458,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/add-posture-check': typeof AuthorizedWizardAddPostureCheckRoute
   '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
@@ -521,6 +529,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/add-posture-check': typeof AuthorizedWizardAddPostureCheckRoute
   '/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
@@ -588,6 +597,7 @@ export interface FileRoutesById {
   '/_authorized/_default/webhooks': typeof AuthorizedDefaultWebhooksRoute
   '/_authorized/_wizard/add-external-openid': typeof AuthorizedWizardAddExternalOpenidRoute
   '/_authorized/_wizard/add-location': typeof AuthorizedWizardAddLocationRoute
+  '/_authorized/_wizard/add-posture-check': typeof AuthorizedWizardAddPostureCheckRoute
   '/_authorized/_wizard/settings-core-certificate': typeof AuthorizedWizardSettingsCoreCertificateRoute
   '/_authorized/_wizard/settings-edge-certificate': typeof AuthorizedWizardSettingsEdgeCertificateRoute
   '/_authorized/_wizard/setup-edge': typeof AuthorizedWizardSetupEdgeRoute
@@ -654,6 +664,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/add-posture-check'
     | '/settings-core-certificate'
     | '/settings-edge-certificate'
     | '/setup-edge'
@@ -717,6 +728,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/add-external-openid'
     | '/add-location'
+    | '/add-posture-check'
     | '/settings-core-certificate'
     | '/settings-edge-certificate'
     | '/setup-edge'
@@ -783,6 +795,7 @@ export interface FileRouteTypes {
     | '/_authorized/_default/webhooks'
     | '/_authorized/_wizard/add-external-openid'
     | '/_authorized/_wizard/add-location'
+    | '/_authorized/_wizard/add-posture-check'
     | '/_authorized/_wizard/settings-core-certificate'
     | '/_authorized/_wizard/settings-edge-certificate'
     | '/_authorized/_wizard/setup-edge'
@@ -1018,6 +1031,13 @@ declare module '@tanstack/react-router' {
       path: '/settings-core-certificate'
       fullPath: '/settings-core-certificate'
       preLoaderRoute: typeof AuthorizedWizardSettingsCoreCertificateRouteImport
+      parentRoute: typeof AuthorizedRoute
+    }
+    '/_authorized/_wizard/add-posture-check': {
+      id: '/_authorized/_wizard/add-posture-check'
+      path: '/add-posture-check'
+      fullPath: '/add-posture-check'
+      preLoaderRoute: typeof AuthorizedWizardAddPostureCheckRouteImport
       parentRoute: typeof AuthorizedRoute
     }
     '/_authorized/_wizard/add-location': {
@@ -1385,6 +1405,7 @@ interface AuthorizedRouteChildren {
   AuthorizedPlaygroundRoute: typeof AuthorizedPlaygroundRoute
   AuthorizedWizardAddExternalOpenidRoute: typeof AuthorizedWizardAddExternalOpenidRoute
   AuthorizedWizardAddLocationRoute: typeof AuthorizedWizardAddLocationRoute
+  AuthorizedWizardAddPostureCheckRoute: typeof AuthorizedWizardAddPostureCheckRoute
   AuthorizedWizardSettingsCoreCertificateRoute: typeof AuthorizedWizardSettingsCoreCertificateRoute
   AuthorizedWizardSettingsEdgeCertificateRoute: typeof AuthorizedWizardSettingsEdgeCertificateRoute
   AuthorizedWizardSetupEdgeRoute: typeof AuthorizedWizardSetupEdgeRoute
@@ -1396,6 +1417,7 @@ const AuthorizedRouteChildren: AuthorizedRouteChildren = {
   AuthorizedWizardAddExternalOpenidRoute:
     AuthorizedWizardAddExternalOpenidRoute,
   AuthorizedWizardAddLocationRoute: AuthorizedWizardAddLocationRoute,
+  AuthorizedWizardAddPostureCheckRoute: AuthorizedWizardAddPostureCheckRoute,
   AuthorizedWizardSettingsCoreCertificateRoute:
     AuthorizedWizardSettingsCoreCertificateRoute,
   AuthorizedWizardSettingsEdgeCertificateRoute:

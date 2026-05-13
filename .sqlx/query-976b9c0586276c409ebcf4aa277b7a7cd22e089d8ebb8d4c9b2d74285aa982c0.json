@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"device_posture_os_rule\" SET \"posture_id\" = $2,\"os_type\" = $3,\"min_os_version\" = $4,\"disk_encryption_required\" = $5,\"antivirus_required\" = $6,\"ad_domain_joined_required\" = $7,\"windows_security_update_current\" = $8,\"min_kernel_version\" = $9,\"device_integrity_required\" = $10 WHERE id = $1",
+  "query": "UPDATE \"device_posture_os_rule\" SET \"posture_id\" = $2,\"os_type\" = $3,\"min_os_version\" = $4,\"disk_encryption_required\" = $5,\"antivirus_required\" = $6,\"ad_domain_joined_required\" = $7,\"windows_security_update_current\" = $8,\"windows_security_update_cadence\" = $9,\"min_kernel_version\" = $10,\"device_integrity_required\" = $11 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -27,10 +27,11 @@
         "Bool",
         "Bool",
         "Text",
+        "Text",
         "Bool"
       ]
     },
     "nullable": []
   },
-  "hash": "d27fc58c77a426371d02b6d6de5567ba8d71028e15208f3fa3906ad05f8fdec5"
+  "hash": "976b9c0586276c409ebcf4aa277b7a7cd22e089d8ebb8d4c9b2d74285aa982c0"
 }

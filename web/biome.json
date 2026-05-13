@@ -9,6 +9,7 @@
     "ignoreUnknown": false,
     "includes": [
       "src/**",
+      "tests/**",
       "!src/messages",
       "!src/paraglide/**/*.js",
       "!src/routeTree.gen.ts",

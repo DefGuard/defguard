@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import type { ColumnFiltersState } from '@tanstack/react-table';
 import { Suspense, useMemo, useState } from 'react';
 import { m } from '../../paraglide/messages';
@@ -39,6 +40,7 @@ const mapColumnFiltersToRequest = (columnFilters: ColumnFiltersState) => {
 };
 
 const PostureChecksContent = () => {
+  const navigate = useNavigate();
   const { data: licenseInfo, isFetching: licenseInfoFetching } = useSuspenseQuery(
     getLicenseInfoQueryOptions,
   );
@@ -83,11 +85,11 @@ const PostureChecksContent = () => {
       testId: 'add-posture-check',
       onClick: () => {
         licenseActionCheck(canUseEnterpriseFeature(licenseInfo), () => {
-          // TODO: Implement add posture check flow
+          void navigate({ to: '/add-posture-check' });
         });
       },
     }),
-    [licenseInfo, licenseInfoFetching],
+    [licenseInfo, licenseInfoFetching, navigate],
   );
 
   if (isLoading) {

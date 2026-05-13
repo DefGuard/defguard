@@ -39,6 +39,10 @@ export type PostureCheckVersionValue =
   | ArrayValues<(typeof postureCheckVersionValues)['android']>
   | ArrayValues<(typeof postureCheckVersionValues)['defguard']>;
 
+export type PostureCheckDefguardVersionValue = ArrayValues<
+  (typeof postureCheckVersionValues)['defguard']
+>;
+
 export type PostureCheckFilterValue =
   | PostureCheckVersionValue
   | PostureCheckRequirementValue;

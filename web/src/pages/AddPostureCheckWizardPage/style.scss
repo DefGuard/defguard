@@ -1,0 +1,148 @@
+.add-posture-check-operating-systems-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+
+  .content-track {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+  }
+
+  .copy-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    max-width: 42rem;
+  }
+
+  .systems-list {
+    display: flex;
+    flex-flow: row wrap;
+    gap: var(--spacing-md);
+  }
+
+  .system-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .checkbox-copy,
+  .section-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .system-conditions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .condition-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+
+    .checkbox > .track.with-custom-label {
+      align-items: center;
+    }
+
+    .field-label {
+      padding-bottom: 0;
+      font: var(--t-body-sm-400);
+      color: var(--fg-default);
+
+      > span {
+        padding-left: 0;
+      }
+    }
+  }
+}
+
+.add-posture-check-client-version-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+
+  .client-version-track {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+  }
+
+  .client-version-checkbox-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+}
+
+.add-posture-check-details-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+
+  .details-track,
+  .details-fields {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .details-track {
+    gap: var(--spacing-xl);
+  }
+
+  .details-fields {
+    gap: var(--spacing-xl);
+  }
+}
+
+.add-posture-check-summary-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+
+  .summary-track,
+  .summary-sections,
+  .summary-lines {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .summary-track {
+    gap: var(--spacing-2xl);
+  }
+
+  .summary-sections {
+    gap: var(--spacing-xl);
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 10rem) minmax(0, 1fr);
+    gap: var(--spacing-md);
+    align-items: start;
+  }
+
+  .summary-heading,
+  .summary-line {
+    display: flex;
+  }
+
+  .summary-heading {
+    gap: var(--spacing-md);
+    align-items: center;
+  }
+
+  .summary-lines {
+    gap: var(--spacing-sm);
+  }
+
+  .summary-line {
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+}

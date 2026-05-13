@@ -4,7 +4,7 @@ use defguard_core::{
         db::models::device_posture::{DevicePosture, DevicePostureSnapshot, OsType},
         handlers::device_posture::{
             ApiDevicePosture, ApiOsRule, AssignLocationsData, AssignPosturesData, CLIENT_VERSIONS,
-            EditDevicePosture, valid_os_versions,
+            EditDevicePosture, WINDOWS_SECURITY_UPDATE_CADENCES, valid_os_versions,
         },
         license::{get_cached_license, set_cached_license},
     },
@@ -405,6 +405,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
             },
             ApiOsRule::Android {
                 min_os_version: Some(android_version.to_owned()),
@@ -430,6 +431,7 @@ async fn test_device_posture_list_filters_os_and_defguard(
             antivirus_required: Some(false),
             ad_domain_joined_required: None,
             windows_security_update_current: None,
+            windows_security_update_cadence: None,
         }],
     };
     let response = client
@@ -471,6 +473,9 @@ async fn test_device_posture_os_rules_create_and_get(_: PgPoolOptions, options: 
                 antivirus_required: Some(false),
                 ad_domain_joined_required: None,
                 windows_security_update_current: Some(true),
+                windows_security_update_cadence: Some(
+                    WINDOWS_SECURITY_UPDATE_CADENCES[2].to_owned(),
+                ),
             },
             ApiOsRule::Macos {
                 min_os_version: Some(macos_version.to_owned()),
@@ -535,6 +540,7 @@ async fn test_device_posture_os_rules_update_replaces(_: PgPoolOptions, options:
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
             },
             ApiOsRule::Macos {
                 min_os_version: None,
@@ -604,6 +610,7 @@ async fn test_device_posture_os_rules_duplicate_copies(
                 antivirus_required: Some(true),
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
             },
             ApiOsRule::Android {
                 min_os_version: None,
@@ -666,6 +673,7 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
             antivirus_required: None,
             ad_domain_joined_required: None,
             windows_security_update_current: None,
+            windows_security_update_cadence: None,
         }],
     };
     let response = client
@@ -689,6 +697,7 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
             },
             ApiOsRule::Windows {
                 min_os_version: None,
@@ -696,12 +705,57 @@ async fn test_device_posture_os_rules_validation(_: PgPoolOptions, options: PgCo
                 antivirus_required: None,
                 ad_domain_joined_required: None,
                 windows_security_update_current: None,
+                windows_security_update_cadence: None,
             },
         ],
     };
     let response = client
         .post("/api/v1/device-posture")
         .json(&duplicate_os)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    let bad_update_cadence = EditDevicePosture {
+        name: "Bad cadence".to_owned(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![ApiOsRule::Windows {
+            min_os_version: None,
+            disk_encryption_required: None,
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_current: Some(true),
+            windows_security_update_cadence: Some("2w".to_owned()),
+        }],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&bad_update_cadence)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    client.assert_event_queue_is_empty();
+
+    let cadence_without_requirement = EditDevicePosture {
+        name: "Bad cadence state".to_owned(),
+        description: None,
+        min_client_version: None,
+        allow_prerelease_client: false,
+        os_rules: vec![ApiOsRule::Windows {
+            min_os_version: None,
+            disk_encryption_required: None,
+            antivirus_required: None,
+            ad_domain_joined_required: None,
+            windows_security_update_current: None,
+            windows_security_update_cadence: Some(WINDOWS_SECURITY_UPDATE_CADENCES[0].to_owned()),
+        }],
+    };
+    let response = client
+        .post("/api/v1/device-posture")
+        .json(&cadence_without_requirement)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
